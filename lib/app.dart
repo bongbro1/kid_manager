@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
             // final user = authVM.user;
             // if (user == null) return const AppManagementScreen(); // hoặc Login
 
-            // // TODO: thay bằng field role thật của bạn
+            // TODO: thay bằng field role thật của bạn
             // final role = user.role == 'parent'
             //     ? UserRole.parent
             //     : UserRole.child;
