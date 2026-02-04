@@ -5,18 +5,30 @@ class UserRepository {
   final FirebaseFirestore _db;
   UserRepository(this._db);
 
-  CollectionReference<Map<String, dynamic>> get _users => _db.collection('users');
+  CollectionReference<Map<String, dynamic>> get _users =>
+      _db.collection('users');
 
-  DocumentReference<Map<String, dynamic>> userRef(String uid) => _users.doc(uid);
+  DocumentReference<Map<String, dynamic>> userRef(String uid) =>
+      _users.doc(uid);
 
-  Stream<AppUser> watchUser(String uid) =>
-      userRef(uid).snapshots().map((s) => AppUser.fromDoc(s));
+  // ===== READ =====
 
-  Future<AppUser?> getUser(String uid) async {
+  /// 🔹 One-time fetch (Session bootstrap)
+  Future<AppUser?> getUserById(String uid) async {
     final snap = await userRef(uid).get();
     if (!snap.exists) return null;
     return AppUser.fromDoc(snap);
   }
+
+  /// 🔹 Realtime stream (role change, profile update)
+  Stream<AppUser?> watchUserById(String uid) {
+    return userRef(uid).snapshots().map((snap) {
+      if (!snap.exists) return null;
+      return AppUser.fromDoc(snap);
+    });
+  }
+
+  // ===== CREATE =====
 
   Future<void> createParentIfMissing({
     required String uid,
@@ -43,9 +55,11 @@ class UserRepository {
         'status': 'active',
         'startAt': FieldValue.serverTimestamp(),
         'endAt': null,
-      }
-    }..removeWhere((k, v) => v == null));
+      },
+    }..removeWhere((_, v) => v == null));
   }
+
+  // ===== UPDATE =====
 
   Future<void> updateProfile({
     required String uid,
@@ -66,10 +80,13 @@ class UserRepository {
   }
 
   Future<void> touchActive(String uid) async {
-    await userRef(uid).update({'lastActiveAt': FieldValue.serverTimestamp()});
+    await userRef(uid).update({
+      'lastActiveAt': FieldValue.serverTimestamp(),
+    });
   }
 
-  // List children of a parent (no kids array needed)
+  // ===== CHILDREN =====
+
   Stream<List<AppUser>> watchChildren(String parentUid) {
     return _users
         .where('role', isEqualTo: 'child')
@@ -78,4 +95,3 @@ class UserRepository {
         .map((qs) => qs.docs.map(AppUser.fromDoc).toList());
   }
 }
-  
