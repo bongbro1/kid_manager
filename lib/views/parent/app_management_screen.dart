@@ -12,7 +12,6 @@ import 'package:kid_manager/services/usage_sync_service.dart';
 import 'package:kid_manager/views/parent/usage_time_edit_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/parent/app_item.dart';
-import 'package:path_provider/path_provider.dart';
 
 class AppManagementScreen extends StatefulWidget {
   const AppManagementScreen({super.key});

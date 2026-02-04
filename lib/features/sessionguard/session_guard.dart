@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/features/presentation/shared/map_mode.dart';
 import 'package:kid_manager/features/sessionguard/splash_screen.dart';
 import 'package:kid_manager/features/sessions/sessionstatus.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
@@ -22,12 +23,14 @@ class SessionGuard extends StatelessWidget {
             return const LoginScreen();
 
           case SessionStatus.authenticated:
-            if (session.isParent) {
-              return const ParentShell();
-            }
-            return const ChildShell();
+            return AppShell(
+              mode: session.isParent
+                  ? MapMode.parent
+                  : MapMode.child,
+            );
         }
       },
     );
   }
 }
+

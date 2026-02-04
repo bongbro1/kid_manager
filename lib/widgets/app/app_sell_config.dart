@@ -1,0 +1,57 @@
+import 'package:kid_manager/features/presentation/shared/app_bottom_bar_config.dart';
+import 'package:kid_manager/views/child/child_location_screen.dart';
+import 'package:kid_manager/views/child/child_notification_screen.dart';
+import 'package:kid_manager/views/parent/parent_calendar_screen.dart';
+import 'package:kid_manager/views/parent/parent_chat_screen.dart';
+import 'package:kid_manager/views/parent/parent_dashboard_screen.dart';
+import 'package:kid_manager/views/parent/parent_location_screen.dart';
+import 'package:kid_manager/views/parent/parent_notification_screen.dart';
+import 'package:kid_manager/views/personal_info_screen.dart';
+
+class AppShellConfig {
+  final List<BottomTabConfig> tabs;
+
+  const AppShellConfig(this.tabs);
+
+  static AppShellConfig parent() => AppShellConfig([
+    BottomTabConfig(
+      iconAsset: 'assets/icons/location.svg',
+      root: const ParentLocationScreen(),
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/dashboard.svg',
+      root: const ParentDashboardScreen(),
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/sms.svg',
+      root: const ParentChatScreen(),
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/bell.svg',
+      root: const ParentNotificationScreen(),
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/calendar.svg',
+      root: const ParentCalendarScreen(),
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/user_nav.svg',
+      root: const PersonalInfoScreen(),
+    ),
+  ]);
+
+  static AppShellConfig child() => AppShellConfig([
+    BottomTabConfig(
+      iconAsset: 'assets/icons/location.svg',
+      root: const ChildLocationScreen(),
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/bell.svg',
+      root: const ChildNotificationScreen(),
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/user_nav.svg',
+      root: const PersonalInfoScreen(),
+    ),
+  ]);
+}
