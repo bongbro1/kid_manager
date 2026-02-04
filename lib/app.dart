@@ -7,6 +7,8 @@ import 'package:kid_manager/views/auth/otp_screen.dart';
 import 'package:kid_manager/views/auth/reset_pass_screen.dart';
 import 'package:kid_manager/views/auth/success_screen.dart';
 import 'package:kid_manager/views/parent/app_management_screen.dart';
+import 'package:kid_manager/views/parent/usage_time_edit_screen.dart';
+import 'package:kid_manager/views/personal_info_screen.dart';
 import 'package:kid_manager/widgets/app/app_shell.dart';
 import 'package:provider/provider.dart';
 
@@ -57,6 +59,7 @@ class MyApp extends StatelessWidget {
             // return const ChildShell();
 
             if (authVM.user == null) return const LoginScreen();
+            // return const PersonalInfoScreen();
             return const ParentShell();
           },
         ),

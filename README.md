@@ -47,5 +47,17 @@ flutter pub get
   "parentUid": "PARENT_UID"
 }
 
+## block apps schemal
+blocked_items/{userId}/apps/{packageName}
+
+{
+  "allowed": false,
+  "iconBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
+  "name": "ChildTrackerApp",
+  "packageName": "com.example.childtrackerapp",
+  "usageTime": "0h 3m",
+  "lastSeen": "2026-02-03T10:30:00Z"
+}
+
 
 

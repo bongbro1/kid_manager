@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/widgets/components/loading_view.dart';
+import 'package:kid_manager/widgets/common/loading_view.dart';
 
 class OtpScreen extends StatefulWidget {
   const OtpScreen({super.key});

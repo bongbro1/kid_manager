@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/workers/background_worker.dart';
 
 import '../repositories/auth_repository.dart';
 
@@ -32,6 +34,15 @@ class AuthVM extends ChangeNotifier {
 
   Future<bool> login(String email, String password) async {
     return _runAuthAction(() => _repo.login(email, password));
+  }
+
+  Future<void> onLoginSuccess(String userId) async {
+    // await Workmanager().registerPeriodicTask(
+    //   "sync_usage_$userId",
+    //   usageSyncTask,
+    //   frequency: const Duration(minutes: 15),
+    //   inputData: {"userId": userId},
+    // );
   }
 
   Future<bool> register(String email, String password) async {
