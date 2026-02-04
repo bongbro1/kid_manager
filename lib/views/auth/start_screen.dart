@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/widgets/components/social_login_button.dart';
+import 'package:kid_manager/widgets/common/social_login_button.dart';
 
 import '../../core/app_colors.dart';
 import '../../widgets/app/app_button.dart';
