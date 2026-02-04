@@ -21,6 +21,11 @@ Future<void> main() async {
   final storageService = StorageService();
   await storageService.init();
 
+  // await Workmanager().initialize(
+  //   callbackDispatcher,
+  //   isInDebugMode: true,
+  // );
+  
   runApp(
     MultiProvider(
       providers: [Provider<StorageService>.value(value: storageService)],
