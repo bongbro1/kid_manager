@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/app_colors.dart';
+import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
@@ -95,14 +96,20 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final raw = JsonHelper.encode(session.toJson());
-      await storage.setString('login_session', raw);
+      await storage.setString(StorageKeys.login_preference, raw);
     } else {
-      await storage.remove('login_session');
+      await storage.remove(StorageKeys.login_preference);
     }
 
     final userId = vm.user?.uid;
+
+    
+    debugPrint("UI READY 2 = ${vm.user}");
+
     if (userId == null) return;
     await vm.onLoginSuccess(userId);
+
+    await storage.setString(StorageKeys.uid, userId);
 
     if (!mounted) return;
     Navigator.pushReplacement(
