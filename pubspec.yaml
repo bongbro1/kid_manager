@@ -56,7 +56,13 @@ dependencies:
   # Location background
   location: ^8.0.1
   geolocator: ^14.0.2
-
+  
+  permission_handler: ^11.3.1
+  device_info_plus: ^10.1.0
+  android_intent_plus: ^5.1.2
+  installed_apps: ^2.1.1
+  path_provider: ^2.1.2
+  usage_stats: ^1.2.0
   # Local
   http: ^1.1.0
   intl: ^0.20.2
