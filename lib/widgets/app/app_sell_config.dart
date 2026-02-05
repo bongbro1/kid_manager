@@ -5,6 +5,7 @@ import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
 import 'package:kid_manager/views/child/child_notification_screen.dart';
+import 'package:kid_manager/views/parent/dashboard/app_management_screen.dart';
 import 'package:kid_manager/views/parent/parent_calendar_screen.dart';
 import 'package:kid_manager/views/parent/parent_chat_screen.dart';
 import 'package:kid_manager/views/parent/parent_dashboard_screen.dart';
@@ -25,7 +26,7 @@ class AppShellConfig {
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/dashboard.svg',
-      root: const ParentDashboardScreen(),
+      root: const AppManagementScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/sms.svg',
