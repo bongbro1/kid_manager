@@ -133,3 +133,16 @@ class AppUser {
     );
   }
 }
+
+extension AppUserDisplay on AppUser {
+  String get displayLabel {
+    if (displayName?.isNotEmpty == true) return displayName!;
+    if (email?.isNotEmpty == true) return email!;
+    return 'Unknown';
+  }
+  String get displayEmail {
+    if (email?.isNotEmpty == true) return email!;
+    return 'Unknown';
+  }
+}
+

@@ -1,3 +1,5 @@
+import 'package:kid_manager/models/app_user.dart';
+
 import '../services/firebase_auth_service.dart';
 import 'user_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,7 +16,15 @@ class AuthRepository {
 
   User? currentUser() =>
       _authService.currentUser;
+  Stream<AppUser?> watchSessionUser() {
+    return authStateChanges().asyncMap((fbUser) async {
+      if (fbUser == null) return null;
 
+      // Lấy AppUser từ Firestore
+      final appUser = await _users.getUserById(fbUser.uid);
+      return appUser;
+    });
+  }
   // ===== Actions =====
   Future<UserCredential> login(String email, String password) {
     return _authService.signIn(
@@ -40,6 +50,8 @@ class AuthRepository {
 
     return cred;
   }
+
+
 
   Future<void> logout() =>
       _authService.signOut();

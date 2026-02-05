@@ -4,6 +4,7 @@ import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
+import 'package:kid_manager/repositories/auth_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/views/auth/forgot_pass_screen.dart';
 import 'package:kid_manager/views/auth/signup_screen.dart';
@@ -11,6 +12,7 @@ import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_shell.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
 import 'package:provider/provider.dart';
+import 'package:kid_manager/core/storage_keys.dart';
 
 import '../../core/constants.dart';
 import '../../core/alert_service.dart';
@@ -57,8 +59,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text; // thường không trim password
 
-    final storage = context.read<StorageService>();
-
     // Validate
     if (email.isEmpty || password.isEmpty) {
       AlertService.showSnack('Vui lòng nhập đầy đủ thông tin', isError: true);
@@ -77,42 +77,34 @@ class _LoginScreenState extends State<LoginScreen> {
     // debugPrint('🔑 RememberPassword: $rememberPassword');
     // debugPrint('=========================');
 
-    // Call VM
-    final vm = context.read<AuthVM>();
-    final success = await vm.login(email, password);
+    final authRepo = context.read<AuthRepository>();
+    final storage = context.read<StorageService>();
 
-    if (!success) {
-      AlertService.error(message: vm.error ?? 'Đăng nhập thất bại');
-      return;
+    try {
+      final cred = await authRepo.login(email, password);
+      final uid = cred.user!.uid;
+
+      await storage.setString(StorageKeys.uid, uid);
+
+      // remember login
+      if (rememberPassword) {
+        final session = LoginSession(
+          email: email,
+          uid: cred.user!.uid,
+          remember: true,
+        );
+        final raw = JsonHelper.encode(session.toJson());
+        await storage.setString(StorageKeys.login_preference, raw);
+      } else {
+        await storage.remove(StorageKeys.login_preference);
+      }
+    } catch (e) {
+      AlertService.error(message: 'Đăng nhập thất bại');
     }
-
-    // ✅ Login OK
-    if (rememberPassword) {
-      final session = LoginSession(
-        email: email,
-        uid: vm.user!.uid, // hoặc FirebaseAuth.instance.currentUser!.uid
-        remember: true,
-      );
-
-      final raw = JsonHelper.encode(session.toJson());
-      await storage.setString('login_session', raw);
-    } else {
-      await storage.remove('login_session');
-    }
-
-    final userId = vm.user?.uid;
-    if (userId == null) return;
-    await vm.onLoginSuccess(userId);
-
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const ParentShell()),
-    );
   }
 
   Future<void> _loadRememberedLogin() async {
-    final raw = _storage.getString('login_session');
+    final raw = _storage.getString(StorageKeys.login_preference);
     if (raw == null) return;
 
     try {

@@ -8,7 +8,7 @@ class AuthTextField extends StatefulWidget {
 
   final String? hintText;
   final bool obscureText;
-  final bool isPassword; // ⭐ NEW
+  final bool isPassword;
   final TextInputType keyboardType;
   final TextInputAction textInputAction;
   final VoidCallback? onEditingComplete;
