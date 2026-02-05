@@ -1,4 +1,0 @@
-enum MapMode{
-  parent,
-  child
-}

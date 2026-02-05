@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/features/presentation/shared/map_mode.dart';
+import 'package:kid_manager/widgets/app/app_mode.dart';
 
 import 'package:kid_manager/widgets/app/app_bottom_nav.dart';
 import 'package:kid_manager/widgets/app/app_sell_config.dart';
 
 class AppShell extends StatefulWidget {
-  final MapMode mode;
+  final AppMode mode;
 
   const AppShell({super.key, required this.mode});
 
@@ -17,7 +17,7 @@ class _AppShellState extends State<AppShell> {
   int _index = 0;
 
   late final AppShellConfig _config =
-  widget.mode == MapMode.parent
+  widget.mode == AppMode.parent
       ? AppShellConfig.parent()
       : AppShellConfig.child();
 

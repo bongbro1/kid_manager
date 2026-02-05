@@ -1,4 +1,8 @@
 import 'package:kid_manager/features/presentation/shared/app_bottom_bar_config.dart';
+import 'package:kid_manager/features/presentation/shared/state/map_view_controller.dart';
+import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/services/location/location_service.dart';
+import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
 import 'package:kid_manager/views/child/child_notification_screen.dart';
 import 'package:kid_manager/views/parent/parent_calendar_screen.dart';
@@ -7,6 +11,7 @@ import 'package:kid_manager/views/parent/parent_dashboard_screen.dart';
 import 'package:kid_manager/views/parent/parent_location_screen.dart';
 import 'package:kid_manager/views/parent/parent_notification_screen.dart';
 import 'package:kid_manager/views/personal_info_screen.dart';
+import 'package:provider/provider.dart';
 
 class AppShellConfig {
   final List<BottomTabConfig> tabs;
@@ -43,8 +48,25 @@ class AppShellConfig {
   static AppShellConfig child() => AppShellConfig([
     BottomTabConfig(
       iconAsset: 'assets/icons/location.svg',
-      root: const ChildLocationScreen(),
+      root: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(
+            create: (context) => ChildLocationViewModel(
+              context.read<LocationRepository>(),
+              context.read<LocationServiceInterface>(),
+            ),
+          ),
+
+          ChangeNotifierProvider(
+            create: (_) => MapViewController(),
+          ),
+        ],
+        child: const ChildLocationScreen(),
+      ),
+
+
     ),
+
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
       root: const ChildNotificationScreen(),

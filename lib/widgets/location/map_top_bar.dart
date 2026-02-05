@@ -8,7 +8,7 @@ class MapTopBar extends StatelessWidget {
   const MapTopBar({
     super.key,
     this.title = 'Vị trí',
-    required this.onMenuTap,
+      required this.onMenuTap,
     required this.onAvatarTap,
   });
 

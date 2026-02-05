@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/repositories/location/location_repository_impl.dart';
 
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 
 
@@ -31,6 +34,14 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider.value(value: authRepo),
+        /// LOCATION SERVICE
+        Provider<LocationServiceInterface>(
+          create: (_) => LocationServiceImpl(),
+        ),
+        /// LOCATION REPOSITORY
+        Provider<LocationRepository>(
+          create: (_) => LocationRepositoryImpl(),
+        ),
         ChangeNotifierProvider(create: (_) => AuthVM(authRepo)),
         ChangeNotifierProvider(create: (_) => SessionVM(authRepo)),
       ],

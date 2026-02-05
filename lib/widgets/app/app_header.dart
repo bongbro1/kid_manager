@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/features/presentation/shared/map_mode.dart';
+import 'package:kid_manager/widgets/app/app_mode.dart';
 
 class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final MapMode mode;
+  final AppMode mode;
   final Widget? right;
 
   const AppHeader({
@@ -24,7 +24,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
             padding: const EdgeInsets.only(right: 12),
             child: right!,
           )
-        else if (mode == MapMode.parent)
+        else if (mode == AppMode.parent)
           const Icon(Icons.search)
         else
           const SizedBox(width: 12),
