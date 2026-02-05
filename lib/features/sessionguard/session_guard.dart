@@ -24,10 +24,10 @@ class SessionGuard extends StatelessWidget {
 
           case SessionStatus.authenticated:
             return AppShell(
-              // mode: session.isParent
-              //     ? AppMode.parent
-              //     : AppMode.child,
-              mode :AppMode.child
+              mode: session.isParent
+                  ? AppMode.parent
+                  : AppMode.child,
+              // mode :AppMode.child
             );
         }
       },
