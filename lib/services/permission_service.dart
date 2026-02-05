@@ -51,16 +51,28 @@ class PermissionService {
     await intent.launch();
   }
 
-Future<bool> hasUsagePermission() async {
-  if (!Platform.isAndroid) return false;
+  Future<bool> hasUsagePermission() async {
+    if (!Platform.isAndroid) return false;
 
-  try {
-    final granted = await UsageStats.checkUsagePermission();
-    return granted == true; 
-  } catch (e) {
-    return false;
+    try {
+      final granted = await UsageStats.checkUsagePermission();
+      if (granted == true) return true;
+
+      // 👇 fallback test real usage
+      final now = DateTime.now();
+      final begin = now.subtract(const Duration(minutes: 5));
+
+      final stats = await UsageStats.queryUsageStats(
+        begin, // ✅ DateTime
+        now, // ✅ DateTime
+      );
+
+      return stats.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
   }
-}
+
   /// Optional: kiểm tra Accessibility (nếu app bạn dùng accessibility để theo dõi)
   Future<void> openAccessibilitySettings() async {
     if (!Platform.isAndroid) return;
@@ -75,9 +87,6 @@ Future<bool> hasUsagePermission() async {
   Future<Map<String, bool>> requestCommonPermissions() async {
     final mic = await requestMicrophone();
     final media = await requestPhotosOrStorage();
-    return {
-      'microphone': mic,
-      'photos_or_storage': media,
-    };
+    return {'microphone': mic, 'photos_or_storage': media};
   }
 }

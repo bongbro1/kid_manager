@@ -1,22 +1,36 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:kid_manager/services/secondary_auth_service.dart';
 import '../models/app_user.dart';
 
 class UserRepository {
   final FirebaseFirestore _db;
-  UserRepository(this._db);
+  final SecondaryAuthService _secondaryAuth;
+  UserRepository(this._db, this._secondaryAuth);
 
-  CollectionReference<Map<String, dynamic>> get _users => _db.collection('users');
+  CollectionReference<Map<String, dynamic>> get _users =>
+      _db.collection('users');
 
-  DocumentReference<Map<String, dynamic>> userRef(String uid) => _users.doc(uid);
+  DocumentReference<Map<String, dynamic>> userRef(String uid) =>
+      _users.doc(uid);
 
-  Stream<AppUser> watchUser(String uid) =>
-      userRef(uid).snapshots().map((s) => AppUser.fromDoc(s));
+  // ===== READ =====
 
-  Future<AppUser?> getUser(String uid) async {
+  /// 🔹 One-time fetch (Session bootstrap)
+  Future<AppUser?> getUserById(String uid) async {
     final snap = await userRef(uid).get();
     if (!snap.exists) return null;
     return AppUser.fromDoc(snap);
   }
+
+  /// 🔹 Realtime stream (role change, profile update)
+  Stream<AppUser?> watchUserById(String uid) {
+    return userRef(uid).snapshots().map((snap) {
+      if (!snap.exists) return null;
+      return AppUser.fromDoc(snap);
+    });
+  }
+
+  // ===== CREATE =====
 
   Future<void> createParentIfMissing({
     required String uid,
@@ -29,23 +43,27 @@ class UserRepository {
     final snap = await ref.get();
     if (snap.exists) return;
 
-    await ref.set({
-      'uid': uid,
-      'role': 'parent',
-      'email': email,
-      'displayName': displayName,
-      'locale': locale,
-      'timezone': timezone,
-      'createdAt': FieldValue.serverTimestamp(),
-      'lastActiveAt': FieldValue.serverTimestamp(),
-      'subscription': {
-        'plan': 'free',
-        'status': 'active',
-        'startAt': FieldValue.serverTimestamp(),
-        'endAt': null,
-      }
-    }..removeWhere((k, v) => v == null));
+    await ref.set(
+      {
+        'uid': uid,
+        'role': 'parent',
+        'email': email,
+        'displayName': displayName,
+        'locale': locale,
+        'timezone': timezone,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastActiveAt': FieldValue.serverTimestamp(),
+        'subscription': {
+          'plan': 'free',
+          'status': 'active',
+          'startAt': FieldValue.serverTimestamp(),
+          'endAt': null,
+        },
+      }..removeWhere((_, v) => v == null),
+    );
   }
+
+  // ===== UPDATE =====
 
   Future<void> updateProfile({
     required String uid,
@@ -69,7 +87,8 @@ class UserRepository {
     await userRef(uid).update({'lastActiveAt': FieldValue.serverTimestamp()});
   }
 
-  // List children of a parent (no kids array needed)
+  // ===== CHILDREN =====
+
   Stream<List<AppUser>> watchChildren(String parentUid) {
     return _users
         .where('role', isEqualTo: 'child')
@@ -77,5 +96,43 @@ class UserRepository {
         .snapshots()
         .map((qs) => qs.docs.map(AppUser.fromDoc).toList());
   }
+
+  Future<String> createChildAccount({
+    required String parentUid,
+    required String email,
+    required String password,
+    required String displayName,
+    required DateTime? dob,
+    required String locale,
+    required String timezone,
+  }) async {
+    final cred = await _secondaryAuth.createUser(
+      email: email.trim(),
+      password: password,
+    );
+
+    final childUid = cred.user!.uid;
+
+    // 2️⃣ Create Firestore document
+    final ref = userRef(childUid);
+    final snap = await ref.get();
+    if (snap.exists) "NOT FOUND";
+
+    await ref.set(
+      {
+        'uid': childUid,
+        'role': 'child',
+        'displayName': displayName,
+        'email': email,
+        'parentUid': parentUid,
+        'locale': 'vi',
+        'timezone': 'Asia/Ho_Chi_Minh',
+        'dob': dob != null ? Timestamp.fromDate(dob) : null,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastActiveAt': FieldValue.serverTimestamp(),
+      }..removeWhere((_, v) => v == null),
+    );
+
+    return childUid;
+  }
 }
-  

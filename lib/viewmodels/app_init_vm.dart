@@ -15,10 +15,12 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
 
   AppInitVM(this.storage, this.permissionService) {
     WidgetsBinding.instance.addObserver(this);
+    init();
   }
 
   Future<void> init() async {
     _uid = storage.getString(StorageKeys.uid);
+
     if (_uid == null) {
       _setReady(false);
       return;
@@ -26,6 +28,8 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
 
     final hasUsage = await permissionService.hasUsagePermission();
     _setReady(hasUsage);
+    debugPrint("hehehehe: ${hasUsage}");
+
   }
 
   /// 👉 Mở settings, KHÔNG check ở đây

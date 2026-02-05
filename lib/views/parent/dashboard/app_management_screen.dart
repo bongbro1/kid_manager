@@ -10,8 +10,9 @@ import 'package:kid_manager/services/app_installed_service.dart';
 import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
-import 'package:kid_manager/views/parent/usage_time_edit_screen.dart';
+import 'package:kid_manager/views/parent/dashboard/usage_time_edit_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
+import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/parent/app_item.dart';
 import 'package:provider/provider.dart';
 
@@ -38,26 +39,13 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
     });
   }
 
-  String formatDailyLimitText(int? minutes) {
-    if (minutes == null) return "Không giới hạn";
-
-    final m = minutes.clamp(0, 24 * 60);
-    final h = m ~/ 60;
-    final mm = m % 60;
-
-    if (m == 0) return "0 phút/ngày";
-    if (h == 0) return "$mm phút/ngày";
-    if (mm == 0) return "$h giờ/ngày";
-    return "$h giờ $mm phút/ngày";
-  }
-
   Future<void> openUsageTimeEdit({
     required BuildContext context,
     required AppItemModel app,
     int? initialDailyLimitMinutes,
     required VoidCallback onUpdated,
   }) async {
-    final int? newLimit = await Navigator.of(context).push<int?>(
+    await Navigator.of(context).push<int?>(
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.transparent,
@@ -65,13 +53,6 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
             UsageTimeEditScreen(appId: app.packageName!),
       ),
     );
-
-    // user bấm ra ngoài / close => null cũng có thể là unlimited
-    // nên nếu bạn muốn phân biệt cancel vs unlimited thì cần return khác
-    // app.usageTime = formatDailyLimitText(newLimit);
-
-    debugPrint('[openUsageTimeEdit] UPDATED time=${app.usageTime}');
-
     onUpdated();
   }
 
@@ -80,6 +61,8 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    // cái này 
     final vm = context.watch<AppInitVM>();
 
     if (!vm.ready) {
@@ -103,7 +86,7 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
     final app_vm = context.watch<AppManagementVM>();
 
     if (app_vm.loading) {
-      return const CircularProgressIndicator();
+      return const LoadingOverlay();
     }
 
     final apps = app_vm.apps;
@@ -234,7 +217,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
     ('Phạm Minh Hiếu', 'assets/images/u1.png'),
     ('Lê Huy', 'assets/images/u1.png'),
     ('Mai Anh', 'assets/images/u1.png'),
-    ('Thuỳ Dương', 'assets/images/u1.png'),
+    // ('Thuỳ Dương', 'assets/images/u1.png'),
   ];
 
   int get pageCount => (users.length / 3).ceil();
@@ -359,7 +342,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
           SizedBox(height: 12),
 
           SizedBox(
-            width: 295,
+            width: 300,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
