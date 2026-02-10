@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import '../models/app_user.dart';
 
 class UserRepository {
   final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
   final SecondaryAuthService _secondaryAuth;
-  UserRepository(this._db, this._secondaryAuth);
+  UserRepository(this._db,this._auth, this._secondaryAuth);
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');

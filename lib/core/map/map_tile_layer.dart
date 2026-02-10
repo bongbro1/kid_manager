@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
 
 class MapTileLayer {
-  static const _accessToken = 'pk.eyJ1IjoibGFuZ3Z1aSIsImEiOiJjbWw5NDZ3eXQwZmgxM2NxNGZtc3JzOWJnIn0.hcKBu6Marw_JcuTh2RFgFw';
+  static final _accessToken =dotenv.env['ACCESS_TOKEN'] ?? '' ;
 
   static TileLayer mapbox({
     required Brightness brightness,

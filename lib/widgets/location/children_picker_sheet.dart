@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/models/user/app_user_extensions.dart';
 
 class ChildrenPickerSheet extends StatelessWidget {
   final List<AppUser> children;
