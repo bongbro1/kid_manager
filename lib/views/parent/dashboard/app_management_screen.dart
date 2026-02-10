@@ -23,12 +23,24 @@ class AppManagementScreen extends StatefulWidget {
   State<AppManagementScreen> createState() => _AppManagementScreenState();
 }
 
-class _AppManagementScreenState extends State<AppManagementScreen> {
+class _AppManagementScreenState extends State<AppManagementScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  int _tabIndex = 0;
+
   String userId = 'Ft5hRENrXoU3SvAfwFEf4bXsCdc2';
   // sau chuyển ra flash screen
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabIndex = _tabController.index;
+    _tabController.addListener(() {
+      // chỉ rebuild khi đã đổi tab thật sự
+      if (!_tabController.indexIsChanging && mounted) {
+        setState(() => _tabIndex = _tabController.index);
+      }
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AppInitVM>().init();
@@ -39,13 +51,19 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   Future<void> openUsageTimeEdit({
     required BuildContext context,
     required AppItemModel app,
     int? initialDailyLimitMinutes,
     required VoidCallback onUpdated,
   }) async {
-    await Navigator.of(context).push<int?>(
+    final changed = await Navigator.of(context).push<bool>(
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.transparent,
@@ -53,7 +71,17 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
             UsageTimeEditScreen(appId: app.packageName!),
       ),
     );
-    onUpdated();
+
+    if (!context.mounted) return;
+
+    // ✅ chỉ refresh khi có thay đổi
+    if (changed == true) {
+      onUpdated();
+    }
+  }
+
+  void _goTab(int index) {
+    _tabController.animateTo(index); // 0: Ứng dụng, 1: Thống kê
   }
 
   final permissionService = PermissionService();
@@ -61,8 +89,7 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-    // cái này 
+    // cái này
     final vm = context.watch<AppInitVM>();
 
     if (!vm.ready) {
@@ -146,44 +173,60 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
                     child: Column(
                       children: [
                         const SizedBox(height: 14),
-                        Center(child: UserCarouselCard()),
+                        Center(
+                          child: UserCarouselCard(
+                            currentIndex: _tabController.index,
+                            onTapApps: () => _goTab(0),
+                            onTapStats: () => _goTab(1),
+                          ),
+                        ),
 
                         const SizedBox(height: 14),
-
                         Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.only(top: 0, bottom: 16),
-                            itemCount: apps.length,
-                            itemBuilder: (context, index) {
-                              final app = apps[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: AppItem(
-                                  appName: app.name,
-                                  usageTimeText: app.usageTime ?? "0h 0m",
-                                  iconBase64: app.iconBase64,
-                                  editIconAsset: Image.asset(
-                                    "assets/images/source_edit.png",
-                                    width: 18,
-                                    height: 18,
-                                    color: const Color(0xFF6B6778),
-                                  ),
-                                  onTap: () => openUsageTimeEdit(
-                                    context: context,
-                                    app: app,
-                                    initialDailyLimitMinutes: null,
-                                    onUpdated: () => setState(() {}),
-                                  ),
-
-                                  onEdit: () => openUsageTimeEdit(
-                                    context: context,
-                                    app: app,
-                                    initialDailyLimitMinutes: null,
-                                    onUpdated: () => setState(() {}),
-                                  ),
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              // TAB 1
+                              ListView.builder(
+                                padding: const EdgeInsets.only(
+                                  top: 0,
+                                  bottom: 16,
                                 ),
-                              );
-                            },
+                                itemCount: apps.length,
+                                itemBuilder: (context, index) {
+                                  final app = apps[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: AppItem(
+                                      appName: app.name,
+                                      usageTimeText: app.usageTime ?? "0h 0m",
+                                      iconBase64: app.iconBase64,
+                                      editIconAsset: Image.asset(
+                                        "assets/images/source_edit.png",
+                                        width: 18,
+                                        height: 18,
+                                        color: const Color(0xFF6B6778),
+                                      ),
+                                      onTap: () => openUsageTimeEdit(
+                                        context: context,
+                                        app: app,
+                                        initialDailyLimitMinutes: null,
+                                        onUpdated: () => setState(() {}),
+                                      ),
+                                      onEdit: () => openUsageTimeEdit(
+                                        context: context,
+                                        app: app,
+                                        initialDailyLimitMinutes: null,
+                                        onUpdated: () => setState(() {}),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+
+                              // TAB 2
+                              const Center(child: Text("heheheheh")),
+                            ],
                           ),
                         ),
                       ],
@@ -200,7 +243,16 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
 }
 
 class UserCarouselCard extends StatefulWidget {
-  const UserCarouselCard({super.key});
+  final int currentIndex;
+  final VoidCallback onTapApps;
+  final VoidCallback onTapStats;
+
+  const UserCarouselCard({
+    super.key,
+    required this.currentIndex,
+    required this.onTapApps,
+    required this.onTapStats,
+  });
 
   @override
   State<UserCarouselCard> createState() => _UserCarouselCardState();
@@ -292,23 +344,23 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                     itemBuilder: (context, pageIndex) {
                       final start = pageIndex * 3;
                       final end = (start + 3).clamp(0, users.length);
-
                       final slice = users.sublist(start, end);
 
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        // crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          for (final u in slice)
-                            SizedBox(
-                              width: 70, // 👈 giới hạn width mỗi item
-                              child: UserItem(
-                                name: u.$1,
-                                avatarUrl: u.$2,
-                                isOnline: true,
-                              ),
-                            ),
-                        ],
+                        children: List.generate(
+                          3,
+                          (i) => i < slice.length
+                              ? SizedBox(
+                                  width: 70,
+                                  child: UserItem(
+                                    name: slice[i].$1,
+                                    avatarUrl: slice[i].$2,
+                                    isOnline: true,
+                                  ),
+                                )
+                              : const SizedBox(width: 70),
+                        ),
                       );
                     },
                   ),
@@ -331,9 +383,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                 side: BorderSide(
                   width: 1,
                   strokeAlign: BorderSide.strokeAlignCenter,
-                  color: const Color(
-                    0xFFF2F2F7,
-                  ) /* Backgrounds-(Grouped)-Primary */,
+                  color: const Color(0xFFF2F2F7),
                 ),
               ),
             ),
@@ -352,10 +402,13 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   text: 'Ứng dụng',
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  onPressed: () {},
-                  // Primary
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  onPressed: widget.onTapApps,
+                  backgroundColor: widget.currentIndex == 0
+                      ? AppColors.primary
+                      : const Color(0xFFE8DEF8),
+                  foregroundColor: widget.currentIndex == 0
+                      ? Colors.white
+                      : const Color(0xFF4A4459),
                   fontFamily: "Roboto",
                   lineHeight: 1.43,
                   letterSpacing: 0.10,
@@ -376,10 +429,13 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   text: 'Thống kê',
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  onPressed: () {},
-                  // Primary
-                  backgroundColor: const Color(0xFFE8DEF8),
-                  foregroundColor: Color(0xFF4A4459),
+                  onPressed: widget.onTapStats,
+                  backgroundColor: widget.currentIndex == 1
+                      ? AppColors.primary
+                      : const Color(0xFFE8DEF8),
+                  foregroundColor: widget.currentIndex == 1
+                      ? Colors.white
+                      : const Color(0xFF4A4459),
                   fontFamily: "Roboto",
                   lineHeight: 1.43,
                   letterSpacing: 0.10,

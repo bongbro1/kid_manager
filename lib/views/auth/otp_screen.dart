@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -84,7 +85,27 @@ class _OtpScreenState extends State<OtpScreen> {
                     }),
                   ),
 
-                  ElevatedButton(
+                  const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: () {},
+                    child: Text(
+                      'Gửi lại mã',
+                      style: TextStyle(
+                        color: Color(0xFF3A7DFF),
+                        fontSize: 14,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                        letterSpacing: -0.12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  AppButton(
+                    text: 'Xác minh',
+                    width: 150,
+                    height: 50,
                     onPressed: () {
                       setState(() => _isLoading = true);
 
@@ -92,7 +113,6 @@ class _OtpScreenState extends State<OtpScreen> {
                         setState(() => _isLoading = false);
                       });
                     },
-                    child: const Text('Xác minh'),
                   ),
                 ],
               ),
