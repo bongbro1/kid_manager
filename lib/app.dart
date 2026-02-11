@@ -1,7 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
+import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/repositories/location/location_repository_impl.dart';
+
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/app_installed_service.dart';
 import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
@@ -9,6 +15,7 @@ import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/services/usage_sync_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -39,6 +46,7 @@ class MyApp extends StatelessWidget {
     // repositories
     final userRepo = UserRepository(
       FirebaseFirestore.instance,
+      FirebaseAuth.instance,
       secondaryAuthService,
     );
     final authRepo = AuthRepository(authService, userRepo);
@@ -68,13 +76,29 @@ class MyApp extends StatelessWidget {
         ),
 
         ChangeNotifierProvider(create: (context) => AppManagementVM(appRepo)),
+        /// LOCATION SERVICE
+        Provider<LocationServiceInterface>(
+          create: (_) => LocationServiceImpl(),
+        ),
+
         ChangeNotifierProvider<SessionVM>(
           create: (context) => SessionVM(context.read<AuthRepository>()),
         ),
-
-        ChangeNotifierProvider<UserVM>(
-          create: (context) => UserVM(context.read<UserRepository>()),
+        /// LOCATION REPOSITORY
+        Provider<LocationRepository>(
+          create: (_) => LocationRepositoryImpl(),
         ),
+        ChangeNotifierProvider<UserVm>(
+          create: (context) => UserVm(
+              context.read<UserRepository>()
+
+        ),),
+        ChangeNotifierProvider<ParentLocationVm>(
+          create: (context) => ParentLocationVm(
+              context.read<LocationRepository>()),
+        ),
+
+
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as osm;
-
-import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/location/location_data.dart';
 
 enum MapRouteMode {
   none,
@@ -14,7 +10,26 @@ enum MapRouteMode {
 class MapViewController extends ChangeNotifier {
   final MapController controller = MapController();
 
-  // ===== CAMERA STATE =====
+  /* ============================================================
+     MAP READY
+  ============================================================ */
+
+  bool _mapReady = false;
+  bool get mapReady => _mapReady;
+
+  void markMapReady() {
+    if (_mapReady) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mapReady = true;
+      debugPrint('🗺️ MAP REALLY READY');
+      notifyListeners();
+    });
+  }
+
+  /* ============================================================
+     CAMERA / FOLLOW STATE
+  ============================================================ */
+
   bool _autoFollow = true;
   bool get autoFollow => _autoFollow;
 
@@ -23,20 +38,25 @@ class MapViewController extends ChangeNotifier {
   osm.LatLng? _lastKnownCenter;
 
   void setAutoFollow(bool v) {
+    if (_autoFollow == v) return;
     _autoFollow = v;
     notifyListeners();
   }
 
-  // ===== ROUTE STATE =====
-  MapRouteMode _routeMode = MapRouteMode.none;
-  List<osm.LatLng> _routePoints = [];
+  void resetFit() {
+    _fittedOnce = false;
+  }
 
-  MapRouteMode get routeMode => _routeMode;
-  List<osm.LatLng> get routePoints => List.unmodifiable(_routePoints);
-  bool get isRouteActive => _routeMode != MapRouteMode.none;
+  /* ============================================================
+     BASIC MOVE
+  ============================================================ */
 
-  // ===== BASIC MOVE =====
   void moveTo(osm.LatLng point, {double zoom = 16}) {
+    if (!_mapReady) {
+      debugPrint('⛔ moveTo ignored (map not ready)');
+      return;
+    }
+
     _lastKnownCenter = point;
     controller.move(point, zoom);
   }
@@ -46,20 +66,65 @@ class MapViewController extends ChangeNotifier {
     moveTo(point, zoom: zoom);
   }
 
-  void fitCurrent({double zoom = 16}) {
-    if (_lastKnownCenter != null) {
-      controller.move(_lastKnownCenter!, zoom);
+  /* ============================================================
+     FIT POINTS
+  ============================================================ */
+
+  void fitPoints(
+      List<osm.LatLng> points, {
+        EdgeInsets padding = const EdgeInsets.all(60),
+      }) {
+    if (!_mapReady) {
+      debugPrint('⛔ fitPoints ignored (map not ready)');
+      return;
     }
+
+    if (points.isEmpty) return;
+
+    if (points.length == 1) {
+      moveTo(points.first);
+      return;
+    }
+
+    final bounds = LatLngBounds.fromPoints(points);
+    controller.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: padding,
+      ),
+    );
   }
 
-  // ===== ROUTE =====
+  /// 👉 dùng cho auto-zoom 1 lần duy nhất
+  void fitOnce(
+      List<osm.LatLng> points, {
+        EdgeInsets padding = const EdgeInsets.all(60),
+      }) {
+    if (_fittedOnce) return;
+    _fittedOnce = true;
+    fitPoints(points, padding: padding);
+  }
+
+  /* ============================================================
+     ROUTE
+  ============================================================ */
+
+  MapRouteMode _routeMode = MapRouteMode.none;
+  List<osm.LatLng> _routePoints = [];
+
+  MapRouteMode get routeMode => _routeMode;
+  bool get isRouteActive => _routeMode != MapRouteMode.none;
+  List<osm.LatLng> get routePoints => List.unmodifiable(_routePoints);
+
   void showRoute(List<osm.LatLng> points) {
     if (points.length < 2) return;
+    if (!_mapReady) return;
 
     _routeMode = MapRouteMode.singleRoute;
     _routePoints = List.from(points);
 
-    fitRoute();
+    _autoFollow = false;
+    _fitRoute();
     notifyListeners();
   }
 
@@ -77,7 +142,7 @@ class MapViewController extends ChangeNotifier {
     }
   }
 
-  void fitRoute({EdgeInsets padding = const EdgeInsets.all(60)}) {
+  void _fitRoute({EdgeInsets padding = const EdgeInsets.all(60)}) {
     if (_routePoints.length < 2) return;
 
     final bounds = LatLngBounds.fromPoints(_routePoints);
@@ -86,98 +151,73 @@ class MapViewController extends ChangeNotifier {
     );
   }
 
-  // ===== FIT POINTS =====
-  void fitPoints(
+  Future<void> animateTo(
+      TickerProvider vsync,
+      osm.LatLng target, {
+        double targetZoom = 16,
+        Duration duration = const Duration(milliseconds: 650),
+        Curve curve = Curves.easeInOutCubic,
+      }) async {
+    if (!_mapReady) return;
+
+    final startCenter = controller.camera.center;
+    final startZoom = controller.camera.zoom;
+
+    final latTween =
+    Tween<double>(begin: startCenter.latitude, end: target.latitude);
+    final lngTween =
+    Tween<double>(begin: startCenter.longitude, end: target.longitude);
+    final zoomTween = Tween<double>(begin: startZoom, end: targetZoom);
+
+    final controllerAnim = AnimationController(
+      vsync: vsync,
+      duration: duration,
+    );
+
+    final animation = CurvedAnimation(
+      parent: controllerAnim,
+      curve: curve,
+    );
+
+    controllerAnim.addListener(() {
+      controller.move(
+        osm.LatLng(
+          latTween.evaluate(animation),
+          lngTween.evaluate(animation),
+        ),
+        zoomTween.evaluate(animation),
+      );
+    });
+
+    await controllerAnim.forward();
+    controllerAnim.dispose();
+  }
+
+  Future<void> animateFitBounds(
+      TickerProvider vsync,
       List<osm.LatLng> points, {
         EdgeInsets padding = const EdgeInsets.all(60),
-      }) {
-    if (points.isEmpty) return;
-
-    if (points.length == 1) {
-      moveTo(points.first);
-      return;
-    }
+        Duration duration = const Duration(milliseconds: 700),
+        Curve curve = Curves.easeInOutCubic,
+      }) async {
+    if (!_mapReady || points.isEmpty) return;
 
     final bounds = LatLngBounds.fromPoints(points);
-    controller.fitCamera(
-      CameraFit.bounds(bounds: bounds, padding: padding),
+
+    final cameraFit = CameraFit.bounds(
+      bounds: bounds,
+      padding: padding,
+    );
+
+    final targetCamera = cameraFit.fit(controller.camera);
+
+    await animateTo(
+      vsync,
+      targetCamera.center,
+      targetZoom: targetCamera.zoom,
+      duration: duration,
+      curve: curve,
     );
   }
 
-  void fitOnce(List<osm.LatLng> points) {
-    if (_fittedOnce) return;
-    _fittedOnce = true;
-    fitPoints(points);
-  }
-
-  void resetFit() {
-    _fittedOnce = false;
-  }
-
-  // ===== MARKERS =====
-  List<Marker> buildMarkers({
-    required List<AppUser> children,
-    required Map<String, LocationData> latestMap,
-    void Function(AppUser child)? onTapChild,
-  }) {
-    final markers = <Marker>[];
-
-    for (final child in children) {
-      final loc = latestMap[child.uid];
-      if (loc == null) continue;
-
-      final p = osm.LatLng(loc.latitude, loc.longitude);
-      if (!p.latitude.isFinite || !p.longitude.isFinite) continue;
-
-      markers.add(
-        Marker(
-          key: ValueKey(child.uid),
-          point: p,
-          width: 90,
-          height: 90,
-          child: GestureDetector(
-            onTap: onTapChild == null ? null : () => onTapChild(child),
-            child: Column(
-              children: [
-                _ChildLabel(child.displayLabel),
-                const Icon(Icons.location_pin, color: Colors.red, size: 44),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return markers;
-  }
-}
-
-/// ===== PRIVATE WIDGET =====
-class _ChildLabel extends StatelessWidget {
-  final String text;
-
-  const _ChildLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: const [
-          BoxShadow(blurRadius: 3, color: Colors.black26),
-        ],
-      ),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
 }

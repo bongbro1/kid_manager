@@ -20,6 +20,18 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _dobCtrl = TextEditingController(); // ngày sinh (readonly)
+  final locale = WidgetsBinding.instance.platformDispatcher.locale;
+  late final String languageCode = locale.languageCode; // vi
+  late final String? countryCode = locale.countryCode; // VN
+
+  late final String localeString =
+  countryCode == null ? languageCode : '${languageCode}_$countryCode';
+
+// timezone chuẩn (Asia/Ho_Chi_Minh)
+  final String timezone =
+  DateTime.now().timeZoneName.isNotEmpty
+      ? DateTime.now().timeZoneName
+      : 'Asia/Ho_Chi_Minh';
 
   @override
   void dispose() {
@@ -38,7 +50,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       return;
     }
 
-    final userVM = context.read<UserVM>();
+    final userVM = context.read<UserVm>();
     final storage = context.read<StorageService>();
 
     final parentUid = storage.getString(StorageKeys.uid);
@@ -47,12 +59,14 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       return;
     }
 
-    final success = await userVM.createChild(
+    final success = await userVM.createChildAccount(
       parentUid: parentUid,
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
       displayName: _nameCtrl.text.trim(),
       dob: dob,
+      locale: localeString,
+      timezone: timezone,
     );
 
     debugPrint('ChildADD: Tạo tài khoản cho con thành công');

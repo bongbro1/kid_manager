@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/workers/background_worker.dart';
 
 import '../repositories/auth_repository.dart';
 

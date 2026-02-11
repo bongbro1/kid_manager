@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
+import 'package:kid_manager/widgets/app/app_mode.dart';
 
 class ChildLocationViewModel extends ChangeNotifier {
   ChildLocationViewModel(
@@ -23,8 +24,22 @@ class ChildLocationViewModel extends ChangeNotifier {
   LocationData? _currentLocation;
   LocationData? get currentLocation => _currentLocation;
 
+  LocationPlayMode _mode =LocationPlayMode.live;
+  LocationPlayMode get mode => _mode;
+
+  MotionState _motionState =MotionState.moving;
+  MotionState get motionState =>_motionState;
+  DateTime? _lastMoveAt;
   final List<LocationData> _trail = [];
   List<LocationData> get locationTrail => List.unmodifiable(_trail);
+
+  static const double _moveThresholdKm = 0.03; // 30m
+  static const double _idleThresholdKm = 0.01; // 10m
+
+  static const Duration _idleAfter = Duration(minutes: 1);
+  static const Duration _stationaryAfter = Duration(minutes: 5);
+
+  static const double _maxAcceptableAccuracy =50;
 
   bool _isSharing = false;
   bool get isSharing => _isSharing;
@@ -63,7 +78,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ✅ dùng khi LOGOUT (clear sạch state)
+  //  dùng khi LOGOUT (clear sạch state)
   Future<void> stopSharingOnLogout() async {
     await stopSharing(clearData: true);
   }
@@ -90,7 +105,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ✅ Start sharing (mặc định foreground để chắc chắn hiện permission popup)
+  ///  Start sharing (mặc định foreground để chắc chắn hiện permission popup)
   Future<void> startLocationSharing({bool background = false}) async {
     if (_isSharing) return;
 
@@ -118,25 +133,45 @@ class ChildLocationViewModel extends ChangeNotifier {
     }
 
     _isSharing = true;
+    _lastMoveAt = DateTime.now();
+    _motionState = MotionState.moving;
+
     notifyListeners();
 
     // listen GPS stream
+
+
     _gpsSub = _locationService.getLocationStream().listen(
           (loc) async {
+            debugPrint('📍 GPS RAW: acc=${loc.accuracy}');
+            final isFirstFix =_lastSentLocation ==null;
+
+            if(!isFirstFix && loc.accuracy > _maxAcceptableAccuracy){
+              return;
+            }
         _currentLocation = loc;
+        final now = DateTime.now();
+        final last =_lastSentLocation;
+        double distanceKm =0;
+        if (last != null) {
+              distanceKm = last.distanceTo(loc);
+            }
+        _updateMotionState(distanceKm, now);
+            if (_shouldSendLocation(loc, distanceKm)) {
+              try {
+                await _locationRepository.updateMyLocation(loc);
+                debugPrint(
+                  '✅ SENT → lat=${loc.latitude}, lng=${loc.longitude}, '
+                      'acc=${loc.accuracy}, dist=${distanceKm.toStringAsFixed(3)}, '
+                      'motion=$_motionState, night=${_isNightSleep(now)}',
+                );
 
-        // gửi nếu chưa gửi lần nào hoặc di chuyển > 100m
-        if (_lastSentLocation == null ||
-            _lastSentLocation!.distanceTo(loc) >= _minSendDistanceKm) {
-          try {
-            await _locationRepository.updateMyLocation(loc); // repo tự lấy uid
-            _lastSentLocation = loc;
-          } catch (e) {
-            _setError(e);
-          }
-        }
-
-        _trail.add(loc);
+                _lastSentLocation = loc;
+              } catch (e) {
+                _setError(e);
+              }
+            }
+            _appendTrail(loc);
         notifyListeners();
       },
       onError: (e, __) async {
@@ -145,11 +180,9 @@ class ChildLocationViewModel extends ChangeNotifier {
       },
       cancelOnError: false,
     );
-
-    _startKeepAliveLoop();
   }
 
-  /// ✅ Android 11+: bật background permission (thường sẽ mở Settings)
+  ///  Android 11+: bật background permission (thường sẽ mở Settings)
   Future<void> enableBackgroundSharing() async {
     _requireBackground = true;
     notifyListeners();
@@ -192,6 +225,23 @@ class ChildLocationViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> replayHistory({
+    Duration step = const Duration(milliseconds: 800),
+})async{
+    if(_trail.length < 2) return;
+    _mode =LocationPlayMode.replay;
+    notifyListeners();
+    for (final loc in _trail) {
+      if (_mode != LocationPlayMode.replay) break;
+
+      _currentLocation = loc;
+      notifyListeners();
+      await Future.delayed(step);
+    }
+
+    _mode = LocationPlayMode.live;
+    notifyListeners();
+  }
   /// Load lịch sử (dùng chung cho tab History)
   Future<List<LocationData>> loadLocationHistory(String childId) async {
     try {
@@ -212,29 +262,62 @@ class ChildLocationViewModel extends ChangeNotifier {
       return [];
     }
   }
-
-  void _startKeepAliveLoop() {
-    _keepAliveTimer?.cancel();
-
-    _keepAliveTimer = Timer.periodic(_keepAliveEvery, (_) async {
-      if (!_isSharing) return;
-
-      final ok = await _locationService.ensureServiceAndPermission(
-        requireBackground: _requireBackground,
-      );
-
-      if (!ok) {
-        await _restartSharing(delay: const Duration(seconds: 1));
-        return;
-      }
-
-      // stream chết thì restart
-      if (_gpsSub == null) {
-        await _restartSharing(delay: const Duration(milliseconds: 500));
-      }
-    });
+  void stopReplay() {
+    if (_mode == LocationPlayMode.replay) {
+      _mode = LocationPlayMode.live;
+      notifyListeners();
+    }
   }
 
+  void _appendTrail(LocationData loc) {
+    if (_trail.isEmpty ||
+        _trail.last.distanceTo(loc) >= 0.03) {
+      _trail.add(loc);
+    }
+  }
+
+  bool _shouldSendLocation(LocationData loc, double distanceKm) {
+    if (_lastSentLocation == null) return true;
+    if (loc.accuracy > _maxAcceptableAccuracy) return false;
+
+    final now =DateTime.now();
+    if(_isNightSleep(now)){
+      return distanceKm >= 0.1;
+    }
+    switch (_motionState) {
+      case MotionState.moving:
+        return distanceKm >= 0.03; // 30m
+
+      case MotionState.idle:
+        return distanceKm >= 0.05; // 50m
+
+      case MotionState.stationary:
+        return false;
+    }
+  }
+
+  void _updateMotionState(double distanceKm, DateTime now) {
+    if (distanceKm >= _moveThresholdKm) {
+      _motionState = MotionState.moving;
+      _lastMoveAt = now;
+      return;
+    }
+
+    if (_lastMoveAt == null) return;
+
+    final idleFor = now.difference(_lastMoveAt!);
+
+    if (idleFor >= const Duration(minutes: 5)) {
+      _motionState = MotionState.stationary;
+    } else if (idleFor >= const Duration(minutes: 1)) {
+      _motionState = MotionState.idle;
+    }
+  }
+
+  bool _isNightSleep(DateTime now){
+    final h =now.hour;
+    return h >=22 || h<6;
+  }
   @override
   void dispose() {
     _gpsSub?.cancel();
