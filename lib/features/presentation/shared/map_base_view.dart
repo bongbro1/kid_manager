@@ -28,6 +28,9 @@ class MapBaseView extends StatelessWidget {
           options: MapOptions(
             initialCenter: const osm.LatLng(21.0285, 105.8542),
             initialZoom: 14,
+            onMapReady: () {
+              mapVm.markMapReady(); // 👈 CỰC KỲ QUAN TRỌNG
+            },
             onPositionChanged: (_, hasGesture) {
               if (hasGesture) mapVm.setAutoFollow(false);
             },
@@ -37,8 +40,10 @@ class MapBaseView extends StatelessWidget {
             if (markers.isNotEmpty) MarkerLayer(markers: markers),
           ],
         ),
+
         ...overlays,
       ],
+
     );
   }
 }

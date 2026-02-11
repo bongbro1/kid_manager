@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 
@@ -26,24 +28,60 @@ class LocationRepositoryImpl implements LocationRepository {
   Future<void> updateMyLocation(LocationData location) async {
     final uid = _requireUid();
 
-    await _database.ref('locations/$uid/current').set({
+    // LẤY parentUid TỪ FIRESTORE
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+
+    final parentUid = snap.data()?['parentUid'];
+    debugPrint("parentUid : ${parentUid}");
+    if (parentUid == null) {
+      throw Exception('Không tìm thấy parentUid');
+    }
+
+    final baseRef = _database.ref('locations/$uid');
+
+    // meta (để parent đọc)
+    await baseRef.child('meta').set({
+      'parentUid': parentUid,
+      'updatedAt': ServerValue.timestamp,
+    });
+
+    // current
+    await baseRef.child('current').set({
       ...location.toJson(),
       'updatedAt': ServerValue.timestamp,
     });
 
-    await _database.ref('locations/$uid/history').push().set(location.toJson());
+    // history
+    await baseRef.child('history').push().set(location.toJson());
   }
 
   @override
   Stream<LocationData> watchChildLocation(String childId) {
-    return _database.ref('locations/$childId/current').onValue.map((event) {
-      final snap = event.snapshot;
-      if (snap.exists && snap.value is Map) {
-        return LocationData.fromJson(Map<String, dynamic>.from(snap.value as Map));
-      }
-      throw Exception('Location not found');
+    return _database
+        .ref('locations/$childId/current')
+        .onValue
+        .where((event) => event.snapshot.exists) // ⭐ tránh null
+        .map((event) {
+      final value = event.snapshot.value;
+
+      final raw = Map<dynamic, dynamic>.from(value as Map);
+
+      final json = raw.map(
+            (k, v) => MapEntry(k.toString(), v),
+      );
+
+      debugPrint('📍 RTDB LOCATIONS [$childId] = $json');
+
+      return LocationData.fromJson(json);
     });
   }
+
+
+
+
 
   @override
   Future<List<LocationData>> getLocationHistory(String childId) async {

@@ -1,12 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class AppItem extends StatelessWidget {
   final String appName;
   final String usageTimeText;
 
   /// Icon app bên trái (svg asset path)
-  final String appIconAsset;
+  final String? iconBase64;
 
   /// Icon edit bên phải (svg asset path)
   final Widget editIconAsset;
@@ -28,8 +28,8 @@ class AppItem extends StatelessWidget {
     super.key,
     required this.appName,
     required this.usageTimeText,
-    required this.appIconAsset,
     required this.editIconAsset,
+    this.iconBase64,
     this.onTap,
     this.onEdit,
     this.width = 366,
@@ -88,18 +88,16 @@ class AppItem extends StatelessWidget {
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF2F2F7), // hoặc Colors.white
-                  borderRadius: BorderRadius.circular(5),
-                ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(5),
-                  child: SvgPicture.asset(
-                    appIconAsset,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.contain,
-                  ),
+                  child: iconBase64 != null
+                      ? Image.memory(
+                          base64Decode(iconBase64!),
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
+                        )
+                      : const Icon(Icons.apps, size: 24, color: Colors.grey),
                 ),
               ),
 

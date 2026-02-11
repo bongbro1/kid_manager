@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
+import 'package:kid_manager/viewmodels/session/session_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
 import 'package:kid_manager/widgets/app/app_bottom_nav.dart';
 import 'package:kid_manager/widgets/app/app_sell_config.dart';
+import 'package:provider/provider.dart';
 
 class AppShell extends StatefulWidget {
   final AppMode mode;
@@ -15,6 +19,22 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+  // @override
+  // void initState() {
+  //   super.initState();
+  //
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     final session = context.read<SessionVM>();
+  //
+  //     if (session.isParent) {
+  //       final parentUid = session.user!.uid;
+  //
+  //       context
+  //           .read<ParentDashboardVm>()
+  //           .watchChildren(parentUid);
+  //     }
+  //   });
+  // }
 
   late final AppShellConfig _config =
   widget.mode == AppMode.parent

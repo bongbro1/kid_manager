@@ -35,12 +35,6 @@ class AuthVM extends ChangeNotifier {
   }
 
   Future<void> onLoginSuccess(String userId) async {
-    // await Workmanager().registerPeriodicTask(
-    //   "sync_usage_$userId",
-    //   usageSyncTask,
-    //   frequency: const Duration(minutes: 15),
-    //   inputData: {"userId": userId},
-    // );
   }
 
   Future<bool> register(String email, String password) async {

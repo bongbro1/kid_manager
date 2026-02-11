@@ -5,6 +5,7 @@ import 'package:kid_manager/features/presentation/shared/map_base_view.dart';
 import 'package:kid_manager/features/presentation/shared/state/map_view_controller.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
+import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 import 'package:kid_manager/widgets/location/map_top_bar.dart';
 import 'package:kid_manager/widgets/map/google_blue_dot.dart';
 import 'package:latlong2/latlong.dart' as osm;
@@ -137,6 +138,28 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         overlays: [
           MapTopBar(
             onMenuTap: () {  }, onAvatarTap: () {  },
+          ),
+          /// ===== BOTTOM CONTROLS (MY LOCATION) =====
+          Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: SafeArea(
+                top: false,
+                child: MapBottomControls(
+                  children: const [], // child screen không cần picker
+                  onMyLocation: () {
+                    final loc = locVm.currentLocation;
+                    if (loc == null) return;
+
+                    mapVm.setAutoFollow(true);
+                    mapVm.moveTo(
+                      osm.LatLng(loc.latitude, loc.longitude),
+                      zoom: 16,
+                    );
+                  },
+                ),
+              ),
           ),
         ],
     ),

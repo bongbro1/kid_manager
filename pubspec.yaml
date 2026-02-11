@@ -56,7 +56,7 @@ dependencies:
   # Location background
   location: ^8.0.1
   geolocator: ^14.0.2
-  
+
   permission_handler: ^11.3.1
   device_info_plus: ^10.1.0
   android_intent_plus: ^5.1.2
@@ -70,6 +70,8 @@ dependencies:
   image_picker: ^1.0.0
   google_fonts: ^6.2.1
 
+  flutter_dotenv: ^5.1.0
+  mapbox_maps_flutter: ^2.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -93,6 +95,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
+    - .env
   fonts:
     - family: Poppins
       fonts:

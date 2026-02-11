@@ -51,7 +51,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   @override
   Widget build(BuildContext context) {
     return AppOverlaySheet(
-      height: 681,
+      height: 640,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: SingleChildScrollView(
@@ -202,7 +202,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 27),
                   buildCalendar(
                     month: _gridMonth,
                     headerMonth: _headerMonth,
@@ -327,7 +327,7 @@ Widget buildCalendar({
                   '${headerMonth.year}',
                   style: TextStyle(
                     color: const Color(0xFF8F9BB3),
-                    fontSize: 12,
+                    fontSize: 13,
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w400,
                     height: 1.33,

@@ -3,6 +3,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
+import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
+import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
+import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
@@ -49,11 +52,16 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: Padding(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.only(
+                          top: 8,
+                          bottom: 8,
+                          left: 14,
+                          right: 14,
+                        ),
                         child: AppIcon(
                           path: "assets/icons/menu.svg",
                           type: AppIconType.svg,
-                          size: 24,
+                          size: 30,
                         ),
                       ),
                     ),
@@ -72,7 +80,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       ),
                     ),
 
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 40),
                   ],
                 ),
 
@@ -313,7 +321,12 @@ class MoreActionSheet extends StatelessWidget {
               iconType: AppIconType.svg,
               iconSize: 20,
               onTap: () {
-                // TODO: mở màn chọn giao diện
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AppAppearanceScreen(),
+                  ),
+                );
               },
             ),
             const SizedBox(height: 10),
@@ -324,7 +337,10 @@ class MoreActionSheet extends StatelessWidget {
               iconType: AppIconType.png,
               iconSize: 17,
               onTap: () {
-                // TODO: mở trang about
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AboutAppScreen()),
+                );
               },
             ),
             const SizedBox(height: 10),
@@ -335,7 +351,12 @@ class MoreActionSheet extends StatelessWidget {
               iconType: AppIconType.png,
               iconSize: 18,
               onTap: () {
-                // TODO: add account
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AddAccountScreen(),
+                  ),
+                );
               },
             ),
             const SizedBox(height: 10),
