@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import '../models/app_user.dart';
 
@@ -7,7 +9,7 @@ class UserRepository {
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
   final SecondaryAuthService _secondaryAuth;
-  UserRepository(this._db,this._auth, this._secondaryAuth);
+  UserRepository(this._db, this._auth, this._secondaryAuth);
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');
@@ -136,5 +138,36 @@ class UserRepository {
     );
 
     return childUid;
+  }
+
+  Future<void> updateUserProfile(UserProfile profile) async {
+    await _db.collection("users").doc(profile.id).set({
+      ...profile.toMap(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<UserProfile?> getUserProfile(String uid) async {
+    final doc = await _db.collection("users").doc(uid).get();
+
+    debugPrint("===== FIRESTORE DEBUG =====");
+    debugPrint("UID: $uid");
+    debugPrint("Doc exists: ${doc.exists}");
+    debugPrint("Raw data: ${doc.data()}");
+    debugPrint("===========================");
+
+    if (!doc.exists) return null;
+
+    final data = doc.data()!;
+
+    return UserProfile(
+      id: uid,
+      name: data['displayName'] ?? '',
+      phone: data['phone'] ?? '',
+      gender: data['gender'] ?? '',
+      address: data['address'] ?? '',
+      allowTracking: data['allowTracking'] ?? false,
+      avatarUrl: data['avatarUrl'],
+      dob: data['dob'] ?? '',
+    );
   }
 }

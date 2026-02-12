@@ -76,6 +76,7 @@ class MyApp extends StatelessWidget {
         ),
 
         ChangeNotifierProvider(create: (context) => AppManagementVM(appRepo)),
+
         /// LOCATION SERVICE
         Provider<LocationServiceInterface>(
           create: (_) => LocationServiceImpl(),
@@ -84,21 +85,19 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<SessionVM>(
           create: (context) => SessionVM(context.read<AuthRepository>()),
         ),
+
         /// LOCATION REPOSITORY
-        Provider<LocationRepository>(
-          create: (_) => LocationRepositoryImpl(),
-        ),
+        Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
         ChangeNotifierProvider<UserVm>(
           create: (context) => UserVm(
-              context.read<UserRepository>()
-
-        ),),
-        ChangeNotifierProvider<ParentLocationVm>(
-          create: (context) => ParentLocationVm(
-              context.read<LocationRepository>()),
+            context.read<UserRepository>(),
+            context.read<StorageService>(),
+          ),
         ),
-
-
+        ChangeNotifierProvider<ParentLocationVm>(
+          create: (context) =>
+              ParentLocationVm(context.read<LocationRepository>()),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
