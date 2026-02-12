@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +31,9 @@ import 'services/firebase_auth_service.dart';
 import 'repositories/auth_repository.dart';
 import 'viewmodels/auth_vm.dart';
 
+import 'repositories/schedule_repository.dart';
+import 'viewmodels/schedule_vm.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -50,6 +55,7 @@ class MyApp extends StatelessWidget {
       secondaryAuthService,
     );
     final authRepo = AuthRepository(authService, userRepo);
+    final scheduleRepo = ScheduleRepository(FirebaseFirestore.instance);
     final appRepo = AppManagementRepository(
       appInstalledService,
       usageService,
@@ -76,6 +82,10 @@ class MyApp extends StatelessWidget {
         ),
 
         ChangeNotifierProvider(create: (context) => AppManagementVM(appRepo)),
+        ChangeNotifierProvider(
+          create: (context) =>
+              ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
+        ),
 
         /// LOCATION SERVICE
         Provider<LocationServiceInterface>(
