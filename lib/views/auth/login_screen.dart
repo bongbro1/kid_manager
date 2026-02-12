@@ -12,7 +12,6 @@ import 'package:kid_manager/widgets/app/app_shell.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/constants.dart';
 import '../../core/alert_service.dart';
 import '../../viewmodels/auth_vm.dart';
 
@@ -35,13 +34,17 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  late final StorageService _storage;
+
   @override
   void initState() {
     super.initState();
+    _storage = context.read<StorageService>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRememberedLogin();
     });
   }
+
 
   Future<void> _onLoginPressed() async {
     final email = _emailCtrl.text.trim();
@@ -71,6 +74,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final vm = context.read<AuthVM>();
     final success = await vm.login(email, password);
 
+    if (!mounted) return; // ✅ BẮT BUỘC
+
     if (!success) {
       AlertService.error(message: vm.error ?? 'Đăng nhập thất bại');
       return;
@@ -90,6 +95,8 @@ class _LoginScreenState extends State<LoginScreen> {
       await storage.remove('login_session');
     }
 
+    if (!mounted) return; // ✅ BẮT BUỘC
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const ParentShell()),
@@ -97,25 +104,29 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loadRememberedLogin() async {
-    final storage = context.read<StorageService>();
+  if (!mounted) return; // ✅ CỰC KỲ QUAN TRỌNG
 
-    final raw = storage.getString('login_session');
-    if (raw == null) return;
+  final storage = context.read<StorageService>();
 
-    try {
-      final map = JsonHelper.decode(raw);
-      final session = LoginSession.fromJson(map);
+  final raw = storage.getString('login_session');
+  if (raw == null) return;
 
-      if (!session.remember) return;
+  try {
+    final map = JsonHelper.decode(raw);
+    final session = LoginSession.fromJson(map);
 
-      setState(() {
-        _emailCtrl.text = session.email;
-        rememberPassword = true;
-      });
-    } catch (e) {
-      debugPrint('❌ Failed to load login session: $e');
-    }
+    if (!session.remember) return;
+    if (!mounted) return; // ✅ check LẦN NỮA trước setState
+
+    setState(() {
+      _emailCtrl.text = session.email;
+      rememberPassword = true;
+    });
+  } catch (e) {
+    debugPrint('❌ Failed to load login session: $e');
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

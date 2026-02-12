@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/home/home_screen.dart';
 import 'package:kid_manager/views/parent/app_management_screen.dart';
 import 'package:kid_manager/widgets/app/app_bottom_nav.dart';
 import 'package:provider/provider.dart';
+import 'package:kid_manager/views/parent/schedule/schedule_screen.dart';
+
 
 class ChildShell extends StatefulWidget {
   const ChildShell({super.key});
@@ -65,6 +66,7 @@ class _ParentShellState extends State<ParentShell> {
 
   final pages = const [
     AppManagementScreen(),
+    ScheduleScreen(), //HIện tại bấm vào lịch thì đang là icon thứ 2
   ];
 
   Future<void> _onNavTap(int i) async {

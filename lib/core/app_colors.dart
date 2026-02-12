@@ -6,6 +6,10 @@ class AppColors {
   // ===== BRAND / ACCENT =====
   // Màu nhấn chung (nếu còn dùng #3A7DFF)
   static const Color brand = Color(0xFF3A7DFF);
+  static const Color secondaryText = Color(0xFF8F9BB3);
+  static const Color darkText = Color(0xFF222B45);
+  static const Color calendarDot = Color(0xFF6D29F6);
+  static const Color calendarSelection = Color(0xFF3A7DFF);
 
   // ===== PRIMARY (AUTH / CTA) =====
   static const Color primary = Color(0xFF0095FF);

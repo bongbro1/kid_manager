@@ -7,12 +7,10 @@ class AppTheme {
     final scheme = ColorScheme.light(
       primary: AppColors.primary,
       secondary: AppColors.primary,
-      background: AppColors.background,
       surface: AppColors.surface,
       error: AppColors.error,
       onPrimary: Colors.white,
       onSecondary: Colors.white,
-      onBackground: AppColors.textPrimary,
       onSurface: AppColors.textPrimary,
     );
 
