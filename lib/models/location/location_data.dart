@@ -42,6 +42,9 @@ class LocationData {
     );
   }
 
+  DateTime get timestampAsDate =>
+      DateTime.fromMillisecondsSinceEpoch(timestamp);
+
   /// distance (km) using Haversine
   double distanceTo(LocationData other) {
     const r = 6371.0;

@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/features/presentation/shared/state/map_view_controller.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/views/location/child_detail_map_screen.dart';
 import 'package:kid_manager/widgets/location/parent_child_list_item.dart';
 import 'package:provider/provider.dart';
 
@@ -28,7 +30,29 @@ class ParentChildrenListScreen extends StatelessWidget {
           return ParentChildListItem(
             child: child,
             location: location,
+
+            /// 👉 TAP CARD → HISTORY
+            onOpenHistory: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChildDetailMapScreen(
+                    childId: child.uid,
+                  ),
+                ),
+              );
+            },
+
+            onLocate: () {
+              Navigator.pop(context,child); // quay về map screen
+
+            },
+
+            onChat: () {
+              // TODO: mở chat
+            },
           );
+
         },
       ),
 

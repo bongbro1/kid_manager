@@ -10,10 +10,17 @@ class ParentChildListItem extends StatelessWidget {
   final AppUser child;
   final LocationData? location;
 
+  final VoidCallback onOpenHistory;
+  final VoidCallback onLocate;
+  final VoidCallback onChat;
+
   const ParentChildListItem({
     super.key,
     required this.child,
     this.location,
+    required this.onOpenHistory,
+    required this.onLocate,
+    required this.onChat,
   });
 
   bool get isOnline {
@@ -27,25 +34,12 @@ class ParentChildListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = child.displayLabel;
 
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChildDetailMapScreen(
-              childId: child.uid,
-            ),
-          ),
-        );
-      },
-
-      child:Padding(
+    return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: InkWell(
+
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.pop(context, child);
-          },
+          onTap: onOpenHistory,
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -122,18 +116,14 @@ class ParentChildListItem extends StatelessWidget {
                   onChat: () {
                     // TODO: mở chat
                   },
-                  onLocate: () {
-                    Navigator.pop(context, child);
-                  },
+                  onLocate:onLocate
                 ),
 
               ],
             ),
           ),
         ),
-      )
-      ,
-    );
+      );
   }
 }
 

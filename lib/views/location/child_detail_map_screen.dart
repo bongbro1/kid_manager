@@ -1,28 +1,15 @@
-// lib/features/parent/location/presentation/pages/child_detail_map_screen.dart
-
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:kid_manager/models/location/location_data.dart';
-import 'package:kid_manager/utils/latlng_utils.dart';
-import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
-import 'package:latlong2/latlong.dart' as osm;
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:latlong2/latlong.dart' as osm;
 
-class _StopInfo {
-  final osm.LatLng position;
-  final Duration duration;
-  final int visitCount;
-  final DateTime start;
-  final DateTime end;
-
-  _StopInfo({
-    required this.position,
-    required this.duration,
-    required this.visitCount,
-    required this.start,
-    required this.end,
-  });
-}
+import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
+import 'package:kid_manager/services/location/mapbox_route_service.dart';
+import 'package:kid_manager/core/map/gps_optimizer.dart';
 
 class ChildDetailMapScreen extends StatefulWidget {
   final String childId;
@@ -33,403 +20,331 @@ class ChildDetailMapScreen extends StatefulWidget {
   });
 
   @override
-  State<ChildDetailMapScreen> createState() => _ChildDetailMapScreenState();
+  State<ChildDetailMapScreen> createState() =>
+      _ChildDetailMapScreenState();
 }
 
-class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
-  final MapController _mapController = MapController();
+class _ChildDetailMapScreenState
+    extends State<ChildDetailMapScreen> {
 
-  final List<LocationData> _history = [];
+  MapboxMap? _map;
+  PointAnnotationManager? _annotationManager;
+  PointAnnotation? _marker;
+
   final List<osm.LatLng> _trail = [];
-  final List<_StopInfo> _stops = [];
+  StreamSubscription? _sub;
 
-  List<Marker> _markers = [];
-  List<Polyline> _polylines = [];
+  bool _autoFollow = true;
 
-  bool _loading = true;
-  bool _fittedOnce = false;
+  // ============================================================
+  // MAP CREATED
+  // ============================================================
 
-  @override
-  void initState() {
-    super.initState();
-    _loadHistory();
+  void _onMapCreated(MapboxMap mapboxMap) async {
+    _map = mapboxMap;
+
+
+    // Bây giờ style chắc chắn đã sẵn sàng
+
+    _annotationManager =
+    await _map!.annotations
+        .createPointAnnotationManager();
+
+    await _addRouteLayer();
+
+    await _loadHistory();
+
+    _listenRealtime();
   }
 
-  Future<void> _loadHistory() async {
-    setState(() => _loading = true);
 
-    try {
-      final vm = context.read<ParentLocationVm>();
-      final history = await vm.loadLocationHistory(widget.childId);
+  // ============================================================
+  // ROUTE LAYER
+  // ============================================================
 
-      _history
-        ..clear()
-        ..addAll(history);
+  Future<void> _addRouteLayer() async {
 
-      _trail
-        ..clear()
-        ..addAll(
-          history
-              .map((e) => osm.LatLng(e.latitude, e.longitude))
-              .where(isValidLatLng)
-              .toList(),
-        );
-
-      _recomputeStops();
-      _buildLayers();
-
-      if (!mounted) return;
-
-      // Fit once
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _fitTrailOnce();
-      });
-    } catch (_) {
-      // bạn có thể show snackbar nếu muốn
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  void _fitTrailOnce() {
-    if (_fittedOnce) return;
-    if (_trail.isEmpty) return;
-
-    _fittedOnce = true;
-
-    if (_trail.length >= 2) {
-      final bounds = LatLngBounds.fromPoints(_trail);
-      _mapController.fitCamera(
-        CameraFit.bounds(
-          bounds: bounds,
-          padding: const EdgeInsets.all(50),
-        ),
-      );
-    } else {
-      _mapController.move(_trail.first, 16);
-    }
-  }
-
-  void _handleMapTap(osm.LatLng latlng) {
-    if (_trail.isEmpty) return;
-
-    // chỉ phản hồi khi tap gần trail
-    final nearestKm = _distanceToTrailKm(latlng);
-    if (nearestKm > 0.2) return; // >200m thì bỏ
-
-    _showStopsSheet();
-  }
-
-  double _distanceToTrailKm(osm.LatLng tap) {
-    double minDistance = double.infinity;
-
-    // convert tap -> LocationData để dùng distanceTo cho đồng bộ
-    final tapLoc = LocationData(
-      latitude: tap.latitude,
-      longitude: tap.longitude,
-      accuracy: 0,
-      timestamp: 0,
+    await _map!.style.addSource(
+      GeoJsonSource(
+        id: "route-source",
+        data: jsonEncode({
+          "type": "FeatureCollection",
+          "features": []
+        }),
+      ),
     );
 
-    for (final p in _trail) {
-      final pointLoc = LocationData(
-        latitude: p.latitude,
-        longitude: p.longitude,
-        accuracy: 0,
-        timestamp: 0,
-      );
-
-      final d = pointLoc.distanceTo(tapLoc);
-      if (d < minDistance) minDistance = d;
-    }
-    return minDistance;
+    await _map!.style.addLayer(
+      LineLayer(
+        id: "route-layer",
+        sourceId: "route-source",
+        lineWidth: 6.0,
+        lineColor: 0xFF2196F3,
+      ),
+    );
   }
 
-  void _buildLayers() {
-    final cs = Theme.of(context).colorScheme;
+  Future<void> _updateRoute() async {
+    print("TRAIL LENGTH: ${_trail.length}");
 
-    _markers = [];
-    _polylines = [];
+    final geoJson = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": _trail
+                .map((p) => [p.longitude, p.latitude])
+                .toList(),
+          }
+        }
+      ]
+    };
 
-    // line
-    if (_trail.length > 1) {
-      _polylines.add(
-        Polyline(
-          points: List<osm.LatLng>.from(_trail),
-          strokeWidth: 5,
-          color: cs.primary,
+
+    final source =
+    await _map!.style.getSource("route-source")
+    as GeoJsonSource;
+
+    await source.updateGeoJSON(jsonEncode(geoJson));
+  }
+
+  // ============================================================
+  // MARKER
+  // ============================================================
+
+  Future<void> _updateMarker(
+      osm.LatLng p,
+      double heading) async {
+
+    if (_annotationManager == null) return;
+
+    final point = Point(
+      coordinates:
+      Position(p.longitude, p.latitude),
+    );
+
+    if (_marker == null) {
+
+      _marker = await _annotationManager!
+          .create(
+        PointAnnotationOptions(
+          geometry: point,
+          iconSize: 1.2,
+          iconRotate: heading,
         ),
       );
+
+    } else {
+
+      _marker!.geometry = point;
+      _marker!.iconRotate = heading;
+
+      await _annotationManager!
+          .update(_marker!);
     }
+  }
 
-    if (_trail.isNotEmpty) {
-      // start
-      _markers.add(
-        Marker(
-          point: _trail.first,
-          width: 40,
-          height: 40,
-          child: Icon(
-            Icons.location_pin,
-            color: cs.tertiary,
-            size: 36,
-          ),
-        ),
-      );
+  // ============================================================
+  // REALTIME
+  // ============================================================
 
-      // stops
-      for (final stop in _stops) {
-        _markers.add(
-          Marker(
-            point: stop.position,
-            width: 32,
-            height: 32,
-            child: Icon(
-              Icons.pause_circle_filled,
-              color: cs.secondary,
-              size: 28,
-            ),
-          ),
-        );
+  void _listenRealtime() {
+    final vm =
+    context.read<ParentLocationVm>();
+
+    _sub = vm
+        .watchChildLocation(widget.childId)
+        .listen((loc) async {
+
+      final newPoint =
+      osm.LatLng(loc.latitude, loc.longitude);
+
+      if (_trail.isEmpty) {
+        _trail.add(newPoint);
+        await _updateRoute();
+        return;
       }
 
-      // end
-      _markers.add(
-        Marker(
-          point: _trail.last,
-          width: 40,
-          height: 40,
-          child: Icon(
-            Icons.location_pin,
-            color: cs.error,
-            size: 36,
-          ),
-        ),
-      );
-    }
+      final snapped =
+      await MapboxRouteService
+          .snapSegment([_trail.last, newPoint]);
 
-    setState(() {});
-  }
+      if (snapped == null ||
+          snapped.isEmpty) return;
 
-  void _recomputeStops() {
-    _stops.clear();
-    if (_history.length < 2) return;
+      _trail.addAll(snapped);
 
-    const double stayThresholdKm = 0.12; // 120m
-    const int minStopMillis = 2 * 60 * 1000; // 2 phút
+      await _updateRoute();
 
-    int startIndex = 0;
+      final heading =
+      _calculateHeading(
+          _trail[_trail.length - 2],
+          _trail.last);
 
-    for (int i = 1; i < _history.length; i++) {
-      final prev = _history[i - 1];
-      final current = _history[i];
-      final movedKm = prev.distanceTo(current);
+      await _updateMarker(
+          _trail.last,
+          heading);
 
-      // còn ở gần -> coi như vẫn dừng
-      if (movedKm <= stayThresholdKm) continue;
-
-      _maybeAddStop(startIndex, i - 1, minStopMillis);
-      startIndex = i;
-    }
-
-    _maybeAddStop(startIndex, _history.length - 1, minStopMillis);
-
-    // sort stop dài nhất lên đầu
-    _stops.sort(
-          (a, b) => b.duration.inMilliseconds.compareTo(a.duration.inMilliseconds),
-    );
-  }
-
-  void _maybeAddStop(int startIdx, int endIdx, int minStopMillis) {
-    if (startIdx >= endIdx) return;
-
-    final start = _history[startIdx];
-    final end = _history[endIdx];
-
-    final durationMs = end.timestamp - start.timestamp;
-    if (durationMs < minStopMillis) return;
-
-    double avgLat = 0;
-    double avgLng = 0;
-
-    for (int i = startIdx; i <= endIdx; i++) {
-      avgLat += _history[i].latitude;
-      avgLng += _history[i].longitude;
-    }
-
-    final count = endIdx - startIdx + 1;
-    avgLat /= count;
-    avgLng /= count;
-
-    _stops.add(
-      _StopInfo(
-        position: osm.LatLng(avgLat, avgLng),
-        duration: Duration(milliseconds: durationMs),
-        visitCount: count,
-        start: DateTime.fromMillisecondsSinceEpoch(start.timestamp),
-        end: DateTime.fromMillisecondsSinceEpoch(end.timestamp),
-      ),
-    );
-  }
-
-  void _showStats(Map<String, dynamic> stats) {
-    if (stats.isEmpty) return;
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Thống kê hành trình"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Số điểm: ${stats['totalPoints']}"),
-            Text("Quãng đường: ${(stats['totalDistance']).toStringAsFixed(2)} km"),
-            Text("Thời gian: ${stats['timeSpan']} ms"),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Đóng"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showStopsSheet() {
-    if (_stops.isEmpty) return;
-
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true, // ✅ material 3
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            const Text(
-              'Điểm dừng nổi bật',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            ..._stops.map(
-                  (stop) => ListTile(
-                leading: const Icon(Icons.pause_circle_outline),
-                title: Text(
-                  'Dừng ${stop.duration.inMinutes} phút tại '
-                      '(${stop.position.latitude.toStringAsFixed(4)}, '
-                      '${stop.position.longitude.toStringAsFixed(4)})',
-                ),
-                subtitle: Text(
-                  'Từ ${_formatTime(stop.start)} đến ${_formatTime(stop.end)}'
-                      ' · ${stop.visitCount} lần ghi nhận',
-                ),
+      if (_autoFollow) {
+        await _map!.easeTo(
+          CameraOptions(
+            center: Point(
+              coordinates: Position(
+                _trail.last.longitude,
+                _trail.last.latitude,
               ),
             ),
-          ],
+            zoom: 17,
+            pitch: 45,
+            bearing: heading,
+          ),
+          MapAnimationOptions(duration: 800),
+        );
+      }
+    });
+  }
+
+  // ============================================================
+  // LOAD HISTORY
+  // ============================================================
+
+  Future<void> _loadHistory() async {
+
+    print("USING TEST DATA");
+
+    _trail.clear();
+
+    _trail.addAll([
+
+      // 1️⃣ Thanh Niên - gần Trấn Quốc
+      osm.LatLng(21.04818, 105.83632),
+      osm.LatLng(21.04905, 105.83728),
+      osm.LatLng(21.05012, 105.83846),
+
+      // 2️⃣ Trích Sài
+      osm.LatLng(21.05180, 105.84090),
+      osm.LatLng(21.05360, 105.84360),
+      osm.LatLng(21.05520, 105.84620),
+
+      // 3️⃣ Lạc Long Quân
+      osm.LatLng(21.05630, 105.84890),
+      osm.LatLng(21.05655, 105.85140),
+      osm.LatLng(21.05610, 105.85410),
+
+      // 4️⃣ Xuân La
+      osm.LatLng(21.05490, 105.85660),
+      osm.LatLng(21.05320, 105.85830),
+      osm.LatLng(21.05130, 105.85910),
+
+      // 5️⃣ Nhật Chiêu
+      osm.LatLng(21.04940, 105.85870),
+      osm.LatLng(21.04760, 105.85780),
+
+      // 6️⃣ Quảng An
+      osm.LatLng(21.04600, 105.85570),
+      osm.LatLng(21.04500, 105.85330),
+
+      // 7️⃣ Yên Phụ
+      osm.LatLng(21.04540, 105.84960),
+      osm.LatLng(21.04680, 105.84620),
+      osm.LatLng(21.04790, 105.84290),
+
+      // 🔁 Đóng vòng
+      osm.LatLng(21.04818, 105.83632),
+
+    ]);
+
+    await _updateRoute();
+
+    await _map?.easeTo(
+      CameraOptions(
+        center: Point(
+          coordinates: Position(
+            _trail.last.longitude,
+            _trail.last.latitude,
+          ),
         ),
+        zoom: 16,
       ),
+      MapAnimationOptions(duration: 1000),
     );
   }
 
-  String _formatTime(DateTime dt) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    return '${twoDigits(dt.hour)}:${twoDigits(dt.minute)}';
+  double _calculateHeading(
+      osm.LatLng from,
+      osm.LatLng to) {
+
+    final dLon =
+        (to.longitude - from.longitude) *
+            pi / 180;
+
+    final lat1 =
+        from.latitude * pi / 180;
+    final lat2 =
+        to.latitude * pi / 180;
+
+    final y =
+        sin(dLon) * cos(lat2);
+    final x =
+        cos(lat1) * sin(lat2) -
+            sin(lat1) *
+                cos(lat2) *
+                cos(dLon);
+
+    return atan2(y, x) * 180 / pi;
   }
+
+  // ============================================================
+  // UI
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<ParentLocationVm>();
-    final cs = Theme.of(context).colorScheme;
-
-    final safeCenter =
-    _trail.isNotEmpty ? _trail.last : const osm.LatLng(21.0285, 105.8542);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text("Lịch sử di chuyển: ${widget.childId}"),
+        title:
+        Text("Lịch sử ${widget.childId}"),
         actions: [
           IconButton(
-            tooltip: "Thống kê",
-            icon: const Icon(Icons.info_outline),
-            onPressed: () {
-              final stats = vm.getChildLocationStats(widget.childId);
-              _showStats(stats);
-            },
-          ),
-          IconButton(
-            tooltip: "Reload",
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadHistory,
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          StreamBuilder<LocationData>(
-            stream: vm.watchChildLocation(widget.childId),
-            builder: (context, snapshot) {
-              // realtime append
-              if (snapshot.hasData) {
-                final loc = snapshot.data!;
-                final newPoint = osm.LatLng(loc.latitude, loc.longitude);
-
-                if (isValidLatLng(newPoint) &&
-                    (_trail.isEmpty || _trail.last != newPoint)) {
-                  _history.add(loc);
-                  _trail.add(newPoint);
-                  _recomputeStops();
-                  _buildLayers();
-
-                  // follow camera
-                  _mapController.move(newPoint, _mapController.camera.zoom);
-                }
-              }
-
-              return FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: safeCenter,
-                  initialZoom: 16,
-                  minZoom: 3,
-                  maxZoom: 19,
-                  onTap: (_, latlng) => _handleMapTap(latlng),
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.example.quan_ly_cha_con',
-                  ),
-                  if (_polylines.isNotEmpty) PolylineLayer(polylines: _polylines),
-                  if (_markers.isNotEmpty) MarkerLayer(markers: _markers),
-                ],
-              );
-            },
-          ),
-
-          if (_loading)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              child: LinearProgressIndicator(
-                backgroundColor: cs.surfaceVariant,
-              ),
+            icon: Icon(
+              _autoFollow
+                  ? Icons.gps_fixed
+                  : Icons.gps_not_fixed,
             ),
+            onPressed: () {
+              setState(() {
+                _autoFollow =
+                !_autoFollow;
+              });
+            },
+          ),
         ],
       ),
-      floatingActionButton: _stops.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-        onPressed: _showStopsSheet,
-        icon: const Icon(Icons.place_outlined),
-        label: const Text("Điểm dừng"),
+      body: MapWidget(
+        styleUri: "mapbox://styles/mapbox/streets-v12",
+        onMapCreated: (mapboxMap) {
+          _map = mapboxMap;
+        },
+        onStyleLoadedListener: (event) async {
+          print("STYLE READY");
+
+          _annotationManager =
+          await _map!.annotations.createPointAnnotationManager();
+
+          await _addRouteLayer();
+          await _loadHistory();
+          _listenRealtime();
+        },
       ),
+
     );
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 }

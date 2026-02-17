@@ -48,6 +48,8 @@ dependencies:
   # Map
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
+  polyline_codec: ^0.1.6
+
   # E2EE / Security
   encrypt: ^5.0.3
   flutter_secure_storage: ^10.0.0
@@ -71,7 +73,7 @@ dependencies:
   google_fonts: ^6.2.1
 
   flutter_dotenv: ^5.1.0
-  mapbox_maps_flutter: ^2.0.0
+  mapbox_maps_flutter: ^2.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

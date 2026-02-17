@@ -1,0 +1,36 @@
+{
+  "GDa0oZ6N5pRNSpjkEGeM0ojiL3j1": {
+    "current": {
+      "latitude": 21.03125,
+      "longitude": 105.85610,
+      "accuracy": 5,
+      "timestamp": 1707700700000
+    },
+    "history": {
+      "h1":  { "latitude": 21.028511, "longitude": 105.852020, "accuracy": 5, "timestamp": 1707700000000 },
+      "h2":  { "latitude": 21.028620, "longitude": 105.852150, "accuracy": 5, "timestamp": 1707700005000 },
+      "h3":  { "latitude": 21.028750, "longitude": 105.852300, "accuracy": 5, "timestamp": 1707700010000 },
+      "h4":  { "latitude": 21.028900, "longitude": 105.852480, "accuracy": 5, "timestamp": 1707700015000 },
+      "h5":  { "latitude": 21.029050, "longitude": 105.852650, "accuracy": 5, "timestamp": 1707700020000 },
+      "h6":  { "latitude": 21.029200, "longitude": 105.852820, "accuracy": 5, "timestamp": 1707700025000 },
+      "h7":  { "latitude": 21.029350, "longitude": 105.853000, "accuracy": 5, "timestamp": 1707700030000 },
+      "h8":  { "latitude": 21.029500, "longitude": 105.853200, "accuracy": 5, "timestamp": 1707700035000 },
+      "h9":  { "latitude": 21.029650, "longitude": 105.853400, "accuracy": 5, "timestamp": 1707700040000 },
+      "h10": { "latitude": 21.029800, "longitude": 105.853600, "accuracy": 5, "timestamp": 1707700045000 },
+      "h11": { "latitude": 21.029950, "longitude": 105.853800, "accuracy": 5, "timestamp": 1707700050000 },
+      "h12": { "latitude": 21.030100, "longitude": 105.854000, "accuracy": 5, "timestamp": 1707700055000 },
+      "h13": { "latitude": 21.030250, "longitude": 105.854200, "accuracy": 5, "timestamp": 1707700060000 },
+      "h14": { "latitude": 21.030400, "longitude": 105.854400, "accuracy": 5, "timestamp": 1707700065000 },
+      "h15": { "latitude": 21.030550, "longitude": 105.854600, "accuracy": 5, "timestamp": 1707700070000 },
+      "h16": { "latitude": 21.030700, "longitude": 105.854800, "accuracy": 5, "timestamp": 1707700075000 },
+      "h17": { "latitude": 21.030850, "longitude": 105.855000, "accuracy": 5, "timestamp": 1707700080000 },
+      "h18": { "latitude": 21.031000, "longitude": 105.855200, "accuracy": 5, "timestamp": 1707700085000 },
+      "h19": { "latitude": 21.031120, "longitude": 105.855400, "accuracy": 5, "timestamp": 1707700090000 },
+      "h20": { "latitude": 21.031250, "longitude": 105.856100, "accuracy": 5, "timestamp": 1707700095000 }
+    },
+    "meta": {
+      "device": "android_test_dense",
+      "battery": 80
+    }
+  }
+}

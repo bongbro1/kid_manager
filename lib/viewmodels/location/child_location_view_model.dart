@@ -30,11 +30,15 @@ class ChildLocationViewModel extends ChangeNotifier {
   MotionState _motionState =MotionState.moving;
   MotionState get motionState =>_motionState;
   DateTime? _lastMoveAt;
+  DateTime? _lastSentAt;
+
   final List<LocationData> _trail = [];
   List<LocationData> get locationTrail => List.unmodifiable(_trail);
 
-  static const double _moveThresholdKm = 0.03; // 30m
-  static const double _idleThresholdKm = 0.01; // 10m
+  static const double _moveThresholdKm = 0.008; // 8m
+  static const double _idleThresholdKm = 0.01;  // 10m
+  static const double _minSendDistanceKm = 0.008; // 8m
+
 
   static const Duration _idleAfter = Duration(minutes: 1);
   static const Duration _stationaryAfter = Duration(minutes: 5);
@@ -56,8 +60,6 @@ class ChildLocationViewModel extends ChangeNotifier {
   Timer? _keepAliveTimer;
 
   bool _restarting = false;
-
-  static const double _minSendDistanceKm = 0.1; // 100m
   static const Duration _keepAliveEvery = Duration(seconds: 30);
 
   String _requireUid() {
@@ -281,15 +283,24 @@ class ChildLocationViewModel extends ChangeNotifier {
     if (loc.accuracy > _maxAcceptableAccuracy) return false;
 
     final now =DateTime.now();
+    // gửi mỗi 5 giây dù không đủ distance
+    // fallback thời gian (không dùng timestamp GPS để tránh lệch giờ)
+    final timeSinceLast =
+    _lastSentAt == null
+        ? const Duration(seconds: 999)
+        : now.difference(_lastSentAt!);
+
     if(_isNightSleep(now)){
       return distanceKm >= 0.1;
     }
     switch (_motionState) {
       case MotionState.moving:
-        return distanceKm >= 0.03; // 30m
-
+      // đang di chuyển → gửi dày
+        if (distanceKm >= 0.008) return true; // 8m
+        if (timeSinceLast >= const Duration(seconds: 5)) return true;
+        return false;
       case MotionState.idle:
-        return distanceKm >= 0.05; // 50m
+        return distanceKm >= 0.015; // 15m
 
       case MotionState.stationary:
         return false;
