@@ -9,14 +9,11 @@ import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/views/auth/forgot_pass_screen.dart';
 import 'package:kid_manager/views/auth/signup_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
-import 'package:kid_manager/widgets/app/app_shell.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 
-import '../../core/constants.dart';
 import '../../core/alert_service.dart';
-import '../../viewmodels/auth_vm.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

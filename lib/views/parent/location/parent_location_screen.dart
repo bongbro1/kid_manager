@@ -1,357 +1,283 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:kid_manager/helpers/location/location_grouping.dart';
-import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/location/location_data.dart';
-import 'package:kid_manager/models/user/app_user_extensions.dart';
-import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
-import 'package:kid_manager/viewmodels/session/session_vm.dart';
-import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/widgets/common/avatar.dart';
-import 'package:kid_manager/widgets/location/child_group_marker.dart';
-import 'package:kid_manager/widgets/location/child_info_sheet.dart';
-import 'package:kid_manager/widgets/location/child_marker.dart';
+import 'package:flutter/services.dart';
+import 'package:kid_manager/views/parent/location/parent_children_list_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:latlong2/latlong.dart' as osm;
-
-import 'package:kid_manager/features/presentation/shared/map_base_view.dart';
-import 'package:kid_manager/features/presentation/shared/state/map_view_controller.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
+import 'package:image/image.dart' as img;
+import 'package:kid_manager/helpers/location/image_decoder.dart';
+import 'package:kid_manager/features/presentation/shared/state/mapbox_controller.dart';
+import 'package:kid_manager/models/user/app_user_avatar_extension.dart';
+import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/widgets/location/child_info_sheet.dart';
 import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 import 'package:kid_manager/widgets/location/map_top_bar.dart';
-import 'parent_children_list_screen.dart';
 
 class ParentAllChildrenMapScreen extends StatefulWidget {
   const ParentAllChildrenMapScreen({super.key});
 
   @override
   State<ParentAllChildrenMapScreen> createState() =>
-      _ParentAllChildrenMapView();
+      _ParentAllChildrenMapScreenState();
 }
 
+class _ParentAllChildrenMapScreenState
+    extends State<ParentAllChildrenMapScreen> {
 
-class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
-    with TickerProviderStateMixin  {
-
-  late VoidCallback _userListener;
-  late ParentLocationVm _locationVm;
-  late MapViewController _mapVm;
-
-  bool _didAutoZoom = false;
+  bool _didInitialFit = false;
+  mbx.MapboxMap? _map;
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final session = context.read<SessionVM>();
-      if (!session.isParent) return;
-
       final userVm = context.read<UserVm>();
-      _locationVm = context.read<ParentLocationVm>();
-      _mapVm = context.read<MapViewController>();
-      if (userVm.children.isNotEmpty) {
-        _locationVm.watchAllChildren(userVm.childrenIds);
+      final locationVm = context.read<ParentLocationVm>();
+      final controller = context.read<MapboxController>();
+
+      if (userVm.childrenIds.isNotEmpty) {
+        locationVm.syncWatching(userVm.childrenIds);
       }
 
-      _userListener = () {
-        _locationVm.refreshWatching(userVm.childrenIds);
-      };
-
-      userVm.addListener(_userListener);
-      _mapVm.addListener(_tryAutoZoom);
-      _locationVm.addListener(_tryAutoZoom);
-
+      controller.addListener(_handleMapOrDataChange);
+      locationVm.addListener(_handleMapOrDataChange);
+      userVm.addListener(_handleUserChange);
     });
-
   }
 
+  void _handleMapOrDataChange() {
+    final controller = context.read<MapboxController>();
+    final locationVm = context.read<ParentLocationVm>();
 
-  @override
-  void dispose() {
-    _mapVm.removeListener(_tryAutoZoom);
-    _locationVm.removeListener(_tryAutoZoom);
-    context.read<UserVm>().removeListener(_userListener);
-    super.dispose();
+
+    if (controller.isReady&&
+        locationVm.childrenLocations.isNotEmpty) {
+      _syncToMap();
+    }
+  }
+  void _handleUserChange() {
+    final userVm = context.read<UserVm>();
+    final locationVm = context.read<ParentLocationVm>();
+
+    if (userVm.childrenIds.isNotEmpty &&
+        locationVm.childrenLocations.isEmpty) {
+      locationVm.syncWatching(userVm.childrenIds);
+    }
   }
 
+  Future<void> _syncToMap() async {
+    final controller = context.read<MapboxController>();
+    final locationVm = context.read<ParentLocationVm>();
+    final userVm = context.read<UserVm>();
 
+    if (!controller.isReady) return;
 
-  void _openChildrenList(BuildContext context) async{
-    final selectedChild =await Navigator.push<AppUser>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MultiProvider(
-          providers: [
-            ChangeNotifierProvider.value(
-              value: context.read<UserVm>(),
-            ),
-            ChangeNotifierProvider.value(
-              value: context.read<ParentLocationVm>(),
-            ),
+    final positions = <String, mbx.Position>{};
+    final headings = <String, double>{};
+    final names = <String, String>{};
 
-          ],
-          child:  ParentChildrenListScreen(),
-        ),
-      ),
+    for (final entry in locationVm.childrenLocations.entries) {
+      final child =
+      userVm.children.firstWhere((c) => c.uid == entry.key);
+
+      final loc = entry.value;
+
+      positions[child.uid] =
+          mbx.Position(loc.longitude, loc.latitude);
+
+      headings[child.uid] = loc.heading ?? 0;
+
+      names[child.uid] = child.displayName ?? "";
+    }
+
+    await controller.updateChildren(
+      positions: positions,
+      headings: headings,
+      names: names,
     );
 
-    if(selectedChild == null || !mounted ){
-      return;
+    if (!_didInitialFit && positions.isNotEmpty) {
+      _didInitialFit = true;
+      await controller.fitPoints(positions.values.toList());
     }
-    _focusAndShowChild(selectedChild);
   }
+  void _openChildInfo(String childId) {
+    final locationVm = context.read<ParentLocationVm>();
+    final userVm = context.read<UserVm>();
 
-  void _openChildInfo(
-      BuildContext context,
-      AppUser child,
-      ) {
-    final locVm = context.read<ParentLocationVm>();
-    final mapVm = context.read<MapViewController>();
+    final child =
+    userVm.children.firstWhere((c) => c.uid == childId);
 
-    final latest = locVm.childrenLocations[child.uid];
+    final latest =
+    locationVm.childrenLocations[child.uid];
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (_) => ChildInfoSheet(
         child: child,
         latest: latest,
-        isSearching: mapVm.isRouteActive,
-        onOpenChat: () {
-          // TODO: push chat screen
-        },
-        onSendQuickMessage: (msg) async {
-          // TODO: hook chat repo
-        },
-        onToggleSearch: () async {
-          Navigator.pop(context);
-
-          final history =
-          await locVm.loadLocationHistory(child.uid);
-
-          final points = history
-              .map((e) => osm.LatLng(e.latitude, e.longitude))
-              .toList();
-
-          mapVm.toggleRoute(points);
-        },
+        isSearching: false,
+        onToggleSearch: () {},
+        onOpenChat: () {},
+        onSendQuickMessage: (msg) async {},
       ),
     );
   }
 
-  void _openChildrenAtSamePlace(
-      BuildContext context,
-      List<AppUser> children,
-      ) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => ListView(
-        children: children.map((child) {
-          return ListTile(
-            leading: AppAvatar(user: child, size: 36),
-            title: Text(child.displayLabel),
-            onTap: () {
-              Navigator.pop(context);
-              _openChildInfo(context, child);
-            },
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Future<void> _focusAndShowChild(AppUser child) async {
-    final loc = _locationVm.childrenLocations[child.uid];
-    if (loc == null) return;
-
-    final point = osm.LatLng(loc.latitude, loc.longitude);
-
-    // 🔍 TÌM GROUP CHỨA CHILD NÀY
-    final groups = groupChildrenByDistance(
-      children: context.read<UserVm>().children,
-      locations: _locationVm.childrenLocations,
-      thresholdMeters: 5,
-    );
-
-    final group = groups.firstWhere(
-          (g) => g.children.any((c) => c.uid == child.uid),
-      orElse: () => throw Exception('Group not found'),
-    );
-
-    // ===== CASE 1: CHILD NẰM TRONG GROUP (>1) =====
-    if (group.children.length > 1) {
-      // 👉 zoom vào group trước
-      _mapVm.fitPoints(
-        group.children
-            .map((c) {
-          final l = _locationVm.childrenLocations[c.uid]!;
-          return osm.LatLng(l.latitude, l.longitude);
-        })
-            .toList(),
-      );
-
-      // 👉 mở picker group (cho user chọn)
-      _openChildrenAtSamePlace(context, group.children);
-      return;
-    }
-
-    // ===== CASE 2: CHILD ĐƠN =====
-    await _mapVm.animateTo(
-      this,
-      point,
-      targetZoom: 17,
-    );
-    if (!mounted) return;
-    _openChildInfo(context, child);
-  }
 
   @override
   Widget build(BuildContext context) {
-    final mapVm = context.watch<MapViewController>();
-    final userVm = context.watch<UserVm>();
-    final children = context.select<UserVm, List<AppUser>>(
-          (vm) => vm.children,
-    );
-    final mapReady = context.select<MapViewController, bool>(
-          (vm) => vm.mapReady,
-    );
+    return Scaffold(
+      body: Stack(
+        children: [
 
-    final locations = context.select<ParentLocationVm, Map<String, LocationData>>(
-          (vm) => vm.childrenLocations,
-    );
+          Positioned.fill(
+            child: Stack(
+              children: [
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (_didAutoZoom) return;
-      if (!mapReady) return;
-      if (locations.isEmpty) return;
+                mbx.MapWidget(
+                  key: const ValueKey("parent-map"),
+                  styleUri: "mapbox://styles/mapbox/streets-v12",
 
-      _didAutoZoom = true;
+                  onMapCreated: (map) {
+                    _map = map;
+                    context.read<MapboxController>().attach(map);
+                    },
 
-      final points = locations.values
-          .map((e) => osm.LatLng(e.latitude, e.longitude))
-          .toList();
+                  onTapListener: (tapContext) async {
+                    if (_map == null) return;
 
-      // 👇 QUAN TRỌNG: đẩy sang frame tiếp theo
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final features = await _map!.queryRenderedFeatures(
+                      mbx.RenderedQueryGeometry.fromScreenCoordinate(
+                        tapContext.touchPosition,
+                      ),
+                      mbx.RenderedQueryOptions(
+                        layerIds: ["children-layer"],
+                        filter: null,
+                      ),
+                    );
+
+                    debugPrint("TAP features count = ${features.length}");
+
+                    if (features.isEmpty) return;
+
+                    final queried = features.first?.queriedFeature;
+                    if (queried == null) return;
+
+                    final rawFeature = queried.feature as Map<String?, Object?>?;
+
+                    if (rawFeature == null) return;
+
+                    final props = rawFeature["properties"] as Map?;
+
+                    if (props == null) return;
+
+                    final childId = props["id"]?.toString();
+                    if (childId == null) return;
+
+                    debugPrint("TAP childId = $childId");
+
+                    _openChildInfo(childId);
+                    await context.read<MapboxController>().zoomToChild(childId);
+                  },
+
+
+                  onStyleLoadedListener: (_) async {
+        final controller = context.read<MapboxController>();
+        await controller.onStyleLoaded();
+
         if (!mounted) return;
 
-        final mapVm = context.read<MapViewController>();
-
-        if (points.length == 1) {
-          mapVm.moveTo(points.first, zoom: 17);
-        } else {
-          mapVm.fitPoints(points);
-        }
-      });
-    });
-
-    final groups = groupChildrenByDistance(
-      children: children,
-      locations: locations,
-      thresholdMeters: 5,
-    );
-
-    // debugPrint("PROFILE CHILDREN = ${userVm.children.length}");
-    // debugPrint("LOCATION WATCHING = ${locations}");
-
-    final markers = groups.map((group) {
-      if (group.children.length == 1) {
-        final child = group.children.first;
-        final loc = locations[child.uid]!;
-
-        return Marker(
-          point: osm.LatLng(loc.latitude, loc.longitude),
-          width: 80,
-          height: 96,
-          child: ChildMarker(
-            child: child,
-            location: loc,
-            onTap: () => _focusAndShowChild(child),
-
-          ),
-        );
-      }
-
-      return Marker(
-        point: group.center,
-        width: 100,
-        height: 80,
-        child: ChildGroupMarker(
-          children: group.children,
-          onTap: () =>
-              _openChildrenAtSamePlace(context, group.children),
-        ),
-      );
-    }).toList();
-
-    return Scaffold(
-      body: MapBaseView(
-        markers: markers,
-        overlays: [
-          /// ================= TOP BAR =================
-          MapTopBar(
-            onMenuTap:  () => _openChildrenList(context),
-            onAvatarTap: () {},
+        // ✅ Dùng addPostFrameCallback để đảm bảo native map hoàn toàn sẵn sàng
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          try {
+            final data = await rootBundle.load("assets/images/avatar_default.png");
+            await controller.setDefaultAvatar(data.buffer.asUint8List());
+            if (mounted) await _syncToMap();
+          } catch (e) {
+            debugPrint("🔥 Setup Error: $e");
+          }
+        });
+      },
+  ),
+      ],
+            ),
           ),
 
-          /// ================= BOTTOM CONTROLS =================
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: MapTopBar(
+              onMenuTap: () {},
+              onAvatarTap: () {},
+            ),
+          ),
+
           Positioned(
             left: 12,
             right: 12,
             bottom: 16,
             child: SafeArea(
-              top: false,
               child: MapBottomControls(
-                children: userVm.children,
+                children:
+                context.watch<UserVm>().children,
+                onMyLocation: () async {
+                  _didInitialFit = false;
+                  await _syncToMap();
+                },
                 onTapChild: (child) {
-                  _focusAndShowChild(child);
+                  _openChildInfo(child.uid);
                 },
-                onMore: () => _openChildrenList(context),
-                onMyLocation: () {
-                  mapVm.fitPoints(
-                    markers.map((m) => m.point).toList(),
+                onMore: () async {
+                  final selectedChild = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ParentChildrenListScreen(),
+                    ),
                   );
-                },
-              ),
+
+                  if (selectedChild == null) return;
+
+                  final childId = selectedChild.uid;
+
+
+                  final duration = await context
+                      .read<MapboxController>()
+                      .zoomToChild(childId);
+
+                  await Future.delayed(Duration(milliseconds: duration));
+
+                  _openChildInfo(childId);
+
+                },              ),
             ),
           ),
         ],
-
       ),
-
     );
-
   }
 
-  void _tryAutoZoom() {
-    if (!mounted) return;
-    if (_didAutoZoom) return;
-    if (!_mapVm.mapReady) return;
+  @override
+  void dispose() {
 
-    final locations = _locationVm.childrenLocations;
-    if (locations.isEmpty) return;
+    final controller =
+    context.read<MapboxController>();
 
-    _didAutoZoom = true;
+    controller.removeListener(_handleMapOrDataChange);
 
-    final points = locations.values
-        .map((e) => osm.LatLng(e.latitude, e.longitude))
-        .toList();
+    context.read<ParentLocationVm>()
+        .removeListener(_handleMapOrDataChange);
 
-    debugPrint("MOUNT = ${points.length}");
+    context.read<UserVm>()
+        .removeListener(_handleUserChange);
+    controller.detach(); // <--- THÊM DÒNG NÀY (rất quan trọng)
 
-    if (points.length == 1) {
-      _mapVm.moveTo(points.first, zoom: 17);
-    } else {
-      _mapVm.fitPoints(points);
-    }
+    super.dispose();
   }
-
-
 }
-
-
-
-
-
-

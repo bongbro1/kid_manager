@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/app_user.dart';
+import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/widgets/common/avatar.dart';
+import 'package:provider/provider.dart';
 
 
 class MapBottomControls extends StatelessWidget {
@@ -60,7 +62,7 @@ class _ChildrenPreviewButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final visible = children.take(2).toList();
     final remaining = children.length - visible.length;
-
+    final locationVm = context.watch<ParentLocationVm>();
     return GestureDetector(
       onTap: onTap,
         child: ConstrainedBox(
@@ -98,7 +100,9 @@ class _ChildrenPreviewButton extends StatelessWidget {
                             : () => onTapChild!(child),
                     child: AppAvatar(
                       user: child,
-                      size:44
+                      size:44,
+                      isOnline: locationVm.isChildOnline(child.uid),
+
                     ),
                   ),
                       ),

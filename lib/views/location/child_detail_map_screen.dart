@@ -1,15 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/location/history_snap_engine.dart';
+import 'package:kid_manager/widgets/map/app_map_view.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart' as osm;
 
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/services/location/mapbox_route_service.dart';
-import 'package:kid_manager/core/map/gps_optimizer.dart';
+
+
 
 class ChildDetailMapScreen extends StatefulWidget {
   final String childId;
@@ -32,37 +35,130 @@ class _ChildDetailMapScreenState
   PointAnnotation? _marker;
 
   final List<osm.LatLng> _trail = [];
+  final List<osm.LatLng> _buffer = [];
+
   StreamSubscription? _sub;
+  Timer? _debounce;
 
   bool _autoFollow = true;
 
+  static const double _minMoveDistance = 15; // meters
+  static const int _bufferSize = 6;
+
+  final _distance = const osm.Distance();
+
   // ============================================================
-  // MAP CREATED
+  // MAP INIT
   // ============================================================
 
-  void _onMapCreated(MapboxMap mapboxMap) async {
-    _map = mapboxMap;
-
-
-    // Bây giờ style chắc chắn đã sẵn sàng
-
+  Future<void> _onStyleLoaded() async {
+    print("Ham Nay Dc Goi");
     _annotationManager =
-    await _map!.annotations
-        .createPointAnnotationManager();
+    await _map!.annotations.createPointAnnotationManager();
 
+    // await _addRouteLayer();
+    // _listenRealtime();
     await _addRouteLayer();
+    await _loadFakeHistory();
 
-    await _loadHistory();
-
-    _listenRealtime();
   }
 
+  Future<void> _loadFakeHistory() async {
+    final fakeHistory =
+    context.read<ParentLocationVm>()
+        .generateFakeHoTayHistory();
 
-  // ============================================================
-  // ROUTE LAYER
-  // ============================================================
+    final engine = HistorySnapEngine();
+
+    final result =
+    await engine.snapHistory(fakeHistory);
+
+    if (result.snappedPoints.isEmpty) {
+      debugPrint("❌ SNAP FAIL");
+      return;
+    }
+    debugPrint("SNAPPED LENGTH: ${result.snappedPoints.length}");
+
+    _trail
+      ..clear()
+      ..addAll(result.snappedPoints);
+
+    await _updateRoute();
+    await _fitCameraToRoute();
+
+    debugPrint("✅ SNAP OK");
+    debugPrint("Distance: ${result.totalDistanceKm} km");
+    debugPrint("Fallback used: ${result.usedFallback}");
+  }
+  // Production
+  Future<void> _loadHistory() async {
+    final engine = HistorySnapEngine();
+
+    final history =
+    await context.read<ParentLocationVm>()
+        .loadLocationHistory(widget.childId);
+
+    final result =
+    await engine.snapHistory(history);
+
+    _trail
+      ..clear()
+      ..addAll(result.snappedPoints);
+
+    await _updateRoute();
+    await _fitCameraToRoute();
+
+    debugPrint("Distance: ${result.totalDistanceKm}");
+    debugPrint("Fallback used: ${result.usedFallback}");
+  }
+  Future<void> _fitCameraToRoute() async {
+    if (_trail.isEmpty) return;
+
+    double minLat = _trail.first.latitude;
+    double maxLat = _trail.first.latitude;
+    double minLng = _trail.first.longitude;
+    double maxLng = _trail.first.longitude;
+
+    for (final p in _trail) {
+      minLat = min(minLat, p.latitude);
+      maxLat = max(maxLat, p.latitude);
+      minLng = min(minLng, p.longitude);
+      maxLng = max(maxLng, p.longitude);
+    }
+
+    final bounds = CoordinateBounds(
+      southwest: Point(
+        coordinates: Position(minLng, minLat),
+      ),
+      northeast: Point(
+        coordinates: Position(maxLng, maxLat),
+      ),
+      infiniteBounds: false,
+    );
+
+    final cameraOptions =
+    await _map!.cameraForCoordinateBounds(
+      bounds,
+      MbxEdgeInsets(
+        top: 100,
+        left: 50,
+        bottom: 100,
+        right: 50,
+      ),
+      null,
+      null,
+      null,
+      null
+    );
+
+    await _map!.easeTo(
+      cameraOptions,
+      MapAnimationOptions(duration: 1200),
+    );
+  }
 
   Future<void> _addRouteLayer() async {
+    debugPrint("TRAIL LENGTH: ${_trail.length}");
 
     await _map!.style.addSource(
       GeoJsonSource(
@@ -79,13 +175,15 @@ class _ChildDetailMapScreenState
         id: "route-layer",
         sourceId: "route-source",
         lineWidth: 6.0,
-        lineColor: 0xFF2196F3,
+        lineColor: 0xFF1976D2,
       ),
     );
   }
 
   Future<void> _updateRoute() async {
-    print("TRAIL LENGTH: ${_trail.length}");
+    debugPrint("TRAIL LENGTH: ${_trail.length}");
+
+    if (_trail.length < 2) return;
 
     final geoJson = {
       "type": "FeatureCollection",
@@ -102,7 +200,6 @@ class _ChildDetailMapScreenState
       ]
     };
 
-
     final source =
     await _map!.style.getSource("route-source")
     as GeoJsonSource;
@@ -111,43 +208,7 @@ class _ChildDetailMapScreenState
   }
 
   // ============================================================
-  // MARKER
-  // ============================================================
-
-  Future<void> _updateMarker(
-      osm.LatLng p,
-      double heading) async {
-
-    if (_annotationManager == null) return;
-
-    final point = Point(
-      coordinates:
-      Position(p.longitude, p.latitude),
-    );
-
-    if (_marker == null) {
-
-      _marker = await _annotationManager!
-          .create(
-        PointAnnotationOptions(
-          geometry: point,
-          iconSize: 1.2,
-          iconRotate: heading,
-        ),
-      );
-
-    } else {
-
-      _marker!.geometry = point;
-      _marker!.iconRotate = heading;
-
-      await _annotationManager!
-          .update(_marker!);
-    }
-  }
-
-  // ============================================================
-  // REALTIME
+  // REALTIME LISTENER
   // ============================================================
 
   void _listenRealtime() {
@@ -160,117 +221,107 @@ class _ChildDetailMapScreenState
 
       final newPoint =
       osm.LatLng(loc.latitude, loc.longitude);
+      print("NEW LOCATION");
 
-      if (_trail.isEmpty) {
-        _trail.add(newPoint);
-        await _updateRoute();
-        return;
+      // Lọc nhiễu
+      if (_trail.isNotEmpty) {
+        final d = _distance(
+            _trail.last,
+            newPoint);
+
+        if (d < _minMoveDistance) {
+          return; // bỏ qua di chuyển quá nhỏ
+        }
       }
 
-      final snapped =
-      await MapboxRouteService
-          .snapSegment([_trail.last, newPoint]);
+      _buffer.add(newPoint);
 
-      if (snapped == null ||
-          snapped.isEmpty) return;
-
-      _trail.addAll(snapped);
-
-      await _updateRoute();
-
-      final heading =
-      _calculateHeading(
-          _trail[_trail.length - 2],
-          _trail.last);
-
-      await _updateMarker(
-          _trail.last,
-          heading);
-
-      if (_autoFollow) {
-        await _map!.easeTo(
-          CameraOptions(
-            center: Point(
-              coordinates: Position(
-                _trail.last.longitude,
-                _trail.last.latitude,
-              ),
-            ),
-            zoom: 17,
-            pitch: 45,
-            bearing: heading,
-          ),
-          MapAnimationOptions(duration: 800),
-        );
+      if (_buffer.length > _bufferSize) {
+        _buffer.removeAt(0);
       }
+
+      _debounce?.cancel();
+      _debounce = Timer(
+          const Duration(seconds: 3),
+              () async {
+                print("DEBOUNCE FIRED ${_buffer.length}");
+
+            if (_buffer.length < 2) return;
+
+                final result =
+                await MapboxRouteService.snapSegment(_buffer);
+
+                if (result == null ||
+                    result.points.length < 2) return;
+
+                _trail.addAll(result.points);
+
+
+                await _updateRoute();
+
+            final heading =
+            _calculateHeading(
+                _trail[_trail.length - 2],
+                _trail.last);
+
+            await _updateMarker(
+                _trail.last,
+                heading);
+
+            if (_autoFollow) {
+              await _map!.easeTo(
+                CameraOptions(
+                  center: Point(
+                    coordinates: Position(
+                      _trail.last.longitude,
+                      _trail.last.latitude,
+                    ),
+                  ),
+                  zoom: 17,
+                  pitch: 45,
+                  bearing: heading,
+                ),
+                MapAnimationOptions(duration: 800),
+              );
+            }
+
+            _buffer.clear();
+          });
     });
   }
 
   // ============================================================
-  // LOAD HISTORY
+  // MARKER
   // ============================================================
 
-  Future<void> _loadHistory() async {
+  Future<void> _updateMarker(
+      osm.LatLng p,
+      double heading) async {
 
-    print("USING TEST DATA");
-
-    _trail.clear();
-
-    _trail.addAll([
-
-      // 1️⃣ Thanh Niên - gần Trấn Quốc
-      osm.LatLng(21.04818, 105.83632),
-      osm.LatLng(21.04905, 105.83728),
-      osm.LatLng(21.05012, 105.83846),
-
-      // 2️⃣ Trích Sài
-      osm.LatLng(21.05180, 105.84090),
-      osm.LatLng(21.05360, 105.84360),
-      osm.LatLng(21.05520, 105.84620),
-
-      // 3️⃣ Lạc Long Quân
-      osm.LatLng(21.05630, 105.84890),
-      osm.LatLng(21.05655, 105.85140),
-      osm.LatLng(21.05610, 105.85410),
-
-      // 4️⃣ Xuân La
-      osm.LatLng(21.05490, 105.85660),
-      osm.LatLng(21.05320, 105.85830),
-      osm.LatLng(21.05130, 105.85910),
-
-      // 5️⃣ Nhật Chiêu
-      osm.LatLng(21.04940, 105.85870),
-      osm.LatLng(21.04760, 105.85780),
-
-      // 6️⃣ Quảng An
-      osm.LatLng(21.04600, 105.85570),
-      osm.LatLng(21.04500, 105.85330),
-
-      // 7️⃣ Yên Phụ
-      osm.LatLng(21.04540, 105.84960),
-      osm.LatLng(21.04680, 105.84620),
-      osm.LatLng(21.04790, 105.84290),
-
-      // 🔁 Đóng vòng
-      osm.LatLng(21.04818, 105.83632),
-
-    ]);
-
-    await _updateRoute();
-
-    await _map?.easeTo(
-      CameraOptions(
-        center: Point(
-          coordinates: Position(
-            _trail.last.longitude,
-            _trail.last.latitude,
-          ),
-        ),
-        zoom: 16,
-      ),
-      MapAnimationOptions(duration: 1000),
+    final point = Point(
+      coordinates:
+      Position(p.longitude, p.latitude),
     );
+
+    if (_marker == null) {
+      _marker =
+      await _annotationManager!.create(
+        PointAnnotationOptions(
+          geometry: point,
+          iconSize: 1.2,
+          iconRotate: heading,
+        ),
+      );
+    } else {
+      _marker!.geometry = point;
+      _marker!.iconRotate = heading;
+      await _annotationManager!.update(_marker!);
+    }
   }
+
+  // ============================================================
+  // HEADING
+  // ============================================================
 
   double _calculateHeading(
       osm.LatLng from,
@@ -304,8 +355,7 @@ class _ChildDetailMapScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:
-        Text("Lịch sử ${widget.childId}"),
+        title: Text("Tracking ${widget.childId}"),
         actions: [
           IconButton(
             icon: Icon(
@@ -315,36 +365,27 @@ class _ChildDetailMapScreenState
             ),
             onPressed: () {
               setState(() {
-                _autoFollow =
-                !_autoFollow;
+                _autoFollow = !_autoFollow;
               });
             },
           ),
         ],
       ),
-      body: MapWidget(
-        styleUri: "mapbox://styles/mapbox/streets-v12",
-        onMapCreated: (mapboxMap) {
-          _map = mapboxMap;
+      body: AppMapView(
+        onMapCreated: (map) {
+          _map = map;
         },
-        onStyleLoadedListener: (event) async {
-          print("STYLE READY");
-
-          _annotationManager =
-          await _map!.annotations.createPointAnnotationManager();
-
-          await _addRouteLayer();
-          await _loadHistory();
-          _listenRealtime();
+        onStyleLoaded: () async {
+          await _onStyleLoaded();
         },
       ),
-
     );
   }
 
   @override
   void dispose() {
     _sub?.cancel();
+    _debounce?.cancel();
     super.dispose();
   }
 }

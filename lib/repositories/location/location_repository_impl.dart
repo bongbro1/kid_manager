@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 
@@ -25,7 +26,7 @@ class LocationRepositoryImpl implements LocationRepository {
   }
 
   @override
-  Future<void> updateMyLocation(LocationData location) async {
+  Future<void> updateMyLocation(TrackingPayload location) async {
     final uid = _requireUid();
 
     // LẤY parentUid TỪ FIRESTORE

@@ -1,10 +1,9 @@
 import 'package:kid_manager/features/presentation/shared/app_bottom_bar_config.dart';
-import 'package:kid_manager/features/presentation/shared/state/map_view_controller.dart';
+import 'package:kid_manager/features/presentation/shared/state/mapbox_controller.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
-import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
-import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
 import 'package:kid_manager/views/child/child_notification_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/app_management_screen.dart';
@@ -29,14 +28,15 @@ class AppShellConfig {
       root: MultiProvider(
         providers: [
           ChangeNotifierProvider(
-            create: (_) => MapViewController(),
+              create: (context)=> ParentLocationVm(context.read<LocationRepository>())
           ),
-
+          ChangeNotifierProvider(
+            create: (_) => MapboxController(),
+          ),
         ],
         child: const ParentAllChildrenMapScreen(),
       ),
     ),
-
     BottomTabConfig(
       iconAsset: 'assets/icons/dashboard.svg',
       root: const AppManagementScreen(),
@@ -71,7 +71,7 @@ class AppShellConfig {
             ),
           ),
           ChangeNotifierProvider(
-            create: (_) => MapViewController(),
+            create: (_) => MapboxController(),
           ),
         ],
         child: const ChildLocationScreen(),

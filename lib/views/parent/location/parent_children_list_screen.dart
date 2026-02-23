@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/features/presentation/shared/state/map_view_controller.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/location/child_detail_map_screen.dart';
@@ -31,7 +30,7 @@ class ParentChildrenListScreen extends StatelessWidget {
             child: child,
             location: location,
 
-            /// 👉 TAP CARD → HISTORY
+            ///  TAP CARD → HISTORY
             onOpenHistory: () {
               Navigator.push(
                 context,

@@ -1,8 +1,9 @@
 
+import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 
 abstract class LocationRepository {
-  Future<void> updateMyLocation(LocationData location);
+  Future<void> updateMyLocation(TrackingPayload payload);
 
   Stream<LocationData> watchChildLocation(String childId);
 

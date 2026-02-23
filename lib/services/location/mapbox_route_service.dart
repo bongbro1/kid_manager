@@ -22,45 +22,78 @@ class MapboxRouteService {
       dotenv.env['ACCESS_TOKEN'] ?? '';
 
 
-  static Future<List<osm.LatLng>?> snapSegment(
+  static Future<MapboxRouteResult?> snapSegment(
       List<osm.LatLng> input,
       ) async {
+    debugPrint("Vao day roai");
 
-    if (input.length < 2) return null;
+    if (input.length < 3) {
+      debugPrint("❌ Not enough points");
+      return null;
+    }
 
     final coordinates = input
         .map((p) => '${p.longitude},${p.latitude}')
         .join(';');
+
+    final radiuses =
+    List.filled(input.length, 30).join(';');
 
     final url = Uri.parse(
       'https://api.mapbox.com/matching/v5/mapbox/driving/'
           '$coordinates'
           '?geometries=polyline6'
           '&overview=full'
+          '&radiuses=$radiuses'
+          '&steps=false'
+          '&annotations=distance,duration'
+          '&tidy=true'
           '&access_token=$_token',
     );
 
     final response = await http.get(url);
+    debugPrint("STATUS: ${response.statusCode}");
+    debugPrint("BODY: ${response.body}");
 
-    if (response.statusCode != 200) return null;
+    if (response.statusCode != 200) {
+      debugPrint("❌ MATCHING ERROR");
+      return null;
+    }
 
     final data = json.decode(response.body);
+    debugPrint("GEOMETRY: ${data['matchings'][0]['geometry']}");
 
     if (data['matchings'] == null ||
-        data['matchings'].isEmpty) return null;
+        data['matchings'].isEmpty) {
+      debugPrint("❌ No matchings");
+      return null;
+    }
 
-    final geometry =
-    data['matchings'][0]['geometry'];
+    final matching = data['matchings'][0];
 
+    final geometry = matching['geometry'];
     final decoded =
     PolylineCodec.decode(geometry, precision: 6);
-
-    return decoded
+    debugPrint("DECODED LENGTH: ${decoded.length}");
+    debugPrint("FIRST POINT: ${decoded.first}");
+    final points =decoded
         .map((p) => osm.LatLng(
       p[0].toDouble(),
       p[1].toDouble(),
     ))
         .toList();
+
+    final distanceMeters =
+        (matching['distance'] as num?)?.toDouble() ?? 0;
+
+    final durationSeconds =
+        (matching['duration'] as num?)?.toDouble() ?? 0;
+
+    return MapboxRouteResult(
+      points: points,
+      distanceKm: distanceMeters / 1000,
+      durationMinutes: durationSeconds / 60,
+    );
   }
 
 
