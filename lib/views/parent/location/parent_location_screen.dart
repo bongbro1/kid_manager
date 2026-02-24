@@ -28,13 +28,12 @@ class ParentAllChildrenMapScreen extends StatefulWidget {
       _ParentAllChildrenMapView();
 }
 
-
 class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
-    with TickerProviderStateMixin  {
-
+    with TickerProviderStateMixin {
   late VoidCallback _userListener;
   late ParentLocationVm _locationVm;
   late MapViewController _mapVm;
+  late UserVm _userVm;
 
   bool _didAutoZoom = false;
   @override
@@ -56,54 +55,51 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
         _locationVm.refreshWatching(userVm.childrenIds);
       };
 
+      _userVm = context.read<UserVm>();
       userVm.addListener(_userListener);
       _mapVm.addListener(_tryAutoZoom);
       _locationVm.addListener(_tryAutoZoom);
-
     });
-
   }
-
 
   @override
   void dispose() {
     _mapVm.removeListener(_tryAutoZoom);
     _locationVm.removeListener(_tryAutoZoom);
-    context.read<UserVm>().removeListener(_userListener);
+    _userVm.removeListener(_userListener); // ✅ không dùng context nữa
     super.dispose();
   }
+  // @override
+  // void dispose() {
+  //   _mapVm.removeListener(_tryAutoZoom);
+  //   _locationVm.removeListener(_tryAutoZoom);
+  //   context.read<UserVm>().removeListener(_userListener);
+  //   super.dispose();
+  // }
 
-
-
-  void _openChildrenList(BuildContext context) async{
-    final selectedChild =await Navigator.push<AppUser>(
+  void _openChildrenList(BuildContext context) async {
+    final selectedChild = await Navigator.push<AppUser>(
       context,
       MaterialPageRoute(
         builder: (_) => MultiProvider(
           providers: [
-            ChangeNotifierProvider.value(
-              value: context.read<UserVm>(),
-            ),
+            ChangeNotifierProvider.value(value: context.read<UserVm>()),
             ChangeNotifierProvider.value(
               value: context.read<ParentLocationVm>(),
             ),
-
           ],
-          child:  ParentChildrenListScreen(),
+          child: ParentChildrenListScreen(),
         ),
       ),
     );
 
-    if(selectedChild == null || !mounted ){
+    if (selectedChild == null || !mounted) {
       return;
     }
     _focusAndShowChild(selectedChild);
   }
 
-  void _openChildInfo(
-      BuildContext context,
-      AppUser child,
-      ) {
+  void _openChildInfo(BuildContext context, AppUser child) {
     final locVm = context.read<ParentLocationVm>();
     final mapVm = context.read<MapViewController>();
 
@@ -126,8 +122,7 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
         onToggleSearch: () async {
           Navigator.pop(context);
 
-          final history =
-          await locVm.loadLocationHistory(child.uid);
+          final history = await locVm.loadLocationHistory(child.uid);
 
           final points = history
               .map((e) => osm.LatLng(e.latitude, e.longitude))
@@ -139,10 +134,7 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
     );
   }
 
-  void _openChildrenAtSamePlace(
-      BuildContext context,
-      List<AppUser> children,
-      ) {
+  void _openChildrenAtSamePlace(BuildContext context, List<AppUser> children) {
     showModalBottomSheet(
       context: context,
       builder: (_) => ListView(
@@ -174,7 +166,7 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
     );
 
     final group = groups.firstWhere(
-          (g) => g.children.any((c) => c.uid == child.uid),
+      (g) => g.children.any((c) => c.uid == child.uid),
       orElse: () => throw Exception('Group not found'),
     );
 
@@ -182,12 +174,10 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
     if (group.children.length > 1) {
       // 👉 zoom vào group trước
       _mapVm.fitPoints(
-        group.children
-            .map((c) {
+        group.children.map((c) {
           final l = _locationVm.childrenLocations[c.uid]!;
           return osm.LatLng(l.latitude, l.longitude);
-        })
-            .toList(),
+        }).toList(),
       );
 
       // 👉 mở picker group (cho user chọn)
@@ -196,11 +186,7 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
     }
 
     // ===== CASE 2: CHILD ĐƠN =====
-    await _mapVm.animateTo(
-      this,
-      point,
-      targetZoom: 17,
-    );
+    await _mapVm.animateTo(this, point, targetZoom: 17);
     if (!mounted) return;
     _openChildInfo(context, child);
   }
@@ -209,16 +195,15 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
   Widget build(BuildContext context) {
     final mapVm = context.watch<MapViewController>();
     final userVm = context.watch<UserVm>();
-    final children = context.select<UserVm, List<AppUser>>(
-          (vm) => vm.children,
-    );
+    final children = context.select<UserVm, List<AppUser>>((vm) => vm.children);
     final mapReady = context.select<MapViewController, bool>(
-          (vm) => vm.mapReady,
+      (vm) => vm.mapReady,
     );
 
-    final locations = context.select<ParentLocationVm, Map<String, LocationData>>(
+    final locations = context
+        .select<ParentLocationVm, Map<String, LocationData>>(
           (vm) => vm.childrenLocations,
-    );
+        );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -268,7 +253,6 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
             child: child,
             location: loc,
             onTap: () => _focusAndShowChild(child),
-
           ),
         );
       }
@@ -279,8 +263,7 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
         height: 80,
         child: ChildGroupMarker(
           children: group.children,
-          onTap: () =>
-              _openChildrenAtSamePlace(context, group.children),
+          onTap: () => _openChildrenAtSamePlace(context, group.children),
         ),
       );
     }).toList();
@@ -291,7 +274,7 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
         overlays: [
           /// ================= TOP BAR =================
           MapTopBar(
-            onMenuTap:  () => _openChildrenList(context),
+            onMenuTap: () => _openChildrenList(context),
             onAvatarTap: () {},
           ),
 
@@ -309,19 +292,14 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
                 },
                 onMore: () => _openChildrenList(context),
                 onMyLocation: () {
-                  mapVm.fitPoints(
-                    markers.map((m) => m.point).toList(),
-                  );
+                  mapVm.fitPoints(markers.map((m) => m.point).toList());
                 },
               ),
             ),
           ),
         ],
-
       ),
-
     );
-
   }
 
   void _tryAutoZoom() {
@@ -346,12 +324,4 @@ class _ParentAllChildrenMapView extends State<ParentAllChildrenMapScreen>
       _mapVm.fitPoints(points);
     }
   }
-
-
 }
-
-
-
-
-
-

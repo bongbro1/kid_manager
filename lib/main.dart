@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kid_manager/background/background_worker.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:provider/provider.dart';
+import 'package:workmanager/workmanager.dart';
 import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -16,20 +18,15 @@ Future<void> main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('vi_VN', null);
+
+  await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
 
   // 🔐 Init Storage
   final storageService = StorageService();
   await storageService.init();
 
-  // await Workmanager().initialize(
-  //   callbackDispatcher,
-  //   isInDebugMode: true,
-  // );
-  
   runApp(
     MultiProvider(
       providers: [Provider<StorageService>.value(value: storageService)],

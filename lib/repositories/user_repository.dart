@@ -1,15 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import '../models/app_user.dart';
 
 class UserRepository {
   final FirebaseFirestore _db;
-  final FirebaseAuth _auth;
-  final SecondaryAuthService _secondaryAuth;
+  final FirebaseAuth? _auth;
+  final SecondaryAuthService? _secondaryAuth;
   UserRepository(this._db, this._auth, this._secondaryAuth);
+
+  factory UserRepository.background(FirebaseFirestore db) {
+    return UserRepository(db, null, null);
+  }
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');
@@ -57,6 +62,7 @@ class UserRepository {
         'timezone': timezone,
         'createdAt': FieldValue.serverTimestamp(),
         'lastActiveAt': FieldValue.serverTimestamp(),
+        'avatarUrl': '',
         'subscription': {
           'plan': 'free',
           'status': 'active',
@@ -110,7 +116,7 @@ class UserRepository {
     required String locale,
     required String timezone,
   }) async {
-    final cred = await _secondaryAuth.createUser(
+    final cred = await _secondaryAuth!.createUser(
       email: email.trim(),
       password: password,
     );
@@ -134,6 +140,7 @@ class UserRepository {
         'dob': dob != null ? Timestamp.fromDate(dob) : null,
         'createdAt': FieldValue.serverTimestamp(),
         'lastActiveAt': FieldValue.serverTimestamp(),
+        'avatarUrl': '',
       }..removeWhere((_, v) => v == null),
     );
 
@@ -149,12 +156,6 @@ class UserRepository {
   Future<UserProfile?> getUserProfile(String uid) async {
     final doc = await _db.collection("users").doc(uid).get();
 
-    debugPrint("===== FIRESTORE DEBUG =====");
-    debugPrint("UID: $uid");
-    debugPrint("Doc exists: ${doc.exists}");
-    debugPrint("Raw data: ${doc.data()}");
-    debugPrint("===========================");
-
     if (!doc.exists) return null;
 
     final data = doc.data()!;
@@ -168,6 +169,61 @@ class UserRepository {
       allowTracking: data['allowTracking'] ?? false,
       avatarUrl: data['avatarUrl'],
       dob: data['dob'] ?? '',
+      role: data['role'] ?? 'child',
     );
+  }
+
+  Future<List<ChildItem>> getChildrenByParentUid(String parentUid) async {
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'child')
+          .where('parentUid', isEqualTo: parentUid)
+          .get();
+
+      debugPrint("===== CHILD QUERY DEBUG =====");
+      debugPrint("Parent UID: $parentUid");
+      debugPrint("Children found: ${snapshot.docs.length}");
+      debugPrint("=============================");
+
+      final now = DateTime.now();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+
+        final lastActive = (data['lastActiveAt'] as Timestamp?)?.toDate();
+
+        bool isOnline = false;
+        if (lastActive != null) {
+          final diff = now.difference(lastActive).inMinutes;
+          isOnline = diff <= 2; // online nếu hoạt động trong 2 phút
+        }
+
+        return ChildItem(
+          id: doc.id,
+          name: data['displayName'] ?? '',
+          avatarUrl: data['photoUrl'] ?? '',
+          isOnline: isOnline,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint("❌ ERROR getChildrenByParentUid: $e");
+      rethrow;
+    }
+  }
+
+  Future<List<String>> getChildUserIds(String parentUid) async {
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'child')
+          .where('parentUid', isEqualTo: parentUid)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      debugPrint("❌ getChildUserIds error: $e");
+      return [];
+    }
   }
 }

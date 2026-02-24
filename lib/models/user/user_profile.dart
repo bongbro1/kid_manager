@@ -7,6 +7,8 @@ class UserProfile {
   final String address;
   final bool allowTracking;
 
+  final String? role;
+
   // 🔥 thêm mới (nullable)
   final String? avatarUrl;
   final String? coverUrl;
@@ -19,6 +21,7 @@ class UserProfile {
     required this.dob,
     required this.address,
     required this.allowTracking,
+    this.role,
     this.avatarUrl,
     this.coverUrl,
   });
@@ -32,6 +35,7 @@ class UserProfile {
       "dob": dob,
       "address": address,
       "allowTracking": allowTracking,
+      "role": role,
       "avatarUrl": avatarUrl,
       "coverUrl": coverUrl,
     };
@@ -52,8 +56,9 @@ class UserProfile {
       dob: data["dob"] ?? "",
       address: data["address"] ?? "",
       allowTracking: data["allowTracking"] ?? false,
+      role: data["role"] ?? "child",
       avatarUrl: data["avatarUrl"], // nullable
-      coverUrl: data["coverUrl"],   // nullable
+      coverUrl: data["coverUrl"], // nullable
     );
   }
 }

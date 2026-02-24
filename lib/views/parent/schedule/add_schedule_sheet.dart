@@ -399,12 +399,12 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                   final vm = context.read<ScheduleViewModel>();
 
                   /// 1️⃣ Show loading
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) =>
-                        const Center(child: CircularProgressIndicator()),
-                  );
+                  // showDialog(
+                  //   context: context,
+                  //   barrierDismissible: false,
+                  //   builder: (_) =>
+                  //       const Center(child: CircularProgressIndicator()),
+                  // );
 
                   try {
                     final startAt = DateTime(
@@ -446,7 +446,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                     await vm.addSchedule(schedule);
 
                     /// 2️⃣ Hide loading
-                    if (mounted) Navigator.pop(context);
+                   // if (mounted) Navigator.pop(context);
 
                     /// 3️⃣ Reload list
                     await vm.loadMonth();
@@ -483,9 +483,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                     );
 
                     /// 5️⃣ Sau khi popup đóng → đóng AddScheduleSheet
-                    if (mounted) Navigator.pop(context);
+                    //if (mounted) Navigator.pop(context);
                   } catch (e) {
-                    if (mounted) Navigator.pop(context); // đóng loading
+                    //if (mounted) Navigator.pop(context); // đóng loading
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Có lỗi xảy ra")),

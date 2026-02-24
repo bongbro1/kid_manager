@@ -39,8 +39,6 @@ dependencies:
   shared_preferences: ^2.2.2
   table_calendar: ^3.0.9
   
-  
-
 
   # Firebase (đồng bộ major)
   firebase_core: ^4.2.1
@@ -76,6 +74,9 @@ dependencies:
 
   flutter_dotenv: ^5.1.0
   mapbox_maps_flutter: ^2.0.0
+
+  workmanager: ^0.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

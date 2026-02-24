@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/app_colors.dart';
+import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/utils/date_format.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
@@ -9,7 +11,9 @@ import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
+import 'package:kid_manager/widgets/app/app_notice_card.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
+import 'package:kid_manager/widgets/common/notification_modal.dart';
 import 'package:provider/provider.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -19,7 +23,10 @@ class PersonalInfoScreen extends StatefulWidget {
   State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
 }
 
-class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+class _PersonalInfoScreenState extends State<PersonalInfoScreen>
+    with RouteAware {
+  late VoidCallback _tabListener;
+
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _genderCtrl = TextEditingController();
@@ -34,18 +41,59 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   void initState() {
     super.initState();
 
+    _tabListener = () {
+      if (activeTabNotifier.value == 5 || activeTabNotifier.value == 2) {
+        context.read<UserVm>().loadProfile();
+      }
+    };
+
+    activeTabNotifier.addListener(_tabListener);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UserVm>().loadProfile();
     });
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_didBind) {
+      final route = ModalRoute.of(context);
+      if (route is PageRoute) {
+        routeObserver.subscribe(this, route);
+        _didBind = true;
+      }
+    }
+  }
+
+  @override
+  void didPopNext() {
+    context.read<UserVm>().loadProfile();
+  }
+
+  @override
   void dispose() {
+    activeTabNotifier.removeListener(_tabListener);
+    routeObserver.unsubscribe(this);
     _nameCtrl.dispose();
+
     super.dispose();
   }
 
   Future<void> _updateUserInfo() async {
+    final dob = parseDateFromText(_dobCtrl.text);
+
+    if (dob == null) {
+      NotificationModal.show(
+        context,
+        child: AppNoticeCard(
+          type: AppNoticeType.error,
+          message: 'Ngày sinh không hợp lệ',
+        ),
+      );
+      return;
+    }
     final vm = context.read<UserVm>();
 
     final ok = await vm.updateUserInfo(
@@ -60,8 +108,14 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     if (!mounted) return;
 
     if (ok) {
-      debugPrint("Update OK");
-      // ví dụ: Navigator.pop(context, true);
+      NotificationModal.show(
+        context,
+        child: AppNoticeCard(
+          type: AppNoticeType.success,
+          message: 'Sửa thông tin thành công',
+        ),
+      );
+      await vm.loadProfile();
     } else {
       debugPrint("Update FAIL: ${vm.error}");
       // show snackbar/dialog nếu muốn
@@ -96,11 +150,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<UserVm>();
-    if (vm.profile != null && !_didBind) {
-      _didBind = true;
+    final p = vm.profile;
 
-      final p = vm.profile!;
+    final _isChild = p?.role == 'child'; // 👈 đặt ở đây
 
+    if (p != null) {
       _nameCtrl.text = p.name;
       _phoneCtrl.text = p.phone;
       _genderCtrl.text = p.gender;
@@ -110,6 +164,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
       _age = calculateAgeFromDateString(p.dob);
     }
+
     return Scaffold(
       backgroundColor: Color(0xFFFFFFFF),
       body: SafeArea(
@@ -227,7 +282,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      vm.profile?.name ?? '',
+                                      p?.name ?? '',
                                       style: TextStyle(
                                         color: Color(0xFF212121),
                                         fontSize: 18,
@@ -299,13 +354,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   hint: "Xã Điềm Thụy, Tỉnh Thái Nguyên",
                   controller: _addressCtrl,
                 ),
-
-                AppLabeledCheckbox(
-                  label: "Quyền theo dõi",
-                  text: "Cho phép đối phương theo dõi vị trí",
-                  value: allowLocationTracking,
-                  onChanged: (v) => setState(() => allowLocationTracking = v),
-                ),
+                if (!_isChild)
+                  AppLabeledCheckbox(
+                    label: "Quyền theo dõi",
+                    text: "Cho phép đối phương theo dõi vị trí",
+                    value: allowLocationTracking,
+                    onChanged: (v) => setState(() => allowLocationTracking = v),
+                  ),
               ],
             ),
           ),
@@ -464,8 +519,10 @@ class MoreActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final role = context.watch<UserVm>().profile?.role;
+
     return AppOverlaySheet(
-      height: 240,
+      // height: 240,
       showHandle: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 36),
@@ -504,19 +561,21 @@ class MoreActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            SettingItem(
-              title: "Thêm tài khoản",
-              iconPath: "assets/icons/account.png",
-              iconType: AppIconType.png,
-              iconSize: 18,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AddAccountScreen()),
-                );
-              },
-            ),
-            const SizedBox(height: 10),
+            if (roleFromString(role!) == UserRole.parent) ...[
+              SettingItem(
+                title: "Thêm tài khoản",
+                iconPath: "assets/icons/account.png",
+                iconType: AppIconType.png,
+                iconSize: 18,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddAccountScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
 
             SettingItem(
               title: "Đăng xuất",

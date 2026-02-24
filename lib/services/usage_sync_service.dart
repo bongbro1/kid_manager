@@ -37,15 +37,9 @@ class UsageSyncService {
         .get();
 
     final batch = _db.batch();
-
-    debugPrint("Usage map keys: ${map.keys.take(10)}");
-
     for (final doc in appsSnap.docs) {
       final pkg = doc.id;
       final usage = map[pkg];
-
-      debugPrint("Firestore pkg: $pkg");
-
       if (usage == null) continue;
 
       final totalTimeMs = int.tryParse(usage.totalTimeInForeground ?? "0") ?? 0;
