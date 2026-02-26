@@ -4,6 +4,7 @@ import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
+import 'package:kid_manager/viewmodels/sos/sos_view_model.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
 import 'package:kid_manager/views/child/child_notification_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/app_management_screen.dart';
@@ -28,11 +29,10 @@ class AppShellConfig {
       root: MultiProvider(
         providers: [
           ChangeNotifierProvider(
-              create: (context)=> ParentLocationVm(context.read<LocationRepository>())
+            create: (context) =>
+                ParentLocationVm(context.read<LocationRepository>()),
           ),
-          ChangeNotifierProvider(
-            create: (_) => MapboxController(),
-          ),
+          ChangeNotifierProvider(create: (_) => MapboxController()),
         ],
         child: const ParentAllChildrenMapScreen(),
       ),
@@ -70,10 +70,13 @@ class AppShellConfig {
               context.read<LocationServiceInterface>(),
             ),
           ),
+          ChangeNotifierProvider(create: (_) => MapboxController()),
           ChangeNotifierProvider(
-            create: (_) => MapboxController(),
+            create: (_) => SosViewModel(),
+            child: const ChildLocationScreen(),
           ),
         ],
+
         child: const ChildLocationScreen(),
       ),
     ),

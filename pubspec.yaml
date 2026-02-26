@@ -2,7 +2,7 @@ name: kid_manager
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -72,10 +72,16 @@ dependencies:
   image_picker: ^1.0.0
   google_fonts: ^6.2.1
 
-#  location
+  #  location
   flutter_activity_recognition: ^4.0.0
   flutter_dotenv: ^5.1.0
   mapbox_maps_flutter: ^2.18.0
+
+  # SOS
+  cloud_functions: ^6.0.6
+  flutter_local_notifications: ^17.0.0
+  just_audio: ^0.9.38
+  uuid: ^4.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -91,7 +97,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -109,7 +114,7 @@ flutter:
           weight: 500
         - asset: assets/fonts/Poppins-SemiBold.ttf
           weight: 600
-          
+
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter_24pt-Regular.ttf
