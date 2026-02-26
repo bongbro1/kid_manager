@@ -89,6 +89,10 @@ class AppShellConfig {
       root: const ChildNotificationScreen(),
     ),
     BottomTabConfig(
+      iconAsset: 'assets/icons/calendar.svg',
+      root: const ScheduleScreen(),
+    ),
+    BottomTabConfig(
       iconAsset: 'assets/icons/user_nav.svg',
       root: const PersonalInfoScreen(),
     ),
