@@ -126,9 +126,6 @@ class UserRepository {
 
     // 2️⃣ Create Firestore document
     final ref = userRef(childUid);
-    final snap = await ref.get();
-    if (snap.exists) "NOT FOUND";
-
     await ref.set(
       {
         'uid': childUid,
@@ -158,22 +155,7 @@ class UserRepository {
     final doc = await _db.collection("users").doc(uid).get();
 
     if (!doc.exists) return null;
-
-    final data = doc.data()!;
-
-    return UserProfile(
-      id: uid,
-      name: (data['displayName'] ?? '').toString(),
-      phone: (data['phone'] ?? '').toString(),
-      gender: (data['gender'] ?? '').toString(),
-      address: (data['address'] ?? '').toString(),
-      allowTracking: data['allowTracking'] ?? false,
-      avatarUrl: data['avatarUrl']?.toString(),
-      dob: data['dob'] is int
-          ? Timestamp.fromMillisecondsSinceEpoch(data['dob'])
-          : data['dob'],
-      role: (data['role'] ?? 'child').toString(),
-    );
+    return UserProfile.fromMap(uid, doc.data()!);
   }
 
   Future<List<ChildItem>> getChildrenByParentUid(String parentUid) async {

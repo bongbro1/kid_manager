@@ -24,12 +24,12 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   late final String languageCode = locale.languageCode; // vi
   late final String? countryCode = locale.countryCode; // VN
 
-  late final String localeString =
-  countryCode == null ? languageCode : '${languageCode}_$countryCode';
+  late final String localeString = countryCode == null
+      ? languageCode
+      : '${languageCode}_$countryCode';
 
-// timezone chuẩn (Asia/Ho_Chi_Minh)
-  final String timezone =
-  DateTime.now().timeZoneName.isNotEmpty
+  // timezone chuẩn (Asia/Ho_Chi_Minh)
+  final String timezone = DateTime.now().timeZoneName.isNotEmpty
       ? DateTime.now().timeZoneName
       : 'Asia/Ho_Chi_Minh';
 
@@ -45,7 +45,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   void _onAddAccount() async {
     final dob = parseDateFromText(_dobCtrl.text);
 
-    if (dob == null || !isChildAgeValid(dob)) {
+    if (dob == null) {
       debugPrint('ChildADD: Ngày sinh không hợp lệ');
       return;
     }
@@ -59,7 +59,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       return;
     }
 
-    final success = await userVM.createChildAccount(
+    final childId = await userVM.createChildAccount(
       parentUid: parentUid,
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
@@ -69,8 +69,8 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       timezone: timezone,
     );
 
-    debugPrint('ChildADD: Tạo tài khoản cho con thành công');
-    if (success && mounted) {
+    debugPrint('ChildADD: Tạo tài khoản cho con thành công: + ${childId}');
+    if (childId != null) {
       Navigator.pop(context);
     }
   }
