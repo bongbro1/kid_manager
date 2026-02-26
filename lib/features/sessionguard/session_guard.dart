@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/views/auth/flash_screen.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
-import 'package:kid_manager/features/sessionguard/splash_screen.dart';
 import 'package:kid_manager/features/sessions/sessionstatus.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
@@ -19,6 +20,15 @@ class _SessionGuardState extends State<SessionGuard> {
   SessionStatus? _lastStatus;
 
   @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppInitVM>().init();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<SessionVM>(
       builder: (context, session, _) {
@@ -29,9 +39,7 @@ class _SessionGuardState extends State<SessionGuard> {
           if (session.status == SessionStatus.authenticated &&
               session.isParent) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              context
-                  .read<UserVm>()
-                  .watchChildren(session.user!.uid);
+              context.read<UserVm>().watchChildren(session.user!.uid);
             });
           }
         }
@@ -39,21 +47,17 @@ class _SessionGuardState extends State<SessionGuard> {
         // ===== UI =====
         switch (session.status) {
           case SessionStatus.booting:
-            return const SplashScreen();
+            return const FlashScreen();
 
           case SessionStatus.unauthenticated:
             return const LoginScreen();
 
           case SessionStatus.authenticated:
             return AppShell(
-              mode: session.isParent
-                  ? AppMode.parent
-                  : AppMode.child,
+              mode: session.isParent ? AppMode.parent : AppMode.child,
             );
         }
       },
     );
   }
 }
-
-

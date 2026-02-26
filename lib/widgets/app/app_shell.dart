@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
 import 'package:kid_manager/widgets/app/app_bottom_nav.dart';
@@ -32,13 +33,14 @@ class _AppShellState extends State<AppShell> {
   //   });
   // }
 
-  late final AppShellConfig _config =
-  widget.mode == AppMode.parent
+  late final AppShellConfig _config = widget.mode == AppMode.parent
       ? AppShellConfig.parent()
       : AppShellConfig.child();
 
-  late final _navKeys =
-  List.generate(_config.tabs.length, (_) => GlobalKey<NavigatorState>());
+  late final _navKeys = List.generate(
+    _config.tabs.length,
+    (_) => GlobalKey<NavigatorState>(),
+  );
 
   Widget _buildTab(int i) {
     return Navigator(
@@ -54,6 +56,8 @@ class _AppShellState extends State<AppShell> {
       return;
     }
     setState(() => _index = i);
+
+    activeTabNotifier.value = i;
   }
 
   Future<bool> _onWillPop() async {
@@ -67,10 +71,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = List.generate(
-      _config.tabs.length,
-          (i) => _buildTab(i),
-    );
+    final tabs = List.generate(_config.tabs.length, (i) => _buildTab(i));
 
     return WillPopScope(
       onWillPop: _onWillPop,

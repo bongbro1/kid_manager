@@ -1,4 +1,5 @@
 import 'package:kid_manager/models/app_user.dart';
+import 'package:kid_manager/models/user/user_role.dart';
 
 import '../services/firebase_auth_service.dart';
 import 'user_repository.dart';
@@ -11,11 +12,9 @@ class AuthRepository {
   AuthRepository(this._authService, this._users);
 
   // ===== Auth state =====
-  Stream<User?> authStateChanges() =>
-      _authService.authStateChanges();
+  Stream<User?> authStateChanges() => _authService.authStateChanges();
 
-  User? currentUser() =>
-      _authService.currentUser;
+  User? currentUser() => _authService.currentUser;
   Stream<AppUser?> watchSessionUser() {
     return authStateChanges().asyncMap((fbUser) async {
       if (fbUser == null) return null;
@@ -25,22 +24,17 @@ class AuthRepository {
       return appUser;
     });
   }
+
   // ===== Actions =====
   Future<UserCredential> login(String email, String password) {
-    return _authService.signIn(
-      email.trim(),
-      password,
-    );
+    return _authService.signIn(email.trim(), password);
   }
 
   Future<UserCredential> register({
     required String email,
     required String password,
   }) async {
-    final cred = await _authService.signUp(
-      email.trim(),
-      password,
-    );
+    final cred = await _authService.signUp(email.trim(), password);
 
     final u = cred.user!;
     await _users.createParentIfMissing(
@@ -51,8 +45,10 @@ class AuthRepository {
     return cred;
   }
 
+  Future<String> getUserRole(String uid) async {
+    final user = await _users.getUserById(uid);
+    return roleToString(user!.role);
+  }
 
-
-  Future<void> logout() =>
-      _authService.signOut();
+  Future<void> logout() => _authService.signOut();
 }

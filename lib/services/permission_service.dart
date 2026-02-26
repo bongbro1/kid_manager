@@ -1,47 +1,72 @@
 import 'dart:io';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:usage_stats/usage_stats.dart';
 
 class PermissionService {
-  /// Microphone
-  Future<bool> requestMicrophone() async {
-    final status = await Permission.microphone.request();
+  Future<bool> hasMicrophonePermission() async {
+    final status = await Permission.microphone.status;
     return status.isGranted;
   }
 
-  /// Photos / Gallery:
-  /// - Android 13+ dùng Permission.photos
-  /// - Android <13 dùng Permission.storage
-  /// - iOS dùng Permission.photos
-  Future<bool> requestPhotosOrStorage() async {
+  Future<bool> hasPhotosOrStoragePermission() async {
     if (Platform.isIOS) {
-      final status = await Permission.photos.request();
+      final status = await Permission.photos.status;
       return status.isGranted || status.isLimited;
     }
 
-    if (Platform.isAndroid) {
-      final sdkInt = (await DeviceInfoPlugin().androidInfo).version.sdkInt;
+    final sdkInt = (await DeviceInfoPlugin().androidInfo).version.sdkInt;
 
-      if (sdkInt >= 33) {
-        final status = await Permission.photos.request();
-        return status.isGranted;
+    if (sdkInt >= 33) {
+      final status = await Permission.photos.status;
+      return status.isGranted;
+    } else {
+      final status = await Permission.storage.status;
+      return status.isGranted;
+    }
+  }
+
+  Future<bool> requestMicrophonePermission() async {
+    debugPrint("🎤 requestMicrophonePermission()");
+
+    final status = await Permission.microphone.request();
+
+    debugPrint("🎤 request result = $status");
+
+    return status.isGranted;
+  }
+
+  Future<bool> requestPhotosOrStoragePermission() async {
+    debugPrint("🖼 requestPhotosOrStoragePermission()");
+
+    PermissionStatus status;
+
+    if (Platform.isAndroid) {
+      if (await _isAndroid13OrAbove()) {
+        status = await Permission.photos.request();
       } else {
-        final status = await Permission.storage.request();
-        return status.isGranted;
+        status = await Permission.storage.request();
       }
+    } else {
+      status = await Permission.photos.request();
     }
 
-    return false;
+    debugPrint("🖼 request result = $status");
+
+    return status.isGranted;
+  }
+
+  Future<bool> _isAndroid13OrAbove() async {
+    final sdk = await DeviceInfoPlugin().androidInfo;
+    return sdk.version.sdkInt >= 33;
   }
 
   /// Internet: không xin runtime. Chỉ khai báo manifest => luôn true.
   bool hasInternetByManifest() => true;
 
   /// Usage Access (Giám sát thời gian hoạt động app) - Android only
-  /// Permission_handler không kiểm tra được "Usage Access" chuẩn 100%,
-  /// nên thường dùng flow: mở Settings để user bật.
   Future<void> openUsageAccessSettings() async {
     if (!Platform.isAndroid) return;
 
@@ -56,19 +81,11 @@ class PermissionService {
 
     try {
       final granted = await UsageStats.checkUsagePermission();
-      if (granted == true) return true;
+      debugPrint("🔎 checkUsagePermission = $granted");
 
-      // 👇 fallback test real usage
-      final now = DateTime.now();
-      final begin = now.subtract(const Duration(minutes: 5));
-
-      final stats = await UsageStats.queryUsageStats(
-        begin, // ✅ DateTime
-        now, // ✅ DateTime
-      );
-
-      return stats.isNotEmpty;
+      return granted ?? false;
     } catch (e) {
+      debugPrint("🔥 Usage permission error: $e");
       return false;
     }
   }
@@ -83,10 +100,11 @@ class PermissionService {
     await intent.launch();
   }
 
-  /// Xin 1 lượt các quyền runtime (micro + photos/storage)
-  Future<Map<String, bool>> requestCommonPermissions() async {
-    final mic = await requestMicrophone();
-    final media = await requestPhotosOrStorage();
-    return {'microphone': mic, 'photos_or_storage': media};
+  Future<Map<String, bool>> checkAllPermissions() async {
+    final mic = await hasMicrophonePermission();
+    final media = await hasPhotosOrStoragePermission();
+    final usage = await hasUsagePermission();
+
+    return {'microphone': mic, 'media': media, 'usage': usage};
   }
 }

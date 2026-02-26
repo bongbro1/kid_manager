@@ -39,7 +39,7 @@ class AppTextStyles {
 
   static const TextStyle scheduleMonthYear = TextStyle(
     fontFamily: 'Poppins',
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: FontWeight.w400,
     color: AppColors.darkText,
   );

@@ -16,11 +16,11 @@ SchedulePeriod periodFromString(String v) {
 String periodToString(SchedulePeriod p) {
   switch (p) {
     case SchedulePeriod.afternoon:
-      return 'chiều';
+      return 'Chiều';
     case SchedulePeriod.evening:
-      return 'tối';
+      return 'Tối';
     default:
-      return 'sáng';
+      return 'Sáng';
   }
 }
 

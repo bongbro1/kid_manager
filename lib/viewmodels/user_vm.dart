@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
@@ -108,9 +109,8 @@ class UserVm extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = await _storage.getString('uid');
+      final uid = _storage.getString(StorageKeys.uid);
 
-      debugPrint(" PROFILE: " + uid.toString());
       if (uid == null) {
         _error = "Không tìm thấy userId";
         _loading = false;
@@ -119,10 +119,7 @@ class UserVm extends ChangeNotifier {
       }
 
       profile = await _userRepo.getUserProfile(uid);
-
-      debugPrint("==== PROFILE OBJECT ====");
-      debugPrint(profile?.toMap().toString());
-      debugPrint("========================");
+      // debugPrint(" PROFILE: " + profile!.role.toString());
     } catch (e) {
       _error = e.toString();
     }
@@ -142,26 +139,23 @@ class UserVm extends ChangeNotifier {
     // reset state
     _error = null;
 
-    final userId = await _storage.getString('uid');
+    final userId = _storage.getString(StorageKeys.uid);
 
     if (userId == null) {
       _error = "Không tìm thấy userId";
-      notifyListeners();
       return false;
     }
 
     // ✅ validate basic (bạn tự nâng cấp)
     if (name.trim().isEmpty) {
       _error = "Họ và tên không được để trống";
-      notifyListeners();
       return false;
     }
 
     _loading = true;
-    notifyListeners();
 
     try {
-      final profile = UserProfile(
+      final _newprofile = UserProfile(
         id: userId,
         name: name.trim(),
         phone: phone.trim(),
@@ -171,10 +165,9 @@ class UserVm extends ChangeNotifier {
         allowTracking: allowTracking,
       );
 
-      await _userRepo.updateUserProfile(profile);
+      await _userRepo.updateUserProfile(_newprofile);
 
       _loading = false;
-      notifyListeners();
       return true;
     } catch (e) {
       _loading = false;

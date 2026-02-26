@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/utils/date_format.dart';
+import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/personal_info_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';

@@ -31,7 +31,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   }
   @override
   void dispose() {
-    final vm = context.read<ChildLocationViewModel>();
+    final vm = context.watch<ChildLocationViewModel>();
     if (_vmListener != null) vm.removeListener(_vmListener!);
     super.dispose();
   }
