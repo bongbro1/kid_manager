@@ -45,10 +45,5 @@ class AuthRepository {
     return cred;
   }
 
-  Future<String> getUserRole(String uid) async {
-    final user = await _users.getUserById(uid);
-    return roleToString(user!.role);
-  }
-
   Future<void> logout() => _authService.signOut();
 }

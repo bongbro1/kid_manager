@@ -4,9 +4,11 @@ import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
+import 'package:kid_manager/models/user/user_role.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/forgot_pass_screen.dart';
 import 'package:kid_manager/views/auth/signup_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -65,15 +67,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final authVM = context.read<AuthVM>();
     final appVM = context.read<AppManagementVM>();
+    final userVM = context.read<UserVm>();
 
     try {
       final cred = await authVM.login(email, password); // 👈 đi qua VM
       final uid = cred.user!.uid;
 
-      final role = await authVM.fetchUserRole(uid);
+      final role = await userVM.fetchUserRole(uid);
 
       await storage.setString(StorageKeys.uid, uid);
-      await storage.setString(StorageKeys.role, role);
+      await storage.setString(StorageKeys.role, roleToString(role));
 
       if (rememberPassword) {
         final session = LoginSession(email: email, uid: uid, remember: true);
@@ -87,6 +90,18 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint("🚀 Trigger prepare device after login");
 
       await appVM.loadAndSeedApp();
+
+      // ===== DEBUG SUMMARY =====
+      debugPrint('''
+        ================ LOGIN SUCCESS ================
+        Email            : $email
+        UID              : $uid
+        Role             : ${roleToString(role)}
+        Remember Password: $rememberPassword
+        Saved UID        : ${await storage.getString(StorageKeys.uid)}
+        Saved Role       : ${await storage.getString(StorageKeys.role)}
+        ================================================
+        ''');
 
       debugPrint("✅ Device prepared");
     } catch (e) {

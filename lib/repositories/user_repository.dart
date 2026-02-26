@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
+import 'package:kid_manager/models/user/user_role.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import '../models/app_user.dart';
 
@@ -125,9 +126,6 @@ class UserRepository {
 
     // 2️⃣ Create Firestore document
     final ref = userRef(childUid);
-    final snap = await ref.get();
-    if (snap.exists) "NOT FOUND";
-
     await ref.set(
       {
         'uid': childUid,
@@ -157,22 +155,7 @@ class UserRepository {
     final doc = await _db.collection("users").doc(uid).get();
 
     if (!doc.exists) return null;
-
-    final data = doc.data()!;
-
-    return UserProfile(
-      id: uid,
-      name: (data['displayName'] ?? '').toString(),
-      phone: (data['phone'] ?? '').toString(),
-      gender: (data['gender'] ?? '').toString(),
-      address: (data['address'] ?? '').toString(),
-      allowTracking: data['allowTracking'] ?? false,
-      avatarUrl: data['avatarUrl']?.toString(),
-      dob: data['dob'] is int
-          ? Timestamp.fromMillisecondsSinceEpoch(data['dob'])
-          : data['dob'],
-      role: (data['role'] ?? 'child').toString(),
-    );
+    return UserProfile.fromMap(uid, doc.data()!);
   }
 
   Future<List<ChildItem>> getChildrenByParentUid(String parentUid) async {
@@ -212,6 +195,14 @@ class UserRepository {
       debugPrint("❌ ERROR getChildrenByParentUid: $e");
       rethrow;
     }
+  }
+
+  Future<UserRole> getUserRole(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    if (!doc.exists) return UserRole.child;
+
+    final data = doc.data()!;
+    return roleFromString(data['role'] as String);
   }
 
   Future<List<String>> getChildUserIds(String parentUid) async {

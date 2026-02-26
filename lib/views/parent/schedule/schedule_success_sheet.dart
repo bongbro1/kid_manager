@@ -5,30 +5,23 @@ import '../../../core/app_text_styles.dart';
 class ScheduleSuccessSheet extends StatefulWidget {
   final String message;
 
-  const ScheduleSuccessSheet({
-    super.key,
-    required this.message,
-  });
+  const ScheduleSuccessSheet({super.key, required this.message});
 
   @override
-  State<ScheduleSuccessSheet> createState() =>
-      _ScheduleSuccessSheetState();
+  State<ScheduleSuccessSheet> createState() => _ScheduleSuccessSheetState();
 }
-
 
 class _ScheduleSuccessSheetState extends State<ScheduleSuccessSheet>
     with SingleTickerProviderStateMixin {
-
   Timer? _timer;
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    /// Animation controller
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -39,17 +32,14 @@ class _ScheduleSuccessSheetState extends State<ScheduleSuccessSheet>
       curve: Curves.easeOutBack,
     );
 
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    );
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
     _controller.forward();
 
-    /// Auto close sau 1.4s
     _timer = Timer(const Duration(milliseconds: 1400), () {
       if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop(true);
+      // ✅ Pop đúng route hiện tại (tránh pop nhầm)
+      Navigator.of(context).pop(true);
     });
   }
 
@@ -63,6 +53,7 @@ class _ScheduleSuccessSheetState extends State<ScheduleSuccessSheet>
   @override
   Widget build(BuildContext context) {
     return Material(
+      // Nếu bạn đã set barrierColor ở showGeneralDialog thì có thể để Colors.transparent
       color: Colors.black.withOpacity(0.4),
       child: Center(
         child: FadeTransition(
@@ -71,10 +62,7 @@ class _ScheduleSuccessSheetState extends State<ScheduleSuccessSheet>
             scale: _scaleAnimation,
             child: Container(
               width: MediaQuery.of(context).size.width * 0.85,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 40,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(28),

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
+import 'package:kid_manager/models/user/user_role.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
 
@@ -62,7 +63,7 @@ class UserVm extends ChangeNotifier {
      CREATE CHILD
   ============================================================ */
 
-  Future<bool> createChildAccount({
+  Future<String?> createChildAccount({
     required String parentUid,
     required String email,
     required String password,
@@ -73,31 +74,26 @@ class UserVm extends ChangeNotifier {
   }) async {
     try {
       _setLoading(true);
+      _error = null;
 
-      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final childUid = await _userRepo.createChildAccount(
+        parentUid: parentUid,
         email: email,
         password: password,
+        displayName: displayName,
+        dob: dob,
+        locale: locale,
+        timezone: timezone,
       );
 
-      final childUid = cred.user!.uid;
+      watchChildren(parentUid);
 
-      await FirebaseFirestore.instance.collection("users").doc(childUid).set({
-        "uid": childUid,
-        "email": email,
-        "displayName": displayName,
-        "parentUid": parentUid,
-        "role": "child",
-        "dob": dob?.millisecondsSinceEpoch,
-        "locale": locale,
-        "timezone": timezone,
-        "createdAt": FieldValue.serverTimestamp(),
-      });
-
-      return true;
+      return childUid;
     } catch (e, s) {
-      debugPrint('CreateChildAccount error: $e');
+      debugPrint('UserVm.createChildAccount error: $e');
       debugPrintStack(stackTrace: s);
-      return false;
+      _setError('Không thể tạo tài khoản trẻ');
+      return null;
     } finally {
       _setLoading(false);
     }
@@ -119,13 +115,17 @@ class UserVm extends ChangeNotifier {
       }
 
       profile = await _userRepo.getUserProfile(uid);
-      // debugPrint(" PROFILE: " + profile!.role.toString());
+      // debugPrint(" PROFILE: " + profile.toString());
     } catch (e) {
       _error = e.toString();
     }
 
     _loading = false;
     notifyListeners();
+  }
+
+  Future<UserRole> fetchUserRole(String uid) {
+    return _userRepo.getUserRole(uid);
   }
 
   Future<bool> updateUserInfo({

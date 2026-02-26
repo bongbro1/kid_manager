@@ -2,8 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/models/app_item_model.dart';
-import 'package:kid_manager/services/app_installed_service.dart';
-import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/views/parent/dashboard/usage_time_edit_screen.dart';
@@ -81,10 +79,6 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
   void _goTab(int index) {
     _tabController.animateTo(index); // 0: Ứng dụng, 1: Thống kê
   }
-
-  final permissionService = PermissionService();
-  final service = AppInstalledService();
-
   @override
   Widget build(BuildContext context) {
 
