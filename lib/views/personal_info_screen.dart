@@ -561,21 +561,34 @@ class MoreActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            if (roleFromString(role!) == UserRole.parent) ...[
-              SettingItem(
-                title: "Thêm tài khoản",
-                iconPath: "assets/icons/account.png",
-                iconType: AppIconType.png,
-                iconSize: 18,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddAccountScreen()),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
+            // if (roleFromString(role!) == UserRole.parent) ...[
+            //   SettingItem(
+            //     title: "Thêm tài khoản",
+            //     iconPath: "assets/icons/account.png",
+            //     iconType: AppIconType.png,
+            //     iconSize: 18,
+            //     onTap: () {
+            //       Navigator.push(
+            //         context,
+            //         MaterialPageRoute(builder: (_) => const AddAccountScreen()),
+            //       );
+            //     },
+            //   ),
+            //   const SizedBox(height: 10),
+            // ],
+            SettingItem(
+              title: "Thêm tài khoản",
+              iconPath: "assets/icons/account.png",
+              iconType: AppIconType.png,
+              iconSize: 18,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddAccountScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
 
             SettingItem(
               title: "Đăng xuất",
