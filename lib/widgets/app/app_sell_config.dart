@@ -41,13 +41,19 @@ class AppShellConfig {
       iconAsset: 'assets/icons/dashboard.svg',
       root: const AppManagementScreen(),
     ),
+
+    BottomTabConfig(
+      iconAsset: 'assets/icons/sms.svg',
+      root: const ParentNotificationScreen(),
+    ),
+
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
       root: const ParentNotificationScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
-      root: const ParentCalendarScreen(),
+      root: const ScheduleScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/user_nav.svg',

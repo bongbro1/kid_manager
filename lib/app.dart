@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +30,9 @@ import 'services/firebase_auth_service.dart';
 import 'repositories/auth_repository.dart';
 import 'viewmodels/auth_vm.dart';
 
+import 'repositories/schedule_repository.dart';
+import 'viewmodels/schedule_vm.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -49,6 +54,7 @@ class MyApp extends StatelessWidget {
       secondaryAuthService,
     );
     final authRepo = AuthRepository(authService, userRepo);
+    final scheduleRepo = ScheduleRepository(FirebaseFirestore.instance);
     final appRepo = AppManagementRepository(
       appInstalledService,
       usageService,
@@ -75,6 +81,11 @@ class MyApp extends StatelessWidget {
         ),
 
         ChangeNotifierProvider(create: (context) => AppManagementVM(appRepo)),
+        ChangeNotifierProvider(
+          create: (context) =>
+              ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
+        ),
+
         /// LOCATION SERVICE
         Provider<LocationServiceInterface>(
           create: (_) => LocationServiceImpl(),
@@ -83,21 +94,19 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<SessionVM>(
           create: (context) => SessionVM(context.read<AuthRepository>()),
         ),
+
         /// LOCATION REPOSITORY
-        Provider<LocationRepository>(
-          create: (_) => LocationRepositoryImpl(),
-        ),
+        Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
         ChangeNotifierProvider<UserVm>(
           create: (context) => UserVm(
-              context.read<UserRepository>()
-
-        ),),
-        ChangeNotifierProvider<ParentLocationVm>(
-          create: (context) => ParentLocationVm(
-              context.read<LocationRepository>()),
+            context.read<UserRepository>(),
+            context.read<StorageService>(),
+          ),
         ),
-
-
+        ChangeNotifierProvider<ParentLocationVm>(
+          create: (context) =>
+              ParentLocationVm(context.read<LocationRepository>()),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

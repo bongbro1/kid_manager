@@ -36,7 +36,7 @@ class AppBottomNav extends StatelessWidget {
               width: 48,
               height: 48,
               child: Center(
-                child: Container(
+                child: SizedBox(
                   width: 24,
                   height: 24,
                   child: Stack(
