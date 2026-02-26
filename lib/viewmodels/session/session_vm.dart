@@ -15,19 +15,32 @@ class SessionVM extends ChangeNotifier {
   AppUser? _user;
   AppUser? get user => _user;
 
-  SessionStatus _status = SessionStatus.booting;
-  SessionStatus get status => _status;
+  bool _splashDone = false;
+
+  SessionStatus _authStatus = SessionStatus.booting;
+
+  SessionStatus get status {
+    if (!_splashDone) return SessionStatus.booting;
+    return _authStatus;
+  }
 
   StreamSubscription<AppUser?>? _sub;
 
-  void _bootstrap() async {
+  void _bootstrap() {
     _sub = _repo.watchSessionUser().listen((user) {
       _user = user;
-      _status = user == null
+      _authStatus = user == null
           ? SessionStatus.unauthenticated
           : SessionStatus.authenticated;
+
       notifyListeners();
     });
+  }
+
+  void finishSplash() {
+    if (_splashDone) return;
+    _splashDone = true;
+    notifyListeners();
   }
 
   bool get isParent => _user?.role == UserRole.parent;

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import '../repositories/auth_repository.dart';
 
 class AuthVM extends ChangeNotifier {
@@ -30,12 +29,16 @@ class AuthVM extends ChangeNotifier {
     });
   }
 
-  Future<bool> login(String email, String password) async {
-    return _runAuthAction(() => _repo.login(email, password));
+  Future<UserCredential> login(String email, String password) async {
+    final cred = await _repo.login(email, password);
+
+    _user = cred.user;
+    notifyListeners();
+
+    return cred;
   }
 
-  Future<void> onLoginSuccess(String userId) async {
-  }
+  Future<void> onLoginSuccess(String userId) async {}
 
   Future<bool> register(String email, String password) async {
     return _runAuthAction(
@@ -63,6 +66,10 @@ class AuthVM extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<String> fetchUserRole(String uid) {
+    return _repo.getUserRole(uid);
   }
 
   void _setLoading(bool value) {

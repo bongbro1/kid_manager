@@ -61,3 +61,29 @@ bool isChildAgeValid(DateTime dob) {
 
   return age <= 18;
 }
+
+
+// for management app 
+String dayKey(DateTime d) {
+  final y = d.year.toString().padLeft(4, '0');
+  final m = d.month.toString().padLeft(2, '0');
+  final day = d.day.toString().padLeft(2, '0');
+  return '$y$m$day';
+}
+
+DateTime startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
+DateTime endOfDayExclusive(DateTime d) => startOfDay(d).add(const Duration(days: 1));
+
+String formatDuration(int ms) {
+  if (ms <= 0) return "0m";
+
+  final totalSeconds = ms ~/ 1000;
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+
+  if (hours > 0) {
+    return "${hours}h ${minutes}m";
+  }
+  return "${minutes}m";
+}
+

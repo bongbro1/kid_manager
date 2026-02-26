@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
-import 'package:kid_manager/viewmodels/session/session_vm.dart';
-import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
 import 'package:kid_manager/widgets/app/app_bottom_nav.dart';
 import 'package:kid_manager/widgets/app/app_sell_config.dart';
-import 'package:provider/provider.dart';
 
 class AppShell extends StatefulWidget {
   final AppMode mode;
@@ -36,13 +33,14 @@ class _AppShellState extends State<AppShell> {
   //   });
   // }
 
-  late final AppShellConfig _config =
-  widget.mode == AppMode.parent
+  late final AppShellConfig _config = widget.mode == AppMode.parent
       ? AppShellConfig.parent()
       : AppShellConfig.child();
 
-  late final _navKeys =
-  List.generate(_config.tabs.length, (_) => GlobalKey<NavigatorState>());
+  late final _navKeys = List.generate(
+    _config.tabs.length,
+    (_) => GlobalKey<NavigatorState>(),
+  );
 
   Widget _buildTab(int i) {
     return Navigator(
@@ -58,6 +56,8 @@ class _AppShellState extends State<AppShell> {
       return;
     }
     setState(() => _index = i);
+
+    activeTabNotifier.value = i;
   }
 
   Future<bool> _onWillPop() async {
@@ -71,10 +71,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = List.generate(
-      _config.tabs.length,
-          (i) => _buildTab(i),
-    );
+    final tabs = List.generate(_config.tabs.length, (i) => _buildTab(i));
 
     return WillPopScope(
       onWillPop: _onWillPop,

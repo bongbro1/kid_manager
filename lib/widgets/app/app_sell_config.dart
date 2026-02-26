@@ -9,8 +9,8 @@ import 'package:kid_manager/views/child/child_location_screen.dart';
 import 'package:kid_manager/views/child/child_notification_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/app_management_screen.dart';
 import 'package:kid_manager/views/parent/location/parent_location_screen.dart';
-import 'package:kid_manager/views/parent/parent_calendar_screen.dart';
 import 'package:kid_manager/views/parent/parent_notification_screen.dart';
+import 'package:kid_manager/views/parent/schedule/schedule_screen.dart';
 import 'package:kid_manager/views/personal_info_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -41,13 +41,19 @@ class AppShellConfig {
       iconAsset: 'assets/icons/dashboard.svg',
       root: const AppManagementScreen(),
     ),
+
+    BottomTabConfig(
+      iconAsset: 'assets/icons/sms.svg',
+      root: const ParentNotificationScreen(),
+    ),
+
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
       root: const ParentNotificationScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
-      root: const ParentCalendarScreen(),
+      root: const ScheduleScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/user_nav.svg',
@@ -80,6 +86,7 @@ class AppShellConfig {
         child: const ChildLocationScreen(),
       ),
     ),
+
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
       root: const ChildNotificationScreen(),

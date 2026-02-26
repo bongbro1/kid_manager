@@ -25,7 +25,8 @@ class AppInstalledService {
       "iconBase64": iconBytes == null ? "" : base64Encode(iconBytes),
       "name": a.name,
       "packageName": a.packageName,
-      "usageTime": "0h 0m",
+      "todayLastSeen": null,
+      "todayUsageMs": null,
       "lastSeen": null,
     };
   }

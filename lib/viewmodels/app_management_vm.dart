@@ -1,15 +1,18 @@
 import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:installed_apps/app_info.dart';
+import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_item_model.dart';
+import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
+import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/storage_service.dart';
 
 class AppManagementVM extends ChangeNotifier {
   final AppManagementRepository _repo;
+  final UserRepository _userRepo;
+  final StorageService _storage;
 
-  AppManagementVM(this._repo);
+  AppManagementVM(this._repo, this._userRepo, this._storage);
 
   bool _loading = false;
   bool get loading => _loading;
@@ -20,19 +23,42 @@ class AppManagementVM extends ChangeNotifier {
   List<AppItemModel> _apps = [];
   List<AppItemModel> get apps => _apps;
 
+  List<ChildItem> children = [];
+
+  String? _selectedChildId;
+  String? get selectedChildId => _selectedChildId;
+
+  void selectChild(String uid) {
+    if (_selectedChildId == uid) {
+      _selectedChildId = null;
+    } else {
+      _selectedChildId = uid;
+    }
+    loadAppsForSelectedChild();
+    notifyListeners();
+  }
+
+  Future<void> loadAppsForSelectedChild() async {
+    if (_selectedChildId == null) {
+      debugPrint("❌ No selected child");
+      return;
+    }
+    await loadApps(_selectedChildId!);
+  }
+
   /// Load + seed + sync usage
   Future<void> loadApps(String userId) async {
     _setLoading(true);
     _error = null;
 
     try {
-      // 1️⃣ Load installed apps
       _apps = await _repo.loadAppsFromFirestore(userId);
       notifyListeners();
+      await _repo.syncTodayUsage(userId: userId);
+    } catch (e, stack) {
+      debugPrint("❌ loadApps ERROR: $e");
+      debugPrint("STACK: $stack");
 
-      // 3️⃣ Sync usage
-      await _repo.syncTodayUsage(userId);
-    } catch (e) {
       _error = 'Không thể đồng bộ ứng dụng';
     } finally {
       _setLoading(false);
@@ -45,11 +71,46 @@ class AppManagementVM extends ChangeNotifier {
     _error = null;
 
     try {
-      await _repo.syncTodayUsage(userId);
+      await _repo.syncTodayUsage(userId: userId);
     } catch (e) {
       _error = 'Không thể cập nhật usage';
     } finally {
       _setLoading(false);
+    }
+  }
+
+  Future<void> loadChildren() async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final uid = _storage.getString(StorageKeys.uid);
+
+      if (uid == null) {
+        _error = "Không tìm thấy userId";
+        _loading = false;
+        notifyListeners();
+        return;
+      }
+
+      children = await _userRepo.getChildrenByParentUid(uid);
+      autoSelectFirstChild();
+    } catch (e) {
+      _error = e.toString();
+    }
+
+    _loading = false;
+    notifyListeners();
+  }
+
+  void autoSelectFirstChild() {
+    if (children.isEmpty) return;
+
+    if (_selectedChildId == null) {
+      _selectedChildId = children.first.id;
+      loadAppsForSelectedChild();
+      notifyListeners();
     }
   }
 
@@ -58,13 +119,22 @@ class AppManagementVM extends ChangeNotifier {
     notifyListeners();
   }
 
-  AppItemModel _mapToItem(AppInfo app) {
-    return AppItemModel(
-      packageName: app.packageName ?? '',
-      name: app.name,
-      iconBase64: app.icon == null ? null : base64Encode(app.icon!),
-      usageTime: null,
-      lastSeen: null,
-    );
+  Future<void> loadAndSeedApp() async {
+    try {
+      final role = _storage.getString(StorageKeys.role);
+      final userId = _storage.getString(StorageKeys.uid);
+      if (role != 'child') {
+        return;
+      }
+
+      if (userId == null) {
+        return;
+      }
+
+      await _repo.loadAndSeedAppToFirebase(userId);
+    } catch (e, s) {
+      debugPrint("❌ loadAndSeedApp error: $e");
+      debugPrint("$s");
+    }
   }
 }

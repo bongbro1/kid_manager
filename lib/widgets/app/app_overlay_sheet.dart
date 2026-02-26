@@ -31,11 +31,7 @@ class AppOverlaySheet extends StatefulWidget {
       topRight: Radius.circular(32),
     ),
     this.shadows = const [
-      BoxShadow(
-        color: Color(0x29000000),
-        blurRadius: 30,
-        offset: Offset(0, 3),
-      )
+      BoxShadow(color: Color(0x29000000), blurRadius: 30, offset: Offset(0, 3)),
     ],
     this.padding = const EdgeInsets.only(top: 16, bottom: 16),
     this.dismissOnTapOutside = true,
@@ -65,10 +61,7 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1), // từ dưới
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     _fadeAnimation = CurvedAnimation(
       parent: _controller,
@@ -96,21 +89,19 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: FadeTransition(
-        opacity: _fadeAnimation,
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Material(
+        // 👈 cần để giữ ripple + elevation
+        type: MaterialType.transparency,
         child: Stack(
           children: [
             /// Overlay
             Positioned.fill(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap:
-                    widget.dismissOnTapOutside ? _close : null,
-                child: Container(
-                  color: widget.overlayColor,
-                ),
+                onTap: widget.dismissOnTapOutside ? _close : null,
+                child: Container(color: widget.overlayColor),
               ),
             ),
 
@@ -119,39 +110,40 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
               alignment: Alignment.bottomCenter,
               child: SlideTransition(
                 position: _slideAnimation,
-                child: Container(
-                  width: widget.width ??
-                      MediaQuery.of(context).size.width,
-                  height: widget.height,
-                  decoration: ShapeDecoration(
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: widget.borderRadius,
+                child: UnconstrainedBox(
+                  constrainedAxis: Axis.horizontal,
+                  child: Container(
+                    width: widget.width ?? MediaQuery.of(context).size.width,
+                    decoration: ShapeDecoration(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: widget.borderRadius,
+                      ),
+                      shadows: widget.shadows,
                     ),
-                    shadows: widget.shadows,
-                  ),
-                  child: SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: widget.padding,
-                      child: Column(
-                        children: [
-                          if (widget.showHandle) ...[
-                            Center(
-                              child: Container(
-                                width: 55,
-                                height: 5,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF212121),
-                                  borderRadius:
-                                      BorderRadius.circular(100),
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: widget.padding,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.showHandle) ...[
+                              Center(
+                                child: Container(
+                                  width: 55,
+                                  height: 5,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF212121),
+                                    borderRadius: BorderRadius.circular(100),
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
+                              const SizedBox(height: 12),
+                            ],
+                            widget.child,
                           ],
-                          Expanded(child: widget.child),
-                        ],
+                        ),
                       ),
                     ),
                   ),

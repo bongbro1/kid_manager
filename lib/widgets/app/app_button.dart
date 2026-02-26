@@ -63,6 +63,12 @@ class AppButton extends StatelessWidget {
     final style = ElevatedButton.styleFrom(
       backgroundColor: outlined ? Colors.transparent : bgColor,
       foregroundColor: fgColor,
+
+      // 🔥 TẮT HIỆU ỨNG
+      splashFactory: NoSplash.splashFactory,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+
       disabledBackgroundColor: bgColor.withOpacity(0.5),
       disabledForegroundColor: fgColor.withOpacity(0.7),
       shape: RoundedRectangleBorder(
@@ -89,7 +95,16 @@ class AppButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (icon != null) ...[icon!, const SizedBox(width: 8)],
+                if (icon != null) ...[
+                  ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      outlined ? bgColor : fgColor,
+                      BlendMode.srcIn,
+                    ),
+                    child: icon!,
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 Text(text),
               ],
             ),

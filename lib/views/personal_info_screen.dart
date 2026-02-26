@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/app_colors.dart';
+import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
+import 'package:kid_manager/widgets/app/app_notice_card.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
+import 'package:kid_manager/widgets/common/notification_modal.dart';
 import 'package:provider/provider.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -18,17 +23,148 @@ class PersonalInfoScreen extends StatefulWidget {
   State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
 }
 
-class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+class _PersonalInfoScreenState extends State<PersonalInfoScreen>
+    with RouteAware {
+  late VoidCallback _tabListener;
+
   final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _genderCtrl = TextEditingController();
+  final _dobCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  bool allowLocationTracking = false;
+  int _age = 0;
+
+  bool _didBind = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _tabListener = () {
+      if (activeTabNotifier.value == 5 || activeTabNotifier.value == 2) {
+        context.read<UserVm>().loadProfile();
+      }
+    };
+
+    activeTabNotifier.addListener(_tabListener);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserVm>().loadProfile();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_didBind) {
+      final route = ModalRoute.of(context);
+      if (route is PageRoute) {
+        routeObserver.subscribe(this, route);
+        _didBind = true;
+      }
+    }
+  }
+
+  @override
+  void didPopNext() {
+    context.read<UserVm>().loadProfile();
+  }
 
   @override
   void dispose() {
+    activeTabNotifier.removeListener(_tabListener);
+    routeObserver.unsubscribe(this);
     _nameCtrl.dispose();
+
     super.dispose();
+  }
+
+  Future<void> _updateUserInfo() async {
+    final dob = parseDateFromText(_dobCtrl.text);
+
+    if (dob == null) {
+      NotificationModal.show(
+        context,
+        child: AppNoticeCard(
+          type: AppNoticeType.error,
+          message: 'Ngày sinh không hợp lệ',
+        ),
+      );
+      return;
+    }
+    final vm = context.read<UserVm>();
+
+    final ok = await vm.updateUserInfo(
+      name: _nameCtrl.text,
+      phone: _phoneCtrl.text,
+      gender: _genderCtrl.text,
+      dob: _dobCtrl.text,
+      address: _addressCtrl.text,
+      allowTracking: allowLocationTracking,
+    );
+
+    if (!mounted) return;
+
+    if (ok) {
+      NotificationModal.show(
+        context,
+        child: AppNoticeCard(
+          type: AppNoticeType.success,
+          message: 'Sửa thông tin thành công',
+        ),
+      );
+      await vm.loadProfile();
+    } else {
+      debugPrint("Update FAIL: ${vm.error}");
+      // show snackbar/dialog nếu muốn
+    }
+  }
+
+  int calculateAgeFromDateString(String dobString) {
+    try {
+      final parts = dobString.split('/');
+      if (parts.length != 3) return 0;
+
+      final day = int.parse(parts[0]);
+      final month = int.parse(parts[1]);
+      final year = int.parse(parts[2]);
+
+      final birthDate = DateTime(year, month, day);
+      final today = DateTime.now();
+
+      int age = today.year - birthDate.year;
+
+      if (today.month < birthDate.month ||
+          (today.month == birthDate.month && today.day < birthDate.day)) {
+        age--;
+      }
+
+      return age;
+    } catch (_) {
+      return 0;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<UserVm>();
+    final p = vm.profile;
+
+    final _isChild = p?.role == 'child'; // 👈 đặt ở đây
+
+    if (p != null) {
+      _nameCtrl.text = p.name;
+      _phoneCtrl.text = p.phone;
+      _genderCtrl.text = p.gender;
+      _dobCtrl.text = p.dob;
+      _addressCtrl.text = p.address;
+      allowLocationTracking = p.allowTracking;
+
+      _age = calculateAgeFromDateString(p.dob);
+    }
+
     return Scaffold(
       backgroundColor: Color(0xFFFFFFFF),
       body: SafeArea(
@@ -144,9 +280,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
+                                  children: [
                                     Text(
-                                      'Tran Van D',
+                                      p?.name ?? '',
                                       style: TextStyle(
                                         color: Color(0xFF212121),
                                         fontSize: 18,
@@ -158,7 +294,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                     ),
                                     SizedBox(height: 4),
                                     Text(
-                                      '15 tuổi',
+                                      "$_age tuổi",
                                       style: TextStyle(
                                         color: Color(0xFF212121),
                                         fontSize: 13,
@@ -171,20 +307,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   ],
                                 ),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: 18,
-                                ), // chỉnh số tuỳ bạn
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    Image.asset(
-                                      "assets/images/source_edit.png",
-                                      width: 18,
-                                      height: 18,
-                                    ),
-                                  ],
+                              GestureDetector(
+                                onTap: _updateUserInfo,
+                                child: Image.asset(
+                                  "assets/images/source_edit.png",
+                                  width: 18,
+                                  height: 18,
                                 ),
                               ),
                             ],
@@ -206,26 +334,33 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 AppLabeledTextField(
                   label: "Số điện thoại",
                   hint: "+84 012345678",
-                  controller: _nameCtrl,
+                  controller: _phoneCtrl,
                 ),
                 // Label
                 AppLabeledTextField(
                   label: "Giới tính",
                   hint: "Nam",
-                  controller: _nameCtrl,
+                  controller: _genderCtrl,
                 ),
 
                 AppLabeledTextField(
                   label: "Ngày sinh",
                   hint: "12/12/2003",
-                  controller: _nameCtrl,
+                  controller: _dobCtrl,
                 ),
 
                 AppLabeledTextField(
                   label: "Địa chỉ",
                   hint: "Xã Điềm Thụy, Tỉnh Thái Nguyên",
-                  controller: _nameCtrl,
+                  controller: _addressCtrl,
                 ),
+                if (!_isChild)
+                  AppLabeledCheckbox(
+                    label: "Quyền theo dõi",
+                    text: "Cho phép đối phương theo dõi vị trí",
+                    value: allowLocationTracking,
+                    onChanged: (v) => setState(() => allowLocationTracking = v),
+                  ),
               ],
             ),
           ),
@@ -299,14 +434,95 @@ class AppLabeledTextField extends StatelessWidget {
   }
 }
 
+class AppLabeledCheckbox extends StatelessWidget {
+  final String label; // tiêu đề giống input (ở trên)
+  final String text; // nội dung cạnh checkbox
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final double? width;
+
+  const AppLabeledCheckbox({
+    super.key,
+    required this.label,
+    required this.text,
+    required this.value,
+    required this.onChanged,
+    this.width,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width ?? 350,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // "box" đồng bộ với input
+          InkWell(
+            onTap: () => onChanged(!value),
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+            focusColor: Colors.transparent,
+            child: Row(
+              children: [
+                Transform.translate(
+                  offset: const Offset(-4, 0), // 👈 chỉnh -2, -4, -6 tùy ý
+                  child: Checkbox(
+                    value: value,
+                    onChanged: (v) => onChanged(v ?? false),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: const VisualDensity(
+                      horizontal: -4,
+                      vertical: -4,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    side: const BorderSide(color: Color(0xFFEEEFF1)),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      color: Color(0xFF4A4A4A),
+                      fontSize: 14,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// ---------------- SHEET ----------------
 class MoreActionSheet extends StatelessWidget {
   const MoreActionSheet({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final role = context.watch<UserVm>().profile?.role;
+
     return AppOverlaySheet(
-      height: 240,
+      // height: 240,
       showHandle: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 36),
@@ -345,21 +561,21 @@ class MoreActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            SettingItem(
-              title: "Thêm tài khoản",
-              iconPath: "assets/icons/account.png",
-              iconType: AppIconType.png,
-              iconSize: 18,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AddAccountScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 10),
+            if (roleFromString(role!) == UserRole.parent) ...[
+              SettingItem(
+                title: "Thêm tài khoản",
+                iconPath: "assets/icons/account.png",
+                iconType: AppIconType.png,
+                iconSize: 18,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddAccountScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
 
             SettingItem(
               title: "Đăng xuất",
@@ -392,13 +608,13 @@ class ConfirmLogoutSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     Future<void> _logout() async {
       final authVM = context.read<AuthVM>();
-      await authVM.logout();
-      // if (!mounted) return;
+      final rootNav = Navigator.of(context, rootNavigator: true);
 
-      Navigator.pushAndRemoveUntil(
-        context,
+      await authVM.logout();
+
+      rootNav.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
+        (_) => false,
       );
     }
 

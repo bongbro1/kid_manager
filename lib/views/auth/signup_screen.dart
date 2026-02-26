@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
-import 'package:kid_manager/views/auth/start_screen.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
 import 'package:provider/provider.dart';
 

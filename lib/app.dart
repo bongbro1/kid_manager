@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository_impl.dart';
@@ -28,16 +31,21 @@ import 'services/firebase_auth_service.dart';
 import 'repositories/auth_repository.dart';
 import 'viewmodels/auth_vm.dart';
 
+import 'repositories/schedule_repository.dart';
+import 'viewmodels/schedule_vm.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+
     final authService = FirebaseAuthService();
     final storage = context.read<StorageService>();
 
     // services
-    final secondaryAuthService = SecondaryAuthService();
+    final secondaryAuthService =
+        SecondaryAuthService(); // auth để tạo tài khoản con từ tài khoản parent
     final permissionService = PermissionService();
     final appInstalledService = AppInstalledService();
     final usageService = UsageSyncService(FirebaseFirestore.instance);
@@ -49,6 +57,7 @@ class MyApp extends StatelessWidget {
       secondaryAuthService,
     );
     final authRepo = AuthRepository(authService, userRepo);
+    final scheduleRepo = ScheduleRepository(FirebaseFirestore.instance);
     final appRepo = AppManagementRepository(
       appInstalledService,
       usageService,
@@ -69,12 +78,30 @@ class MyApp extends StatelessWidget {
         Provider.value(value: appRepo),
 
         // ViewModels
-        ChangeNotifierProvider(create: (_) => AuthVM(authRepo)),
         ChangeNotifierProvider(
-          create: (_) => AppInitVM(storage, permissionService),
+          create: (context) => AuthVM(context.read<AuthRepository>()),
         ),
 
-        ChangeNotifierProvider(create: (context) => AppManagementVM(appRepo)),
+        ChangeNotifierProvider(
+          create: (context) => AppInitVM(
+            context.read<StorageService>(),
+            context.read<PermissionService>(),
+          ),
+        ),
+
+        ChangeNotifierProvider(
+          create: (context) => AppManagementVM(
+            context.read<AppManagementRepository>(),
+            context.read<UserRepository>(),
+            context.read<StorageService>(),
+          ),
+        ),
+
+        ChangeNotifierProvider(
+          create: (context) =>
+              ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
+        ),
+
         /// LOCATION SERVICE
         Provider<LocationServiceInterface>(
           create: (_) => LocationServiceImpl(),
@@ -83,26 +110,25 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<SessionVM>(
           create: (context) => SessionVM(context.read<AuthRepository>()),
         ),
+
         /// LOCATION REPOSITORY
-        Provider<LocationRepository>(
-          create: (_) => LocationRepositoryImpl(),
-        ),
+        Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
         ChangeNotifierProvider<UserVm>(
           create: (context) => UserVm(
-              context.read<UserRepository>()
-
-        ),),
-        ChangeNotifierProvider<ParentLocationVm>(
-          create: (context) => ParentLocationVm(
-              context.read<LocationRepository>()),
+            context.read<UserRepository>(),
+            context.read<StorageService>(),
+          ),
         ),
-
-
+        ChangeNotifierProvider<ParentLocationVm>(
+          create: (context) =>
+              ParentLocationVm(context.read<LocationRepository>()),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
         navigatorKey: AlertService.navigatorKey,
+        navigatorObservers: [routeObserver],
         theme: AppTheme.light(),
         themeMode: ThemeMode.system,
         home: const SessionGuard(),
