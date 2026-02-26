@@ -10,8 +10,9 @@ class ScheduleViewModel extends ChangeNotifier {
   final AuthVM _authVM;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-
   ScheduleViewModel(this._repo, this._authVM);
+
+  int _loadToken = 0;
 
   // ======================
   // STATE
@@ -49,22 +50,15 @@ class ScheduleViewModel extends ChangeNotifier {
   // ======================
 
   /// chọn bé
-  void setChild(String id) async {
+  Future<void> setChild(String id) async {
   selectedChildId = id;
 
-  // 🔥 Reset về ngày hiện tại
-  selectedDate = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day,
-  );
+  final now = DateTime.now();
+  selectedDate = _normalize(now);
+  focusedMonth = DateTime(now.year, now.month, 1);
 
-  // 🔥 Load lại dữ liệu tháng hiện tại
   await loadMonth();
-
-  notifyListeners();
 }
-
 
   /// chọn ngày
   void setDate(DateTime date) {
@@ -75,10 +69,10 @@ class ScheduleViewModel extends ChangeNotifier {
 
   /// bấm ← →
   void changeMonth(DateTime newDate) {
-    selectedDate = DateTime(newDate.year, newDate.month, 1);
-    loadMonth();
-    notifyListeners();
-  }
+  focusedMonth = DateTime(newDate.year, newDate.month, 1);
+  selectedDate = DateTime(newDate.year, newDate.month, 1);
+  loadMonth();
+}
 
   /// calendar dùng để vẽ dot
   bool hasSchedule(DateTime day) {
@@ -90,30 +84,35 @@ class ScheduleViewModel extends ChangeNotifier {
   // ======================
 
   Future<void> loadMonth() async {
-    if (selectedChildId == null) return;
+  if (selectedChildId == null) return;
 
-    try {
-      isLoading = true;
-      error = null;
-      notifyListeners();
+  final token = ++_loadToken;
 
-      final list = await _repo.getSchedulesByMonth(
-        parentUid: parentUid,
-        childId: selectedChildId!,
-        month: focusedMonth,
-      );
+  try {
+    isLoading = true;
+    error = null;
+    notifyListeners();
 
-      monthSchedules = _groupByDay(list);
+    final list = await _repo.getSchedulesByMonth(
+      parentUid: parentUid,
+      childId: selectedChildId!,
+      month: focusedMonth,
+    );
 
-      // refresh list theo ngày đang chọn
-      setDate(selectedDate);
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
+    if (token != _loadToken) return;
+
+    monthSchedules = _groupByDay(list);
+    final key = _normalize(selectedDate);
+    schedules = monthSchedules[key] ?? [];
+  } catch (e) {
+    if (token != _loadToken) return;
+    error = e.toString();
+  } finally {
+    if (token != _loadToken) return;
+    isLoading = false;
+    notifyListeners();
   }
+}
 
   // ======================
   // CRUD
@@ -129,22 +128,23 @@ class ScheduleViewModel extends ChangeNotifier {
     await loadMonth();
   }
 
-Future<void> deleteSchedule(String id) async {
+  Future<void> deleteSchedule(String id) async {
   try {
-    await _firestore
-        .collection('schedules')
-        .doc(id)
-        .delete();
-
-    // Xóa local list luôn để UI không phải chờ reload
+    // optimistic UI
     schedules.removeWhere((e) => e.id == id);
-
+    for (final entry in monthSchedules.entries) {
+      entry.value.removeWhere((e) => e.id == id);
+    }
     notifyListeners();
+
+    await _repo.deleteSchedule(parentUid, id);
+
+    // đảm bảo dot + list khớp tuyệt đối với server
+    await loadMonth();
   } catch (e) {
-    rethrow; // QUAN TRỌNG
+    rethrow;
   }
 }
-
 
   // ======================
   // HELPERS

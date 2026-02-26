@@ -398,13 +398,13 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
               ? () async {
                   final vm = context.read<ScheduleViewModel>();
 
-                  /// 1️⃣ Show loading
-                  // showDialog(
-                  //   context: context,
-                  //   barrierDismissible: false,
-                  //   builder: (_) =>
-                  //       const Center(child: CircularProgressIndicator()),
-                  // );
+                  // show loading (root)
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    useRootNavigator: true,
+                    builder: (_) => const Center(child: CircularProgressIndicator()),
+                  );
 
                   try {
                     final startAt = DateTime(
@@ -445,15 +445,12 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
 
                     await vm.addSchedule(schedule);
 
-                    /// 2️⃣ Hide loading
-                   // if (mounted) Navigator.pop(context);
-
-                    /// 3️⃣ Reload list
-                    await vm.loadMonth();
-
-                    /// 4️⃣ Show success popup (ROOT NAVIGATOR)
                     if (!mounted) return;
 
+                    ///  Hide loading
+                    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+                    // show success (root)
                     await showGeneralDialog(
                       context: context,
                       useRootNavigator: true,
@@ -483,15 +480,17 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                     );
 
                     /// 5️⃣ Sau khi popup đóng → đóng AddScheduleSheet
-                    //if (mounted) Navigator.pop(context);
-                  } catch (e) {
-                    //if (mounted) Navigator.pop(context); // đóng loading
-
+                    if (!mounted) return;
+                  Navigator.pop(context); // đóng AddScheduleSheet
+                } catch (e) {
+                  if (mounted) {
+                    Navigator.of(context, rootNavigator: true).pop(); // đóng loading đúng chỗ
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Có lỗi xảy ra")),
+                      SnackBar(content: Text("Có lỗi xảy ra: $e")),
                     );
                   }
                 }
+              }
               : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF3F7CFF),
