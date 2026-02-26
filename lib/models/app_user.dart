@@ -17,7 +17,7 @@ class AppUser {
 
   final DateTime? createdAt;
   final DateTime? lastActiveAt;
-
+  final String? familyId;
   /// child only
   final String? parentUid;
 
@@ -27,6 +27,8 @@ class AppUser {
   const AppUser({
     required this.uid,
     required this.role,
+    this.familyId,   // 👈 thêm dòng này
+
     this.email,
     this.displayName,
     this.photoUrl,
@@ -46,6 +48,7 @@ class AppUser {
   Map<String, dynamic> toMap() => {
     'uid': uid,
     'role': roleToString(role),
+    'familyId': familyId,
     'email': email,
     'displayName': displayName,
     'photoUrl': photoUrl,
@@ -67,6 +70,7 @@ class AppUser {
     return AppUser(
       uid: d['uid'] ?? doc.id,
       role: roleFromString(d['role'] ?? 'parent'),
+      familyId: d['familyId'],
       email: d['email'],
       displayName: d['displayName'],
       photoUrl: d['photoUrl'],

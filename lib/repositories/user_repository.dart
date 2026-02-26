@@ -50,27 +50,75 @@ class UserRepository {
   }) async {
     final ref = userRef(uid);
     final snap = await ref.get();
-    if (snap.exists) return;
+    if (snap.exists) {
+      final data = snap.data();
+      if (data?['familyId'] != null) return;
 
-    await ref.set(
+      final familyId = _db.collection('families').doc().id;
+
+      final batch = _db.batch();
+
+      batch.update(ref, {'familyId': familyId});
+
+      final familyRef = _db.collection('families').doc(familyId);
+
+      batch.set(familyRef, {
+        'createdBy': uid,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      batch.set(
+        familyRef.collection('members').doc(uid),
+        {
+          'uid': uid,
+          'role': 'parent',
+          'joinedAt': FieldValue.serverTimestamp(),
+        },
+      );
+
+      await batch.commit();
+      return;
+    }
+    final familyId = _db.collection('families').doc().id;
+    final batch = _db.batch();
+    batch.set(ref,(
+        {
+          'uid': uid,
+          'role': 'parent',
+          'email': email,
+          'familyId': familyId,
+          'displayName': displayName,
+          'locale': locale,
+          'timezone': timezone,
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastActiveAt': FieldValue.serverTimestamp(),
+          'avatarUrl': '',
+          'subscription': {
+            'plan': 'free',
+            'status': 'active',
+            'startAt': FieldValue.serverTimestamp(),
+            'endAt': null,
+          },
+        })..removeWhere((_, v) => v == null)
+    );
+
+    final familyRef = _db.collection('families').doc(familyId);
+    batch.set(familyRef, {
+      'createdBy': uid,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // 3️⃣ Thêm parent vào members
+    batch.set(
+      familyRef.collection('members').doc(uid),
       {
         'uid': uid,
         'role': 'parent',
-        'email': email,
-        'displayName': displayName,
-        'locale': locale,
-        'timezone': timezone,
-        'createdAt': FieldValue.serverTimestamp(),
-        'lastActiveAt': FieldValue.serverTimestamp(),
-        'avatarUrl': '',
-        'subscription': {
-          'plan': 'free',
-          'status': 'active',
-          'startAt': FieldValue.serverTimestamp(),
-          'endAt': null,
-        },
-      }..removeWhere((_, v) => v == null),
+        'joinedAt': FieldValue.serverTimestamp(),
+      },
     );
+
+    await batch.commit();
   }
 
   // ===== UPDATE =====
@@ -116,6 +164,16 @@ class UserRepository {
     required String locale,
     required String timezone,
   }) async {
+
+    // 1️⃣ Lấy familyId của parent
+    final parentSnap = await userRef(parentUid).get();
+    final familyId = parentSnap.data()?['familyId'];
+
+    if (familyId == null) {
+      throw Exception("Parent missing familyId");
+    }
+
+    // 2️⃣ Tạo Auth user
     final cred = await _secondaryAuth!.createUser(
       email: email.trim(),
       password: password,
@@ -123,20 +181,20 @@ class UserRepository {
 
     final childUid = cred.user!.uid;
 
-    // 2️⃣ Create Firestore document
-    final ref = userRef(childUid);
-    final snap = await ref.get();
-    if (snap.exists) "NOT FOUND";
+    final batch = _db.batch();
 
-    await ref.set(
+    // 3️⃣ Tạo Firestore user document
+    batch.set(
+      userRef(childUid),
       {
         'uid': childUid,
         'role': 'child',
         'displayName': displayName,
         'email': email,
         'parentUid': parentUid,
-        'locale': 'vi',
-        'timezone': 'Asia/Ho_Chi_Minh',
+        'familyId': familyId,
+        'locale': locale,
+        'timezone': timezone,
         'dob': dob != null ? Timestamp.fromDate(dob) : null,
         'createdAt': FieldValue.serverTimestamp(),
         'lastActiveAt': FieldValue.serverTimestamp(),
@@ -144,6 +202,21 @@ class UserRepository {
       }..removeWhere((_, v) => v == null),
     );
 
+    // 4️⃣ Add vào family members
+    batch.set(
+      _db.collection('families')
+          .doc(familyId)
+          .collection('members')
+          .doc(childUid),
+      {
+        'uid': childUid,
+        'role': 'child',
+        'joinedAt': FieldValue.serverTimestamp(),
+      },
+    );
+
+    await batch.commit();
+    print("Tạo thành công");
     return childUid;
   }
 

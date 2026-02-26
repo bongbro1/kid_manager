@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
@@ -626,7 +625,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
       await authVM.logout();
 
       rootNav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(builder: (_) => const SessionGuard()),
         (_) => false,
       );
     }

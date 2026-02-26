@@ -18,6 +18,7 @@ import 'package:kid_manager/services/usage_sync_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
+import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -34,23 +35,39 @@ import 'viewmodels/auth_vm.dart';
 import 'repositories/schedule_repository.dart';
 import 'viewmodels/schedule_vm.dart';
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends State<MyApp> {
+  late final SosViewModel _sosVm;
+
+  @override
+  void initState() {
+    super.initState();
+    _sosVm = SosViewModel();
+  }
+
+  @override
+  void dispose() {
+    _sosVm.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // ====== Copy y nguyên đoạn build của bạn từ đây xuống ======
     final authService = FirebaseAuthService();
     final storage = context.read<StorageService>();
 
-    // services
-    final secondaryAuthService =
-        SecondaryAuthService(); // auth để tạo tài khoản con từ tài khoản parent
+    final secondaryAuthService = SecondaryAuthService();
     final permissionService = PermissionService();
     final appInstalledService = AppInstalledService();
     final usageService = UsageSyncService(FirebaseFirestore.instance);
 
-    // repositories
     final userRepo = UserRepository(
       FirebaseFirestore.instance,
       FirebaseAuth.instance,
@@ -81,14 +98,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => AuthVM(context.read<AuthRepository>()),
         ),
-
         ChangeNotifierProvider(
           create: (context) => AppInitVM(
             context.read<StorageService>(),
             context.read<PermissionService>(),
           ),
         ),
-
         ChangeNotifierProvider(
           create: (context) => AppManagementVM(
             context.read<AppManagementRepository>(),
@@ -96,23 +111,20 @@ class MyApp extends StatelessWidget {
             context.read<StorageService>(),
           ),
         ),
-
         ChangeNotifierProvider(
-          create: (context) =>
-              ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
+          create: (context) => ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
         ),
 
-        /// LOCATION SERVICE
-        Provider<LocationServiceInterface>(
-          create: (_) => LocationServiceImpl(),
-        ),
+        Provider<LocationServiceInterface>(create: (_) => LocationServiceImpl()),
+        Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
 
         ChangeNotifierProvider<SessionVM>(
           create: (context) => SessionVM(context.read<AuthRepository>()),
         ),
 
-        /// LOCATION REPOSITORY
-        Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
+        // ✅ đây là điểm khác: dùng .value để giữ instance
+        ChangeNotifierProvider.value(value: _sosVm),
+
         ChangeNotifierProvider<UserVm>(
           create: (context) => UserVm(
             context.read<UserRepository>(),
@@ -120,8 +132,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider<ParentLocationVm>(
-          create: (context) =>
-              ParentLocationVm(context.read<LocationRepository>()),
+          create: (context) => ParentLocationVm(context.read<LocationRepository>()),
         ),
       ],
       child: MaterialApp(

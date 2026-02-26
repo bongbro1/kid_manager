@@ -1,27 +1,3 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
-
-admin.initializeApp();
-
-export const mirrorUserToRtdb = functions.firestore
-  .document("users/{uid}")
-  .onCreate(async (snap, context) => {
-
-    const data = snap.data();
-    const uid = context.params.uid;
-
-    const parentUid = data.parentUid || null;
-
-    await admin.database()
-      .ref(`users/${uid}`)
-      .set({
-        parentUid: parentUid,
-      });
-
-    console.log(`Mirrored user ${uid} → RTDB`);
-  });
-
-
 import * as admin from "firebase-admin";
 import { createHash, randomUUID } from "crypto";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
@@ -29,6 +5,30 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 
 admin.initializeApp();
+
+export const mirrorUserToRtdb = onDocumentCreated(
+  {
+    document: "users/{uid}",
+    region: "asia-southeast1",
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const data = snap.data();
+    const uid = event.params.uid;
+    const parentUid = data.parentUid || null;
+
+    await admin.database().ref(`users/${uid}`).set({
+      parentUid,
+    });
+
+    console.log(`Mirrored user ${uid} → RTDB`);
+  }
+);
+
+
+
 const db = admin.firestore();
 
 setGlobalOptions({
@@ -133,14 +133,14 @@ async function requireFamilyMember(familyId: string, uid: string) {
 // TOKEN REGISTRY (CALLABLE)
 // =======================
 export const registerFcmToken = onCall(
-  {
-    // production khuyến nghị bật AppCheck khi bạn setup xong
-    // enforceAppCheck: true,
+   {
+    region: "asia-southeast1",
   },
   async (req) => {
     if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
 
     const uid = req.auth.uid;
+    console.log("AUTH:", req.auth);
     const token = mustString(req.data?.token, "token");
     const platform = mustPlatform(req.data?.platform);
 
@@ -175,13 +175,15 @@ export const registerFcmToken = onCall(
   }
 );
 
-export const unregisterFcmToken = onCall(async (req) => {
+export const unregisterFcmToken = onCall( {
+    region: "asia-southeast1",
+  },async (req) => {
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
 
   const uid = req.auth.uid;
   const token = mustString(req.data?.token, "token");
   const tokenHash = sha256Hex(token);
-
+ console.log("AUTH:", req.auth);
   const { familyId } = await getUserFamilyAndRole(uid);
 
   // best-effort delete
@@ -202,7 +204,12 @@ export const unregisterFcmToken = onCall(async (req) => {
 // - burst limit: >= 10s between SOS
 // - idempotent: eventId as docId
 // =======================
-export const createSos = onCall(async (req) => {
+export const createSos = onCall(
+  {
+    region: "asia-southeast1",
+  },
+  async (req) => {
+ console.log("AUTH:", req.auth);
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
   const uid = req.auth.uid;
 
@@ -314,6 +321,7 @@ export const onSosCreated = onDocumentCreated(
   async (event) => {
     const snap = event.data;
     if (!snap) return;
+
 
     const { familyId, sosId } = event.params as { familyId: string; sosId: string };
     const sos = snap.data() as any;

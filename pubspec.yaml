@@ -81,6 +81,13 @@ dependencies:
 
   workmanager: ^0.6.0
 
+
+#  SOS
+  cloud_functions: ^6.0.0
+  flutter_local_notifications: ^17.0.0
+  just_audio: ^0.9.38
+  uuid: ^4.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
