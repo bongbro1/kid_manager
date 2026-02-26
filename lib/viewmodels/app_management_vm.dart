@@ -1,8 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:installed_apps/app_info.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/models/user/child_item.dart';
@@ -57,7 +54,7 @@ class AppManagementVM extends ChangeNotifier {
     try {
       _apps = await _repo.loadAppsFromFirestore(userId);
       notifyListeners();
-      await _repo.syncTodayUsage(userId);
+      await _repo.syncTodayUsage(userId: userId);
     } catch (e, stack) {
       debugPrint("❌ loadApps ERROR: $e");
       debugPrint("STACK: $stack");
@@ -74,7 +71,7 @@ class AppManagementVM extends ChangeNotifier {
     _error = null;
 
     try {
-      await _repo.syncTodayUsage(userId);
+      await _repo.syncTodayUsage(userId: userId);
     } catch (e) {
       _error = 'Không thể cập nhật usage';
     } finally {
@@ -120,16 +117,6 @@ class AppManagementVM extends ChangeNotifier {
   void _setLoading(bool value) {
     _loading = value;
     notifyListeners();
-  }
-
-  AppItemModel _mapToItem(AppInfo app) {
-    return AppItemModel(
-      packageName: app.packageName ?? '',
-      name: app.name,
-      iconBase64: app.icon == null ? null : base64Encode(app.icon!),
-      usageTime: null,
-      lastSeen: null,
-    );
   }
 
   Future<void> loadAndSeedApp() async {

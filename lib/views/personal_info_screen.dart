@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/models/user/user_role.dart';
-import 'package:kid_manager/utils/date_format.dart';
+import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
@@ -608,13 +608,13 @@ class ConfirmLogoutSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     Future<void> _logout() async {
       final authVM = context.read<AuthVM>();
-      await authVM.logout();
-      // if (!mounted) return;
+      final rootNav = Navigator.of(context, rootNavigator: true);
 
-      Navigator.pushAndRemoveUntil(
-        context,
+      await authVM.logout();
+
+      rootNav.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
+        (_) => false,
       );
     }
 

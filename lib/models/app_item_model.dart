@@ -39,7 +39,7 @@ class AppItemModel {
       packageName: doc.id,
       name: data['name'] ?? '',
       iconBase64: data['iconBase64'],
-      usageTime: data['usageTime'],
+      usageTime: null,
       lastSeen: data['lastSeen'],
     );
   }

@@ -469,18 +469,24 @@ class _ScheduleItem extends StatelessWidget {
 
                 GestureDetector(
                   onTap: () async {
+                    final rootNav = Navigator.of(context, rootNavigator: true);
+                    final rootCtx = rootNav.context;
+
                     final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => AlertDialog(
+                      context: rootCtx,
+                      builder: (dialogCtx) => AlertDialog(
                         title: const Text("Xóa lịch trình"),
                         content: const Text("Bạn có chắc muốn xóa?"),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.pop(context, false),
+                            onPressed: () => Navigator.pop(
+                              dialogCtx,
+                              false,
+                            ),
                             child: const Text("Hủy"),
                           ),
                           TextButton(
-                            onPressed: () => Navigator.pop(context, true),
+                            onPressed: () => Navigator.pop(dialogCtx, true),
                             child: const Text(
                               "Xóa",
                               style: TextStyle(color: Colors.red),
@@ -492,35 +498,25 @@ class _ScheduleItem extends StatelessWidget {
 
                     if (confirm != true) return;
 
-                    /// 1️⃣ Show loading
                     showDialog(
-                      context: context,
-                      useRootNavigator: true,
+                      context: rootCtx,
                       barrierDismissible: false,
                       builder: (_) =>
                           const Center(child: CircularProgressIndicator()),
                     );
 
                     try {
-                      /// 2️⃣ Delete
                       await vm.deleteSchedule(schedule.id);
+                      if (rootNav.canPop()) rootNav.pop();
 
-                      if (!context.mounted) return;
-
-                      /// 3️⃣ Hide loading
-                      Navigator.of(context, rootNavigator: true).pop();
-
-                      /// 4️⃣ Show success popup
                       await showSuccessPopup(
-                        context,
+                        rootCtx,
                         message: "Bạn đã xóa thành công",
                       );
                     } catch (e) {
-                      if (!context.mounted) return;
+                      if (rootNav.canPop()) rootNav.pop();
 
-                      Navigator.of(context, rootNavigator: true).pop();
-
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(rootCtx).showSnackBar(
                         const SnackBar(content: Text("Có lỗi xảy ra")),
                       );
                     }

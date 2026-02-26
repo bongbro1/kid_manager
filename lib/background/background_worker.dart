@@ -27,7 +27,8 @@ void callbackDispatcher() {
       final packageName = inputData?['packageName'];
 
       debugPrint("🧩 Worker role: $role");
-      debugPrint("📌 Task: $task");
+      debugPrint("📌 Worker Task: $task");
+      debugPrint("📌 Worker UserId: $userId");
 
       final repo = _buildRepository();
       final userRepo = _buildUserRepository();
@@ -37,7 +38,7 @@ void callbackDispatcher() {
         if (userId == null) return true;
 
         debugPrint("👶 Running child sync");
-        await repo.syncTodayUsage(userId);
+        await repo.syncTodayUsage(userId: userId);
 
         return true;
       }

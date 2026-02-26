@@ -27,7 +27,7 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
     init();
   }
   Future<void> init() async {
-    if (_checkingUsage) return; 
+    if (_checkingUsage) return;
     _checkingUsage = true;
     debugPrint("🚀 AppInitVM.init called");
     // STEP 1: check trước
@@ -49,13 +49,13 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
 
     if (uid == null || role == null) {
       _setReady(false);
-    _checkingUsage = false;
+      _checkingUsage = false;
       return;
     }
 
     _startWorkers(uid, role);
 
-  _checkingUsage = false;
+    _checkingUsage = false;
   }
 
   void _startWorkers(String uid, String role) {
@@ -69,6 +69,13 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> startBackgroundAppSync(String userId, String role) async {
+    await Workmanager().registerOneOffTask(
+      "syncAppsImmediate",
+      syncAppsTask,
+      inputData: {"userId": userId, "role": role},
+      constraints: Constraints(networkType: NetworkType.connected),
+    );
+
     await Workmanager().registerPeriodicTask(
       "syncAppsUnique",
       syncAppsTask,
@@ -140,8 +147,7 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       if (_permissions['media'] == false) {
-        await permissionService
-            .requestPhotosOrStoragePermission();
+        await permissionService.requestPhotosOrStoragePermission();
       }
 
       if (_permissions['usage'] == false) {

@@ -162,14 +162,16 @@ class UserRepository {
 
     return UserProfile(
       id: uid,
-      name: data['displayName'] ?? '',
-      phone: data['phone'] ?? '',
-      gender: data['gender'] ?? '',
-      address: data['address'] ?? '',
+      name: (data['displayName'] ?? '').toString(),
+      phone: (data['phone'] ?? '').toString(),
+      gender: (data['gender'] ?? '').toString(),
+      address: (data['address'] ?? '').toString(),
       allowTracking: data['allowTracking'] ?? false,
-      avatarUrl: data['avatarUrl'],
-      dob: data['dob'] ?? '',
-      role: data['role'] ?? 'child',
+      avatarUrl: data['avatarUrl']?.toString(),
+      dob: data['dob'] is int
+          ? Timestamp.fromMillisecondsSinceEpoch(data['dob'])
+          : data['dob'],
+      role: (data['role'] ?? 'child').toString(),
     );
   }
 
