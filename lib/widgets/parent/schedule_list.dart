@@ -32,21 +32,33 @@ class ScheduleList extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      itemCount: vm.schedules.length,
-      itemBuilder: (_, i) => Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: ScheduleItem(schedule: vm.schedules[i]),
-      ),
+    return Builder(
+      builder: (screenContext) {
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          itemCount: vm.schedules.length,
+          itemBuilder: (_, i) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ScheduleItem(
+              schedule: vm.schedules[i],
+              screenContext: screenContext, // ✅ context ổn định
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
 class ScheduleItem extends StatelessWidget {
   final Schedule schedule;
+  final BuildContext screenContext;
 
-  const ScheduleItem({super.key, required this.schedule});
+  const ScheduleItem({
+    super.key,
+    required this.schedule,
+    required this.screenContext,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +105,7 @@ class ScheduleItem extends StatelessWidget {
               const SizedBox(width: 10),
               _ActionIcon(
                 asset: 'assets/images/ic_delete.png',
-                onTap: () => _deleteSchedule(context),
+                onTap: () => _deleteSchedule(screenContext),
               ),
             ],
           ),
@@ -125,50 +137,45 @@ class ScheduleItem extends StatelessWidget {
   }
 
   Future<void> _deleteSchedule(BuildContext context) async {
-  final vm = context.read<ScheduleViewModel>();
+    final vm = context.read<ScheduleViewModel>();
 
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (_) => AlertDialog(
-      title: const Text('Xóa lịch trình'),
-      content: const Text('Bạn có chắc muốn xóa?'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('Xóa', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
-
-  if (confirm != true) return;
-
-  // ✅ lưu context của màn hình trước khi list rebuild
-  final rootContext = Navigator.of(context, rootNavigator: true).context;
-
-  showDialog(
-    context: rootContext,
-    useRootNavigator: true,
-    barrierDismissible: false,
-    builder: (_) => const Center(child: CircularProgressIndicator()),
-  );
-
-  try {
-    await vm.deleteSchedule(schedule.id);
-
-    // đóng loading
-    Navigator.of(rootContext, rootNavigator: true).pop();
-
-    // ✅ dùng rootContext để show popup
-    await showScheduleSuccess(rootContext, 'Bạn đã xóa thành công');
-  } catch (_) {
-    Navigator.of(rootContext, rootNavigator: true).pop();
-    ScaffoldMessenger.of(rootContext).showSnackBar(
-      const SnackBar(content: Text('Có lỗi xảy ra')),
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Xóa lịch trình'),
+        content: const Text('Bạn có chắc muốn xóa?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Xóa',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
     );
+
+    if (confirm != true) return;
+
+    try {
+      await vm.deleteSchedule(schedule.id);
+
+      if (!context.mounted) return;
+
+      await showScheduleSuccess(context, 'Bạn đã xóa thành công');
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Xóa thất bại: $e')),
+      );
+    }
   }
-}
 }
 
 class _ActionIcon extends StatelessWidget {

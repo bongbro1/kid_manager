@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
+import 'package:kid_manager/models/user/user_role.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
@@ -150,19 +152,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
   Widget build(BuildContext context) {
     final vm = context.watch<UserVm>();
     final p = vm.profile;
-
-    final _isChild = p?.role == 'child'; // 👈 đặt ở đây
-
-    if (p != null) {
-      _nameCtrl.text = p.name;
-      _phoneCtrl.text = p.phone;
-      _genderCtrl.text = p.gender;
-      _dobCtrl.text = p.dob;
-      _addressCtrl.text = p.address;
-      allowLocationTracking = p.allowTracking;
-
-      _age = calculateAgeFromDateString(p.dob);
+    if (p == null) {
+      return const SizedBox();
     }
+
+    final isChild = p.role.toString() == "child"; // 👈 đặt ở đây
+    _nameCtrl.text = p.name;
+    _phoneCtrl.text = p.phone;
+    _genderCtrl.text = p.gender;
+    _dobCtrl.text = p.dob;
+    _addressCtrl.text = p.address;
+    allowLocationTracking = p.allowTracking;
+
+    _age = calculateAgeFromDateString(p.dob);
 
     return Scaffold(
       backgroundColor: Color(0xFFFFFFFF),
@@ -353,7 +355,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
                   hint: "Xã Điềm Thụy, Tỉnh Thái Nguyên",
                   controller: _addressCtrl,
                 ),
-                if (!_isChild)
+                if (!isChild)
                   AppLabeledCheckbox(
                     label: "Quyền theo dõi",
                     text: "Cho phép đối phương theo dõi vị trí",
@@ -589,6 +591,19 @@ class MoreActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
+            // SettingItem(
+            //   title: "Thêm tài khoản",
+            //   iconPath: "assets/icons/account.png",
+            //   iconType: AppIconType.png,
+            //   iconSize: 18,
+            //   onTap: () {
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (_) => const AddAccountScreen()),
+            //     );
+            //   },
+            // ),
+            // const SizedBox(height: 10),
             SettingItem(
               title: "Đăng xuất",
               iconPath: "assets/icons/log_out.png",
@@ -625,7 +640,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
       await authVM.logout();
 
       rootNav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const SessionGuard()),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
         (_) => false,
       );
     }

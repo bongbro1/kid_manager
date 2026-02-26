@@ -28,6 +28,14 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
   TimeOfDay? _endTime;
   SchedulePeriod? _period;
 
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = widget.selectedDate;
+  }
+
   bool get _hasChanged =>
       _titleCtrl.text.isNotEmpty ||
       _descCtrl.text.isNotEmpty ||
@@ -182,8 +190,24 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
   Widget _dateField() {
     return _readonlyField(
       hint: 'Ngày',
-      value: DateFormat('dd/MM/yyyy').format(widget.selectedDate),
+      value: DateFormat('dd/MM/yyyy').format(_selectedDate),
+      onTap: _pickDate, // ✅ NEW
     );
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      _selectedDate = DateTime(picked.year, picked.month, picked.day);
+    });
   }
 
   bool get _isTimeInvalid {
@@ -398,35 +422,35 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
               ? () async {
                   final vm = context.read<ScheduleViewModel>();
 
-                  // show loading (root)
                   showDialog(
                     context: context,
                     barrierDismissible: false,
                     useRootNavigator: true,
-                    builder: (_) => const Center(child: CircularProgressIndicator()),
+                    builder: (_) =>
+                        const Center(child: CircularProgressIndicator()),
                   );
 
                   try {
                     final startAt = DateTime(
-                      widget.selectedDate.year,
-                      widget.selectedDate.month,
-                      widget.selectedDate.day,
+                      _selectedDate.year, // ✅ CHANGED
+                      _selectedDate.month,
+                      _selectedDate.day,
                       _startTime!.hour,
                       _startTime!.minute,
                     );
 
                     final endAt = DateTime(
-                      widget.selectedDate.year,
-                      widget.selectedDate.month,
-                      widget.selectedDate.day,
+                      _selectedDate.year, // ✅ CHANGED
+                      _selectedDate.month,
+                      _selectedDate.day,
                       _endTime!.hour,
                       _endTime!.minute,
                     );
 
                     final normalizedDate = DateTime(
-                      widget.selectedDate.year,
-                      widget.selectedDate.month,
-                      widget.selectedDate.day,
+                      _selectedDate.year, // ✅ CHANGED
+                      _selectedDate.month,
+                      _selectedDate.day,
                     );
 
                     final schedule = Schedule(
@@ -446,11 +470,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                     await vm.addSchedule(schedule);
 
                     if (!mounted) return;
+                    if (mounted)
+                      Navigator.of(context, rootNavigator: true).pop();
 
-                    ///  Hide loading
-                    if (mounted) Navigator.of(context, rootNavigator: true).pop();
-
-                    // show success (root)
                     await showGeneralDialog(
                       context: context,
                       useRootNavigator: true,
@@ -479,18 +501,17 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                       },
                     );
 
-                    /// 5️⃣ Sau khi popup đóng → đóng AddScheduleSheet
                     if (!mounted) return;
-                  Navigator.pop(context); // đóng AddScheduleSheet
-                } catch (e) {
-                  if (mounted) {
-                    Navigator.of(context, rootNavigator: true).pop(); // đóng loading đúng chỗ
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Có lỗi xảy ra: $e")),
-                    );
+                    Navigator.pop(context);
+                  } catch (e) {
+                    if (mounted) {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Có lỗi xảy ra: $e")),
+                      );
+                    }
                   }
                 }
-              }
               : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF3F7CFF),

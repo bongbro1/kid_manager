@@ -173,7 +173,7 @@ class _ParentAllChildrenMapScreenState
                     if (queried == null) return;
 
                     final rawFeature =
-                    queried.feature as Map<String?, Object?>?;
+                        queried.feature as Map<String?, Object?>?;
 
                     if (rawFeature == null) return;
 

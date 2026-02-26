@@ -70,10 +70,6 @@ class AuthVM extends ChangeNotifier {
     }
   }
 
-  Future<String> fetchUserRole(String uid) {
-    return _repo.getUserRole(uid);
-  }
-
   void _setLoading(bool value) {
     _loading = value;
     notifyListeners();
