@@ -29,12 +29,12 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
       context.read<ChildLocationViewModel>().startLocationSharing();
     });
   }
-  @override
-  void dispose() {
-    final vm = context.read<ChildLocationViewModel>();
-    if (_vmListener != null) vm.removeListener(_vmListener!);
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   final vm = context.read<ChildLocationViewModel>();
+  //   if (_vmListener != null) vm.removeListener(_vmListener!);
+  //   super.dispose();Adm
+  // }
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChildLocationViewModel>();

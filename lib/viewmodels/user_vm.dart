@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
+import 'package:kid_manager/models/user/user_role.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
 
@@ -126,6 +127,10 @@ class UserVm extends ChangeNotifier {
 
     _loading = false;
     notifyListeners();
+  }
+
+  Future<UserRole> fetchUserRole(String uid) {
+    return _userRepo.getUserRole(uid);
   }
 
   Future<bool> updateUserInfo({
