@@ -9,7 +9,6 @@ import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository_impl.dart';
 
 import 'package:kid_manager/repositories/user_repository.dart';
-import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/app_installed_service.dart';
 import 'package:kid_manager/services/permission_service.dart';

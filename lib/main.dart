@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import 'app.dart';
 
@@ -18,6 +19,9 @@ Future<void> main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+
+  String ACCESS_TOKEN =dotenv.env['ACCESS_TOKEN'] ?? '';
+  MapboxOptions.setAccessToken(ACCESS_TOKEN);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('vi_VN', null);
 
