@@ -8,4 +8,8 @@ abstract class LocationRepository {
   Stream<LocationData> watchChildLocation(String childId);
 
   Future<List<LocationData>> getLocationHistory(String childId);
+
+
+  Future<void> updateMyCurrent(TrackingPayload payload);
+  Future<void> appendMyHistory(TrackingPayload payload);
 }

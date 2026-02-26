@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -10,6 +11,8 @@ class MapboxController extends ChangeNotifier {
   final Map<String, Uint8List> _avatarCache = {};
   final Map<String, mbx.Position> _currentPositions = {};
   bool get isReady => _styleReady;
+  Timer? _debounce;
+
   static const String defaultAvatarId = "default_avatar";
   // ================= ATTACH =================
 
@@ -22,6 +25,23 @@ class MapboxController extends ChangeNotifier {
 
     _map = null;
     notifyListeners();
+  }
+
+
+  void scheduleUpdate({
+    required Map<String, mbx.Position> positions,
+    required Map<String, double> headings,
+    required Map<String, String> names,
+  }) {
+    _debounce?.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 60), () {
+      updateChildren(
+        positions: positions,
+        headings: headings,
+        names: names,
+      );
+    });
   }
 
   // ================= STYLE =================
@@ -74,7 +94,14 @@ class MapboxController extends ChangeNotifier {
         sourceId: "children-source",
         filter: ["!", ["has", "point_count"]],
         iconImageExpression: ["get", "avatar_id"],
-        iconSize: 1.2,
+        iconSizeExpression: [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          5, 0.6,
+          10, 0.9,
+          16, 1.2
+        ],
         iconRotateExpression: ["get", "heading"],
         iconAllowOverlap: true,
         textFieldExpression: ["get", "name"],
@@ -212,7 +239,7 @@ class MapboxController extends ChangeNotifier {
 
     const duration = 1200;
 
-    _map!.flyTo(
+    await _map!.flyTo(
       mbx.CameraOptions(
         center: mbx.Point(coordinates: pos),
         zoom: 17.5,

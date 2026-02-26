@@ -3,7 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/user/app_user_extensions.dart';
-import 'package:kid_manager/views/location/child_detail_map_screen.dart';
 import 'package:kid_manager/widgets/common/avatar.dart';
 
 class ParentChildListItem extends StatelessWidget {

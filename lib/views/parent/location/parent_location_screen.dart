@@ -1,14 +1,10 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/views/parent/location/parent_children_list_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
-import 'package:image/image.dart' as img;
-import 'package:kid_manager/helpers/location/image_decoder.dart';
 import 'package:kid_manager/features/presentation/shared/state/mapbox_controller.dart';
-import 'package:kid_manager/models/user/app_user_avatar_extension.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/location/child_info_sheet.dart';
@@ -92,7 +88,7 @@ class _ParentAllChildrenMapScreenState
       names[child.uid] = child.displayName ?? "";
     }
 
-    await controller.updateChildren(
+     controller.scheduleUpdate(
       positions: positions,
       headings: headings,
       names: names,

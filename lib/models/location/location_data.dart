@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:kid_manager/models/location/transport_mode.dart';
+
 class LocationData {
   final double latitude;
   final double longitude;
@@ -8,6 +10,7 @@ class LocationData {
   final double heading;  // degrees
   final bool isMock;     // fake GPS detect
   final int timestamp;   // ms since epoch
+  final TransportMode transport; //
 
   LocationData({
     required this.latitude,
@@ -17,7 +20,30 @@ class LocationData {
     this.speed = 0,
     this.heading = 0,
     this.isMock = false,
+    this.transport =TransportMode.unknown
   });
+
+  LocationData copyWith({
+    double? latitude,
+    double? longitude,
+    double? accuracy,
+    double? speed,
+    double? heading,
+    bool? isMock,
+    int? timestamp,
+    TransportMode? transport
+  }) {
+    return LocationData(
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      accuracy: accuracy ?? this.accuracy,
+      speed: speed ?? this.speed,
+      heading: heading ?? this.heading,
+      isMock: isMock ?? this.isMock,
+      timestamp: timestamp ?? this.timestamp,
+      transport: transport ?? this.transport,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'latitude': latitude,
@@ -28,6 +54,7 @@ class LocationData {
     'isMock': isMock,
     'timestamp': timestamp,
     'sentAt': DateTime.now().millisecondsSinceEpoch,
+    'transport': transport.name,
   };
 
   factory LocationData.fromJson(Map<String, dynamic> json) {
@@ -58,6 +85,7 @@ class LocationData {
       heading: _toDouble(json['heading']), // nếu data cũ → default 0
       isMock: _toBool(json['isMock']),     // nếu data cũ → false
       timestamp: _toInt(json['timestamp']),
+      transport: parseTransport(json['transport']),
     );
   }
 
@@ -84,3 +112,5 @@ class LocationData {
 
   double _degToRad(double deg) => deg * pi / 180.0;
 }
+
+

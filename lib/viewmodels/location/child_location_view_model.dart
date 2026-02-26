@@ -1,4 +1,3 @@
-  // lib/features/child/location/presentation/state/child_location_view_model.dart
   import 'dart:async';
 
   import 'package:firebase_auth/firebase_auth.dart';
@@ -8,12 +7,15 @@ import 'package:kid_manager/core/location/send_policy.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/core/location/tracking_state.dart';
 import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
-
+  import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
+import 'package:kid_manager/helpers/location/transport_mode_detector.dart';
   import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/models/location/transport_mode.dart';
   import 'package:kid_manager/repositories/location/location_repository.dart';
   import 'package:kid_manager/services/location/location_service.dart';
   import 'package:kid_manager/widgets/app/app_mode.dart';
 
+  import 'package:flutter_activity_recognition/models/activity.dart';
   class ChildLocationViewModel extends ChangeNotifier {
     ChildLocationViewModel(
         this._locationRepository,
@@ -24,8 +26,8 @@ import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
     final LocationRepository _locationRepository;
     final LocationServiceInterface _locationService;
     final FirebaseAuth _auth;
-
-    // ===== STATE =====
+    int _lastCurrentSentAtMs = 0;
+    int _lastBadAccCurrentSentAtMs = 0;    // ===== STATE =====
     LocationData? _currentLocation;
     LocationData? get currentLocation => _currentLocation;
 
@@ -34,6 +36,13 @@ import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
 
     MotionState _motionState =MotionState.moving;
     MotionState get motionState =>_motionState;
+
+    StreamSubscription<Activity>? _activitySub;
+    Activity? _lastActivity;
+
+    TransportMode _transport = TransportMode.unknown;
+    TransportMode get transport => _transport;
+
 
     final List<LocationData> _trail = [];
     List<LocationData> get locationTrail => List.unmodifiable(_trail);
@@ -78,6 +87,9 @@ import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
     //  dùng khi LOGOUT (clear sạch state)
     Future<void> stopSharingOnLogout() async {
       await stopSharing(clearData: true);
+      await _activitySub?.cancel();
+      _activitySub = null;
+      _lastActivity = null;
     }
 
     /// Stop sharing (clearData=false nếu chỉ muốn tạm dừng, true nếu logout)
@@ -136,53 +148,71 @@ import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
       notifyListeners();
 
       // listen GPS stream
+      await _startActivityRecognition();
 
+      _gpsSub = _locationService.getLocationStream().listen((raw) async {
+        debugPrint('📍 GPS RAW: acc=${raw.accuracy}');
 
-      _gpsSub = _locationService.getLocationStream().listen(
-              (raw) async {
-            debugPrint('📍 GPS RAW: acc=${raw.accuracy}');
+        final result = _engine.process(raw, _lastActivity);
+        _transport = result.transport;
+        _currentLocation = result.filteredLocation;
+        _motionState = result.motion;
 
+        // build payload 1 lần
+        final uid = _requireUid();
+        final payload = TrackingPayload(
+          deviceId: uid,
+          location: result.filteredLocation,
+          motion: result.motion.name,
+          transport: _transport.name,
+        );
 
+        // =========================
+        // 1) ALWAYS update CURRENT (throttle + accuracy)
+        // =========================
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final acc = result.filteredLocation.accuracy;
 
-            final result = _engine.process(raw);
+        final goodAcc = acc <= 80; // bạn có thể chỉnh 50/80 tuỳ
 
-            _currentLocation = result.filteredLocation;
-            _motionState = result.motion;
-            debugPrint("SHOULD SEND: ${result.shouldSend}");
-            debugPrint("SPEED: ${result.filteredLocation.speedKmh}");
-            debugPrint("MOTION: ${result.motion}");
-
-            if (result.shouldSend) {
-              try {
-                final uid = _requireUid();
-                final payload = TrackingPayload(
-                  deviceId: uid,
-                  location: result.filteredLocation,
-                  motion: result.motion.name,
-                );
-                if (result.filteredLocation.speedKmh > 200) {
-                  debugPrint("🚨 SPEED ANOMALY");
-                  return;
-                }
-
-                await _locationRepository.updateMyLocation(
-                  payload
-                );
-
-                debugPrint(
-                  '✅ SENT → lat=${result.filteredLocation.latitude}, '
-                      'lng=${result.filteredLocation.longitude}, '
-                      'motion=${result.motion}',
-                );
-              } catch (e) {
-                _setError(e);
-              }
+        try {
+          if (goodAcc) {
+            // update current mỗi 3s
+            if (nowMs - _lastCurrentSentAtMs >= 3000) {
+              _lastCurrentSentAtMs = nowMs;
+              await _locationRepository.updateMyCurrent(payload);
             }
+          } else {
+            // accuracy xấu: update current thưa 30s (keep-alive)
+            if (nowMs - _lastBadAccCurrentSentAtMs >= 30000) {
+              _lastBadAccCurrentSentAtMs = nowMs;
+              await _locationRepository.updateMyCurrent(payload);
+            }
+          }
 
-            _appendTrail(result.filteredLocation);
-            notifyListeners();
-          },
-      );
+          // =========================
+          // 2) Append HISTORY only when policy allows
+          // =========================
+          if (result.shouldSend) {
+            await _locationRepository.appendMyHistory(payload);
+            debugPrint("📤 HISTORY PUSH = ${payload.toJson()}");
+          }
+
+          debugPrint(
+            '✅ OK → lat=${result.filteredLocation.latitude}, '
+                'lng=${result.filteredLocation.longitude}, '
+                'motion=${result.motion}, '
+                'transport=${_transport.name}, '
+                'acc=${acc.toStringAsFixed(1)}',
+          );
+        } catch (e) {
+          debugPrint("ERROR LOCATIONS: $e");
+          _setError(e);
+        }
+
+        _appendTrail(result.filteredLocation);
+        notifyListeners();
+      });
           }
 
     ///  Android 11+: bật background permission (thường sẽ mở Settings)
@@ -226,6 +256,30 @@ import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
       } finally {
         _restarting = false;
       }
+    }
+
+    Future<void> _startActivityRecognition() async {
+      ActivityPermission permission =
+      await FlutterActivityRecognition.instance.checkPermission();
+
+      if (permission == ActivityPermission.DENIED) {
+        permission = await FlutterActivityRecognition.instance.requestPermission();
+      }
+
+      if (permission != ActivityPermission.GRANTED) {
+        debugPrint(" Activity permission not granted");
+        return;
+      }
+
+      await _activitySub?.cancel();
+      _activitySub = FlutterActivityRecognition.instance.activityStream.listen(
+            (activity) {
+          _lastActivity = activity;
+          // không notify liên tục cũng được, bạn có thể chỉ dùng nội bộ
+          debugPrint(" activity=${activity.type} conf=${activity.confidence}");
+        },
+        onError: (e) => debugPrint("Activity stream error: $e"),
+      );
     }
 
     Future<void> replayHistory({
@@ -272,9 +326,30 @@ import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
       }
     }
 
+    int _lastTrailTs = 0;
+    double _lastTrailHeading = 0;
+
+    double _turnDelta(double a, double b) {
+      var d = (a - b).abs();
+      if (d > 180) d = 360 - d;
+      return d;
+    }
+
     void _appendTrail(LocationData loc) {
-      if (_trail.isEmpty ||
-          _trail.last.distanceTo(loc) >= 0.03) {
+      if (_trail.isEmpty) {
+        _trail.add(loc);
+        _lastTrailTs = loc.timestamp;
+        _lastTrailHeading = loc.heading;
+        return;
+      }
+
+      final prev = _trail.last;
+      final dtMs = loc.timestamp - prev.timestamp;
+      final dKm = prev.distanceTo(loc);
+      final turn = _turnDelta(loc.heading, prev.heading);
+
+      final shouldAdd = dtMs >= 10000 || dKm >= 0.012 || turn >= 25; // 10s / 12m / cua
+      if (shouldAdd) {
         _trail.add(loc);
       }
     }
@@ -283,6 +358,9 @@ import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
     void dispose() {
       _gpsSub?.cancel();
       _keepAliveTimer?.cancel();
+      _activitySub?.cancel();
+      _activitySub = null;
+      _lastActivity = null;
       super.dispose();
     }
   }

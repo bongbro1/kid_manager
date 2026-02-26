@@ -119,7 +119,7 @@ debugPrint("newChildIds ${newSet.length}");
 
   List<LocationData> generateFakeHoTayHistory() {
     final baseTime = DateTime.now().millisecondsSinceEpoch;
-
+    print("HAM NAY DC GOI generateFakeHoTayHistory");
     // Tọa độ thực tế bờ Hồ Tây, đi theo chiều kim đồng hồ
     // Bắt đầu từ góc phía Nam (đường Thanh Niên / cầu Trúc Bạch)
     final points = [
