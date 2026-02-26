@@ -172,6 +172,7 @@ class UserRepository {
           ? Timestamp.fromMillisecondsSinceEpoch(data['dob'])
           : data['dob'],
       role: (data['role'] ?? 'child').toString(),
+      parentUid: data['parentUid']?.toString(),
     );
   }
 

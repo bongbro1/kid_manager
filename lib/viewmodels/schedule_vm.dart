@@ -45,6 +45,18 @@ class ScheduleViewModel extends ChangeNotifier {
     return uid;
   }
 
+  String? _scheduleOwnerUid;
+
+  String get scheduleOwnerUid {
+    final uid = _scheduleOwnerUid;
+    if (uid == null) throw Exception('Chưa set scheduleOwnerUid');
+    return uid;
+  }
+
+  void setScheduleOwnerUid(String uid) {
+    _scheduleOwnerUid = uid;
+  }
+
   // ======================
   // PUBLIC API (UI gọi)
   // ======================
@@ -94,7 +106,7 @@ class ScheduleViewModel extends ChangeNotifier {
     notifyListeners();
 
     final list = await _repo.getSchedulesByMonth(
-      parentUid: parentUid,
+      parentUid: scheduleOwnerUid,
       childId: selectedChildId!,
       month: focusedMonth,
     );
@@ -119,12 +131,12 @@ class ScheduleViewModel extends ChangeNotifier {
   // ======================
 
   Future<void> addSchedule(Schedule s) async {
-    await _repo.createSchedule(parentUid, s);
+    await _repo.createSchedule(scheduleOwnerUid, s);
     await loadMonth();
   }
 
   Future<void> updateSchedule(Schedule s) async {
-    await _repo.updateSchedule(parentUid, s);
+    await _repo.updateSchedule(scheduleOwnerUid, s);
     await loadMonth();
   }
 
@@ -137,7 +149,7 @@ class ScheduleViewModel extends ChangeNotifier {
     }
     notifyListeners();
 
-    await _repo.deleteSchedule(parentUid, id);
+    await _repo.deleteSchedule(scheduleOwnerUid, id);
 
     // đảm bảo dot + list khớp tuyệt đối với server
     await loadMonth();

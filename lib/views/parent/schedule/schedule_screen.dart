@@ -65,6 +65,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final parentUid = storage.getString(StorageKeys.uid);
       if (parentUid == null) return;
 
+      scheduleVm.setScheduleOwnerUid(parentUid);
       userVm.watchChildren(parentUid);
     });
   }
