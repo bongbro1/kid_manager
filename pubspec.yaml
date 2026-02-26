@@ -80,6 +80,8 @@ dependencies:
   flutter_activity_recognition: ^4.0.0
   flutter_dotenv: ^5.1.0
   mapbox_maps_flutter: ^2.18.0
+
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

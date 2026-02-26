@@ -110,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final session = LoginSession.fromJson(map);
 
     if (!session.remember) return;
-    if (!mounted) return; // ✅ check LẦN NỮA trước setState
+    if (!mounted) return;
 
     setState(() {
       _emailCtrl.text = session.email;
