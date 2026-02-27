@@ -44,14 +44,21 @@ class SosViewModel extends ChangeNotifier {
 
     try {
       final res = await _api.createSos(lat: lat, lng: lng, acc: acc);
+
+      debugPrint("✅ SOS SUCCESS");
+      debugPrint("sosId: ${res.sosId}");
+      debugPrint("familyId: ${res.familyId}");
+      debugPrint("created: ${res.created}");
+
       _lastSosId = res.sosId;
       return res.sosId;
-    } on FirebaseFunctionsException catch (e) {
+    }on FirebaseFunctionsException catch (e) {
       debugPrint("CODE: ${e.code}");
       debugPrint("CODE: ${e.message}");
       debugPrint("DETAILS: ${e.details}");
       return null;
     } catch (e) {
+      print("ERROR SOS : ${e}");
       _error = e.toString();
       return null;
     } finally {

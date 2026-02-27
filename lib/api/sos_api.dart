@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:uuid/uuid.dart';
 
 class SosApi {
@@ -22,6 +23,7 @@ class SosApi {
       'lng': lng,
       'acc': acc,
     });
+    debugPrint("created: ${res}");
 
     final d = Map<String, dynamic>.from(res.data as Map);
     return CreateSosResult(

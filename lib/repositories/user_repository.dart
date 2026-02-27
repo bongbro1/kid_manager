@@ -165,60 +165,98 @@ class UserRepository {
     required String locale,
     required String timezone,
   }) async {
+    try {
+      // 1) Lấy familyId của parent
+      final parentSnap = await userRef(parentUid).get();
+      final familyId = parentSnap.data()?['familyId'];
 
-    // 1️⃣ Lấy familyId của parent
-    final parentSnap = await userRef(parentUid).get();
-    final familyId = parentSnap.data()?['familyId'];
+      if (familyId == null || (familyId is String && familyId.isEmpty)) {
+        throw StateError("Parent missing familyId");
+      }
 
-    if (familyId == null) {
-      throw Exception("Parent missing familyId");
+      // 2) Tạo Auth user
+      final cred = await _secondaryAuth!.createUser(
+        email: email.trim(),
+        password: password,
+      );
+
+      final childUid = cred.user!.uid;
+
+      // 3) Ghi Firestore bằng batch
+      final batch = _db.batch();
+
+      batch.set(
+        userRef(childUid),
+        {
+          'uid': childUid,
+          'role': 'child',
+          'displayName': displayName,
+          'email': email.trim(),
+          'parentUid': parentUid,
+          'familyId': familyId,
+          'locale': locale,
+          'timezone': timezone,
+          'dob': dob != null ? Timestamp.fromDate(dob) : null,
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastActiveAt': FieldValue.serverTimestamp(),
+          'avatarUrl': '',
+        }..removeWhere((_, v) => v == null),
+      );
+      print("Lỗi ở đây 1");
+      batch.set(
+        _db.collection('families').doc(familyId).collection('members').doc(childUid),
+        {
+          'uid': childUid,
+          'role': 'child',
+          'familyId': familyId,
+          'joinedAt': FieldValue.serverTimestamp(),
+        },
+      );
+      print("Lỗi ở đây 2");
+      await batch.commit();
+
+      return childUid;
     }
 
-    // 2️⃣ Tạo Auth user
-    final cred = await _secondaryAuth!.createUser(
-      email: email.trim(),
-      password: password,
-    );
+    // ✅ Bắt lỗi Firebase Auth (email trùng, password yếu, email sai định dạng...)
+    on FirebaseAuthException catch (e) {
+      // Gợi ý message theo code
+      switch (e.code) {
+        case 'email-already-in-use':
+          throw Exception("Email đã được sử dụng.");
+        case 'invalid-email':
+          throw Exception("Email không hợp lệ.");
+        case 'weak-password':
+          throw Exception("Mật khẩu quá yếu (hãy dùng mạnh hơn).");
+        case 'operation-not-allowed':
+          throw Exception("Chức năng tạo tài khoản chưa được bật trong Firebase Auth.");
+        default:
+          throw Exception("Lỗi tạo tài khoản: ${e.message ?? e.code}");
+      }
+    }
 
-    final childUid = cred.user!.uid;
+    // ✅ Bắt lỗi Firestore
+    on FirebaseException catch (e) {
+      // FirebaseException dùng cho Firestore/Storage... (Firestore thường code: permission-denied, unavailable...)
+      switch (e.code) {
+        case 'permission-denied':
+          throw Exception("Không đủ quyền ghi dữ liệu (permission-denied).");
+        case 'unavailable':
+          throw Exception("Firestore tạm thời không khả dụng. Thử lại sau.");
+        default:
+          throw Exception("Lỗi Firestore: ${e.message ?? e.code}");
+      }
+    }
 
-    final batch = _db.batch();
+    // ✅ Bắt lỗi logic (familyId null, v.v.)
+    on StateError catch (e) {
+      throw Exception("Dữ liệu không hợp lệ: ${e.message}");
+    }
 
-    // 3️⃣ Tạo Firestore user document
-    batch.set(
-      userRef(childUid),
-      {
-        'uid': childUid,
-        'role': 'child',
-        'displayName': displayName,
-        'email': email,
-        'parentUid': parentUid,
-        'familyId': familyId,
-        'locale': locale,
-        'timezone': timezone,
-        'dob': dob != null ? Timestamp.fromDate(dob) : null,
-        'createdAt': FieldValue.serverTimestamp(),
-        'lastActiveAt': FieldValue.serverTimestamp(),
-        'avatarUrl': '',
-      }..removeWhere((_, v) => v == null),
-    );
-
-    // 4️⃣ Add vào family members
-    batch.set(
-      _db.collection('families')
-          .doc(familyId)
-          .collection('members')
-          .doc(childUid),
-      {
-        'uid': childUid,
-        'role': 'child',
-        'joinedAt': FieldValue.serverTimestamp(),
-      },
-    );
-
-    await batch.commit();
-    print("Tạo thành công");
-    return childUid;
+    // ✅ Bắt mọi lỗi còn lại
+    catch (e) {
+      throw Exception("Tạo tài khoản con thất bại: $e");
+    }
   }
 
   Future<void> updateUserProfile(UserProfile profile) async {
