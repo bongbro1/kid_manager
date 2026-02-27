@@ -167,7 +167,7 @@ class ScheduleViewModel extends ChangeNotifier {
   Map<DateTime, List<Schedule>> _groupByDay(List<Schedule> list) {
     final map = <DateTime, List<Schedule>>{};
     for (final s in list) {
-      final key = _normalize(s.startAt);
+      final key = _normalize(s.date);
       map.putIfAbsent(key, () => []).add(s);
     }
     return map;

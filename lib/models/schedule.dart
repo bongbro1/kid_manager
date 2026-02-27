@@ -2,23 +2,43 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum SchedulePeriod { morning, afternoon, evening }
 
-SchedulePeriod periodFromString(String v) {
+// ✅ Parse dữ liệu từ Firestore (hỗ trợ cả key EN và label VI nếu DB cũ)
+SchedulePeriod periodFromKey(String v) {
   switch (v) {
     case 'afternoon':
+    case 'Chiều':
       return SchedulePeriod.afternoon;
     case 'evening':
+    case 'Tối':
       return SchedulePeriod.evening;
+    case 'morning':
+    case 'Sáng':
     default:
       return SchedulePeriod.morning;
   }
 }
 
-String periodToString(SchedulePeriod p) {
+// ✅ Lưu Firestore bằng key EN (đúng chuẩn để query/parse ổn định)
+String periodKey(SchedulePeriod p) {
+  switch (p) {
+    case SchedulePeriod.afternoon:
+      return 'afternoon';
+    case SchedulePeriod.evening:
+      return 'evening';
+    case SchedulePeriod.morning:
+    default:
+      return 'morning';
+  }
+}
+
+// ✅ Hiển thị UI bằng label VI
+String periodLabel(SchedulePeriod p) {
   switch (p) {
     case SchedulePeriod.afternoon:
       return 'Chiều';
     case SchedulePeriod.evening:
       return 'Tối';
+    case SchedulePeriod.morning:
     default:
       return 'Sáng';
   }
@@ -59,12 +79,7 @@ class Schedule {
     this.updatedAt,
   });
 
-  // -------------------------
-  // Firestore → Model
-  // -------------------------
-  factory Schedule.fromFirestore(
-    DocumentSnapshot<Map<String, dynamic>> doc,
-  ) {
+  factory Schedule.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data() ?? {};
 
     return Schedule(
@@ -76,15 +91,12 @@ class Schedule {
       date: (d['date'] as Timestamp).toDate(),
       startAt: (d['startAt'] as Timestamp).toDate(),
       endAt: (d['endAt'] as Timestamp).toDate(),
-      period: periodFromString((d['period'] ?? 'morning') as String),
+      period: periodFromKey((d['period'] ?? 'morning') as String),
       createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (d['updatedAt'] as Timestamp?)?.toDate(),
     );
   }
 
-  // -------------------------
-  // Model → Firestore
-  // -------------------------
   Map<String, dynamic> toMap() => {
         'childId': childId,
         'parentUid': parentUid,
@@ -93,14 +105,14 @@ class Schedule {
         'date': Timestamp.fromDate(date),
         'startAt': Timestamp.fromDate(startAt),
         'endAt': Timestamp.fromDate(endAt),
-        'period': periodToString(period),
+
+        // ✅ LƯU ĐÚNG: morning/afternoon/evening
+        'period': periodKey(period),
+
         'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
         'updatedAt': updatedAt == null ? null : Timestamp.fromDate(updatedAt!),
       }..removeWhere((k, v) => v == null);
 
-  // -------------------------
-  // Copy with
-  // -------------------------
   Schedule copyWith({
     String? title,
     String? description,

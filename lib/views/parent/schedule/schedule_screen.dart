@@ -10,9 +10,9 @@ import '../../../core/app_text_styles.dart';
 import '../../../viewmodels/schedule_vm.dart';
 import '../../../viewmodels/user_vm.dart';
 import '../../../views/parent/schedule/add_schedule_sheet.dart';
-import '../../../widgets/parent/create_schedule_button.dart';
-import '../../../widgets/parent/schedule_calendar.dart';
-import '../../../widgets/parent/schedule_list.dart';
+import '../../../widgets/parent/schedule/create_schedule_button.dart';
+import '../../../widgets/parent/schedule/schedule_calendar.dart';
+import '../../../widgets/parent/schedule/schedule_list.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});

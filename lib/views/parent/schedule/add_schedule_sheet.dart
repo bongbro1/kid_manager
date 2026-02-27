@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/widgets/parent/schedule/schedule_period_selector.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/schedule.dart';
@@ -56,25 +57,36 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
 
   Future<bool> _onBack() async {
     if (!_hasChanged) return true;
+    if (!mounted) return true;
 
-    return await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Chưa lưu'),
-            content: const Text('Bạn chưa lưu, bạn có chắc muốn thoát?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Ở lại'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Thoát'),
-              ),
-            ],
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Chưa lưu'),
+        content: const Text('Bạn chưa lưu, bạn có chắc muốn thoát?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false), // ✅ pop dialog đúng context
+            child: const Text('Ở lại'),
           ),
-        ) ??
-        false;
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true), // ✅ pop dialog đúng context
+            child: const Text('Thoát'),
+          ),
+        ],
+      ),
+    );
+
+    return shouldExit ?? false;
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -137,14 +149,14 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
             child: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () async {
-                if (await _onBack()) {
-                  Navigator.pop(context);
-                }
+                final ok = await _onBack();
+                if (!mounted) return;
+                if (ok) Navigator.of(context).pop(); // pop bottomsheet/screen
               },
             ),
           ),
           const Text(
-            'Thêm lịch trình',
+            'Thêm sự kiện',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
         ],
@@ -322,92 +334,11 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
   }
 
   Widget _periodRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Thời gian',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        Row(
-          children: SchedulePeriod.values.map((p) {
-            final selected = _period == p;
-
-            final config = _periodStyle(p);
-
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: AnimatedScale(
-                  scale: selected ? 1.0 : 0.97,
-                  duration: const Duration(milliseconds: 120),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _period = p),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? config.selectedBg
-                            : const Color(0xFFF2F3F5),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            margin: const EdgeInsets.only(right: 8),
-                            decoration: BoxDecoration(
-                              color: config.dotColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          Text(
-                            periodToString(p),
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w500,
-                              color: selected
-                                  ? config.dotColor
-                                  : const Color(0xFF2A2A2A),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-
-        const SizedBox(height: 14),
-
-        GestureDetector(
-          onTap: () {
-            // TODO: xử lý thêm
-          },
-          child: const Text(
-            '+ Thêm',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              color: Color(0xFF3F7CFF),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+        return SchedulePeriodSelector(
+          value: _period,
+          onChanged: (p) => setState(() => _period = p),
+        );
+      }
 
   Widget _submitButton() {
     final vm = context.read<ScheduleViewModel>();
@@ -470,6 +401,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                     await vm.addSchedule(schedule);
 
                     if (!mounted) return;
+                    
                     if (mounted)
                       Navigator.of(context, rootNavigator: true).pop();
 
@@ -583,30 +515,4 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
     );
   }
 
-  _PeriodStyle _periodStyle(SchedulePeriod p) {
-    switch (p) {
-      case SchedulePeriod.morning:
-        return const _PeriodStyle(
-          dotColor: Color(0xFF7B61FF),
-          selectedBg: Color(0x1A7B61FF),
-        );
-      case SchedulePeriod.afternoon:
-        return const _PeriodStyle(
-          dotColor: Color(0xFF00B894),
-          selectedBg: Color(0x1A00B894),
-        );
-      case SchedulePeriod.evening:
-        return const _PeriodStyle(
-          dotColor: Color(0xFF3F7CFF),
-          selectedBg: Color(0x1A3F7CFF),
-        );
-    }
-  }
-}
-
-class _PeriodStyle {
-  final Color dotColor;
-  final Color selectedBg;
-
-  const _PeriodStyle({required this.dotColor, required this.selectedBg});
 }

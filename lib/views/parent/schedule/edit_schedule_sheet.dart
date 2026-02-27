@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/widgets/parent/schedule/schedule_period_selector.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/schedule.dart';
@@ -58,25 +59,36 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
 
   Future<bool> _onBack() async {
     if (!_hasChanged) return true;
+    if (!mounted) return true;
 
-    return await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Chưa lưu'),
-            content: const Text('Bạn chưa lưu, bạn có chắc muốn thoát?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Ở lại'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Thoát'),
-              ),
-            ],
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Chưa lưu'),
+        content: const Text('Bạn chưa lưu, bạn có chắc muốn thoát?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false), // ✅ pop dialog đúng context
+            child: const Text('Ở lại'),
           ),
-        ) ??
-        false;
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true), // ✅ pop dialog đúng context
+            child: const Text('Thoát'),
+          ),
+        ],
+      ),
+    );
+
+    return shouldExit ?? false;
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -113,6 +125,7 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
                         controller: _descCtrl,
                         label: 'Mô tả',
                         maxLines: 3,
+                        onChanged: (_) => setState(() {}),
                       ),
                       const SizedBox(height: 16),
                       _dateField(),
@@ -482,6 +495,9 @@ Widget _timePicker({
   }
 
   Widget _periodRow() {
-    return const SizedBox(); // nếu cần mình sẽ thêm lại giống Add
+    return SchedulePeriodSelector(
+      value: _period,
+      onChanged: (p) => setState(() => _period = p),
+    );
   }
 }

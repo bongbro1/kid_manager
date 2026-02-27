@@ -9,9 +9,9 @@ import '../../../services/storage_service.dart';
 import '../../../viewmodels/schedule_vm.dart';
 
 import '../../../views/parent/schedule/add_schedule_sheet.dart';
-import '../../../widgets/parent/create_schedule_button.dart';
-import '../../../widgets/parent/schedule_calendar.dart';
-import '../../../widgets/parent/schedule_list.dart';
+import '../../../widgets/parent/schedule/create_schedule_button.dart';
+import '../../../widgets/parent/schedule/schedule_calendar.dart';
+import '../../../widgets/parent/schedule/schedule_list.dart';
 
 class ChildScheduleScreen extends StatefulWidget {
   const ChildScheduleScreen({super.key});

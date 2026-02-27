@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/app_colors.dart';
-import '../../../../core/app_text_styles.dart';
+import '../../../../../core/app_colors.dart';
+import '../../../../../core/app_text_styles.dart';
 
 class CreateScheduleButton extends StatelessWidget {
   final VoidCallback onTap;
