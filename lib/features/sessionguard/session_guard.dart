@@ -19,6 +19,9 @@ class SessionGuard extends StatefulWidget {
 class _SessionGuardState extends State<SessionGuard> {
   SessionStatus? _lastStatus;
 
+  String? _lastUid;
+  bool? _lastIsParent;
+
   @override
   void initState() {
     super.initState();
@@ -32,20 +35,41 @@ class _SessionGuardState extends State<SessionGuard> {
   Widget build(BuildContext context) {
     return Consumer<SessionVM>(
       builder: (context, session, _) {
-        // ===== HANDLE SIDE EFFECT ONCE =====
-        if (_lastStatus != session.status) {
-          _lastStatus = session.status;
+        final status = session.status;
+        final uid = session.user?.uid;
+        final isParent = session.isParent;
 
-          if (session.status == SessionStatus.authenticated &&
-              session.isParent) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.read<UserVm>().watchChildren(session.user!.uid);
-            });
-          }
+        // Debug nhẹ (giúp bạn trace “lúc được lúc không”)
+        debugPrint('[GUARD] status=$status uid=$uid isParent=$isParent');
+
+        // ===== HANDLE SIDE EFFECT (more robust) =====
+        final shouldTriggerChildrenWatch =
+            status == SessionStatus.authenticated &&
+            isParent == true &&
+            uid != null &&
+            // Trigger khi: status đổi, hoặc uid đổi, hoặc isParent đổi
+            (_lastStatus != status ||
+                _lastUid != uid ||
+                _lastIsParent != isParent);
+
+        if (shouldTriggerChildrenWatch) {
+          _lastStatus = status;
+          _lastUid = uid;
+          _lastIsParent = isParent;
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            context.read<UserVm>().watchChildren(uid);
+          });
+        } else {
+          // vẫn update lastStatus để UI switch ổn định
+          _lastStatus = status;
+          _lastUid = uid;
+          _lastIsParent = isParent;
         }
 
         // ===== UI =====
-        switch (session.status) {
+        switch (status) {
           case SessionStatus.booting:
             return const FlashScreen();
 
@@ -53,9 +77,10 @@ class _SessionGuardState extends State<SessionGuard> {
             return const LoginScreen();
 
           case SessionStatus.authenticated:
-            return AppShell(
-              mode: session.isParent ? AppMode.parent : AppMode.child,
-            );
+            // Nếu authenticated nhưng uid null (bất thường) -> show Flash để tránh crash
+            if (uid == null) return const FlashScreen();
+
+            return AppShell(mode: isParent ? AppMode.parent : AppMode.child);
         }
       },
     );

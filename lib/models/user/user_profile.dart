@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+
 class UserProfile {
   final String id;
   final String name;
@@ -50,18 +53,40 @@ class UserProfile {
 
   /// 🔹 Tạo object từ Firestore
   factory UserProfile.fromMap(String id, Map<String, dynamic> data) {
+    String dobStr = '';
+    final rawDob = data['dob'];
+
+    DateTime? date;
+
+    if (rawDob is Timestamp) {
+      date = rawDob.toDate();
+    } else if (rawDob is int) {
+      date = DateTime.fromMillisecondsSinceEpoch(rawDob);
+    } else if (rawDob is String) {
+      // nếu trước đó đã lưu dạng dd/MM/yyyy thì giữ nguyên
+      try {
+        date = DateTime.parse(rawDob); // trường hợp iso string
+      } catch (_) {
+        dobStr = rawDob; // fallback giữ nguyên
+      }
+    }
+
+    if (date != null) {
+      dobStr = DateFormat('dd/MM/yyyy').format(date);
+    }
+
     return UserProfile(
       id: id,
-      name: data["displayName"] ?? "",
-      phone: data["phone"] ?? "",
-      gender: data["gender"] ?? "",
-      dob: data["dob"] ?? "",
-      address: data["address"] ?? "",
+      name: (data["displayName"] ?? "").toString(),
+      phone: (data["phone"] ?? "").toString(),
+      gender: (data["gender"] ?? "").toString(),
+      dob: dobStr,
+      address: (data["address"] ?? "").toString(),
       allowTracking: data["allowTracking"] ?? false,
-      role: data["role"] ?? "child",
-      avatarUrl: data["avatarUrl"], // nullable
-      coverUrl: data["coverUrl"], // nullable
-      parentUid: data["parentUid"]?.toString(), // ✅ NEW (null safe)
+      role: (data["role"] ?? "child").toString(),
+      avatarUrl: data["avatarUrl"]?.toString(),
+      coverUrl: data["coverUrl"]?.toString(),
+      parentUid: data["parentUid"]?.toString()
     );
   }
 }

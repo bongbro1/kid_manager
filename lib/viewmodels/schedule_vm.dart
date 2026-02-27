@@ -80,10 +80,10 @@ class ScheduleViewModel extends ChangeNotifier {
   }
 
   /// bấm ← →
-  void changeMonth(DateTime newDate) {
+  Future<void> changeMonth(DateTime newDate) async {
   focusedMonth = DateTime(newDate.year, newDate.month, 1);
   selectedDate = DateTime(newDate.year, newDate.month, 1);
-  loadMonth();
+  await loadMonth();
 }
 
   /// calendar dùng để vẽ dot
@@ -96,35 +96,37 @@ class ScheduleViewModel extends ChangeNotifier {
   // ======================
 
   Future<void> loadMonth() async {
-  if (selectedChildId == null) return;
+    if (selectedChildId == null) return;
 
-  final token = ++_loadToken;
+    final token = ++_loadToken;
 
-  try {
     isLoading = true;
     error = null;
     notifyListeners();
 
-    final list = await _repo.getSchedulesByMonth(
-      parentUid: scheduleOwnerUid,
-      childId: selectedChildId!,
-      month: focusedMonth,
-    );
+    try {
+      final list = await _repo.getSchedulesByMonth(
+        parentUid: scheduleOwnerUid,
+        childId: selectedChildId!,
+        month: focusedMonth,
+      );
 
-    if (token != _loadToken) return;
+      if (token != _loadToken) return;
 
-    monthSchedules = _groupByDay(list);
-    final key = _normalize(selectedDate);
-    schedules = monthSchedules[key] ?? [];
-  } catch (e) {
-    if (token != _loadToken) return;
-    error = e.toString();
-  } finally {
-    if (token != _loadToken) return;
-    isLoading = false;
-    notifyListeners();
+      monthSchedules = _groupByDay(list);
+      final key = _normalize(selectedDate);
+      schedules = monthSchedules[key] ?? [];
+    } catch (e) {
+      if (token != _loadToken) return;
+      error = e.toString();
+    } finally {
+      // ✅ luôn tắt loading nếu đây là request mới nhất
+      if (token == _loadToken) {
+        isLoading = false;
+        notifyListeners();
+      }
+    }
   }
-}
 
   // ======================
   // CRUD
@@ -174,5 +176,38 @@ class ScheduleViewModel extends ChangeNotifier {
   DateTime _normalize(DateTime d) {
     return DateTime(d.year, d.month, d.day);
   }
+
+// khi bind session mới (đổi user hoặc đổi owner), gọi hàm này để reset state và load lịch mới
+Future<void> bindChildSession({
+  required String childUid,
+  required String ownerParentUid,
+}) async {
+  // nếu đổi user / đổi owner thì reset để tránh dính state cũ
+  final needReset =
+      selectedChildId != childUid || _scheduleOwnerUid != ownerParentUid;
+
+  if (needReset) {
+    resetForNewSession();
+    setScheduleOwnerUid(ownerParentUid);
+    await setChild(childUid); // setChild sẽ gọi loadMonth
+  }
+}
+
+  // khi logout hoặc chuyển sang bé khác, reset hết state để tránh hiển thị nhầm
+  void resetForNewSession() {
+    _loadToken++; // invalidate các load cũ
+    monthSchedules = {};
+    schedules = [];
+    error = null;
+    isLoading = false;
+    selectedChildId = null;
+
+  // reset về today (hoặc giữ nguyên tùy bạn)
+  final now = DateTime.now();
+  selectedDate = _normalize(now);
+  focusedMonth = DateTime(now.year, now.month, 1);
+
+  notifyListeners();
+}
 
 }

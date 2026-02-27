@@ -21,7 +21,9 @@ class ChildScheduleScreen extends StatefulWidget {
 }
 
 class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
-  bool _didInit = false;
+  String? _lastChildUid;
+  String? _lastOwnerUid;
+  bool _binding = false;
 
   void _openAddScheduleSheet({
     required BuildContext context,
@@ -50,15 +52,11 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
     );
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_didInit) return;
-    _didInit = true;
+  Future<void> _bindSessionIfNeeded() async {
+    if (_binding) return;
+    _binding = true;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      
+    try {
       final storage = context.read<StorageService>();
       final userVm = context.read<UserVm>();
       final scheduleVm = context.read<ScheduleViewModel>();
@@ -66,22 +64,44 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
       final childUid = storage.getString(StorageKeys.uid);
       if (childUid == null) return;
 
-      // load profile để lấy parentUid
-      await userVm.loadProfile();
+      // Load profile đúng childUid hiện tại (tránh dùng profile cũ)
+      if (userVm.profile == null || userVm.profile!.id != childUid) {
+        await userVm.loadProfile();
+      }
+
       final parentUid = userVm.profile?.parentUid;
       if (parentUid == null || parentUid.isEmpty) return;
 
-      // ✅ owner path luôn là parentUid
-      scheduleVm.setScheduleOwnerUid(parentUid);
+      final changed = (_lastChildUid != childUid) || (_lastOwnerUid != parentUid);
 
-      // ✅ lịch của childUid này
-      await scheduleVm.setChild(childUid);
-    });
+      if (changed) {
+        _lastChildUid = childUid;
+        _lastOwnerUid = parentUid;
+
+        // Reset state cũ để không dính lịch của child khác
+        scheduleVm.monthSchedules = {};
+        scheduleVm.schedules = [];
+        scheduleVm.error = null;
+        scheduleVm.isLoading = false;
+        scheduleVm.selectedChildId = null;
+
+        scheduleVm.setScheduleOwnerUid(parentUid);
+        await scheduleVm.setChild(childUid); // setChild sẽ loadMonth()
+      }
+    } finally {
+      _binding = false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final scheduleVm = context.watch<ScheduleViewModel>();
+
+    // Mỗi lần build đều check/bind lại session (nhưng có guard _binding + cache)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _bindSessionIfNeeded();
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -102,15 +122,11 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
           const ScheduleCalendar(),
           const SizedBox(height: 16),
 
-          // tránh nháy "Vui lòng chọn bé" trước khi init setChild
           if (scheduleVm.selectedChildId == null)
-            const Expanded(
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const Expanded(child: Center(child: CircularProgressIndicator()))
           else
             const Expanded(child: ScheduleList()),
 
-          // ✅ Child cũng được thêm lịch
           CreateScheduleButton(
             onTap: () {
               final childId = scheduleVm.selectedChildId;
