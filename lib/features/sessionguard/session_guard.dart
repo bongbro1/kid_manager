@@ -77,7 +77,7 @@ class _SessionGuardState extends State<SessionGuard> {
             if (uid == null) return const FlashScreen();
 
             // comment lại để không lỗi init trên máy ảo
-
+            
             // if (_pushInitedForUid != uid) {
             //   _pushInitedForUid = uid;
 
