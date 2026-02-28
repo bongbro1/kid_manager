@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/views/parent/schedule/schedule_success_sheet.dart';
 
 Future<void> showScheduleSuccess(BuildContext context, String message) {
@@ -13,4 +14,15 @@ Future<void> showScheduleSuccess(BuildContext context, String message) {
     transitionBuilder: (_, anim, __, child) =>
         FadeTransition(opacity: anim, child: child),
   );
+}
+
+Color schedulePeriodColor(SchedulePeriod p) {
+  switch (p) {
+    case SchedulePeriod.morning:
+      return const Color(0xFF8B5CF6);
+    case SchedulePeriod.afternoon:
+      return const Color(0xFF00B383);
+    case SchedulePeriod.evening:
+      return const Color(0xFF3B82F6);
+  }
 }

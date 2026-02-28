@@ -11,6 +11,7 @@ class UserProfile {
   final bool allowTracking;
 
   final String? role;
+  final String? parentUid; // ✅ NEW
 
   // 🔥 thêm mới (nullable)
   final String? avatarUrl;
@@ -27,6 +28,7 @@ class UserProfile {
     this.role,
     this.avatarUrl,
     this.coverUrl,
+    this.parentUid,
   });
 
   /// 🔹 Convert sang Firestore
@@ -41,11 +43,11 @@ class UserProfile {
       "role": role,
       "avatarUrl": avatarUrl,
       "coverUrl": coverUrl,
+      "parentUid": parentUid, // ✅ NEW (giữ merge, null sẽ bị remove)
     };
 
     // 🔥 tự động bỏ null field
     data.removeWhere((key, value) => value == null);
-
     return data;
   }
 
@@ -110,6 +112,7 @@ class UserProfile {
       role: (data["role"] ?? "child").toString(),
       avatarUrl: data["avatarUrl"]?.toString(),
       coverUrl: data["coverUrl"]?.toString(),
+      parentUid: data["parentUid"]?.toString()
     );
   }
 }
