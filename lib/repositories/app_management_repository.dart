@@ -35,7 +35,6 @@ class AppManagementRepository {
 
     for (final doc in snapshot.docs) {
       final base = AppItemModel.fromFirestore(doc);
-
       final data = doc.data();
       final todayUsageMs = (data["todayUsageMs"] ?? 0) as int;
       apps.add(base.copyWith(usageTime: formatDuration(todayUsageMs)));
@@ -107,18 +106,43 @@ class AppManagementRepository {
     required String packageName,
     required UsageRule rule,
   }) async {
-    final ruleRef = db
+    final today = DateTime.now().weekday;
+    final appRef = db
+        .collection("blocked_items")
+        .doc(userId)
+        .collection("apps")
+        .doc(packageName);
+
+    final ruleRef = appRef.collection("usage_rule").doc("config");
+
+    // 1. Lưu rule
+    await ruleRef.set({
+      ...rule.toMap(),
+      "updatedAt": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // 2. Lưu dailyLimitMinutes để dùng cho progress
+    await appRef.set({
+      "dailyLimitMinutes": rule.dailyLimitForWeekday(today),
+    }, SetOptions(merge: true));
+  }
+
+  Future<UsageRule?> fetchUsageRule({
+    required String userId,
+    required String packageName,
+  }) async {
+    final doc = await db
         .collection("blocked_items")
         .doc(userId)
         .collection("apps")
         .doc(packageName)
         .collection("usage_rule")
-        .doc("config");
+        .doc("config")
+        .get();
 
-    await ruleRef.set({
-      ...rule.toMap(),
-      "updatedAt": FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    if (!doc.exists) return null;
+
+    return UsageRule.fromMap(doc.data()!);
   }
 
   Future<void> syncTodayUsage({required String userId}) async {
@@ -201,6 +225,45 @@ class AppManagementRepository {
 
     await batch.commit();
   }
+
+  Future<Map<DateTime, int>> loadUsageHistory(String userId) async {
+    final Map<DateTime, int> result = {};
+
+    try {
+      debugPrint("📥 loadUsageHistory START for child = $userId");
+
+      final appsSnapshot = await db
+          .collection("blocked_items")
+          .doc(userId)
+          .collection("apps")
+          .get();
+
+      for (final appDoc in appsSnapshot.docs) {
+        final usageSnapshot = await appDoc.reference
+            .collection("usage_daily")
+            .get();
+
+        for (final doc in usageSnapshot.docs) {
+          final date = DateTime.parse(doc.id);
+
+          final usageMs = (doc.data()["usageMs"] ?? 0) as int;
+          final minutes = (usageMs / 60000).round();
+
+          result.update(
+            date,
+            (value) => value + minutes,
+            ifAbsent: () => minutes,
+          );
+        }
+      }
+
+      debugPrint("📊 Usage map loaded: ${result.length} days");
+    } catch (e) {
+      debugPrint("❌ loadUsageHistory ERROR: $e");
+    }
+
+    return result;
+  }
 }
 
 
@@ -222,3 +285,30 @@ class AppManagementRepository {
 //                        │     2026-02-05: allowFullDay
 //                        │     2026-02-13: blockFullDay
 //                        └── updatedAt
+
+
+
+// I/flutter (12971): 📊 Usage map loaded: 4 days
+// I/flutter (12971): 📊 RAW usageMap from repo:
+// I/flutter (12971):   2026-02-25T00:00:00.000 -> 323 min
+// I/flutter (12971):   2026-02-26T00:00:00.000 -> 477 min
+// I/flutter (12971):   2026-02-27T00:00:00.000 -> 635 min
+// I/flutter (12971):   2026-02-28T00:00:00.000 -> 264 min
+// I/flutter (12971): ✅ usageMap assigned to VM:
+// I/flutter (12971):   2026-02-25T00:00:00.000 -> 323 min
+// I/flutter (12971):   2026-02-26T00:00:00.000 -> 477 min
+// I/flutter (12971):   2026-02-27T00:00:00.000 -> 635 min
+// I/flutter (12971):   2026-02-28T00:00:00.000 -> 264 min
+// I/flutter (12971): 📤 loadUsageHistory END
+// I/flutter (12971): 📊 Usage map loaded: 4 days
+// I/flutter (12971): 📊 RAW usageMap from repo:
+// I/flutter (12971):   2026-02-25T00:00:00.000 -> 323 min
+// I/flutter (12971):   2026-02-26T00:00:00.000 -> 477 min
+// I/flutter (12971):   2026-02-27T00:00:00.000 -> 635 min
+// I/flutter (12971):   2026-02-28T00:00:00.000 -> 264 min
+// I/flutter (12971): ✅ usageMap assigned to VM:
+// I/flutter (12971):   2026-02-25T00:00:00.000 -> 323 min
+// I/flutter (12971):   2026-02-26T00:00:00.000 -> 477 min
+// I/flutter (12971):   2026-02-27T00:00:00.000 -> 635 min
+// I/flutter (12971):   2026-02-28T00:00:00.000 -> 264 min
+// I/flutter (12971): 📤 loadUsageHistory END

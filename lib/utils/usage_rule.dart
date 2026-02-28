@@ -63,6 +63,29 @@ class UsageRule {
     return endMin > startMin;
   }
 
+  int dailyLimitForWeekday(int weekday) {
+    if (!enabled) return 0;
+
+    final override = overrides[weekday.toString()];
+
+    if (override == DayOverride.blockFullDay) {
+      return 0;
+    }
+
+    if (override == DayOverride.allowFullDay) {
+      return 1440;
+    }
+
+    if (!weekdays.contains(weekday)) {
+      return 0;
+    }
+
+    final duration = endMin - startMin;
+    if (duration <= 0) return 0;
+
+    return duration;
+  }
+
   Map<String, dynamic> toMap() => {
     'enabled': enabled,
     'startMin': startMin,

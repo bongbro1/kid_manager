@@ -12,12 +12,15 @@ class AppItemModel {
 
   Uint8List? _iconBytes; // cache
 
+  final int? dailyLimitMinutes;
+
   AppItemModel({
     required this.packageName,
     required this.name,
     this.iconBase64,
     this.usageTime,
     this.lastSeen,
+    this.dailyLimitMinutes,
   });
 
   Uint8List? get iconBytes {
@@ -25,7 +28,6 @@ class AppItemModel {
     if (b64 == null || b64.isEmpty) return null;
     return _iconBytes ??= base64Decode(b64);
   }
-
 
   /// From installed app (AppInfo)
   factory AppItemModel.fromInstalled({
@@ -51,6 +53,7 @@ class AppItemModel {
       iconBase64: data['iconBase64'],
       usageTime: null,
       lastSeen: data['lastSeen'],
+      dailyLimitMinutes: (data['dailyLimitMinutes'] as num?)?.toInt(),
     );
   }
 
@@ -67,6 +70,7 @@ class AppItemModel {
   AppItemModel copyWith({
     String? usageTime,
     Timestamp? lastSeen,
+    int? dailyLimitMinutes,
   }) {
     return AppItemModel(
       packageName: packageName,
@@ -74,6 +78,7 @@ class AppItemModel {
       iconBase64: iconBase64,
       usageTime: usageTime ?? this.usageTime,
       lastSeen: lastSeen ?? this.lastSeen,
+      dailyLimitMinutes: dailyLimitMinutes ?? this.dailyLimitMinutes,
     );
   }
 }

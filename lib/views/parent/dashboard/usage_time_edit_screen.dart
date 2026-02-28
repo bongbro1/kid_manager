@@ -5,6 +5,7 @@ import 'package:kid_manager/utils/usage_rule.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
+import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:provider/provider.dart';
 
 class UsageTimeEditScreen extends StatefulWidget {
@@ -32,12 +33,32 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   void initState() {
     super.initState();
     rule = UsageRule.defaults();
-    debugPrint('INIT rule: ${rule.pretty()}');
+    // debugPrint('INIT rule: ${rule.pretty()}');
 
-    _fillDotsFromOverrides();
     final now = DateTime.now();
     _gridMonth = DateTime(now.year, now.month, 1);
     _headerMonth = _gridMonth;
+
+    _loadRule();
+  }
+
+  Future<void> _loadRule() async {
+    final vm = context.read<AppManagementVM>();
+
+    final fetched = await vm.loadUsageRule(
+      childId: widget.childId,
+      packageName: widget.appId,
+    );
+
+    if (!mounted) return;
+
+    if (fetched != null) {
+      setState(() {
+        rule = fetched;
+        overrides = fetched.overrides;
+        _fillDotsFromOverrides();
+      });
+    }
   }
 
   late DateTime _gridMonth;
@@ -117,8 +138,18 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
     );
   }
 
+  void onCancel() {
+    Navigator.of(context).pop(false);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<AppManagementVM>();
+
+    if (vm.loading) {
+      return LoadingOverlay();
+    }
+    // return LoadingOverlay();
     return AppOverlaySheet(
       height: 640,
       child: Padding(
@@ -405,7 +436,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                           fontSize: 16,
                           lineHeight: 1.38,
                           fontWeight: FontWeight.w700,
-                          onPressed: () {},
+                          onPressed: onCancel,
                         ),
                       ),
                       const SizedBox(width: 12),

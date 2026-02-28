@@ -24,6 +24,9 @@ class AppManagementVM extends ChangeNotifier {
   List<AppItemModel> _apps = [];
   List<AppItemModel> get apps => _apps;
 
+  Map<DateTime, int> _usageMap = {};
+  Map<DateTime, int> get usageMap => _usageMap;
+
   List<ChildItem> children = [];
 
   String? _selectedChildId;
@@ -45,6 +48,7 @@ class AppManagementVM extends ChangeNotifier {
       return;
     }
     await loadApps(_selectedChildId!);
+    await loadUsageHistory();
   }
 
   /// Load + seed + sync usage
@@ -160,5 +164,44 @@ class AppManagementVM extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  Future<UsageRule?> loadUsageRule({
+    required String childId,
+    required String packageName,
+  }) {
+    return _repo.fetchUsageRule(userId: childId, packageName: packageName);
+  }
+
+  Future<void> loadUsageHistory() async {
+    if (_selectedChildId == null) {
+      debugPrint("⚠️ loadUsageHistory: selectedChildId NULL");
+      return;
+    }
+
+    debugPrint("📥 loadUsageHistory START for child = $_selectedChildId");
+
+    try {
+      final map = await _repo.loadUsageHistory(_selectedChildId!);
+
+      debugPrint("📊 RAW usageMap from repo:");
+      map.forEach((k, v) {
+        debugPrint("  ${k.toIso8601String()} -> $v min");
+      });
+
+      _usageMap = map;
+
+      debugPrint("✅ usageMap assigned to VM:");
+      _usageMap.forEach((k, v) {
+        debugPrint("  ${k.toIso8601String()} -> $v min");
+      });
+
+      notifyListeners();
+    } catch (e, stack) {
+      debugPrint("❌ loadUsageHistory ERROR: $e");
+      debugPrint("STACK: $stack");
+    }
+
+    debugPrint("📤 loadUsageHistory END");
   }
 }

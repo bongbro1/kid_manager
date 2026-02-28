@@ -189,7 +189,7 @@ class UserRepository {
         return ChildItem(
           id: doc.id,
           name: data['displayName'] ?? '',
-          avatarUrl: data['photoUrl'] ?? '',
+          avatarUrl: data['avatarUrl'] ?? '',
           isOnline: isOnline,
         );
       }).toList();

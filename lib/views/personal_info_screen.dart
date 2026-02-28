@@ -19,6 +19,7 @@ import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notice_card.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
+import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:provider/provider.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -49,50 +50,37 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
   bool get _isRouteCurrent => (ModalRoute.of(context)?.isCurrent ?? false);
 
   Future<void> _safeLoadProfile({bool force = false}) async {
-    debugPrint("==== _safeLoadProfile CALLED ====");
-    debugPrint("mounted: $mounted");
-    debugPrint("_isTargetTab: $_isTargetTab");
-    debugPrint("_isRouteCurrent: $_isRouteCurrent");
-    debugPrint("force: $force");
-
     if (!mounted) {
-      debugPrint("RETURN: not mounted");
       return;
     }
 
     if (!_isTargetTab) {
-      debugPrint("RETURN: not target tab");
       return;
     }
 
     if (!_isRouteCurrent) {
-      debugPrint("RETURN: route not current");
       return;
     }
 
     final vm = context.read<UserVm>();
 
     if (vm.loading) {
-      debugPrint("RETURN: vm is loading");
       return;
     }
 
     final now = DateTime.now();
     if (!force && now.difference(_lastLoadAt) < const Duration(seconds: 3)) {
-      debugPrint("RETURN: blocked by TTL");
       return;
     }
 
     _lastLoadAt = now;
-
-    debugPrint(">>> CALLING loadProfile()");
     await vm.loadProfile();
 
-    debugPrint(">>> PROFILE LOADED");
-    debugPrint("Profile: ${vm.profile}");
-    debugPrint("Avatar: ${vm.profile?.avatarUrl}");
-    debugPrint("Cover: ${vm.profile?.coverUrl}");
-    debugPrint("=================================");
+    // debugPrint(">>> PROFILE LOADED");
+    // debugPrint("Profile: ${vm.profile}");
+    // debugPrint("Avatar: ${vm.profile?.avatarUrl}");
+    // debugPrint("Cover: ${vm.profile?.coverUrl}");
+    // debugPrint("=================================");
   }
 
   @override
@@ -189,41 +177,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
     }
   }
 
-  Widget tappablePhoto({
-    required BuildContext context,
-    required UserVm vm,
-    required String? url,
-    required String fallbackAsset,
-    required UserPhotoType type,
-    required Widget child, // widget hiển thị ảnh (Container/Image/...)
-  }) {
-    final u = (url ?? '').trim();
-    final provider = u.isNotEmpty
-        ? NetworkImage(u)
-        : AssetImage(fallbackAsset) as ImageProvider;
-
-    return GestureDetector(
-      onTap: () {
-        showImageModal(
-          context,
-          images: [provider],
-          onReplace: (index, file) async {
-            final ok = await vm.updateUserPhoto(file: file, type: type);
-            if (!ok) {
-              NotificationModal.show(
-                context,
-                child: AppNoticeCard(
-                  type: AppNoticeType.error,
-                  message: vm.error ?? 'Cập nhật ảnh thất bại',
-                ),
-              );
-            }
-          },
-        );
-      },
-      child: child,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -306,18 +259,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      // ẢNH (đặt trước để nằm dưới)
-                      // Positioned(
-                      //   left: 0,
-                      //   right: 0,
-                      //   bottom: 25, // chỉnh vị trí ảnh (nằm trên card)
-                      //   child: Image.asset(
-                      //     "assets/images/cover.png",
-                      //     width: 120,
-                      //     height: 230,
-                      //     fit: BoxFit.cover,
-                      //   ),
-                      // ),
                       Positioned(
                         left: 0,
                         right: 0,
@@ -334,7 +275,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
                                   ? NetworkImage((p.coverUrl ?? '').trim())
                                   : const AssetImage("assets/images/cover.png")
                                         as ImageProvider,
-                              // width: 500,
+                              width: 500,
                               height: 230,
                               fit: BoxFit.cover,
                             ),
