@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
 import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -11,6 +13,7 @@ import 'package:kid_manager/widgets/location/map_top_bar.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
+
 class ChildLocationScreen extends StatefulWidget {
   const ChildLocationScreen({super.key});
 
@@ -41,15 +44,18 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
       return false;
     }
   }
+
   @override
   void dispose() {
     final vm = context.read<ChildLocationViewModel>();
     if (_vmListener != null) vm.removeListener(_vmListener!);
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChildLocationViewModel>();
+    final familyId = context.watch<UserVm>().familyId;
 
     return Stack(
       children: [
@@ -57,44 +63,43 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
           onMapCreated: (map) {
             _map = map;
           },
-            onStyleLoaded: (map) async {
-              _engine = MapEngine(map, enableChildDot: true); // ✅ quan trọng
-              await _engine!.init();
+          onStyleLoaded: (map) async {
+            _engine = MapEngine(map, enableChildDot: true); // ✅ quan trọng
+            await _engine!.init();
 
-              final vm = context.read<ChildLocationViewModel>();
+            final vm = context.read<ChildLocationViewModel>();
 
-              // remove listener cũ nếu có
-              if (_vmListener != null) vm.removeListener(_vmListener!);
+            // remove listener cũ nếu có
+            if (_vmListener != null) vm.removeListener(_vmListener!);
 
-              _vmListener = () {
-                final loc = vm.currentLocation;
-                if (loc == null) return;
-
-                _engine?.updateChildRealtime(loc);
-
-                if (_autoFollow) {
-                  _map?.easeTo(
-                    CameraOptions(
-                      center: Point(coordinates: Position(loc.longitude, loc.latitude)),
-                      zoom: 16,
-                    ),
-                    MapAnimationOptions(duration: 600),
-                  );
-                }
-              };
-
-              vm.addListener(_vmListener!);
-
-              // update ngay nếu có
+            _vmListener = () {
               final loc = vm.currentLocation;
-              if (loc != null) await _engine!.updateChildRealtime(loc);
-            },
+              if (loc == null) return;
+
+              _engine?.updateChildRealtime(loc);
+
+              if (_autoFollow) {
+                _map?.easeTo(
+                  CameraOptions(
+                    center: Point(
+                      coordinates: Position(loc.longitude, loc.latitude),
+                    ),
+                    zoom: 16,
+                  ),
+                  MapAnimationOptions(duration: 600),
+                );
+              }
+            };
+
+            vm.addListener(_vmListener!);
+
+            // update ngay nếu có
+            final loc = vm.currentLocation;
+            if (loc != null) await _engine!.updateChildRealtime(loc);
+          },
         ),
 
-        MapTopBar(
-          onMenuTap: () {},
-          onAvatarTap: () {},
-        ),
+        MapTopBar(onMenuTap: () {}, onAvatarTap: () {}),
 
         Positioned(
           left: 16,
@@ -112,7 +117,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
                 _map?.easeTo(
                   CameraOptions(
-                    center: Point(coordinates: Position(loc.longitude, loc.latitude)),
+                    center: Point(
+                      coordinates: Position(loc.longitude, loc.latitude),
+                    ),
                     zoom: 16,
                   ),
                   MapAnimationOptions(duration: 600),
@@ -129,22 +136,34 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
             child: FloatingActionButton(
               heroTag: 'sos_fab',
               backgroundColor: Colors.red.shade700,
-              onPressed: () {
-                debugPrint('HAS SosViewModel? ${hasProvider<SosViewModel>(context)}');
-                debugPrint('HAS ChildLocationViewModel? ${hasProvider<ChildLocationViewModel>(context)}');
-
-                final loc = context.read<ChildLocationViewModel>().currentLocation;
+              onPressed: () async {
+                final loc = context
+                    .read<ChildLocationViewModel>()
+                    .currentLocation;
                 if (loc == null) return;
 
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => SosView(
-                      lat: loc.latitude,
-                      lng: loc.longitude,
-                      acc: loc.accuracy,
-                    ),
-                  ),
+                final sosVm = context.read<SosViewModel>();
+
+                // optional: chống double tap
+                if (sosVm.sending) return;
+
+                final sosId = await sosVm.triggerSos(
+                  lat: loc.latitude,
+                  lng: loc.longitude,
+                  acc: loc.accuracy,
                 );
+
+                if (!context.mounted) return;
+
+                if (sosId != null) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Đã gửi SOS')));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Gửi SOS thất bại')),
+                  );
+                }
               },
               child: const Icon(Icons.sos, color: Colors.white),
             ),
@@ -157,6 +176,8 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
             bottom: 80,
             child: _ErrorBanner(message: vm.error!),
           ),
+
+        if (familyId != null) IncomingSosOverlay(familyId: familyId),
       ],
     );
   }
@@ -173,10 +194,7 @@ class _ErrorBanner extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Text(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
+        child: Text(message, style: const TextStyle(color: Colors.white)),
       ),
     );
   }

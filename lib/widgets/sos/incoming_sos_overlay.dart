@@ -1,0 +1,155 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/core/sos/sos_alarm_player.dart';
+import 'package:kid_manager/core/sos/sos_focus_bus.dart';
+import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
+import 'package:provider/provider.dart';
+
+class IncomingSosOverlay extends StatefulWidget {
+  final String familyId;
+  const IncomingSosOverlay({super.key, required this.familyId});
+
+  @override
+  State<IncomingSosOverlay> createState() => _IncomingSosOverlayState();
+}
+
+class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
+  StreamSubscription? _sub;
+  DocumentSnapshot<Map<String, dynamic>>? _doc;
+  bool _ringing = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _sub = FirebaseFirestore.instance
+        .collection('families/${widget.familyId}/sos')
+        .where('status', isEqualTo: 'active')
+        // .orderBy('createdAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((qs) async {
+          if (!mounted) return;
+
+          if (qs.docs.isEmpty) {
+            if (_ringing) {
+              _ringing = false;
+              await SosAlarmPlayer.instance.stop();
+            }
+            setState(() => _doc = null);
+            return;
+          }
+
+          final doc = qs.docs.first;
+          setState(() => _doc = doc);
+
+          if (!_ringing) {
+            _ringing = true;
+            await SosAlarmPlayer.instance.startLoop();
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    SosAlarmPlayer.instance.stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final doc = _doc;
+    if (doc == null) return const SizedBox.shrink();
+
+    final sosId = doc.id;
+
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: 110,
+      child: SafeArea(
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.red.shade700,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.sos, color: Colors.white),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    '🚨 Có SOS khẩn cấp!',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.red,
+                    shape: const StadiumBorder(),
+                  ),
+                  onPressed: () async {
+                    final previousDoc = _doc; // lưu để rollback
+                    if (previousDoc == null) return;
+
+                    final sosId = previousDoc.id;
+                    final data = previousDoc.data() ?? {};
+                    final lat = (data['lat'] as num?)?.toDouble();
+                    final lng = (data['lng'] as num?)?.toDouble();
+                    final childUid = data['childUid']?.toString();
+
+                    // ✅ Ẩn ngay + tắt chuông
+                    if (mounted) setState(() => _doc = null);
+                    await SosAlarmPlayer.instance.stop();
+                    _ringing = false;
+
+                    // ✅ chuyển về tab map + zoom (không phụ thuộc resolve)
+                    if (lat != null && lng != null) {
+                      activeTabNotifier.value = 0;
+                      sosFocusNotifier.value = SosFocus(
+                        lat: lat,
+                        lng: lng,
+                        familyId: widget.familyId,
+                        sosId: sosId,
+                        childUid: childUid,
+                      );
+                    }
+
+                    try {
+                      await context.read<SosViewModel>().resolve(
+                        familyId: widget.familyId,
+                        sosId: sosId,
+                      );
+                    } catch (e) {
+                      // ✅ FAIL -> hiện lại overlay + bật chuông lại
+                      if (!mounted) return;
+                      setState(() => _doc = previousDoc);
+
+                      if (!_ringing) {
+                        _ringing = true;
+                        await SosAlarmPlayer.instance.startLoop();
+                      }
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Xác nhận thất bại: $e')),
+                      );
+                    }
+                  },
+                  child: const Text('XÁC NHẬN'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

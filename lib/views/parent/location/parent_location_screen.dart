@@ -1,7 +1,10 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kid_manager/core/sos/sos_focus_bus.dart';
+import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/views/parent/location/parent_children_list_screen.dart';
+import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
 import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
@@ -33,6 +36,32 @@ class _ParentAllChildrenMapScreenState
   @override
   void initState() {
     super.initState();
+    sosFocusNotifier.addListener(_onSosFocus);
+  }
+
+  void _onSosFocus() async {
+    final focus = sosFocusNotifier.value;
+    if (!mounted || focus == null) return;
+
+    // ✅ chỉ xử lý nếu đúng family (optional)
+    final myFamilyId = context.read<UserVm>().familyId;
+    if (myFamilyId != null && focus.familyId != myFamilyId) return;
+
+    // map có thể chưa tạo xong
+    if (_map == null) return;
+
+    await _map!.easeTo(
+      mbx.CameraOptions(
+        center: mbx.Point(coordinates: mbx.Position(focus.lng, focus.lat)),
+        zoom: 16,
+      ),
+      mbx.MapAnimationOptions(duration: 700),
+    );
+
+    // nếu muốn, có thể mở sheet theo childUid (nếu bạn lưu childUid)
+    // if (focus.childUid != null) _openChildInfo(focus.childUid!);
+
+    sosFocusNotifier.value = null;
   }
 
   @override
@@ -45,8 +74,12 @@ class _ParentAllChildrenMapScreenState
     _userVm = context.read<UserVm>();
     _locationVm = context.read<ParentLocationVm>();
     _controller = context.read<MapboxController>();
-    _locationVm.startMyLocation();
-    // Add listeners ngay khi đã có instance
+    try {
+      _locationVm.startMyLocation();
+    } catch (e, st) {
+      debugPrint('🔥 startMyLocation failed: $e');
+      debugPrint('$st');
+    } // Add listeners ngay khi đã có instance
     _controller.addListener(_handleMapOrDataChange);
     _locationVm.addListener(_handleMapOrDataChange);
     _userVm.addListener(_handleUserChange);
@@ -88,15 +121,15 @@ class _ParentAllChildrenMapScreenState
     final headings = <String, double>{};
     final names = <String, String>{};
 
+    final childMap = {for (final c in userVm.children) c.uid: c};
+
     for (final entry in locationVm.childrenLocations.entries) {
-      final child = userVm.children.firstWhere((c) => c.uid == entry.key);
+      final child = childMap[entry.key];
+      if (child == null) continue;
 
       final loc = entry.value;
-
       positions[child.uid] = mbx.Position(loc.longitude, loc.latitude);
-
       headings[child.uid] = loc.heading ?? 0;
-
       names[child.uid] = child.displayName ?? "";
     }
 
@@ -137,6 +170,8 @@ class _ParentAllChildrenMapScreenState
 
   @override
   Widget build(BuildContext context) {
+    final familyId = context.watch<UserVm>().familyId;
+    debugPrint("Building ParentAllChildrenMapScreen with familyId=$familyId");
     return Scaffold(
       body: Stack(
         children: [
@@ -150,6 +185,11 @@ class _ParentAllChildrenMapScreenState
                   onMapCreated: (map) {
                     _map = map;
                     context.read<MapboxController>().attach(map);
+                    print("Map created and controller attached");
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      _onSosFocus();
+                    });
                   },
 
                   onTapListener: (tapContext) async {
@@ -196,7 +236,7 @@ class _ParentAllChildrenMapScreenState
 
                     if (!mounted) return;
 
-                    // ✅ Dùng addPostFrameCallback để đảm bảo native map hoàn toàn sẵn sàng
+                    //  Dùng addPostFrameCallback để đảm bảo native map hoàn toàn sẵn sàng
                     WidgetsBinding.instance.addPostFrameCallback((_) async {
                       if (!mounted) return;
                       try {
@@ -269,28 +309,41 @@ class _ParentAllChildrenMapScreenState
               child: FloatingActionButton(
                 heroTag: 'parent_sos_fab',
                 backgroundColor: Colors.red.shade700,
-                onPressed: () {
-                  // Lấy vị trí hiện tại của parent
+                onPressed: () async {
+                  final sosVm = context.read<SosViewModel>();
                   final locationVm = context.read<ParentLocationVm>();
                   final myLocation =
                       locationVm.myLocation; // bạn cần expose cái này
 
                   if (myLocation == null) return;
 
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SosView(
-                        lat: myLocation.latitude,
-                        lng: myLocation.longitude,
-                        acc: myLocation.accuracy,
-                      ),
-                    ),
+                  // optional: chống double tap
+                  if (sosVm.sending) return;
+
+                  final sosId = await sosVm.triggerSos(
+                    lat: myLocation.latitude,
+                    lng: myLocation.longitude,
+                    acc: myLocation.accuracy,
                   );
+
+                  if (!context.mounted) return;
+
+                  if (sosId != null) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('Đã gửi SOS')));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Gửi SOS thất bại')),
+                    );
+                  }
                 },
+
                 child: const Icon(Icons.sos, color: Colors.white),
               ),
             ),
           ),
+          if (familyId != null) IncomingSosOverlay(familyId: familyId),
         ],
       ),
     );
@@ -312,12 +365,12 @@ class _ParentAllChildrenMapScreenState
 
   @override
   void dispose() {
-    // ✅ remove listener bằng biến đã cache
+    //  remove listener bằng biến đã cache
     _controller.removeListener(_handleMapOrDataChange);
     _locationVm.removeListener(_handleMapOrDataChange);
     _userVm.removeListener(_handleUserChange);
-
-    // ✅ detach controller (rất quan trọng)
+    sosFocusNotifier.removeListener(_onSosFocus);
+    //  detach controller (rất quan trọng)
     _controller.detach();
 
     super.dispose();

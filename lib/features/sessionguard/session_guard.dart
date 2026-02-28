@@ -45,6 +45,12 @@ class _SessionGuardState extends State<SessionGuard> {
 
         debugPrint('[GUARD] status=$status uid=$uid isParent=$isParent');
 
+        //  tính điều kiện dựa trên _last... (giá trị cũ)
+        final shouldTriggerMeWatch =
+            status == SessionStatus.authenticated &&
+            uid != null &&
+            (_lastStatus != status || _lastUid != uid);
+
         final shouldTriggerChildrenWatch =
             status == SessionStatus.authenticated &&
             isParent == true &&
@@ -53,14 +59,24 @@ class _SessionGuardState extends State<SessionGuard> {
                 _lastUid != uid ||
                 _lastIsParent != isParent);
 
+        // sau đó mới cập nhật _last...
         _lastStatus = status;
         _lastUid = uid;
         _lastIsParent = isParent;
 
+        //  gọi watchMe 1 lần
+        if (shouldTriggerMeWatch) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            context.read<UserVm>().watchMe(uid!);
+          });
+        }
+
+        //  gọi watchChildren 1 lần (chỉ parent)
         if (shouldTriggerChildrenWatch) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            context.read<UserVm>().watchChildren(uid);
+            context.read<UserVm>().watchChildren(uid!);
           });
         }
 
@@ -69,52 +85,54 @@ class _SessionGuardState extends State<SessionGuard> {
             return const FlashScreen();
 
           case SessionStatus.unauthenticated:
-            // reset để lần login sau init lại notification + register token
             _pushInitedForUid = null;
             return const LoginScreen();
 
           case SessionStatus.authenticated:
             if (uid == null) return const FlashScreen();
 
-            // comment lại để không lỗi init trên máy ảo
-            
-            // if (_pushInitedForUid != uid) {
-            //   _pushInitedForUid = uid;
+            if (_pushInitedForUid != uid) {
+              _pushInitedForUid = uid;
 
-            //   WidgetsBinding.instance.addPostFrameCallback((_) async {
-            //     if (!mounted) return;
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (!mounted) return;
 
-            //     await SosNotificationService.instance.init(
-            //       onTapSos: (data) {
-            //         if (data['type']?.toString() != 'SOS') return;
+                // await SosNotificationService.instance.init(
+                //   onTapSos: (data) {
+                //     if (data['type']?.toString() != 'SOS') return;
 
-            //         final familyId = data['familyId']?.toString();
-            //         final sosId = data['sosId']?.toString();
-            //         final lat = double.tryParse(data['lat']?.toString() ?? '');
-            //         final lng = double.tryParse(data['lng']?.toString() ?? '');
+                //     final familyId = data['familyId']?.toString();
+                //     final sosId = data['sosId']?.toString();
+                //     final lat = double.tryParse(data['lat']?.toString() ?? '');
+                //     final lng = double.tryParse(data['lng']?.toString() ?? '');
 
-            //         if (familyId == null ||
-            //             sosId == null ||
-            //             lat == null ||
-            //             lng == null)
-            //           return;
+                //     if (familyId == null ||
+                //         sosId == null ||
+                //         lat == null ||
+                //         lng == null)
+                //       return;
 
-            //         AlertService.navigatorKey.currentState?.push(
-            //           MaterialPageRoute(
-            //             builder: (_) => SosView(
-            //               lat: lat,
-            //               lng: lng,
-            //               familyId: familyId,
-            //               sosId: sosId,
-            //             ),
-            //           ),
-            //         );
-            //       },
-            //     );
-
-            //     await SosSoundPrompt.showIfNeeded(context);
-            //   });
-            // }
+                //     AlertService.navigatorKey.currentState?.push(
+                //       MaterialPageRoute(
+                //         builder: (_) => SosView(
+                //           lat: lat,
+                //           lng: lng,
+                //           familyId: familyId,
+                //           sosId: sosId,
+                //         ),
+                //       ),
+                //     );
+                //   },
+                // );
+                await SosNotificationService.instance.init(
+                  onTapSos: (data) {
+                    // Không push SosView nữa.
+                    // Overlay tự hiện + nút xác nhận xử lý.
+                  },
+                );
+                await SosSoundPrompt.showIfNeeded(context);
+              });
+            }
 
             return AppShell(mode: isParent ? AppMode.parent : AppMode.child);
         }

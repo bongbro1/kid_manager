@@ -45,7 +45,6 @@ class SosApi {
         code: 'unauthenticated',
         message: 'Chưa đăng nhập',
       );
-    await u.getIdToken(true);
 
     final fn = _functions.httpsCallable('resolveSos');
     await fn.call({'familyId': familyId, 'sosId': sosId});

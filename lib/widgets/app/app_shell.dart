@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
 import 'package:kid_manager/widgets/app/app_bottom_nav.dart';
 import 'package:kid_manager/widgets/app/app_sell_config.dart';
+import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
+import 'package:provider/provider.dart';
 
 class AppShell extends StatefulWidget {
   final AppMode mode;
@@ -32,6 +35,19 @@ class _AppShellState extends State<AppShell> {
   //     }
   //   });
   // }
+
+  @override
+  void initState() {
+    super.initState();
+    activeTabNotifier.addListener(_syncTabFromNotifier);
+  }
+
+  void _syncTabFromNotifier() {
+    final i = activeTabNotifier.value;
+    if (!mounted) return;
+    if (i == _index) return;
+    setState(() => _index = i);
+  }
 
   late final AppShellConfig _config = widget.mode == AppMode.parent
       ? AppShellConfig.parent()
@@ -75,16 +91,35 @@ class _AppShellState extends State<AppShell> {
 
     return WillPopScope(
       onWillPop: _onWillPop,
-      child: Scaffold(
-        body: IndexedStack(index: _index, children: tabs),
-        bottomNavigationBar: AppBottomNav(
-          items: _config.tabs
-              .map((t) => BottomNavItem(iconAsset: t.iconAsset))
-              .toList(),
-          currentIndex: _index,
-          onTap: _onNavTap,
-        ),
+      child: Stack(
+        children: [
+          Scaffold(
+            body: IndexedStack(index: _index, children: tabs),
+            bottomNavigationBar: AppBottomNav(
+              items: _config.tabs
+                  .map((t) => BottomNavItem(iconAsset: t.iconAsset))
+                  .toList(),
+              currentIndex: _index,
+              onTap: _onNavTap,
+            ),
+          ),
+
+          // ✅ Overlay global (tab nào cũng thấy)
+          Builder(
+            builder: (context) {
+              final familyId = context.watch<UserVm>().familyId;
+              if (familyId == null) return const SizedBox.shrink();
+              return IncomingSosOverlay(familyId: familyId);
+            },
+          ),
+        ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    activeTabNotifier.removeListener(_syncTabFromNotifier);
+    super.dispose();
   }
 }
