@@ -29,11 +29,12 @@ class AppShellConfig {
       root: MultiProvider(
         providers: [
           ChangeNotifierProvider(
-              create: (context)=> ParentLocationVm(context.read<LocationRepository>())
+            create: (context) => ParentLocationVm(
+              context.read<LocationRepository>(),
+              context.read<LocationServiceInterface>(),
+            ),
           ),
-          ChangeNotifierProvider(
-            create: (_) => MapboxController(),
-          ),
+          ChangeNotifierProvider(create: (_) => MapboxController()),
         ],
         child: const ParentAllChildrenMapScreen(),
       ),
@@ -77,11 +78,7 @@ class AppShellConfig {
               context.read<LocationServiceInterface>(),
             ),
           ),
-          ChangeNotifierProvider(
-            create: (_) => MapboxController(),
-          ),
-
-
+          ChangeNotifierProvider(create: (_) => MapboxController()),
         ],
         child: const ChildLocationScreen(),
       ),

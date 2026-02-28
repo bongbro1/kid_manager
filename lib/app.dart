@@ -112,10 +112,13 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         ChangeNotifierProvider(
-          create: (context) => ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
+          create: (context) =>
+              ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
         ),
 
-        Provider<LocationServiceInterface>(create: (_) => LocationServiceImpl()),
+        Provider<LocationServiceInterface>(
+          create: (_) => LocationServiceImpl(),
+        ),
         Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
 
         ChangeNotifierProvider<SessionVM>(
@@ -132,7 +135,10 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         ChangeNotifierProvider<ParentLocationVm>(
-          create: (context) => ParentLocationVm(context.read<LocationRepository>()),
+          create: (context) => ParentLocationVm(
+            context.read<LocationRepository>(),
+            context.read<LocationServiceInterface>(),
+          ),
         ),
       ],
       child: MaterialApp(

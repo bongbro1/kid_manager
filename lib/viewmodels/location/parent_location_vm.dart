@@ -3,17 +3,24 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/services/location/location_service.dart';
 
 enum LocationSharingStatus { idle, sharing, paused, error }
 
 class ParentLocationVm extends ChangeNotifier {
   final LocationRepository _locationRepo;
+  final LocationServiceInterface _locationService;
 
-  ParentLocationVm(this._locationRepo);
+  ParentLocationVm(this._locationRepo, this._locationService);
 
   /* ============================================================
      STATE
   ============================================================ */
+
+  LocationData? _myLocation;
+  LocationData? get myLocation => _myLocation;
+
+  StreamSubscription<LocationData>? _myGpsSub;
 
   LocationSharingStatus _status = LocationSharingStatus.idle;
   LocationSharingStatus get status => _status;
@@ -35,17 +42,69 @@ class ParentLocationVm extends ChangeNotifier {
   /* ============================================================
      LOCATION DATA
   ============================================================ */
+
   Map<String, LocationData> get childrenLocations =>
       Map.unmodifiable(_childrenLocations);
 
   final Map<String, LocationData> _childrenLocations = {};
-
 
   final Map<String, List<LocationData>> _childrenTrails = {};
   Map<String, List<LocationData>> get childrenTrails => _childrenTrails;
 
   final Map<String, StreamSubscription<LocationData>> _subs = {};
 
+  Future<void> startMyLocation() async {
+    try {
+      final ok = await _locationService.ensureServiceAndPermission(
+        requireBackground: false,
+      );
+      if (!ok) {
+        _setError('Không có quyền vị trí');
+        return;
+      }
+
+      await _myGpsSub?.cancel();
+      _myGpsSub = _locationService.getLocationStream().listen((loc) {
+        // loc của bạn đang là LocationData luôn thì ok,
+        // nếu stream trả raw thì map sang LocationData
+        _myLocation = loc;
+        notifyListeners();
+      }, onError: (e) => _setError('Lỗi GPS: $e'));
+    } catch (e) {
+      _setError('Lỗi bật GPS: $e');
+    }
+  }
+
+  Future<LocationData?> getMyLocationOnce({
+    Duration timeout = const Duration(seconds: 6),
+  }) async {
+    try {
+      final ok = await _locationService.ensureServiceAndPermission(
+        requireBackground: false,
+      );
+      if (!ok) {
+        _setError('Không có quyền vị trí');
+        return null;
+      }
+
+      // lấy 1 điểm đầu tiên từ stream
+      final loc = await _locationService.getLocationStream().first.timeout(
+        timeout,
+      );
+
+      _myLocation = loc;
+      notifyListeners();
+      return loc;
+    } catch (e) {
+      _setError('Không lấy được vị trí hiện tại: $e');
+      return null;
+    }
+  }
+
+  Future<void> stopMyLocation() async {
+    await _myGpsSub?.cancel();
+    _myGpsSub = null;
+  }
   /* ============================================================
      WATCHING
   ============================================================ */
@@ -53,11 +112,10 @@ class ParentLocationVm extends ChangeNotifier {
   Stream<LocationData> watchChildLocation(String childId) =>
       _locationRepo.watchChildLocation(childId);
 
-
   Future<void> syncWatching(List<String> newChildIds) async {
     debugPrint("SYNC WATCH CALLED");
     final newSet = newChildIds.toSet();
-debugPrint("newChildIds ${newSet.length}");
+    debugPrint("newChildIds ${newSet.length}");
     if (setEquals(newSet, _watchingIds)) return;
 
     debugPrint("🔄 SYNC WATCHING: $newSet");
@@ -115,7 +173,6 @@ debugPrint("newChildIds ${newSet.length}");
     _status = LocationSharingStatus.paused;
     notifyListeners();
   }
-
 
   List<LocationData> generateFakeHoTayHistory() {
     final baseTime = DateTime.now().millisecondsSinceEpoch;
@@ -227,28 +284,25 @@ debugPrint("newChildIds ${newSet.length}");
 
     _childrenTrails.putIfAbsent(childId, () => []);
 
-    final sub = _locationRepo.watchChildLocation(childId).listen(
-          (loc) {
-        if (!_isValidLocation(loc)) return;
+    final sub = _locationRepo.watchChildLocation(childId).listen((loc) {
+      if (!_isValidLocation(loc)) return;
 
-        _childrenLocations[childId] = loc;
+      _childrenLocations[childId] = loc;
 
-        final trail = _childrenTrails[childId]!;
-        if (trail.isEmpty || trail.last.timestamp != loc.timestamp) {
-          trail.add(loc);
-          if (trail.length > 300) {
-            trail.removeRange(0, trail.length - 300);
-          }
+      final trail = _childrenTrails[childId]!;
+      if (trail.isEmpty || trail.last.timestamp != loc.timestamp) {
+        trail.add(loc);
+        if (trail.length > 300) {
+          trail.removeRange(0, trail.length - 300);
         }
+      }
 
-        if (!_readyForInitialFocus) {
-          _readyForInitialFocus = true;
-        }
+      if (!_readyForInitialFocus) {
+        _readyForInitialFocus = true;
+      }
 
-        notifyListeners();
-      },
-      onError: (e) => _setError('Lỗi theo dõi $childId: $e'),
-    );
+      notifyListeners();
+    }, onError: (e) => _setError('Lỗi theo dõi $childId: $e'));
 
     _subs[childId] = sub;
   }
@@ -262,11 +316,13 @@ debugPrint("newChildIds ${newSet.length}");
 
     return diff <= thresholdSeconds * 1000;
   }
+
   @override
   void dispose() {
     for (final s in _subs.values) {
       s.cancel();
     }
+    _myGpsSub?.cancel();
     super.dispose();
   }
 }

@@ -22,7 +22,6 @@ class SosViewModel extends ChangeNotifier {
     required double lng,
     double? acc,
   }) async {
-
     final u = FirebaseAuth.instance.currentUser;
     debugPrint('AUTH user=${u?.uid} email=${u?.email}');
 
@@ -33,8 +32,6 @@ class SosViewModel extends ChangeNotifier {
     }
 
     final idToken = await u.getIdToken();
-    debugPrint("ID TOKEN: $idToken");
-
 
     if (_sending) return null;
 
@@ -52,7 +49,7 @@ class SosViewModel extends ChangeNotifier {
 
       _lastSosId = res.sosId;
       return res.sosId;
-    }on FirebaseFunctionsException catch (e) {
+    } on FirebaseFunctionsException catch (e) {
       debugPrint("CODE: ${e.code}");
       debugPrint("CODE: ${e.message}");
       debugPrint("DETAILS: ${e.details}");
@@ -63,6 +60,18 @@ class SosViewModel extends ChangeNotifier {
       return null;
     } finally {
       _sending = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> resolve({
+    required String familyId,
+    required String sosId,
+  }) async {
+    try {
+      await _api.resolveSos(familyId: familyId, sosId: sosId);
+    } catch (e) {
+      _error = e.toString();
       notifyListeners();
     }
   }

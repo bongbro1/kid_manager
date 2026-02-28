@@ -9,7 +9,7 @@ class SosAlarmPlayer {
 
   Future<void> _ensureInit() async {
     if (_inited) return;
-    await _player.setAsset('assets/sounds/sos_alarm.mp3');
+    await _player.setAsset('assets/sounds/sos.mp3');
     _player.setLoopMode(LoopMode.one);
     _inited = true;
   }

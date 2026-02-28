@@ -1,12 +1,15 @@
 import * as admin from "firebase-admin";
 import { createHash, randomUUID } from "crypto";
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onCall, HttpsError ,onRequest} from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { defineString } from "firebase-functions/params";
 
+
+import { CloudTasksClient } from "@google-cloud/tasks";
 admin.initializeApp();
-#$env:FUNCTIONS_DISCOVERY_TIMEOUT=30
-#firebase deploy --only functions
+// $env:FUNCTIONS_DISCOVERY_TIMEOUT=30
+// firebase deploy --only functions
 export const mirrorUserToRtdb = onDocumentCreated(
   {
     document: "users/{uid}",
@@ -32,6 +35,15 @@ export const mirrorUserToRtdb = onDocumentCreated(
 
 const db = admin.firestore();
 
+const SOS_REMINDER_WORKER_URL = defineString("SOS_REMINDER_WORKER_URL");
+const tasksClient = new CloudTasksClient();
+const TASK_LOCATION = "asia-southeast1";
+const TASK_QUEUE = "sos-reminder-queue";
+// 10s resend
+const REMIND_INTERVAL_SEC = 10;
+
+// Safety cap: tối đa 30 phút
+const REMIND_MAX_SECONDS = 30 * 60;
 setGlobalOptions({
   region: "asia-southeast1", // gần VN (Singapore)
 });
@@ -122,6 +134,151 @@ async function getUserFamilyAndRole(uid: string): Promise<{ familyId: string; ro
   }
   return { familyId, role };
 }
+
+function getProjectId(): string {
+  return process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || process.env.PROJECT_ID || "";
+}
+
+async function enqueueSosReminder(params: {
+  familyId: string;
+  sosId: string;
+  createdAtMs: number;
+}) {
+  const project = getProjectId();
+  if (!project) throw new Error("Missing GCLOUD_PROJECT");
+
+  const parent = tasksClient.queuePath(project, TASK_LOCATION, TASK_QUEUE);
+
+  // URL của worker (Gen2 là Cloud Run URL; Functions v2 có URL public)
+  // Dùng env để khỏi hardcode:
+  const workerUrl = SOS_REMINDER_WORKER_URL.value();
+  if (!workerUrl) throw new Error("Missing SOS_REMINDER_WORKER_URL env");
+
+  const scheduleTime = {
+    seconds: Math.floor(Date.now() / 1000) + REMIND_INTERVAL_SEC,
+  };
+
+  const payload = Buffer.from(
+    JSON.stringify({
+      familyId: params.familyId,
+      sosId: params.sosId,
+      createdAtMs: params.createdAtMs,
+    })
+  ).toString("base64");
+
+  const task = {
+    httpRequest: {
+      httpMethod: "POST" as const,
+      url: workerUrl,
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      // OIDC auth để chỉ Cloud Tasks gọi được
+      oidcToken: {
+        serviceAccountEmail: `${project}@appspot.gserviceaccount.com`,
+      },
+    },
+    scheduleTime,
+  };
+  console.log("[enqueueSosReminder] creating task", { familyId: params.familyId, sosId: params.sosId });
+
+  await tasksClient.createTask({ parent, task });
+}
+
+// Worker: Cloud Tasks gọi vào đây mỗi 10s cho tới khi resolved
+export const sosReminderWorker = onRequest(async (req, res) => {
+  try {
+    if (req.method !== "POST") {
+      res.status(405).send("Method not allowed");
+      return;
+    }
+
+    const { familyId, sosId, createdAtMs } = req.body ?? {};
+    if (!familyId || !sosId || !createdAtMs) {
+      res.status(400).send("Missing params");
+      return;
+    }
+
+    // Safety cap
+    const ageSec = (Date.now() - Number(createdAtMs)) / 1000;
+    if (ageSec > REMIND_MAX_SECONDS) {
+      res.status(200).send("Expired reminder window");
+      return;
+    }
+
+    const sosRef = db.doc(`families/${familyId}/sos/${sosId}`);
+    const snap = await sosRef.get();
+    if (!snap.exists) {
+      res.status(200).send("SOS not found");
+      return;
+    }
+
+    const sos = snap.data() as any;
+    const status = sos.status;
+    if (status !== "active") {
+      res.status(200).send("SOS not active, stop");
+      return;
+    }
+
+    // ===== Gửi lại push =====
+    const loc = sos.location ?? {};
+    const lat = loc.lat;
+    const lng = loc.lng;
+    const childUid = sos.createdBy ?? "";
+
+    // Lấy tokens của family (giống logic onSosCreated)
+    const tokenSnap = await db.collection(`families/${familyId}/fcmTokens`).get();
+    const tokens: string[] = [];
+    tokenSnap.forEach((d) => {
+      const t = (d.data() as any).token;
+      const uid = (d.data() as any).uid;
+      if (!t || !uid) return;
+      if (uid === childUid) return;
+      tokens.push(t);
+    });
+
+    if (tokens.length) {
+      await admin.messaging().sendEachForMulticast({
+        tokens,
+        notification: {
+          title: "🚨 SOS KHẨN CẤP",
+          body: "Có thành viên đang cầu cứu. Chạm để xem vị trí.",
+        },
+        data: {
+          type: "SOS",
+          familyId: String(familyId),
+          sosId: String(sosId),
+          childUid: String(childUid),
+          lat: lat != null ? String(lat) : "",
+          lng: lng != null ? String(lng) : "",
+        },
+        android: {
+          priority: "high",
+          notification: {
+            channelId: "sos_channel_v2",
+            sound: "sos",
+            defaultVibrateTimings: true,
+            visibility: "public",
+            tag: `sos_${sosId}`,
+          },
+        },
+        apns: {
+          headers: { "apns-priority": "10", "apns-collapse-id": `sos_${sosId}` },
+          payload: { aps: { sound: "sos.caf" } },
+        },
+      });
+    }
+
+    // Enqueue lần tiếp theo sau 10s
+    await enqueueSosReminder({ familyId, sosId, createdAtMs: Number(createdAtMs) });
+
+    res.status(200).send("OK");
+  } catch (e: any) {
+    console.error("sosReminderWorker error:", e?.stack ?? e);
+    // Throw để Cloud Tasks retry
+    res.status(500).send("ERR");
+  }
+});
+
 
 async function requireFamilyMember(familyId: string, uid: string) {
   const memberRef = db.doc(`families/${familyId}/members/${uid}`);
@@ -231,10 +388,9 @@ export const createSos = onCall(
     const { familyId, role } = await getUserFamilyAndRole(uid);
     console.log("[createSos] familyId/role", { familyId, role, dayKey });
 
-    if (role !== "child") {
-      console.log("[createSos] role not child -> deny");
-      throw new HttpsError("permission-denied", "Only child can trigger SOS");
-    }
+   if (role !== "child" && role !== "parent") {
+  throw new HttpsError("permission-denied", "Only family members can trigger SOS");
+}
 
     console.log("[createSos] before requireFamilyMember");
     await requireFamilyMember(familyId, uid);
@@ -310,13 +466,14 @@ export const createSos = onCall(
         });
       }
 
-      tx.create(sosRef, {
-        childUid: uid,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        status: "active",
-        location: { lat, lng, acc },
-        dayKey,
-      });
+     tx.create(sosRef, {
+  createdBy: uid,
+  createdByRole: role,
+  createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  status: "active",
+  location: { lat, lng, acc },
+  dayKey,
+});
 
       console.log("[createSos] tx end -> will commit");
       return { sosId: eventId, created: true, dayKey, limited: false };
@@ -338,6 +495,33 @@ export const createSos = onCall(
   }
 );
 
+
+
+export const resolveSos = onCall({ region: "asia-southeast1" }, async (req) => {
+  if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+  const uid = req.auth.uid;
+
+  const familyId = mustString(req.data?.familyId, "familyId");
+  const sosId = mustString(req.data?.sosId, "sosId");
+
+  await requireFamilyMember(familyId, uid);
+
+  const ref = db.doc(`families/${familyId}/sos/${sosId}`);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError("not-found", "SOS not found");
+    const d = snap.data()!;
+    if (d.status === "resolved") return;
+
+    tx.update(ref, {
+      status: "resolved",
+      resolvedBy: uid,
+      resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+
+  return { ok: true };
+});
 // =======================
 // FIRESTORE TRIGGER: SOS CREATED -> FANOUT PUSH
 // - idempotent lease lock (avoid double send)
@@ -350,8 +534,9 @@ export const onSosCreated = onDocumentCreated(
     region: "asia-southeast1",
     retry: true,
   },
-console.log("[SOS] INVOKED", JSON.stringify(event.params));
   async (event) => {
+    console.log("[SOS] INVOKED", JSON.stringify(event.params));
+
     const snap = event.data;
     if (!snap) {
       console.log("[SOS] event.data is null -> skip");
@@ -361,19 +546,25 @@ console.log("[SOS] INVOKED", JSON.stringify(event.params));
     const { familyId, sosId } = event.params as { familyId: string; sosId: string };
     const sos = snap.data() as any;
 
-    const childUid: string | undefined = sos.childUid;
-    const status: string = sos.status ?? "active";
+    // ===== Extract fields from SOS doc
+    const createdBy: string | undefined = sos.createdBy;
+    const status: string | undefined = sos.status; // FIX: status defined
+    const childUid = createdBy; // FIX: childUid is createdBy
+
+    if (!createdBy) {
+      console.log("[SOS] Missing createdBy -> skip");
+      return;
+    }
+
     const loc = sos.location ?? {};
     const lat = loc.lat;
     const lng = loc.lng;
 
     console.log(`[SOS] TRIGGERED familyId=${familyId} sosId=${sosId}`);
-    console.log(`[SOS] payload childUid=${childUid ?? "null"} status=${status} lat=${lat ?? "null"} lng=${lng ?? "null"}`);
+    console.log(
+      `[SOS] payload childUid=${childUid} status=${status ?? "null"} lat=${lat ?? "null"} lng=${lng ?? "null"}`
+    );
 
-    if (!childUid) {
-      console.log("[SOS] Missing childUid -> skip");
-      return;
-    }
     if (status !== "active") {
       console.log(`[SOS] status=${status} (not active) -> skip`);
       return;
@@ -389,6 +580,8 @@ console.log("[SOS] INVOKED", JSON.stringify(event.params));
     try {
       const shouldSend = await db.runTransaction(async (tx) => {
         const cur = await tx.get(sosRef);
+        if (!cur.exists) return false;
+
         const d = cur.data() ?? {};
         const fanout = d.fanout ?? {};
 
@@ -427,13 +620,16 @@ console.log("[SOS] INVOKED", JSON.stringify(event.params));
       console.log(`[SOS] family tokens docs=${tokenSnap.size}`);
 
       const tokens: Array<{ token: string; tokenHash: string; uid: string; platform?: string }> = [];
+
       tokenSnap.forEach((doc) => {
         const data = doc.data() as any;
         const token: string | undefined = data.token;
         const uid: string | undefined = data.uid;
         if (!token || !uid) return;
 
-        if (uid === childUid) return; // không gửi cho chính bé
+        // Exclude sender
+        if (uid === childUid) return;
+
         tokens.push({ token, tokenHash: doc.id, uid, platform: data.platform });
       });
 
@@ -459,9 +655,9 @@ console.log("[SOS] INVOKED", JSON.stringify(event.params));
         },
         data: {
           type: "SOS",
-          familyId,
-          sosId,
-          childUid,
+          familyId: String(familyId),
+          sosId: String(sosId),
+          childUid: String(childUid),
           lat: lat != null ? String(lat) : "",
           lng: lng != null ? String(lng) : "",
         },
@@ -469,7 +665,7 @@ console.log("[SOS] INVOKED", JSON.stringify(event.params));
           priority: "high",
           collapseKey: `sos_${sosId}`,
           notification: {
-            channelId: "sos_channel",
+            channelId: "sos_channel_v2",
             sound: "sos",
             defaultVibrateTimings: true,
             visibility: "public",
@@ -520,9 +716,10 @@ console.log("[SOS] INVOKED", JSON.stringify(event.params));
           const err = r.error as any;
           const code: string | undefined = err?.code;
 
-          // log lỗi 1-2 cái đầu để debug (tránh spam)
           if (i < 2) {
-            console.log(`[SOS] Fail sample i=${i} code=${code ?? "unknown"} msg=${err?.message ?? ""}`);
+            console.log(
+              `[SOS] Fail sample i=${i} code=${code ?? "unknown"} msg=${err?.message ?? ""}`
+            );
           }
 
           if (isInvalidTokenErrorCode(code)) {
@@ -551,6 +748,12 @@ console.log("[SOS] INVOKED", JSON.stringify(event.params));
         "fanout.claimId": admin.firestore.FieldValue.delete(),
       });
 
+      // Sau khi gửi lần đầu thành công (ở cuối try)
+await enqueueSosReminder({
+  familyId,
+  sosId,
+  createdAtMs: Date.now(),
+});
       console.log(
         `[SOS] DONE familyId=${familyId} sosId=${sosId} attempted=${totalAttempt} success=${success} invalidRemoved=${invalidRemoved}`
       );
@@ -570,8 +773,7 @@ console.log("[SOS] INVOKED", JSON.stringify(event.params));
         console.error("[SOS] Failed to clear claim / write lastError", e);
       }
 
-      // throw để retry=true có tác dụng
-      throw err;
+      throw err; // retry=true
     }
   }
 );

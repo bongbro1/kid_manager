@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/views/parent/location/parent_children_list_screen.dart';
+import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
 import 'package:kid_manager/features/presentation/shared/state/mapbox_controller.dart';
@@ -38,14 +39,13 @@ class _ParentAllChildrenMapScreenState
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // ✅ chỉ init 1 lần
     if (_inited) return;
     _inited = true;
 
     _userVm = context.read<UserVm>();
     _locationVm = context.read<ParentLocationVm>();
     _controller = context.read<MapboxController>();
-
+    _locationVm.startMyLocation();
     // Add listeners ngay khi đã có instance
     _controller.addListener(_handleMapOrDataChange);
     _locationVm.addListener(_handleMapOrDataChange);
@@ -258,6 +258,36 @@ class _ParentAllChildrenMapScreenState
 
                   _openChildInfo(childId);
                 },
+              ),
+            ),
+          ),
+
+          Positioned(
+            right: 16,
+            bottom: 96,
+            child: SafeArea(
+              child: FloatingActionButton(
+                heroTag: 'parent_sos_fab',
+                backgroundColor: Colors.red.shade700,
+                onPressed: () {
+                  // Lấy vị trí hiện tại của parent
+                  final locationVm = context.read<ParentLocationVm>();
+                  final myLocation =
+                      locationVm.myLocation; // bạn cần expose cái này
+
+                  if (myLocation == null) return;
+
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SosView(
+                        lat: myLocation.latitude,
+                        lng: myLocation.longitude,
+                        acc: myLocation.accuracy,
+                      ),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.sos, color: Colors.white),
               ),
             ),
           ),
