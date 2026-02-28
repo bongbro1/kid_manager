@@ -1,5 +1,5 @@
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 
 import '../services/firebase_auth_service.dart';
 import 'user_repository.dart';

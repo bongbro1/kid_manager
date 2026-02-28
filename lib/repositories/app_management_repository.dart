@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/utils/date_utils.dart';
+import 'package:kid_manager/utils/usage_rule.dart';
 import 'package:usage_stats/usage_stats.dart';
 
 import '../services/app_installed_service.dart';
@@ -101,10 +102,25 @@ class AppManagementRepository {
     // debugPrint("✅ New apps seeded: $added");
   }
 
-  /// 3. Sync usage
-  // Future<void> syncTodayUsage(String userId) {
-  //   return usageService.syncTodayUsage(userId: userId);
-  // }
+  Future<void> saveUsageRuleForApp({
+    required String userId,
+    required String packageName,
+    required UsageRule rule,
+  }) async {
+    final ruleRef = db
+        .collection("blocked_items")
+        .doc(userId)
+        .collection("apps")
+        .doc(packageName)
+        .collection("usage_rule")
+        .doc("config");
+
+    await ruleRef.set({
+      ...rule.toMap(),
+      "updatedAt": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> syncTodayUsage({required String userId}) async {
     final day = DateTime.now();
     final start = startOfDay(day);
@@ -112,9 +128,30 @@ class AppManagementRepository {
 
     final stats = await UsageStats.queryUsageStats(start, end);
 
+    // const target = 'com.example.kid_manager';
+
+    // debugPrint('--- RANGE ---');
+    // debugPrint('start=$start  (${start.millisecondsSinceEpoch})');
+    // debugPrint('end  =$end    (${end.millisecondsSinceEpoch})');
+    // debugPrint('diffHours=${end.difference(start).inMinutes / 60}');
+
+    // final rows = stats.where((e) => e.packageName == target).toList();
+    // debugPrint('--- $target rows=${rows.length} ---');
+
+    // for (final r in rows) {
+    //   debugPrint(
+    //     'pkg=${r.packageName} '
+    //     'totalFG=${r.totalTimeInForeground} '
+    //     'lastUsed=${r.lastTimeUsed} '
+    //     'first=${r.firstTimeStamp} '
+    //     'last=${r.lastTimeStamp}',
+    //   );
+    // }
+
     // aggregate per package
     final Map<String, int> usageMsByPkg = {};
     final Map<String, int> lastUsedByPkg = {};
+    const selfPkg = 'com.example.kid_manager';
 
     for (final s in stats) {
       final pkg = s.packageName;
@@ -137,15 +174,11 @@ class AppManagementRepository {
 
     final batch = db.batch();
     final key = dayKey(day);
-
     for (final doc in appsSnap.docs) {
       final pkg = doc.id;
 
       final usageMs = usageMsByPkg[pkg] ?? 0;
       final lastUsedMs = lastUsedByPkg[pkg] ?? 0;
-
-      // Nếu bạn muốn vẫn ghi 0 cho app không có usage hôm nay thì bỏ continue
-      // if (usageMs == 0) continue;
 
       final dailyRef = doc.reference.collection('usage_daily').doc(key);
 
@@ -160,9 +193,32 @@ class AppManagementRepository {
         "todayLastSeen": lastUsedMs > 0
             ? Timestamp.fromMillisecondsSinceEpoch(lastUsedMs)
             : null,
+        "lastSeen": lastUsedMs > 0
+            ? Timestamp.fromMillisecondsSinceEpoch(lastUsedMs)
+            : null,
       }, SetOptions(merge: true));
     }
 
     await batch.commit();
   }
 }
+
+
+// blocked_items
+//  └── userId
+//      └── apps
+//          └── com.facebook.katana
+//              ├── usage_daily
+//              │    └── 2026-02-27
+//              │         ├── usageMs
+//              │         └── lastUsedMs
+//              │
+//              └── usage_rule
+//                        ├── enabled: true
+//                        ├── startMin: 480
+//                        ├── endMin: 1200
+//                        ├── weekdays: [1..7]
+//                        ├── overrides:
+//                        │     2026-02-05: allowFullDay
+//                        │     2026-02-13: blockFullDay
+//                        └── updatedAt

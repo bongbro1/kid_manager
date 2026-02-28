@@ -1,21 +1,31 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppItemModel {
   final String packageName;
   final String name;
   final String? iconBase64;
-
-  // usage
   final String? usageTime; // "1h 20m"
   final Timestamp? lastSeen;
 
-  const AppItemModel({
+  Uint8List? _iconBytes; // cache
+
+  AppItemModel({
     required this.packageName,
     required this.name,
     this.iconBase64,
     this.usageTime,
     this.lastSeen,
   });
+
+  Uint8List? get iconBytes {
+    final b64 = iconBase64;
+    if (b64 == null || b64.isEmpty) return null;
+    return _iconBytes ??= base64Decode(b64);
+  }
+
 
   /// From installed app (AppInfo)
   factory AppItemModel.fromInstalled({

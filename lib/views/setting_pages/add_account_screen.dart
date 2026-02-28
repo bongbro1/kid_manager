@@ -6,6 +6,7 @@ import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/personal_info_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
+import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:provider/provider.dart';
 
 class AddAccountScreen extends StatefulWidget {

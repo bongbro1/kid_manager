@@ -49,6 +49,32 @@ class UserProfile {
     return data;
   }
 
+  UserProfile copyWith({
+    String? id,
+    String? name,
+    String? phone,
+    String? gender,
+    String? dob,
+    String? address,
+    bool? allowTracking,
+    String? role,
+    String? avatarUrl,
+    String? coverUrl,
+  }) {
+    return UserProfile(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      gender: gender ?? this.gender,
+      dob: dob ?? this.dob,
+      address: address ?? this.address,
+      allowTracking: allowTracking ?? this.allowTracking,
+      role: role ?? this.role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      coverUrl: coverUrl ?? this.coverUrl,
+    );
+  }
+
   /// 🔹 Tạo object từ Firestore
   factory UserProfile.fromMap(String id, Map<String, dynamic> data) {
     String dobStr = '';

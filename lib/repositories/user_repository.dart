@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import '../models/app_user.dart';
 
@@ -64,6 +64,7 @@ class UserRepository {
         'createdAt': FieldValue.serverTimestamp(),
         'lastActiveAt': FieldValue.serverTimestamp(),
         'avatarUrl': '',
+        'coverUrl': '',
         'subscription': {
           'plan': 'free',
           'status': 'active',
@@ -139,6 +140,7 @@ class UserRepository {
         'createdAt': FieldValue.serverTimestamp(),
         'lastActiveAt': FieldValue.serverTimestamp(),
         'avatarUrl': '',
+        'coverUrl': '',
       }..removeWhere((_, v) => v == null),
     );
 
@@ -217,6 +219,28 @@ class UserRepository {
     } catch (e) {
       debugPrint("❌ getChildUserIds error: $e");
       return [];
+    }
+  }
+
+  Future<bool> updateUserPhotoUrl({
+    required String uid,
+    required String url,
+    required UserPhotoType type,
+  }) async {
+    try {
+      final ref = userRef(uid);
+
+      final field = type == UserPhotoType.avatar ? 'avatarUrl' : 'coverUrl';
+
+      await ref.update({
+        field: url,
+        'lastActiveAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      debugPrint('Update photo error: $e');
+      return false;
     }
   }
 }

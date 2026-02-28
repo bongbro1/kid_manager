@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/models/app_item_model.dart';
 
 class AppItem extends StatelessWidget {
   final String appName;
@@ -23,12 +24,14 @@ class AppItem extends StatelessWidget {
 
   final TextStyle? titleStyle;
   final TextStyle? subtitleStyle;
+  final AppItemModel app;
 
   const AppItem({
     super.key,
     required this.appName,
     required this.usageTimeText,
     required this.editIconAsset,
+    required this.app,
     this.iconBase64,
     this.onTap,
     this.onEdit,
@@ -90,12 +93,13 @@ class AppItem extends StatelessWidget {
                 height: 40,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(5),
-                  child: iconBase64 != null
+                  child: app.iconBytes != null
                       ? Image.memory(
-                          base64Decode(iconBase64!),
+                          app.iconBytes!,
                           width: 40,
                           height: 40,
                           fit: BoxFit.contain,
+                          gaplessPlayback: true,
                         )
                       : const Icon(Icons.apps, size: 24, color: Colors.grey),
                 ),

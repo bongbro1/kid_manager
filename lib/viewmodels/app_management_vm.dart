@@ -6,6 +6,7 @@ import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/utils/usage_rule.dart';
 
 class AppManagementVM extends ChangeNotifier {
   final AppManagementRepository _repo;
@@ -28,19 +29,19 @@ class AppManagementVM extends ChangeNotifier {
   String? _selectedChildId;
   String? get selectedChildId => _selectedChildId;
 
-  void selectChild(String uid) {
-    if (_selectedChildId == uid) {
-      _selectedChildId = null;
-    } else {
-      _selectedChildId = uid;
-    }
-    loadAppsForSelectedChild();
+  Future<void> selectChild(String uid) async {
+    if (_selectedChildId == uid) return;
+
+    _selectedChildId = uid;
     notifyListeners();
+    await loadAppsForSelectedChild();
   }
 
   Future<void> loadAppsForSelectedChild() async {
     if (_selectedChildId == null) {
-      debugPrint("❌ No selected child");
+      _apps = [];
+      _loading = false;
+      notifyListeners();
       return;
     }
     await loadApps(_selectedChildId!);
@@ -135,6 +136,29 @@ class AppManagementVM extends ChangeNotifier {
     } catch (e, s) {
       debugPrint("❌ loadAndSeedApp error: $e");
       debugPrint("$s");
+    }
+  }
+
+  Future<void> saveUsageRule({
+    required String userId,
+    required String packageName,
+    required UsageRule rule,
+  }) async {
+    try {
+      _loading = true;
+      notifyListeners();
+
+      await _repo.saveUsageRuleForApp(
+        userId: userId,
+        packageName: packageName,
+        rule: rule,
+      );
+    } catch (e) {
+      debugPrint("❌ Save rule failed: $e");
+      rethrow;
+    } finally {
+      _loading = false;
+      notifyListeners();
     }
   }
 }

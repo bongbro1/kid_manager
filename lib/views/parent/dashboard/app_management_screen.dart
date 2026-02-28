@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/models/app_item_model.dart';
@@ -17,7 +16,8 @@ class AppManagementScreen extends StatefulWidget {
   State<AppManagementScreen> createState() => _AppManagementScreenState();
 }
 
-class _AppManagementScreenState extends State<AppManagementScreen> with SingleTickerProviderStateMixin {
+class _AppManagementScreenState extends State<AppManagementScreen>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   int _tabIndex = 0;
 
@@ -34,12 +34,10 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppInitVM>().init();
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppManagementVM>().loadAppsForSelectedChild();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<AppInitVM>().init();
+      if (!mounted) return;
+      await context.read<AppManagementVM>().loadAppsForSelectedChild();
     });
   }
 
@@ -55,12 +53,20 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
     int? initialDailyLimitMinutes,
     required VoidCallback onUpdated,
   }) async {
+    final selectedChildId = context.read<AppManagementVM>().selectedChildId;
+
+    if (selectedChildId == null) {
+      debugPrint("❌ No child selected");
+      return;
+    }
     final changed = await Navigator.of(context).push<bool>(
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.transparent,
-        pageBuilder: (_, __, ___) =>
-            UsageTimeEditScreen(appId: app.packageName!),
+        pageBuilder: (_, __, ___) => UsageTimeEditScreen(
+          appId: app.packageName!,
+          childId: selectedChildId,
+        ),
       ),
     );
 
@@ -77,18 +83,34 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
   }
 
   void _goTab(int index) {
-    _tabController.animateTo(index); // 0: Ứng dụng, 1: Thống kê
+    _tabController.animateTo(index);
   }
+
   @override
   Widget build(BuildContext context) {
-
     final app_vm = context.watch<AppManagementVM>();
 
-    if (app_vm.loading) {
-      return const LoadingOverlay();
-    }
-
     final apps = app_vm.apps;
+    return Stack(
+      children: [
+        // ✅ UI chính của bạn (giữ nguyên)
+        _buildMain(context),
+
+        // ✅ overlay loading phủ lên toàn bộ
+        if (app_vm.loading)
+          const Positioned.fill(
+            child: AbsorbPointer(
+              absorbing: true, // chặn tap/scroll
+              child: LoadingOverlay(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMain(BuildContext context) {
+    final apps = context.watch<AppManagementVM>().apps;
+
     return Container(
       color: const Color(0xFFF2F2F7),
       child: SafeArea(
@@ -174,7 +196,9 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
                                         bottom: 12,
                                       ),
                                       child: AppItem(
+                                        key: ValueKey(app.packageName),
                                         appName: app.name,
+                                        app: app,
                                         usageTimeText: app.usageTime ?? "0h 0m",
                                         iconBase64: app.iconBase64,
                                         editIconAsset: Image.asset(

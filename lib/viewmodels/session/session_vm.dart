@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/sessions/sessionstatus.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/auth_repository.dart';
 
 class SessionVM extends ChangeNotifier {

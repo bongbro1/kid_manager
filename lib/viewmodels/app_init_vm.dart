@@ -87,6 +87,17 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> startHeartbeatWorker(String userId, String role) async {
+    await Workmanager().registerOneOffTask(
+      "heartbeatImmediate",
+      deviceHeartbeatTask,
+      inputData: {
+        "userId": userId,
+        "role": role,
+        "packageName": "com.example.kid_manager",
+      },
+      constraints: Constraints(networkType: NetworkType.connected),
+    );
+
     await Workmanager().registerPeriodicTask(
       "heartbeatUnique",
       deviceHeartbeatTask,

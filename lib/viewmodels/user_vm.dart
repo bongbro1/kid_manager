@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,8 +7,9 @@ import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/imgbb_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 
 class UserVm extends ChangeNotifier {
@@ -115,7 +117,11 @@ class UserVm extends ChangeNotifier {
       }
 
       profile = await _userRepo.getUserProfile(uid);
-      // debugPrint(" PROFILE: " + profile.toString());
+      // debugPrint("==== USER PROFILE ====");
+      // debugPrint("UID: ${profile?.id}");
+      // debugPrint("Avatar: ${profile?.avatarUrl}");
+      // debugPrint("Cover: ${profile?.coverUrl}");
+      // debugPrint("======================");
     } catch (e) {
       _error = e.toString();
     }
@@ -174,6 +180,53 @@ class UserVm extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       return false;
+    }
+  }
+
+  Future<bool> updateUserPhoto({
+    required File file,
+    required UserPhotoType type,
+  }) async {
+    try {
+      _loading = true;
+      _error = null;
+      notifyListeners();
+
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+
+      // 1️⃣ Upload lên ImgBB
+      final url = await ImgBBService.updateUserPhoto(
+        file: file,
+        field: type == UserPhotoType.avatar ? 'avatarUrl' : 'coverUrl',
+      );
+
+      // 2️⃣ Update Firestore
+      final success = await _userRepo.updateUserPhotoUrl(
+        uid: uid,
+        url: url,
+        type: type,
+      );
+
+      if (!success) {
+        _error = "Cập nhật ảnh thất bại";
+        return false;
+      }
+
+      if (profile != null) {
+        if (type == UserPhotoType.avatar) {
+          profile = profile!.copyWith(avatarUrl: url);
+        } else {
+          profile = profile!.copyWith(coverUrl: url);
+        }
+      }
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      debugPrint("Update photo error: $e");
+      return false;
+    } finally {
+      _loading = false;
+      notifyListeners();
     }
   }
 

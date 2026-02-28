@@ -68,11 +68,6 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
     final selectedId = vm.selectedChildId;
 
     final pageCount = (users.length / 3).ceil();
-
-    if (vm.loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     if (vm.error != null) {
       return Center(child: Text(vm.error!));
     }

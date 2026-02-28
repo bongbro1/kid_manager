@@ -1,24 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/utils/usage_rule.dart';
+import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
+import 'package:provider/provider.dart';
 
 class UsageTimeEditScreen extends StatefulWidget {
   final String appId;
-  const UsageTimeEditScreen({super.key, required this.appId});
+  final String childId;
+  const UsageTimeEditScreen({
+    super.key,
+    required this.appId,
+    required this.childId,
+  });
 
   @override
   State<UsageTimeEditScreen> createState() => _UsageTimeEditScreenState();
 }
 
 class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
+  late UsageRule rule;
+  final labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  Map<String, DayOverride> overrides = {};
+
   bool unlimited = false;
   int minutes = 60;
 
   @override
   void initState() {
     super.initState();
-    _fillDotsDemo();
+    rule = UsageRule.defaults();
+    debugPrint('INIT rule: ${rule.pretty()}');
+
+    _fillDotsFromOverrides();
     final now = DateTime.now();
     _gridMonth = DateTime(now.year, now.month, 1);
     _headerMonth = _gridMonth;
@@ -29,24 +45,77 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   DateTime? _selectedDate;
   DateTime _d(DateTime x) => DateTime(x.year, x.month, x.day);
 
-  final Map<DateTime, int> _dotsByDay = {};
+  final Map<DateTime, DotType> _dotsByDay = {};
 
-  void _fillDotsDemo() {
-    // final now = DateTime.now();
-    final now = DateTime(DateTime.now().year, DateTime.now().month, 27);
+  void _fillDotsFromOverrides() {
+    _dotsByDay.clear();
 
-    _dotsByDay[_d(now)] = 3; // hôm nay 3 chấm
-    _dotsByDay[_d(now.add(const Duration(days: 1)))] = 1;
-    _dotsByDay[_d(now.add(const Duration(days: 2)))] = 2;
+    overrides.forEach((dateKey, type) {
+      final day = DateTime.parse(dateKey);
 
-    _dotsByDay[_d(DateTime(now.year, now.month, 5))] = 1;
-    _dotsByDay[_d(DateTime(now.year, now.month, 12))] = 2;
-    _dotsByDay[_d(DateTime(now.year, now.month, 18))] = 3;
-
-    // debugPrint(_dotsByDay.toString());
+      if (type == DayOverride.allowFullDay) {
+        _dotsByDay[_d(day)] = DotType.allow;
+      } else if (type == DayOverride.blockFullDay) {
+        _dotsByDay[_d(day)] = DotType.block;
+      }
+    });
   }
 
-  bool checked = true;
+  Future<void> pickStart() async {
+    final t = await showTimePicker(
+      context: context,
+      initialTime: rule.startTime,
+    );
+    if (t == null) return;
+    setState(() => rule = rule.copyWith(startMin: UsageRule.toMin(t)));
+  }
+
+  Future<void> pickEnd() async {
+    final t = await showTimePicker(context: context, initialTime: rule.endTime);
+
+    if (t == null) return;
+
+    final endMin = UsageRule.toMin(t);
+
+    if (endMin <= rule.startMin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Giờ kết thúc phải lớn hơn giờ bắt đầu")),
+      );
+      return;
+    }
+
+    setState(() {
+      rule = rule.copyWith(endMin: endMin);
+    });
+  }
+
+  void toggleDay(int day) {
+    final next = {...rule.weekdays};
+    if (next.contains(day))
+      next.remove(day);
+    else
+      next.add(day);
+
+    setState(() => rule = rule.copyWith(weekdays: next));
+  }
+
+  Future<void> onSavePressed() async {
+    final vm = context.read<AppManagementVM>();
+    final finalRule = rule.copyWith(overrides: overrides);
+    if (finalRule.overrides.isEmpty) {
+    } else {
+      finalRule.overrides.forEach((date, type) {
+        debugPrint("   $date -> ${type.name}");
+      });
+    }
+
+    /// Call ViewModel
+    await vm.saveUsageRule(
+      userId: widget.childId,
+      packageName: widget.appId,
+      rule: finalRule,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,8 +171,11 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                       ),
                       const Spacer(),
                       Switch(
-                        value: checked,
-                        onChanged: (v) => setState(() => checked = v),
+                        value: rule.enabled,
+                        onChanged: (v) {
+                          setState(() => rule = rule.copyWith(enabled: v));
+                          debugPrint('rule changed: ${rule.pretty()}');
+                        },
 
                         activeColor: Colors.white,
                         activeTrackColor: const Color(0xFF2F6BFF),
@@ -122,65 +194,73 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: Container(
-                          height: 50,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFEDF1F7)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Giờ bắt đầu',
-                                  style: TextStyle(
-                                    color: Color(0xFF8F9BB3),
-                                    fontSize: 15,
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w400,
-                                    height: 1.33,
+                        child: InkWell(
+                          onTap: rule.enabled ? pickStart : null,
+                          child: Container(
+                            height: 50,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFEDF1F7),
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    fmt(rule.startMin),
+                                    style: const TextStyle(
+                                      color: Color(0xFF222B45),
+                                      fontSize: 15,
+                                      fontFamily: 'Poppins',
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              SvgPicture.asset(
-                                "assets/icons/icon_clock.svg",
-                                width: 18,
-                                height: 18,
-                              ),
-                            ],
+                                SvgPicture.asset(
+                                  "assets/icons/icon_clock.svg",
+                                  width: 18,
+                                  height: 18,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Container(
-                          height: 50,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFEDF1F7)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Giờ kết thúc',
-                                  style: TextStyle(
-                                    color: Color(0xFF8F9BB3),
-                                    fontSize: 15,
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w400,
-                                    height: 1.33,
+                        child: InkWell(
+                          onTap: rule.enabled ? pickEnd : null,
+                          child: Container(
+                            height: 50,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFEDF1F7),
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    fmt(rule.endMin),
+                                    style: const TextStyle(
+                                      color: Color(0xFF222B45),
+                                      fontSize: 15,
+                                      fontFamily: 'Poppins',
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              SvgPicture.asset(
-                                "assets/icons/icon_clock.svg",
-                                width: 18,
-                                height: 18,
-                              ),
-                            ],
+                                SvgPicture.asset(
+                                  "assets/icons/icon_clock.svg",
+                                  width: 18,
+                                  height: 18,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -201,6 +281,61 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: List.generate(7, (index) {
+                      final day = index + 1; // 1 = Monday
+                      final selected = rule.weekdays.contains(day);
+
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: rule.enabled
+                              ? () {
+                                  final next = {...rule.weekdays};
+                                  if (selected) {
+                                    next.remove(day);
+                                  } else {
+                                    next.add(day);
+                                  }
+
+                                  setState(() {
+                                    rule = rule.copyWith(weekdays: next);
+                                  });
+
+                                  debugPrint(
+                                    "📅 Weekdays changed → ${rule.weekdays}",
+                                  );
+                                }
+                              : null,
+                          child: Container(
+                            height: 36,
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? const Color(0xFF2F6BFF)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: const Color(0xFFEDF1F7),
+                              ),
+                            ),
+                            child: Text(
+                              labels[index],
+                              style: TextStyle(
+                                color: selected
+                                    ? Colors.white
+                                    : const Color(0xFF8F9BB3),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
 
                   const SizedBox(height: 27),
                   buildCalendar(
@@ -213,14 +348,37 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                       _gridMonth = DateTime(m.year, m.month, 1);
                       _headerMonth = _gridMonth;
                     }),
-                    onDayTap: (cellDate) => setState(() {
-                      _selectedDate = cellDate;
-                      _headerMonth = DateTime(
-                        cellDate.year,
-                        cellDate.month,
-                        1,
+                    onDayTap: (cellDate) async {
+                      setState(() {
+                        _selectedDate = cellDate;
+                        _headerMonth = DateTime(
+                          cellDate.year,
+                          cellDate.month,
+                          1,
+                        );
+                      });
+                      final key = toKey(cellDate);
+                      final current = overrides[key];
+
+                      final result = await showDayOverrideModal(
+                        context: context,
+                        date: cellDate,
+                        current: toOption(current),
                       );
-                    }),
+
+                      if (result == null) return;
+
+                      setState(() {
+                        final newOverride = fromOption(result);
+
+                        if (newOverride == null) {
+                          overrides.remove(key);
+                        } else {
+                          overrides[key] = newOverride;
+                        }
+                        _fillDotsFromOverrides();
+                      });
+                    },
                   ),
 
                   const SizedBox(height: 14),
@@ -260,7 +418,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                           fontSize: 16,
                           lineHeight: 1.38,
                           fontWeight: FontWeight.w700,
-                          onPressed: () {},
+                          onPressed: onSavePressed,
                         ),
                       ),
                     ],
@@ -275,13 +433,214 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   }
 }
 
+Future<DayOverrideOption?> showDayOverrideModal({
+  required BuildContext context,
+  required DateTime date,
+  required DayOverrideOption current,
+}) {
+  return showModalBottomSheet<DayOverrideOption>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    useRootNavigator: true,
+    builder: (context) {
+      DayOverrideOption selected = current;
+
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                /// Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+
+                Column(
+                  children: [
+                    const SizedBox(height: 6),
+                    Text(
+                      _formatDate(date),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Chọn quy tắc cho ngày này",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                /// Options
+                _overrideCard(
+                  icon: Icons.schedule,
+                  title: "Theo lịch đã đặt",
+                  subtitle: "Áp dụng khung giờ hàng tuần",
+                  color: Colors.grey,
+                  value: DayOverrideOption.followSchedule,
+                  group: selected,
+                  onTap: () => setState(() {
+                    selected = DayOverrideOption.followSchedule;
+                  }),
+                ),
+
+                const SizedBox(height: 12),
+
+                _overrideCard(
+                  icon: Icons.check_circle,
+                  title: "Cho phép cả ngày",
+                  subtitle: "Có thể sử dụng bất cứ lúc nào",
+                  color: Colors.green,
+                  value: DayOverrideOption.allowFullDay,
+                  group: selected,
+                  onTap: () => setState(() {
+                    selected = DayOverrideOption.allowFullDay;
+                  }),
+                ),
+
+                const SizedBox(height: 12),
+
+                _overrideCard(
+                  icon: Icons.block,
+                  title: "Chặn cả ngày",
+                  subtitle: "Không được sử dụng hôm nay",
+                  color: Colors.red,
+                  value: DayOverrideOption.blockFullDay,
+                  group: selected,
+                  onTap: () => setState(() {
+                    selected = DayOverrideOption.blockFullDay;
+                  }),
+                ),
+
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () {
+                      debugPrint("🟢 Save tapped with: $selected");
+                      Navigator.of(context).pop(selected);
+                    },
+                    child: const Text("Lưu"),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+Widget _overrideCard({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required Color color,
+  required DayOverrideOption value,
+  required DayOverrideOption group,
+  required VoidCallback onTap,
+}) {
+  final isSelected = value == group;
+
+  return InkWell(
+    borderRadius: BorderRadius.circular(16),
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected ? color : Colors.grey.shade300,
+          width: 1.5,
+        ),
+        color: isSelected ? color.withOpacity(0.08) : Colors.transparent,
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: color.withOpacity(0.15),
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+
+          if (isSelected) Icon(Icons.check_circle, color: color),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _optionTile({
+  required String title,
+  required DayOverrideOption value,
+  required DayOverrideOption group,
+  required ValueChanged<DayOverrideOption> onChanged,
+}) {
+  return RadioListTile<DayOverrideOption>(
+    title: Text(title),
+    value: value,
+    groupValue: group,
+    onChanged: (v) => onChanged(v!),
+  );
+}
+
+String _formatDate(DateTime d) {
+  return "${d.day}/${d.month}/${d.year}";
+}
+
 Widget buildCalendar({
   required DateTime month,
   required DateTime headerMonth,
   required DateTime? selected,
   required void Function(DateTime newMonth) onMonthChanged,
   required void Function(DateTime day) onDayTap,
-  required Map<DateTime, int> dotsByDay,
+  required Map<DateTime, DotType> dotsByDay,
 }) {
   final firstDayOfMonth = DateTime(month.year, month.month, 1);
   final lastDayOfMonth = DateTime(month.year, month.month + 1, 0);
@@ -296,6 +655,8 @@ Widget buildCalendar({
 
   String monthTitle(int m) => 'Tháng $m';
   const weekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+  DateTime _d(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,13 +751,13 @@ Widget buildCalendar({
           final inMonth = cellDate.month == month.month;
 
           final isSelected = sel != null && norm(cellDate) == sel;
-          final dots = dotsByDay[norm(cellDate)] ?? 0;
+          final dotType = dotsByDay[_d(cellDate)] ?? DotType.none;
 
           return _dayCell(
             label: '${cellDate.day}',
-            inMonth: inMonth, // để render mờ ngày ngoài tháng
+            inMonth: inMonth,
             selected: isSelected,
-            dots: dots,
+            dot: dotType,
             onTap: () => onDayTap(cellDate),
           );
         },
@@ -425,7 +786,7 @@ Widget _dayCell({
   required String label,
   required bool inMonth,
   required bool selected,
-  required int dots,
+  required DotType dot,
   VoidCallback? onTap,
 }) {
   final bg = selected ? const Color(0xFF2F6BFF) : Colors.transparent;
@@ -460,23 +821,21 @@ Widget _dayCell({
           ),
         ),
         const SizedBox(height: 4),
-        if (dots > 0)
+        if (dot != null)
           Opacity(
-            opacity: inMonth ? 1 : 0.5, // chấm cũng mờ nếu ngoài tháng
+            opacity: inMonth ? 1 : 0.5,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                dots.clamp(0, 3),
-                (_) => Container(
+              children: [
+                Container(
                   width: 4,
                   height: 4,
-                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1BD8A4),
+                  decoration: BoxDecoration(
+                    color: dotColorMap[dot],
                     shape: BoxShape.circle,
                   ),
                 ),
-              ),
+              ],
             ),
           ),
       ],
