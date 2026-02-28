@@ -3,10 +3,12 @@ import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/utils/schedule_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 
 import '../../../../../core/app_colors.dart';
 import '../../../../../core/app_text_styles.dart';
 import '../../../../../viewmodels/schedule_vm.dart';
+
 
 class ScheduleCalendar extends StatefulWidget {
   const ScheduleCalendar({super.key});
@@ -20,9 +22,62 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
 
   static const _selectedCircleSize = 32.0;
 
+  Widget _buildDayCell({
+  required DateTime day,
+  required bool isSelected,
+  required bool hasMemory,
+  required TextStyle textStyle,
+}) {
+  return Stack(
+    clipBehavior: Clip.none,
+    children: [
+      Center(
+        child: isSelected
+            ? Container(
+                width: _selectedCircleSize,
+                height: _selectedCircleSize,
+                decoration: const BoxDecoration(
+                  color: AppColors.calendarSelection,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${day.day}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Poppins',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )
+            : Text('${day.day}', style: textStyle),
+      ),
+
+      // ✅ chấm vàng góc phải
+      if (hasMemory)
+        const Positioned(
+          top: 6,
+          right: 10,
+          child: SizedBox(
+            width: 6,
+            height: 6,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color(0xFFF4B400),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<ScheduleViewModel>();
+    final scheduleVm = context.watch<ScheduleViewModel>();
+    final memoryVm = context.watch<MemoryDayViewModel>();
 
     return Container(
       decoration: const BoxDecoration(
@@ -39,9 +94,12 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
             locale: 'vi_VN',
             firstDay: DateTime.utc(2000, 1, 1),
             lastDay: DateTime.utc(2050, 12, 31),
-            focusedDay: vm.selectedDate,
-            selectedDayPredicate: (day) => isSameDay(day, vm.selectedDate),
-            onDaySelected: (selectedDay, _) => vm.setDate(selectedDay),
+            focusedDay: scheduleVm.selectedDate,
+            selectedDayPredicate: (day) => isSameDay(day, scheduleVm.selectedDate),
+            onDaySelected: (selectedDay, _) {
+              scheduleVm.setDate(selectedDay);
+              memoryVm.setDate(selectedDay);
+            },
             calendarFormat: _calendarFormat,
             onFormatChanged: (format) => setState(() => _calendarFormat = format),
             headerVisible: false,
@@ -72,27 +130,24 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
             ),
             calendarBuilders: CalendarBuilders(
               selectedBuilder: (context, day, focusedDay) {
-                return Center(
-                  child: Container(
-                    width: _selectedCircleSize,
-                    height: _selectedCircleSize,
-                    decoration: const BoxDecoration(
-                      color: AppColors.calendarSelection,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${day.day}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'Poppins',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                return _buildDayCell(
+                  day: day,
+                  isSelected: true,
+                  hasMemory: memoryVm.hasMemory(day),
+                  textStyle: AppTextStyles.scheduleDayNumber,
                 );
               },
+
+              // ✅ thêm ngay dưới selectedBuilder
+              defaultBuilder: (context, day, focusedDay) {
+                return _buildDayCell(
+                  day: day,
+                  isSelected: false,
+                  hasMemory: memoryVm.hasMemory(day),
+                  textStyle: AppTextStyles.scheduleDayNumber,
+                );
+              },
+
               dowBuilder: (context, day) => Center(
                 child: Text(
                   _weekdayShortName(day),
@@ -101,21 +156,20 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   ),
                 ),
               ),
+
               markerBuilder: (_, date, __) {
                 final key = DateTime(date.year, date.month, date.day);
-                final daySchedules = vm.monthSchedules[key] ?? const [];
+                final daySchedules = scheduleVm.monthSchedules[key] ?? const [];
 
                 if (daySchedules.isEmpty) {
                   return const SizedBox.shrink();
                 }
 
-                // Lấy tập period có trong ngày (không lặp)
                 final periods = daySchedules
                     .map((s) => s.period)
                     .toSet()
                     .toList()
-                  ..sort((a, b) => a.index.compareTo(b.index)); 
-                // đảm bảo thứ tự: morning -> afternoon -> evening
+                  ..sort((a, b) => a.index.compareTo(b.index));
 
                 return Positioned(
                   bottom: 3,
@@ -128,7 +182,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                         width: 5,
                         height: 5,
                         decoration: BoxDecoration(
-                          color: schedulePeriodColor(periods[i]), // ✅ dùng chung util
+                          color: schedulePeriodColor(periods[i]),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -200,7 +254,8 @@ class _CalendarHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<ScheduleViewModel>();
+    final scheduleVm = context.watch<ScheduleViewModel>();
+    final memoryVm = context.watch<MemoryDayViewModel>();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -208,21 +263,25 @@ class _CalendarHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            onPressed: () => vm.changeMonth(
-              DateTime(vm.selectedDate.year, vm.selectedDate.month - 1),
-            ),
+            onPressed: () {
+              final newMonth = DateTime(scheduleVm.selectedDate.year, scheduleVm.selectedDate.month - 1);
+              scheduleVm.changeMonth(newMonth);
+              memoryVm.changeMonth(newMonth);
+            },
             icon: const Icon(Icons.chevron_left, color: AppColors.darkText),
           ),
           Column(
             children: [
-              Text('Tháng ${vm.selectedDate.month}', style: AppTextStyles.scheduleMonthYear),
-              Text('${vm.selectedDate.year}', style: AppTextStyles.scheduleYear),
+              Text('Tháng ${scheduleVm.selectedDate.month}', style: AppTextStyles.scheduleMonthYear),
+              Text('${scheduleVm.selectedDate.year}', style: AppTextStyles.scheduleYear),
             ],
           ),
           IconButton(
-            onPressed: () => vm.changeMonth(
-              DateTime(vm.selectedDate.year, vm.selectedDate.month + 1),
-            ),
+            onPressed: () {
+              final newMonth = DateTime(scheduleVm.selectedDate.year, scheduleVm.selectedDate.month + 1);
+              scheduleVm.changeMonth(newMonth);
+              memoryVm.changeMonth(newMonth);
+            },
             icon: const Icon(Icons.chevron_right, color: AppColors.darkText),
           ),
         ],

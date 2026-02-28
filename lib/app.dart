@@ -34,6 +34,9 @@ import 'viewmodels/auth_vm.dart';
 import 'repositories/schedule_repository.dart';
 import 'viewmodels/schedule_vm.dart';
 
+import 'package:kid_manager/repositories/memory_day_repository.dart';
+import 'package:kid_manager/viewmodels/memory_day_vm.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -63,6 +66,8 @@ class MyApp extends StatelessWidget {
       usageService,
       FirebaseFirestore.instance,
     );
+
+    final memoryRepo = MemoryDayRepository(FirebaseFirestore.instance);
 
     return MultiProvider(
       providers: [
@@ -122,6 +127,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<ParentLocationVm>(
           create: (context) =>
               ParentLocationVm(context.read<LocationRepository>()),
+        ),
+
+        // MemoryDay
+        ChangeNotifierProvider(
+          create: (_) => MemoryDayViewModel(memoryRepo),
         ),
       ],
       child: MaterialApp(

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/views/parent/schedule/schedule_success_sheet.dart';
+import 'package:kid_manager/viewmodels/memory_day_vm.dart';
+import 'package:kid_manager/views/parent/memory_day/memory_day_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/models/app_user.dart';
 
@@ -67,6 +68,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
       scheduleVm.setScheduleOwnerUid(parentUid);
       userVm.watchChildren(parentUid);
+
+      final memoryVm = context.read<MemoryDayViewModel>();
+      memoryVm.setOwnerUid(parentUid);
+
+      // đồng bộ state calendar ban đầu
+      memoryVm.bindCalendarState(
+        focusedMonth: scheduleVm.focusedMonth,
+        selectedDate: scheduleVm.selectedDate,
+      );
+
+      // load tháng hiện tại
+      await memoryVm.loadMonth();
     });
   }
 
@@ -83,14 +96,41 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         scheduleVm.setChild(children.first.uid);
       });
     }
-    
+
     return Scaffold(
+      drawer: Drawer(
+        child: SafeArea(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              const ListTile(
+                title: Text(
+                  'Menu',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.star, color: Color(0xFFF4B400)),
+                title: const Text('Ngày đáng nhớ'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MemoryDayScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: AppColors.darkText),
-          onPressed: () {},
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu, color: AppColors.darkText),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
         ),
         title: const Text(
           'Lịch trình',
