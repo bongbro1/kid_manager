@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
+import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -7,7 +9,8 @@ import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 import 'package:kid_manager/widgets/location/map_top_bar.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
-
+import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 class ChildLocationScreen extends StatefulWidget {
   const ChildLocationScreen({super.key});
 
@@ -29,12 +32,21 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
       context.read<ChildLocationViewModel>().startLocationSharing();
     });
   }
-  // @override
-  // void dispose() {
-  //   final vm = context.read<ChildLocationViewModel>();
-  //   if (_vmListener != null) vm.removeListener(_vmListener!);
-  //   super.dispose();Adm
-  // }
+
+  bool hasProvider<T>(BuildContext context) {
+    try {
+      context.read<T>();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  @override
+  void dispose() {
+    final vm = context.read<ChildLocationViewModel>();
+    if (_vmListener != null) vm.removeListener(_vmListener!);
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChildLocationViewModel>();
@@ -109,7 +121,35 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
             ),
           ),
         ),
+        Positioned(
+          right: 16,
+          bottom: 96, // cao hơn MapBottomControls
+          child: SafeArea(
+            top: false,
+            child: FloatingActionButton(
+              heroTag: 'sos_fab',
+              backgroundColor: Colors.red.shade700,
+              onPressed: () {
+                debugPrint('HAS SosViewModel? ${hasProvider<SosViewModel>(context)}');
+                debugPrint('HAS ChildLocationViewModel? ${hasProvider<ChildLocationViewModel>(context)}');
 
+                final loc = context.read<ChildLocationViewModel>().currentLocation;
+                if (loc == null) return;
+
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SosView(
+                      lat: loc.latitude,
+                      lng: loc.longitude,
+                      acc: loc.accuracy,
+                    ),
+                  ),
+                );
+              },
+              child: const Icon(Icons.sos, color: Colors.white),
+            ),
+          ),
+        ),
         if (vm.error != null)
           Positioned(
             left: 16,

@@ -18,7 +18,36 @@ migrate_working_dir/
 *.iws
 .idea/
 .env
+# === Node / Firebase Functions ===
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
+# Firebase emulators / cache / build output (thường gặp)
+functions/.firebase/
+functions/lib/
+.firebase/
+.firebaserc
+
+# Env files (nếu không muốn commit)
+.env
+.env.*
+**/.env
+**/.env.*
+
+# === Flutter generated registrants ===
+# iOS
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Flutter/GeneratedPluginRegistrant.*
+
+# macOS
+macos/Flutter/GeneratedPluginRegistrant.*
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Flutter/GeneratedPluginRegistrant.m
+macos/Flutter/GeneratedPluginRegistrant.h
 # VS Code (bật nếu không muốn commit)
 #.vscode/
 

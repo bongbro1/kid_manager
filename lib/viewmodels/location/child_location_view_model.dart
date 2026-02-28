@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/api/sos_api.dart';
 import 'package:kid_manager/core/location/motion_detector.dart';
 import 'package:kid_manager/core/location/send_policy.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
@@ -43,6 +45,7 @@ class ChildLocationViewModel extends ChangeNotifier {
 
   TransportMode _transport = TransportMode.unknown;
   TransportMode get transport => _transport;
+
 
   final List<LocationData> _trail = [];
   List<LocationData> get locationTrail => List.unmodifiable(_trail);
@@ -230,6 +233,9 @@ class ChildLocationViewModel extends ChangeNotifier {
       await _restartSharing(delay: const Duration(milliseconds: 300));
     }
   }
+
+
+  // SOS
 
   Future<void> _restartSharing({
     Duration delay = const Duration(seconds: 1),

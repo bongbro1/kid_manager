@@ -65,41 +65,7 @@ class UserVm extends ChangeNotifier {
      CREATE CHILD
   ============================================================ */
 
-  Future<String?> createChildAccount({
-    required String parentUid,
-    required String email,
-    required String password,
-    required String displayName,
-    required DateTime? dob,
-    required String locale,
-    required String timezone,
-  }) async {
-    try {
-      _setLoading(true);
-      _error = null;
 
-      final childUid = await _userRepo.createChildAccount(
-        parentUid: parentUid,
-        email: email,
-        password: password,
-        displayName: displayName,
-        dob: dob,
-        locale: locale,
-        timezone: timezone,
-      );
-
-      watchChildren(parentUid);
-
-      return childUid;
-    } catch (e, s) {
-      debugPrint('UserVm.createChildAccount error: $e');
-      debugPrintStack(stackTrace: s);
-      _setError('Không thể tạo tài khoản trẻ');
-      return null;
-    } finally {
-      _setLoading(false);
-    }
-  }
 
   Future<void> loadProfile() async {
     _error = null;

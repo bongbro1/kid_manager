@@ -58,9 +58,11 @@ class AuthVM extends ChangeNotifier {
       await action();
       return true;
     } on FirebaseAuthException catch (e) {
+      print("AUTH Create : ${e}");
       _error = _mapFirebaseError(e);
       return false;
     } catch (e) {
+      print("AUTH Create : ${e}");
       _error = 'Có lỗi xảy ra. Vui lòng thử lại.';
       return false;
     } finally {

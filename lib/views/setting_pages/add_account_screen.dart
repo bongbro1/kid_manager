@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -51,7 +52,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       return;
     }
 
-    final userVM = context.read<UserVm>();
+    final userVM = context.read<UserRepository>();
     final storage = context.read<StorageService>();
 
     final parentUid = storage.getString(StorageKeys.uid);
