@@ -6,27 +6,35 @@
   import '../../../../../utils/schedule_utils.dart';
   import '../../../../../viewmodels/schedule_vm.dart';
   import '../../../views/parent/schedule/edit_schedule_sheet.dart';
+  import '../../../../../viewmodels/memory_day_vm.dart';
+  import '../../../../../models/memory_day.dart';
+  import '../../../views/parent/memory_day/memory_day_sheet.dart';
 
   class ScheduleList extends StatelessWidget {
     const ScheduleList({super.key});
 
     @override
     Widget build(BuildContext context) {
-      final vm = context.watch<ScheduleViewModel>();
+      final scheduleVm = context.watch<ScheduleViewModel>();
+      final memoryVm = context.watch<MemoryDayViewModel>();
 
-      if (vm.selectedChildId == null) {
+      final memories = memoryVm.memoriesOfSelectedDay;
+      final schedules = scheduleVm.schedules;
+      final total = memories.length + schedules.length;
+
+      if (scheduleVm.selectedChildId == null) {
         return const Center(child: Text('Vui lòng chọn bé', style: AppTextStyles.body));
       }
 
-      if (vm.isLoading) {
+      if (scheduleVm.isLoading) {
         return const Center(child: CircularProgressIndicator());
       }
 
-      if (vm.error != null) {
-        return Center(child: Text(vm.error!));
+      if (scheduleVm.error != null) {
+        return Center(child: Text(scheduleVm.error!));
       }
 
-      if (vm.schedules.isEmpty) {
+      if (memories.isEmpty && schedules.isEmpty) {
         return const Center(
           child: Text('Không có lịch trong ngày', style: AppTextStyles.body),
         );
@@ -36,14 +44,27 @@
         builder: (screenContext) {
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            itemCount: vm.schedules.length,
-            itemBuilder: (_, i) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: ScheduleItem(
-                schedule: vm.schedules[i],
-                screenContext: screenContext, // ✅ context ổn định
-              ),
-            ),
+            itemCount: total,
+            itemBuilder: (_, i) {
+              if (i < memories.length) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: MemoryDayItem(
+                    memory: memories[i],
+                    screenContext: screenContext,
+                  ),
+                );
+              }
+
+              final sIndex = i - memories.length;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: ScheduleItem(
+                  schedule: schedules[sIndex],
+                  screenContext: screenContext,
+                ),
+              );
+            },
           );
         },
       );
@@ -106,7 +127,7 @@
                 ),
                 const SizedBox(width: 10),
                 _ActionIcon(
-                  asset: 'assets/images/ic_delete.png',
+                  asset: 'assets/icons/delete.png',
                   onTap: () => _deleteSchedule(screenContext),
                 ),
               ],
@@ -179,6 +200,113 @@
       }
     }
   }
+  class MemoryDayItem extends StatelessWidget {
+  final MemoryDay memory;
+  final BuildContext screenContext;
+
+  const MemoryDayItem({
+    super.key,
+    required this.memory,
+    required this.screenContext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7D6), // vàng nhạt
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.star, size: 16, color: Color(0xFFF4B400)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  memory.title,
+                  style: AppTextStyles.scheduleItemTitle,
+                ),
+              ),
+              _ActionIcon(
+                asset: 'assets/images/edit.png',
+                width: 18,
+                height: 18,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: screenContext,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    barrierColor: Colors.black.withValues(alpha: 0.3),
+                    builder: (_) => FractionallySizedBox(
+                      heightFactor: 0.6,
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: MediaQuery.of(screenContext).viewInsets.bottom),
+                        child: MemoryDaySheet(memory: memory),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 10),
+              _ActionIcon(
+                asset: 'assets/icons/delete.png',
+                onTap: () => _deleteMemory(screenContext),
+              ),
+            ],
+          ),
+          if ((memory.note ?? '').isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(memory.note!, style: AppTextStyles.scheduleItemTime),
+          ],
+          const SizedBox(height: 6),
+          if (memory.repeatYearly)
+            const Text(
+              'Lặp lại hàng năm',
+              style: TextStyle(fontSize: 12, color: Color(0xFF8A6D00)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteMemory(BuildContext context) async {
+    final vm = context.read<MemoryDayViewModel>();
+    final vmMemory = context.read<ScheduleViewModel>();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Xóa kỷ niệm'),
+        content: const Text('Bạn có chắc muốn xóa?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    await vm.deleteMemory(memory.id);
+    await vm.loadMonth(); // reload list
+  }
+}
 
   class _ActionIcon extends StatelessWidget {
     final String asset;
