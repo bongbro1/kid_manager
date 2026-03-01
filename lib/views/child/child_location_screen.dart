@@ -56,6 +56,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   Widget build(BuildContext context) {
     final vm = context.watch<ChildLocationViewModel>();
     final familyId = context.watch<UserVm>().familyId;
+    final myUid = context.select<UserVm, String?>((vm) => vm.me?.uid);
 
     return Stack(
       children: [
@@ -177,7 +178,18 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
             child: _ErrorBanner(message: vm.error!),
           ),
 
-        if (familyId != null) IncomingSosOverlay(familyId: familyId),
+        // Overlay ổn định: chỉ rebuild khi familyId đổi
+        if (familyId != null && myUid != null)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 110,
+            child: IncomingSosOverlay(
+              key: ValueKey('sos-$familyId'),
+              familyId: familyId,
+              myUid: myUid,
+            ),
+          ),
       ],
     );
   }

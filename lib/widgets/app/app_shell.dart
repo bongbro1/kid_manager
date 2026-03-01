@@ -88,6 +88,8 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final tabs = List.generate(_config.tabs.length, (i) => _buildTab(i));
+    final familyId = context.select<UserVm, String?>((vm) => vm.familyId);
+    final myUid = context.select<UserVm, String?>((vm) => vm.me?.uid);
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -104,14 +106,13 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
 
-          // ✅ Overlay global (tab nào cũng thấy)
-          Builder(
-            builder: (context) {
-              final familyId = context.watch<UserVm>().familyId;
-              if (familyId == null) return const SizedBox.shrink();
-              return IncomingSosOverlay(familyId: familyId);
-            },
-          ),
+
+          if (familyId != null && myUid != null)
+            IncomingSosOverlay(
+              key: ValueKey('sos-$familyId'),
+              familyId: familyId,
+                myUid:myUid,
+            ),
         ],
       ),
     );

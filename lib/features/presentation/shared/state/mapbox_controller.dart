@@ -1,32 +1,48 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
-import 'dart:ui' as ui; // Sử dụng ui của Flutter thay vì thư viện image ngoàiimport 'package:image/image.dart' as img;
-import 'package:image/image.dart' as img;
+
 class MapboxController extends ChangeNotifier {
   mbx.MapboxMap? _map;
   bool _styleReady = false;
-  final Map<String, Uint8List> _avatarCache = {};
-  final Map<String, mbx.Position> _currentPositions = {};
   bool get isReady => _styleReady;
+
   Timer? _debounce;
 
-  static const String defaultAvatarId = "default_avatar";
-  // ================= ATTACH =================
+  /// Cache avatar bytes theo id (child uid)
+  final Map<String, Uint8List> _avatarCache = {};
+
+  /// Lưu positions hiện tại để zoomToChild
+  final Map<String, mbx.Position> _currentPositions = {};
+
+  /// Track style images đã add cho style hiện tại (vì v2.18.0 không có styleImageExists)
+  final Set<String> _addedStyleImages = <String>{};
+
+  static const String defaultAvatarId = "default_avatar_location";
+
+  // ================= ATTACH / DETACH =================
 
   void attach(mbx.MapboxMap map) {
     _map = map;
   }
 
   void detach() {
+    _debounce?.cancel();
     _styleReady = false;
+
+    // style thay đổi -> images coi như mất
+    _addedStyleImages.clear();
 
     _map = null;
     notifyListeners();
   }
 
+  // ================= UPDATE (debounce) =================
 
   void scheduleUpdate({
     required Map<String, mbx.Position> positions,
@@ -34,7 +50,6 @@ class MapboxController extends ChangeNotifier {
     required Map<String, String> names,
   }) {
     _debounce?.cancel();
-
     _debounce = Timer(const Duration(milliseconds: 60), () {
       updateChildren(
         positions: positions,
@@ -47,161 +62,221 @@ class MapboxController extends ChangeNotifier {
   // ================= STYLE =================
 
   Future<void> onStyleLoaded() async {
-    if (_map == null) return;
-    final map = _map!;
+    final map = _map;
+    if (map == null) return;
 
-    // 1️⃣ Source
-    await map.style.addSource(
-      mbx.GeoJsonSource(
-        id: "children-source",
-        cluster: true,
-        clusterRadius: 60,
-        clusterMaxZoom: 14,
-        data: jsonEncode({
-          "type": "FeatureCollection",
-          "features": [],
-        }),
-      ),
-    );
+    // style mới -> images cũ không còn
+    _addedStyleImages.clear();
 
-    // 2️⃣ Cluster circle
-    await map.style.addLayer(
-      mbx.CircleLayer(
-        id: "cluster-layer",
-        sourceId: "children-source",
-        filter: ["has", "point_count"],
-        circleRadius: 26,
-        circleColor: 0xFF1976D2,
-      ),
-    );
+    // 1) Source
+    final hasSource = await map.style.styleSourceExists("children-source");
+    if (!hasSource) {
+      await map.style.addSource(
+        mbx.GeoJsonSource(
+          id: "children-source",
+          cluster: true,
+          clusterRadius: 60,
+          clusterMaxZoom: 14,
+          data: jsonEncode({"type": "FeatureCollection", "features": []}),
+        ),
+      );
+    }
 
-    // 3️⃣ Cluster text
-    await map.style.addLayer(
-      mbx.SymbolLayer(
-        id: "cluster-count",
-        sourceId: "children-source",
-        filter: ["has", "point_count"],
-        textField: "{point_count}",
-        textSize: 14,
-        textColor: 0xFFFFFFFF,
-      ),
-    );
+    // 2) Cluster circle
+    final hasClusterLayer = await map.style.styleLayerExists("cluster-layer");
+    if (!hasClusterLayer) {
+      await map.style.addLayer(
+        mbx.CircleLayer(
+          id: "cluster-layer",
+          sourceId: "children-source",
+          filter: ["has", "point_count"],
+          circleRadius: 26,
+          circleColor: 0xFF1976D2,
+        ),
+      );
+    }
 
-    // 4️⃣ Avatar layer (NON-CLUSTER)
-    await map.style.addLayer(
-      mbx.SymbolLayer(
-        id: "children-layer",
-        sourceId: "children-source",
-        filter: ["!", ["has", "point_count"]],
-        iconImageExpression: ["get", "avatar_id"],
-        iconSizeExpression: [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          5, 0.6,
-          10, 0.9,
-          16, 1.2
-        ],
-        iconRotateExpression: ["get", "heading"],
-        iconAllowOverlap: true,
-        textFieldExpression: ["get", "name"],
-        textSize: 12,
-        textOffset: [0, 2],
-        textColor: 0xFF000000,
-        textAllowOverlap: true,
-      ),
-    );
+    // 3) Cluster count text
+    final hasClusterCount = await map.style.styleLayerExists("cluster-count");
+    if (!hasClusterCount) {
+      await map.style.addLayer(
+        mbx.SymbolLayer(
+          id: "cluster-count",
+          sourceId: "children-source",
+          filter: ["has", "point_count"],
+          textField: "{point_count}",
+          textSize: 14,
+          textColor: 0xFFFFFFFF,
+        ),
+      );
+    }
+
+    // 4) Children layer (non-cluster)
+    final hasChildrenLayer = await map.style.styleLayerExists("children-layer");
+    if (!hasChildrenLayer) {
+      await map.style.addLayer(
+        mbx.SymbolLayer(
+          id: "children-layer",
+          sourceId: "children-source",
+          filter: ["!", ["has", "point_count"]],
+          iconImageExpression: ["get", "avatar_id"],
+          iconSizeExpression: [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            5, 0.6,
+            10, 0.9,
+            16, 1.2
+          ],
+          iconRotateExpression: ["get", "heading"],
+          iconAllowOverlap: true,
+          textFieldExpression: ["get", "name"],
+          textSize: 12,
+          textOffset: [0, 2],
+          textColor: 0xFF000000,
+          textAllowOverlap: true,
+        ),
+      );
+    }
 
     _styleReady = true;
     notifyListeners();
   }
 
-  // ================= PRELOAD AVATAR =================
+  // ================= IMAGE HELPERS (dart:ui) =================
+
+  Future<mbx.MbxImage?> _convertToMbxImage(Uint8List pngBytes) async {
+    try {
+      final codec = await ui.instantiateImageCodec(pngBytes);
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+
+      final bd = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (bd == null) return null;
+
+      final rgba = bd.buffer.asUint8List();
+      final expected = image.width * image.height * 4;
+      if (rgba.lengthInBytes != expected) return null;
+
+      return mbx.MbxImage(width: image.width, height: image.height, data: rgba);
+    } catch (e) {
+      debugPrint("🔥 _convertToMbxImage failed: $e");
+      return null;
+    }
+  }
+
+  // ================= DEFAULT AVATAR =================
+
+  Future<void> setDefaultAvatar(Uint8List encodedBytes) async {
+    final map = _map;
+    if (map == null) return;
+
+    // tránh add lại
+    if (_addedStyleImages.contains(defaultAvatarId)) return;
+
+    try {
+      final size = await _decodeSize(encodedBytes);
+      if (size == null) return;
+
+      // chờ style loaded
+      for (int attempt = 1; attempt <= 3; attempt++) {
+        final loaded = await map.style.isStyleLoaded();
+        if (!loaded) {
+          await Future.delayed(const Duration(milliseconds: 120));
+          continue;
+        }
+
+        await map.style.addStyleImage(
+          defaultAvatarId,
+          1.0,
+          mbx.MbxImage(
+            width: size.w,
+            height: size.h,
+            data: encodedBytes, // ✅ PNG/JPG/WebP bytes
+          ),
+          false,
+          [],
+          [],
+          null,
+        );
+
+        _addedStyleImages.add(defaultAvatarId);
+        debugPrint("✅ DEFAULT AVATAR ADDED (ENCODED) w=${size.w} h=${size.h}");
+        return;
+      }
+    } catch (e, st) {
+      debugPrint("🔥 setDefaultAvatar(ENCODED) FAILED: $e");
+      debugPrint("$st");
+    }
+  }
+
+  Future<({int w, int h})?> _decodeSize(Uint8List bytes) async {
+    try {
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final img = frame.image;
+      return (w: img.width, h: img.height);
+    } catch (e) {
+      debugPrint("🔥 _decodeSize failed: $e");
+      return null;
+    }
+  }
+  // ================= PRELOAD AVATARS =================
 
   Future<void> preloadAvatars(Map<String, Uint8List> avatars) async {
-    if (_map == null) return;
+    final map = _map;
+    if (map == null) return;
 
-    for (final entry in avatars.entries) {
-      final mbxImg = await _convertToMbxImage(entry.value);
-      if (mbxImg != null && _map != null) {
-        _avatarCache[entry.key] = entry.value;
-        await _map!.style.addStyleImage(entry.key, 1.0, mbxImg, false, [], [], null);
+    for (final e in avatars.entries) {
+      final id = e.key;
+      final bytes = e.value;
+
+      if (_addedStyleImages.contains(id)) continue;
+
+      try {
+        final size = await _decodeSize(bytes);
+        if (size == null) continue;
+
+        await map.style.addStyleImage(
+          id,
+          1.0,
+          mbx.MbxImage(width: size.w, height: size.h, data: bytes), // ✅ encoded
+          false,
+          [],
+          [],
+          null,
+        );
+
+        _addedStyleImages.add(id);
+        _avatarCache[id] = bytes;
+        debugPrint("✅ avatar $id added w=${size.w} h=${size.h}");
+      } catch (err) {
+        debugPrint("🔥 preload avatar $id failed: $err");
       }
     }
   }
 
+  // ================= UPDATE SOURCE =================
 
-
-// mapbox_controller.dart
-
-  Future<mbx.MbxImage?> _convertToMbxImage(Uint8List bytes) async {
-    // Dùng package 'image' thay vì dart:ui để đảm bảo RGBA đúng format
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) return null;
-
-    // Chuyển sang RGBA8888
-    final rgba = img.Image.from(decoded)..convert(numChannels: 4);
-    final rgbaBytes = rgba.getBytes(order: img.ChannelOrder.rgba);
-
-    return mbx.MbxImage(
-      width: rgba.width,
-      height: rgba.height,
-      data: Uint8List.fromList(rgbaBytes),
-    );
-  }
-
-  Future<void> setDefaultAvatar(Uint8List pngBytes) async {
-    if (_map == null) return;
-    try {
-      // ✅ Decode + convert TRƯỚC, trên Dart isolate
-      final decoded = img.decodeImage(pngBytes);
-      if (decoded == null) return;
-
-      final rgba = decoded.convert(numChannels: 4);
-      final rgbaBytes = Uint8List.fromList(
-          rgba.getBytes(order: img.ChannelOrder.rgba)
-      );
-
-      // ✅ Đảm bảo gọi trên main thread bằng cách wrap vào Future.microtask
-      await Future.microtask(() async {
-        if (_map == null) return;
-
-        // Double-check style loaded
-        final loaded = await _map!.style.isStyleLoaded();
-        if (!loaded) {
-          debugPrint("❌ Style chưa load");
-          return;
-        }
-
-        await _map!.style.addStyleImage(
-          defaultAvatarId,
-          1.0,
-          mbx.MbxImage(
-            width: rgba.width,
-            height: rgba.height,
-            data: rgbaBytes, // raw RGBA
-          ),
-          false, [], [], null,
-        );
-        debugPrint("✅ DEFAULT IMAGE ADDED OK");
-      });
-    } catch (e, stack) {
-      debugPrint("🔥 addStyleImage FAILED: $e\n$stack");
-    }
-  }
   Future<void> updateChildren({
     required Map<String, mbx.Position> positions,
     required Map<String, double> headings,
     required Map<String, String> names,
   }) async {
-    if (_map == null || !_styleReady) return;
+    final map = _map;
+    if (map == null || !_styleReady) return;
+
     _currentPositions
       ..clear()
       ..addAll(positions);
+
     final features = positions.entries.map((entry) {
       final id = entry.key;
       final pos = entry.value;
-      debugPrint("avatar_id used: ${_avatarCache.containsKey(id) ? id : defaultAvatarId}");
+
+      // Nếu chưa có avatar riêng thì dùng defaultAvatarId
+      final avatarId = _avatarCache.containsKey(id) ? id : defaultAvatarId;
+
       return {
         "type": "Feature",
         "geometry": {
@@ -209,18 +284,15 @@ class MapboxController extends ChangeNotifier {
           "coordinates": [pos.lng, pos.lat],
         },
         "properties": {
-          "id":id,
-          "avatar_id": _avatarCache.containsKey(id)
-              ? id
-              :defaultAvatarId,
+          "id": id,
+          "avatar_id": avatarId,
           "heading": headings[id] ?? 0,
           "name": names[id] ?? "",
         }
       };
     }).toList();
 
-    final source = await _map!.style.getSource("children-source");
-
+    final source = await map.style.getSource("children-source");
     if (source is mbx.GeoJsonSource) {
       await source.updateGeoJSON(
         jsonEncode({
@@ -231,19 +303,23 @@ class MapboxController extends ChangeNotifier {
     }
   }
 
+  // ================= CAMERA =================
+
   Future<int> zoomToChild(String childId) async {
-    if (_map == null) return 0;
+    final map = _map;
+    if (map == null) return 0;
 
     final pos = _currentPositions[childId];
     if (pos == null) return 0;
 
-    const duration = 1200;
+    const duration = 900;
 
-    await _map!.flyTo(
+    // easeTo mượt hơn flyTo, ít “bay từ trái đất”
+    await map.easeTo(
       mbx.CameraOptions(
         center: mbx.Point(coordinates: pos),
-        zoom: 17.5,
-        pitch: 40,
+        zoom: 17,
+        pitch: 30,
       ),
       mbx.MapAnimationOptions(duration: duration),
     );
@@ -251,10 +327,9 @@ class MapboxController extends ChangeNotifier {
     return duration;
   }
 
-  // ================= FIT =================
-
   Future<void> fitPoints(List<mbx.Position> positions) async {
-    if (_map == null || positions.isEmpty) return;
+    final map = _map;
+    if (map == null || positions.isEmpty) return;
 
     num minLat = positions.first.lat;
     num maxLat = positions.first.lat;
@@ -268,7 +343,8 @@ class MapboxController extends ChangeNotifier {
       if (p.lng > maxLng) maxLng = p.lng;
     }
 
-    await _map!.flyTo(
+    // setCamera: không “bay từ ngoài không gian”
+    await map.setCamera(
       mbx.CameraOptions(
         center: mbx.Point(
           coordinates: mbx.Position(
@@ -278,7 +354,6 @@ class MapboxController extends ChangeNotifier {
         ),
         zoom: 13,
       ),
-      mbx.MapAnimationOptions(duration: 1200),
     );
   }
 }

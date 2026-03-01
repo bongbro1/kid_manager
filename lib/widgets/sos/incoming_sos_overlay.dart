@@ -9,7 +9,13 @@ import 'package:provider/provider.dart';
 
 class IncomingSosOverlay extends StatefulWidget {
   final String familyId;
-  const IncomingSosOverlay({super.key, required this.familyId});
+  final String myUid;
+
+  const IncomingSosOverlay({
+    super.key,
+    required this.familyId,
+    required this.myUid,
+  });
 
   @override
   State<IncomingSosOverlay> createState() => _IncomingSosOverlayState();
@@ -23,45 +29,102 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   @override
   void initState() {
     super.initState();
+    debugPrint("OVERLAY initState familyId=${widget.familyId} hash=${hashCode}");
 
-    _sub = FirebaseFirestore.instance
-        .collection('families/${widget.familyId}/sos')
-        .where('status', isEqualTo: 'active')
-        // .orderBy('createdAt', descending: true)
-        .limit(1)
-        .snapshots()
-        .listen((qs) async {
-          if (!mounted) return;
+    _subscribe();
+  }
 
-          if (qs.docs.isEmpty) {
-            if (_ringing) {
-              _ringing = false;
-              await SosAlarmPlayer.instance.stop();
-            }
-            setState(() => _doc = null);
-            return;
+  void _subscribe() {
+    // huỷ stream cũ nếu có (an toàn khi gọi lại)
+    _sub?.cancel();
+    _sub = null;
+
+    try {
+      final q = FirebaseFirestore.instance
+          .collection('families')
+          .doc(widget.familyId)
+          .collection('sos')
+          .where('status', isEqualTo: 'active')
+          .orderBy('createdAt', descending: true)
+          .limit(1);
+        print("Vào đến đây 1 $q");
+
+      _sub = q.snapshots().listen((qs) async {
+        if (!mounted) return;
+
+        if (qs.docs.isEmpty) {
+          if (_ringing) {
+            _ringing = false;
+            await SosAlarmPlayer.instance.stop();
+          }
+          setState(() => _doc = null);
+          return;
+        }
+
+        final doc = qs.docs.first;
+        final data = doc.data() ?? {};
+        final createdBy = data['createdBy']?.toString();
+
+
+        if (createdBy == widget.myUid) {
+          if (_ringing) {
+            _ringing = false;
+            await SosAlarmPlayer.instance.stop();
+          }
+          if (mounted) setState(() => _doc = null);
+          return;
+        }
+
+        setState(() => _doc = doc);
+
+        if (!_ringing) {
+          _ringing = true;
+          await SosAlarmPlayer.instance.startLoop();
+        }
+      },
+        onError: (Object error, StackTrace st) async {
+          //  BẮT LỖI THẬT SỰ TỪ FIRESTORE Ở ĐÂY
+          debugPrint(' IncomingSosOverlay stream error: $error');
+          debugPrint(' stack: $st');
+
+          if (error is FirebaseException) {
+            debugPrint(' FirebaseException code=${error.code}');
+            debugPrint(' message=${error.message}');
+            // Ví dụ: permission-denied, failed-precondition (missing index), unavailable...
           }
 
-          final doc = qs.docs.first;
-          setState(() => _doc = doc);
-
-          if (!_ringing) {
-            _ringing = true;
-            await SosAlarmPlayer.instance.startLoop();
+          // reset UI + stop ringing để khỏi kẹt
+          if (mounted) setState(() => _doc = null);
+          if (_ringing) {
+            _ringing = false;
+            await SosAlarmPlayer.instance.stop();
           }
-        });
+        },
+        cancelOnError: false,
+      );
+    } catch (e, st) {
+      //  BẮT LỖI SYNC (ví dụ: query invalid, assert fail)
+      debugPrint(' IncomingSosOverlay subscribe() threw: $e');
+      debugPrint(' stack: $st');
+    }
   }
 
   @override
-  void dispose() {
-    _sub?.cancel();
-    SosAlarmPlayer.instance.stop();
-    super.dispose();
+  void didUpdateWidget(covariant IncomingSosOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.familyId != widget.familyId) {
+      _doc = null;
+      _ringing = false;
+      _subscribe(); // resubscribe theo familyId mới
+    }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
     final doc = _doc;
+    debugPrint("SOS OVERLAY BUILD doc=${doc?.id}");
     if (doc == null) return const SizedBox.shrink();
 
     final sosId = doc.id;
@@ -151,5 +214,16 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
         ),
       ),
     );
+  }
+
+
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    SosAlarmPlayer.instance.stop();
+    debugPrint("OVERLAY dispose familyId=${widget.familyId} hash=${hashCode}");
+
+    super.dispose();
   }
 }
