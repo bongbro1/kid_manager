@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/utils/date_utils.dart';
+import 'package:kid_manager/utils/statical_utils.dart';
 import 'package:kid_manager/utils/usage_rule.dart';
 import 'package:usage_stats/usage_stats.dart';
 
@@ -149,33 +150,12 @@ class AppManagementRepository {
     final day = DateTime.now();
     final start = startOfDay(day);
     final end = day;
+    final key = dayKey(day);
 
     final stats = await UsageStats.queryUsageStats(start, end);
 
-    // const target = 'com.example.kid_manager';
-
-    // debugPrint('--- RANGE ---');
-    // debugPrint('start=$start  (${start.millisecondsSinceEpoch})');
-    // debugPrint('end  =$end    (${end.millisecondsSinceEpoch})');
-    // debugPrint('diffHours=${end.difference(start).inMinutes / 60}');
-
-    // final rows = stats.where((e) => e.packageName == target).toList();
-    // debugPrint('--- $target rows=${rows.length} ---');
-
-    // for (final r in rows) {
-    //   debugPrint(
-    //     'pkg=${r.packageName} '
-    //     'totalFG=${r.totalTimeInForeground} '
-    //     'lastUsed=${r.lastTimeUsed} '
-    //     'first=${r.firstTimeStamp} '
-    //     'last=${r.lastTimeStamp}',
-    //   );
-    // }
-
-    // aggregate per package
     final Map<String, int> usageMsByPkg = {};
     final Map<String, int> lastUsedByPkg = {};
-    const selfPkg = 'com.example.kid_manager';
 
     for (final s in stats) {
       final pkg = s.packageName;
@@ -185,6 +165,7 @@ class AppManagementRepository {
       final last = int.tryParse(s.lastTimeUsed ?? '') ?? 0;
 
       usageMsByPkg[pkg] = (usageMsByPkg[pkg] ?? 0) + ms;
+
       if (last > (lastUsedByPkg[pkg] ?? 0)) {
         lastUsedByPkg[pkg] = last;
       }
@@ -197,7 +178,7 @@ class AppManagementRepository {
         .get();
 
     final batch = db.batch();
-    final key = dayKey(day);
+
     for (final doc in appsSnap.docs) {
       final pkg = doc.id;
 
@@ -206,12 +187,17 @@ class AppManagementRepository {
 
       final dailyRef = doc.reference.collection('usage_daily').doc(key);
 
+      /// 🔥 upgraded daily doc
       batch.set(dailyRef, {
+        "userId": userId,
+        "package": pkg,
+        "dateKey": key,
         "date": Timestamp.fromDate(start),
         "usageMs": usageMs,
         "updatedAt": FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
+      /// app snapshot
       batch.set(doc.reference, {
         "todayUsageMs": usageMs,
         "todayLastSeen": lastUsedMs > 0
@@ -226,43 +212,205 @@ class AppManagementRepository {
     await batch.commit();
   }
 
-  Future<Map<DateTime, int>> loadUsageHistory(String userId) async {
-    final Map<DateTime, int> result = {};
+  Future<UsageHistoryResult> loadUsageHistory(String userId) async {
+    final totalResult = <DateTime, int>{};
+    final perAppResult = <String, Map<DateTime, int>>{};
 
     try {
-      debugPrint("📥 loadUsageHistory START for child = $userId");
+      final snapshot = await db
+          .collection("blocked_items")
+          .doc(userId)
+          .collection("usage_daily_flat")
+          .get();
 
-      final appsSnapshot = await db
+      for (final doc in snapshot.docs) {
+        try {
+          final date = _parseLocalDate(doc.id);
+          final data = doc.data();
+
+          /// TOTAL
+          final total = (data["totalMinutes"] ?? 0) as int;
+          totalResult[date] = total;
+
+          /// PER APP
+          final apps = (data["apps"] ?? {}) as Map<String, dynamic>;
+
+          apps.forEach((pkg, minutes) {
+            perAppResult.putIfAbsent(pkg, () => {});
+            perAppResult[pkg]![date] = minutes as int;
+          });
+        } catch (e) {
+          debugPrint("⚠️ Skip invalid flat doc: ${doc.id}");
+        }
+      }
+
+      // debugPrint(
+      //   "📊 FLAT usage loaded: totalDays=${totalResult.length}, apps=${perAppResult.length}",
+      // );
+    } catch (e) {
+      debugPrint("❌ loadUsageHistory ERROR: $e");
+    }
+
+    return UsageHistoryResult(
+      totalUsage: totalResult,
+      perAppUsage: perAppResult,
+    );
+  }
+
+  Future<void> rebuildUsageDailyFlat(String userId) async {
+    try {
+      debugPrint("🔄 rebuildUsageDailyFlat START for $userId");
+
+      final appsSnap = await db
           .collection("blocked_items")
           .doc(userId)
           .collection("apps")
           .get();
 
-      for (final appDoc in appsSnapshot.docs) {
-        final usageSnapshot = await appDoc.reference
-            .collection("usage_daily")
-            .get();
+      final Map<String, Map<String, int>> dailyApps = {};
+      final Map<String, int> dailyTotal = {};
 
-        for (final doc in usageSnapshot.docs) {
-          final date = DateTime.parse(doc.id);
+      final chunks = chunkList(appsSnap.docs, 20);
 
-          final usageMs = (doc.data()["usageMs"] ?? 0) as int;
-          final minutes = (usageMs / 60000).round();
+      for (final batch in chunks) {
+        final futures = batch.map(
+          (appDoc) => appDoc.reference.collection("usage_daily").get(),
+        );
 
-          result.update(
-            date,
-            (value) => value + minutes,
-            ifAbsent: () => minutes,
-          );
+        final results = await Future.wait(futures);
+
+        for (final usageSnap in results) {
+          for (final doc in usageSnap.docs) {
+            final data = doc.data();
+
+            final String? package = data["package"];
+            final String? dateKey = data["dateKey"];
+            final int usageMs = data["usageMs"] ?? 0;
+
+            if (package == null || dateKey == null) continue;
+
+            final minutes = (usageMs / 60000).round();
+            if (minutes <= 0) continue;
+
+            dailyApps.putIfAbsent(dateKey, () => {});
+            dailyApps[dateKey]!.update(
+              package,
+              (v) => v + minutes,
+              ifAbsent: () => minutes,
+            );
+
+            dailyTotal.update(
+              dateKey,
+              (v) => v + minutes,
+              ifAbsent: () => minutes,
+            );
+          }
         }
       }
 
-      debugPrint("📊 Usage map loaded: ${result.length} days");
+      final batchWrite = db.batch();
+      final flatRef = db
+          .collection("blocked_items")
+          .doc(userId)
+          .collection("usage_daily_flat");
+
+      dailyApps.forEach((dateKey, apps) {
+        batchWrite.set(flatRef.doc(dateKey), {
+          "totalMinutes": dailyTotal[dateKey] ?? 0,
+          "apps": apps,
+          "updatedAt": FieldValue.serverTimestamp(),
+        });
+      });
+
+      await batchWrite.commit();
+
+      debugPrint("✅ rebuildUsageDailyFlat DONE (${dailyApps.length} days)");
     } catch (e) {
-      debugPrint("❌ loadUsageHistory ERROR: $e");
+      debugPrint("❌ rebuildUsageDailyFlat ERROR: $e");
+    }
+  }
+
+  List<List<T>> chunkList<T>(List<T> list, int size) {
+    final chunks = <List<T>>[];
+    for (var i = 0; i < list.length; i += size) {
+      chunks.add(
+        list.sublist(i, i + size > list.length ? list.length : i + size),
+      );
+    }
+    return chunks;
+  }
+  // Future<UsageHistoryResult> loadUsageHistory(String userId) async {
+  //   final Map<DateTime, int> totalResult = {};
+  //   final Map<String, Map<DateTime, int>> perAppResult = {};
+
+  //   try {
+  //     debugPrint("📥 loadUsageHistory START for child = $userId");
+
+  //     final appsSnapshot = await db
+  //         .collection("blocked_items")
+  //         .doc(userId)
+  //         .collection("apps")
+  //         .get();
+
+  //     for (final appDoc in appsSnapshot.docs) {
+  //       final packageName = appDoc.id;
+  //       final Map<DateTime, int> perAppMap = {};
+
+  //       final usageSnapshot = await appDoc.reference
+  //           .collection("usage_daily")
+  //           .get();
+
+  //       for (final doc in usageSnapshot.docs) {
+  //         try {
+  //           final date = _parseLocalDate(doc.id);
+
+  //           final int usageMs = (doc.data()["usageMs"] ?? 0) as int;
+  //           final int minutes = (usageMs / 60000).round();
+
+  //           /// per app
+  //           perAppMap.update(
+  //             date,
+  //             (value) => value + minutes,
+  //             ifAbsent: () => minutes,
+  //           );
+
+  //           /// total
+  //           totalResult.update(
+  //             date,
+  //             (value) => value + minutes,
+  //             ifAbsent: () => minutes,
+  //           );
+  //         } catch (e) {
+  //           debugPrint("⚠️ Skip invalid doc: ${doc.id}");
+  //         }
+  //       }
+
+  //       perAppResult[packageName] = perAppMap;
+  //     }
+
+  //     debugPrint(
+  //       "📊 Usage loaded: totalDays=${totalResult.length}, apps=${perAppResult.length}",
+  //     );
+  //   } catch (e) {
+  //     debugPrint("❌ loadUsageHistory ERROR: $e");
+  //   }
+
+  //   return UsageHistoryResult(
+  //     totalUsage: totalResult,
+  //     perAppUsage: perAppResult,
+  //   );
+  // }
+
+  DateTime _parseLocalDate(String id) {
+    if (id.length != 8) {
+      throw Exception("Invalid date id: $id");
     }
 
-    return result;
+    final year = int.parse(id.substring(0, 4));
+    final month = int.parse(id.substring(4, 6));
+    final day = int.parse(id.substring(6, 8));
+
+    return DateTime(year, month, day);
   }
 }
 

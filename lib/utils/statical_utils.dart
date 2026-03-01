@@ -9,12 +9,20 @@ class ChartPoint {
   ChartPoint({required this.label, required this.minutes});
 }
 
+class UsageHistoryResult {
+  final Map<DateTime, int> totalUsage;
+  final Map<String, Map<DateTime, int>> perAppUsage;
+
+  UsageHistoryResult({required this.totalUsage, required this.perAppUsage});
+}
+
 class ChartBarUi {
   final String label;
   final double uiHeight;
   final double valueHeight;
   final bool isToday;
   final bool isFuture;
+  final int minutes;
 
   ChartBarUi({
     required this.label,
@@ -22,6 +30,7 @@ class ChartBarUi {
     required this.valueHeight,
     required this.isToday,
     required this.isFuture,
+    required this.minutes,
   });
 }
 
@@ -35,8 +44,8 @@ class ChartUiBuilder {
 
       final normalized = max == 0 ? 0.0 : p.minutes / max.toDouble();
 
-      final uiHeight = 60 + (normalized * 100);
-      final valueHeight = uiHeight * 0.75;
+      final uiHeight = 160.0;
+      final valueHeight = normalized * uiHeight + 2;
 
       final isToday = _isToday(i, mode, now);
       final isFuture = _isFuture(i, mode, now);
@@ -47,6 +56,7 @@ class ChartUiBuilder {
         valueHeight: valueHeight,
         isToday: isToday,
         isFuture: isFuture,
+        minutes: p.minutes,
       );
     });
   }

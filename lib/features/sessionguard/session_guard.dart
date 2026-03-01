@@ -43,7 +43,7 @@ class _SessionGuardState extends State<SessionGuard> {
         final uid = session.user?.uid;
         final isParent = session.isParent;
 
-        debugPrint('[GUARD] status=$status uid=$uid isParent=$isParent');
+        // debugPrint('[GUARD] status=$status uid=$uid isParent=$isParent');
 
         final shouldTriggerChildrenWatch =
             status == SessionStatus.authenticated &&

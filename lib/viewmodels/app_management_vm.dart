@@ -27,10 +27,17 @@ class AppManagementVM extends ChangeNotifier {
   Map<DateTime, int> _usageMap = {};
   Map<DateTime, int> get usageMap => _usageMap;
 
+  // cho từng app
+  Map<String, Map<DateTime, int>> _appUsageMap = {};
+  Map<String, Map<DateTime, int>> get appUsageMap => _appUsageMap;
+
   List<ChildItem> children = [];
 
   String? _selectedChildId;
   String? get selectedChildId => _selectedChildId;
+
+  int _usageVersion = 0;
+  int get usageVersion => _usageVersion;
 
   Future<void> selectChild(String uid) async {
     if (_selectedChildId == uid) return;
@@ -48,6 +55,7 @@ class AppManagementVM extends ChangeNotifier {
       return;
     }
     await loadApps(_selectedChildId!);
+    await rebuildUsageFlat();
     await loadUsageHistory();
   }
 
@@ -174,28 +182,27 @@ class AppManagementVM extends ChangeNotifier {
   }
 
   Future<void> loadUsageHistory() async {
-    if (_selectedChildId == null) {
-      debugPrint("⚠️ loadUsageHistory: selectedChildId NULL");
-      return;
-    }
+    if (_selectedChildId == null) return;
 
     debugPrint("📥 loadUsageHistory START for child = $_selectedChildId");
 
     try {
-      final map = await _repo.loadUsageHistory(_selectedChildId!);
+      final result = await _repo.loadUsageHistory(_selectedChildId!);
 
-      debugPrint("📊 RAW usageMap from repo:");
-      map.forEach((k, v) {
-        debugPrint("  ${k.toIso8601String()} -> $v min");
-      });
+      _usageMap = result.totalUsage;
+      _appUsageMap = result.perAppUsage;
 
-      _usageMap = map;
+      // debugPrint("📊 TOTAL usage:");
+      // _usageMap.forEach((k, v) {
+      //   debugPrint("  ${k.toIso8601String()} -> $v min");
+      // });
 
-      debugPrint("✅ usageMap assigned to VM:");
-      _usageMap.forEach((k, v) {
-        debugPrint("  ${k.toIso8601String()} -> $v min");
-      });
+      // debugPrint("📱 PER APP usage:");
+      // _appUsageMap.forEach((app, map) {
+      //   debugPrint("  $app -> ${map.length} days");
+      // });
 
+      _usageVersion++;
       notifyListeners();
     } catch (e, stack) {
       debugPrint("❌ loadUsageHistory ERROR: $e");
@@ -203,5 +210,10 @@ class AppManagementVM extends ChangeNotifier {
     }
 
     debugPrint("📤 loadUsageHistory END");
+  }
+
+  Future<void> rebuildUsageFlat() async {
+    if (_selectedChildId == null) return;
+    await _repo.rebuildUsageDailyFlat(_selectedChildId!);
   }
 }

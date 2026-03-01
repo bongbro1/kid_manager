@@ -111,3 +111,14 @@ String formatDuration(int ms) {
   }
   return "${minutes}m";
 }
+
+String formatMinutes(int minutes) {
+  if (minutes <= 0) return "0m";
+
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+
+  if (h == 0) return "${m}m";
+  if (m == 0) return "${h}h";
+  return "${h}h ${m}m";
+}

@@ -76,12 +76,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
 
     _lastLoadAt = now;
     await vm.loadProfile();
-
-    // debugPrint(">>> PROFILE LOADED");
-    // debugPrint("Profile: ${vm.profile}");
-    // debugPrint("Avatar: ${vm.profile?.avatarUrl}");
-    // debugPrint("Cover: ${vm.profile?.coverUrl}");
-    // debugPrint("=================================");
   }
 
   @override
