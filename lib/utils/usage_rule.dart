@@ -116,6 +116,17 @@ class UsageRule {
   }
 }
 
+class AppRuleChecker {
+  static final blockedApps = {
+    "com.zhiliaoapp.musically",
+    "com.facebook.katana",
+  };
+
+  static bool isBlocked(String pkg) {
+    return blockedApps.contains(pkg);
+  }
+}
+
 enum DayOverrideOption { followSchedule, allowFullDay, blockFullDay }
 
 enum DayOverride { allowFullDay, blockFullDay }

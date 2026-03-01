@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/helpers/app_management_helper.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
@@ -145,6 +146,9 @@ class AppManagementVM extends ChangeNotifier {
       }
 
       await _repo.loadAndSeedAppToFirebase(userId);
+
+      await WatcherService.start();
+      RealtimeAppMonitor.start();
     } catch (e, s) {
       debugPrint("❌ loadAndSeedApp error: $e");
       debugPrint("$s");
