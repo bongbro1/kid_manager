@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +6,7 @@ import 'package:kid_manager/core/sos/sos_focus_bus.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/views/parent/location/parent_children_list_screen.dart';
 import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
+import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
 
@@ -36,12 +36,16 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   late final MapboxController _controller;
 
   Timer? _syncDebounce;
-  bool _avatarSet = false;
-
+  Uint8List? _defaultAvatarBytes;
   @override
   void initState() {
     super.initState();
     sosFocusNotifier.addListener(_onSosFocus);
+    // cache default bytes 1 lần
+    Future.microtask(() async {
+      final d = await rootBundle.load("assets/images/avatar_default.png");
+      _defaultAvatarBytes = d.buffer.asUint8List();
+    });
   }
 
   Future<void> _onSosFocus() async {
@@ -117,6 +121,8 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
       ),
     );
   }
+
+
   void _handleMapOrDataChange() {
     if (!mounted) return;
     if (!_controller.isReady) return;
@@ -253,29 +259,32 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                 await _controller.zoomToChild(childId);
               },
               onStyleLoadedListener: (_) async {
-                try {
-                  await _controller.onStyleLoaded();
-                } catch (e, st) {
-                  debugPrint("🔥 onStyleLoaded failed: $e");
-                  debugPrint("$st");
-                }
-
+                await _controller.onStyleLoaded();
                 if (!mounted) return;
 
                 WidgetsBinding.instance.addPostFrameCallback((_) async {
                   if (!mounted) return;
-                  try {
-                    // chỉ set avatar 1 lần
-                    if (!_avatarSet) {
-                      _avatarSet = true;
-                      final data = await rootBundle.load(
-                        "assets/images/avatar_default.png",
-                      );
-                      await _controller.setDefaultAvatar(
-                        data.buffer.asUint8List(),
-                      );
-                    }
 
+                  try {
+                    final defaultBytes = _defaultAvatarBytes ??
+                        (await rootBundle.load("assets/images/avatar_default.png"))
+                            .buffer
+                            .asUint8List();
+
+                    // luôn add default trước
+                    await _controller.setDefaultAvatar(defaultBytes);
+
+                    //  tải avatar song song
+                    final tasks = _userVm.children.map((c) {
+                      debugPrint("URL AVATAR :UID :${c.uid} +${c.avatarUrl}");
+                      return _controller.setAvatarSmart(
+                        childId: c.uid,
+                        photoUrlOrData: c.avatarUrl,
+                        defaultBytes: defaultBytes,
+                      );
+                    }).toList();
+
+                    await Future.wait(tasks);
                     await _syncToMap();
                     await _focusFirstChildOnce();
                   } catch (e, st) {
@@ -288,10 +297,33 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
           ),
 
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: MapTopBar(onMenuTap: () {}, onAvatarTap: () {}),
+            left: 12,
+            top: 90,
+            child: SafeArea(
+              child: SosCircleButton(
+                onPressed: () async {
+                  final sosVm = context.read<SosViewModel>();
+                  final myLocation = _locationVm.myLocation;
+                   final displayName = context.select<UserVm, String?>((vm) => vm.me?.displayName).toString();
+                  if (myLocation == null) return;
+                  if (sosVm.sending) return;
+
+                  final sosId = await sosVm.triggerSos(
+                    lat: myLocation.latitude,
+                    lng: myLocation.longitude,
+                    acc: myLocation.accuracy,
+                    createdByName:displayName,
+                  );
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại'),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
 
           Positioned(
@@ -326,37 +358,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
             ),
           ),
 
-          Positioned(
-            right: 16,
-            bottom: 96,
-            child: SafeArea(
-              child: FloatingActionButton(
-                heroTag: 'parent_sos_fab',
-                backgroundColor: Colors.red.shade700,
-                onPressed: () async {
-                  final sosVm = context.read<SosViewModel>();
-                  final myLocation = _locationVm.myLocation;
-                  if (myLocation == null) return;
-                  if (sosVm.sending) return;
 
-                  final sosId = await sosVm.triggerSos(
-                    lat: myLocation.latitude,
-                    lng: myLocation.longitude,
-                    acc: myLocation.accuracy,
-                  );
-
-                  if (!context.mounted) return;
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại'),
-                    ),
-                  );
-                },
-                child: const Icon(Icons.sos, color: Colors.white),
-              ),
-            ),
-          ),
 
           // Overlay ổn định: chỉ rebuild khi familyId đổi
           if (familyId != null && myUid != null)
@@ -375,6 +377,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     );
   }
 
+
   @override
   void dispose() {
     _syncDebounce?.cancel();
@@ -389,3 +392,5 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     super.dispose();
   }
 }
+
+

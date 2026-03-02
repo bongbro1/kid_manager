@@ -10,7 +10,7 @@ class AppUser {
   final String? email;
   final String? displayName;
   final String? photoUrl;
-
+  final String? avatarUrl;
   final String? locale;
   final String? timezone;
 
@@ -28,7 +28,7 @@ class AppUser {
     required this.uid,
     required this.role,
     this.familyId, // 👈 thêm dòng này
-
+    this.avatarUrl,
     this.email,
     this.displayName,
     this.photoUrl,
@@ -52,6 +52,7 @@ class AppUser {
     'email': email,
     'displayName': displayName,
     'photoUrl': photoUrl,
+    'avatarUrl': avatarUrl,
     'locale': locale,
     'timezone': timezone,
     'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
@@ -72,6 +73,8 @@ class AppUser {
       email: d['email'],
       displayName: d['displayName'],
       photoUrl: d['photoUrl'],
+      avatarUrl: d['avatarUrl'],
+
       locale: d['locale'],
       timezone: d['timezone'],
       createdAt: (d['createdAt'] as Timestamp?)?.toDate(),

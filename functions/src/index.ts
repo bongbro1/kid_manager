@@ -206,6 +206,7 @@ async function sendSosPush(params: {
   childUid: string;
   lat?: number | null;
   lng?: number | null;
+   createdByName?: string | null;
 }): Promise<{
   attemptedRecipients: number;
   success: number;
@@ -247,6 +248,7 @@ async function sendSosPush(params: {
       childUid: String(childUid),
       lat: lat != null ? String(lat) : "",
       lng: lng != null ? String(lng) : "",
+       createdByName: params.createdByName ? String(params.createdByName) : "",
     },
     android: {
       priority: "high",
@@ -353,14 +355,16 @@ export const sosReminderWorker = onRequest(
       const lat = loc.lat;
       const lng = loc.lng;
       const childUid = sos.createdBy ?? "";
+const createdByName = sos.createdByName ?? "";
 
-      // ✅ send using shared helper
+      //  send using shared helper
       await sendSosPush({
         familyId: String(familyId),
         sosId: String(sosId),
         childUid: String(childUid),
         lat: lat != null ? Number(lat) : null,
         lng: lng != null ? Number(lng) : null,
+ createdByName: String(createdByName),
       });
 
       // Enqueue tiếp
@@ -446,7 +450,8 @@ export const createSos = onCall(
     const lat = mustNumber(req.data?.lat, "lat");
     const lng = mustNumber(req.data?.lng, "lng");
     const acc = req.data?.acc == null ? null : mustNumber(req.data?.acc, "acc");
-
+console.log("[createSos] req.data keys=", Object.keys(req.data ?? {}));
+console.log("[createSos] req.data.createdByName=", req.data?.createdByName);
     validateLatLng(lat, lng);
 
     const now = new Date();
@@ -454,10 +459,12 @@ export const createSos = onCall(
     const nowTs = admin.firestore.Timestamp.now();
 
     const { familyId, role } = await getUserFamilyAndRole(uid);
-
-    if (role !== "child" && role !== "parent") {
+const createdByNameRaw = req.data?.createdByName;
+const createdByName =
+  typeof createdByNameRaw === "string" ? createdByNameRaw.trim().slice(0, 80) : "";    if (role !== "child" && role !== "parent") {
       throw new HttpsError("permission-denied", "Only family members can trigger SOS");
     }
+console.log("[createSos] createdByName (sanitized)=", createdByName);
 
     await requireFamilyMember(familyId, uid);
 
@@ -520,6 +527,7 @@ export const createSos = onCall(
       tx.create(sosRef, {
         createdBy: uid,
         createdByRole: role,
+        createdByName,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         status: "active",
         location: { lat, lng, acc },
@@ -537,6 +545,7 @@ export const createSos = onCall(
         childUid: uid,
         lat,
         lng,
+        createdByName,
       });
 
       await sosRef.update({
@@ -552,15 +561,27 @@ export const createSos = onCall(
         createdAtMs: Date.now(),
       });
     }
+// ... sau enqueue reminder xong, ngay trước return
 
-    return {
-      ok: true,
-      ...result,
-      familyId,
-      limitPerDay: SOS_DAILY_LIMIT,
-      minIntervalSec: SOS_MIN_INTERVAL_SEC,
-      timezone: TZ,
-    };
+const payload = {
+  ok: true,
+  ...result,
+  familyId,
+
+  // ✅ debug fields
+  debugVersion: "createSos-v2026-03-02-01",
+  createdByNameEcho: createdByName,
+  createdByNameRawEcho: req.data?.createdByName ?? null,
+  keysEcho: Object.keys(req.data ?? {}),
+
+  limitPerDay: SOS_DAILY_LIMIT,
+  minIntervalSec: SOS_MIN_INTERVAL_SEC,
+  timezone: TZ,
+};
+
+console.log("[createSos] RETURN_PAYLOAD", payload);
+
+return payload;
   }
 );
 
@@ -595,6 +616,8 @@ export const resolveSos = onCall(
     return { ok: true };
   }
 );
+
+
 
 // =======================
 // FIRESTORE TRIGGER: SOS CREATED (fallback)

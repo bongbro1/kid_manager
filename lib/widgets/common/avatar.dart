@@ -18,10 +18,10 @@ class AppAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ImageProvider imageProvider =
-    user.photoUrl != null && user.photoUrl!.isNotEmpty
-        ? NetworkImage(user.photoUrl!)
+    user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+        ? NetworkImage(user.avatarUrl!)
         : const AssetImage('assets/images/avatar_default.png');
-
+    print("AVATAR :${imageProvider}");
     return Stack(
       clipBehavior: Clip.none,
       children: [

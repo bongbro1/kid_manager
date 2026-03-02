@@ -76,12 +76,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
 
     _lastLoadAt = now;
     await vm.loadProfile();
-
-    // debugPrint(">>> PROFILE LOADED");
-    // debugPrint("Profile: ${vm.profile}");
-    // debugPrint("Avatar: ${vm.profile?.avatarUrl}");
-    // debugPrint("Cover: ${vm.profile?.coverUrl}");
-    // debugPrint("=================================");
   }
 
   @override
@@ -178,7 +172,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<UserVm>();
@@ -270,7 +263,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
                             vm: vm,
                             url: p.coverUrl,
                             fallbackAsset: "assets/images/cover.png",
-                            type: UserPhotoType.cover,
+                            onReplace: (index, file) {
+                              return vm.updateUserPhoto(
+                                file: file,
+                                type: UserPhotoType.cover,
+                              );
+                            },
                             child: Image(
                               image: ((p.coverUrl ?? '').trim().isNotEmpty)
                                   ? NetworkImage((p.coverUrl ?? '').trim())
@@ -307,7 +305,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
                                 vm: vm,
                                 url: p.avatarUrl,
                                 fallbackAsset: "assets/images/u1.png",
-                                type: UserPhotoType.avatar,
+                                onReplace: (index, file) {
+                                  return vm.updateUserPhoto(
+                                    file: file,
+                                    type: UserPhotoType.avatar,
+                                  );
+                                },
                                 child: Container(
                                   width: 60,
                                   height: 60,

@@ -11,7 +11,6 @@ import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 import 'package:kid_manager/widgets/location/map_top_bar.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
 
 class ChildLocationScreen extends StatefulWidget {
@@ -45,10 +44,19 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     }
   }
 
+  late ChildLocationViewModel _vm;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _vm = context.read<ChildLocationViewModel>();
+  }
+
   @override
   void dispose() {
-    final vm = context.read<ChildLocationViewModel>();
-    if (_vmListener != null) vm.removeListener(_vmListener!);
+    if (_vmListener != null) {
+      _vm.removeListener(_vmListener!);
+    }
     super.dispose();
   }
 
@@ -130,43 +138,32 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
           ),
         ),
         Positioned(
-          right: 16,
-          bottom: 96, // cao hơn MapBottomControls
+          left: 12,
+          top: 90,
           child: SafeArea(
             top: false,
-            child: FloatingActionButton(
-              heroTag: 'sos_fab',
-              backgroundColor: Colors.red.shade700,
+            child: SosCircleButton(
               onPressed: () async {
-                final loc = context
-                    .read<ChildLocationViewModel>()
-                    .currentLocation;
+                final loc = context.read<ChildLocationViewModel>().currentLocation;
+                final displayName = context.select<UserVm, String?>((vm) => vm.me?.displayName).toString();
                 if (loc == null) return;
 
                 final sosVm = context.read<SosViewModel>();
-
-                // optional: chống double tap
                 if (sosVm.sending) return;
 
                 final sosId = await sosVm.triggerSos(
                   lat: loc.latitude,
                   lng: loc.longitude,
                   acc: loc.accuracy,
+                    createdByName:displayName
                 );
 
                 if (!context.mounted) return;
 
-                if (sosId != null) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('Đã gửi SOS')));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Gửi SOS thất bại')),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại')),
+                );
               },
-              child: const Icon(Icons.sos, color: Colors.white),
             ),
           ),
         ),

@@ -21,7 +21,6 @@ class AppInstalledService {
     final iconBytes = a.icon;
 
     return {
-      "allowed": false,
       "iconBase64": iconBytes == null ? "" : base64Encode(iconBytes),
       "name": a.name,
       "packageName": a.packageName,

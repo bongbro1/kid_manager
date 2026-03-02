@@ -14,19 +14,22 @@ class SosApi {
     required double lat,
     required double lng,
     double? acc,
+    required String createdByName,
+
   }) async {
     final eventId = const Uuid().v4();
-    debugPrint('AUTH uid=${FirebaseAuth.instance.currentUser?.uid}');
     final fn = _functions.httpsCallable('createSos');
     final res = await fn.call({
       'eventId': eventId,
       'lat': lat,
       'lng': lng,
       'acc': acc,
+      'createdByName': createdByName,
     });
     debugPrint("created: ${res}");
 
     final d = Map<String, dynamic>.from(res.data as Map);
+
     return CreateSosResult(
       ok: d['ok'] == true,
       sosId: (d['sosId'] ?? eventId).toString(),

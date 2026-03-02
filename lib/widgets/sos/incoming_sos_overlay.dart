@@ -5,8 +5,9 @@ import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/core/sos/sos_alarm_player.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
+import 'package:kid_manager/widgets/common/notification_modal.dart';
 import 'package:provider/provider.dart';
-
+import 'package:kid_manager/widgets/sos/sos_confirmed_card.dart';
 class IncomingSosOverlay extends StatefulWidget {
   final String familyId;
   final String myUid;
@@ -160,21 +161,31 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
                     shape: const StadiumBorder(),
                   ),
                   onPressed: () async {
-                    final previousDoc = _doc; // lưu để rollback
+                    final previousDoc = _doc;
                     if (previousDoc == null) return;
 
                     final sosId = previousDoc.id;
                     final data = previousDoc.data() ?? {};
-                    final lat = (data['lat'] as num?)?.toDouble();
-                    final lng = (data['lng'] as num?)?.toDouble();
-                    final childUid = data['childUid']?.toString();
 
-                    // ✅ Ẩn ngay + tắt chuông
+                    // ✅ đọc đúng theo schema: location.{lat,lng,acc}
+                    final location = data['location'];
+                    final lat = (location is Map) ? (location['lat'] as num?)?.toDouble() : null;
+                    final lng = (location is Map) ? (location['lng'] as num?)?.toDouble() : null;
+                    final acc = (location is Map) ? (location['acc'] as num?) : null;
+
+                    final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+                    final createdByRole = data['createdByRole']?.toString();
+                    final createdByName = data['createdByName']?.toString(); // ✅ field mới
+                    final createdBy = data['createdBy']?.toString(); // uid người gửi (nếu bạn cần)
+
+                    // ✅ 1) Ẩn overlay + tắt chuông ngay
                     if (mounted) setState(() => _doc = null);
-                    await SosAlarmPlayer.instance.stop();
-                    _ringing = false;
+                    if (_ringing) {
+                      _ringing = false;
+                      await SosAlarmPlayer.instance.stop();
+                    }
 
-                    // ✅ chuyển về tab map + zoom (không phụ thuộc resolve)
+                    // ✅ 2) Zoom về SOS luôn
                     if (lat != null && lng != null) {
                       activeTabNotifier.value = 0;
                       sosFocusNotifier.value = SosFocus(
@@ -182,17 +193,37 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
                         lng: lng,
                         familyId: widget.familyId,
                         sosId: sosId,
-                        childUid: childUid,
+                        childUid: createdBy, // nếu bạn muốn focus theo người gửi thì dùng createdBy
                       );
                     }
 
                     try {
+                      // ✅ resolve
                       await context.read<SosViewModel>().resolve(
                         familyId: widget.familyId,
                         sosId: sosId,
                       );
+
+                      // ✅ fetch lại doc để chắc chắn có resolvedAt (serverTimestamp)
+                      final fresh = await previousDoc.reference.get();
+                      final freshData = fresh.data() ?? {};
+                      final resolvedAt = (freshData['resolvedAt'] as Timestamp?)?.toDate();
+
+                      if (!mounted) return;
+                      NotificationModal.show(
+                        context,
+                        width: 320,
+                        maxHeight: 300,
+                        child: SosConfirmedCard(
+                          createdAt: createdAt,
+                          resolvedAt: resolvedAt,
+                          createdByRole: createdByRole,
+                          createdByName: createdByName,
+                          acc: acc,
+                        ),
+                      );
                     } catch (e) {
-                      // ✅ FAIL -> hiện lại overlay + bật chuông lại
+                      // ❌ FAIL -> hiện lại overlay + bật chuông lại
                       if (!mounted) return;
                       setState(() => _doc = previousDoc);
 

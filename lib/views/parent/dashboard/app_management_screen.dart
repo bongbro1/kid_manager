@@ -5,6 +5,7 @@ import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/utils/statical_utils.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/views/parent/dashboard/statical_widget.dart';
 import 'package:kid_manager/views/parent/dashboard/usage_time_edit_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/user_carousel_card.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -257,30 +258,98 @@ class _StatisticsTabState extends State<StatisticsTab> {
   List<AppItemModel> get sortedApps {
     final sorted = [...widget.apps];
     sorted.sort((a, b) {
-      final aMin = parseUsageTimeToMinutes(a.usageTime);
-      final bMin = parseUsageTimeToMinutes(b.usageTime);
+      final aMin = getUsageForApp(a.packageName);
+      final bMin = getUsageForApp(b.packageName);
       return bMin.compareTo(aMin);
     });
     return sorted;
   }
 
-  List<AppItemModel> get visibleApps => showAll ? sortedApps : sortedApps.take(5).toList();
+  List<AppItemModel> get visibleApps =>
+      showAll ? sortedApps : sortedApps.take(5).toList();
+
+  int getUsageForApp(String package) {
+    final appMap = widget.vm.appUsageMap[package];
+    if (appMap == null) return 0;
+
+    final now = DateTime.now();
+
+    if (activeIndex == 0) {
+      // TODAY
+      return appMap.entries
+          .where(
+            (e) =>
+                e.key.year == now.year &&
+                e.key.month == now.month &&
+                e.key.day == now.day,
+          )
+          .fold(0, (sum, e) => sum + e.value);
+    }
+
+    if (activeIndex == 1) {
+      // WEEK
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+
+      return appMap.entries
+          .where(
+            (e) =>
+                e.key.isAfter(
+                  DateTime(
+                    startOfWeek.year,
+                    startOfWeek.month,
+                    startOfWeek.day,
+                  ).subtract(const Duration(seconds: 1)),
+                ) &&
+                e.key.isBefore(
+                  DateTime(
+                    now.year,
+                    now.month,
+                    now.day,
+                  ).add(const Duration(days: 1)),
+                ),
+          )
+          .fold(0, (sum, e) => sum + e.value);
+    }
+
+    // MONTH
+    return appMap.entries
+        .where((e) => e.key.year == now.year && e.key.month == now.month)
+        .fold(0, (sum, e) => sum + e.value);
+  }
 
   int activeIndex = 0;
+
+  int _lastUsageVersion = -1;
 
   @override
   void initState() {
     super.initState();
+    widget.vm.addListener(_onVmChanged);
     _buildChart();
+  }
+
+  void _onVmChanged() {
+    _buildChart();
+    setState(() {});
   }
 
   @override
   void didUpdateWidget(covariant StatisticsTab oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.vm.usageMap != widget.vm.usageMap) {
-      _buildChart();
+    if (_lastUsageVersion != widget.vm.usageVersion) {
+      _lastUsageVersion = widget.vm.usageVersion;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _buildChart();
+      });
     }
+  }
+
+  @override
+  void dispose() {
+    widget.vm.removeListener(_onVmChanged);
+    super.dispose();
   }
 
   void _buildChart() {
@@ -294,10 +363,32 @@ class _StatisticsTabState extends State<StatisticsTab> {
     chartBars = ChartUiBuilder.build(points, mode);
   }
 
+  int? selectedBarIndex;
+
+  int get totalMinutes {
+    if (chartBars.isEmpty) return 0;
+    return chartBars.fold(0, (sum, e) => sum + e.minutes);
+  }
+
+  String get totalTitle {
+    switch (activeIndex) {
+      case 0:
+        return "TỔNG THỜI GIAN HÔM NAY";
+      case 1:
+        return "TỔNG THỜI GIAN TUẦN NÀY";
+      case 2:
+        return "TỔNG THỜI GIAN THÁNG NÀY";
+      default:
+        return "";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        const SizedBox(height: 6),
+
         /// ===== SEGMENT KHÔNG SCROLL =====
         Container(
           width: double.infinity,
@@ -330,7 +421,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
           child: RefreshIndicator(
             onRefresh: widget.onRefresh,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
               children: [
                 Container(
                   width: double.infinity,
@@ -356,9 +447,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
-                                'TỔNG THỜI GIAN HÔM NAY',
+                                totalTitle,
                                 style: TextStyle(
                                   color: Color(0xFF94A3B8),
                                   fontSize: 12,
@@ -369,7 +460,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                '4h 45p',
+                                formatMinutes(totalMinutes),
                                 style: TextStyle(
                                   color: Color(0xFF1E293B),
                                   fontSize: 30,
@@ -379,46 +470,81 @@ class _StatisticsTabState extends State<StatisticsTab> {
                               ),
                             ],
                           ),
-
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDCFCE7),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              '-12%',
-                              style: TextStyle(
-                                color: Color(0xFF16A34A),
-                                fontSize: 12,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 14),
 
                       /// CHART
                       SizedBox(
-                        height: 190,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: chartBars.map((bar) {
-                            return _Bar(
-                              height: bar.uiHeight,
-                              valueHeight: bar.valueHeight,
-                              label: bar.label,
-                              active: bar.isToday,
-                              faded: bar.isFuture,
+                        height: 200,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final count = chartBars.length;
+
+                            double barWidth;
+
+                            if (count <= 7) {
+                              // Tuần → fit full
+                              barWidth = (constraints.maxWidth / count) - 12;
+                            } else {
+                              // Ngày + Tháng → scroll
+                              barWidth = 20;
+                            }
+
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                /// SCROLL BARS
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: List.generate(chartBars.length, (
+                                      i,
+                                    ) {
+                                      final bar = chartBars[i];
+
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                        ),
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              selectedBarIndex = i;
+                                            });
+                                          },
+                                          child: BarWidget(
+                                            width: barWidth,
+                                            height: bar.uiHeight,
+                                            valueHeight: bar.valueHeight,
+                                            label: bar.label,
+                                            active: bar.isToday,
+                                            faded: bar.isFuture,
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                ),
+
+                                /// FLOATING TOOLTIP
+                                if (selectedBarIndex != null)
+                                  Positioned(
+                                    left:
+                                        selectedBarIndex! * (barWidth + 12) + 6,
+                                    bottom:
+                                        chartBars[selectedBarIndex!].uiHeight +
+                                        30,
+                                    child: TooltipWidget(
+                                      value:
+                                          chartBars[selectedBarIndex!].minutes,
+                                    ),
+                                  ),
+                              ],
                             );
-                          }).toList(),
+                          },
                         ),
                       ),
                     ],
@@ -466,14 +592,16 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
                 /// List apps
                 ...visibleApps.map((app) {
+                  final minutes = getUsageForApp(app.packageName);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: AppItem(
                       key: ValueKey("stats_${app.packageName}"),
                       appName: app.name,
                       app: app,
-                      usageTimeText: app.usageTime ?? "0h 0m",
+                      usageTimeText: formatMinutes(minutes),
                       iconBase64: app.iconBase64,
+                      showRightIcon: false,
                     ),
                   );
                 }),
@@ -526,75 +654,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _Bar extends StatelessWidget {
-  final double height;
-  final double valueHeight;
-  final String label;
-  final bool active;
-  final bool faded;
-
-  const _Bar({
-    required this.height,
-    required this.valueHeight,
-    required this.label,
-    this.active = false,
-    this.faded = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final valueColor = active
-        ? const Color(0xFF3B82F6)
-        : faded
-        ? const Color(0xFFE2E8F0)
-        : const Color(0x663B82F6);
-
-    final labelColor = active
-        ? const Color(0xFF3B82F6)
-        : const Color(0xFF94A3B8);
-
-    return SizedBox(
-      width: 35,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Container(
-            height: height,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-            ),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                height: valueHeight,
-                decoration: BoxDecoration(
-                  color: valueColor,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            label,
-            style: TextStyle(
-              color: labelColor,
-              fontSize: 10,
-              fontFamily: 'Inter',
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

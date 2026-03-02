@@ -22,6 +22,7 @@ class AppItem extends StatelessWidget {
   final TextStyle? titleStyle;
   final TextStyle? subtitleStyle;
   final AppItemModel app;
+  final bool showRightIcon;
 
   const AppItem({
     super.key,
@@ -36,6 +37,7 @@ class AppItem extends StatelessWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     this.titleStyle,
     this.subtitleStyle,
+    this.showRightIcon = true,
   });
 
   double calcProgress(String usageText, int maxMinutes) {
@@ -160,22 +162,22 @@ class AppItem extends StatelessWidget {
                   ),
                 ),
               ),
+              if (showRightIcon) ...[
+                const SizedBox(width: 6),
 
-              const SizedBox(width: 6),
-
-              // RIGHT: edit icon
-              InkResponse(
-                onTap: onTap,
-                radius: 22,
-                child: const Padding(
-                  padding: EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.chevron_right,
-                    size: 20,
-                    color: Color(0xFF6B6778),
+                InkResponse(
+                  onTap: onTap,
+                  radius: 22,
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: Color(0xFF6B6778),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

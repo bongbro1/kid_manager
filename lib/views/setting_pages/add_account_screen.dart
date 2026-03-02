@@ -92,7 +92,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             children: [
               AppLabeledTextField(
                 label: "Họ và tên",
-                hint: "Nhập họ và tên",
+                hint: "Nguyen Van A",
                 controller: _nameCtrl,
               ),
 
@@ -100,7 +100,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
               AppLabeledTextField(
                 label: "Email",
-                hint: "Nhập email",
+                hint: "nva@gmail.com",
                 controller: _emailCtrl,
               ),
 
@@ -108,7 +108,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
               AppLabeledTextField(
                 label: "Mật khẩu",
-                hint: "Nhập mật khẩu",
+                hint: "Admadm123",
                 controller: _passwordCtrl,
               ),
 
@@ -116,7 +116,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
               AppLabeledTextField(
                 label: "Ngày sinh",
-                hint: "Chọn ngày sinh",
+                hint: "12/12/2003",
                 controller: _dobCtrl,
               ),
 
