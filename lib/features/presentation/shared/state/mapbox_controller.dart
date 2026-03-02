@@ -68,6 +68,36 @@ class MapboxController extends ChangeNotifier {
     // style mới -> images cũ không còn
     _addedStyleImages.clear();
 
+    // 5) NAME layer (đẹp + rõ + to)
+    // 5) NAME layer (đẹp + rõ + to)
+    final hasNameLayer = await map.style.styleLayerExists("name-layer");
+    if (!hasNameLayer) {
+      await map.style.addLayer(
+        mbx.SymbolLayer(
+          id: "name-layer",
+          sourceId: "children-source",
+          filter: ["!", ["has", "point_count"]],
+
+          // text
+          textFieldExpression: ["get", "name"],
+          textSize: 15,                 // ✅ to hơn
+          textColor: 0xFF111111,
+
+          // halo để nổi trên map
+          textHaloColor: 0xFFFFFFFF,
+          textHaloWidth: 3.0,
+          textHaloBlur: 0.4,
+
+          // luôn hiện
+          textAllowOverlap: true,
+          textIgnorePlacement: true,
+
+
+          textOffset: [0, -2.8],
+          // (nếu muốn cao hơn nữa: -3.2 hoặc -3.6)
+        ),
+      );
+    }
     // 1) Source
     final hasSource = await map.style.styleSourceExists("children-source");
     if (!hasSource) {
@@ -129,12 +159,12 @@ class MapboxController extends ChangeNotifier {
             16, 1.2
           ],
           iconRotateExpression: ["get", "heading"],
-          iconAllowOverlap: true,
-          textFieldExpression: ["get", "name"],
-          textSize: 12,
-          textOffset: [0, 2],
-          textColor: 0xFF000000,
-          textAllowOverlap: true,
+          // iconAllowOverlap: true,
+          // textFieldExpression: ["get", "name"],
+          // textSize: 12,
+          // textOffset: [0, 2],
+          // textColor: 0xFF000000,
+          // textAllowOverlap: true,
         ),
       );
     }
@@ -145,25 +175,6 @@ class MapboxController extends ChangeNotifier {
 
   // ================= IMAGE HELPERS (dart:ui) =================
 
-  Future<mbx.MbxImage?> _convertToMbxImage(Uint8List pngBytes) async {
-    try {
-      final codec = await ui.instantiateImageCodec(pngBytes);
-      final frame = await codec.getNextFrame();
-      final image = frame.image;
-
-      final bd = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      if (bd == null) return null;
-
-      final rgba = bd.buffer.asUint8List();
-      final expected = image.width * image.height * 4;
-      if (rgba.lengthInBytes != expected) return null;
-
-      return mbx.MbxImage(width: image.width, height: image.height, data: rgba);
-    } catch (e) {
-      debugPrint("🔥 _convertToMbxImage failed: $e");
-      return null;
-    }
-  }
 
   // ================= DEFAULT AVATAR =================
 
