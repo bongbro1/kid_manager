@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kid_manager/background/app_rule_checker.dart';
 import 'package:kid_manager/background/foreground_watcher.dart';
-import 'package:kid_manager/utils/usage_rule.dart';
 
 class WatcherService {
   static const _channel = MethodChannel("watcher");

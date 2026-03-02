@@ -152,10 +152,6 @@ class _SosViewState extends State<SosView> {
                 child: const Text('XÁC NHẬN'),
               ),
             ),
-            ElevatedButton(
-              onPressed: () => SosNotificationService.instance.testSosSound(),
-              child: const Text('Test SOS Sound'),
-            ),
           ],
         ),
       ),

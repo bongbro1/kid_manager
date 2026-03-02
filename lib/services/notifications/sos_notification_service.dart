@@ -57,24 +57,6 @@ class SosNotificationService {
     });
   }
 
-  Future<void> testSosSound() async {
-    final androidDetails = AndroidNotificationDetails(
-      'sos_channel_v2',
-      'SOS Alerts',
-      channelDescription: 'Emergency SOS alerts',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: true,
-      sound: const RawResourceAndroidNotificationSound('sos'),
-    );
-
-    await _fln.show(
-      9999,
-      'TEST SOS SOUND',
-      'Nếu nghe thấy tiếng => channel OK',
-      NotificationDetails(android: androidDetails),
-    );
-  }
 
   Future<void> _registerToken(String token) async {
     final fn = FirebaseFunctions.instanceFor(

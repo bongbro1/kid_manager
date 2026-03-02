@@ -33,6 +33,6 @@ class MainActivity : FlutterActivity() {
                 override fun onCancel(arguments: Any?) {
                     ForegroundAppBridge.eventSink = null
                 }
-    })
+            })
     }
 }

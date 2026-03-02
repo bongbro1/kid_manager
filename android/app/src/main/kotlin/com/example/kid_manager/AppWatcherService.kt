@@ -11,29 +11,31 @@ import androidx.core.app.NotificationCompat
 
 class AppWatcherService : Service() {
 
-    private lateinit var handler: Handler
-    private lateinit var runnable: Runnable
+    private lateinit var workerThread: HandlerThread
+    private lateinit var workerHandler: Handler
 
     override fun onCreate() {
         super.onCreate()
 
-        handler = Handler(Looper.getMainLooper())
+        workerThread = HandlerThread("AppWatcherThread")
+        workerThread.start()
 
-        runnable = object : Runnable {
+        workerHandler = Handler(workerThread.looper)
+
+        val runnable = object : Runnable {
             override fun run() {
 
                 val pkg = getForegroundApp()
 
                 if (pkg != null) {
-                    Log.d("WATCHER", "Foreground app: $pkg")
                     ForegroundAppBridge.send(pkg)
                 }
 
-                handler.postDelayed(this, 2000)
+                workerHandler.postDelayed(this, 2000)
             }
         }
 
-        handler.post(runnable)
+        workerHandler.post(runnable)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -68,7 +70,7 @@ class AppWatcherService : Service() {
         val end = System.currentTimeMillis()
         val begin = end - 5000
 
-        val events = usm.queryEvents(begin, end)
+        val events = usm.queryEvents(begin, end) 
         val event = UsageEvents.Event()
 
         var lastApp: String? = null
@@ -82,5 +84,10 @@ class AppWatcherService : Service() {
         }
 
         return lastApp
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        workerThread.quitSafely()
     }
 }

@@ -61,22 +61,43 @@ class AppManagementRepository {
   Future<void> seedApps(String userId, List<AppInfo> apps) async {
     final col = db.collection("blocked_items").doc(userId).collection("apps");
 
-    // 🔹 Lấy các package đã có trên Firestore
+    // 🔹 Apps đã tồn tại
     final existingSnap = await col.get();
-
     final existingPackages = existingSnap.docs.map((d) => d.id).toSet();
 
-    // debugPrint("📦 Existing apps on Firestore: ${existingPackages.length}");
+    // 🔹 Rules đã tồn tại
+    final notExistingRules = <String>{};
 
+    for (final doc in existingSnap.docs) {
+      final ruleDoc = await doc.reference
+          .collection("usage_rule")
+          .doc("config")
+          .get();
+
+      if (!ruleDoc.exists) {
+        notExistingRules.add(doc.id);
+      }
+    }
     WriteBatch batch = db.batch();
     int count = 0;
-    // int added = 0;
 
     for (final app in apps) {
       final pkg = app.packageName;
       if (pkg == null || pkg.isEmpty) continue;
 
-      // 🔥 BỎ QUA nếu đã tồn tại
+      final isNewApp = !existingPackages.contains(pkg);
+      final missingRule = notExistingRules.contains(pkg);
+
+      // ⭐ Tạo rule cho app mới hoặc app thiếu rule
+      if (isNewApp || missingRule) {
+        await _createDefaultRule(
+          batch: batch,
+          userId: userId,
+          packageName: pkg,
+        );
+        count++;
+      }
+      // 🔹 Bỏ qua nếu app đã tồn tại
       if (existingPackages.contains(pkg)) continue;
 
       batch.set(
@@ -85,7 +106,6 @@ class AppManagementRepository {
         SetOptions(merge: true),
       );
 
-      // added++;
       count++;
 
       if (count >= 400) {
@@ -98,8 +118,39 @@ class AppManagementRepository {
     if (count > 0) {
       await batch.commit();
     }
+  }
 
-    // debugPrint("✅ New apps seeded: $added");
+  Future<void> _createDefaultRule({
+    required WriteBatch batch,
+    required String userId,
+    required String packageName,
+  }) async {
+    final ruleRef = db
+        .collection("blocked_items")
+        .doc(userId)
+        .collection("apps")
+        .doc(packageName)
+        .collection("usage_rule")
+        .doc("config");
+
+    final defaultRule = UsageRule.defaults();
+    final today = DateTime.now().weekday;
+
+    batch.set(ruleRef, {
+      ...defaultRule.toMap(),
+      "isDefault": true,
+      "updatedAt": FieldValue.serverTimestamp(),
+    });
+
+    final appRef = db
+        .collection("blocked_items")
+        .doc(userId)
+        .collection("apps")
+        .doc(packageName);
+
+    batch.set(appRef, {
+      "dailyLimitMinutes": defaultRule.dailyLimitForWeekday(today),
+    }, SetOptions(merge: true));
   }
 
   Future<void> saveUsageRuleForApp({
@@ -339,67 +390,6 @@ class AppManagementRepository {
     }
     return chunks;
   }
-  // Future<UsageHistoryResult> loadUsageHistory(String userId) async {
-  //   final Map<DateTime, int> totalResult = {};
-  //   final Map<String, Map<DateTime, int>> perAppResult = {};
-
-  //   try {
-  //     debugPrint("📥 loadUsageHistory START for child = $userId");
-
-  //     final appsSnapshot = await db
-  //         .collection("blocked_items")
-  //         .doc(userId)
-  //         .collection("apps")
-  //         .get();
-
-  //     for (final appDoc in appsSnapshot.docs) {
-  //       final packageName = appDoc.id;
-  //       final Map<DateTime, int> perAppMap = {};
-
-  //       final usageSnapshot = await appDoc.reference
-  //           .collection("usage_daily")
-  //           .get();
-
-  //       for (final doc in usageSnapshot.docs) {
-  //         try {
-  //           final date = _parseLocalDate(doc.id);
-
-  //           final int usageMs = (doc.data()["usageMs"] ?? 0) as int;
-  //           final int minutes = (usageMs / 60000).round();
-
-  //           /// per app
-  //           perAppMap.update(
-  //             date,
-  //             (value) => value + minutes,
-  //             ifAbsent: () => minutes,
-  //           );
-
-  //           /// total
-  //           totalResult.update(
-  //             date,
-  //             (value) => value + minutes,
-  //             ifAbsent: () => minutes,
-  //           );
-  //         } catch (e) {
-  //           debugPrint("⚠️ Skip invalid doc: ${doc.id}");
-  //         }
-  //       }
-
-  //       perAppResult[packageName] = perAppMap;
-  //     }
-
-  //     debugPrint(
-  //       "📊 Usage loaded: totalDays=${totalResult.length}, apps=${perAppResult.length}",
-  //     );
-  //   } catch (e) {
-  //     debugPrint("❌ loadUsageHistory ERROR: $e");
-  //   }
-
-  //   return UsageHistoryResult(
-  //     totalUsage: totalResult,
-  //     perAppUsage: perAppResult,
-  //   );
-  // }
 
   DateTime _parseLocalDate(String id) {
     if (id.length != 8) {

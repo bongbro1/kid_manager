@@ -6,6 +6,7 @@ import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/rule_runtime_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/usage_rule.dart';
 
@@ -149,6 +150,7 @@ class AppManagementVM extends ChangeNotifier {
 
       await WatcherService.start();
       RealtimeAppMonitor.start();
+      await RuleRuntimeService.start(userId);
     } catch (e, s) {
       debugPrint("❌ loadAndSeedApp error: $e");
       debugPrint("$s");

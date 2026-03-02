@@ -122,3 +122,23 @@ String formatMinutes(int minutes) {
   if (m == 0) return "${h}h";
   return "${h}h ${m}m";
 }
+
+
+class TimeUtils {
+
+  static int nowMin() {
+    final now = DateTime.now();
+    return now.hour * 60 + now.minute;
+  }
+
+  static int todayWeekday() {
+    return DateTime.now().weekday; // 1-7
+  }
+
+  static String todayKey() {
+    final now = DateTime.now();
+    return "${now.year.toString().padLeft(4,'0')}-"
+           "${now.month.toString().padLeft(2,'0')}-"
+           "${now.day.toString().padLeft(2,'0')}";
+  }
+}
