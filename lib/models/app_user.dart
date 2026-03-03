@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/models/user/user_subscription.dart';
-
 
 class AppUser {
   final String uid;
@@ -11,12 +10,13 @@ class AppUser {
   final String? email;
   final String? displayName;
   final String? photoUrl;
-
+  final String? avatarUrl;
   final String? locale;
   final String? timezone;
 
   final DateTime? createdAt;
   final DateTime? lastActiveAt;
+  final String? familyId;
 
   /// child only
   final String? parentUid;
@@ -27,6 +27,8 @@ class AppUser {
   const AppUser({
     required this.uid,
     required this.role,
+    this.familyId, // 👈 thêm dòng này
+    this.avatarUrl,
     this.email,
     this.displayName,
     this.photoUrl,
@@ -46,14 +48,14 @@ class AppUser {
   Map<String, dynamic> toMap() => {
     'uid': uid,
     'role': roleToString(role),
+    'familyId': familyId,
     'email': email,
     'displayName': displayName,
     'photoUrl': photoUrl,
+    'avatarUrl': avatarUrl,
     'locale': locale,
     'timezone': timezone,
-    'createdAt': createdAt == null
-        ? null
-        : Timestamp.fromDate(createdAt!),
+    'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
     'lastActiveAt': lastActiveAt == null
         ? null
         : Timestamp.fromDate(lastActiveAt!),
@@ -67,9 +69,12 @@ class AppUser {
     return AppUser(
       uid: d['uid'] ?? doc.id,
       role: roleFromString(d['role'] ?? 'parent'),
+      familyId: d['familyId'],
       email: d['email'],
       displayName: d['displayName'],
       photoUrl: d['photoUrl'],
+      avatarUrl: d['avatarUrl'],
+
       locale: d['locale'],
       timezone: d['timezone'],
       createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
@@ -78,8 +83,8 @@ class AppUser {
       subscription: d['subscription'] == null
           ? null
           : SubscriptionInfo.fromMap(
-        Map<String, dynamic>.from(d['subscription']),
-      ),
+              Map<String, dynamic>.from(d['subscription']),
+            ),
     );
   }
 
@@ -91,11 +96,13 @@ class AppUser {
     String? timezone,
     DateTime? lastActiveAt,
     SubscriptionInfo? subscription,
+    String? familyId,
   }) {
     return AppUser(
       uid: uid,
       role: role,
       email: email ?? this.email,
+      familyId: familyId ?? this.familyId,
       displayName: displayName ?? this.displayName,
       photoUrl: photoUrl ?? this.photoUrl,
       locale: locale ?? this.locale,

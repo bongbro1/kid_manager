@@ -5,10 +5,10 @@ import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
-import 'package:kid_manager/views/child/child_notification_screen.dart';
+import 'package:kid_manager/views/notifications/notification_screen.dart';
+import 'package:kid_manager/views/notifications/notification_debug_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/app_management_screen.dart';
 import 'package:kid_manager/views/parent/location/parent_location_screen.dart';
-import 'package:kid_manager/views/parent/parent_notification_screen.dart';
 import 'package:kid_manager/views/parent/schedule/schedule_screen.dart';
 import 'package:kid_manager/views/child/schedule/child_schedule_screen.dart';
 import 'package:kid_manager/views/personal_info_screen.dart';
@@ -29,11 +29,12 @@ class AppShellConfig {
       root: MultiProvider(
         providers: [
           ChangeNotifierProvider(
-              create: (context)=> ParentLocationVm(context.read<LocationRepository>())
+            create: (context) => ParentLocationVm(
+              context.read<LocationRepository>(),
+              context.read<LocationServiceInterface>(),
+            ),
           ),
-          ChangeNotifierProvider(
-            create: (_) => MapboxController(),
-          ),
+          ChangeNotifierProvider(create: (_) => MapboxController()),
         ],
         child: const ParentAllChildrenMapScreen(),
       ),
@@ -45,12 +46,12 @@ class AppShellConfig {
 
     BottomTabConfig(
       iconAsset: 'assets/icons/sms.svg',
-      root: const ParentNotificationScreen(),
+      root: const NotificationScreen(),
     ),
 
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
-      root: const ParentNotificationScreen(),
+      root: const NotificationScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
@@ -77,9 +78,7 @@ class AppShellConfig {
               context.read<LocationServiceInterface>(),
             ),
           ),
-          ChangeNotifierProvider(
-            create: (_) => MapboxController(),
-          ),
+          ChangeNotifierProvider(create: (_) => MapboxController()),
         ],
         child: const ChildLocationScreen(),
       ),
@@ -87,7 +86,11 @@ class AppShellConfig {
 
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
-      root: const ChildNotificationScreen(),
+      root: const NotificationDebugScreen(),
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/bell.svg',
+      root: const NotificationScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',

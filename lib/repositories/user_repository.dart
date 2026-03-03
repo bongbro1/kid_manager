@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import '../models/app_user.dart';
 
@@ -51,13 +51,41 @@ class UserRepository {
   }) async {
     final ref = userRef(uid);
     final snap = await ref.get();
-    if (snap.exists) return;
+    if (snap.exists) {
+      final data = snap.data();
+      if (data?['familyId'] != null) return;
 
-    await ref.set(
-      {
+      final familyId = _db.collection('families').doc().id;
+
+      final batch = _db.batch();
+
+      batch.update(ref, {'familyId': familyId});
+
+      final familyRef = _db.collection('families').doc(familyId);
+
+      batch.set(familyRef, {
+        'createdBy': uid,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      batch.set(familyRef.collection('members').doc(uid), {
+        'uid': uid,
+        'role': 'parent',
+        'joinedAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+      return;
+    }
+    final familyId = _db.collection('families').doc().id;
+    final batch = _db.batch();
+    batch.set(
+      ref,
+      ({
         'uid': uid,
         'role': 'parent',
         'email': email,
+        'familyId': familyId,
         'displayName': displayName,
         'locale': locale,
         'timezone': timezone,
@@ -70,8 +98,23 @@ class UserRepository {
           'startAt': FieldValue.serverTimestamp(),
           'endAt': null,
         },
-      }..removeWhere((_, v) => v == null),
+      })..removeWhere((_, v) => v == null),
     );
+
+    final familyRef = _db.collection('families').doc(familyId);
+    batch.set(familyRef, {
+      'createdBy': uid,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // 3️⃣ Thêm parent vào members
+    batch.set(familyRef.collection('members').doc(uid), {
+      'uid': uid,
+      'role': 'parent',
+      'joinedAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 
   // ===== UPDATE =====
@@ -117,32 +160,100 @@ class UserRepository {
     required String locale,
     required String timezone,
   }) async {
-    final cred = await _secondaryAuth!.createUser(
-      email: email.trim(),
-      password: password,
-    );
+    try {
+      // 1) Lấy familyId của parent
+      final parentSnap = await userRef(parentUid).get();
+      final familyId = parentSnap.data()?['familyId'];
 
-    final childUid = cred.user!.uid;
+      if (familyId == null || (familyId is String && familyId.isEmpty)) {
+        throw StateError("Parent missing familyId");
+      }
 
-    // 2️⃣ Create Firestore document
-    final ref = userRef(childUid);
-    await ref.set(
-      {
-        'uid': childUid,
-        'role': 'child',
-        'displayName': displayName,
-        'email': email,
-        'parentUid': parentUid,
-        'locale': 'vi',
-        'timezone': 'Asia/Ho_Chi_Minh',
-        'dob': dob != null ? Timestamp.fromDate(dob) : null,
-        'createdAt': FieldValue.serverTimestamp(),
-        'lastActiveAt': FieldValue.serverTimestamp(),
-        'avatarUrl': '',
-      }..removeWhere((_, v) => v == null),
-    );
+      // 2) Tạo Auth user
+      final cred = await _secondaryAuth!.createUser(
+        email: email.trim(),
+        password: password,
+      );
 
-    return childUid;
+      final childUid = cred.user!.uid;
+
+      // 3) Ghi Firestore bằng batch
+      final batch = _db.batch();
+
+      batch.set(
+        userRef(childUid),
+        {
+          'uid': childUid,
+          'role': 'child',
+          'displayName': displayName,
+          'email': email.trim(),
+          'parentUid': parentUid,
+          'familyId': familyId,
+          'locale': locale,
+          'timezone': timezone,
+          'dob': dob != null ? Timestamp.fromDate(dob) : null,
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastActiveAt': FieldValue.serverTimestamp(),
+          'avatarUrl': '',
+        }..removeWhere((_, v) => v == null),
+      );
+      print("Lỗi ở đây 1");
+      batch.set(
+        _db
+            .collection('families')
+            .doc(familyId)
+            .collection('members')
+            .doc(childUid),
+        {
+          'uid': childUid,
+          'role': 'child',
+          'familyId': familyId,
+          'joinedAt': FieldValue.serverTimestamp(),
+        },
+      );
+      print("Lỗi ở đây 2");
+      await batch.commit();
+
+      return childUid;
+    }
+    //  Bắt lỗi Firebase Auth (email trùng, password yếu, email sai định dạng...)
+    on FirebaseAuthException catch (e) {
+      // Gợi ý message theo code
+      switch (e.code) {
+        case 'email-already-in-use':
+          throw Exception("Email đã được sử dụng.");
+        case 'invalid-email':
+          throw Exception("Email không hợp lệ.");
+        case 'weak-password':
+          throw Exception("Mật khẩu quá yếu (hãy dùng mạnh hơn).");
+        case 'operation-not-allowed':
+          throw Exception(
+            "Chức năng tạo tài khoản chưa được bật trong Firebase Auth.",
+          );
+        default:
+          throw Exception("Lỗi tạo tài khoản: ${e.message ?? e.code}");
+      }
+    }
+    // Bắt lỗi Firestore
+    on FirebaseException catch (e) {
+      // FirebaseException dùng cho Firestore/Storage... (Firestore thường code: permission-denied, unavailable...)
+      switch (e.code) {
+        case 'permission-denied':
+          throw Exception("Không đủ quyền ghi dữ liệu (permission-denied).");
+        case 'unavailable':
+          throw Exception("Firestore tạm thời không khả dụng. Thử lại sau.");
+        default:
+          throw Exception("Lỗi Firestore: ${e.message ?? e.code}");
+      }
+    }
+    //  Bắt lỗi logic (familyId null, v.v.)
+    on StateError catch (e) {
+      throw Exception("Dữ liệu không hợp lệ: ${e.message}");
+    }
+    //  Bắt mọi lỗi còn lại
+    catch (e) {
+      throw Exception("Tạo tài khoản con thất bại: $e");
+    }
   }
 
   Future<void> updateUserProfile(UserProfile profile) async {
@@ -187,7 +298,7 @@ class UserRepository {
         return ChildItem(
           id: doc.id,
           name: data['displayName'] ?? '',
-          avatarUrl: data['photoUrl'] ?? '',
+          avatarUrl: data['avatarUrl'] ?? '',
           isOnline: isOnline,
         );
       }).toList();
@@ -217,6 +328,28 @@ class UserRepository {
     } catch (e) {
       debugPrint("❌ getChildUserIds error: $e");
       return [];
+    }
+  }
+
+  Future<bool> updateUserPhotoUrl({
+    required String uid,
+    required String url,
+    required UserPhotoType type,
+  }) async {
+    try {
+      final ref = userRef(uid);
+
+      final field = type == UserPhotoType.avatar ? 'avatarUrl' : 'coverUrl';
+
+      await ref.update({
+        field: url,
+        'lastActiveAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      debugPrint('Update photo error: $e');
+      return false;
     }
   }
 }

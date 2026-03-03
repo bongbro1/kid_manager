@@ -3,30 +3,36 @@ import 'package:flutter/material.dart';
 class NotificationModal extends StatefulWidget {
   final Widget child;
   final double width;
-  final double height;
+
+  /// Chiều cao tối đa của modal (không phải height cố định)
+  final double maxHeight;
+
   final VoidCallback? onBackgroundTap;
 
   const NotificationModal({
     super.key,
     required this.child,
     this.width = 339,
-    this.height = 291,
+    this.maxHeight = 320,
     this.onBackgroundTap,
   });
 
-  /// 👇 THÊM CÁI NÀY
   static Future<void> show(
     BuildContext context, {
     required Widget child,
     double width = 339,
-    double height = 291,
+    double maxHeight = 320,
     VoidCallback? onBackgroundTap,
   }) {
     return showDialog(
       context: context,
       useSafeArea: false,
+      barrierDismissible: true,
       barrierColor: Colors.transparent,
-      builder: (_) => Center(
+      builder: (_) => NotificationModal(
+        width: width,
+        maxHeight: maxHeight,
+        onBackgroundTap: onBackgroundTap,
         child: child,
       ),
     );
@@ -38,9 +44,9 @@ class NotificationModal extends StatefulWidget {
 
 class _NotificationModalState extends State<NotificationModal>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
+  late final AnimationController _controller;
+  late final Animation<Offset> _slideAnimation;
+  late final Animation<double> _fadeAnimation;
 
   bool _isClosing = false;
 
@@ -50,11 +56,11 @@ class _NotificationModalState extends State<NotificationModal>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 350),
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1), // từ dưới lên
+      begin: const Offset(0, 0.08), // nhẹ thôi cho đẹp
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
@@ -80,54 +86,46 @@ class _NotificationModalState extends State<NotificationModal>
 
   @override
   Widget build(BuildContext context) {
-    return MediaQuery.removePadding(
-      context: context,
-      removeTop: true,
-      removeBottom: true,
-      child: Material(
-        color: Colors.transparent,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            /// BACKGROUND
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: widget.onBackgroundTap ?? _close,
+    final maxH = widget.maxHeight.clamp(200, 600).toDouble();
+
+    return Material(
+      color: Colors.transparent,
+      child: Stack(
+        children: [
+          // Background
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onBackgroundTap ?? _close,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Container(color: const Color(0x66000000)),
+            ),
+          ),
+
+          // // Modal
+          SafeArea(
+            child: Center(
               child: FadeTransition(
                 opacity: _fadeAnimation,
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  color: const Color(0x66000000),
-                ),
-              ),
-            ),
-
-            /// MODAL BOX
-            SlideTransition(
-              position: _slideAnimation,
-              child: AbsorbPointer(
-                child: Container(
-                  width: widget.width,
-                  height: widget.height,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: SizedBox(
+                    width: widget.width,
+                    height: maxH,
+                    child: Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      clipBehavior: Clip.antiAlias,
+                      elevation: 10,
+                      child: widget.child,
+                    ),
                   ),
-                  child: widget.child,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
-
-// Cách gọi
-
-// NotificationModal.show(
-//   context,
-//   child: AppNoticeCard(type: AppNoticeType.success),
-// );

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
@@ -87,23 +88,28 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       // 🔥 GỌI SAU LOGIN
-      debugPrint("🚀 Trigger prepare device after login");
+      debugPrint("🚀 Running role: ${role}");
 
-      await appVM.loadAndSeedApp();
+      if (role == UserRole.child) {
+        AuthRuntimeManager.start();
+        await appVM.loadAndSeedApp();
+      } else {
+        await AuthRuntimeManager.stop();
+      }
 
       // ===== DEBUG SUMMARY =====
-      debugPrint('''
-        ================ LOGIN SUCCESS ================
-        Email            : $email
-        UID              : $uid
-        Role             : ${roleToString(role)}
-        Remember Password: $rememberPassword
-        Saved UID        : ${await storage.getString(StorageKeys.uid)}
-        Saved Role       : ${await storage.getString(StorageKeys.role)}
-        ================================================
-        ''');
+      // debugPrint('''
+      //   ================ LOGIN SUCCESS ================
+      //   Email            : $email
+      //   UID              : $uid
+      //   Role             : ${roleToString(role)}
+      //   Remember Password: $rememberPassword
+      //   Saved UID        : ${await storage.getString(StorageKeys.uid)}
+      //   Saved Role       : ${await storage.getString(StorageKeys.role)}
+      //   ================================================
+      //   ''');
 
-      debugPrint("✅ Device prepared");
+      // debugPrint("✅ Device prepared");
     } catch (e) {
       AlertService.error(message: 'Đăng nhập thất bại');
     }

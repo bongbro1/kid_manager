@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/models/app_item_model.dart';
+import 'package:kid_manager/utils/date_utils.dart';
 
 class AppItem extends StatelessWidget {
   final String appName;
@@ -8,12 +10,8 @@ class AppItem extends StatelessWidget {
   /// Icon app bên trái (svg asset path)
   final String? iconBase64;
 
-  /// Icon edit bên phải (svg asset path)
-  final Widget editIconAsset;
-
   /// Actions
   final VoidCallback? onTap;
-  final VoidCallback? onEdit;
 
   /// Optional styling
   final double width;
@@ -23,25 +21,36 @@ class AppItem extends StatelessWidget {
 
   final TextStyle? titleStyle;
   final TextStyle? subtitleStyle;
+  final AppItemModel app;
+  final bool showRightIcon;
 
   const AppItem({
     super.key,
     required this.appName,
     required this.usageTimeText,
-    required this.editIconAsset,
+    required this.app,
     this.iconBase64,
     this.onTap,
-    this.onEdit,
     this.width = 366,
     this.height = 70,
     this.backgroundColor = Colors.white,
     this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     this.titleStyle,
     this.subtitleStyle,
+    this.showRightIcon = true,
   });
+
+  double calcProgress(String usageText, int maxMinutes) {
+    final used = parseUsageTimeToMinutes(usageText);
+
+    if (maxMinutes == 0) return 0;
+
+    return (used / maxMinutes).clamp(0, 1);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final progress = calcProgress(usageTimeText, app.dailyLimitMinutes ?? 0);
     final theme = Theme.of(context);
 
     final defaultTitleStyle = theme.textTheme.titleMedium?.copyWith(
@@ -64,7 +73,7 @@ class AppItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           width: width,
           height: height,
@@ -72,7 +81,7 @@ class AppItem extends StatelessWidget {
           decoration: ShapeDecoration(
             color: backgroundColor,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
             shadows: const [
               BoxShadow(
@@ -83,6 +92,7 @@ class AppItem extends StatelessWidget {
             ],
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // LEFT: app icon
               Container(
@@ -90,12 +100,13 @@ class AppItem extends StatelessWidget {
                 height: 40,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(5),
-                  child: iconBase64 != null
+                  child: app.iconBytes != null
                       ? Image.memory(
-                          base64Decode(iconBase64!),
+                          app.iconBytes!,
                           width: 40,
                           height: 40,
                           fit: BoxFit.contain,
+                          gaplessPlayback: true,
                         )
                       : const Icon(Icons.apps, size: 24, color: Colors.grey),
                 ),
@@ -105,38 +116,68 @@ class AppItem extends StatelessWidget {
 
               // CENTER: name + usage time
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      appName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: titleStyle ?? defaultTitleStyle,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      usageTimeText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: subtitleStyle ?? defaultSubtitleStyle,
-                    ),
-                  ],
+                child: SizedBox.expand(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 2),
+
+                      /// Dòng trên
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              appName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: titleStyle ?? defaultTitleStyle,
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          Text(
+                            usageTimeText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: subtitleStyle ?? defaultSubtitleStyle,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      /// Progress bar
+                      LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 8,
+                        backgroundColor: const Color(0xFFF1F5F9),
+                        valueColor: const AlwaysStoppedAnimation(
+                          Color(0xFF3B82F6),
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ],
+                  ),
                 ),
               ),
+              if (showRightIcon) ...[
+                const SizedBox(width: 6),
 
-              const SizedBox(width: 12),
-
-              // RIGHT: edit icon
-              InkResponse(
-                onTap: onEdit,
-                radius: 22,
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: editIconAsset,
+                InkResponse(
+                  onTap: onTap,
+                  radius: 22,
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: Color(0xFF6B6778),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

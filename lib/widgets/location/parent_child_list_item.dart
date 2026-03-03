@@ -34,95 +34,94 @@ class ParentChildListItem extends StatelessWidget {
     final name = child.displayLabel;
 
     return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: InkWell(
-
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          onTap: onOpenHistory,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.grey.shade200,
-                width: 1,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0A000000), // bóng rất nhẹ
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
-            child: Row(
-              children: [
-                /// ===== AVATAR =====
-                Stack(
+          ],
+        ),
+        child: Row(
+          children: [
+            /// ✅ LEFT AREA (tap -> history)
+            Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: onOpenHistory,
+                child: Row(
                   children: [
-                    AppAvatar(user: child, size: 61),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: isOnline ? Colors.green : Colors.grey,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
+                    /// AVATAR
+                    Stack(
+                      children: [
+                        AppAvatar(user: child, size: 61),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: isOnline ? Colors.green : Colors.grey,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+
+                    /// NAME + STATUS
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF222B45),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isOnline ? 'Online' : 'Offline',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isOnline ? Colors.green : Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-
-                const SizedBox(width: 12),
-
-                /// ===== NAME + STATUS =====
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color:Color(0xFF222B45),
-
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isOnline ? 'Online' : 'Offline',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isOnline ? Colors.green : Colors.grey,
-                          fontWeight: FontWeight.w500,
-
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                /// ===== ACTIONS =====
-                _ActionPill(
-                  onChat: () {
-                    // TODO: mở chat
-                  },
-                  onLocate:onLocate
-                ),
-
-              ],
+              ),
             ),
-          ),
+
+            const SizedBox(width: 8),
+
+            /// ✅ RIGHT AREA (only icons clickable)
+            _ActionPill(
+              onChat: onChat,
+              onLocate: onLocate,
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 }
 

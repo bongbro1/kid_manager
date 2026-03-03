@@ -1,52 +1,57 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
-
-admin.initializeApp();
-
-export const mirrorUserToRtdb = functions.firestore
-  .document("users/{uid}")
-  .onCreate(async (snap, context) => {
-
-    const data = snap.data();
-    const uid = context.params.uid;
-
-    const parentUid = data.parentUid || null;
-
-    await admin.database()
-      .ref(`users/${uid}`)
-      .set({
-        parentUid: parentUid,
-      });
-
-    console.log(`Mirrored user ${uid} → RTDB`);
-  });
-
-
 import * as admin from "firebase-admin";
 import { createHash, randomUUID } from "crypto";
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
-
+import { defineString } from "firebase-functions/params";
+import { CloudTasksClient } from "@google-cloud/tasks";
+//Khi nào có tiền thì bật minInstances =1;
 admin.initializeApp();
+//$env:FUNCTIONS_DISCOVERY_TIMEOUT=30
+//firebase deploy --only functions
+// =======================
+// MIRROR USER -> RTDB
+// =======================
+export const mirrorUserToRtdb = onDocumentCreated(
+  {
+    document: "users/{uid}",
+    region: "asia-southeast1",
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const data = snap.data();
+    const uid = event.params.uid;
+    const parentUid = data.parentUid || null;
+
+    await admin.database().ref(`users/${uid}`).set({ parentUid });
+    console.log(`Mirrored user ${uid} → RTDB`);
+  }
+);
+
 const db = admin.firestore();
 
 setGlobalOptions({
-  region: "asia-southeast1", // gần VN (Singapore)
+  region: "asia-southeast1",
 });
+
+// =======================
+// CLOUD TASKS (REMINDER)
+// =======================
+const SOS_REMINDER_WORKER_URL = defineString("SOS_REMINDER_WORKER_URL");
+const tasksClient = new CloudTasksClient();
+const TASK_LOCATION = "asia-southeast1";
+const TASK_QUEUE = "sos-reminder-queue";
+const REMIND_INTERVAL_SEC = 10;
+const REMIND_MAX_SECONDS = 30 * 60;
 
 // =======================
 // CONFIG
 // =======================
 const TZ = "Asia/Ho_Chi_Minh";
-
-// Limit SOS per child per day
 const SOS_DAILY_LIMIT = 20;
-
-// Burst limit: tối thiểu X giây giữa 2 SOS của cùng 1 child
 const SOS_MIN_INTERVAL_SEC = 10;
-
-// TTL optional: giữ rate limit docs bao lâu rồi tự dọn (Firestore TTL)
 const RATE_DOC_TTL_DAYS = 14;
 
 // =======================
@@ -74,14 +79,19 @@ function mustNumber(v: unknown, name: string): number {
 
 function mustPlatform(v: unknown): Platform {
   if (v !== "android" && v !== "ios") {
-    throw new HttpsError("invalid-argument", "platform must be 'android' or 'ios'");
+    throw new HttpsError(
+      "invalid-argument",
+      "platform must be 'android' or 'ios'"
+    );
   }
   return v;
 }
 
 function validateLatLng(lat: number, lng: number) {
-  if (lat < -90 || lat > 90) throw new HttpsError("invalid-argument", "lat out of range");
-  if (lng < -180 || lng > 180) throw new HttpsError("invalid-argument", "lng out of range");
+  if (lat < -90 || lat > 90)
+    throw new HttpsError("invalid-argument", "lat out of range");
+  if (lng < -180 || lng > 180)
+    throw new HttpsError("invalid-argument", "lng out of range");
 }
 
 function dayKeyInTZ(d: Date, timeZone = TZ): string {
@@ -107,7 +117,9 @@ function isInvalidTokenErrorCode(code?: string): boolean {
   );
 }
 
-async function getUserFamilyAndRole(uid: string): Promise<{ familyId: string; role: string }> {
+async function getUserFamilyAndRole(
+  uid: string
+): Promise<{ familyId: string; role: string }> {
   const snap = await db.doc(`users/${uid}`).get();
   const d = snap.data() ?? {};
   const familyId = d.familyId;
@@ -122,21 +134,259 @@ async function getUserFamilyAndRole(uid: string): Promise<{ familyId: string; ro
   return { familyId, role };
 }
 
+function getProjectId(): string {
+  return (
+    process.env.GCLOUD_PROJECT ||
+    process.env.GCP_PROJECT ||
+    process.env.PROJECT_ID ||
+    ""
+  );
+}
+
+async function enqueueSosReminder(params: {
+  familyId: string;
+  sosId: string;
+  createdAtMs: number;
+}) {
+  const project = getProjectId();
+  if (!project) throw new Error("Missing GCLOUD_PROJECT");
+
+  const parent = tasksClient.queuePath(project, TASK_LOCATION, TASK_QUEUE);
+
+  const workerUrl = SOS_REMINDER_WORKER_URL.value();
+  if (!workerUrl) throw new Error("Missing SOS_REMINDER_WORKER_URL env");
+
+  const scheduleTime = {
+    seconds: Math.floor(Date.now() / 1000) + REMIND_INTERVAL_SEC,
+  };
+
+  const payload = Buffer.from(
+    JSON.stringify({
+      familyId: params.familyId,
+      sosId: params.sosId,
+      createdAtMs: params.createdAtMs,
+    })
+  ).toString("base64");
+
+  const task = {
+    httpRequest: {
+      httpMethod: "POST" as const,
+      url: workerUrl,
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      oidcToken: {
+        serviceAccountEmail: `${project}@appspot.gserviceaccount.com`,
+      },
+    },
+    scheduleTime,
+  };
+
+  console.log("[enqueueSosReminder] creating task", {
+    familyId: params.familyId,
+    sosId: params.sosId,
+  });
+
+  await tasksClient.createTask({ parent, task });
+}
+
 async function requireFamilyMember(familyId: string, uid: string) {
   const memberRef = db.doc(`families/${familyId}/members/${uid}`);
   const memberSnap = await memberRef.get();
-  if (!memberSnap.exists) throw new HttpsError("permission-denied", "Not a family member");
+  if (!memberSnap.exists)
+    throw new HttpsError("permission-denied", "Not a family member");
   return memberSnap.data() ?? {};
 }
+
+// =======================
+// SOS PUSH FANOUT (shared)
+// =======================
+async function sendSosPush(params: {
+  familyId: string;
+  sosId: string;
+  childUid: string;
+  lat?: number | null;
+  lng?: number | null;
+   createdByName?: string | null;
+}): Promise<{
+  attemptedRecipients: number;
+  success: number;
+  invalidTokensRemoved: number;
+}> {
+  const { familyId, sosId, childUid, lat, lng } = params;
+
+  const tokenSnap = await db.collection(`families/${familyId}/fcmTokens`).get();
+
+  const tokens: Array<{
+    token: string;
+    tokenHash: string;
+    uid: string;
+    platform?: string;
+  }> = [];
+
+  tokenSnap.forEach((doc) => {
+    const data = doc.data() as any;
+    const token: string | undefined = data.token;
+    const uid: string | undefined = data.uid;
+    if (!token || !uid) return;
+    if (uid === childUid) return; // exclude sender
+    tokens.push({ token, tokenHash: doc.id, uid, platform: data.platform });
+  });
+
+  if (!tokens.length) {
+    return { attemptedRecipients: 0, success: 0, invalidTokensRemoved: 0 };
+  }
+
+  const baseMessage: Omit<admin.messaging.MulticastMessage, "tokens"> = {
+    notification: {
+      title: "🚨 SOS KHẨN CẤP",
+      body: "Có thành viên đang cầu cứu. Chạm để xem vị trí.",
+    },
+    data: {
+      type: "SOS",
+      familyId: String(familyId),
+      sosId: String(sosId),
+      childUid: String(childUid),
+      lat: lat != null ? String(lat) : "",
+      lng: lng != null ? String(lng) : "",
+       createdByName: params.createdByName ? String(params.createdByName) : "",
+    },
+    android: {
+      priority: "high",
+      collapseKey: `sos_${sosId}`,
+      notification: {
+        channelId: "sos_channel_v2",
+        sound: "sos",
+        defaultVibrateTimings: true,
+        visibility: "public",
+        tag: `sos_${sosId}`,
+      },
+    },
+    apns: {
+      headers: {
+        "apns-priority": "10",
+        "apns-collapse-id": `sos_${sosId}`,
+      },
+      payload: { aps: { sound: "sos.caf" } },
+    },
+  };
+
+  const tokenChunks = chunk(tokens, 500);
+
+  let success = 0;
+  let invalidRemoved = 0;
+  let totalAttempt = 0;
+
+  for (const c of tokenChunks) {
+    totalAttempt += c.length;
+
+    const multicast: admin.messaging.MulticastMessage = {
+      ...baseMessage,
+      tokens: c.map((x) => x.token),
+    };
+
+    const resp = await admin.messaging().sendEachForMulticast(multicast);
+    success += resp.successCount;
+
+    const batch = db.batch();
+    let hasDeletes = false;
+
+    resp.responses.forEach((r, i) => {
+      if (r.success) return;
+      const err = r.error as any;
+      const code: string | undefined = err?.code;
+      if (isInvalidTokenErrorCode(code)) {
+        const meta = c[i];
+        invalidRemoved++;
+        batch.delete(db.doc(`families/${familyId}/fcmTokens/${meta.tokenHash}`));
+        batch.delete(db.doc(`users/${meta.uid}/fcmTokens/${meta.tokenHash}`));
+        hasDeletes = true;
+      }
+    });
+
+    if (hasDeletes) await batch.commit();
+  }
+
+  return {
+    attemptedRecipients: totalAttempt,
+    success,
+    invalidTokensRemoved: invalidRemoved,
+  };
+}
+
+// =======================
+// WORKER: SOS REMINDER
+// =======================
+export const sosReminderWorker = onRequest(
+  { region: "asia-southeast1" },
+  async (req, res) => {
+    try {
+      if (req.method !== "POST") {
+        res.status(405).send("Method not allowed");
+        return;
+      }
+
+      const { familyId, sosId, createdAtMs } = req.body ?? {};
+      if (!familyId || !sosId || !createdAtMs) {
+        res.status(400).send("Missing params");
+        return;
+      }
+
+      const ageSec = (Date.now() - Number(createdAtMs)) / 1000;
+      if (ageSec > REMIND_MAX_SECONDS) {
+        res.status(200).send("Expired reminder window");
+        return;
+      }
+
+      const sosRef = db.doc(`families/${familyId}/sos/${sosId}`);
+      const snap = await sosRef.get();
+      if (!snap.exists) {
+        res.status(200).send("SOS not found");
+        return;
+      }
+
+      const sos = snap.data() as any;
+      const status = sos.status;
+      if (status !== "active") {
+        res.status(200).send("SOS not active, stop");
+        return;
+      }
+
+      const loc = sos.location ?? {};
+      const lat = loc.lat;
+      const lng = loc.lng;
+      const childUid = sos.createdBy ?? "";
+const createdByName = sos.createdByName ?? "";
+
+      //  send using shared helper
+      await sendSosPush({
+        familyId: String(familyId),
+        sosId: String(sosId),
+        childUid: String(childUid),
+        lat: lat != null ? Number(lat) : null,
+        lng: lng != null ? Number(lng) : null,
+ createdByName: String(createdByName),
+      });
+
+      // Enqueue tiếp
+      await enqueueSosReminder({
+        familyId: String(familyId),
+        sosId: String(sosId),
+        createdAtMs: Number(createdAtMs),
+      });
+
+      res.status(200).send("OK");
+    } catch (e: any) {
+      console.error("sosReminderWorker error:", e?.stack ?? e);
+      res.status(500).send("ERR");
+    }
+  }
+);
 
 // =======================
 // TOKEN REGISTRY (CALLABLE)
 // =======================
 export const registerFcmToken = onCall(
-  {
-    // production khuyến nghị bật AppCheck khi bạn setup xong
-    // enforceAppCheck: true,
-  },
+  { region: "asia-southeast1" },
   async (req) => {
     if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
 
@@ -144,12 +394,9 @@ export const registerFcmToken = onCall(
     const token = mustString(req.data?.token, "token");
     const platform = mustPlatform(req.data?.platform);
 
-    // sanity
     if (token.length < 20) throw new HttpsError("invalid-argument", "token too short");
 
     const { familyId } = await getUserFamilyAndRole(uid);
-
-    // đảm bảo là member thật
     await requireFamilyMember(familyId, uid);
 
     const tokenHash = sha256Hex(token);
@@ -159,157 +406,281 @@ export const registerFcmToken = onCall(
     const familyTokenRef = db.doc(`families/${familyId}/fcmTokens/${tokenHash}`);
 
     const batch = db.batch();
-    batch.set(
-      userTokenRef,
-      { token, platform, familyId, updatedAt: now },
-      { merge: true }
-    );
-    batch.set(
-      familyTokenRef,
-      { token, platform, uid, updatedAt: now },
-      { merge: true }
-    );
+    batch.set(userTokenRef, { token, platform, familyId, updatedAt: now }, { merge: true });
+    batch.set(familyTokenRef, { token, platform, uid, updatedAt: now }, { merge: true });
     await batch.commit();
 
     return { ok: true, tokenHash, familyId };
   }
 );
 
-export const unregisterFcmToken = onCall(async (req) => {
-  if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+export const unregisterFcmToken = onCall(
+  { region: "asia-southeast1" },
+  async (req) => {
+    if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
 
-  const uid = req.auth.uid;
-  const token = mustString(req.data?.token, "token");
-  const tokenHash = sha256Hex(token);
+    const uid = req.auth.uid;
+    const token = mustString(req.data?.token, "token");
+    const tokenHash = sha256Hex(token);
 
-  const { familyId } = await getUserFamilyAndRole(uid);
+    const { familyId } = await getUserFamilyAndRole(uid);
 
-  // best-effort delete
-  const userTokenRef = db.doc(`users/${uid}/fcmTokens/${tokenHash}`);
-  const familyTokenRef = db.doc(`families/${familyId}/fcmTokens/${tokenHash}`);
+    const userTokenRef = db.doc(`users/${uid}/fcmTokens/${tokenHash}`);
+    const familyTokenRef = db.doc(`families/${familyId}/fcmTokens/${tokenHash}`);
 
-  const batch = db.batch();
-  batch.delete(userTokenRef);
-  batch.delete(familyTokenRef);
-  await batch.commit();
+    const batch = db.batch();
+    batch.delete(userTokenRef);
+    batch.delete(familyTokenRef);
+    await batch.commit();
 
-  return { ok: true };
-});
+    return { ok: true };
+  }
+);
 
 // =======================
-// CREATE SOS (CALLABLE) — PRODUCTION LIMITS
-// - daily limit: 20 / day / child
-// - burst limit: >= 10s between SOS
-// - idempotent: eventId as docId
+// CREATE SOS (CALLABLE) — FAST PATH
 // =======================
-export const createSos = onCall(async (req) => {
-  if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
-  const uid = req.auth.uid;
+export const createSos = onCall(
+  { region: "asia-southeast1"},
+  async (req) => {
+    if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+    const uid = req.auth.uid;
 
-  const eventId = mustString(req.data?.eventId, "eventId"); // UUID v4 from client
-  const lat = mustNumber(req.data?.lat, "lat");
-  const lng = mustNumber(req.data?.lng, "lng");
-  const acc = req.data?.acc == null ? null : mustNumber(req.data?.acc, "acc");
+    const eventId = mustString(req.data?.eventId, "eventId");
+    const lat = mustNumber(req.data?.lat, "lat");
+    const lng = mustNumber(req.data?.lng, "lng");
+    const acc = req.data?.acc == null ? null : mustNumber(req.data?.acc, "acc");
+console.log("[createSos] req.data keys=", Object.keys(req.data ?? {}));
+console.log("[createSos] req.data.createdByName=", req.data?.createdByName);
+    validateLatLng(lat, lng);
 
-  validateLatLng(lat, lng);
+    const now = new Date();
+    const dayKey = dayKeyInTZ(now, TZ);
+    const nowTs = admin.firestore.Timestamp.now();
 
-  const now = new Date();
-  const dayKey = dayKeyInTZ(now, TZ);
-  const nowTs = admin.firestore.Timestamp.now();
-
-  const { familyId, role } = await getUserFamilyAndRole(uid);
-  if (role !== "child") throw new HttpsError("permission-denied", "Only child can trigger SOS");
-
-  await requireFamilyMember(familyId, uid);
-
-  const sosRef = db.doc(`families/${familyId}/sos/${eventId}`);
-  const rateRef = db.doc(`families/${familyId}/rateLimits/sosDaily_${uid}_${dayKey}`);
-
-  const expiresAt = admin.firestore.Timestamp.fromDate(
-    new Date(now.getTime() + RATE_DOC_TTL_DAYS * 24 * 60 * 60 * 1000)
-  );
-
-  const result = await db.runTransaction(async (tx) => {
-    // Idempotency: nếu SOS đã tồn tại -> return luôn, không trừ quota lại
-    const existingSos = await tx.get(sosRef);
-    if (existingSos.exists) {
-      return { sosId: eventId, created: false, dayKey, limited: false };
+    const { familyId, role } = await getUserFamilyAndRole(uid);
+const createdByNameRaw = req.data?.createdByName;
+const createdByName =
+  typeof createdByNameRaw === "string" ? createdByNameRaw.trim().slice(0, 80) : "";    if (role !== "child" && role !== "parent") {
+      throw new HttpsError("permission-denied", "Only family members can trigger SOS");
     }
+console.log("[createSos] createdByName (sanitized)=", createdByName);
 
-    const rateSnap = await tx.get(rateRef);
+    await requireFamilyMember(familyId, uid);
 
-    const currentCount = rateSnap.exists ? (rateSnap.get("count") as number ?? 0) : 0;
-    if (currentCount >= SOS_DAILY_LIMIT) {
-      throw new HttpsError(
-        "resource-exhausted",
-        `Daily SOS limit reached (${SOS_DAILY_LIMIT}/day). dayKey=${dayKey}`
-      );
-    }
+    const sosRef = db.doc(`families/${familyId}/sos/${eventId}`);
+    const rateRef = db.doc(`families/${familyId}/rateLimits/sosDaily_${uid}_${dayKey}`);
 
-    // Burst limit
-    const lastAt = rateSnap.exists ? (rateSnap.get("lastSosAt") as admin.firestore.Timestamp | undefined) : undefined;
-    if (lastAt) {
-      const deltaSec = nowTs.toMillis() - lastAt.toMillis();
-      if (deltaSec < SOS_MIN_INTERVAL_SEC * 1000) {
+    const expiresAt = admin.firestore.Timestamp.fromDate(
+      new Date(now.getTime() + RATE_DOC_TTL_DAYS * 24 * 60 * 60 * 1000)
+    );
+
+    const result = await db.runTransaction(async (tx) => {
+      const existingSos = await tx.get(sosRef);
+      if (existingSos.exists) {
+        return { sosId: eventId, created: false, dayKey, limited: false };
+      }
+
+      const rateSnap = await tx.get(rateRef);
+      const currentCount = rateSnap.exists ? ((rateSnap.get("count") as number) ?? 0) : 0;
+
+      if (currentCount >= SOS_DAILY_LIMIT) {
         throw new HttpsError(
           "resource-exhausted",
-          `SOS too frequent. Wait at least ${SOS_MIN_INTERVAL_SEC}s between SOS.`
+          `Daily SOS limit reached (${SOS_DAILY_LIMIT}/day). dayKey=${dayKey}`
         );
       }
-    }
 
-    // update rate doc
-    if (rateSnap.exists) {
-      tx.update(rateRef, {
-        count: currentCount + 1,
-        lastSosAt: nowTs,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        expiresAt,
-      });
-    } else {
-      tx.create(rateRef, {
-        type: "sosDaily",
-        uid,
+      const lastAt = rateSnap.exists
+        ? (rateSnap.get("lastSosAt") as admin.firestore.Timestamp | undefined)
+        : undefined;
+
+      if (lastAt) {
+        const deltaMs = nowTs.toMillis() - lastAt.toMillis();
+        if (deltaMs < SOS_MIN_INTERVAL_SEC * 1000) {
+          throw new HttpsError(
+            "resource-exhausted",
+            `SOS too frequent. Wait at least ${SOS_MIN_INTERVAL_SEC}s between SOS.`
+          );
+        }
+      }
+
+      if (rateSnap.exists) {
+        tx.update(rateRef, {
+          count: currentCount + 1,
+          lastSosAt: nowTs,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt,
+        });
+      } else {
+        tx.create(rateRef, {
+          type: "sosDaily",
+          uid,
+          dayKey,
+          count: 1,
+          lastSosAt: nowTs,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt,
+        });
+      }
+
+      tx.create(sosRef, {
+        createdBy: uid,
+        createdByRole: role,
+        createdByName,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: "active",
+        location: { lat, lng, acc },
         dayKey,
-        count: 1,
-        lastSosAt: nowTs,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        expiresAt,
       });
-    }
 
-    // create SOS doc
-    tx.create(sosRef, {
-      childUid: uid,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      status: "active",
-      location: { lat, lng, acc },
-      dayKey,
+      return { sosId: eventId, created: true, dayKey, limited: false };
     });
 
-    return { sosId: eventId, created: true, dayKey, limited: false };
-  });
+    // ✅ FAST PATH: push ngay tại đây (khỏi đợi trigger)
+    if (result.created) {
+      const pushRes = await sendSosPush({
+        familyId,
+        sosId: eventId,
+        childUid: uid,
+        lat,
+        lng,
+        createdByName,
+      });
 
-  return {
-    ok: true,
-    ...result,
-    familyId,
-    limitPerDay: SOS_DAILY_LIMIT,
-    minIntervalSec: SOS_MIN_INTERVAL_SEC,
-    timezone: TZ,
-  };
-});
+      await sosRef.update({
+        "fanout.sentAt": admin.firestore.FieldValue.serverTimestamp(),
+        "fanout.attemptedRecipients": pushRes.attemptedRecipients,
+        "fanout.success": pushRes.success,
+        "fanout.invalidTokensRemoved": pushRes.invalidTokensRemoved,
+      });
+
+      await enqueueSosReminder({
+        familyId,
+        sosId: eventId,
+        createdAtMs: Date.now(),
+      });
+    }
+// ... sau enqueue reminder xong, ngay trước return
+
+const payload = {
+  ok: true,
+  ...result,
+  familyId,
+
+  // ✅ debug fields
+  debugVersion: "createSos-v2026-03-02-01",
+  createdByNameEcho: createdByName,
+  createdByNameRawEcho: req.data?.createdByName ?? null,
+  keysEcho: Object.keys(req.data ?? {}),
+
+  limitPerDay: SOS_DAILY_LIMIT,
+  minIntervalSec: SOS_MIN_INTERVAL_SEC,
+  timezone: TZ,
+};
+
+console.log("[createSos] RETURN_PAYLOAD", payload);
+
+return payload;
+  }
+);
 
 // =======================
-// FIRESTORE TRIGGER: SOS CREATED -> FANOUT PUSH
-// - idempotent lease lock (avoid double send)
-// - chunk <= 500 tokens per multicast
-// - cleanup invalid tokens
+// RESOLVE SOS
+// =======================
+export const resolveSos = onCall(
+  { region: "asia-southeast1" },
+  async (req) => {
+    if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+    const uid = req.auth.uid;
+
+    const familyId = mustString(req.data?.familyId, "familyId");
+    const sosId = mustString(req.data?.sosId, "sosId");
+
+    await requireFamilyMember(familyId, uid);
+
+    const ref = db.doc(`families/${familyId}/sos/${sosId}`);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new HttpsError("not-found", "SOS not found");
+      const d = snap.data()!;
+      if (d.status === "resolved") return;
+
+      tx.update(ref, {
+        status: "resolved",
+        resolvedBy: uid,
+        resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    return { ok: true };
+  }
+);
+
+export const getChildLocationCurrent = onCall(
+  { region: "asia-southeast1" },
+  async (req) => {
+    if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+    const parentUid = req.auth.uid;
+
+    const childUid = mustString(req.data?.childUid, "childUid");
+
+    // ✅ check quan hệ
+    const childSnap = await db.doc(`users/${childUid}`).get();
+    if (!childSnap.exists) throw new HttpsError("not-found", "Child not found");
+
+    const child = childSnap.data() as any;
+    if (child.parentUid !== parentUid) {
+      throw new HttpsError("permission-denied", "Not your child");
+    }
+
+    // ✅ đọc RTDB current
+    const curSnap = await admin.database().ref(`locations/${childUid}/current`).get();
+    const current = curSnap.exists() ? curSnap.val() : null;
+
+    return { ok: true, childUid, current };
+  }
+);
+
+export const getChildHistoryByDay = onCall(
+  { region: "asia-southeast1" },
+  async (req) => {
+    if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+    const parentUid = req.auth.uid;
+
+    const childUid = mustString(req.data?.childUid, "childUid");
+    const dayKey = mustString(req.data?.dayKey, "dayKey"); // "YYYY-MM-DD"
+
+    // ✅ check quan hệ
+    const childSnap = await db.doc(`users/${childUid}`).get();
+    if (!childSnap.exists) throw new HttpsError("not-found", "Child not found");
+
+    const child = childSnap.data() as any;
+    if (child.parentUid !== parentUid) {
+      throw new HttpsError("permission-denied", "Not your child");
+    }
+
+    // ✅ đọc RTDB lịch sử
+    const histSnap = await admin
+      .database()
+      .ref(`locations/${childUid}/historyByDay/${dayKey}`)
+      .get();
+
+    const history = histSnap.exists() ? histSnap.val() : null;
+
+    return { ok: true, childUid, dayKey, history };
+  }
+);
+
+// =======================
+// FIRESTORE TRIGGER: SOS CREATED (fallback)
 // =======================
 export const onSosCreated = onDocumentCreated(
   {
     document: "families/{familyId}/sos/{sosId}",
+    region: "asia-southeast1",
     retry: true,
+
   },
   async (event) => {
     const snap = event.data;
@@ -318,155 +689,207 @@ export const onSosCreated = onDocumentCreated(
     const { familyId, sosId } = event.params as { familyId: string; sosId: string };
     const sos = snap.data() as any;
 
-    const childUid: string | undefined = sos.childUid;
-    const status: string = sos.status ?? "active";
+    const createdBy: string | undefined = sos.createdBy;
+    const status: string | undefined = sos.status;
+    const childUid = createdBy;
+
+    if (!createdBy) return;
+
     const loc = sos.location ?? {};
     const lat = loc.lat;
     const lng = loc.lng;
 
-    if (!childUid) return;
     if (status !== "active") return;
 
     const sosRef = db.doc(`families/${familyId}/sos/${sosId}`);
 
-    // ===== idempotent lease lock
+    // lock tránh duplicate send
     const CLAIM_LEASE_MS = 120_000;
     const claimId = randomUUID();
     const nowTs = admin.firestore.Timestamp.now();
 
-    const shouldSend = await db.runTransaction(async (tx) => {
-      const cur = await tx.get(sosRef);
-      const d = cur.data() ?? {};
-      const fanout = d.fanout ?? {};
+    try {
+      const shouldSend = await db.runTransaction(async (tx) => {
+        const cur = await tx.get(sosRef);
+        if (!cur.exists) return false;
 
-      const sentAt: admin.firestore.Timestamp | undefined = fanout.sentAt;
-      if (sentAt) return false;
+        const d = cur.data() ?? {};
+        const fanout = d.fanout ?? {};
 
-      const claimedAt: admin.firestore.Timestamp | undefined = fanout.claimedAt;
-      if (claimedAt) {
-        const ageMs = nowTs.toMillis() - claimedAt.toMillis();
-        if (ageMs < CLAIM_LEASE_MS) return false;
-      }
+        const sentAt: admin.firestore.Timestamp | undefined = fanout.sentAt;
+        if (sentAt) return false; // ✅ createSos đã gửi rồi
 
-      tx.update(sosRef, {
-        "fanout.claimedAt": nowTs,
-        "fanout.claimId": claimId,
-        "fanout.attempted": admin.firestore.FieldValue.increment(1),
+        const claimedAt: admin.firestore.Timestamp | undefined = fanout.claimedAt;
+        if (claimedAt) {
+          const ageMs = nowTs.toMillis() - claimedAt.toMillis();
+          if (ageMs < CLAIM_LEASE_MS) return false;
+        }
+
+        tx.update(sosRef, {
+          "fanout.claimedAt": nowTs,
+          "fanout.claimId": claimId,
+          "fanout.attempted": admin.firestore.FieldValue.increment(1),
+        });
+        return true;
       });
-      return true;
-    });
 
-    if (!shouldSend) return;
+      if (!shouldSend) return;
 
-    // ===== fetch tokens under family
-    const tokenSnap = await db.collection(`families/${familyId}/fcmTokens`).get();
+      const pushRes = await sendSosPush({
+        familyId,
+        sosId,
+        childUid: String(childUid),
+        lat: lat != null ? Number(lat) : null,
+        lng: lng != null ? Number(lng) : null,
+      });
 
-    const tokens: Array<{ token: string; tokenHash: string; uid: string; platform?: string }> = [];
-    tokenSnap.forEach((doc) => {
-      const data = doc.data() as any;
-      const token: string | undefined = data.token;
-      const uid: string | undefined = data.uid;
-      if (!token || !uid) return;
-
-      // gửi tất cả members; thường bỏ bé để khỏi tự nhận
-      if (uid === childUid) return;
-
-      tokens.push({ token, tokenHash: doc.id, uid, platform: data.platform });
-    });
-
-    if (!tokens.length) {
       await sosRef.update({
         "fanout.sentAt": admin.firestore.FieldValue.serverTimestamp(),
-        "fanout.success": 0,
-        "fanout.attemptedRecipients": 0,
-        "fanout.invalidTokensRemoved": 0,
+        "fanout.attemptedRecipients": pushRes.attemptedRecipients,
+        "fanout.success": pushRes.success,
+        "fanout.invalidTokensRemoved": pushRes.invalidTokensRemoved,
         "fanout.claimedAt": admin.firestore.FieldValue.delete(),
         "fanout.claimId": admin.firestore.FieldValue.delete(),
       });
+
+      await enqueueSosReminder({
+        familyId,
+        sosId,
+        createdAtMs: Date.now(),
+      });
+    } catch (err: any) {
+      console.error(`[SOS] ERROR familyId=${familyId} sosId=${sosId} claimId=${claimId}`);
+      console.error(err?.stack ?? err);
+
+      // clear claim để retry
+      try {
+        await sosRef.update({
+          "fanout.claimedAt": admin.firestore.FieldValue.delete(),
+          "fanout.claimId": admin.firestore.FieldValue.delete(),
+          "fanout.lastError": String(err?.message ?? err),
+          "fanout.lastErrorAt": admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch {}
+
+      throw err;
+    }
+  }
+);
+
+
+// notification
+export const onNotificationCreated = onDocumentCreated(
+  {
+    document: "notifications/{notificationId}",
+    region: "asia-southeast1",
+    retry: true,
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const notificationId = event.params.notificationId;
+    const data = snap.data() as any;
+
+    const toUid: string | undefined = data.receiverId;
+
+    if (!toUid) {
+      console.log("[NOTI] Missing receiverId -> skip");
       return;
     }
 
-    const baseMessage: Omit<admin.messaging.MulticastMessage, "tokens"> = {
+    console.log(`[NOTI] Triggered id=${notificationId} toUid=${toUid}`);
+
+    const tokenSnap = await db
+      .collection(`users/${toUid}/fcmTokens`)
+      .get();
+
+    if (tokenSnap.empty) {
+      console.log("[NOTI] No tokens -> skip");
+      return;
+    }
+
+    const tokens: string[] = [];
+
+    tokenSnap.forEach(doc => {
+      const t = doc.data()?.token;
+      if (t) tokens.push(t);
+    });
+
+    if (!tokens.length) {
+      console.log("[NOTI] No usable tokens");
+      return;
+    }
+
+    await admin.messaging().sendEachForMulticast({
+      tokens,
       notification: {
-        title: "🚨 SOS KHẨN CẤP",
-        body: "Có thành viên đang cầu cứu. Chạm để xem vị trí.",
+        title: data.title ?? "Thông báo",
+        body: data.body ?? "Bạn có thông báo mới",
       },
       data: {
-        type: "SOS",
-        familyId,
-        sosId,
-        childUid,
-        lat: lat != null ? String(lat) : "",
-        lng: lng != null ? String(lng) : "",
+        type: String(data.type ?? "GENERIC"),
+        notificationId: notificationId,
+        ...convertDataToString(data.data),
       },
       android: {
         priority: "high",
-        collapseKey: `sos_${sosId}`,
-        notification: {
-          channelId: "sos_channel",
-          sound: "sos", // res/raw/sos.mp3
-          defaultVibrateTimings: true,
-          visibility: "public",
-          tag: `sos_${sosId}`,
-        },
       },
-      apns: {
-        headers: {
-          "apns-priority": "10",
-          "apns-collapse-id": `sos_${sosId}`,
-        },
-        payload: {
-          aps: {
-            sound: "sos.caf",
-          },
-        },
-      },
-    };
+    });
 
-    const tokenChunks = chunk(tokens, 500);
+    console.log(`[NOTI] Sent to ${tokens.length} devices`);
 
-    let success = 0;
-    let invalidRemoved = 0;
+    // (optional) update status
+    await snap.ref.update({ status: "sent" });
+  }
+);
 
-    for (const c of tokenChunks) {
-      const multicast: admin.messaging.MulticastMessage = {
-        ...baseMessage,
-        tokens: c.map((x) => x.token),
-      };
+function convertDataToString(data: any = {}) {
+  const result: Record<string, string> = {};
+  Object.keys(data).forEach((k) => {
+    result[k] = String(data[k]);
+  });
+  return result;
+}
 
-      const resp = await admin.messaging().sendEachForMulticast(multicast);
+export const getFamilyChildrenCurrent = onCall(
+  { region: "asia-southeast1" },
+  async (req) => {
+    if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+    const uid = req.auth.uid;
 
-      success += resp.successCount;
+    // ✅ lấy familyId/role từ profile (bạn đã có helper)
+    const { familyId, role } = await getUserFamilyAndRole(uid);
+    await requireFamilyMember(familyId, uid);
 
-      const batch = db.batch();
-      let hasDeletes = false;
-
-      resp.responses.forEach((r, i) => {
-        if (r.success) return;
-
-        const err = r.error as any;
-        const code: string | undefined = err?.code;
-
-        if (isInvalidTokenErrorCode(code)) {
-          const meta = c[i];
-          invalidRemoved++;
-
-          batch.delete(db.doc(`families/${familyId}/fcmTokens/${meta.tokenHash}`));
-          batch.delete(db.doc(`users/${meta.uid}/fcmTokens/${meta.tokenHash}`));
-          hasDeletes = true;
-        }
-      });
-
-      if (hasDeletes) await batch.commit();
+    // ✅ chỉ parent (hoặc guardian) mới gọi, tùy bạn
+    if (role !== "parent") {
+      throw new HttpsError("permission-denied", "Only parent can read children current");
     }
 
-    await sosRef.update({
-      "fanout.sentAt": admin.firestore.FieldValue.serverTimestamp(),
-      "fanout.attemptedRecipients": tokens.length,
-      "fanout.success": success,
-      "fanout.invalidTokensRemoved": invalidRemoved,
-      "fanout.claimedAt": admin.firestore.FieldValue.delete(),
-      "fanout.claimId": admin.firestore.FieldValue.delete(),
+    // ✅ lấy danh sách children trong family
+    // Giả định bạn có members/{uid} với field role="child"
+    const membersSnap = await db.collection(`families/${familyId}/members`).get();
+
+    const childUids: string[] = [];
+    membersSnap.forEach((doc) => {
+      const d = doc.data() as any;
+      if (d?.role === "child") childUids.push(doc.id);
     });
+
+    if (!childUids.length) return { ok: true, familyId, children: [] };
+
+    // ✅ đọc RTDB current cho tất cả children (parallel)
+    const reads = await Promise.all(
+      childUids.map(async (childUid) => {
+        const snap = await admin.database().ref(`locations/${childUid}/current`).get();
+        return { childUid, current: snap.exists() ? snap.val() : null };
+      })
+    );
+
+    // optional: lọc child không có current
+    const children = reads.filter((x) => x.current != null);
+
+    return { ok: true, familyId, children };
   }
 );

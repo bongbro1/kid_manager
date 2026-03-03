@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/helpers/app_management_helper.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/rule_runtime_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/utils/usage_rule_utils.dart';
 
 class AppManagementVM extends ChangeNotifier {
   final AppManagementRepository _repo;
@@ -23,27 +26,40 @@ class AppManagementVM extends ChangeNotifier {
   List<AppItemModel> _apps = [];
   List<AppItemModel> get apps => _apps;
 
+  Map<DateTime, int> _usageMap = {};
+  Map<DateTime, int> get usageMap => _usageMap;
+
+  // cho từng app
+  Map<String, Map<DateTime, int>> _appUsageMap = {};
+  Map<String, Map<DateTime, int>> get appUsageMap => _appUsageMap;
+
   List<ChildItem> children = [];
 
   String? _selectedChildId;
   String? get selectedChildId => _selectedChildId;
+  bool get hasChild => children.isNotEmpty;
 
-  void selectChild(String uid) {
-    if (_selectedChildId == uid) {
-      _selectedChildId = null;
-    } else {
-      _selectedChildId = uid;
-    }
-    loadAppsForSelectedChild();
+  int _usageVersion = 0;
+  int get usageVersion => _usageVersion;
+
+  Future<void> selectChild(String uid) async {
+    if (_selectedChildId == uid) return;
+
+    _selectedChildId = uid;
     notifyListeners();
+    await loadAppsForSelectedChild();
   }
 
   Future<void> loadAppsForSelectedChild() async {
     if (_selectedChildId == null) {
-      debugPrint("❌ No selected child");
+      _apps = [];
+      _loading = false;
+      notifyListeners();
       return;
     }
     await loadApps(_selectedChildId!);
+    await rebuildUsageFlat();
+    await loadUsageHistory();
   }
 
   /// Load + seed + sync usage
@@ -52,6 +68,9 @@ class AppManagementVM extends ChangeNotifier {
     _error = null;
 
     try {
+      // await _repo.migrateLegacyTimeRange(userId)
+
+
       _apps = await _repo.loadAppsFromFirestore(userId);
       notifyListeners();
       await _repo.syncTodayUsage(userId: userId);
@@ -136,5 +155,71 @@ class AppManagementVM extends ChangeNotifier {
       debugPrint("❌ loadAndSeedApp error: $e");
       debugPrint("$s");
     }
+  }
+
+  Future<void> saveUsageRule({
+    required String userId,
+    required String packageName,
+    required UsageRule rule,
+  }) async {
+    try {
+      _loading = true;
+      notifyListeners();
+
+      await _repo.saveUsageRuleForApp(
+        userId: userId,
+        packageName: packageName,
+        rule: rule,
+      );
+    } catch (e) {
+      debugPrint("❌ Save rule failed: $e");
+      rethrow;
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<UsageRule?> loadUsageRule({
+    required String childId,
+    required String packageName,
+  }) {
+    return _repo.fetchUsageRule(userId: childId, packageName: packageName);
+  }
+
+  Future<void> loadUsageHistory() async {
+    if (_selectedChildId == null) return;
+
+    debugPrint("📥 loadUsageHistory START for child = $_selectedChildId");
+
+    try {
+      final result = await _repo.loadUsageHistory(_selectedChildId!);
+
+      _usageMap = result.totalUsage;
+      _appUsageMap = result.perAppUsage;
+
+      // debugPrint("📊 TOTAL usage:");
+      // _usageMap.forEach((k, v) {
+      //   debugPrint("  ${k.toIso8601String()} -> $v min");
+      // });
+
+      // debugPrint("📱 PER APP usage:");
+      // _appUsageMap.forEach((app, map) {
+      //   debugPrint("  $app -> ${map.length} days");
+      // });
+
+      _usageVersion++;
+      notifyListeners();
+    } catch (e, stack) {
+      debugPrint("❌ loadUsageHistory ERROR: $e");
+      debugPrint("STACK: $stack");
+    }
+
+    debugPrint("📤 loadUsageHistory END");
+  }
+
+  Future<void> rebuildUsageFlat() async {
+    if (_selectedChildId == null) return;
+    await _repo.rebuildUsageDailyFlat(_selectedChildId!);
   }
 }

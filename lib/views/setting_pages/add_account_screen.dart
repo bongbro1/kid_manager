@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/personal_info_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
+import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:provider/provider.dart';
 
 class AddAccountScreen extends StatefulWidget {
@@ -50,7 +52,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       return;
     }
 
-    final userVM = context.read<UserVm>();
+    final userVM = context.read<UserRepository>();
     final storage = context.read<StorageService>();
 
     final parentUid = storage.getString(StorageKeys.uid);
@@ -90,7 +92,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             children: [
               AppLabeledTextField(
                 label: "Họ và tên",
-                hint: "Nhập họ và tên",
+                hint: "Nguyen Van A",
                 controller: _nameCtrl,
               ),
 
@@ -98,7 +100,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
               AppLabeledTextField(
                 label: "Email",
-                hint: "Nhập email",
+                hint: "nva@gmail.com",
                 controller: _emailCtrl,
               ),
 
@@ -106,7 +108,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
               AppLabeledTextField(
                 label: "Mật khẩu",
-                hint: "Nhập mật khẩu",
+                hint: "Admadm123",
                 controller: _passwordCtrl,
               ),
 
@@ -114,7 +116,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
               AppLabeledTextField(
                 label: "Ngày sinh",
-                hint: "Chọn ngày sinh",
+                hint: "12/12/2003",
                 controller: _dobCtrl,
               ),
 

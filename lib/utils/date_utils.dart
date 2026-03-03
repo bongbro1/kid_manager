@@ -18,6 +18,30 @@ String formatUsageMinutes(int minutes) {
   return "${h}h ${m}m";
 }
 
+int calculateAgeFromDateString(String dobString) {
+  try {
+    final parts = dobString.split('/');
+    if (parts.length != 3) return 0;
+
+    final day = int.parse(parts[0]);
+    final month = int.parse(parts[1]);
+    final year = int.parse(parts[2]);
+
+    final birthDate = DateTime(year, month, day);
+    final today = DateTime.now();
+
+    int age = today.year - birthDate.year;
+
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+
+    return age;
+  } catch (_) {
+    return 0;
+  }
+}
 
 // convert text to datetime
 DateTime? parseDateFromText(String text) {
@@ -53,17 +77,17 @@ DateTime? parseDateFromText(String text) {
 
 bool isChildAgeValid(DateTime dob) {
   final now = DateTime.now();
-  final age = now.year - dob.year -
-      ((now.month < dob.month ||
-              (now.month == dob.month && now.day < dob.day))
+  final age =
+      now.year -
+      dob.year -
+      ((now.month < dob.month || (now.month == dob.month && now.day < dob.day))
           ? 1
           : 0);
 
   return age <= 18;
 }
 
-
-// for management app 
+// for management app
 String dayKey(DateTime d) {
   final y = d.year.toString().padLeft(4, '0');
   final m = d.month.toString().padLeft(2, '0');
@@ -72,7 +96,8 @@ String dayKey(DateTime d) {
 }
 
 DateTime startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
-DateTime endOfDayExclusive(DateTime d) => startOfDay(d).add(const Duration(days: 1));
+DateTime endOfDayExclusive(DateTime d) =>
+    startOfDay(d).add(const Duration(days: 1));
 
 String formatDuration(int ms) {
   if (ms <= 0) return "0m";
@@ -87,3 +112,45 @@ String formatDuration(int ms) {
   return "${minutes}m";
 }
 
+String formatMinutes(int minutes) {
+  if (minutes <= 0) return "0m";
+
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+
+  if (h == 0) return "${m}m";
+  if (m == 0) return "${h}h";
+  return "${h}h ${m}m";
+}
+
+String formatDateDDMMYYYY(DateTime date) {
+  final d = date.toLocal(); // tránh lệch timezone do Z (UTC)
+
+  final day = d.day.toString().padLeft(2, '0');
+  final month = d.month.toString().padLeft(2, '0');
+  final year = d.year.toString();
+
+  return "$day/$month/$year";
+}
+
+bool sameDay(DateTime a, DateTime b) {
+  return a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+class TimeUtils {
+  static int nowMin() {
+    final now = DateTime.now();
+    return now.hour * 60 + now.minute;
+  }
+
+  static int todayWeekday() {
+    return DateTime.now().weekday; // 1-7
+  }
+
+  static String todayKey() {
+    final now = DateTime.now();
+    return "${now.year.toString().padLeft(4, '0')}-"
+        "${now.month.toString().padLeft(2, '0')}-"
+        "${now.day.toString().padLeft(2, '0')}";
+  }
+}

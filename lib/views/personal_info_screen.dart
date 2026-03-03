@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/services/imgbb_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
+import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
@@ -12,9 +16,12 @@ import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
+import 'package:kid_manager/widgets/app/app_image_modal.dart';
+import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notice_card.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
+import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:provider/provider.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -25,9 +32,7 @@ class PersonalInfoScreen extends StatefulWidget {
 }
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen>
-    with RouteAware {
-  late VoidCallback _tabListener;
-
+    with RouteAware, WidgetsBindingObserver {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _genderCtrl = TextEditingController();
@@ -36,29 +41,74 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
   bool allowLocationTracking = false;
   int _age = 0;
 
+  late VoidCallback _tabListener;
   bool _didBind = false;
+
+  DateTime _lastLoadAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  bool get _isTargetTab =>
+      activeTabNotifier.value == 3 || activeTabNotifier.value == 5;
+
+  bool get _isRouteCurrent => (ModalRoute.of(context)?.isCurrent ?? false);
+
+  Future<void> _safeLoadProfile({bool force = false}) async {
+    if (!mounted) {
+      return;
+    }
+
+    if (!_isTargetTab) {
+      return;
+    }
+
+    if (!_isRouteCurrent) {
+      return;
+    }
+
+    final vm = context.read<UserVm>();
+
+    if (vm.loading) {
+      return;
+    }
+
+    final now = DateTime.now();
+    if (!force && now.difference(_lastLoadAt) < const Duration(seconds: 3)) {
+      return;
+    }
+
+    _lastLoadAt = now;
+    await vm.loadProfile();
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _tabListener = () {
-      if (activeTabNotifier.value == 5 || activeTabNotifier.value == 2) {
-        context.read<UserVm>().loadProfile();
+      // Khi chuyển tab sang 3/5 (value thay đổi) => load
+      if (_isTargetTab) {
+        _safeLoadProfile(force: true);
       }
     };
-
     activeTabNotifier.addListener(_tabListener);
 
+    // Load lần đầu sau frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserVm>().loadProfile();
+      _safeLoadProfile(force: true);
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    activeTabNotifier.removeListener(_tabListener);
+    if (_didBind) routeObserver.unsubscribe(this);
+    super.dispose();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
     if (!_didBind) {
       final route = ModalRoute.of(context);
       if (route is PageRoute) {
@@ -70,16 +120,16 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
 
   @override
   void didPopNext() {
-    context.read<UserVm>().loadProfile();
+    // Quay lại từ màn khác => refresh
+    _safeLoadProfile(force: true);
   }
 
   @override
-  void dispose() {
-    activeTabNotifier.removeListener(_tabListener);
-    routeObserver.unsubscribe(this);
-    _nameCtrl.dispose();
-
-    super.dispose();
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // App resume => refresh
+    if (state == AppLifecycleState.resumed) {
+      _safeLoadProfile(force: true);
+    }
   }
 
   Future<void> _updateUserInfo() async {
@@ -120,31 +170,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
     } else {
       debugPrint("Update FAIL: ${vm.error}");
       // show snackbar/dialog nếu muốn
-    }
-  }
-
-  int calculateAgeFromDateString(String dobString) {
-    try {
-      final parts = dobString.split('/');
-      if (parts.length != 3) return 0;
-
-      final day = int.parse(parts[0]);
-      final month = int.parse(parts[1]);
-      final year = int.parse(parts[2]);
-
-      final birthDate = DateTime(year, month, day);
-      final today = DateTime.now();
-
-      int age = today.year - birthDate.year;
-
-      if (today.month < birthDate.month ||
-          (today.month == birthDate.month && today.day < birthDate.day)) {
-        age--;
-      }
-
-      return age;
-    } catch (_) {
-      return 0;
     }
   }
 
@@ -229,19 +254,34 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      // ẢNH (đặt trước để nằm dưới)
                       Positioned(
                         left: 0,
                         right: 0,
-                        bottom: 25, // chỉnh vị trí ảnh (nằm trên card)
-                        child: Image.asset(
-                          "assets/images/cover.png",
-                          width: 120,
-                          height: 230,
-                          fit: BoxFit.cover,
+                        bottom: 25,
+                        child: Center(
+                          child: tappablePhoto(
+                            context: context,
+                            vm: vm,
+                            url: p.coverUrl,
+                            fallbackAsset: "assets/images/cover.png",
+                            onReplace: (index, file) {
+                              return vm.updateUserPhoto(
+                                file: file,
+                                type: UserPhotoType.cover,
+                              );
+                            },
+                            child: Image(
+                              image: ((p.coverUrl ?? '').trim().isNotEmpty)
+                                  ? NetworkImage((p.coverUrl ?? '').trim())
+                                  : const AssetImage("assets/images/cover.png")
+                                        as ImageProvider,
+                              width: 500,
+                              height: 230,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
                       ),
-
                       Align(
                         alignment: Alignment.bottomCenter,
                         child: Container(
@@ -261,18 +301,40 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
                           ),
                           child: Row(
                             children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(78.5),
-                                  border: Border.all(
-                                    width: 2,
-                                    color: const Color(0xFF5EC8F2),
-                                  ),
-                                  image: const DecorationImage(
-                                    image: AssetImage("assets/images/u1.png"),
-                                    fit: BoxFit.cover,
+                              tappablePhoto(
+                                context: context,
+                                vm: vm,
+                                url: p.avatarUrl,
+                                fallbackAsset: "assets/images/u1.png",
+                                onReplace: (index, file) {
+                                  return vm.updateUserPhoto(
+                                    file: file,
+                                    type: UserPhotoType.avatar,
+                                  );
+                                },
+                                child: Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(78.5),
+                                    border: Border.all(
+                                      width: 2,
+                                      color: const Color(0xFF5EC8F2),
+                                    ),
+                                    image: DecorationImage(
+                                      image:
+                                          ((p.avatarUrl ?? '')
+                                              .trim()
+                                              .isNotEmpty)
+                                          ? NetworkImage(
+                                              (p.avatarUrl ?? '').trim(),
+                                            )
+                                          : const AssetImage(
+                                                  "assets/images/u1.png",
+                                                )
+                                                as ImageProvider,
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -366,149 +428,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class AppLabeledTextField extends StatelessWidget {
-  final String label;
-  final String hint;
-  final double? width;
-  final TextEditingController controller;
-
-  const AppLabeledTextField({
-    super.key,
-    required this.label,
-    required this.hint,
-    required this.controller,
-    this.width,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width ?? 350,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 55,
-            child: TextField(
-              controller: controller,
-              style: const TextStyle(color: Color(0xFF4A4A4A), fontSize: 14),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: const TextStyle(
-                  color: Color(0xFF8F9BB3),
-                  fontSize: 14,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFFEEEFF1)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFFEEEFF1)),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class AppLabeledCheckbox extends StatelessWidget {
-  final String label; // tiêu đề giống input (ở trên)
-  final String text; // nội dung cạnh checkbox
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final double? width;
-
-  const AppLabeledCheckbox({
-    super.key,
-    required this.label,
-    required this.text,
-    required this.value,
-    required this.onChanged,
-    this.width,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width ?? 350,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          // "box" đồng bộ với input
-          InkWell(
-            onTap: () => onChanged(!value),
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            hoverColor: Colors.transparent,
-            focusColor: Colors.transparent,
-            child: Row(
-              children: [
-                Transform.translate(
-                  offset: const Offset(-4, 0), // 👈 chỉnh -2, -4, -6 tùy ý
-                  child: Checkbox(
-                    value: value,
-                    onChanged: (v) => onChanged(v ?? false),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: const VisualDensity(
-                      horizontal: -4,
-                      vertical: -4,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    side: const BorderSide(color: Color(0xFFEEEFF1)),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    text,
-                    style: const TextStyle(
-                      color: Color(0xFF4A4A4A),
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -608,8 +527,10 @@ class ConfirmLogoutSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     Future<void> _logout() async {
       final authVM = context.read<AuthVM>();
+      final notiVM = context.read<NotificationVM>();
       final rootNav = Navigator.of(context, rootNavigator: true);
 
+      notiVM.clear();
       await authVM.logout();
 
       rootNav.pushAndRemoveUntil(
@@ -619,12 +540,12 @@ class ConfirmLogoutSheet extends StatelessWidget {
     }
 
     return AppOverlaySheet(
-      height: 220,
+      height: 230,
       showHandle: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 30),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             const SizedBox(height: 6),
             Container(

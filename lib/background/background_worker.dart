@@ -79,23 +79,28 @@ void callbackDispatcher() {
   });
 }
 
-Future<bool> isAppAliveFromInstalled(
+bool isAppAliveFromInstalled(
   String packageName,
   List<AppItemModel> installedApps,
-) async {
-  try {
-    return installedApps.any((app) => app.packageName == packageName);
-  } catch (e) {
-    debugPrint("❌ checkAlive error: $e");
-    return false;
+) {
+  final now = DateTime.now();
+
+  for (final app in installedApps) {
+    if (app.packageName == packageName) {
+      final lastSeen = app.lastSeen?.toDate();
+      if (lastSeen == null) return false;
+
+      return now.difference(lastSeen) <= const Duration(hours: 1);
+    }
   }
+
+  return false;
 }
 
 UserRepository _buildUserRepository() {
   final firestore = FirebaseFirestore.instance;
   return UserRepository.background(firestore);
 }
-
 
 AppManagementRepository _buildRepository() {
   final firestore = FirebaseFirestore.instance;

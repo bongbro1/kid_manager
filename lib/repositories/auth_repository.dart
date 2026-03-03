@@ -1,5 +1,6 @@
+import 'package:kid_manager/helpers/app_management_helper.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/user/user_role.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 
 import '../services/firebase_auth_service.dart';
 import 'user_repository.dart';
@@ -45,5 +46,9 @@ class AuthRepository {
     return cred;
   }
 
-  Future<void> logout() => _authService.signOut();
+  Future<void> logout() async {
+    RealtimeAppMonitor.stop();
+    await _authService.signOut();
+  }
 }
+

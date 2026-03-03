@@ -5,3 +5,6 @@ UserRole roleFromString(String v) =>
 
 String roleToString(UserRole r) =>
     r == UserRole.child ? 'child' : 'parent';
+
+
+enum UserPhotoType { avatar, cover }

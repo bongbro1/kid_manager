@@ -6,27 +6,22 @@ class LoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Container(
-        color: const Color(0xB2686868), // overlay mờ
-        child: Center(
-          child: Container(
-            width: 345,
-            height: 201,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Center(
-              child: const SvgLoading(),
-            ),
+    return Container(
+      color: const Color(0xB2686868),
+      child: Center(
+        child: Container(
+          width: 345,
+          height: 201,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
           ),
+          child: const Center(child: SvgLoading()),
         ),
       ),
     );
   }
 }
-
 class SvgLoading extends StatefulWidget {
   const SvgLoading({super.key});
 

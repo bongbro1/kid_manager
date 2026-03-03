@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "kidmanager-b4a8f"
-  }
+    "default": "kidmanager-b4a8f",
+    "y": "kidmanager-b4a8f"
+  },
+  "targets": {},
+  "etags": {}
 }

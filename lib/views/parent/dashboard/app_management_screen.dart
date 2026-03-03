@@ -1,9 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/views/parent/dashboard/no_child_screen.dart';
+import 'package:kid_manager/views/parent/dashboard/statistics_tab.dart';
 import 'package:kid_manager/views/parent/dashboard/usage_time_edit_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/user_carousel_card.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -17,7 +18,8 @@ class AppManagementScreen extends StatefulWidget {
   State<AppManagementScreen> createState() => _AppManagementScreenState();
 }
 
-class _AppManagementScreenState extends State<AppManagementScreen> with SingleTickerProviderStateMixin {
+class _AppManagementScreenState extends State<AppManagementScreen>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   int _tabIndex = 0;
 
@@ -34,12 +36,9 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppInitVM>().init();
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppManagementVM>().loadAppsForSelectedChild();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await context.read<AppManagementVM>().loadAppsForSelectedChild();
     });
   }
 
@@ -52,15 +51,22 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
   Future<void> openUsageTimeEdit({
     required BuildContext context,
     required AppItemModel app,
-    int? initialDailyLimitMinutes,
     required VoidCallback onUpdated,
   }) async {
+    final selectedChildId = context.read<AppManagementVM>().selectedChildId;
+
+    if (selectedChildId == null) {
+      debugPrint("❌ No child selected");
+      return;
+    }
     final changed = await Navigator.of(context).push<bool>(
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.transparent,
-        pageBuilder: (_, __, ___) =>
-            UsageTimeEditScreen(appId: app.packageName!),
+        pageBuilder: (_, __, ___) => UsageTimeEditScreen(
+          appId: app.packageName!,
+          childId: selectedChildId,
+        ),
       ),
     );
 
@@ -77,18 +83,38 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
   }
 
   void _goTab(int index) {
-    _tabController.animateTo(index); // 0: Ứng dụng, 1: Thống kê
+    _tabController.animateTo(index);
   }
+
   @override
   Widget build(BuildContext context) {
-
     final app_vm = context.watch<AppManagementVM>();
+    final apps = app_vm.apps;
 
-    if (app_vm.loading) {
-      return const LoadingOverlay();
+    if (!app_vm.hasChild) {
+      return const NoChildScreen();
     }
 
-    final apps = app_vm.apps;
+    return Stack(
+      children: [
+        // ✅ UI chính của bạn (giữ nguyên)
+        _buildMain(context, app_vm),
+
+        // ✅ overlay loading phủ lên toàn bộ
+        if (app_vm.loading)
+          const Positioned.fill(
+            child: AbsorbPointer(
+              absorbing: true, // chặn tap/scroll
+              child: LoadingOverlay(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMain(BuildContext context, AppManagementVM app_vm) {
+    final apps = context.watch<AppManagementVM>().apps;
+
     return Container(
       color: const Color(0xFFF2F2F7),
       child: SafeArea(
@@ -97,12 +123,12 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
           clipBehavior: Clip.none,
           children: [
             Container(
-              height: 151,
+              height: 290,
               decoration: const BoxDecoration(
                 color: Color(0xFF3A7DFF),
                 borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
                 ),
               ),
             ),
@@ -127,7 +153,7 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
                         'Dashboard',
                         style: TextStyle(
                           color: Colors.white /* Schemes-On-Error */,
-                          fontSize: 12,
+                          fontSize: 18,
                           fontFamily: 'Roboto',
                           fontWeight: FontWeight.w500,
                           height: 1.33,
@@ -153,7 +179,7 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
                           ),
                         ),
 
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 24),
                         Expanded(
                           child: TabBarView(
                             controller: _tabController,
@@ -174,25 +200,14 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
                                         bottom: 12,
                                       ),
                                       child: AppItem(
+                                        key: ValueKey(app.packageName),
                                         appName: app.name,
+                                        app: app,
                                         usageTimeText: app.usageTime ?? "0h 0m",
                                         iconBase64: app.iconBase64,
-                                        editIconAsset: Image.asset(
-                                          "assets/images/source_edit.png",
-                                          width: 18,
-                                          height: 18,
-                                          color: const Color(0xFF6B6778),
-                                        ),
                                         onTap: () => openUsageTimeEdit(
                                           context: context,
                                           app: app,
-                                          initialDailyLimitMinutes: null,
-                                          onUpdated: _reloadApps,
-                                        ),
-                                        onEdit: () => openUsageTimeEdit(
-                                          context: context,
-                                          app: app,
-                                          initialDailyLimitMinutes: null,
                                           onUpdated: _reloadApps,
                                         ),
                                       ),
@@ -202,7 +217,11 @@ class _AppManagementScreenState extends State<AppManagementScreen> with SingleTi
                               ),
 
                               // TAB 2
-                              const Center(child: Text("heheheheh")),
+                              StatisticsTab(
+                                vm: app_vm,
+                                apps: apps,
+                                onRefresh: _reloadApps,
+                              ),
                             ],
                           ),
                         ),
