@@ -1,15 +1,10 @@
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/services/schedule_import_service.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:file_saver/file_saver.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:file_saver/file_saver.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
 
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_text_styles.dart';
@@ -629,7 +624,7 @@ class _PreviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg = Colors.white;
+    Color bg = const Color.fromARGB(255, 151, 255, 157);
     String status = 'OK';
 
     if (r.error != null) {
@@ -692,7 +687,7 @@ class _PreviewRow extends StatelessWidget {
                           padding: EdgeInsets.only(top: 4),
                           child: Text(
                             'Trùng với dữ liệu đã có trên hệ thống',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF8A6D00)),
+                            style: TextStyle(fontSize: 13, color: Color(0xFF8A6D00)),
                           ),
                         ),
                       if (r.isDuplicateInFile)
@@ -700,7 +695,7 @@ class _PreviewRow extends StatelessWidget {
                           padding: EdgeInsets.only(top: 4),
                           child: Text(
                             'Trùng trong file',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF8A6D00)),
+                            style: TextStyle(fontSize: 13, color: Color(0xFF8A6D00)),
                           ),
                         ),
                     ],

@@ -133,14 +133,52 @@ class ScheduleViewModel extends ChangeNotifier {
   // ======================
 
   Future<void> addSchedule(Schedule s) async {
+    // ✅ check overlap trước khi tạo
+    final overlapped = await _findOverlapOnDay(
+      childId: s.childId,
+      day: s.date,
+      newStart: s.startAt,
+      newEnd: s.endAt,
+    );
+
+    if (overlapped != null) {
+      throw Exception(
+        'Trùng lịch với "${overlapped.title}" '
+        '(${_hhmm(overlapped.startAt)} - ${_hhmm(overlapped.endAt)})',
+      );
+    }
+
     await _repo.createSchedule(scheduleOwnerUid, s);
     await loadMonth();
   }
 
-  Future<void> updateSchedule(Schedule s) async {
-    await _repo.updateSchedule(scheduleOwnerUid, s);
-    await loadMonth();
+  // helper format
+  String _hhmm(DateTime d) {
+    final h = d.hour.toString().padLeft(2, '0');
+    final m = d.minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
+
+  Future<void> updateSchedule(Schedule s) async {
+  // ✅ check overlap trước khi update (bỏ qua chính nó)
+  final overlapped = await _findOverlapOnDay(
+    childId: s.childId,
+    day: s.date,
+    newStart: s.startAt,
+    newEnd: s.endAt,
+    ignoreScheduleId: s.id,
+  );
+
+  if (overlapped != null) {
+    throw Exception(
+      'Trùng lịch với "${overlapped.title}" '
+      '(${_hhmm(overlapped.startAt)} - ${_hhmm(overlapped.endAt)})',
+    );
+  }
+
+  await _repo.updateSchedule(scheduleOwnerUid, s);
+  await loadMonth();
+}
 
   Future<void> deleteSchedule(String id) async {
   try {
@@ -210,4 +248,38 @@ Future<void> bindChildSession({
   notifyListeners();
 }
 
+}
+
+// Extension để check overlap khi add/update schedule
+
+extension _TimeOverlap on ScheduleViewModel {
+  bool _isOverlapping(DateTime aStart, DateTime aEnd, DateTime bStart, DateTime bEnd) {
+    // cho phép liền kề: end == start => KHÔNG overlap
+    return aStart.isBefore(bEnd) && aEnd.isAfter(bStart);
+  }
+
+  Future<Schedule?> _findOverlapOnDay({
+    required String childId,
+    required DateTime day,
+    required DateTime newStart,
+    required DateTime newEnd,
+    String? ignoreScheduleId, // dùng cho update
+  }) async {
+    final dayStart = DateTime(day.year, day.month, day.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    // Lấy các schedule bắt đầu trong ngày (đủ đúng với rule hiện tại: schedule không qua ngày)
+    final list = await _repo.getSchedulesByRange(
+      parentUid: scheduleOwnerUid,
+      childId: childId,
+      start: dayStart,
+      end: dayEnd,
+    );
+
+    for (final s in list) {
+      if (ignoreScheduleId != null && s.id == ignoreScheduleId) continue;
+      if (_isOverlapping(newStart, newEnd, s.startAt, s.endAt)) return s;
+    }
+    return null;
+  }
 }
