@@ -91,7 +91,6 @@ class _LoginScreenState extends State<LoginScreen> {
       // 🔥 GỌI SAU LOGIN
       debugPrint("🚀 Running role: ${role}");
 
-<<<<<<< HEAD
       if (role == UserRole.child) {
         AuthRuntimeManager.start();
         await appVM.loadAndSeedApp();
@@ -99,34 +98,11 @@ class _LoginScreenState extends State<LoginScreen> {
         await AuthRuntimeManager.stop();
       }
 
-=======
       await appVM.loadAndSeedApp();
-// ✅ Seed demo lịch sử sau login (chạy 1 lần)
-//       final seeded = await storage.getBool('seed_demo_done') ?? false;
-//       if (!seeded) {
-//         try {
-//           await SeedDemoHistoryRtdb.seedDemoToRtdb(
-//             overrideDeviceId: uid, // seed vào đúng uid vừa login
-//           );
-//           await storage.setBool('seed_demo_done', true);
-//         } catch (e) {
-//           debugPrint("❌ seed demo failed: $e");
-//         }
-//       }
->>>>>>> LangVui
-      // ===== DEBUG SUMMARY =====
-      // debugPrint('''
-      //   ================ LOGIN SUCCESS ================
-      //   Email            : $email
-      //   UID              : $uid
-      //   Role             : ${roleToString(role)}
-      //   Remember Password: $rememberPassword
-      //   Saved UID        : ${await storage.getString(StorageKeys.uid)}
-      //   Saved Role       : ${await storage.getString(StorageKeys.role)}
-      //   ================================================
-      //   ''');
 
-      // debugPrint("✅ Device prepared");
+      // đoạn này còn lỗi phần nhấp vào đăng ký sau đó ra đăng nhập thì nó không tự chuyển sang màn home
+
+
     } catch (e) {
       AlertService.error(message: 'Đăng nhập thất bại');
     }
