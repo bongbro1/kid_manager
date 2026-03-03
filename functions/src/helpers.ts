@@ -55,6 +55,14 @@ export function isInvalidTokenErrorCode(code?: string): boolean {
   );
 }
 
+export function convertDataToString(data: any = {}) {
+  const result: Record<string, string> = {};
+  Object.keys(data).forEach((k) => {
+    result[k] = String(data[k]);
+  });
+  return result;
+}
+
 export function getProjectId(): string {
   return (
     process.env.GCLOUD_PROJECT ||

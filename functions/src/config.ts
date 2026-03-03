@@ -1,6 +1,7 @@
 import { defineString } from "firebase-functions/params";
 
 export const TZ = "Asia/Ho_Chi_Minh";
+export const REGION = "asia-southeast1";
 
 export const SOS_DAILY_LIMIT = 20;
 export const SOS_MIN_INTERVAL_SEC = 10;
