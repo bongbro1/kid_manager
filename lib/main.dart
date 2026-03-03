@@ -48,9 +48,8 @@ Future<void> main() async {
   );
   debugPrint('🔔 FCM permission=${settings.authorizationStatus}');
 
-  // ✅ token
+  //  token
   final token = await FirebaseMessaging.instance.getToken();
-  debugPrint('🔔 FCM token=$token');
 
   await initializeDateFormatting('vi_VN', null);
 

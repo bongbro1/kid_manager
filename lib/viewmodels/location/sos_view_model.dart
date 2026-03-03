@@ -21,15 +21,19 @@ class SosViewModel extends ChangeNotifier {
     required double lat,
     required double lng,
     double? acc,
+    required String createdByName
+
   }) async {
     final u = FirebaseAuth.instance.currentUser;
-    debugPrint('AUTH user=${u?.uid} email=${u?.email}');
 
     if (u == null) {
       _error = 'Chưa đăng nhập';
       notifyListeners();
       return null;
     }
+    final name = (createdByName.trim().isNotEmpty == true)
+        ? createdByName.trim()
+        : (u.email ?? 'Unknown');
 
     final idToken = await u.getIdToken();
 
@@ -40,12 +44,8 @@ class SosViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await _api.createSos(lat: lat, lng: lng, acc: acc);
+      final res = await _api.createSos(lat: lat, lng: lng, acc: acc,createdByName:name);
 
-      debugPrint("✅ SOS SUCCESS");
-      debugPrint("sosId: ${res.sosId}");
-      debugPrint("familyId: ${res.familyId}");
-      debugPrint("created: ${res.created}");
 
       _lastSosId = res.sosId;
       return res.sosId;

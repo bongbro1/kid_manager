@@ -168,7 +168,7 @@ class _ParentNotificationScreenState extends State<ParentNotificationScreen> {
                             useRootNavigator: true,
                             builder: (dialogContext) {
                               return NotificationModal(
-                                height: 420,
+                                maxHeight: 420,
                                 onBackgroundTap: () {
                                   Navigator.of(
                                     dialogContext,

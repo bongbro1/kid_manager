@@ -1,10 +1,15 @@
-import 'dart:ui' as ui;
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kid_manager/core/sos/sos_focus_bus.dart';
+import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/views/parent/location/parent_children_list_screen.dart';
+import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
 import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
+
 import 'package:kid_manager/features/presentation/shared/state/mapbox_controller.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -20,105 +25,159 @@ class ParentAllChildrenMapScreen extends StatefulWidget {
       _ParentAllChildrenMapScreenState();
 }
 
-class _ParentAllChildrenMapScreenState
-    extends State<ParentAllChildrenMapScreen> {
+class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen> {
   bool _didInitialFit = false;
   mbx.MapboxMap? _map;
 
   bool _inited = false;
+  bool _didInitialFocus = false;
   late final UserVm _userVm;
   late final ParentLocationVm _locationVm;
   late final MapboxController _controller;
 
+  Timer? _syncDebounce;
+  Uint8List? _defaultAvatarBytes;
   @override
   void initState() {
     super.initState();
+    sosFocusNotifier.addListener(_onSosFocus);
+    // cache default bytes 1 lần
+    Future.microtask(() async {
+      final d = await rootBundle.load("assets/images/avatar_default.png");
+      _defaultAvatarBytes = d.buffer.asUint8List();
+    });
+  }
+
+  Future<void> _onSosFocus() async {
+    final focus = sosFocusNotifier.value;
+    if (!mounted || focus == null) return;
+
+    // optional: chỉ xử lý đúng family
+    final myFamilyId = _userVm.familyId;
+    if (myFamilyId != null && focus.familyId != myFamilyId) return;
+
+    if (_map == null) return;
+
+    await _map!.easeTo(
+      mbx.CameraOptions(
+        center: mbx.Point(coordinates: mbx.Position(focus.lng, focus.lat)),
+        zoom: 16,
+      ),
+      mbx.MapAnimationOptions(duration: 700),
+    );
+
+    sosFocusNotifier.value = null;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
     if (_inited) return;
     _inited = true;
 
     _userVm = context.read<UserVm>();
     _locationVm = context.read<ParentLocationVm>();
     _controller = context.read<MapboxController>();
-    _locationVm.startMyLocation();
-    // Add listeners ngay khi đã có instance
+
+    try {
+      _locationVm.startMyLocation();
+    } catch (e, st) {
+      debugPrint('🔥 startMyLocation failed: $e');
+      debugPrint('$st');
+    }
+
     _controller.addListener(_handleMapOrDataChange);
     _locationVm.addListener(_handleMapOrDataChange);
     _userVm.addListener(_handleUserChange);
 
-    // Nếu cần chạy sau frame để chắc UI/build xong thì giữ postFrame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // ✅ tránh dùng context, dùng biến đã cache
+      if (!mounted) return;
       if (_userVm.childrenIds.isNotEmpty) {
         _locationVm.syncWatching(_userVm.childrenIds);
       }
     });
   }
 
+
+  Future<void> _focusFirstChildOnce() async {
+    if (_didInitialFocus) return;
+    if (_map == null) return;
+    if (_userVm.children.isEmpty) return;
+
+    // lấy child đầu tiên trong danh sách userVm.children
+    final firstChildId = _userVm.children.first.uid;
+    final loc = _locationVm.childrenLocations[firstChildId];
+    if (loc == null) return;
+
+    _didInitialFocus = true;
+
+    //  setCamera / jumpTo để KHÔNG có zoom từ trái đất
+    await _map!.setCamera(
+      mbx.CameraOptions(
+        center: mbx.Point(coordinates: mbx.Position(loc.longitude, loc.latitude)),
+        zoom: 16.5,
+        pitch: 0,
+        bearing: 0,
+      ),
+    );
+  }
+
+
   void _handleMapOrDataChange() {
     if (!mounted) return;
+    if (!_controller.isReady) return;
 
-    if (_controller.isReady && _locationVm.childrenLocations.isNotEmpty) {
-      _syncToMap();
-    }
+    // debounce để tránh spam scheduleUpdate
+    _syncDebounce?.cancel();
+    _syncDebounce = Timer(const Duration(milliseconds: 250), () async{
+      if (!mounted) return;
+      if (_locationVm.childrenLocations.isNotEmpty) {
+        await _syncToMap();
+         await _focusFirstChildOnce();
+
+      }
+    });
   }
 
   void _handleUserChange() {
     if (!mounted) return;
 
-    if (_userVm.childrenIds.isNotEmpty &&
-        _locationVm.childrenLocations.isEmpty) {
+    if (_userVm.childrenIds.isNotEmpty && _locationVm.childrenLocations.isEmpty) {
       _locationVm.syncWatching(_userVm.childrenIds);
     }
   }
 
   Future<void> _syncToMap() async {
-    final controller = context.read<MapboxController>();
-    final locationVm = context.read<ParentLocationVm>();
-    final userVm = context.read<UserVm>();
-
-    if (!controller.isReady) return;
+    if (!_controller.isReady) return;
 
     final positions = <String, mbx.Position>{};
     final headings = <String, double>{};
     final names = <String, String>{};
 
-    for (final entry in locationVm.childrenLocations.entries) {
-      final child = userVm.children.firstWhere((c) => c.uid == entry.key);
+    final childMap = {for (final c in _userVm.children) c.uid: c};
+
+    for (final entry in _locationVm.childrenLocations.entries) {
+      final child = childMap[entry.key];
+      if (child == null) continue;
 
       final loc = entry.value;
-
       positions[child.uid] = mbx.Position(loc.longitude, loc.latitude);
-
       headings[child.uid] = loc.heading ?? 0;
-
       names[child.uid] = child.displayName ?? "";
     }
 
-    controller.scheduleUpdate(
+    _controller.scheduleUpdate(
       positions: positions,
       headings: headings,
       names: names,
     );
 
-    if (!_didInitialFit && positions.isNotEmpty) {
-      _didInitialFit = true;
-      await controller.fitPoints(positions.values.toList());
-    }
+
   }
 
   void _openChildInfo(String childId) {
-    final locationVm = context.read<ParentLocationVm>();
-    final userVm = context.read<UserVm>();
-
-    final child = userVm.children.firstWhere((c) => c.uid == childId);
-
-    final latest = locationVm.childrenLocations[child.uid];
+    final child = _userVm.children.firstWhere((c) => c.uid == childId);
+    final latest = _locationVm.childrenLocations[child.uid];
 
     showModalBottomSheet(
       context: context,
@@ -137,91 +196,134 @@ class _ParentAllChildrenMapScreenState
 
   @override
   Widget build(BuildContext context) {
+    //  select để tránh rebuild toàn màn theo UserVm
+    final familyId = context.select<UserVm, String?>((vm) => vm.familyId);
+    final children = context.select<UserVm, List<dynamic>>(
+          (vm) => List.of(vm.children),
+    );
+    final myUid = context.select<UserVm, String?>((vm) => vm.me?.uid);
+
+    debugPrint("Building ParentAllChildrenMapScreen with familyId=$familyId");
+
     return Scaffold(
       body: Stack(
         children: [
           Positioned.fill(
-            child: Stack(
-              children: [
-                mbx.MapWidget(
-                  key: const ValueKey("parent-map"),
-                  styleUri: "mapbox://styles/mapbox/streets-v12",
-
-                  onMapCreated: (map) {
-                    _map = map;
-                    context.read<MapboxController>().attach(map);
-                  },
-
-                  onTapListener: (tapContext) async {
-                    if (_map == null) return;
-
-                    final features = await _map!.queryRenderedFeatures(
-                      mbx.RenderedQueryGeometry.fromScreenCoordinate(
-                        tapContext.touchPosition,
-                      ),
-                      mbx.RenderedQueryOptions(
-                        layerIds: ["children-layer"],
-                        filter: null,
-                      ),
-                    );
-
-                    debugPrint("TAP features count = ${features.length}");
-
-                    if (features.isEmpty) return;
-
-                    final queried = features.first?.queriedFeature;
-                    if (queried == null) return;
-
-                    final rawFeature =
-                        queried.feature as Map<String?, Object?>?;
-
-                    if (rawFeature == null) return;
-
-                    final props = rawFeature["properties"] as Map?;
-
-                    if (props == null) return;
-
-                    final childId = props["id"]?.toString();
-                    if (childId == null) return;
-
-                    debugPrint("TAP childId = $childId");
-
-                    _openChildInfo(childId);
-                    await context.read<MapboxController>().zoomToChild(childId);
-                  },
-
-                  onStyleLoadedListener: (_) async {
-                    final controller = context.read<MapboxController>();
-                    await controller.onStyleLoaded();
-
-                    if (!mounted) return;
-
-                    // ✅ Dùng addPostFrameCallback để đảm bảo native map hoàn toàn sẵn sàng
-                    WidgetsBinding.instance.addPostFrameCallback((_) async {
-                      if (!mounted) return;
-                      try {
-                        final data = await rootBundle.load(
-                          "assets/images/avatar_default.png",
-                        );
-                        await controller.setDefaultAvatar(
-                          data.buffer.asUint8List(),
-                        );
-                        if (mounted) await _syncToMap();
-                      } catch (e) {
-                        debugPrint("🔥 Setup Error: $e");
-                      }
-                    });
-                  },
+            child: mbx.MapWidget(
+              key: const ValueKey("parent-map"),
+              cameraOptions: mbx.CameraOptions(
+                zoom: 15.5,
+                center: mbx.Point(
+                  coordinates: mbx.Position(105.8342, 21.0278), // fallback
                 ),
-              ],
+              ),
+              styleUri: "mapbox://styles/mapbox/streets-v12",
+
+              onMapCreated: (map) {
+                _map = map;
+                _controller.attach(map);
+
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  _onSosFocus();
+                });
+              },
+              onTapListener: (tapContext) async {
+                if (_map == null) return;
+
+                final features = await _map!.queryRenderedFeatures(
+                  mbx.RenderedQueryGeometry.fromScreenCoordinate(
+                    tapContext.touchPosition,
+                  ),
+                  mbx.RenderedQueryOptions(
+                    layerIds: ["children-layer"],
+                    filter: null,
+                  ),
+                );
+
+                if (features.isEmpty) return;
+
+                final queried = features.first?.queriedFeature;
+                if (queried == null) return;
+
+                final rawFeature = queried.feature as Map<String?, Object?>?;
+                if (rawFeature == null) return;
+
+                final props = rawFeature["properties"] as Map?;
+                if (props == null) return;
+
+                final childId = props["id"]?.toString();
+                if (childId == null) return;
+
+                _openChildInfo(childId);
+                await _controller.zoomToChild(childId);
+              },
+              onStyleLoadedListener: (_) async {
+                await _controller.onStyleLoaded();
+                if (!mounted) return;
+
+                WidgetsBinding.instance.addPostFrameCallback((_) async {
+                  if (!mounted) return;
+
+                  try {
+                    final defaultBytes = _defaultAvatarBytes ??
+                        (await rootBundle.load("assets/images/avatar_default.png"))
+                            .buffer
+                            .asUint8List();
+
+                    // luôn add default trước
+                    await _controller.setDefaultAvatar(defaultBytes);
+
+                    //  tải avatar song song
+                    final tasks = _userVm.children.map((c) {
+                      debugPrint("URL AVATAR :UID :${c.uid} +${c.avatarUrl}");
+                      return _controller.setAvatarSmart(
+                        childId: c.uid,
+                        photoUrlOrData: c.avatarUrl,
+                        defaultBytes: defaultBytes,
+                      );
+                    }).toList();
+
+                    await Future.wait(tasks);
+                    await _syncToMap();
+                    await _focusFirstChildOnce();
+                  } catch (e, st) {
+                    debugPrint("🔥 Setup Error: $e");
+                    debugPrint("$st");
+                  }
+                });
+              },
             ),
           ),
 
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: MapTopBar(onMenuTap: () {}, onAvatarTap: () {}),
+            left: 12,
+            top: 90,
+            child: SafeArea(
+              child: SosCircleButton(
+                onPressed: () async {
+                  final sosVm = context.read<SosViewModel>();
+                  final myLocation = _locationVm.myLocation;
+                   final displayName = context.select<UserVm, String?>((vm) => vm.me?.displayName).toString();
+                  if (myLocation == null) return;
+                  if (sosVm.sending) return;
+
+                  final sosId = await sosVm.triggerSos(
+                    lat: myLocation.latitude,
+                    lng: myLocation.longitude,
+                    acc: myLocation.accuracy,
+                    createdByName:displayName,
+                  );
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại'),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
 
           Positioned(
@@ -230,7 +332,7 @@ class _ParentAllChildrenMapScreenState
             bottom: 16,
             child: SafeArea(
               child: MapBottomControls(
-                children: context.watch<UserVm>().children,
+                children: children.cast(), // nếu type khác thì đổi
                 onMyLocation: () async {
                   _didInitialFit = false;
                   await _syncToMap();
@@ -241,85 +343,54 @@ class _ParentAllChildrenMapScreenState
                 onMore: () async {
                   final selectedChild = await Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => ParentChildrenListScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => ParentChildrenListScreen()),
                   );
 
                   if (selectedChild == null) return;
 
                   final childId = selectedChild.uid;
 
-                  final duration = await context
-                      .read<MapboxController>()
-                      .zoomToChild(childId);
-
+                  final duration = await _controller.zoomToChild(childId);
                   await Future.delayed(Duration(milliseconds: duration));
-
                   _openChildInfo(childId);
                 },
               ),
             ),
           ),
 
-          Positioned(
-            right: 16,
-            bottom: 96,
-            child: SafeArea(
-              child: FloatingActionButton(
-                heroTag: 'parent_sos_fab',
-                backgroundColor: Colors.red.shade700,
-                onPressed: () {
-                  // Lấy vị trí hiện tại của parent
-                  final locationVm = context.read<ParentLocationVm>();
-                  final myLocation =
-                      locationVm.myLocation; // bạn cần expose cái này
 
-                  if (myLocation == null) return;
 
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SosView(
-                        lat: myLocation.latitude,
-                        lng: myLocation.longitude,
-                        acc: myLocation.accuracy,
-                      ),
-                    ),
-                  );
-                },
-                child: const Icon(Icons.sos, color: Colors.white),
+          // Overlay ổn định: chỉ rebuild khi familyId đổi
+          if (familyId != null && myUid != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 110,
+              child: IncomingSosOverlay(
+                key: ValueKey('sos-$familyId'),
+                familyId: familyId,
+                myUid: myUid,
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  // @override
-  // void dispose() {
-  //   final controller = context.read<MapboxController>();
-
-  //   controller.removeListener(_handleMapOrDataChange);
-
-  //   context.read<ParentLocationVm>().removeListener(_handleMapOrDataChange);
-
-  //   context.read<UserVm>().removeListener(_handleUserChange);
-  //   controller.detach(); // <--- THÊM DÒNG NÀY (rất quan trọng)
-
-  //   super.dispose();
-  // }
 
   @override
   void dispose() {
-    // ✅ remove listener bằng biến đã cache
+    _syncDebounce?.cancel();
+
     _controller.removeListener(_handleMapOrDataChange);
     _locationVm.removeListener(_handleMapOrDataChange);
     _userVm.removeListener(_handleUserChange);
 
-    // ✅ detach controller (rất quan trọng)
-    _controller.detach();
+    sosFocusNotifier.removeListener(_onSosFocus);
 
+    _controller.detach();
     super.dispose();
   }
 }
+
+

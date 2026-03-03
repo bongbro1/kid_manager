@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
 import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -9,7 +11,6 @@ import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 import 'package:kid_manager/widgets/location/map_top_bar.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
 
 class ChildLocationScreen extends StatefulWidget {
@@ -62,6 +63,8 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChildLocationViewModel>();
+    final familyId = context.watch<UserVm>().familyId;
+    final myUid = context.select<UserVm, String?>((vm) => vm.me?.uid);
 
     return Stack(
       children: [
@@ -135,37 +138,32 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
           ),
         ),
         Positioned(
-          right: 16,
-          bottom: 96, // cao hơn MapBottomControls
+          left: 12,
+          top: 90,
           child: SafeArea(
             top: false,
-            child: FloatingActionButton(
-              heroTag: 'sos_fab',
-              backgroundColor: Colors.red.shade700,
-              onPressed: () {
-                debugPrint(
-                  'HAS SosViewModel? ${hasProvider<SosViewModel>(context)}',
-                );
-                debugPrint(
-                  'HAS ChildLocationViewModel? ${hasProvider<ChildLocationViewModel>(context)}',
-                );
-
-                final loc = context
-                    .read<ChildLocationViewModel>()
-                    .currentLocation;
+            child: SosCircleButton(
+              onPressed: () async {
+                final loc = context.read<ChildLocationViewModel>().currentLocation;
+                final displayName = context.select<UserVm, String?>((vm) => vm.me?.displayName).toString();
                 if (loc == null) return;
 
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => SosView(
-                      lat: loc.latitude,
-                      lng: loc.longitude,
-                      acc: loc.accuracy,
-                    ),
-                  ),
+                final sosVm = context.read<SosViewModel>();
+                if (sosVm.sending) return;
+
+                final sosId = await sosVm.triggerSos(
+                  lat: loc.latitude,
+                  lng: loc.longitude,
+                  acc: loc.accuracy,
+                    createdByName:displayName
+                );
+
+                if (!context.mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại')),
                 );
               },
-              child: const Icon(Icons.sos, color: Colors.white),
             ),
           ),
         ),
@@ -175,6 +173,19 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
             right: 16,
             bottom: 80,
             child: _ErrorBanner(message: vm.error!),
+          ),
+
+        // Overlay ổn định: chỉ rebuild khi familyId đổi
+        if (familyId != null && myUid != null)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 110,
+            child: IncomingSosOverlay(
+              key: ValueKey('sos-$familyId'),
+              familyId: familyId,
+              myUid: myUid,
+            ),
           ),
       ],
     );

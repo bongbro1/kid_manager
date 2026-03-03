@@ -68,39 +68,37 @@ class UserRepository {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      batch.set(
-        familyRef.collection('members').doc(uid),
-        {
-          'uid': uid,
-          'role': 'parent',
-          'joinedAt': FieldValue.serverTimestamp(),
-        },
-      );
+      batch.set(familyRef.collection('members').doc(uid), {
+        'uid': uid,
+        'role': 'parent',
+        'joinedAt': FieldValue.serverTimestamp(),
+      });
 
       await batch.commit();
       return;
     }
     final familyId = _db.collection('families').doc().id;
     final batch = _db.batch();
-    batch.set(ref,(
-        {
-          'uid': uid,
-          'role': 'parent',
-          'email': email,
-          'familyId': familyId,
-          'displayName': displayName,
-          'locale': locale,
-          'timezone': timezone,
-          'createdAt': FieldValue.serverTimestamp(),
-          'lastActiveAt': FieldValue.serverTimestamp(),
-          'avatarUrl': '',
-          'subscription': {
-            'plan': 'free',
-            'status': 'active',
-            'startAt': FieldValue.serverTimestamp(),
-            'endAt': null,
-          },
-        })..removeWhere((_, v) => v == null)
+    batch.set(
+      ref,
+      ({
+        'uid': uid,
+        'role': 'parent',
+        'email': email,
+        'familyId': familyId,
+        'displayName': displayName,
+        'locale': locale,
+        'timezone': timezone,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastActiveAt': FieldValue.serverTimestamp(),
+        'avatarUrl': '',
+        'subscription': {
+          'plan': 'free',
+          'status': 'active',
+          'startAt': FieldValue.serverTimestamp(),
+          'endAt': null,
+        },
+      })..removeWhere((_, v) => v == null),
     );
 
     final familyRef = _db.collection('families').doc(familyId);
@@ -110,14 +108,11 @@ class UserRepository {
     });
 
     // 3️⃣ Thêm parent vào members
-    batch.set(
-      familyRef.collection('members').doc(uid),
-      {
-        'uid': uid,
-        'role': 'parent',
-        'joinedAt': FieldValue.serverTimestamp(),
-      },
-    );
+    batch.set(familyRef.collection('members').doc(uid), {
+      'uid': uid,
+      'role': 'parent',
+      'joinedAt': FieldValue.serverTimestamp(),
+    });
 
     await batch.commit();
   }
@@ -204,7 +199,11 @@ class UserRepository {
       );
       print("Lỗi ở đây 1");
       batch.set(
-        _db.collection('families').doc(familyId).collection('members').doc(childUid),
+        _db
+            .collection('families')
+            .doc(familyId)
+            .collection('members')
+            .doc(childUid),
         {
           'uid': childUid,
           'role': 'child',
@@ -217,8 +216,7 @@ class UserRepository {
 
       return childUid;
     }
-
-    // ✅ Bắt lỗi Firebase Auth (email trùng, password yếu, email sai định dạng...)
+    //  Bắt lỗi Firebase Auth (email trùng, password yếu, email sai định dạng...)
     on FirebaseAuthException catch (e) {
       // Gợi ý message theo code
       switch (e.code) {
@@ -229,13 +227,14 @@ class UserRepository {
         case 'weak-password':
           throw Exception("Mật khẩu quá yếu (hãy dùng mạnh hơn).");
         case 'operation-not-allowed':
-          throw Exception("Chức năng tạo tài khoản chưa được bật trong Firebase Auth.");
+          throw Exception(
+            "Chức năng tạo tài khoản chưa được bật trong Firebase Auth.",
+          );
         default:
           throw Exception("Lỗi tạo tài khoản: ${e.message ?? e.code}");
       }
     }
-
-    // ✅ Bắt lỗi Firestore
+    // Bắt lỗi Firestore
     on FirebaseException catch (e) {
       // FirebaseException dùng cho Firestore/Storage... (Firestore thường code: permission-denied, unavailable...)
       switch (e.code) {
@@ -247,13 +246,11 @@ class UserRepository {
           throw Exception("Lỗi Firestore: ${e.message ?? e.code}");
       }
     }
-
-    // ✅ Bắt lỗi logic (familyId null, v.v.)
+    //  Bắt lỗi logic (familyId null, v.v.)
     on StateError catch (e) {
       throw Exception("Dữ liệu không hợp lệ: ${e.message}");
     }
-
-    // ✅ Bắt mọi lỗi còn lại
+    //  Bắt mọi lỗi còn lại
     catch (e) {
       throw Exception("Tạo tài khoản con thất bại: $e");
     }

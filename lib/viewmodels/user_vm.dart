@@ -29,6 +29,11 @@ class UserVm extends ChangeNotifier {
   String? get error => _error;
   UserProfile? profile;
 
+  AppUser? me;
+  String? get familyId => me?.familyId;
+
+  StreamSubscription<AppUser?>? _meSub;
+
   void _setLoading(bool v) {
     _loading = v;
     notifyListeners();
@@ -39,6 +44,21 @@ class UserVm extends ChangeNotifier {
     notifyListeners();
   }
 
+  void watchMe(String uid) {
+    _meSub?.cancel();
+    _meSub = _userRepo
+        .watchUserById(uid)
+        .listen(
+          (u) {
+            me = u;
+            notifyListeners();
+          },
+          onError: (e) {
+            _error = 'Lỗi load user: $e';
+            notifyListeners();
+          },
+        );
+  }
   /* ============================================================
      CHILDREN (USER DOMAIN)
   ============================================================ */
@@ -64,8 +84,6 @@ class UserVm extends ChangeNotifier {
   /* ============================================================
      CREATE CHILD
   ============================================================ */
-
-
 
   Future<void> loadProfile() async {
     _error = null;
@@ -199,6 +217,7 @@ class UserVm extends ChangeNotifier {
   @override
   void dispose() {
     _childrenSub?.cancel();
+    _meSub?.cancel();
     super.dispose();
   }
 }
