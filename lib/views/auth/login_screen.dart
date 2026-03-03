@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
+import 'package:kid_manager/debug/seed_demo_history_rtdb.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
 import 'package:kid_manager/models/user/user_types.dart';
@@ -90,7 +91,18 @@ class _LoginScreenState extends State<LoginScreen> {
       // debugPrint("🚀 Trigger prepare device after login");
 
       await appVM.loadAndSeedApp();
-
+// ✅ Seed demo lịch sử sau login (chạy 1 lần)
+//       final seeded = await storage.getBool('seed_demo_done') ?? false;
+//       if (!seeded) {
+//         try {
+//           await SeedDemoHistoryRtdb.seedDemoToRtdb(
+//             overrideDeviceId: uid, // seed vào đúng uid vừa login
+//           );
+//           await storage.setBool('seed_demo_done', true);
+//         } catch (e) {
+//           debugPrint("❌ seed demo failed: $e");
+//         }
+//       }
       // ===== DEBUG SUMMARY =====
       // debugPrint('''
       //   ================ LOGIN SUCCESS ================

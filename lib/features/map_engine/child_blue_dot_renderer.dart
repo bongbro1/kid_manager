@@ -10,7 +10,7 @@ class ChildBlueDotRenderer {
   static const _accLayerId = "blue-dot-accuracy";
   static const _dotLayerId = "blue-dot-dot";
   static const _haloLayerId = "blue-dot-halo";
-
+  LocationData? _last;
   Future<void> init() async {
     final style = map.style;
 
@@ -69,22 +69,25 @@ class ChildBlueDotRenderer {
   }
 
   Future<void> update(LocationData loc) async {
+    // bỏ update nếu gần như không đổi (giảm rung)
+    final last = _last;
+    if (last != null) {
+      final distM = last.distanceTo(loc) * 1000.0;
+      final accDelta = (last.accuracy - loc.accuracy).abs();
+      if (distM < 1.5 && accDelta < 2) return; // ngưỡng tuỳ bạn
+    }
+    _last = loc;
+
     final feature = {
       "type": "Feature",
-      "properties": {
-        "acc": loc.accuracy.clamp(0, 200), // dùng cho accuracy circle
-      },
+      "properties": {"acc": loc.accuracy.clamp(0, 200)},
       "geometry": {
         "type": "Point",
         "coordinates": [loc.longitude, loc.latitude],
       }
     };
 
-    final geo = {
-      "type": "FeatureCollection",
-      "features": [feature],
-    };
-
+    final geo = {"type": "FeatureCollection", "features": [feature]};
     final source = await map.style.getSource(_srcId) as GeoJsonSource;
     await source.updateGeoJSON(jsonEncode(geo));
   }

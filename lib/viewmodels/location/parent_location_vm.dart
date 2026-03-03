@@ -174,72 +174,18 @@ class ParentLocationVm extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<LocationData> generateFakeHoTayHistory() {
-    final baseTime = DateTime.now().millisecondsSinceEpoch;
-    print("HAM NAY DC GOI generateFakeHoTayHistory");
-    // Tọa độ thực tế bờ Hồ Tây, đi theo chiều kim đồng hồ
-    // Bắt đầu từ góc phía Nam (đường Thanh Niên / cầu Trúc Bạch)
-    final points = [
-      [21.04720, 105.83600], // Điểm đầu - Đường Thanh Niên (phía Nam)
-      [21.04900, 105.83550], // Đường Thụy Khuê (phía Tây Nam)
-      [21.05100, 105.83480],
-      [21.05320, 105.83420],
-      [21.05560, 105.83380], // Phường Bưởi
-      [21.05790, 105.83420],
-      [21.06020, 105.83510],
-      [21.06230, 105.83640], // Phố Lạc Long Quân (phía Tây)
-      [21.06420, 105.83820],
-      [21.06580, 105.84050],
-      [21.06700, 105.84310], // Góc Tây Bắc
-      [21.06780, 105.84590],
-      [21.06800, 105.84880],
-      [21.06760, 105.85170],
-      [21.06660, 105.85440], // Phía Bắc - Xuân La
-      [21.06510, 105.85680],
-      [21.06310, 105.85870],
-      [21.06080, 105.85990],
-      [21.05840, 105.86050], // Góc Đông Bắc - Tây Hồ
-      [21.05590, 105.86020],
-      [21.05340, 105.85930],
-      [21.05120, 105.85780], // Phố Đặng Thai Mai (phía Đông)
-      [21.04920, 105.85590],
-      [21.04760, 105.85360],
-      [21.04660, 105.85100],
-      [21.04630, 105.84830], // Phía Đông Nam - Quảng Bá
-      [21.04680, 105.84560],
-      [21.04780, 105.84310],
-      [21.04910, 105.84080],
-      [21.05030, 105.83870],
-      [21.04900, 105.83720], // Đường Thanh Niên quay về
-      [21.04780, 105.83650],
-      [21.04720, 105.83600], // Điểm kết thúc (về điểm đầu)
-    ];
 
-    return List.generate(points.length, (i) {
-      return LocationData(
-        latitude: points[i][0],
-        longitude: points[i][1],
-        accuracy: 8,
-        speed: 4.0,
-        heading: (i * (360 / points.length)).toDouble(),
-        isMock: false,
-        timestamp: baseTime + (i * 5000),
-      );
-    });
-  }
   /* ============================================================
      HISTORY + STATS
   ============================================================ */
 
-  Future<List<LocationData>> loadLocationHistory(String childId) async {
+  Future<List<LocationData>> loadLocationHistoryByDay(String childUid, DateTime day) async {
     try {
-      final history = await _locationRepo.getLocationHistory(childId);
+      final history = await _locationRepo.getLocationHistoryByDay(childUid, day);
       final valid = history.where(_isValidLocation).toList();
 
-      _childrenTrails[childId] = valid;
-      if (valid.isNotEmpty) {
-        _childrenLocations[childId] = valid.last;
-      }
+      _childrenTrails[childUid] = valid;
+      if (valid.isNotEmpty) _childrenLocations[childUid] = valid.last;
       notifyListeners();
       return valid;
     } catch (e) {
