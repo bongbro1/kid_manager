@@ -37,6 +37,7 @@ class AppManagementVM extends ChangeNotifier {
 
   String? _selectedChildId;
   String? get selectedChildId => _selectedChildId;
+  bool get hasChild => children.isNotEmpty;
 
   int _usageVersion = 0;
   int get usageVersion => _usageVersion;

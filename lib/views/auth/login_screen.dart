@@ -92,11 +92,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (role == UserRole.child) {
         AuthRuntimeManager.start();
+        await appVM.loadAndSeedApp();
       } else {
         await AuthRuntimeManager.stop();
       }
-
-      await appVM.loadAndSeedApp();
 
       // ===== DEBUG SUMMARY =====
       // debugPrint('''

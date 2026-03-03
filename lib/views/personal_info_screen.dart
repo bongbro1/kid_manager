@@ -537,12 +537,12 @@ class ConfirmLogoutSheet extends StatelessWidget {
     }
 
     return AppOverlaySheet(
-      height: 220,
+      height: 230,
       showHandle: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 30),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             const SizedBox(height: 6),
             Container(

@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/views/parent/dashboard/no_child_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/statistics_tab.dart';
 import 'package:kid_manager/views/parent/dashboard/usage_time_edit_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/user_carousel_card.dart';
@@ -36,7 +37,6 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<AppInitVM>().init();
       if (!mounted) return;
       await context.read<AppManagementVM>().loadAppsForSelectedChild();
     });
@@ -89,8 +89,12 @@ class _AppManagementScreenState extends State<AppManagementScreen>
   @override
   Widget build(BuildContext context) {
     final app_vm = context.watch<AppManagementVM>();
-
     final apps = app_vm.apps;
+
+    if (!app_vm.hasChild) {
+      return const NoChildScreen();
+    }
+
     return Stack(
       children: [
         // ✅ UI chính của bạn (giữ nguyên)

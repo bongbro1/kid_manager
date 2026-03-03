@@ -18,7 +18,7 @@ class AppNoticeCard extends StatelessWidget {
     final cfg = _mapNotice(type);
 
     return NotificationModal(
-      maxHeight: 260,
+      // maxHeight: 260,
       onBackgroundTap: () {
         Navigator.of(context).pop();
       },

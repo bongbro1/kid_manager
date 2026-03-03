@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/services/notifications/sos_notification_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -9,7 +8,6 @@ import 'package:kid_manager/features/sessions/sessionstatus.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/widgets/app/app_shell.dart';
-import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/services/notifications/sos_sound_prompt.dart';
 
@@ -24,6 +22,7 @@ class _SessionGuardState extends State<SessionGuard> {
   SessionStatus? _lastStatus;
   String? _lastUid;
   bool? _lastIsParent;
+  bool _initCalled = false;
 
   String? _pushInitedForUid;
 
@@ -31,7 +30,10 @@ class _SessionGuardState extends State<SessionGuard> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppInitVM>().init();
+      if (!_initCalled) {
+        _initCalled = true;
+        context.read<AppInitVM>().init();
+      }
     });
   }
 

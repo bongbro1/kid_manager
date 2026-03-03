@@ -25,7 +25,8 @@ class ParentAllChildrenMapScreen extends StatefulWidget {
       _ParentAllChildrenMapScreenState();
 }
 
-class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen> {
+class _ParentAllChildrenMapScreenState
+    extends State<ParentAllChildrenMapScreen> {
   bool _didInitialFit = false;
   mbx.MapboxMap? _map;
 
@@ -98,7 +99,6 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     });
   }
 
-
   Future<void> _focusFirstChildOnce() async {
     if (_didInitialFocus) return;
     if (_map == null) return;
@@ -114,7 +114,9 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     //  setCamera / jumpTo để KHÔNG có zoom từ trái đất
     await _map!.setCamera(
       mbx.CameraOptions(
-        center: mbx.Point(coordinates: mbx.Position(loc.longitude, loc.latitude)),
+        center: mbx.Point(
+          coordinates: mbx.Position(loc.longitude, loc.latitude),
+        ),
         zoom: 16.5,
         pitch: 0,
         bearing: 0,
@@ -122,19 +124,17 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     );
   }
 
-
   void _handleMapOrDataChange() {
     if (!mounted) return;
     if (!_controller.isReady) return;
 
     // debounce để tránh spam scheduleUpdate
     _syncDebounce?.cancel();
-    _syncDebounce = Timer(const Duration(milliseconds: 250), () async{
+    _syncDebounce = Timer(const Duration(milliseconds: 250), () async {
       if (!mounted) return;
       if (_locationVm.childrenLocations.isNotEmpty) {
         await _syncToMap();
-         await _focusFirstChildOnce();
-
+        await _focusFirstChildOnce();
       }
     });
   }
@@ -142,7 +142,8 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   void _handleUserChange() {
     if (!mounted) return;
 
-    if (_userVm.childrenIds.isNotEmpty && _locationVm.childrenLocations.isEmpty) {
+    if (_userVm.childrenIds.isNotEmpty &&
+        _locationVm.childrenLocations.isEmpty) {
       _locationVm.syncWatching(_userVm.childrenIds);
     }
   }
@@ -171,8 +172,6 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
       headings: headings,
       names: names,
     );
-
-
   }
 
   void _openChildInfo(String childId) {
@@ -199,7 +198,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     //  select để tránh rebuild toàn màn theo UserVm
     final familyId = context.select<UserVm, String?>((vm) => vm.familyId);
     final children = context.select<UserVm, List<dynamic>>(
-          (vm) => List.of(vm.children),
+      (vm) => List.of(vm.children),
     );
     final myUid = context.select<UserVm, String?>((vm) => vm.me?.uid);
 
@@ -266,10 +265,11 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                   if (!mounted) return;
 
                   try {
-                    final defaultBytes = _defaultAvatarBytes ??
-                        (await rootBundle.load("assets/images/avatar_default.png"))
-                            .buffer
-                            .asUint8List();
+                    final defaultBytes =
+                        _defaultAvatarBytes ??
+                        (await rootBundle.load(
+                          "assets/images/avatar_default.png",
+                        )).buffer.asUint8List();
 
                     // luôn add default trước
                     await _controller.setDefaultAvatar(defaultBytes);
@@ -304,7 +304,9 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                 onPressed: () async {
                   final sosVm = context.read<SosViewModel>();
                   final myLocation = _locationVm.myLocation;
-                   final displayName = context.select<UserVm, String?>((vm) => vm.me?.displayName).toString();
+                  final displayName = context
+                      .select<UserVm, String?>((vm) => vm.me?.displayName)
+                      .toString();
                   if (myLocation == null) return;
                   if (sosVm.sending) return;
 
@@ -312,13 +314,15 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                     lat: myLocation.latitude,
                     lng: myLocation.longitude,
                     acc: myLocation.accuracy,
-                    createdByName:displayName,
+                    createdByName: displayName,
                   );
 
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại'),
+                      content: Text(
+                        sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại',
+                      ),
                     ),
                   );
                 },
@@ -343,7 +347,9 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                 onMore: () async {
                   final selectedChild = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => ParentChildrenListScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => ParentChildrenListScreen(),
+                    ),
                   );
 
                   if (selectedChild == null) return;
@@ -357,8 +363,6 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
               ),
             ),
           ),
-
-
 
           // Overlay ổn định: chỉ rebuild khi familyId đổi
           if (familyId != null && myUid != null)
@@ -377,7 +381,6 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     );
   }
 
-
   @override
   void dispose() {
     _syncDebounce?.cancel();
@@ -392,5 +395,3 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     super.dispose();
   }
 }
-
-

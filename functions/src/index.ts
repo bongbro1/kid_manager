@@ -617,7 +617,60 @@ export const resolveSos = onCall(
   }
 );
 
+export const getChildLocationCurrent = onCall(
+  { region: "asia-southeast1" },
+  async (req) => {
+    if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+    const parentUid = req.auth.uid;
 
+    const childUid = mustString(req.data?.childUid, "childUid");
+
+    // ✅ check quan hệ
+    const childSnap = await db.doc(`users/${childUid}`).get();
+    if (!childSnap.exists) throw new HttpsError("not-found", "Child not found");
+
+    const child = childSnap.data() as any;
+    if (child.parentUid !== parentUid) {
+      throw new HttpsError("permission-denied", "Not your child");
+    }
+
+    // ✅ đọc RTDB current
+    const curSnap = await admin.database().ref(`locations/${childUid}/current`).get();
+    const current = curSnap.exists() ? curSnap.val() : null;
+
+    return { ok: true, childUid, current };
+  }
+);
+
+export const getChildHistoryByDay = onCall(
+  { region: "asia-southeast1" },
+  async (req) => {
+    if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+    const parentUid = req.auth.uid;
+
+    const childUid = mustString(req.data?.childUid, "childUid");
+    const dayKey = mustString(req.data?.dayKey, "dayKey"); // "YYYY-MM-DD"
+
+    // ✅ check quan hệ
+    const childSnap = await db.doc(`users/${childUid}`).get();
+    if (!childSnap.exists) throw new HttpsError("not-found", "Child not found");
+
+    const child = childSnap.data() as any;
+    if (child.parentUid !== parentUid) {
+      throw new HttpsError("permission-denied", "Not your child");
+    }
+
+    // ✅ đọc RTDB lịch sử
+    const histSnap = await admin
+      .database()
+      .ref(`locations/${childUid}/historyByDay/${dayKey}`)
+      .get();
+
+    const history = histSnap.exists() ? histSnap.val() : null;
+
+    return { ok: true, childUid, dayKey, history };
+  }
+);
 
 // =======================
 // FIRESTORE TRIGGER: SOS CREATED (fallback)
@@ -699,15 +752,11 @@ export const onSosCreated = onDocumentCreated(
         "fanout.claimId": admin.firestore.FieldValue.delete(),
       });
 
-      // Sau khi gửi lần đầu thành công (ở cuối try)
-await enqueueSosReminder({
-  familyId,
-  sosId,
-  createdAtMs: Date.now(),
-});
-      console.log(
-        `[SOS] DONE familyId=${familyId} sosId=${sosId} attempted=${totalAttempt} success=${success} invalidRemoved=${invalidRemoved}`
-      );
+      await enqueueSosReminder({
+        familyId,
+        sosId,
+        createdAtMs: Date.now(),
+      });
     } catch (err: any) {
       console.error(`[SOS] ERROR familyId=${familyId} sosId=${sosId} claimId=${claimId}`);
       console.error(err?.stack ?? err);
@@ -720,9 +769,7 @@ await enqueueSosReminder({
           "fanout.lastError": String(err?.message ?? err),
           "fanout.lastErrorAt": admin.firestore.FieldValue.serverTimestamp(),
         });
-      } catch (e) {
-        console.error("[SOS] Failed to clear claim / write lastError", e);
-      }
+      } catch {}
 
       throw err;
     }
@@ -744,15 +791,15 @@ export const onNotificationCreated = onDocumentCreated(
     const notificationId = event.params.notificationId;
     const data = snap.data() as any;
 
-    const toUid: string | undefined = data.toUid;
+    const toUid: string | undefined = data.receiverId;
+
     if (!toUid) {
-      console.log("[NOTI] Missing toUid -> skip");
+      console.log("[NOTI] Missing receiverId -> skip");
       return;
     }
 
     console.log(`[NOTI] Triggered id=${notificationId} toUid=${toUid}`);
 
-    // ===== GET USER TOKENS
     const tokenSnap = await db
       .collection(`users/${toUid}/fcmTokens`)
       .get();
@@ -774,27 +821,26 @@ export const onNotificationCreated = onDocumentCreated(
       return;
     }
 
-    // ===== SEND PUSH
     await admin.messaging().sendEachForMulticast({
       tokens,
-
       notification: {
         title: data.title ?? "Thông báo",
         body: data.body ?? "Bạn có thông báo mới",
       },
-
       data: {
         type: String(data.type ?? "GENERIC"),
         notificationId: notificationId,
         ...convertDataToString(data.data),
       },
-
       android: {
         priority: "high",
       },
     });
 
     console.log(`[NOTI] Sent to ${tokens.length} devices`);
+
+    // (optional) update status
+    await snap.ref.update({ status: "sent" });
   }
 );
 
@@ -805,3 +851,45 @@ function convertDataToString(data: any = {}) {
   });
   return result;
 }
+
+export const getFamilyChildrenCurrent = onCall(
+  { region: "asia-southeast1" },
+  async (req) => {
+    if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+    const uid = req.auth.uid;
+
+    // ✅ lấy familyId/role từ profile (bạn đã có helper)
+    const { familyId, role } = await getUserFamilyAndRole(uid);
+    await requireFamilyMember(familyId, uid);
+
+    // ✅ chỉ parent (hoặc guardian) mới gọi, tùy bạn
+    if (role !== "parent") {
+      throw new HttpsError("permission-denied", "Only parent can read children current");
+    }
+
+    // ✅ lấy danh sách children trong family
+    // Giả định bạn có members/{uid} với field role="child"
+    const membersSnap = await db.collection(`families/${familyId}/members`).get();
+
+    const childUids: string[] = [];
+    membersSnap.forEach((doc) => {
+      const d = doc.data() as any;
+      if (d?.role === "child") childUids.push(doc.id);
+    });
+
+    if (!childUids.length) return { ok: true, familyId, children: [] };
+
+    // ✅ đọc RTDB current cho tất cả children (parallel)
+    const reads = await Promise.all(
+      childUids.map(async (childUid) => {
+        const snap = await admin.database().ref(`locations/${childUid}/current`).get();
+        return { childUid, current: snap.exists() ? snap.val() : null };
+      })
+    );
+
+    // optional: lọc child không có current
+    const children = reads.filter((x) => x.current != null);
+
+    return { ok: true, familyId, children };
+  }
+);

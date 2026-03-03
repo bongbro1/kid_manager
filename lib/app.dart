@@ -7,6 +7,7 @@ import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository_impl.dart';
+import 'package:kid_manager/repositories/notification_repository.dart';
 
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
@@ -19,6 +20,7 @@ import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
+import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -131,6 +133,10 @@ class _MyAppState extends State<MyApp> {
           create: (context) => SessionVM(context.read<AuthRepository>()),
         ),
 
+        ChangeNotifierProvider(
+          create: (_) => NotificationVM(NotificationRepository()),
+        ),
+
         // ✅ đây là điểm khác: dùng .value để giữ instance
         ChangeNotifierProvider.value(value: _sosVm),
 
@@ -146,9 +152,6 @@ class _MyAppState extends State<MyApp> {
             context.read<LocationServiceInterface>(),
           ),
         ),
-
-        // MemoryDay
-        ChangeNotifierProvider(create: (_) => MemoryDayViewModel(memoryRepo)),
 
         // MemoryDay
         ChangeNotifierProvider(create: (_) => MemoryDayViewModel(memoryRepo)),

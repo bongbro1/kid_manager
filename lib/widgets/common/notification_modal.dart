@@ -18,12 +18,12 @@ class NotificationModal extends StatefulWidget {
   });
 
   static Future<void> show(
-      BuildContext context, {
-        required Widget child,
-        double width = 339,
-        double maxHeight = 320,
-        VoidCallback? onBackgroundTap,
-      }) {
+    BuildContext context, {
+    required Widget child,
+    double width = 339,
+    double maxHeight = 320,
+    VoidCallback? onBackgroundTap,
+  }) {
     return showDialog(
       context: context,
       useSafeArea: false,
@@ -102,22 +102,20 @@ class _NotificationModalState extends State<NotificationModal>
             ),
           ),
 
-          // Modal
+          // // Modal
           SafeArea(
             child: Center(
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: SlideTransition(
                   position: _slideAnimation,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: widget.width,
-                      maxHeight: maxH,
-                    ),
+                  child: SizedBox(
+                    width: widget.width,
+                    height: maxH,
                     child: Material(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      clipBehavior: Clip.antiAlias, // ✅ bo góc + không tràn
+                      clipBehavior: Clip.antiAlias,
                       elevation: 10,
                       child: widget.child,
                     ),

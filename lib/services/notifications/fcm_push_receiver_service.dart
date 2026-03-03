@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
@@ -37,8 +38,22 @@ class FcmPushReceiverService {
   static Future<void> _saveToken(String uid, {String? token}) async {
     token ??= await _messaging.getToken();
     if (token == null) return;
+    String platform;
+
+    if (Platform.isAndroid) {
+      platform = "android";
+    } else if (Platform.isIOS) {
+      platform = "ios";
+    } else {
+      platform = "unknown";
+    }
 
     final tokenId = sha256.convert(utf8.encode(token)).toString();
+
+    // 🔥 Lấy familyId từ user doc
+    final userSnap = await _db.collection('users').doc(uid).get();
+
+    final familyId = userSnap.data()?['familyId'];
 
     await _db
         .collection('users')
@@ -46,10 +61,12 @@ class FcmPushReceiverService {
         .collection('fcmTokens')
         .doc(tokenId)
         .set({
-      "token": token,
-      "updatedAt": FieldValue.serverTimestamp(),
-    });
+          "token": token,
+          "familyId": familyId,
+          "platform": platform,
+          "updatedAt": FieldValue.serverTimestamp(),
+        });
 
-    print("✅ FCM token saved");
+    debugPrint("✅ FCM token saved");
   }
 }

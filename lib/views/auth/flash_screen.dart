@@ -17,21 +17,6 @@ class FlashScreen extends StatefulWidget {
 }
 
 class _FlashScreenState extends State<FlashScreen> {
-  bool _initCalled = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    if (!_initCalled) {
-      _initCalled = true;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<AppInitVM>().init();
-      });
-    }
-  }
-
   void _onContinue() {
     context.read<SessionVM>().finishSplash();
   }
