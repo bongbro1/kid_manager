@@ -37,6 +37,9 @@ import 'viewmodels/schedule_vm.dart';
 import 'package:kid_manager/repositories/memory_day_repository.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 
+import 'package:kid_manager/services/schedule_import_service.dart';
+import 'package:kid_manager/viewmodels/schedule_import_vm.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -102,9 +105,22 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
+        Provider<ScheduleRepository>.value(value: scheduleRepo),
+
         ChangeNotifierProvider(
           create: (context) =>
               ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
+        ),
+
+        ChangeNotifierProvider(
+          create: (context) => ScheduleImportVM(
+            ScheduleImportService(context.read<ScheduleRepository>()),
+          ),
+        ),
+        
+        // MemoryDay
+        ChangeNotifierProvider(
+          create: (_) => MemoryDayViewModel(memoryRepo),
         ),
 
         /// LOCATION SERVICE
@@ -129,10 +145,6 @@ class MyApp extends StatelessWidget {
               ParentLocationVm(context.read<LocationRepository>()),
         ),
 
-        // MemoryDay
-        ChangeNotifierProvider(
-          create: (_) => MemoryDayViewModel(memoryRepo),
-        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

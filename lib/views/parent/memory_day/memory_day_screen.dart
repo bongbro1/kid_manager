@@ -121,6 +121,7 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
                       final ok = await _confirmDelete(context);
                       if (ok != true) return;
                       await vm.deleteMemory(m.id);
+                      await vm.loadMonth(); // reload sau khi xóa để cập nhật list
                     },
                   ),
                 );

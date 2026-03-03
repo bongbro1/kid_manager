@@ -1,5 +1,7 @@
   import 'package:flutter/material.dart';
   import 'package:provider/provider.dart';
+  import 'package:kid_manager/core/storage_keys.dart';
+  import 'package:kid_manager/services/storage_service.dart';
 
   import '../../../../../core/app_text_styles.dart';
   import '../../../../../models/schedule.dart';
@@ -210,12 +212,20 @@
     required this.screenContext,
   });
 
+  bool _canEdit(BuildContext context) {
+    final storage = context.read<StorageService>();
+    final role = storage.getString(StorageKeys.role);
+    return role == 'parent'; // ✅ chỉ cha mới được sửa/xóa
+  }
+
   @override
   Widget build(BuildContext context) {
+    final canEdit = _canEdit(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7D6), // vàng nhạt
+        color: const Color(0xFFFFF7D6),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -238,31 +248,37 @@
                   style: AppTextStyles.scheduleItemTitle,
                 ),
               ),
-              _ActionIcon(
-                asset: 'assets/images/edit.png',
-                width: 18,
-                height: 18,
-                onTap: () {
-                  showModalBottomSheet(
-                    context: screenContext,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    barrierColor: Colors.black.withValues(alpha: 0.3),
-                    builder: (_) => FractionallySizedBox(
-                      heightFactor: 0.6,
-                      child: Padding(
-                        padding: EdgeInsets.only(bottom: MediaQuery.of(screenContext).viewInsets.bottom),
-                        child: MemoryDaySheet(memory: memory),
+
+              // ✅ chỉ parent mới hiện icon edit/delete
+              if (canEdit) ...[
+                _ActionIcon(
+                  asset: 'assets/images/edit.png',
+                  width: 18,
+                  height: 18,
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: screenContext,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      barrierColor: Colors.black.withValues(alpha: 0.3),
+                      builder: (_) => FractionallySizedBox(
+                        heightFactor: 0.6,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(screenContext).viewInsets.bottom,
+                          ),
+                          child: MemoryDaySheet(memory: memory),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 10),
-              _ActionIcon(
-                asset: 'assets/icons/delete.png',
-                onTap: () => _deleteMemory(screenContext),
-              ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 10),
+                _ActionIcon(
+                  asset: 'assets/icons/delete.png',
+                  onTap: () => _deleteMemory(screenContext),
+                ),
+              ],
             ],
           ),
           if ((memory.note ?? '').isNotEmpty) ...[
@@ -282,7 +298,6 @@
 
   Future<void> _deleteMemory(BuildContext context) async {
     final vm = context.read<MemoryDayViewModel>();
-    final vmMemory = context.read<ScheduleViewModel>();
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -303,8 +318,9 @@
     );
 
     if (confirm != true) return;
+
     await vm.deleteMemory(memory.id);
-    await vm.loadMonth(); // reload list
+    await vm.loadMonth();
   }
 }
 
