@@ -8,7 +8,7 @@ import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/rule_runtime_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/utils/usage_rule.dart';
+import 'package:kid_manager/utils/usage_rule_utils.dart';
 
 class AppManagementVM extends ChangeNotifier {
   final AppManagementRepository _repo;
@@ -67,6 +67,9 @@ class AppManagementVM extends ChangeNotifier {
     _error = null;
 
     try {
+      // await _repo.migrateLegacyTimeRange(userId)
+
+
       _apps = await _repo.loadAppsFromFirestore(userId);
       notifyListeners();
       await _repo.syncTodayUsage(userId: userId);
@@ -147,10 +150,6 @@ class AppManagementVM extends ChangeNotifier {
       }
 
       await _repo.loadAndSeedAppToFirebase(userId);
-
-      await WatcherService.start();
-      RealtimeAppMonitor.start();
-      await RuleRuntimeService.start(userId);
     } catch (e, s) {
       debugPrint("❌ loadAndSeedApp error: $e");
       debugPrint("$s");

@@ -4,7 +4,7 @@ import 'package:installed_apps/app_info.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/utils/statical_utils.dart';
-import 'package:kid_manager/utils/usage_rule.dart';
+import 'package:kid_manager/utils/usage_rule_utils.dart';
 import 'package:usage_stats/usage_stats.dart';
 
 import '../services/app_installed_service.dart';
@@ -23,9 +23,6 @@ class AppManagementRepository {
   }
 
   Future<List<AppItemModel>> loadAppsFromFirestore(String userId) async {
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day);
-
     final snapshot = await db
         .collection("blocked_items")
         .doc(userId)
@@ -48,6 +45,32 @@ class AppManagementRepository {
     });
 
     return apps;
+  }
+
+  Future<void> migrateLegacyTimeRange(String userId) async {
+    final appsSnap = await db
+        .collection("blocked_items")
+        .doc(userId)
+        .collection("apps")
+        .get();
+
+    for (final appDoc in appsSnap.docs) {
+      final ruleRef = appDoc.reference.collection("usage_rule").doc("config");
+
+      final ruleSnap = await ruleRef.get();
+      if (!ruleSnap.exists) continue;
+
+      final data = ruleSnap.data()!;
+      final hasLegacy =
+          data.containsKey("startMin") || data.containsKey("endMin");
+
+      if (!hasLegacy) continue;
+
+      await ruleRef.update({
+        "startMin": FieldValue.delete(),
+        "endMin": FieldValue.delete(),
+      });
+    }
   }
 
   Future<void> loadAndSeedAppToFirebase(String userId) async {
@@ -183,17 +206,16 @@ class AppManagementRepository {
     required String userId,
     required String packageName,
   }) async {
-    final doc = await db
+    final ruleRef = db
         .collection("blocked_items")
         .doc(userId)
         .collection("apps")
         .doc(packageName)
         .collection("usage_rule")
-        .doc("config")
-        .get();
+        .doc("config");
 
+    final doc = await ruleRef.get();
     if (!doc.exists) return null;
-
     return UsageRule.fromMap(doc.data()!);
   }
 

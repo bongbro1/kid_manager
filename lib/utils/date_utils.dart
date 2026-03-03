@@ -123,9 +123,21 @@ String formatMinutes(int minutes) {
   return "${h}h ${m}m";
 }
 
+String formatDateDDMMYYYY(DateTime date) {
+  final d = date.toLocal(); // tránh lệch timezone do Z (UTC)
+
+  final day = d.day.toString().padLeft(2, '0');
+  final month = d.month.toString().padLeft(2, '0');
+  final year = d.year.toString();
+
+  return "$day/$month/$year";
+}
+
+bool sameDay(DateTime a, DateTime b) {
+  return a.year == b.year && a.month == b.month && a.day == b.day;
+}
 
 class TimeUtils {
-
   static int nowMin() {
     final now = DateTime.now();
     return now.hour * 60 + now.minute;
@@ -137,8 +149,8 @@ class TimeUtils {
 
   static String todayKey() {
     final now = DateTime.now();
-    return "${now.year.toString().padLeft(4,'0')}-"
-           "${now.month.toString().padLeft(2,'0')}-"
-           "${now.day.toString().padLeft(2,'0')}";
+    return "${now.year.toString().padLeft(4, '0')}-"
+        "${now.month.toString().padLeft(2, '0')}-"
+        "${now.day.toString().padLeft(2, '0')}";
   }
 }

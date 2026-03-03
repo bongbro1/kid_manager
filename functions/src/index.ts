@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
 import { createHash, randomUUID } from "crypto";
-import { onCall, HttpsError ,onRequest} from "firebase-functions/v2/https";
+import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { defineString } from "firebase-functions/params";
@@ -291,7 +291,7 @@ async function requireFamilyMember(familyId: string, uid: string) {
 // TOKEN REGISTRY (CALLABLE)
 // =======================
 export const registerFcmToken = onCall(
-   {
+  {
     region: "asia-southeast1",
   },
   async (req) => {
@@ -333,15 +333,15 @@ export const registerFcmToken = onCall(
   }
 );
 
-export const unregisterFcmToken = onCall( {
-    region: "asia-southeast1",
-  },async (req) => {
+export const unregisterFcmToken = onCall({
+  region: "asia-southeast1",
+}, async (req) => {
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
 
   const uid = req.auth.uid;
   const token = mustString(req.data?.token, "token");
   const tokenHash = sha256Hex(token);
- console.log("AUTH:", req.auth);
+  console.log("AUTH:", req.auth);
   const { familyId } = await getUserFamilyAndRole(uid);
 
   // best-effort delete
@@ -388,9 +388,9 @@ export const createSos = onCall(
     const { familyId, role } = await getUserFamilyAndRole(uid);
     console.log("[createSos] familyId/role", { familyId, role, dayKey });
 
-   if (role !== "child" && role !== "parent") {
-  throw new HttpsError("permission-denied", "Only family members can trigger SOS");
-}
+    if (role !== "child" && role !== "parent") {
+      throw new HttpsError("permission-denied", "Only family members can trigger SOS");
+    }
 
     console.log("[createSos] before requireFamilyMember");
     await requireFamilyMember(familyId, uid);
@@ -466,14 +466,14 @@ export const createSos = onCall(
         });
       }
 
-     tx.create(sosRef, {
-  createdBy: uid,
-  createdByRole: role,
-  createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  status: "active",
-  location: { lat, lng, acc },
-  dayKey,
-});
+      tx.create(sosRef, {
+        createdBy: uid,
+        createdByRole: role,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: "active",
+        location: { lat, lng, acc },
+        dayKey,
+      });
 
       console.log("[createSos] tx end -> will commit");
       return { sosId: eventId, created: true, dayKey, limited: false };
@@ -749,11 +749,11 @@ export const onSosCreated = onDocumentCreated(
       });
 
       // Sau khi gửi lần đầu thành công (ở cuối try)
-await enqueueSosReminder({
-  familyId,
-  sosId,
-  createdAtMs: Date.now(),
-});
+      await enqueueSosReminder({
+        familyId,
+        sosId,
+        createdAtMs: Date.now(),
+      });
       console.log(
         `[SOS] DONE familyId=${familyId} sosId=${sosId} attempted=${totalAttempt} success=${success} invalidRemoved=${invalidRemoved}`
       );
@@ -777,3 +777,80 @@ await enqueueSosReminder({
     }
   }
 );
+
+
+// notification
+export const onNotificationCreated = onDocumentCreated(
+  {
+    document: "notifications/{notificationId}",
+    region: "asia-southeast1",
+    retry: true,
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const notificationId = event.params.notificationId;
+    const data = snap.data() as any;
+
+    const toUid: string | undefined = data.toUid;
+    if (!toUid) {
+      console.log("[NOTI] Missing toUid -> skip");
+      return;
+    }
+
+    console.log(`[NOTI] Triggered id=${notificationId} toUid=${toUid}`);
+
+    // ===== GET USER TOKENS
+    const tokenSnap = await db
+      .collection(`users/${toUid}/fcmTokens`)
+      .get();
+
+    if (tokenSnap.empty) {
+      console.log("[NOTI] No tokens -> skip");
+      return;
+    }
+
+    const tokens: string[] = [];
+
+    tokenSnap.forEach(doc => {
+      const t = doc.data()?.token;
+      if (t) tokens.push(t);
+    });
+
+    if (!tokens.length) {
+      console.log("[NOTI] No usable tokens");
+      return;
+    }
+
+    // ===== SEND PUSH
+    await admin.messaging().sendEachForMulticast({
+      tokens,
+
+      notification: {
+        title: data.title ?? "Thông báo",
+        body: data.body ?? "Bạn có thông báo mới",
+      },
+
+      data: {
+        type: String(data.type ?? "GENERIC"),
+        notificationId: notificationId,
+        ...convertDataToString(data.data),
+      },
+
+      android: {
+        priority: "high",
+      },
+    });
+
+    console.log(`[NOTI] Sent to ${tokens.length} devices`);
+  }
+);
+
+function convertDataToString(data: any = {}) {
+  const result: Record<string, string> = {};
+  Object.keys(data).forEach((k) => {
+    result[k] = String(data[k]);
+  });
+  return result;
+}

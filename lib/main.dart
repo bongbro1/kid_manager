@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/background/background_worker.dart';
+import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
@@ -54,6 +58,12 @@ Future<void> main() async {
 
   final storageService = StorageService();
   await storageService.init();
+
+  final role = storageService.getString(StorageKeys.role);
+
+  if (role != null && roleFromString(role) == UserRole.child) {
+    AuthRuntimeManager.start();
+  }
 
   runApp(
     MultiProvider(

@@ -1,5 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/helpers/app_management_helper.dart';
+import 'package:kid_manager/services/rule_runtime_service.dart';
+import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
@@ -36,6 +40,14 @@ class _FlashScreenState extends State<FlashScreen> {
   void initState() {
     super.initState();
     _init();
+
+    // FirebaseAuth.instance.authStateChanges().listen((user) async {
+    //   if (user == null) return;
+
+    //   await WatcherService.start();
+    //   RealtimeAppMonitor.start();
+    //   await RuleRuntimeService.start(user.uid);
+    // });
   }
 
   Future<void> _init() async {

@@ -64,8 +64,6 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     // ====== Copy y nguyên đoạn build của bạn từ đây xuống ======
     final authService = FirebaseAuthService();
-    final storage = context.read<StorageService>();
-
     final secondaryAuthService = SecondaryAuthService();
     final permissionService = PermissionService();
     final appInstalledService = AppInstalledService();
@@ -101,7 +99,10 @@ class _MyAppState extends State<MyApp> {
 
         // ViewModels
         ChangeNotifierProvider(
-          create: (context) => AuthVM(context.read<AuthRepository>()),
+          create: (context) => AuthVM(
+            context.read<AuthRepository>(),
+            context.read<StorageService>(),
+          ),
         ),
         ChangeNotifierProvider(
           create: (context) => AppInitVM(
@@ -147,14 +148,10 @@ class _MyAppState extends State<MyApp> {
         ),
 
         // MemoryDay
-        ChangeNotifierProvider(
-          create: (_) => MemoryDayViewModel(memoryRepo),
-        ),
+        ChangeNotifierProvider(create: (_) => MemoryDayViewModel(memoryRepo)),
 
         // MemoryDay
-        ChangeNotifierProvider(
-          create: (_) => MemoryDayViewModel(memoryRepo),
-        ),
+        ChangeNotifierProvider(create: (_) => MemoryDayViewModel(memoryRepo)),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

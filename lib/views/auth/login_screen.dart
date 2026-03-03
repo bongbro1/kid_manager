@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
@@ -87,7 +88,13 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       // 🔥 GỌI SAU LOGIN
-      // debugPrint("🚀 Trigger prepare device after login");
+      debugPrint("🚀 Running role: ${role}");
+
+      if (role == UserRole.child) {
+        AuthRuntimeManager.start();
+      } else {
+        await AuthRuntimeManager.stop();
+      }
 
       await appVM.loadAndSeedApp();
 

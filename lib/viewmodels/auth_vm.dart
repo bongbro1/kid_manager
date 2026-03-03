@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/services/storage_service.dart';
 import '../repositories/auth_repository.dart';
 
 class AuthVM extends ChangeNotifier {
   final AuthRepository _repo;
+  final StorageService _storage;
 
-  AuthVM(this._repo) {
+  AuthVM(this._repo, this._storage) {
     _listenAuthState();
   }
 
@@ -48,6 +50,7 @@ class AuthVM extends ChangeNotifier {
 
   Future<void> logout() async {
     await _repo.logout();
+    await _storage.clearAuthData();
   }
 
   Future<bool> _runAuthAction(Future<void> Function() action) async {
