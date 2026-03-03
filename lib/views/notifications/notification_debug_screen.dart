@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:provider/provider.dart';
 
 class NotificationDebugScreen extends StatefulWidget {
   const NotificationDebugScreen({super.key});
@@ -9,12 +12,23 @@ class NotificationDebugScreen extends StatefulWidget {
       _NotificationDebugScreenState();
 }
 
-class _NotificationDebugScreenState
-    extends State<NotificationDebugScreen> {
-  final _senderController = TextEditingController(text: "user_1");
-  final _receiverController = TextEditingController(text: "user_2");
+class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
+  String? _selectedSenderId;
+  String? _selectedReceiverId;
   final _titleController = TextEditingController(text: "Test Notification");
-  final _bodyController = TextEditingController(text: "Hello from debug screen");
+  final _bodyController = TextEditingController(
+    text: "Hello from debug screen",
+  );
+
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      context.read<UserVm>().loadUsers();
+    });
+  }
+
   final _familyController = TextEditingController();
 
   String _type = "message";
@@ -24,26 +38,40 @@ class _NotificationDebugScreenState
     setState(() => _loading = true);
 
     try {
-      await NotificationService.sendUserToUser(
-        senderId: _senderController.text.trim(),
-        receiverId: _receiverController.text.trim(),
-        type: _type,
-        title: _titleController.text.trim(),
-        body: _bodyController.text.trim(),
-        familyId: _familyController.text.trim().isEmpty
+      final payload = {
+        "senderId": _selectedSenderId!,
+        "receiverId": _selectedReceiverId!,
+        "type": _type,
+        "title": _titleController.text.trim(),
+        "body": _bodyController.text.trim(),
+        "familyId": _familyController.text.trim().isEmpty
             ? null
             : _familyController.text.trim(),
+      };
+
+      debugPrint("========== DEBUG SEND ==========");
+      debugPrint(payload.toString());
+      debugPrint("receiverId length: ${payload["receiverId"]?.length}");
+      debugPrint("================================");
+
+      await NotificationService.sendUserToUser(
+        senderId: payload["senderId"] as String,
+        receiverId: payload["receiverId"] as String,
+        type: payload["type"] as String,
+        title: payload["title"] as String,
+        body: payload["body"] as String,
+        familyId: payload["familyId"] as String?,
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Sent successfully")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("✅ Sent successfully")));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("❌ Error: $e")));
     }
 
     setState(() => _loading = false);
@@ -54,7 +82,7 @@ class _NotificationDebugScreenState
 
     try {
       await NotificationService.sendSystem(
-        receiverId: _receiverController.text.trim(),
+        receiverId: _selectedReceiverId!,
         type: _type,
         title: _titleController.text.trim(),
         body: _bodyController.text.trim(),
@@ -66,9 +94,9 @@ class _NotificationDebugScreenState
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("❌ Error: $e")));
     }
 
     setState(() => _loading = false);
@@ -78,26 +106,26 @@ class _NotificationDebugScreenState
     setState(() => _loading = true);
 
     try {
-      await NotificationService.sendChildAlert(
-        childId: _senderController.text.trim(),
-        parentId: _receiverController.text.trim(),
-        type: _type,
-        title: _titleController.text.trim(),
-        body: _bodyController.text.trim(),
-        familyId: _familyController.text.trim().isEmpty
-            ? null
-            : _familyController.text.trim(),
-      );
+      // await NotificationService.sendChildAlert(
+      //   childId: _senderController.text.trim(),
+      //   parentId: _receiverController.text.trim(),
+      //   type: _type,
+      //   title: _titleController.text.trim(),
+      //   body: _bodyController.text.trim(),
+      //   familyId: _familyController.text.trim().isEmpty
+      //       ? null
+      //       : _familyController.text.trim(),
+      // );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("🚨 Child alert sent")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("🚨 Child alert sent")));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("❌ Error: $e")));
     }
 
     setState(() => _loading = false);
@@ -116,10 +144,33 @@ class _NotificationDebugScreenState
     );
   }
 
+  Widget _buildUserDropdown({
+    required String label,
+    required String? value,
+    required List<UserItem> users,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        items: users.map((user) {
+          return DropdownMenuItem<String>(
+            value: user.uid,
+            child: Text(user.displayName),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    _senderController.dispose();
-    _receiverController.dispose();
     _titleController.dispose();
     _bodyController.dispose();
     _familyController.dispose();
@@ -128,16 +179,39 @@ class _NotificationDebugScreenState
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<UserVm>();
+
+    if (vm.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Notification Debug"),
-      ),
+      appBar: AppBar(title: const Text("Notification Debug")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildTextField("Sender ID", _senderController),
-            _buildTextField("Receiver ID", _receiverController),
+            _buildUserDropdown(
+              label: "Sender",
+              value: _selectedSenderId,
+              users: vm.users,
+              onChanged: (value) {
+                setState(() {
+                  _selectedSenderId = value;
+                });
+              },
+            ),
+
+            _buildUserDropdown(
+              label: "Receiver",
+              value: _selectedReceiverId,
+              users: vm.users,
+              onChanged: (value) {
+                setState(() {
+                  _selectedReceiverId = value;
+                });
+              },
+            ),
+
             _buildTextField("Title", _titleController),
             _buildTextField("Body", _bodyController),
             _buildTextField("Family ID (optional)", _familyController),

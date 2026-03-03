@@ -44,6 +44,23 @@ class UserVm extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<UserItem> users = [];
+
+  Future<void> loadUsers() async {
+    try {
+      _loading = true;
+      _error = null;
+      notifyListeners();
+
+      users = await _userRepo.loadAllUsers();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
   void watchMe(String uid) {
     _meSub?.cancel();
     _meSub = _userRepo

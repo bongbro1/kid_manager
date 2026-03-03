@@ -1,6 +1,23 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
+import 'package:kid_manager/services/notifications/local_notification_service.dart';
 
 class NotificationService {
+  static Future<void> init() async {
+    FirebaseMessaging.onMessage.listen(_handleForeground);
+  }
+
+  static void _handleForeground(RemoteMessage message) {
+    final notification = message.notification;
+
+    if (notification != null) {
+      LocalNotificationService.show(
+        title: notification.title ?? "Thông báo",
+        body: notification.body ?? "",
+      );
+    }
+  }
+
   static final NotificationRepository _repo = NotificationRepository();
 
   static const _systemSender = 'system';
