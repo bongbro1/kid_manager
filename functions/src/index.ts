@@ -206,7 +206,7 @@ async function sendSosPush(params: {
   childUid: string;
   lat?: number | null;
   lng?: number | null;
-   createdByName?: string | null;
+  createdByName?: string | null;
 }): Promise<{
   attemptedRecipients: number;
   success: number;
@@ -248,7 +248,7 @@ async function sendSosPush(params: {
       childUid: String(childUid),
       lat: lat != null ? String(lat) : "",
       lng: lng != null ? String(lng) : "",
-       createdByName: params.createdByName ? String(params.createdByName) : "",
+      createdByName: params.createdByName ? String(params.createdByName) : "",
     },
     android: {
       priority: "high",
@@ -355,7 +355,7 @@ export const sosReminderWorker = onRequest(
       const lat = loc.lat;
       const lng = loc.lng;
       const childUid = sos.createdBy ?? "";
-const createdByName = sos.createdByName ?? "";
+      const createdByName = sos.createdByName ?? "";
 
       //  send using shared helper
       await sendSosPush({
@@ -364,7 +364,7 @@ const createdByName = sos.createdByName ?? "";
         childUid: String(childUid),
         lat: lat != null ? Number(lat) : null,
         lng: lng != null ? Number(lng) : null,
- createdByName: String(createdByName),
+        createdByName: String(createdByName),
       });
 
       // Enqueue tiếp
@@ -441,7 +441,7 @@ export const unregisterFcmToken = onCall(
 // CREATE SOS (CALLABLE) — FAST PATH
 // =======================
 export const createSos = onCall(
-  { region: "asia-southeast1"},
+  { region: "asia-southeast1" },
   async (req) => {
     if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
     const uid = req.auth.uid;
@@ -450,8 +450,8 @@ export const createSos = onCall(
     const lat = mustNumber(req.data?.lat, "lat");
     const lng = mustNumber(req.data?.lng, "lng");
     const acc = req.data?.acc == null ? null : mustNumber(req.data?.acc, "acc");
-console.log("[createSos] req.data keys=", Object.keys(req.data ?? {}));
-console.log("[createSos] req.data.createdByName=", req.data?.createdByName);
+    console.log("[createSos] req.data keys=", Object.keys(req.data ?? {}));
+    console.log("[createSos] req.data.createdByName=", req.data?.createdByName);
     validateLatLng(lat, lng);
 
     const now = new Date();
@@ -459,12 +459,12 @@ console.log("[createSos] req.data.createdByName=", req.data?.createdByName);
     const nowTs = admin.firestore.Timestamp.now();
 
     const { familyId, role } = await getUserFamilyAndRole(uid);
-const createdByNameRaw = req.data?.createdByName;
-const createdByName =
-  typeof createdByNameRaw === "string" ? createdByNameRaw.trim().slice(0, 80) : "";    if (role !== "child" && role !== "parent") {
-      throw new HttpsError("permission-denied", "Only family members can trigger SOS");
-    }
-console.log("[createSos] createdByName (sanitized)=", createdByName);
+    const createdByNameRaw = req.data?.createdByName;
+    const createdByName =
+      typeof createdByNameRaw === "string" ? createdByNameRaw.trim().slice(0, 80) : ""; if (role !== "child" && role !== "parent") {
+        throw new HttpsError("permission-denied", "Only family members can trigger SOS");
+      }
+    console.log("[createSos] createdByName (sanitized)=", createdByName);
 
     await requireFamilyMember(familyId, uid);
 
@@ -561,27 +561,27 @@ console.log("[createSos] createdByName (sanitized)=", createdByName);
         createdAtMs: Date.now(),
       });
     }
-// ... sau enqueue reminder xong, ngay trước return
+    // ... sau enqueue reminder xong, ngay trước return
 
-const payload = {
-  ok: true,
-  ...result,
-  familyId,
+    const payload = {
+      ok: true,
+      ...result,
+      familyId,
 
-  // ✅ debug fields
-  debugVersion: "createSos-v2026-03-02-01",
-  createdByNameEcho: createdByName,
-  createdByNameRawEcho: req.data?.createdByName ?? null,
-  keysEcho: Object.keys(req.data ?? {}),
+      // ✅ debug fields
+      debugVersion: "createSos-v2026-03-02-01",
+      createdByNameEcho: createdByName,
+      createdByNameRawEcho: req.data?.createdByName ?? null,
+      keysEcho: Object.keys(req.data ?? {}),
 
-  limitPerDay: SOS_DAILY_LIMIT,
-  minIntervalSec: SOS_MIN_INTERVAL_SEC,
-  timezone: TZ,
-};
+      limitPerDay: SOS_DAILY_LIMIT,
+      minIntervalSec: SOS_MIN_INTERVAL_SEC,
+      timezone: TZ,
+    };
 
-console.log("[createSos] RETURN_PAYLOAD", payload);
+    console.log("[createSos] RETURN_PAYLOAD", payload);
 
-return payload;
+    return payload;
   }
 );
 
@@ -699,11 +699,15 @@ export const onSosCreated = onDocumentCreated(
         "fanout.claimId": admin.firestore.FieldValue.delete(),
       });
 
+      // Sau khi gửi lần đầu thành công (ở cuối try)
       await enqueueSosReminder({
         familyId,
         sosId,
         createdAtMs: Date.now(),
       });
+      // console.log(
+      //   `[SOS] DONE familyId=${familyId} sosId=${sosId} attempted=${totalAttempt} success=${success} invalidRemoved=${invalidRemoved}`
+      // );
     } catch (err: any) {
       console.error(`[SOS] ERROR familyId=${familyId} sosId=${sosId} claimId=${claimId}`);
       console.error(err?.stack ?? err);
@@ -716,9 +720,88 @@ export const onSosCreated = onDocumentCreated(
           "fanout.lastError": String(err?.message ?? err),
           "fanout.lastErrorAt": admin.firestore.FieldValue.serverTimestamp(),
         });
-      } catch {}
+      } catch (e) {
+        console.error("[SOS] Failed to clear claim / write lastError", e);
+      }
 
       throw err;
     }
   }
 );
+
+
+// notification
+export const onNotificationCreated = onDocumentCreated(
+  {
+    document: "notifications/{notificationId}",
+    region: "asia-southeast1",
+    retry: true,
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const notificationId = event.params.notificationId;
+    const data = snap.data() as any;
+
+    const toUid: string | undefined = data.toUid;
+    if (!toUid) {
+      console.log("[NOTI] Missing toUid -> skip");
+      return;
+    }
+
+    console.log(`[NOTI] Triggered id=${notificationId} toUid=${toUid}`);
+
+    // ===== GET USER TOKENS
+    const tokenSnap = await db
+      .collection(`users/${toUid}/fcmTokens`)
+      .get();
+
+    if (tokenSnap.empty) {
+      console.log("[NOTI] No tokens -> skip");
+      return;
+    }
+
+    const tokens: string[] = [];
+
+    tokenSnap.forEach(doc => {
+      const t = doc.data()?.token;
+      if (t) tokens.push(t);
+    });
+
+    if (!tokens.length) {
+      console.log("[NOTI] No usable tokens");
+      return;
+    }
+
+    // ===== SEND PUSH
+    await admin.messaging().sendEachForMulticast({
+      tokens,
+
+      notification: {
+        title: data.title ?? "Thông báo",
+        body: data.body ?? "Bạn có thông báo mới",
+      },
+
+      data: {
+        type: String(data.type ?? "GENERIC"),
+        notificationId: notificationId,
+        ...convertDataToString(data.data),
+      },
+
+      android: {
+        priority: "high",
+      },
+    });
+
+    console.log(`[NOTI] Sent to ${tokens.length} devices`);
+  }
+);
+
+function convertDataToString(data: any = {}) {
+  const result: Record<string, string> = {};
+  Object.keys(data).forEach((k) => {
+    result[k] = String(data[k]);
+  });
+  return result;
+}
