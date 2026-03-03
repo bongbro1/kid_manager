@@ -8,11 +8,13 @@ class SegmentedMatchResult {
   final List<LocationData> snappedPoints;
   final List<List<double>> routeCoordinates;
   final List<HistorySegment> segments;
-
+           // road (matched)
+  final List<List<List<double>>> straightSegments;
   SegmentedMatchResult({
     required this.snappedPoints,
     required this.routeCoordinates,
     required this.segments,
+    required this.straightSegments,
   });
 }
 
@@ -91,15 +93,17 @@ class SegmentedMapMatcher {
 
     final mergedRoute = <List<double>>[];
     final mergedSnapped = <LocationData>[];
+    final mergedStraight = <List<List<double>>>[];
+
 
     for (final seg in segments) {
       if (seg.points.length < 2) continue;
 
       // segment quá ngắn -> skip match, vẫn giữ points để hiển thị
       if (seg.points.length < minSegmentPointsToMatch) {
-        final segPtsWithMode =
-        seg.points.map((p) => p.copyWith(transport: seg.mode)).toList();
+        final segPtsWithMode = seg.points.map((p) => p.copyWith(transport: seg.mode)).toList();
 
+        // merge snapped như bạn đang làm
         if (mergedSnapped.isEmpty) {
           mergedSnapped.addAll(segPtsWithMode);
         } else if (segPtsWithMode.isNotEmpty) {
@@ -108,6 +112,11 @@ class SegmentedMapMatcher {
           final same = last.timestamp == first.timestamp;
           mergedSnapped.addAll(same ? segPtsWithMode.sublist(1) : segPtsWithMode);
         }
+
+        // ✅ tạo straight segment từ raw coords để không đứt route
+        final coords = seg.points.map((p) => <double>[p.longitude, p.latitude]).toList();
+        if (coords.length >= 2) mergedStraight.add(coords);
+
         continue;
       }
 
@@ -117,8 +126,24 @@ class SegmentedMapMatcher {
       final res = await _matchWithFallback(seg.points, profiles);
 
       if (res == null || res.routeCoordinates.length < 2) {
-        debugPrint("❌ segment match failed (mode=${seg.mode}) -> stop");
-        return null;
+        debugPrint("⚠️ segment match failed (mode=${seg.mode}) -> fallback straight");
+
+        // snapped dùng raw (vẫn merge để hiển thị points)
+        final segPtsWithMode = seg.points.map((p) => p.copyWith(transport: seg.mode)).toList();
+        if (mergedSnapped.isEmpty) {
+          mergedSnapped.addAll(segPtsWithMode);
+        } else if (segPtsWithMode.isNotEmpty) {
+          final last = mergedSnapped.last;
+          final first = segPtsWithMode.first;
+          final same = last.timestamp == first.timestamp;
+          mergedSnapped.addAll(same ? segPtsWithMode.sublist(1) : segPtsWithMode);
+        }
+
+        // ✅ fallback straight for this segment
+        final coords = seg.points.map((p) => <double>[p.longitude, p.latitude]).toList();
+        if (coords.length >= 2) mergedStraight.add(coords);
+
+        continue; // ✅ không stop nữa
       }
 
       final segRoute = res.routeCoordinates;
@@ -152,6 +177,7 @@ class SegmentedMapMatcher {
     return SegmentedMatchResult(
       snappedPoints: mergedSnapped,
       routeCoordinates: mergedRoute,
+      straightSegments: mergedStraight,
       segments: segments,
     );
   }

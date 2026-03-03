@@ -112,7 +112,7 @@ class MapMatchingService {
     // radiuses: 0..50m, default 5. Bạn đang accuracy=5 => ok
     final radiuses = history
         .map((e) => (e.accuracy.isFinite ? e.accuracy : 20.0)
-        .clamp(5.0, 20.0)
+        .clamp(10.0, 20.0)
         .toStringAsFixed(1))
         .join(';');
 
