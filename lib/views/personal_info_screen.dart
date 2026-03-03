@@ -8,6 +8,7 @@ import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/imgbb_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
+import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
@@ -526,8 +527,10 @@ class ConfirmLogoutSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     Future<void> _logout() async {
       final authVM = context.read<AuthVM>();
+      final notiVM = context.read<NotificationVM>();
       final rootNav = Navigator.of(context, rootNavigator: true);
 
+      notiVM.clear();
       await authVM.logout();
 
       rootNav.pushAndRemoveUntil(

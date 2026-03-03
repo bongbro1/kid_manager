@@ -48,6 +48,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     RealtimeAppMonitor.stop();
-    _authService.signOut();
+    await _authService.signOut();
   }
 }
+
