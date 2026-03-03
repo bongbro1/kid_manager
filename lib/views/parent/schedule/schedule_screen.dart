@@ -146,7 +146,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.upload_file, color: Color.fromARGB(255, 0, 224, 49)),
-                title: const Text('Thêm lịch trình bằng file Excel'),
+                title: const Text('Thêm file Excel'),
                 onTap: () async {
                   Navigator.pop(context); // đóng drawer
 

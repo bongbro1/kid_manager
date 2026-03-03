@@ -3,16 +3,20 @@ import '../../../models/schedule.dart';
 
 class SchedulePeriodSelector extends StatelessWidget {
   final SchedulePeriod? value;
-  final ValueChanged<SchedulePeriod> onChanged;
+  final ValueChanged<SchedulePeriod>? onChanged;
+  final bool enabled;
 
   const SchedulePeriodSelector({
     super.key,
     required this.value,
     required this.onChanged,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final canTap = enabled && onChanged != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -39,39 +43,46 @@ class SchedulePeriodSelector extends StatelessWidget {
                   scale: selected ? 1.0 : 0.97,
                   duration: const Duration(milliseconds: 120),
                   child: GestureDetector(
-                    onTap: () => onChanged(p),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: selected ? style.selectedBg : const Color(0xFFF2F3F5),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: selected ? style.dotColor : Colors.transparent,
-                          width: 1,
+                    onTap: canTap ? () => onChanged!(p) : null,
+                    child: Opacity(
+                      opacity: enabled ? 1.0 : 0.7,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? style.selectedBg
+                              : const Color(0xFFF2F3F5),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: selected ? style.dotColor : Colors.transparent,
+                            width: 1,
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            margin: const EdgeInsets.only(right: 8),
-                            decoration: BoxDecoration(
-                              color: style.dotColor,
-                              shape: BoxShape.circle,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: style.dotColor,
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                          Text(
-                            periodLabel(p),
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w500,
-                              color: selected ? style.dotColor : const Color(0xFF2A2A2A),
+                            Text(
+                              periodLabel(p),
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w500,
+                                color: selected
+                                    ? style.dotColor
+                                    : const Color(0xFF2A2A2A),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

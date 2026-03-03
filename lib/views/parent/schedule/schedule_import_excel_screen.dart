@@ -1,15 +1,10 @@
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/services/schedule_import_service.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:file_saver/file_saver.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:file_saver/file_saver.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
 
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_text_styles.dart';
@@ -220,52 +215,52 @@ Future<void> _showSuccessDialog(BuildContext context) async {
 }
 
   Future<void> _importNow() async {
-  final parentUid = _parentUid(context);
-  if (parentUid == null) return;
+    final parentUid = _parentUid(context);
+    if (parentUid == null) return;
 
-  final vm = context.read<ScheduleImportVM>();
+    final vm = context.read<ScheduleImportVM>();
 
-  final imported = await vm.importNow(parentUid: parentUid);
+    final imported = await vm.importNow(parentUid: parentUid);
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  // ❌ thất bại
-  if (vm.error != null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Import thất bại: ${vm.error}')),
-    );
-    return;
+    // ❌ thất bại
+    if (vm.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Import thất bại: ${vm.error}')),
+      );
+      return;
+    }
+
+    // không có dòng hợp lệ
+    if (imported <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có lịch hợp lệ để import.')),
+      );
+      return;
+    }
+
+    // ✅ 1) reload lịch bên ngoài NGAY LẬP TỨC
+    // Vì ScheduleViewModel ở Provider phía trên ScheduleScreen
+    try {
+      await context.read<ScheduleViewModel>().loadMonth();
+    } catch (e) {
+      // nếu Provider không có ScheduleViewModel thì thôi, vẫn đánh dấu needReload
+      debugPrint('[SCHEDULE_IMPORT] cannot reload ScheduleViewModel here: $e');
+    }
+
+    // ✅ 2) đánh dấu cần reload khi quay về
+    _needReload = true;
+
+    // ✅ 3) hiện thông báo thành công
+    await _showSuccessDialog(context);
+    if (!mounted) return;
+
+    // ✅ 4) reset giao diện import để tiếp tục import
+    _resetPickedFile();
+
+    // NOTE: không pop về Schedule ở đây nữa
   }
-
-  // không có dòng hợp lệ
-  if (imported <= 0) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Không có lịch hợp lệ để import.')),
-    );
-    return;
-  }
-
-  // ✅ 1) reload lịch bên ngoài NGAY LẬP TỨC
-  // Vì ScheduleViewModel ở Provider phía trên ScheduleScreen
-  try {
-    await context.read<ScheduleViewModel>().loadMonth();
-  } catch (e) {
-    // nếu Provider không có ScheduleViewModel thì thôi, vẫn đánh dấu needReload
-    debugPrint('[SCHEDULE_IMPORT] cannot reload ScheduleViewModel here: $e');
-  }
-
-  // ✅ 2) đánh dấu cần reload khi quay về
-  _needReload = true;
-
-  // ✅ 3) hiện thông báo thành công
-  await _showSuccessDialog(context);
-  if (!mounted) return;
-
-  // ✅ 4) reset giao diện import để tiếp tục import
-  _resetPickedFile();
-
-  // NOTE: không pop về Schedule ở đây nữa
-}
 
   @override
   Widget build(BuildContext context) {
@@ -293,7 +288,7 @@ Future<void> _showSuccessDialog(BuildContext context) async {
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          'Thêm lịch trình bằng file Excel',
+          'Thêm file Excel',
           style: AppTextStyles.scheduleAppBarTitle,
         ),
         leading: IconButton(
@@ -381,7 +376,7 @@ Future<void> _showSuccessDialog(BuildContext context) async {
             _PreviewList(preview: importVm.preview!),
             const SizedBox(height: 14),
             _PrimaryButton(
-              text: 'Import ${importVm.preview!.okCount} lịch',
+              text: 'Thêm ${importVm.preview!.okCount} lịch',
               icon: Icons.check_circle,
               onTap: importVm.preview!.okCount == 0 ? null : _importNow,
 
@@ -629,7 +624,7 @@ class _PreviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg = Colors.white;
+    Color bg = const Color.fromARGB(255, 151, 255, 157);
     String status = 'OK';
 
     if (r.error != null) {
@@ -692,7 +687,7 @@ class _PreviewRow extends StatelessWidget {
                           padding: EdgeInsets.only(top: 4),
                           child: Text(
                             'Trùng với dữ liệu đã có trên hệ thống',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF8A6D00)),
+                            style: TextStyle(fontSize: 13, color: Color(0xFF8A6D00)),
                           ),
                         ),
                       if (r.isDuplicateInFile)
@@ -700,7 +695,7 @@ class _PreviewRow extends StatelessWidget {
                           padding: EdgeInsets.only(top: 4),
                           child: Text(
                             'Trùng trong file',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF8A6D00)),
+                            style: TextStyle(fontSize: 13, color: Color(0xFF8A6D00)),
                           ),
                         ),
                     ],
