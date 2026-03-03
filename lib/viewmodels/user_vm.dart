@@ -63,6 +63,7 @@ class UserVm extends ChangeNotifier {
 
   void watchMe(String uid) {
     _meSub?.cancel();
+
     _meSub = _userRepo
         .watchUserById(uid)
         .listen(
@@ -90,7 +91,6 @@ class UserVm extends ChangeNotifier {
   void watchChildren(String parentUid) {
     _childrenSub?.cancel();
     _childrenSub = _userRepo.watchChildren(parentUid).listen((list) {
-      debugPrint('USER_VM children=${list.length}');
       _children
         ..clear()
         ..addAll(list);
@@ -109,7 +109,6 @@ class UserVm extends ChangeNotifier {
 
     try {
       final uid = _storage.getString(StorageKeys.uid);
-
       if (uid == null) {
         _error = "Không tìm thấy userId";
         _loading = false;

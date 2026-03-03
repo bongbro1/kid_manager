@@ -13,7 +13,7 @@ class NotificationModal extends StatefulWidget {
     super.key,
     required this.child,
     this.width = 339,
-    this.maxHeight = 320,
+    this.maxHeight = 280,
     this.onBackgroundTap,
   });
 
@@ -21,7 +21,7 @@ class NotificationModal extends StatefulWidget {
     BuildContext context, {
     required Widget child,
     double width = 339,
-    double maxHeight = 320,
+    double maxHeight = 340,
     VoidCallback? onBackgroundTap,
   }) {
     return showDialog(
@@ -31,7 +31,7 @@ class NotificationModal extends StatefulWidget {
       barrierColor: Colors.transparent,
       builder: (_) => NotificationModal(
         width: width,
-        maxHeight: maxHeight,
+        // maxHeight: maxHeight,
         onBackgroundTap: onBackgroundTap,
         child: child,
       ),

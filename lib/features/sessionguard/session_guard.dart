@@ -45,7 +45,13 @@ class _SessionGuardState extends State<SessionGuard> {
         final uid = session.user?.uid;
         final isParent = session.isParent;
 
-        // debugPrint('[GUARD] status=$status uid=$uid isParent=$isParent');
+        // debugPrint("========== SESSION GUARD ==========");
+        // debugPrint("status: $status");
+        // debugPrint("uid: $uid");
+        // debugPrint("isParent: $isParent");
+        // debugPrint("_lastStatus (old): $_lastStatus");
+        // debugPrint("_lastUid (old): $_lastUid");
+        // debugPrint("_lastIsParent (old): $_lastIsParent");
 
         //  tính điều kiện dựa trên _last... (giá trị cũ)
         final shouldTriggerMeWatch =
@@ -61,10 +67,17 @@ class _SessionGuardState extends State<SessionGuard> {
                 _lastUid != uid ||
                 _lastIsParent != isParent);
 
+        // debugPrint("shouldTriggerMeWatch: $shouldTriggerMeWatch");
+        // debugPrint("shouldTriggerChildrenWatch: $shouldTriggerChildrenWatch");
+
         // sau đó mới cập nhật _last...
         _lastStatus = status;
         _lastUid = uid;
         _lastIsParent = isParent;
+
+        // debugPrint("_lastStatus (new): $_lastStatus");
+        // debugPrint("_lastUid (new): $_lastUid");
+        // debugPrint("_lastIsParent (new): $_lastIsParent");
 
         //  gọi watchMe 1 lần
         if (shouldTriggerMeWatch) {
@@ -91,51 +104,21 @@ class _SessionGuardState extends State<SessionGuard> {
             return const LoginScreen();
 
           case SessionStatus.authenticated:
-            if (uid == null) return const FlashScreen();
+
+            if (uid == null) {
+              return const FlashScreen();
+            }
 
             if (_pushInitedForUid != uid) {
               _pushInitedForUid = uid;
 
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (!mounted) return;
+                await SosNotificationService.instance.init(onTapSos: (data) {});
 
-                // await SosNotificationService.instance.init(
-                //   onTapSos: (data) {
-                //     if (data['type']?.toString() != 'SOS') return;
-
-                //     final familyId = data['familyId']?.toString();
-                //     final sosId = data['sosId']?.toString();
-                //     final lat = double.tryParse(data['lat']?.toString() ?? '');
-                //     final lng = double.tryParse(data['lng']?.toString() ?? '');
-
-                //     if (familyId == null ||
-                //         sosId == null ||
-                //         lat == null ||
-                //         lng == null)
-                //       return;
-
-                //     AlertService.navigatorKey.currentState?.push(
-                //       MaterialPageRoute(
-                //         builder: (_) => SosView(
-                //           lat: lat,
-                //           lng: lng,
-                //           familyId: familyId,
-                //           sosId: sosId,
-                //         ),
-                //       ),
-                //     );
-                //   },
-                // );
-                await SosNotificationService.instance.init(
-                  onTapSos: (data) {
-                    // Không push SosView nữa.
-                    // Overlay tự hiện + nút xác nhận xử lý.
-                  },
-                );
                 await SosSoundPrompt.showIfNeeded(context);
               });
             }
-
             return AppShell(mode: isParent ? AppMode.parent : AppMode.child);
         }
       },
