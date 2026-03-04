@@ -1,5 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum NotificationType {
+  blockedApp,
+  sos,
+  heartbeatLost,
+  usageLimitExceeded,
+}
+extension NotificationTypeX on NotificationType {
+  String get value {
+    switch (this) {
+      case NotificationType.blockedApp:
+        return "blocked_app";
+      case NotificationType.sos:
+        return "sos";
+      case NotificationType.heartbeatLost:
+        return "heartbeat_lost";
+      case NotificationType.usageLimitExceeded:
+        return "usage_limit_exceeded";
+    }
+  }
+
+  static NotificationType fromString(String value) {
+    return NotificationType.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => NotificationType.blockedApp,
+    );
+  }
+}
+
 class AppNotification {
   final String id;
   final String senderId;

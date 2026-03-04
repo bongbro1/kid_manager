@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/models/app_item_model.dart';
-import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/views/parent/dashboard/no_child_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/statistics_tab.dart';
@@ -36,7 +35,8 @@ class _AppManagementScreenState extends State<AppManagementScreen>
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    Future.microtask(() async {
+      context.read<AppManagementVM>().loadChildren();
       if (!mounted) return;
       await context.read<AppManagementVM>().loadAppsForSelectedChild();
     });

@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
+import 'package:kid_manager/models/notification_type.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/imgbb_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
@@ -20,6 +22,8 @@ import 'package:kid_manager/widgets/app/app_image_modal.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notice_card.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
+import 'package:kid_manager/widgets/app/notification_dialog.dart';
+import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
 import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:provider/provider.dart';
@@ -31,8 +35,7 @@ class PersonalInfoScreen extends StatefulWidget {
   State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
 }
 
-class _PersonalInfoScreenState extends State<PersonalInfoScreen>
-    with RouteAware, WidgetsBindingObserver {
+class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _genderCtrl = TextEditingController();
@@ -41,107 +44,24 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
   bool allowLocationTracking = false;
   int _age = 0;
 
-  late VoidCallback _tabListener;
-  bool _didBind = false;
-
-  DateTime _lastLoadAt = DateTime.fromMillisecondsSinceEpoch(0);
-
-  bool get _isTargetTab =>
-      activeTabNotifier.value == 3 || activeTabNotifier.value == 5;
-
-  bool get _isRouteCurrent => (ModalRoute.of(context)?.isCurrent ?? false);
-
-  Future<void> _safeLoadProfile({bool force = false}) async {
-    if (!mounted) {
-      return;
-    }
-
-    if (!_isTargetTab) {
-      return;
-    }
-
-    if (!_isRouteCurrent) {
-      return;
-    }
-
-    final vm = context.read<UserVm>();
-
-    if (vm.loading) {
-      return;
-    }
-
-    final now = DateTime.now();
-    if (!force && now.difference(_lastLoadAt) < const Duration(seconds: 3)) {
-      return;
-    }
-
-    _lastLoadAt = now;
-    await vm.loadProfile();
-  }
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
 
-    _tabListener = () {
-      // Khi chuyển tab sang 3/5 (value thay đổi) => load
-      if (_isTargetTab) {
-        _safeLoadProfile(force: true);
-      }
-    };
-    activeTabNotifier.addListener(_tabListener);
-
-    // Load lần đầu sau frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _safeLoadProfile(force: true);
+      context.read<UserVm>().loadProfile();
     });
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    activeTabNotifier.removeListener(_tabListener);
-    if (_didBind) routeObserver.unsubscribe(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_didBind) {
-      final route = ModalRoute.of(context);
-      if (route is PageRoute) {
-        routeObserver.subscribe(this, route);
-        _didBind = true;
-      }
-    }
-  }
-
-  @override
-  void didPopNext() {
-    // Quay lại từ màn khác => refresh
-    _safeLoadProfile(force: true);
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // App resume => refresh
-    if (state == AppLifecycleState.resumed) {
-      _safeLoadProfile(force: true);
-    }
   }
 
   Future<void> _updateUserInfo() async {
     final dob = parseDateFromText(_dobCtrl.text);
 
     if (dob == null) {
-      NotificationModal.show(
+      NotificationDialog.show(
         context,
-        child: AppNoticeCard(
-          type: AppNoticeType.error,
-          message: 'Ngày sinh không hợp lệ',
-        ),
+        type: DialogType.error,
+        title: "Thất bại",
+        message: "Ngày sinh không hợp lệ",
       );
       return;
     }
@@ -159,29 +79,37 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
     if (!mounted) return;
 
     if (ok) {
-      NotificationModal.show(
+      NotificationDialog.show(
         context,
-        child: AppNoticeCard(
-          type: AppNoticeType.success,
-          message: 'Sửa thông tin thành công',
-        ),
+        type: DialogType.warning,
+        title: "Thành công",
+        message:
+            "Bạn có chắc chắn muốn thực?",
       );
-      await vm.loadProfile();
+      vm.listenProfile();
     } else {
       debugPrint("Update FAIL: ${vm.error}");
       // show snackbar/dialog nếu muốn
     }
   }
 
+  Future<void> _onRefresh() async {
+    context.read<UserVm>().listenProfile();
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<UserVm>();
     final p = vm.profile;
-    if (p == null) {
-      return const SizedBox();
+    if (vm.loading) {
+      return LoadingOverlay();
     }
 
-    final isChild = p.role.toString() == "child"; // 👈 đặt ở đây
+    if (p == null) {
+      return const Scaffold(body: Center(child: Text("Không có dữ liệu")));
+    }
+
+    final isChild = p.role.toString() == "child";
     _nameCtrl.text = p.name;
     _phoneCtrl.text = p.phone;
     _genderCtrl.text = p.gender;
@@ -192,241 +120,268 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
     _age = calculateAgeFromDateString(p.dob);
 
     return Scaffold(
-      backgroundColor: Color(0xFFFFFFFF),
+      backgroundColor: const Color(0xFFFFFFFF),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
+          children: [
+            /// ✅ HEADER (KHÔNG SCROLL)
+            Row(
               children: [
-                // Header
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          backgroundColor: Colors.transparent,
-                          isScrollControlled: true,
-                          builder: (_) => const MoreActionSheet(),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 8,
-                          left: 14,
-                          right: 14,
-                        ),
-                        child: AppIcon(
-                          path: "assets/icons/menu.svg",
-                          type: AppIconType.svg,
-                          size: 30,
-                        ),
-                      ),
+                InkWell(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      isScrollControlled: true,
+                      builder: (_) => const MoreActionSheet(),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 14,
                     ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Center(
-                        child: Text(
-                          "Thông tin cá nhân",
-                          style: TextStyle(
-                            color: Color(0xFF222B45),
-                            fontSize: 20,
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                    child: AppIcon(
+                      path: "assets/icons/menu.svg",
+                      type: AppIconType.svg,
+                      size: 30,
                     ),
-
-                    const SizedBox(width: 40),
-                  ],
+                  ),
                 ),
-
-                const SizedBox(height: 16),
-
-                SizedBox(
-                  width: 500,
-                  height: 235,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 25,
-                        child: Center(
-                          child: tappablePhoto(
-                            context: context,
-                            vm: vm,
-                            url: p.coverUrl,
-                            fallbackAsset: "assets/images/cover.png",
-                            onReplace: (index, file) {
-                              return vm.updateUserPhoto(
-                                file: file,
-                                type: UserPhotoType.cover,
-                              );
-                            },
-                            child: Image(
-                              image: ((p.coverUrl ?? '').trim().isNotEmpty)
-                                  ? NetworkImage((p.coverUrl ?? '').trim())
-                                  : const AssetImage("assets/images/cover.png")
-                                        as ImageProvider,
-                              width: 500,
-                              height: 230,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      "Thông tin cá nhân",
+                      style: TextStyle(
+                        color: Color(0xFF222B45),
+                        fontSize: 20,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
                       ),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          width: 350,
-                          height: 82,
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          decoration: BoxDecoration(
-                            color: Color(0xFFFFFFFF),
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x3F000000),
-                                blurRadius: 4,
-                                offset: Offset(0, 0),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              tappablePhoto(
-                                context: context,
-                                vm: vm,
-                                url: p.avatarUrl,
-                                fallbackAsset: "assets/images/u1.png",
-                                onReplace: (index, file) {
-                                  return vm.updateUserPhoto(
-                                    file: file,
-                                    type: UserPhotoType.avatar,
-                                  );
-                                },
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(78.5),
-                                    border: Border.all(
-                                      width: 2,
-                                      color: const Color(0xFF5EC8F2),
-                                    ),
-                                    image: DecorationImage(
-                                      image:
-                                          ((p.avatarUrl ?? '')
-                                              .trim()
-                                              .isNotEmpty)
-                                          ? NetworkImage(
-                                              (p.avatarUrl ?? '').trim(),
-                                            )
-                                          : const AssetImage(
-                                                  "assets/images/u1.png",
-                                                )
-                                                as ImageProvider,
-                                      fit: BoxFit.cover,
-                                    ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 40),
+              ],
+            ),
+
+            /// ✅ PHẦN NÀY MỚI SCROLL
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 16),
+
+                      SizedBox(
+                        width: 500,
+                        height: 220,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 35,
+                              child: Center(
+                                child: tappablePhoto(
+                                  context: context,
+                                  vm: vm,
+                                  url: p.coverUrl,
+                                  fallbackAsset: "assets/images/cover.png",
+                                  onReplace: (index, file) {
+                                    return vm.updateUserPhoto(
+                                      file: file,
+                                      type: UserPhotoType.cover,
+                                    );
+                                  },
+                                  child: Image(
+                                    image:
+                                        ((p.coverUrl ?? '').trim().isNotEmpty)
+                                        ? NetworkImage(
+                                            (p.coverUrl ?? '').trim(),
+                                          )
+                                        : const AssetImage(
+                                                "assets/images/cover.png",
+                                              )
+                                              as ImageProvider,
+                                    width: 500,
+                                    height: 200,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      p?.name ?? '',
-                                      style: TextStyle(
-                                        color: Color(0xFF212121),
-                                        fontSize: 18,
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w700,
-                                        height: 1.11,
-                                        letterSpacing: -0.24,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                              child: Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Container(
+                                  height: 82,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFFFFFFFF),
+                                    borderRadius: BorderRadius.circular(18),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x3F000000),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 0),
                                       ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "$_age tuổi",
-                                      style: TextStyle(
-                                        color: Color(0xFF212121),
-                                        fontSize: 13,
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w500,
-                                        height: 1.69,
-                                        letterSpacing: -0.41,
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      tappablePhoto(
+                                        context: context,
+                                        vm: vm,
+                                        url: p.avatarUrl,
+                                        fallbackAsset: "assets/images/u1.png",
+                                        onReplace: (index, file) {
+                                          return vm.updateUserPhoto(
+                                            file: file,
+                                            type: UserPhotoType.avatar,
+                                          );
+                                        },
+                                        child: Container(
+                                          width: 60,
+                                          height: 60,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              78.5,
+                                            ),
+                                            border: Border.all(
+                                              width: 2,
+                                              color: const Color(0xFF5EC8F2),
+                                            ),
+                                            image: DecorationImage(
+                                              image:
+                                                  ((p.avatarUrl ?? '')
+                                                      .trim()
+                                                      .isNotEmpty)
+                                                  ? NetworkImage(
+                                                      (p.avatarUrl ?? '')
+                                                          .trim(),
+                                                    )
+                                                  : const AssetImage(
+                                                          "assets/images/u1.png",
+                                                        )
+                                                        as ImageProvider,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              p?.name ?? '',
+                                              style: TextStyle(
+                                                color: Color(0xFF212121),
+                                                fontSize: 18,
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w700,
+                                                height: 1.11,
+                                                letterSpacing: -0.24,
+                                              ),
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              "$_age tuổi",
+                                              style: TextStyle(
+                                                color: Color(0xFF212121),
+                                                fontSize: 13,
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w500,
+                                                height: 1.69,
+                                                letterSpacing: -0.41,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: _updateUserInfo,
+                                        child: Image.asset(
+                                          "assets/images/source_edit.png",
+                                          width: 18,
+                                          height: 18,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: _updateUserInfo,
-                                child: Image.asset(
-                                  "assets/images/source_edit.png",
-                                  width: 18,
-                                  height: 18,
-                                ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 18),
+
+                            AppLabeledTextField(
+                              label: "Họ và tên",
+                              hint: "Nhập họ và tên",
+                              controller: _nameCtrl,
+                            ),
+
+                            AppLabeledTextField(
+                              label: "Số điện thoại",
+                              hint: "+84 012345678",
+                              controller: _phoneCtrl,
+                            ),
+
+                            AppLabeledTextField(
+                              label: "Giới tính",
+                              hint: "Nam",
+                              controller: _genderCtrl,
+                            ),
+
+                            AppLabeledTextField(
+                              label: "Ngày sinh",
+                              hint: "12/12/2003",
+                              controller: _dobCtrl,
+                            ),
+
+                            AppLabeledTextField(
+                              label: "Địa chỉ",
+                              hint: "Xã Điềm Thụy, Tỉnh Thái Nguyên",
+                              controller: _addressCtrl,
+                            ),
+
+                            if (!isChild)
+                              AppLabeledCheckbox(
+                                label: "Quyền theo dõi",
+                                text: "Cho phép đối phương theo dõi vị trí",
+                                value: allowLocationTracking,
+                                onChanged: (v) =>
+                                    setState(() => allowLocationTracking = v),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
-
-                // Label
-                AppLabeledTextField(
-                  label: "Họ và tên",
-                  hint: "Nhập họ và tên",
-                  controller: _nameCtrl,
-                ),
-                // Label
-                AppLabeledTextField(
-                  label: "Số điện thoại",
-                  hint: "+84 012345678",
-                  controller: _phoneCtrl,
-                ),
-                // Label
-                AppLabeledTextField(
-                  label: "Giới tính",
-                  hint: "Nam",
-                  controller: _genderCtrl,
-                ),
-
-                AppLabeledTextField(
-                  label: "Ngày sinh",
-                  hint: "12/12/2003",
-                  controller: _dobCtrl,
-                ),
-
-                AppLabeledTextField(
-                  label: "Địa chỉ",
-                  hint: "Xã Điềm Thụy, Tỉnh Thái Nguyên",
-                  controller: _addressCtrl,
-                ),
-                if (!isChild)
-                  AppLabeledCheckbox(
-                    label: "Quyền theo dõi",
-                    text: "Cho phép đối phương theo dõi vị trí",
-                    value: allowLocationTracking,
-                    onChanged: (v) => setState(() => allowLocationTracking = v),
-                  ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -445,7 +400,7 @@ class MoreActionSheet extends StatelessWidget {
       // height: 240,
       showHandle: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 36),
+        padding: const EdgeInsets.symmetric(horizontal: 26),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -540,7 +495,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
     }
 
     return AppOverlaySheet(
-      height: 230,
+      height: 210,
       showHandle: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -578,33 +533,37 @@ class ConfirmLogoutSheet extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  AppButton(
-                    width: 167,
-                    height: 50,
-                    text: 'Hủy bỏ',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    backgroundColor: const Color(0xFFE6F5FF),
-                    foregroundColor: const Color(0xFF3A7DFF),
+                  Expanded(
+                    child: AppButton(
+                      height: 50,
+                      text: 'Hủy bỏ',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      backgroundColor: const Color(0xFFE6F5FF),
+                      foregroundColor: const Color(0xFF3A7DFF),
+                    ),
                   ),
-                  AppButton(
-                    width: 167,
-                    height: 50,
-                    text: 'Xác nhận',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      await Future.delayed(const Duration(milliseconds: 150));
-                      await _logout();
-                    },
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: AppButton(
+                      height: 50,
+                      text: 'Xác nhận',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await Future.delayed(const Duration(milliseconds: 150));
+                        await _logout();
+                      },
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ],
               ),

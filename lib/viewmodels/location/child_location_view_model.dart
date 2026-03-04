@@ -310,7 +310,7 @@ class ChildLocationViewModel extends ChangeNotifier {
   /// Load lịch sử (dùng chung cho tab History)
   Future<List<LocationData>> loadLocationHistory(String childId) async {
     try {
-      final history = await _locationRepository.getLocationHistory(childId);
+      final history = await _locationRepository.getLocationHistoryByDay(childId,DateTime.now());
 
       _trail
         ..clear()
@@ -328,6 +328,28 @@ class ChildLocationViewModel extends ChangeNotifier {
     }
   }
 
+
+
+  Future<List<LocationData>> loadLocationHistoryByDay(String childId, DateTime day) async {
+    try {
+      // nếu repo interface chưa có, bạn gọi thẳng repo impl hoặc add vào interface
+      final history = await _locationRepository.getLocationHistoryByDay(childId, day);
+
+      _trail
+        ..clear()
+        ..addAll(history);
+
+      if (history.isNotEmpty) {
+        _currentLocation = history.last;
+      }
+
+      notifyListeners();
+      return history;
+    } catch (e) {
+      _setError(e);
+      return [];
+    }
+  }
   void stopReplay() {
     if (_mode == LocationPlayMode.replay) {
       _mode = LocationPlayMode.live;

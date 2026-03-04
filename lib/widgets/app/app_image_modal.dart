@@ -154,7 +154,7 @@ class _ImageModalState extends State<_ImageModal> {
           if (widget.onReplace != null)
             // ✅ Nút ... ở góc trên-trái của overlay
             Positioned(
-              top: MediaQuery.of(context).padding.top,
+              top: MediaQuery.of(context).padding.top + 5,
               right: 8,
               child: Material(
                 color: Colors.transparent,

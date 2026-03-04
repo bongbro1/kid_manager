@@ -1,7 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_notification.dart';
-import 'package:kid_manager/services/storage_service.dart';
 
 class NotificationRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;

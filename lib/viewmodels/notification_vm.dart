@@ -58,13 +58,12 @@ class NotificationVM extends ChangeNotifier {
   /// ==============================
   int get unreadCount => _notifications.where((e) => !e.isRead).length;
 
-
-void clear() {
-  _sub?.cancel();
-  _sub = null;
-  _notifications = [];
-  notifyListeners();
-}
+  void clear() {
+    _sub?.cancel();
+    _sub = null;
+    _notifications = [];
+    notifyListeners();
+  }
 
   @override
   void dispose() {

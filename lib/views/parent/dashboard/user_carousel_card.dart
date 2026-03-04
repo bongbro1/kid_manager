@@ -51,14 +51,6 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppManagementVM>().loadChildren();
-    });
-  }
-
-  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();

@@ -33,19 +33,33 @@ class UserVm extends ChangeNotifier {
   String? get familyId => me?.familyId;
 
   StreamSubscription<AppUser?>? _meSub;
-
-  void _setLoading(bool v) {
-    _loading = v;
-    notifyListeners();
-  }
+  StreamSubscription<UserProfile?>? _profileSubscription;
 
   void _setError(String msg) {
     _error = msg;
     notifyListeners();
   }
 
+  List<UserItem> users = [];
+
+  Future<void> loadUsers() async {
+    try {
+      _loading = true;
+      _error = null;
+      notifyListeners();
+
+      users = await _userRepo.loadAllUsers();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
   void watchMe(String uid) {
     _meSub?.cancel();
+
     _meSub = _userRepo
         .watchUserById(uid)
         .listen(
@@ -73,7 +87,6 @@ class UserVm extends ChangeNotifier {
   void watchChildren(String parentUid) {
     _childrenSub?.cancel();
     _childrenSub = _userRepo.watchChildren(parentUid).listen((list) {
-      debugPrint('USER_VM children=${list.length}');
       _children
         ..clear()
         ..addAll(list);
@@ -85,33 +98,52 @@ class UserVm extends ChangeNotifier {
      CREATE CHILD
   ============================================================ */
 
-  Future<void> loadProfile() async {
+  void listenProfile() {
+    final uid = _storage.getString(StorageKeys.uid);
+
+    if (uid == null) {
+      _error = "Không tìm thấy userId";
+      notifyListeners();
+      return;
+    }
+
+    _profileSubscription?.cancel(); // tránh listen trùng
+
+    _profileSubscription = _userRepo
+        .listenUserProfile(uid)
+        .listen(
+          (data) {
+            profile = data;
+            notifyListeners();
+          },
+          onError: (e) {
+            _error = e.toString();
+            notifyListeners();
+          },
+        );
+  }
+
+  Future<UserProfile?> loadProfile() async {
     _error = null;
     _loading = true;
     notifyListeners();
 
     try {
       final uid = _storage.getString(StorageKeys.uid);
-
       if (uid == null) {
         _error = "Không tìm thấy userId";
-        _loading = false;
-        notifyListeners();
-        return;
+        return null;
       }
 
       profile = await _userRepo.getUserProfile(uid);
-      // debugPrint("==== USER PROFILE ====");
-      // debugPrint("UID: ${profile?.id}");
-      // debugPrint("Avatar: ${profile?.avatarUrl}");
-      // debugPrint("Cover: ${profile?.coverUrl}");
-      // debugPrint("======================");
+      return profile;
     } catch (e) {
       _error = e.toString();
+      return null;
+    } finally {
+      _loading = false;
+      notifyListeners();
     }
-
-    _loading = false;
-    notifyListeners();
   }
 
   Future<UserRole> fetchUserRole(String uid) {
@@ -217,6 +249,7 @@ class UserVm extends ChangeNotifier {
   @override
   void dispose() {
     _childrenSub?.cancel();
+    _profileSubscription?.cancel();
     _meSub?.cancel();
     super.dispose();
   }

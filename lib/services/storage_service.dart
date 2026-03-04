@@ -2,19 +2,25 @@ import 'package:kid_manager/core/storage_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
-  late SharedPreferences _prefs;
+  final SharedPreferences _prefs;
 
-  Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
+  StorageService._(this._prefs);
+
+  /// 🔥 Factory đảm bảo luôn được init
+  static Future<StorageService> create() async {
+    final prefs = await SharedPreferences.getInstance();
+    return StorageService._(prefs);
   }
 
   // ===== SET =====
   Future<bool> setString(String key, String value) =>
       _prefs.setString(key, value);
 
-  Future<bool> setInt(String key, int value) => _prefs.setInt(key, value);
+  Future<bool> setInt(String key, int value) =>
+      _prefs.setInt(key, value);
 
-  Future<bool> setBool(String key, bool value) => _prefs.setBool(key, value);
+  Future<bool> setBool(String key, bool value) =>
+      _prefs.setBool(key, value);
 
   Future<bool> setDouble(String key, double value) =>
       _prefs.setDouble(key, value);
@@ -31,7 +37,8 @@ class StorageService {
 
   double? getDouble(String key) => _prefs.getDouble(key);
 
-  List<String>? getStringList(String key) => _prefs.getStringList(key);
+  List<String>? getStringList(String key) =>
+      _prefs.getStringList(key);
 
   // ===== UTILS =====
   bool contains(String key) => _prefs.containsKey(key);
@@ -55,7 +62,6 @@ class StorageService {
     }
   }
 }
-
 
 
 // cách dùng
