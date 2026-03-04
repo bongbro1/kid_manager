@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
 
@@ -60,11 +61,12 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
       final storage = context.read<StorageService>();
       final userVm = context.read<UserVm>();
       final scheduleVm = context.read<ScheduleViewModel>();
+      final memoryVm = context.read<MemoryDayViewModel>();
 
       final childUid = storage.getString(StorageKeys.uid);
       if (childUid == null) return;
 
-      // Load profile đúng childUid hiện tại (tránh dùng profile cũ)
+      // load profile đúng child hiện tại
       if (userVm.profile == null || userVm.profile!.id != childUid) {
         await userVm.loadProfile();
       }
@@ -72,21 +74,32 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
       final parentUid = userVm.profile?.parentUid;
       if (parentUid == null || parentUid.isEmpty) return;
 
-      final changed = (_lastChildUid != childUid) || (_lastOwnerUid != parentUid);
+      final changed =
+          (_lastChildUid != childUid) || (_lastOwnerUid != parentUid);
 
       if (changed) {
         _lastChildUid = childUid;
         _lastOwnerUid = parentUid;
 
-        // Reset state cũ để không dính lịch của child khác
-        scheduleVm.monthSchedules = {};
-        scheduleVm.schedules = [];
-        scheduleVm.error = null;
-        scheduleVm.isLoading = false;
-        scheduleVm.selectedChildId = null;
-
+        // ======================
+        // RESET SCHEDULE (giữ nguyên logic của bạn)
+        // ======================
+        scheduleVm.resetForNewSession();
         scheduleVm.setScheduleOwnerUid(parentUid);
-        await scheduleVm.setChild(childUid); // setChild sẽ loadMonth()
+        await scheduleVm.setChild(childUid);
+
+        // ======================
+        // RESET + BIND MEMORY DAY (FIX CHÍNH)
+        // ======================
+        memoryVm.resetForNewSession();
+        memoryVm.setOwnerUid(parentUid);
+
+        memoryVm.bindCalendarState(
+          focusedMonth: scheduleVm.focusedMonth,
+          selectedDate: scheduleVm.selectedDate,
+        );
+
+        await memoryVm.loadMonth();
       }
     } finally {
       _binding = false;
@@ -97,7 +110,6 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
   Widget build(BuildContext context) {
     final scheduleVm = context.watch<ScheduleViewModel>();
 
-    // Mỗi lần build đều check/bind lại session (nhưng có guard _binding + cache)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _bindSessionIfNeeded();
@@ -121,12 +133,11 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         children: [
           const ScheduleCalendar(),
           const SizedBox(height: 16),
-
           if (scheduleVm.selectedChildId == null)
-            const Expanded(child: Center(child: CircularProgressIndicator()))
+            const Expanded(
+                child: Center(child: CircularProgressIndicator()))
           else
             const Expanded(child: ScheduleList()),
-
           CreateScheduleButton(
             onTap: () {
               final childId = scheduleVm.selectedChildId;

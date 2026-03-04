@@ -1,4 +1,4 @@
-import 'package:kid_manager/helpers/app_management_helper.dart';
+import 'package:kid_manager/background/foreground_watcher.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 
@@ -48,6 +48,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     RealtimeAppMonitor.stop();
-    _authService.signOut();
+    await _authService.signOut();
   }
 }
+

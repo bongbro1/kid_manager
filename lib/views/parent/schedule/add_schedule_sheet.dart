@@ -48,7 +48,6 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
     if (_titleCtrl.text.trim().isEmpty) return false;
     if (_titleCtrl.text.length > 50) return false;
     if (_startTime == null || _endTime == null) return false;
-    if (_period == null) return false;
 
     final start = _startTime!.hour * 60 + _startTime!.minute;
     final end = _endTime!.hour * 60 + _endTime!.minute;
@@ -238,7 +237,10 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
           child: _timePicker(
             label: 'Giờ bắt đầu',
             time: _startTime,
-            onPick: (t) => setState(() => _startTime = t),
+            onPick: (t) => setState(() {
+              _startTime = t;
+              _syncPeriodFromTime();
+            }),
           ),
         ),
         const SizedBox(width: 12),
@@ -247,7 +249,10 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
             label: 'Giờ kết thúc',
             time: _endTime,
             errorText: _isTimeInvalid ? 'Giờ kết thúc phải lớn hơn' : null,
-            onPick: (t) => setState(() => _endTime = t),
+            onPick: (t) => setState(() {
+              _endTime = t;
+              _syncPeriodFromTime(); // optional, nhưng để đồng bộ nếu bạn muốn
+            }),
           ),
         ),
       ],
@@ -334,11 +339,12 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
   }
 
   Widget _periodRow() {
-        return SchedulePeriodSelector(
-          value: _period,
-          onChanged: (p) => setState(() => _period = p),
-        );
-      }
+    return SchedulePeriodSelector(
+      value: _period,
+      onChanged: null,
+      enabled: false,
+    );
+  }
 
   Widget _submitButton() {
     final vm = context.read<ScheduleViewModel>();
@@ -393,7 +399,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                       date: normalizedDate,
                       startAt: startAt,
                       endAt: endAt,
-                      period: _period!,
+                      period: _period ?? _inferPeriod(_startTime!), 
                       createdAt: DateTime.now(),
                       updatedAt: DateTime.now(),
                     );
@@ -515,4 +521,18 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
     );
   }
 
+SchedulePeriod _inferPeriod(TimeOfDay start) {
+  final h = start.hour;
+  if (h < 12) return SchedulePeriod.morning;
+  if (h < 18) return SchedulePeriod.afternoon;
+  return SchedulePeriod.evening;
+}
+
+void _syncPeriodFromTime() {
+  if (_startTime == null) return;
+  final inferred = _inferPeriod(_startTime!);
+  if (_period != inferred) {
+    _period = inferred;
+  }
+}
 }

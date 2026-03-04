@@ -7,6 +7,20 @@ import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import '../models/app_user.dart';
 
+class UserItem {
+  final String uid;
+  final String displayName;
+
+  UserItem({required this.uid, required this.displayName});
+
+  factory UserItem.fromFirestore(Map<String, dynamic> data) {
+    return UserItem(
+      uid: data['uid'] ?? '',
+      displayName: data['displayName'] ?? '',
+    );
+  }
+}
+
 class UserRepository {
   final FirebaseFirestore _db;
   final FirebaseAuth? _auth;
@@ -40,8 +54,20 @@ class UserRepository {
     });
   }
 
-  // ===== CREATE =====
+  Future<List<UserItem>> loadAllUsers() async {
+    final snapshot = await _users.get();
 
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+
+      return UserItem(
+        uid: data['uid'] ?? doc.id,
+        displayName: data['displayName'] ?? '',
+      );
+    }).toList();
+  }
+
+  // ===== CREATE =====
   Future<void> createParentIfMissing({
     required String uid,
     required String email,
@@ -118,7 +144,6 @@ class UserRepository {
   }
 
   // ===== UPDATE =====
-
   Future<void> updateProfile({
     required String uid,
     String? displayName,
@@ -267,6 +292,17 @@ class UserRepository {
 
     if (!doc.exists) return null;
     return UserProfile.fromMap(uid, doc.data()!);
+  }
+
+  Stream<UserProfile?> listenUserProfile(String uid) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists) return null;
+          return UserProfile.fromMap(uid, snapshot.data()!);
+        });
   }
 
   Future<List<ChildItem>> getChildrenByParentUid(String parentUid) async {

@@ -3,40 +3,16 @@ import 'package:flutter/material.dart';
 class NotificationModal extends StatefulWidget {
   final Widget child;
   final double width;
-
-  /// Chiều cao tối đa của modal (không phải height cố định)
   final double maxHeight;
-
   final VoidCallback? onBackgroundTap;
 
   const NotificationModal({
     super.key,
     required this.child,
     this.width = 339,
-    this.maxHeight = 320,
+    this.maxHeight = 400,
     this.onBackgroundTap,
   });
-
-  static Future<void> show(
-      BuildContext context, {
-        required Widget child,
-        double width = 339,
-        double maxHeight = 320,
-        VoidCallback? onBackgroundTap,
-      }) {
-    return showDialog(
-      context: context,
-      useSafeArea: false,
-      barrierDismissible: true,
-      barrierColor: Colors.transparent,
-      builder: (_) => NotificationModal(
-        width: width,
-        maxHeight: maxHeight,
-        onBackgroundTap: onBackgroundTap,
-        child: child,
-      ),
-    );
-  }
 
   @override
   State<NotificationModal> createState() => _NotificationModalState();
@@ -45,10 +21,8 @@ class NotificationModal extends StatefulWidget {
 class _NotificationModalState extends State<NotificationModal>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<Offset> _slideAnimation;
-  late final Animation<double> _fadeAnimation;
-
-  bool _isClosing = false;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
 
   @override
   void initState() {
@@ -56,26 +30,20 @@ class _NotificationModalState extends State<NotificationModal>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 300),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.08), // nhẹ thôi cho đẹp
+    final curved =
+        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+
+    _fade = curved;
+
+    _slide = Tween(
+      begin: const Offset(0, 0.08),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    );
+    ).animate(curved);
 
     _controller.forward();
-  }
-
-  Future<void> _close() async {
-    if (_isClosing) return;
-    _isClosing = true;
-    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -84,10 +52,12 @@ class _NotificationModalState extends State<NotificationModal>
     super.dispose();
   }
 
+  void _close() {
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final maxH = widget.maxHeight.clamp(200, 600).toDouble();
-
     return Material(
       color: Colors.transparent,
       child: Stack(
@@ -97,28 +67,27 @@ class _NotificationModalState extends State<NotificationModal>
             behavior: HitTestBehavior.opaque,
             onTap: widget.onBackgroundTap ?? _close,
             child: FadeTransition(
-              opacity: _fadeAnimation,
+              opacity: _fade,
               child: Container(color: const Color(0x66000000)),
             ),
           ),
 
-          // Modal
           SafeArea(
             child: Center(
               child: FadeTransition(
-                opacity: _fadeAnimation,
+                opacity: _fade,
                 child: SlideTransition(
-                  position: _slideAnimation,
+                  position: _slide,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       maxWidth: widget.width,
-                      maxHeight: maxH,
+                      maxHeight: widget.maxHeight,
                     ),
                     child: Material(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      clipBehavior: Clip.antiAlias, // ✅ bo góc + không tràn
-                      elevation: 10,
+                      borderRadius: BorderRadius.circular(24),
+                      clipBehavior: Clip.antiAlias,
+                      elevation: 16,
                       child: widget.child,
                     ),
                   ),

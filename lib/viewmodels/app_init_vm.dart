@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/background/background_worker.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/permission_service.dart';
@@ -24,12 +25,12 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
 
   AppInitVM(this.storage, this.permissionService) {
     WidgetsBinding.instance.addObserver(this);
-    init();
   }
   Future<void> init() async {
     if (_checkingUsage) return;
     _checkingUsage = true;
     debugPrint("🚀 AppInitVM.init called");
+
     // STEP 1: check trước
     await checkPermissions();
 
@@ -126,7 +127,6 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _waitingForUsageFromSettings) {
       _waitingForUsageFromSettings = false;
-      init();
     }
   }
 

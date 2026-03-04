@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/background/background_worker.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
+import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/repositories/notification_repository.dart';
+import 'package:kid_manager/services/notifications/local_notification_service.dart';
+import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
@@ -26,6 +32,9 @@ Future<void> main() async {
   };
 
   WidgetsFlutterBinding.ensureInitialized();
+
+  await NotificationService.init();
+
   await dotenv.load(fileName: ".env");
 
   String ACCESS_TOKEN = dotenv.env['ACCESS_TOKEN'] ?? '';
@@ -52,8 +61,17 @@ Future<void> main() async {
 
   await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
 
-  final storageService = StorageService();
-  await storageService.init();
+  final storageService = await StorageService.create();
+
+  final role = storageService.getString(StorageKeys.role);
+
+  if (role != null && roleFromString(role) == UserRole.child) {
+    final parentId = storageService.getString(StorageKeys.parentId);
+
+    if (parentId != null && parentId.isNotEmpty) {
+      AuthRuntimeManager.start(parentId: parentId);
+    }
+  }
 
   runApp(
     MultiProvider(

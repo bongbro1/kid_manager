@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/core/storage_keys.dart';
-import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
+import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:provider/provider.dart';
 
 class FlashScreen extends StatefulWidget {
@@ -13,21 +12,6 @@ class FlashScreen extends StatefulWidget {
 }
 
 class _FlashScreenState extends State<FlashScreen> {
-  bool _initCalled = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    if (!_initCalled) {
-      _initCalled = true;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<AppInitVM>().init();
-      });
-    }
-  }
-
   void _onContinue() {
     context.read<SessionVM>().finishSplash();
   }
@@ -35,7 +19,9 @@ class _FlashScreenState extends State<FlashScreen> {
   @override
   void initState() {
     super.initState();
-    _init();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _init();
+    });
   }
 
   Future<void> _init() async {
@@ -53,6 +39,9 @@ class _FlashScreenState extends State<FlashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appVM = context.watch<AppManagementVM>();
+
+    if (appVM.loading) return LoadingOverlay();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(

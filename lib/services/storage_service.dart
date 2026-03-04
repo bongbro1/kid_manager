@@ -1,10 +1,15 @@
+import 'package:kid_manager/core/storage_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
-  late SharedPreferences _prefs;
+  final SharedPreferences _prefs;
 
-  Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
+  StorageService._(this._prefs);
+
+  /// 🔥 Factory đảm bảo luôn được init
+  static Future<StorageService> create() async {
+    final prefs = await SharedPreferences.getInstance();
+    return StorageService._(prefs);
   }
 
   // ===== SET =====
@@ -41,8 +46,22 @@ class StorageService {
   Future<bool> remove(String key) => _prefs.remove(key);
 
   Future<bool> clear() => _prefs.clear();
-}
 
+  Future<void> clearAuthData() async {
+    const keys = [
+      StorageKeys.uid,
+      StorageKeys.role,
+      StorageKeys.email,
+      StorageKeys.isLoggedIn,
+    ];
+
+    for (final key in keys) {
+      if (_prefs.containsKey(key)) {
+        await _prefs.remove(key);
+      }
+    }
+  }
+}
 
 
 // cách dùng

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/utils/usage_rule.dart';
+import 'package:kid_manager/utils/time_window_utils.dart';
+import 'package:kid_manager/utils/usage_rule_utils.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
@@ -82,34 +81,6 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
     });
   }
 
-  Future<void> pickStart() async {
-    final t = await showTimePicker(
-      context: context,
-      initialTime: rule.startTime,
-    );
-    if (t == null) return;
-    setState(() => rule = rule.copyWith(startMin: UsageRule.toMin(t)));
-  }
-
-  Future<void> pickEnd() async {
-    final t = await showTimePicker(context: context, initialTime: rule.endTime);
-
-    if (t == null) return;
-
-    final endMin = UsageRule.toMin(t);
-
-    if (endMin <= rule.startMin) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Giờ kết thúc phải lớn hơn giờ bắt đầu")),
-      );
-      return;
-    }
-
-    setState(() {
-      rule = rule.copyWith(endMin: endMin);
-    });
-  }
-
   void toggleDay(int day) {
     final next = {...rule.weekdays};
     if (next.contains(day))
@@ -123,23 +94,135 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   Future<void> onSavePressed() async {
     final vm = context.read<AppManagementVM>();
     final finalRule = rule.copyWith(overrides: overrides);
-    if (finalRule.overrides.isEmpty) {
-    } else {
+
+    if (finalRule.overrides.isNotEmpty) {
       finalRule.overrides.forEach((date, type) {
         debugPrint("   $date -> ${type.name}");
       });
     }
 
-    /// Call ViewModel
-    await vm.saveUsageRule(
-      userId: widget.childId,
-      packageName: widget.appId,
-      rule: finalRule,
-    );
+    try {
+      await vm.saveUsageRule(
+        userId: widget.childId,
+        packageName: widget.appId,
+        rule: finalRule,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true); // 👈 pop và trả kết quả
+    } catch (e) {
+      debugPrint("❌ Save rule error: $e");
+    }
   }
 
   void onCancel() {
     Navigator.of(context).pop(false);
+  }
+
+  void addWindow() {
+    final slot = TimeWindowUtils.findAvailableSlot(rule.windows);
+
+    if (slot == null) {
+      _showInvalidRangeSnack("Không còn khoảng thời gian trống");
+      return;
+    }
+
+    final newWindows = [...rule.windows, slot];
+
+    setState(() {
+      rule = rule.copyWith(windows: newWindows);
+    });
+  }
+
+  void removeWindow(int index) {
+    final newWindows = [...rule.windows]..removeAt(index);
+
+    setState(() {
+      rule = rule.copyWith(windows: newWindows);
+    });
+  }
+
+  Future<void> pickStart(int i) async {
+    final w = rule.windows[i];
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: w.startMin ~/ 60, minute: w.startMin % 60),
+    );
+
+    if (picked == null) return;
+
+    final newStart = picked.hour * 60 + picked.minute;
+
+    if (newStart >= w.endMin) {
+      _showInvalidRangeSnack("Giờ bắt đầu phải nhỏ hơn giờ kết thúc");
+      return;
+    }
+
+    final newWindow = TimeWindow(startMin: newStart, endMin: w.endMin);
+
+    if (_isOverlapping(newWindow, i)) {
+      _showInvalidRangeSnack("Khoảng thời gian bị trùng với mốc khác");
+      return;
+    }
+
+    setState(() {
+      final newWindows = [...rule.windows];
+      newWindows[i] = newWindow;
+      rule = rule.copyWith(windows: newWindows);
+    });
+  }
+
+  Future<void> pickEnd(int i) async {
+    final w = rule.windows[i];
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: w.endMin ~/ 60, minute: w.endMin % 60),
+    );
+
+    if (picked == null) return;
+
+    final newEnd = picked.hour * 60 + picked.minute;
+
+    if (newEnd <= w.startMin) {
+      _showInvalidRangeSnack("Giờ kết thúc phải lớn hơn giờ bắt đầu");
+      return;
+    }
+
+    final newWindow = TimeWindow(startMin: w.startMin, endMin: newEnd);
+
+    if (_isOverlapping(newWindow, i)) {
+      _showInvalidRangeSnack("Khoảng thời gian bị trùng với mốc khác");
+      return;
+    }
+
+    setState(() {
+      final newWindows = [...rule.windows];
+      newWindows[i] = newWindow;
+      rule = rule.copyWith(windows: newWindows);
+    });
+  }
+
+  bool _isOverlapping(TimeWindow newWindow, int ignoreIndex) {
+    for (int i = 0; i < rule.windows.length; i++) {
+      if (i == ignoreIndex) continue;
+
+      final w = rule.windows[i];
+
+      final overlap =
+          newWindow.startMin < w.endMin && newWindow.endMin > w.startMin;
+
+      if (overlap) return true;
+    }
+    return false;
+  }
+
+  void _showInvalidRangeSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
@@ -149,316 +232,351 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
     if (vm.loading) {
       return LoadingOverlay();
     }
-    // return LoadingOverlay();
+
     return AppOverlaySheet(
       height: 640,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  const SizedBox(height: 6),
-                  Text(
-                    'Cài đặt thời gian sử dụng',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: const Color(0xFF222B45),
-                      fontSize: 20,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      height: 1.10,
-                    ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: [
+                const SizedBox(height: 6),
+                Text(
+                  'Cài đặt thời gian sử dụng',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: const Color(0xFF222B45),
+                    fontSize: 20,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    height: 1.10,
                   ),
+                ),
 
-                  const SizedBox(height: 18),
-                  Container(
-                    width: 350,
-                    decoration: ShapeDecoration(
-                      shape: RoundedRectangleBorder(
-                        side: BorderSide(
-                          width: 1,
-                          strokeAlign: BorderSide.strokeAlignCenter,
-                          color: const Color(0xFFEDEDED),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Text(
-                        'Cho phép sử dụng',
-                        style: TextStyle(
-                          color: Color(0xFF222B45),
-                          fontSize: 16,
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w500,
-                          height: 1.38,
-                        ),
-                      ),
-                      const Spacer(),
-                      Switch(
-                        value: rule.enabled,
-                        onChanged: (v) {
-                          setState(() => rule = rule.copyWith(enabled: v));
-                          debugPrint('rule changed: ${rule.pretty()}');
-                        },
-
-                        activeColor: Colors.white,
-                        activeTrackColor: const Color(0xFF2F6BFF),
-                        inactiveThumbColor: const Color(0xFF8F9BB3),
-                        inactiveTrackColor: const Color(0xFFE4E9F2),
-
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        overlayColor: MaterialStateProperty.all(
-                          Colors.transparent,
-                        ), // ✅ bỏ loang
-                        splashRadius: 0, // ✅ bỏ splash
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: rule.enabled ? pickStart : null,
-                          child: Container(
-                            height: 50,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFEDF1F7),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    fmt(rule.startMin),
-                                    style: const TextStyle(
-                                      color: Color(0xFF222B45),
-                                      fontSize: 15,
-                                      fontFamily: 'Poppins',
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                SvgPicture.asset(
-                                  "assets/icons/icon_clock.svg",
-                                  width: 18,
-                                  height: 18,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: InkWell(
-                          onTap: rule.enabled ? pickEnd : null,
-                          child: Container(
-                            height: 50,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFEDF1F7),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    fmt(rule.endMin),
-                                    style: const TextStyle(
-                                      color: Color(0xFF222B45),
-                                      fontSize: 15,
-                                      fontFamily: 'Poppins',
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                SvgPicture.asset(
-                                  "assets/icons/icon_clock.svg",
-                                  width: 18,
-                                  height: 18,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      'Chọn ngày được phép',
-                      style: TextStyle(
-                        color: Color(0xFF222B45),
-                        fontSize: 16,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                        height: 1.19,
+                const SizedBox(height: 18),
+                Container(
+                  width: 350,
+                  decoration: ShapeDecoration(
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(
+                        width: 1,
+                        strokeAlign: BorderSide.strokeAlignCenter,
+                        color: const Color(0xFFEDEDED),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                ),
 
-                  Row(
-                    children: List.generate(7, (index) {
-                      final day = index + 1; // 1 = Monday
-                      final selected = rule.weekdays.contains(day);
-
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: rule.enabled
-                              ? () {
-                                  final next = {...rule.weekdays};
-                                  if (selected) {
-                                    next.remove(day);
-                                  } else {
-                                    next.add(day);
-                                  }
-
-                                  setState(() {
-                                    rule = rule.copyWith(weekdays: next);
-                                  });
-
-                                  debugPrint(
-                                    "📅 Weekdays changed → ${rule.weekdays}",
-                                  );
-                                }
-                              : null,
-                          child: Container(
-                            height: 36,
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? const Color(0xFF2F6BFF)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: const Color(0xFFEDF1F7),
-                              ),
-                            ),
-                            child: Text(
-                              labels[index],
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 540, // 👈 ép vùng scroll
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'Cho phép sử dụng',
                               style: TextStyle(
-                                color: selected
-                                    ? Colors.white
-                                    : const Color(0xFF8F9BB3),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
+                                color: Color(0xFF222B45),
+                                fontSize: 16,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w500,
+                                height: 1.38,
                               ),
+                            ),
+                            const Spacer(),
+                            Switch(
+                              value: rule.enabled,
+                              onChanged: (v) {
+                                setState(
+                                  () => rule = rule.copyWith(enabled: v),
+                                );
+                              },
+
+                              activeColor: Colors.white,
+                              activeTrackColor: const Color(0xFF2F6BFF),
+                              inactiveThumbColor: const Color(0xFF8F9BB3),
+                              inactiveTrackColor: const Color(0xFFE4E9F2),
+
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              overlayColor: MaterialStateProperty.all(
+                                Colors.transparent,
+                              ), // ✅ bỏ loang
+                              splashRadius: 0, // ✅ bỏ splash
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Column(
+                          children: [
+                            ...List.generate(rule.windows.length, (i) {
+                              final w = rule.windows[i];
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: _timeRangeRow(
+                                  window: w,
+                                  enabled: rule.enabled,
+                                  onPickStart: () => pickStart(i),
+                                  onPickEnd: () => pickEnd(i),
+                                  onDelete: () => removeWindow(i),
+                                ),
+                              );
+                            }),
+
+                            /// ADD BUTTON
+                            if (rule.enabled)
+                              InkWell(
+                                onTap: addWindow,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  height: 48,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFE4E9F2),
+                                      style: BorderStyle.solid,
+                                    ),
+                                  ),
+                                  child: const Icon(Icons.add),
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            'Chọn ngày được phép',
+                            style: TextStyle(
+                              color: Color(0xFF222B45),
+                              fontSize: 16,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w500,
+                              height: 1.19,
                             ),
                           ),
                         ),
-                      );
-                    }),
-                  ),
+                        const SizedBox(height: 16),
 
-                  const SizedBox(height: 27),
-                  buildCalendar(
-                    month: _gridMonth,
-                    headerMonth: _headerMonth,
-                    selected: _selectedDate,
-                    dotsByDay: _dotsByDay,
+                        Row(
+                          children: List.generate(7, (index) {
+                            final day = index + 1; // 1 = Monday
+                            final selected = rule.weekdays.contains(day);
 
-                    onMonthChanged: (m) => setState(() {
-                      _gridMonth = DateTime(m.year, m.month, 1);
-                      _headerMonth = _gridMonth;
-                    }),
-                    onDayTap: (cellDate) async {
-                      setState(() {
-                        _selectedDate = cellDate;
-                        _headerMonth = DateTime(
-                          cellDate.year,
-                          cellDate.month,
-                          1,
-                        );
-                      });
-                      final key = toKey(cellDate);
-                      final current = overrides[key];
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: rule.enabled
+                                    ? () {
+                                        final next = {...rule.weekdays};
+                                        if (selected) {
+                                          next.remove(day);
+                                        } else {
+                                          next.add(day);
+                                        }
 
-                      final result = await showDayOverrideModal(
-                        context: context,
-                        date: cellDate,
-                        current: toOption(current),
-                      );
+                                        setState(() {
+                                          rule = rule.copyWith(weekdays: next);
+                                        });
 
-                      if (result == null) return;
+                                        debugPrint(
+                                          "📅 Weekdays changed → ${rule.weekdays}",
+                                        );
+                                      }
+                                    : null,
+                                child: Container(
+                                  height: 36,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 3,
+                                  ),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? const Color(0xFF2F6BFF)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: const Color(0xFFEDF1F7),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    labels[index],
+                                    style: TextStyle(
+                                      color: selected
+                                          ? Colors.white
+                                          : const Color(0xFF8F9BB3),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
 
-                      setState(() {
-                        final newOverride = fromOption(result);
+                        const SizedBox(height: 27),
+                        buildCalendar(
+                          month: _gridMonth,
+                          headerMonth: _headerMonth,
+                          selected: _selectedDate,
+                          dotsByDay: _dotsByDay,
 
-                        if (newOverride == null) {
-                          overrides.remove(key);
-                        } else {
-                          overrides[key] = newOverride;
-                        }
-                        _fillDotsFromOverrides();
-                      });
-                    },
-                  ),
+                          onMonthChanged: (m) => setState(() {
+                            _gridMonth = DateTime(m.year, m.month, 1);
+                            _headerMonth = _gridMonth;
+                          }),
+                          onDayTap: (cellDate) async {
+                            setState(() {
+                              _selectedDate = cellDate;
+                              _headerMonth = DateTime(
+                                cellDate.year,
+                                cellDate.month,
+                                1,
+                              );
+                            });
+                            final key = toKey(cellDate);
+                            final current = overrides[key];
 
-                  const SizedBox(height: 14),
-                  Center(
-                    child: Container(
-                      width: 30,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE6E6E6),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
+                            final result = await showDayOverrideModal(
+                              context: context,
+                              date: cellDate,
+                              current: toOption(current),
+                            );
+
+                            if (result == null) return;
+
+                            setState(() {
+                              final newOverride = fromOption(result);
+
+                              if (newOverride == null) {
+                                overrides.remove(key);
+                              } else {
+                                overrides[key] = newOverride;
+                              }
+                              _fillDotsFromOverrides();
+                            });
+                          },
+                        ),
+                      ],
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppButton(
-                          text: "Hủy",
-                          width: 172,
-                          height: 50,
-                          backgroundColor: Color(0xFF3A7DFF),
-                          fontSize: 16,
-                          lineHeight: 1.38,
-                          fontWeight: FontWeight.w700,
-                          onPressed: onCancel,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppButton(
-                          text: "Lưu",
-                          width: 172,
-                          height: 50,
-                          backgroundColor: Color(0xFF3A7DFF),
-                          fontSize: 16,
-                          lineHeight: 1.38,
-                          fontWeight: FontWeight.w700,
-                          onPressed: onSavePressed,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 14),
+                Center(
+                  child: Container(
+                    width: 30,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6E6E6),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
                   ),
-                ],
-              ),
-            ],
+                ),
+
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        text: "Hủy",
+                        width: 172,
+                        height: 50,
+                        backgroundColor: Color(0xFF3A7DFF),
+                        fontSize: 16,
+                        lineHeight: 1.38,
+                        fontWeight: FontWeight.w700,
+                        onPressed: onCancel,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AppButton(
+                        text: "Lưu",
+                        width: 172,
+                        height: 50,
+                        backgroundColor: Color(0xFF3A7DFF),
+                        fontSize: 16,
+                        lineHeight: 1.38,
+                        fontWeight: FontWeight.w700,
+                        onPressed: onSavePressed,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _timeRangeRow({
+    required TimeWindow window,
+    required bool enabled,
+    required VoidCallback onPickStart,
+    required VoidCallback onPickEnd,
+    required VoidCallback onDelete,
+  }) {
+    String fmt(int m) =>
+        '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
+
+    Widget timeBox(String text, VoidCallback? onTap) {
+      return Expanded(
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: enabled ? Colors.white : const Color(0xFFF5F7FA),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE4E9F2)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  text,
+                  style: TextStyle(
+                    color: enabled ? const Color(0xFF222B45) : Colors.grey,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(Icons.access_time, size: 16),
+              ],
+            ),
           ),
         ),
+      );
+    }
+
+    return GestureDetector(
+      onLongPress: enabled ? onDelete : null,
+      child: Row(
+        children: [
+          timeBox(fmt(window.startMin), onPickStart),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
+          ),
+
+          timeBox(fmt(window.endMin), onPickEnd),
+        ],
       ),
     );
   }

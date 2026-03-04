@@ -1,6 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:kid_manager/utils/date_utils.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class BarWidget extends StatelessWidget {
   final double width;
@@ -108,6 +108,102 @@ class TooltipWidget extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class CustomRangeCalendar extends StatefulWidget {
+  final DateTime? fromDate;
+  final DateTime? toDate;
+  final Function(DateTime?) onFromChanged;
+  final Function(DateTime?) onToChanged;
+
+  const CustomRangeCalendar({
+    super.key,
+    this.fromDate,
+    this.toDate,
+    required this.onFromChanged,
+    required this.onToChanged,
+  });
+
+  @override
+  State<CustomRangeCalendar> createState() => _CustomRangeCalendarState();
+}
+
+class _CustomRangeCalendarState extends State<CustomRangeCalendar> {
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _start;
+  DateTime? _end;
+
+  @override
+  void initState() {
+    _start = widget.fromDate;
+    _end = widget.toDate;
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(blurRadius: 12, color: Colors.black.withOpacity(0.05)),
+        ],
+      ),
+      child: TableCalendar(
+        firstDay: DateTime(2020),
+        lastDay: DateTime(2100),
+        focusedDay: _focusedDay,
+        rangeStartDay: _start,
+        rangeEndDay: _end,
+        rangeSelectionMode: RangeSelectionMode.toggledOn,
+        onDaySelected: (selectedDay, focusedDay) {
+          setState(() {
+            _focusedDay = focusedDay;
+
+            // Case 1: chưa có start → chọn start
+            if (_start == null || (_start != null && _end != null)) {
+              _start = selectedDay;
+              _end = null;
+            }
+            // Case 2: đã có start → chọn end
+            else {
+              if (selectedDay.isBefore(_start!)) {
+                _end = _start;
+                _start = selectedDay;
+              } else {
+                _end = selectedDay;
+              }
+            }
+          });
+
+          widget.onFromChanged(_start);
+          widget.onToChanged(_end);
+        },
+        headerStyle: const HeaderStyle(
+          formatButtonVisible: false,
+          titleCentered: true,
+        ),
+        calendarStyle: CalendarStyle(
+          rangeHighlightColor: const Color(0xFFDBEAFE),
+          rangeStartDecoration: const BoxDecoration(
+            color: Color(0xFF3B82F6),
+            shape: BoxShape.circle,
+          ),
+          rangeEndDecoration: const BoxDecoration(
+            color: Color(0xFF3B82F6),
+            shape: BoxShape.circle,
+          ),
+          todayDecoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF3B82F6)),
+          ),
+          todayTextStyle: const TextStyle(color: Color(0xFF3B82F6)),
         ),
       ),
     );

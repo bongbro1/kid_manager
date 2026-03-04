@@ -7,6 +7,7 @@ import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository_impl.dart';
+import 'package:kid_manager/repositories/notification_repository.dart';
 
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
@@ -19,6 +20,7 @@ import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
+import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -37,6 +39,9 @@ import 'viewmodels/schedule_vm.dart';
 
 import 'package:kid_manager/repositories/memory_day_repository.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
+
+import 'package:kid_manager/services/schedule_import_service.dart';
+import 'package:kid_manager/viewmodels/schedule_import_vm.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -64,8 +69,6 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     // ====== Copy y nguyên đoạn build của bạn từ đây xuống ======
     final authService = FirebaseAuthService();
-    final storage = context.read<StorageService>();
-
     final secondaryAuthService = SecondaryAuthService();
     final permissionService = PermissionService();
     final appInstalledService = AppInstalledService();
@@ -82,6 +85,7 @@ class _MyAppState extends State<MyApp> {
       appInstalledService,
       usageService,
       FirebaseFirestore.instance,
+      context.read<StorageService>(),
     );
 
     final memoryRepo = MemoryDayRepository(FirebaseFirestore.instance);
@@ -101,7 +105,10 @@ class _MyAppState extends State<MyApp> {
 
         // ViewModels
         ChangeNotifierProvider(
-          create: (context) => AuthVM(context.read<AuthRepository>()),
+          create: (context) => AuthVM(
+            context.read<AuthRepository>(),
+            context.read<StorageService>(),
+          ),
         ),
         ChangeNotifierProvider(
           create: (context) => AppInitVM(
@@ -116,10 +123,29 @@ class _MyAppState extends State<MyApp> {
             context.read<StorageService>(),
           ),
         ),
+
+        Provider<ScheduleRepository>.value(value: scheduleRepo),
+
         ChangeNotifierProvider(
           create: (context) =>
               ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
         ),
+
+        ChangeNotifierProvider(
+          create: (context) => ScheduleImportVM(
+            ScheduleImportService(context.read<ScheduleRepository>()),
+          ),
+        ),
+
+        // MemoryDay
+        ChangeNotifierProvider(
+          create: (context) => ScheduleImportVM(
+            ScheduleImportService(context.read<ScheduleRepository>()),
+          ),
+        ),
+
+        // MemoryDay
+        ChangeNotifierProvider(create: (_) => MemoryDayViewModel(memoryRepo)),
 
         Provider<LocationServiceInterface>(
           create: (_) => LocationServiceImpl(),
@@ -128,6 +154,10 @@ class _MyAppState extends State<MyApp> {
 
         ChangeNotifierProvider<SessionVM>(
           create: (context) => SessionVM(context.read<AuthRepository>()),
+        ),
+
+        ChangeNotifierProvider(
+          create: (_) => NotificationVM(NotificationRepository()),
         ),
 
         // ✅ đây là điểm khác: dùng .value để giữ instance
@@ -144,16 +174,6 @@ class _MyAppState extends State<MyApp> {
             context.read<LocationRepository>(),
             context.read<LocationServiceInterface>(),
           ),
-        ),
-
-        // MemoryDay
-        ChangeNotifierProvider(
-          create: (_) => MemoryDayViewModel(memoryRepo),
-        ),
-
-        // MemoryDay
-        ChangeNotifierProvider(
-          create: (_) => MemoryDayViewModel(memoryRepo),
         ),
       ],
       child: MaterialApp(

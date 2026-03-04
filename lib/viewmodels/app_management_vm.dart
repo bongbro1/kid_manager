@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
-import 'package:kid_manager/helpers/app_management_helper.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/rule_runtime_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/utils/usage_rule.dart';
+import 'package:kid_manager/utils/usage_rule_utils.dart';
 
 class AppManagementVM extends ChangeNotifier {
   final AppManagementRepository _repo;
@@ -37,6 +36,7 @@ class AppManagementVM extends ChangeNotifier {
 
   String? _selectedChildId;
   String? get selectedChildId => _selectedChildId;
+  bool get hasChild => children.isNotEmpty;
 
   int _usageVersion = 0;
   int get usageVersion => _usageVersion;
@@ -67,6 +67,8 @@ class AppManagementVM extends ChangeNotifier {
     _error = null;
 
     try {
+      // await _repo.migrateLegacyTimeRange(userId)
+
       _apps = await _repo.loadAppsFromFirestore(userId);
       notifyListeners();
       await _repo.syncTodayUsage(userId: userId);
@@ -135,26 +137,32 @@ class AppManagementVM extends ChangeNotifier {
   }
 
   Future<void> loadAndSeedApp() async {
+    _setLoading(true);
+    _error = null;
+
     try {
       final role = _storage.getString(StorageKeys.role);
       final userId = _storage.getString(StorageKeys.uid);
+
       if (role != 'child') {
+        _setLoading(false);
         return;
       }
 
       if (userId == null) {
+        _error = "UserId not found";
+        _setLoading(false);
         return;
       }
 
       await _repo.loadAndSeedAppToFirebase(userId);
-
-      await WatcherService.start();
-      RealtimeAppMonitor.start();
-      await RuleRuntimeService.start(userId);
     } catch (e, s) {
+      _error = e.toString();
       debugPrint("❌ loadAndSeedApp error: $e");
       debugPrint("$s");
     }
+
+    _setLoading(false);
   }
 
   Future<void> saveUsageRule({

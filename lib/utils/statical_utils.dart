@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum ChartMode { day, week, month }
+enum ChartMode { today, week, range }
 
 class ChartPoint {
   final String label;
@@ -63,27 +63,27 @@ class ChartUiBuilder {
 
   static bool _isToday(int index, ChartMode mode, DateTime now) {
     switch (mode) {
-      case ChartMode.day:
+      case ChartMode.today:
         return index == now.hour;
 
       case ChartMode.week:
         return index == now.weekday - 1;
 
-      case ChartMode.month:
-        return index == now.day - 1;
+      case ChartMode.range:
+        return false;
     }
   }
 
   static bool _isFuture(int index, ChartMode mode, DateTime now) {
     switch (mode) {
-      case ChartMode.day:
+      case ChartMode.today:
         return index > now.hour;
 
       case ChartMode.week:
         return index > now.weekday - 1;
 
-      case ChartMode.month:
-        return index > now.day - 1;
+      case ChartMode.range:
+        return false;
     }
   }
 }
@@ -92,18 +92,23 @@ class ChartDataHelper {
   static List<ChartPoint> generate({
     required ChartMode mode,
     required Map<DateTime, int> usageMap,
+    DateTime? fromDate,
+    DateTime? toDate,
   }) {
     final now = DateTime.now();
 
     switch (mode) {
-      case ChartMode.day:
+      case ChartMode.today:
         return _buildDay(now, usageMap);
 
       case ChartMode.week:
         return _buildWeek(now, usageMap);
 
-      case ChartMode.month:
-        return _buildMonth(now, usageMap);
+      case ChartMode.range:
+        if (fromDate != null && toDate != null) {
+          return _buildRange(fromDate, toDate, usageMap);
+        }
+        return [];
     }
   }
 
@@ -137,17 +142,26 @@ class ChartDataHelper {
     });
   }
 
-  static List<ChartPoint> _buildMonth(
-    DateTime now,
+  static List<ChartPoint> _buildRange(
+    DateTime from,
+    DateTime to,
     Map<DateTime, int> usageMap,
   ) {
-    final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
+    final start = normalizeDay(from);
+    final end = normalizeDay(to);
 
-    return List.generate(daysInMonth, (i) {
-      final day = DateTime(now.year, now.month, i + 1);
-      final minutes = usageMap[day] ?? 0;
+    final days = end.difference(start).inDays + 1;
 
-      return ChartPoint(label: "${i + 1}", minutes: minutes);
+    return List.generate(days, (i) {
+      final day = start.add(Duration(days: i));
+      final normalized = normalizeDay(day);
+
+      final minutes = usageMap[normalized] ?? 0;
+
+      return ChartPoint(
+        label: "${normalized.day}/${normalized.month}",
+        minutes: minutes,
+      );
     });
   }
 
