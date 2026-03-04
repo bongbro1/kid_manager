@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/firebase_options.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/storage_service.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/app_installed_service.dart';
@@ -30,7 +31,7 @@ void callbackDispatcher() {
       debugPrint("📌 Worker Task: $task");
       debugPrint("📌 Worker UserId: $userId");
 
-      final repo = _buildRepository();
+      final repo = await _buildRepository();
       final userRepo = _buildUserRepository();
 
       /// ================= CHILD =================
@@ -102,11 +103,17 @@ UserRepository _buildUserRepository() {
   return UserRepository.background(firestore);
 }
 
-AppManagementRepository _buildRepository() {
+Future<AppManagementRepository> _buildRepository() async {
   final firestore = FirebaseFirestore.instance;
 
   final appService = AppInstalledService();
+  final storageService = await StorageService.create(); // 🔥 quan trọng
   final usageService = UsageSyncService(firestore);
 
-  return AppManagementRepository(appService, usageService, firestore);
+  return AppManagementRepository(
+    appService,
+    usageService,
+    firestore,
+    storageService,
+  );
 }

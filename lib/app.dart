@@ -85,6 +85,7 @@ class _MyAppState extends State<MyApp> {
       appInstalledService,
       usageService,
       FirebaseFirestore.instance,
+      context.read<StorageService>(),
     );
 
     final memoryRepo = MemoryDayRepository(FirebaseFirestore.instance);
@@ -135,18 +136,16 @@ class _MyAppState extends State<MyApp> {
             ScheduleImportService(context.read<ScheduleRepository>()),
           ),
         ),
-        
+
         // MemoryDay
         ChangeNotifierProvider(
           create: (context) => ScheduleImportVM(
             ScheduleImportService(context.read<ScheduleRepository>()),
           ),
         ),
-        
+
         // MemoryDay
-        ChangeNotifierProvider(
-          create: (_) => MemoryDayViewModel(memoryRepo),
-        ),
+        ChangeNotifierProvider(create: (_) => MemoryDayViewModel(memoryRepo)),
 
         Provider<LocationServiceInterface>(
           create: (_) => LocationServiceImpl(),
@@ -176,7 +175,6 @@ class _MyAppState extends State<MyApp> {
             context.read<LocationServiceInterface>(),
           ),
         ),
-
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

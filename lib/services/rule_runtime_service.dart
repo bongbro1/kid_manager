@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/background/app_rule_checker.dart';
+import 'package:kid_manager/helpers/app_rule_checker_helper.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
 
 class RuleRuntimeService {

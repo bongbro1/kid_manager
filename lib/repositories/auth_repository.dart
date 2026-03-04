@@ -1,4 +1,4 @@
-import 'package:kid_manager/helpers/app_management_helper.dart';
+import 'package:kid_manager/background/foreground_watcher.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 

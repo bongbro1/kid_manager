@@ -1,12 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/core/storage_keys.dart';
-import 'package:kid_manager/helpers/app_management_helper.dart';
-import 'package:kid_manager/services/rule_runtime_service.dart';
-import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
+import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:provider/provider.dart';
 
 class FlashScreen extends StatefulWidget {
@@ -24,15 +19,9 @@ class _FlashScreenState extends State<FlashScreen> {
   @override
   void initState() {
     super.initState();
-    _init();
-
-    // FirebaseAuth.instance.authStateChanges().listen((user) async {
-    //   if (user == null) return;
-
-    //   await WatcherService.start();
-    //   RealtimeAppMonitor.start();
-    //   await RuleRuntimeService.start(user.uid);
-    // });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _init();
+    });
   }
 
   Future<void> _init() async {
@@ -50,6 +39,9 @@ class _FlashScreenState extends State<FlashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appVM = context.watch<AppManagementVM>();
+
+    if (appVM.loading) return LoadingOverlay();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(

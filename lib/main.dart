@@ -60,13 +60,16 @@ Future<void> main() async {
 
   await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
 
-  final storageService = StorageService();
-  await storageService.init();
+  final storageService = await StorageService.create();
 
   final role = storageService.getString(StorageKeys.role);
 
   if (role != null && roleFromString(role) == UserRole.child) {
-    AuthRuntimeManager.start();
+    final parentId = storageService.getString(StorageKeys.parentId);
+
+    if (parentId != null && parentId.isNotEmpty) {
+      AuthRuntimeManager.start(parentId: parentId);
+    }
   }
 
   runApp(
