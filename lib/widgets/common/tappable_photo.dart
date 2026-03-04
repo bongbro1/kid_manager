@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/models/notification_type.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/app/app_image_modal.dart';
 import 'package:kid_manager/widgets/app/app_notice_card.dart';
+import 'package:kid_manager/widgets/app/notification_dialog.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
 
 Widget tappablePhoto({
@@ -30,12 +32,11 @@ Widget tappablePhoto({
             : (index, file) async {
                 final ok = await onReplace(index, file);
                 if (!ok) {
-                  NotificationModal.show(
+                  NotificationDialog.show(
                     context,
-                    child: AppNoticeCard(
-                      type: AppNoticeType.error,
-                      message: vm.error ?? 'Cập nhật ảnh thất bại',
-                    ),
+                    type: DialogType.error,
+                    title: "Thất bại",
+                    message: vm.error ?? 'Cập nhật ảnh thất bại',
                   );
                 }
               },

@@ -58,9 +58,7 @@ class MapEngine {
 
   Future<void> init() async {
     if (enableRoute) await route.init();
-    if (enableHistory) await history.init();
     if (enableHistory) await history.init(visible: showHistoryDots); // ✅
-
     if (enableChildDot) await childDot!.init();
   }
 
@@ -345,5 +343,13 @@ class MapEngine {
       interaction ??= InteractionController(map, data, context);
       await interaction!.attach();
     }
+  }
+
+  void resetForNewHistory() {
+    _matchedRoute = [];
+    _straightSegs = [];
+    _anchor = null;
+    _lastMatchedTs = 0;
+    _didInitialFit = false; // ✅ reset zoom flag luôn
   }
 }

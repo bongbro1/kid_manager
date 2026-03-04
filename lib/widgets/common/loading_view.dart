@@ -8,20 +8,28 @@ class LoadingOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: const Color(0xB2686868),
-      child: Center(
-        child: Container(
-          width: 345,
-          height: 201,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(20), // 👈 cách mép màn hình 20
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 345,
+            ),
+            child: Container(
+              height: 201,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Center(child: SvgLoading()),
+            ),
           ),
-          child: const Center(child: SvgLoading()),
         ),
       ),
     );
   }
 }
+
 class SvgLoading extends StatefulWidget {
   const SvgLoading({super.key});
 

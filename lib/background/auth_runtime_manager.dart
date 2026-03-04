@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/background/foreground_watcher.dart';
 import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
 import 'package:kid_manager/services/rule_runtime_service.dart';
-import 'package:kid_manager/helpers/app_management_helper.dart';
 
 enum _RuntimeState { stopped, starting, running, stopping }
 
@@ -16,8 +16,10 @@ class AuthRuntimeManager {
   /// Prevent race condition
   static int _opToken = 0;
   static String? _lastAuthUid;
+  static String? _parentId;
 
-  static void start() {
+  static void start({required String parentId}) {
+    _parentId = parentId;
     _sub?.cancel();
 
     User? lastUser;
@@ -83,7 +85,9 @@ class AuthRuntimeManager {
 
       await FcmPushReceiverService.init(uid);
 
-      RealtimeAppMonitor.start();
+      if (_parentId != null) {
+        RealtimeAppMonitor.start(parentId: _parentId!);
+      }
 
       if (token != _opToken) return;
 
@@ -103,8 +107,7 @@ class AuthRuntimeManager {
 
   static Future<void> _safeLogout(int token) async {
     /// already stopped
-    if (_state == _RuntimeState.stopped || _state == _RuntimeState.stopping)
-      return;
+    if (_state == _RuntimeState.stopped || _state == _RuntimeState.stopping) return;
 
     _state = _RuntimeState.stopping;
 
@@ -125,7 +128,7 @@ class AuthRuntimeManager {
     }
 
     if (token != _opToken) return;
-
+    _parentId = null;
     _currentUid = null;
     _state = _RuntimeState.stopped;
 

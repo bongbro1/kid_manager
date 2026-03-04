@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
+import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_item_model.dart';
+import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/utils/statical_utils.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
@@ -14,8 +16,14 @@ class AppManagementRepository {
   final AppInstalledService appService;
   final UsageSyncService usageService;
   final FirebaseFirestore db;
+  final StorageService _storage;
 
-  AppManagementRepository(this.appService, this.usageService, this.db);
+  AppManagementRepository(
+    this.appService,
+    this.usageService,
+    this.db,
+    this._storage,
+  );
 
   /// 1. Lấy app đã cài (DATA THÔ) (chỉ lấy ở account child)
   Future<List<AppInfo>> getInstalledApps() {
@@ -75,58 +83,57 @@ class AppManagementRepository {
 
   Future<void> loadAndSeedAppToFirebase(String userId) async {
     final apps = await getInstalledApps();
-    await seedApps(userId, apps);
+    final remoteApps = await loadAppsFromFirestore(userId);
+
+    final localPackages = apps.map((e) => e.packageName).toSet();
+    final remotePackages = remoteApps.map((e) => e.packageName).toSet();
+
+    final missingOnServer = localPackages.difference(remotePackages);
+
+    if (missingOnServer.isNotEmpty) {
+      // debugPrint("🔥 Firestore missing apps → reseed");
+
+      await seedApps(userId, apps);
+    } else {
+      // debugPrint("⚡ Server already synced");
+    }
+
     await syncTodayUsage(userId: userId);
   }
-
-  /// 2. Seed apps lên Firestore
-
   Future<void> seedApps(String userId, List<AppInfo> apps) async {
     final col = db.collection("blocked_items").doc(userId).collection("apps");
 
-    // 🔹 Apps đã tồn tại
     final existingSnap = await col.get();
     final existingPackages = existingSnap.docs.map((d) => d.id).toSet();
 
-    // 🔹 Rules đã tồn tại
-    final notExistingRules = <String>{};
-
-    for (final doc in existingSnap.docs) {
-      final ruleDoc = await doc.reference
-          .collection("usage_rule")
-          .doc("config")
-          .get();
-
-      if (!ruleDoc.exists) {
-        notExistingRules.add(doc.id);
-      }
-    }
     WriteBatch batch = db.batch();
     int count = 0;
+
+    final today = DateTime.now().weekday;
+    final defaultRule = UsageRule.defaults();
 
     for (final app in apps) {
       final pkg = app.packageName;
       if (pkg == null || pkg.isEmpty) continue;
 
-      final isNewApp = !existingPackages.contains(pkg);
-      final missingRule = notExistingRules.contains(pkg);
+      final docRef = col.doc(pkg);
 
-      // ⭐ Tạo rule cho app mới hoặc app thiếu rule
-      if (isNewApp || missingRule) {
-        await _createDefaultRule(
-          batch: batch,
-          userId: userId,
-          packageName: pkg,
+      // ✅ Nếu là app mới thì tạo document
+      if (!existingPackages.contains(pkg)) {
+        batch.set(
+          docRef,
+          appService.toBlockedAppJson(app),
+          SetOptions(merge: true),
         );
         count++;
       }
-      // 🔹 Bỏ qua nếu app đã tồn tại
-      if (existingPackages.contains(pkg)) continue;
 
-      batch.set(
-        col.doc(pkg),
-        appService.toBlockedAppJson(app),
-        SetOptions(merge: true),
+      // ✅ Luôn đảm bảo rule tồn tại (merge an toàn)
+      _createDefaultRule(
+        batch: batch,
+        docRef: docRef,
+        defaultRule: defaultRule,
+        today: today,
       );
 
       count++;
@@ -143,35 +150,21 @@ class AppManagementRepository {
     }
   }
 
-  Future<void> _createDefaultRule({
+  void _createDefaultRule({
     required WriteBatch batch,
-    required String userId,
-    required String packageName,
-  }) async {
-    final ruleRef = db
-        .collection("blocked_items")
-        .doc(userId)
-        .collection("apps")
-        .doc(packageName)
-        .collection("usage_rule")
-        .doc("config");
-
-    final defaultRule = UsageRule.defaults();
-    final today = DateTime.now().weekday;
+    required DocumentReference docRef,
+    required UsageRule defaultRule,
+    required int today,
+  }) {
+    final ruleRef = docRef.collection("usage_rule").doc("config");
 
     batch.set(ruleRef, {
       ...defaultRule.toMap(),
       "isDefault": true,
       "updatedAt": FieldValue.serverTimestamp(),
-    });
+    }, SetOptions(merge: true));
 
-    final appRef = db
-        .collection("blocked_items")
-        .doc(userId)
-        .collection("apps")
-        .doc(packageName);
-
-    batch.set(appRef, {
+    batch.set(docRef, {
       "dailyLimitMinutes": defaultRule.dailyLimitForWeekday(today),
     }, SetOptions(merge: true));
   }

@@ -29,8 +29,6 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
   Timer? _renderDebounce;
   DateTime _lastMapMatchAt = DateTime.fromMillisecondsSinceEpoch(0);
 
-  bool _inited = false;
-
   // ✅ chọn ngày
   late DateTime _selectedDay;
   DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -39,11 +37,19 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
   // ✅ toggle dots (mặc định ẩn)
   bool _showDots = false;
 
+  // ✅ preload history ngay khi vào màn (không chờ map)
+  bool _historyLoaded = false;
+
   @override
   void initState() {
     super.initState();
-    // ✅ luôn set day-only của hôm nay
     _selectedDay = _dayOnly(DateTime.now());
+
+    // ✅ preload ngay sau frame đầu để context.read an toàn
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _preloadToday();
+    });
   }
 
   @override
@@ -91,6 +97,52 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
   Future<void> _toggleDots() async {
     setState(() => _showDots = !_showDots);
     await _engine?.setHistoryDotsVisible(_showDots);
+
+    // Nếu đang bật dots mà style vừa reload, đảm bảo render có dữ liệu
+    // (không bắt buộc, nhưng giúp UX)
+    if (_engine != null) {
+      await _engine!.setHistoryDotsVisible(_showDots);
+    }
+  }
+
+  /// ✅ Preload lịch sử hôm nay ngay khi vào màn (network bắn ở đây)
+  Future<void> _preloadToday() async {
+    final vm = context.read<ParentLocationVm>();
+    final today = _dayOnly(DateTime.now());
+
+    final history = await vm.loadLocationHistoryByDay(widget.childId, today);
+
+    if (!mounted) return;
+
+    setState(() {
+      _selectedDay = today;
+      _cachedHistory = history;
+      _historyLoaded = true;
+      if (_cachedHistory.isNotEmpty) _latest = _cachedHistory.last;
+    });
+  }
+
+  /// ✅ render lại overlays lên map (dùng khi style đổi / map recreate)
+  Future<void> _renderOnMap() async {
+    final engine = _engine;
+    if (!mounted || engine == null) return;
+
+    // Nếu chưa có data thì không vẽ
+    if (_cachedHistory.isEmpty) {
+      // vẫn set dots state cho đúng
+      await engine.setHistoryDotsVisible(_showDots);
+      return;
+    }
+
+    engine.resetForNewHistory(); // reset route cache + initial fit
+    await engine.loadHistory(_cachedHistory, context);
+    await engine.setHistoryDotsVisible(_showDots);
+    _lastMapMatchAt = DateTime.now();
+
+    // Nếu đang xem hôm nay thì bật realtime lại
+    if (_isToday) {
+      await _startRealtime();
+    }
   }
 
   Future<void> _loadForDay(DateTime day) async {
@@ -98,33 +150,23 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
     final vm = context.read<ParentLocationVm>();
     final dayOnly = _dayOnly(day);
 
-    // ✅ nếu xem ngày khác hôm nay -> stop realtime
+    // nếu xem ngày khác hôm nay -> stop realtime để khỏi lẫn
     if (dayOnly != _dayOnly(DateTime.now())) {
       await _sub?.cancel();
       _sub = null;
     }
 
-    // load history theo ngày
-    _cachedHistory = await vm.loadLocationHistoryByDay(widget.childId, dayOnly);
-
-    if (!mounted || _engine == null) return;
-
-    _engine!.resetRouteCache();
-    await _engine!.loadHistory(_cachedHistory, context);
-    _lastMapMatchAt = DateTime.now();
-
-    // giữ trạng thái dot khi reload style/history
-    await _engine!.setHistoryDotsVisible(_showDots);
-
-    // ✅ nếu chọn lại hôm nay -> bật realtime
-    if (dayOnly == _dayOnly(DateTime.now())) {
-      await _startRealtime();
-    }
+    final history = await vm.loadLocationHistoryByDay(widget.childId, dayOnly);
+    if (!mounted) return;
 
     setState(() {
       _selectedDay = dayOnly;
+      _cachedHistory = history;
       if (_cachedHistory.isNotEmpty) _latest = _cachedHistory.last;
     });
+
+    // vẽ lại map ngay
+    await _renderOnMap();
   }
 
   Future<void> _startRealtime() async {
@@ -204,17 +246,20 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
       body: AppMapView(
         onMapCreated: (_) {},
         onStyleLoaded: (map) async {
-          if (_inited) return;
-          _inited = true;
-
+          // ✅ MỖI LẦN ĐỔI STYLE: MapWidget recreate -> phải attach lại engine + re-render overlay
           _engine = MapEngine(map);
           await _engine!.init();
 
-          // set trạng thái dot ngay sau init
-          await _engine!.setHistoryDotsVisible(_showDots);
+          // nếu chưa preload xong thì đợi 1 chút (tránh render rỗng)
+          // nhưng vẫn không gọi network ở đây
+          if (!_historyLoaded) {
+            // fallback: nếu preload chưa chạy kịp, load ngay hôm nay (network)
+            await _loadForDay(_dayOnly(DateTime.now()));
+            return;
+          }
 
-          // ✅ luôn load lịch sử hôm nay ngay khi mở màn
-          await _loadForDay(_dayOnly(DateTime.now()));
+          // render overlay từ cache (không gọi network)
+          await _renderOnMap();
         },
       ),
     );

@@ -94,19 +94,26 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   Future<void> onSavePressed() async {
     final vm = context.read<AppManagementVM>();
     final finalRule = rule.copyWith(overrides: overrides);
-    if (finalRule.overrides.isEmpty) {
-    } else {
+
+    if (finalRule.overrides.isNotEmpty) {
       finalRule.overrides.forEach((date, type) {
         debugPrint("   $date -> ${type.name}");
       });
     }
 
-    /// Call ViewModel
-    await vm.saveUsageRule(
-      userId: widget.childId,
-      packageName: widget.appId,
-      rule: finalRule,
-    );
+    try {
+      await vm.saveUsageRule(
+        userId: widget.childId,
+        packageName: widget.appId,
+        rule: finalRule,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true); // 👈 pop và trả kết quả
+    } catch (e) {
+      debugPrint("❌ Save rule error: $e");
+    }
   }
 
   void onCancel() {

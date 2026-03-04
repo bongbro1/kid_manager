@@ -6,6 +6,7 @@ import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/debug/seed_demo_history_rtdb.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
+import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
@@ -75,10 +76,12 @@ class _LoginScreenState extends State<LoginScreen> {
       final cred = await authVM.login(email, password); // 👈 đi qua VM
       final uid = cred.user!.uid;
 
-      final role = await userVM.fetchUserRole(uid);
-
       await storage.setString(StorageKeys.uid, uid);
-      await storage.setString(StorageKeys.role, roleToString(role));
+
+      UserProfile? profile = await userVM.loadProfile();
+      if (profile == null) return;
+      await storage.setString(StorageKeys.role, profile.role!);
+      await storage.setString(StorageKeys.parentId, profile.parentUid ?? '');
 
       if (rememberPassword) {
         final session = LoginSession(email: email, uid: uid, remember: true);
@@ -89,20 +92,16 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       // 🔥 GỌI SAU LOGIN
-      debugPrint("🚀 Running role: ${role}");
+      debugPrint("🚀 Running role: ${profile.role}");
 
-      if (role == UserRole.child) {
-        AuthRuntimeManager.start();
+      if (roleFromString(profile.role!) == UserRole.child) {
+        AuthRuntimeManager.start(parentId: profile.parentUid!);
         await appVM.loadAndSeedApp();
       } else {
         await AuthRuntimeManager.stop();
       }
 
-      await appVM.loadAndSeedApp();
-
       // đoạn này còn lỗi phần nhấp vào đăng ký sau đó ra đăng nhập thì nó không tự chuyển sang màn home
-
-
     } catch (e) {
       AlertService.error(message: 'Đăng nhập thất bại');
     }

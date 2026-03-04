@@ -11,10 +11,7 @@ class UserItem {
   final String uid;
   final String displayName;
 
-  UserItem({
-    required this.uid,
-    required this.displayName,
-  });
+  UserItem({required this.uid, required this.displayName});
 
   factory UserItem.fromFirestore(Map<String, dynamic> data) {
     return UserItem(
@@ -295,6 +292,17 @@ class UserRepository {
 
     if (!doc.exists) return null;
     return UserProfile.fromMap(uid, doc.data()!);
+  }
+
+  Stream<UserProfile?> listenUserProfile(String uid) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists) return null;
+          return UserProfile.fromMap(uid, snapshot.data()!);
+        });
   }
 
   Future<List<ChildItem>> getChildrenByParentUid(String parentUid) async {
