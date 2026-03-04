@@ -177,7 +177,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
     final vm = context.watch<UserVm>();
     final p = vm.profile;
     if (p == null) {
-      return const SizedBox();
+      return const Text('Không có thông tin');
     }
 
     final isChild = p.role.toString() == "child"; // 👈 đặt ở đây
