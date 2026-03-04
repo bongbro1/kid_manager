@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kid_manager/background/background_worker.dart';
+import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
@@ -31,7 +32,7 @@ Future<void> main() async {
   MapboxOptions.setAccessToken(ACCESS_TOKEN);
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
+  await LocalAlarmService.I.init();
   // ✅ FCM Background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 

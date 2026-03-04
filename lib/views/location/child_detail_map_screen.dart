@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
+import 'package:kid_manager/views/parent/zones/child_zones_screen.dart';
 import 'package:provider/provider.dart';
 
 import 'package:kid_manager/features/map_engine/map_engine.dart';
@@ -241,6 +242,18 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
             ),
           ),
           const SizedBox(width: 4),
+          TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChildZonesScreen(childId: widget.childId),
+                ),
+              );
+            },
+            icon: const Icon(Icons.shield_outlined),
+            label: const Text("Vùng"),
+          ),
         ],
       ),
       body: AppMapView(

@@ -8,12 +8,15 @@ import 'package:kid_manager/core/location/motion_detector.dart';
 import 'package:kid_manager/core/location/send_policy.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/core/location/tracking_state.dart';
+import 'package:kid_manager/core/zones/zone_monitor.dart';
 import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
 import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
 import 'package:kid_manager/helpers/location/transport_mode_detector.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
+import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
@@ -42,6 +45,10 @@ class ChildLocationViewModel extends ChangeNotifier {
 
   StreamSubscription<Activity>? _activitySub;
   Activity? _lastActivity;
+
+  late final ZoneMonitor _zoneMonitor;
+  StreamSubscription<List<GeoZone>>? _zonesSub;
+  bool _zonesInited = false;
 
   TransportMode _transport = TransportMode.unknown;
   TransportMode get transport => _transport;
@@ -91,8 +98,31 @@ class ChildLocationViewModel extends ChangeNotifier {
   Future<void> stopSharingOnLogout() async {
     await stopSharing(clearData: true);
     await _activitySub?.cancel();
+    await _zonesSub?.cancel();
+    _zonesSub = null;
+    _zonesInited = false;
     _activitySub = null;
     _lastActivity = null;
+  }
+
+  Future<void> _ensureZoneMonitor() async {
+    if (_zonesInited) return;
+
+    final uid = _requireUid();
+    final repo = ZoneRepository();
+
+    _zoneMonitor = ZoneMonitor(
+      repo: repo,
+      childUid: uid,
+    );
+
+    await _zonesSub?.cancel();
+    _zonesSub = repo.watchZones(uid).listen(
+          (zones) => _zoneMonitor.updateZones(zones),
+      onError: (e) => debugPrint("🧭 zones watch error: $e"),
+    );
+
+    _zonesInited = true;
   }
 
   /// Stop sharing (clearData=false nếu chỉ muốn tạm dừng, true nếu logout)
@@ -151,13 +181,20 @@ class ChildLocationViewModel extends ChangeNotifier {
 
     // listen GPS stream
     await _startActivityRecognition();
-
+    await _ensureZoneMonitor();
     _gpsSub = _locationService.getLocationStream().listen((raw) async {
       debugPrint('📍 GPS RAW: acc=${raw.accuracy}');
 
       final result = _engine.process(raw, _lastActivity);
       _transport = result.transport;
       _currentLocation = result.filteredLocation;
+      try {
+        if (_zonesInited) {
+          await _zoneMonitor.onLocation(result.filteredLocation);
+        }
+      } catch (e) {
+        debugPrint("🧭 zoneMonitor error: $e");
+      }
       _motionState = result.motion;
 
       // build payload 1 lần
@@ -391,6 +428,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     _gpsSub?.cancel();
     _keepAliveTimer?.cancel();
     _activitySub?.cancel();
+    _zonesSub?.cancel();
     _activitySub = null;
     _lastActivity = null;
     super.dispose();
