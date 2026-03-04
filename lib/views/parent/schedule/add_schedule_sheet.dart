@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/utils/exceptions.dart';
+import 'package:kid_manager/widgets/common/app_popup.dart';
 import 'package:kid_manager/widgets/parent/schedule/schedule_period_selector.dart';
 import 'package:provider/provider.dart';
+import 'package:kid_manager/utils/ui_helpers.dart';
 
 import '../../../models/schedule.dart';
-import '../../parent/schedule/schedule_success_sheet.dart';
 import '../../../viewmodels/schedule_vm.dart';
 
 class AddScheduleScreen extends StatefulWidget {
@@ -30,6 +32,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
   SchedulePeriod? _period;
 
   late DateTime _selectedDate;
+
+// để tránh submit nhiều lần khi user bấm liên tục
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -355,21 +360,14 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
         height: 52,
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: _isValid
-              ? () async {
-                  final vm = context.read<ScheduleViewModel>();
+          onPressed: (_isValid && !_submitting)
+            ? () async {
+                setState(() => _submitting = true);
 
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    useRootNavigator: true,
-                    builder: (_) =>
-                        const Center(child: CircularProgressIndicator()),
-                  );
-
-                  try {
+                try {
+                  final ok = await runWithLoading<bool>(context, () async {
                     final startAt = DateTime(
-                      _selectedDate.year, // ✅ CHANGED
+                      _selectedDate.year,
                       _selectedDate.month,
                       _selectedDate.day,
                       _startTime!.hour,
@@ -377,7 +375,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                     );
 
                     final endAt = DateTime(
-                      _selectedDate.year, // ✅ CHANGED
+                      _selectedDate.year,
                       _selectedDate.month,
                       _selectedDate.day,
                       _endTime!.hour,
@@ -385,7 +383,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                     );
 
                     final normalizedDate = DateTime(
-                      _selectedDate.year, // ✅ CHANGED
+                      _selectedDate.year,
                       _selectedDate.month,
                       _selectedDate.day,
                     );
@@ -399,58 +397,50 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                       date: normalizedDate,
                       startAt: startAt,
                       endAt: endAt,
-                      period: _period ?? _inferPeriod(_startTime!), 
+                      period: _period ?? _inferPeriod(_startTime!),
                       createdAt: DateTime.now(),
                       updatedAt: DateTime.now(),
                     );
 
                     await vm.addSchedule(schedule);
+                    return true;
+                  });
 
-                    if (!mounted) return;
-                    
-                    if (mounted)
-                      Navigator.of(context, rootNavigator: true).pop();
+                  if (ok != true || !mounted) return;
 
-                    await showGeneralDialog(
-                      context: context,
-                      useRootNavigator: true,
-                      barrierDismissible: false,
-                      barrierLabel: "Success",
-                      barrierColor: Colors.black.withOpacity(0.4),
-                      transitionDuration: const Duration(milliseconds: 250),
-                      pageBuilder: (_, __, ___) {
-                        return const Center(
-                          child: ScheduleSuccessSheet(
-                            message: "Bạn đã thêm một lịch trình mới",
-                          ),
-                        );
-                      },
-                      transitionBuilder: (_, animation, __, child) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: ScaleTransition(
-                            scale: CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOutBack,
-                            ),
-                            child: child,
-                          ),
-                        );
-                      },
-                    );
+                  final res = await AppPopup.show<bool>(
+                    context,
+                    type: AppPopupType.success,
+                    title: 'Hoàn thành',
+                    message: 'Bạn đã tạo lịch trình thành công',
+                    primaryText: 'Tiếp tục',
+                    primaryResult: true,
+                  );
 
-                    if (!mounted) return;
-                    Navigator.pop(context);
-                  } catch (e) {
-                    if (mounted) {
-                      Navigator.of(context, rootNavigator: true).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Có lỗi xảy ra: $e")),
-                      );
-                    }
-                  }
+                  if (res == true && mounted) Navigator.pop(context);
+                } on ScheduleOverlapException catch (e) {
+                  if (!mounted) return;
+                  await AppPopup.show<void>(
+                    context,
+                    type: AppPopupType.warning,
+                    title: 'Cảnh báo',
+                    message: e.message,
+                    primaryText: 'Tiếp tục',
+                  );
+                } catch (_) {
+                  if (!mounted) return;
+                  await AppPopup.show<void>(
+                    context,
+                    type: AppPopupType.error,
+                    title: 'Thất bại',
+                    message: 'Đã có lỗi xảy ra, vui lòng thử lại',
+                    primaryText: 'Tiếp tục',
+                  );
+                } finally {
+                  if (mounted) setState(() => _submitting = false);
                 }
-              : null,
+              }
+            : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF3F7CFF),
             disabledBackgroundColor: Colors.grey.shade300,
@@ -458,8 +448,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
               borderRadius: BorderRadius.circular(26),
             ),
           ),
-          child: const Text(
-            'Tạo lịch trình',
+          child: Text(_submitting ? 'Đang lưu...' : 'Tạo lịch trình',
             style: TextStyle(
               fontFamily: 'Poppins',
               color: Colors.white,
@@ -469,55 +458,6 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Future<void> showSuccessPopup(
-    BuildContext context, {
-    required String message,
-  }) {
-    return showGeneralDialog(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: false,
-      barrierLabel: "Success",
-      barrierColor: Colors.black.withValues(alpha: 0.4),
-      transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (_, __, ___) {
-        return Center(child: ScheduleSuccessSheet(message: message));
-      },
-      transitionBuilder: (_, animation, __, child) {
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(
-            scale: CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutBack,
-            ),
-            child: child,
-          ),
-        );
-      },
-    );
-  }
-
-  void showLoadingDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      useRootNavigator: true,
-      builder: (_) {
-        return const Center(
-          child: SizedBox(
-            width: 60,
-            height: 60,
-            child: CircularProgressIndicator(
-              strokeWidth: 4,
-              color: Color(0xFF3F7CFF),
-            ),
-          ),
-        );
-      },
     );
   }
 
