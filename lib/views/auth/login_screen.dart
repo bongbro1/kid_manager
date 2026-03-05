@@ -82,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (profile == null) return;
       await storage.setString(StorageKeys.role, profile.role!);
       await storage.setString(StorageKeys.parentId, profile.parentUid ?? '');
+      await storage.setString(StorageKeys.displayName, profile.name);
 
       if (rememberPassword) {
         final session = LoginSession(email: email, uid: uid, remember: true);
@@ -95,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint("🚀 Running role: ${profile.role}");
 
       if (roleFromString(profile.role!) == UserRole.child) {
-        AuthRuntimeManager.start(parentId: profile.parentUid!);
+        AuthRuntimeManager.start(parentId: profile.parentUid!, displayName: profile.name);
         await appVM.loadAndSeedApp();
       } else {
         await AuthRuntimeManager.stop();

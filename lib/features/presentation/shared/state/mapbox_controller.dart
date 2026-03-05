@@ -423,7 +423,7 @@ class MapboxController extends ChangeNotifier {
       final pos = entry.value;
 
       final avatarId = _avatarCache.containsKey(id) ? id : defaultAvatarId;
-      debugPrint("🧩 feature id=$id avatarId=$avatarId cache=${_avatarCache.containsKey(id)}");
+      // debugPrint("🧩 feature id=$id avatarId=$avatarId cache=${_avatarCache.containsKey(id)}");
       return {
         "type": "Feature",
         "geometry": {

@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kid_manager/models/app_notification.dart';
+import 'package:kid_manager/models/notifications/app_notification.dart';
+import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 
 class NotificationVM extends ChangeNotifier {
@@ -12,9 +13,10 @@ class NotificationVM extends ChangeNotifier {
 
   List<AppNotification> _notifications = [];
   List<AppNotification> get notifications => _notifications;
+  NotificationDetailModel? notificationDetail;
 
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
+  bool _loading = false;
+  bool get loading => _loading;
 
   /// ==============================
   /// 📡 START LISTEN
@@ -22,7 +24,7 @@ class NotificationVM extends ChangeNotifier {
   void listen(String uid) {
     _sub?.cancel(); // cancel trước
 
-    _isLoading = true;
+    _loading = true;
     notifyListeners();
 
     _sub = _repo
@@ -30,13 +32,36 @@ class NotificationVM extends ChangeNotifier {
         .listen(
           (data) {
             _notifications = data;
-            _isLoading = false;
+            _loading = false;
             notifyListeners();
           },
           onError: (e) {
             debugPrint("Notification stream error: $e");
           },
         );
+  }
+
+  Future<void> refresh() async {
+    // có thể chỉ delay nhẹ cho UI
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  Future<void> loadNotificationDetail(String id) async {
+    try {
+      _loading = true;
+      notifyListeners();
+
+      /// Call API / Repository
+      final result = await _repo.getNotificationDetail(id);
+
+      notificationDetail = result;
+    } catch (e) {
+      debugPrint("Load notification detail error: $e");
+      notificationDetail = null;
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   /// ==============================

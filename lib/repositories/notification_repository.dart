@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:kid_manager/models/app_notification.dart';
+import 'package:kid_manager/models/notifications/app_notification.dart';
+import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 
 class NotificationRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -34,7 +35,6 @@ class NotificationRepository {
     Map<String, dynamic>? data,
     String? familyId,
   }) async {
-
     await _db.collection('notifications').add({
       'senderId': senderId,
       'receiverId': receiverId,
@@ -66,6 +66,43 @@ class NotificationRepository {
   /// ==============================
   Future<void> delete(String notificationId) async {
     await _db.collection('notifications').doc(notificationId).delete();
+  }
+
+  Future<NotificationDetailModel> getNotificationDetail(String id) async {
+    final doc = await _db.collection('notifications').doc(id).get();
+
+    if (!doc.exists) {
+      throw Exception("Notification not found");
+    }
+
+    final map = doc.data()!;
+    final type = map['type'] ?? '';
+    final data = Map<String, dynamic>.from(map['data'] ?? {});
+
+    String content = map['body'] ?? '';
+
+    if (type == NotificationType.blockedApp.value) {
+      final appName = data["appName"] ?? "";
+      final blockedAt = data["blockedAt"] ?? "";
+      final allowedFrom = data["allowedFrom"] ?? "";
+      final allowedTo = data["allowedTo"] ?? "";
+
+      content =
+          "đã mở ứng dụng $appName lúc $blockedAt "
+          "ngoài khung giờ cho phép ($allowedFrom - $allowedTo). "
+          "Hệ thống đã tự động chặn ứng dụng.";
+    }
+
+    return NotificationDetailModel(
+      id: doc.id,
+      title: map['title'] ?? '',
+      content: content,
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      type: type,
+      data: data,
+    );
   }
 }
 

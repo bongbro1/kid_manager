@@ -66,9 +66,10 @@ Future<void> main() async {
 
   if (role != null && roleFromString(role) == UserRole.child) {
     final parentId = storageService.getString(StorageKeys.parentId);
+    final displayName = storageService.getString(StorageKeys.displayName);
 
     if (parentId != null && parentId.isNotEmpty) {
-      AuthRuntimeManager.start(parentId: parentId);
+      AuthRuntimeManager.start(parentId: parentId, displayName: displayName!);
     }
   }
 

@@ -122,6 +122,11 @@ String formatMinutes(int minutes) {
   if (m == 0) return "${h}h";
   return "${h}h ${m}m";
 }
+String formatMinutes2(int minutes) {
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  return "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
+}
 
 String formatDateDDMMYYYY(DateTime date) {
   final d = date.toLocal(); // tránh lệch timezone do Z (UTC)
