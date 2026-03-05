@@ -273,7 +273,7 @@
                 ),
                 const SizedBox(width: 10),
                 _ActionIcon(
-                  asset: 'assets/icons/delete.png',
+                  asset: 'assets/images/delete.png',
                   onTap: () => _deleteMemory(screenContext),
                 ),
               ],
