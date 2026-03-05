@@ -11,3 +11,4 @@ export * from "./functions/locations";
 export * from "./functions/notifications";
 export * from "./functions/zones";
 export * from "./functions/zoneEvents";
+export * from "./functions/send_email";

@@ -27,6 +27,17 @@ class NotificationVM extends ChangeNotifier {
 
   String? _uid; // ✅ lưu uid đang listen
 
+
+
+  /// ==============================
+  /// 🔢 UNREAD COUNT
+  /// ==============================
+  int get unreadCount => _notifications.where((e) => !e.isRead).length;
+
+  /// ==============================
+  /// 📡 START LISTEN
+  /// ==============================
+
   void listen(String uid) {
     listenMulti(uid: uid, sources: const [NotificationSource.global]);
   }
@@ -146,7 +157,6 @@ class NotificationVM extends ChangeNotifier {
     }
   }
 
-  int get unreadCount => _notifications.where((e) => !e.isRead).length;
 
   void clear() {
     _cancelAll();

@@ -99,7 +99,7 @@ class _AppShellState extends State<AppShell> {
             body: IndexedStack(index: _index, children: tabs),
             bottomNavigationBar: AppBottomNav(
               items: _config.tabs
-                  .map((t) => BottomNavItem(iconAsset: t.iconAsset))
+                  .map((t) => BottomNavItem(iconAsset: t.iconAsset, showBadge: t.showBadge))
                   .toList(),
               currentIndex: _index,
               onTap: _onNavTap,

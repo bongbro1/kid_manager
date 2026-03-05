@@ -124,6 +124,7 @@ class UserRepository {
           'startAt': FieldValue.serverTimestamp(),
           'endAt': null,
         },
+        'isActive': false,
       })..removeWhere((_, v) => v == null),
     );
 
@@ -342,6 +343,16 @@ class UserRepository {
       debugPrint("❌ ERROR getChildrenByParentUid: $e");
       rethrow;
     }
+  }
+
+  Stream<List<AppUser>> watchChildrenByParentUid(String parentUid) {
+    return _db
+        .collection("users")
+        .where("parentUid", isEqualTo: parentUid)
+        .snapshots()
+        .map((snap) {
+          return snap.docs.map((d) => AppUser.fromDoc(d)).toList();
+        });
   }
 
   Future<UserRole> getUserRole(String uid) async {

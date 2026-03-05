@@ -137,7 +137,7 @@ class BlockedAppDetailWidget extends StatelessWidget {
         },
         child: const Text(
           "Xem cấu hình thời gian",
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFFFFFFF)),
         ),
       ),
     );

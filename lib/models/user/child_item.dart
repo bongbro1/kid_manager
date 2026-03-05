@@ -1,3 +1,5 @@
+import 'package:kid_manager/models/app_user.dart';
+
 class ChildItem {
   final String id;
   final String name;
@@ -17,6 +19,15 @@ class ChildItem {
       name: data['name'] ?? '',
       avatarUrl: data['avatarUrl'] ?? '',
       isOnline: data['isOnline'] ?? false,
+    );
+  }
+
+  factory ChildItem.fromUser(AppUser user) {
+    return ChildItem(
+      id: user.uid,
+      name: user.displayName ?? '',
+      avatarUrl: user.avatarUrl ?? '',
+      isOnline: false,
     );
   }
 }
