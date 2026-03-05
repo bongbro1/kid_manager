@@ -52,6 +52,7 @@ class AppShellConfig {
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
       root: const NotificationScreen(),
+      showBadge: true,
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
@@ -91,6 +92,7 @@ class AppShellConfig {
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
       root: const NotificationScreen(),
+      showBadge: true,
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',

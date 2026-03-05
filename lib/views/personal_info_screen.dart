@@ -104,7 +104,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         context,
         type: DialogType.success,
         title: "Thành công",
-        message: "Cập nhật thông tin thành công?",
+        message: "Cập nhật thông tin thành công",
       );
       vm.listenProfile();
     } else {

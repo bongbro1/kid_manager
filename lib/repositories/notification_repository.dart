@@ -21,6 +21,15 @@ class NotificationRepository {
         );
   }
 
+  // Stream<int> listenUnreadCount(String userId) {
+  //   return FirebaseFirestore.instance
+  //       .collection("notifications")
+  //       .where("receiverId", isEqualTo: userId)
+  //       .where("isRead", isEqualTo: false)
+  //       .snapshots()
+  //       .map((snap) => snap.docs.length);
+  // }
+
   /// ==============================
   /// ✉️ CREATE → TRIGGER PUSH
   /// Flutter chỉ tạo doc

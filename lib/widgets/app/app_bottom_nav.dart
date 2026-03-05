@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:provider/provider.dart';
 
 class AppBottomNav extends StatelessWidget {
   final List<BottomNavItem> items;
@@ -20,9 +22,7 @@ class AppBottomNav extends StatelessWidget {
       padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(color: Color(0xFFE0E0E0)),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -40,7 +40,7 @@ class AppBottomNav extends StatelessWidget {
                   width: 24,
                   height: 24,
                   child: Stack(
-                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
                     children: [
                       SvgPicture.asset(
                         items[index].iconAsset,
@@ -53,6 +53,39 @@ class AppBottomNav extends StatelessWidget {
                           BlendMode.srcIn,
                         ),
                       ),
+
+                      if (items[index].showBadge)
+                        Positioned(
+                          right: -6,
+                          top: -6,
+                          child: Selector<NotificationVM, int>(
+                            selector: (_, vm) => vm.unreadCount,
+                            builder: (_, count, __) {
+                              if (count == 0) return const SizedBox.shrink();
+
+                              return Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 18,
+                                  minHeight: 18,
+                                ),
+                                child: Text(
+                                  count > 99 ? "99+" : count.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -65,11 +98,9 @@ class AppBottomNav extends StatelessWidget {
   }
 }
 
-
 class BottomNavItem {
   final String iconAsset;
+  final bool showBadge;
 
-  const BottomNavItem({
-    required this.iconAsset,
-  });
+  const BottomNavItem({required this.iconAsset, this.showBadge = false});
 }

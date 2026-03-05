@@ -36,13 +36,6 @@ class AuthRepository {
     required String password,
   }) async {
     final cred = await _authService.signUp(email.trim(), password);
-
-    final u = cred.user!;
-    await _users.createParentIfMissing(
-      uid: u.uid,
-      email: u.email ?? email.trim(),
-    );
-
     return cred;
   }
 
@@ -51,4 +44,3 @@ class AuthRepository {
     await _authService.signOut();
   }
 }
-

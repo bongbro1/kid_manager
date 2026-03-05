@@ -100,6 +100,7 @@ class AppManagementRepository {
 
     await syncTodayUsage(userId: userId);
   }
+
   Future<void> seedApps(String userId, List<AppInfo> apps) async {
     final col = db.collection("blocked_items").doc(userId).collection("apps");
 
@@ -245,15 +246,24 @@ class AppManagementRepository {
 
     final batch = db.batch();
 
+    int totalMinutesToday = 0;
+    final Map<String, int> minutesByPkg = {};
+
     for (final doc in appsSnap.docs) {
       final pkg = doc.id;
 
       final usageMs = usageMsByPkg[pkg] ?? 0;
       final lastUsedMs = lastUsedByPkg[pkg] ?? 0;
 
+      final minutes = usageMs ~/ 60000;
+      if (minutes > 0) {
+        minutesByPkg[pkg] = minutes;
+        totalMinutesToday += minutes;
+      }
+
       final dailyRef = doc.reference.collection('usage_daily').doc(key);
 
-      /// 🔥 upgraded daily doc
+      /// 1️⃣ update usage_daily
       batch.set(dailyRef, {
         "userId": userId,
         "package": pkg,
@@ -263,7 +273,7 @@ class AppManagementRepository {
         "updatedAt": FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      /// app snapshot
+      /// 2️⃣ app snapshot
       batch.set(doc.reference, {
         "todayUsageMs": usageMs,
         "todayLastSeen": lastUsedMs > 0
@@ -274,6 +284,20 @@ class AppManagementRepository {
             : null,
       }, SetOptions(merge: true));
     }
+
+    /// 🔥 3️⃣ update usage_daily_flat
+    final flatRef = db
+        .collection("blocked_items")
+        .doc(userId)
+        .collection("usage_daily_flat")
+        .doc(key);
+
+    batch.set(flatRef, {
+      "date": Timestamp.fromDate(start),
+      "totalMinutes": totalMinutesToday,
+      "apps": minutesByPkg,
+      "updatedAt": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
     await batch.commit();
   }
@@ -309,10 +333,6 @@ class AppManagementRepository {
           debugPrint("⚠️ Skip invalid flat doc: ${doc.id}");
         }
       }
-
-      // debugPrint(
-      //   "📊 FLAT usage loaded: totalDays=${totalResult.length}, apps=${perAppResult.length}",
-      // );
     } catch (e) {
       debugPrint("❌ loadUsageHistory ERROR: $e");
     }
@@ -323,78 +343,78 @@ class AppManagementRepository {
     );
   }
 
-  Future<void> rebuildUsageDailyFlat(String userId) async {
-    try {
-      debugPrint("🔄 rebuildUsageDailyFlat START for $userId");
+  // Future<void> rebuildUsageDailyFlat(String userId) async {
+  //   try {
+  //     debugPrint("🔄 rebuildUsageDailyFlat START for $userId");
 
-      final appsSnap = await db
-          .collection("blocked_items")
-          .doc(userId)
-          .collection("apps")
-          .get();
+  //     final appsSnap = await db
+  //         .collection("blocked_items")
+  //         .doc(userId)
+  //         .collection("apps")
+  //         .get();
 
-      final Map<String, Map<String, int>> dailyApps = {};
-      final Map<String, int> dailyTotal = {};
+  //     final Map<String, Map<String, int>> dailyApps = {};
+  //     final Map<String, int> dailyTotal = {};
 
-      final chunks = chunkList(appsSnap.docs, 20);
+  //     final chunks = chunkList(appsSnap.docs, 20);
 
-      for (final batch in chunks) {
-        final futures = batch.map(
-          (appDoc) => appDoc.reference.collection("usage_daily").get(),
-        );
+  //     for (final batch in chunks) {
+  //       final futures = batch.map(
+  //         (appDoc) => appDoc.reference.collection("usage_daily").get(),
+  //       );
 
-        final results = await Future.wait(futures);
+  //       final results = await Future.wait(futures);
 
-        for (final usageSnap in results) {
-          for (final doc in usageSnap.docs) {
-            final data = doc.data();
+  //       for (final usageSnap in results) {
+  //         for (final doc in usageSnap.docs) {
+  //           final data = doc.data();
 
-            final String? package = data["package"];
-            final String? dateKey = data["dateKey"];
-            final int usageMs = data["usageMs"] ?? 0;
+  //           final String? package = data["package"];
+  //           final String? dateKey = data["dateKey"];
+  //           final int usageMs = data["usageMs"] ?? 0;
 
-            if (package == null || dateKey == null) continue;
+  //           if (package == null || dateKey == null) continue;
 
-            final minutes = (usageMs / 60000).round();
-            if (minutes <= 0) continue;
+  //           final minutes = (usageMs / 60000).round();
+  //           if (minutes <= 0) continue;
 
-            dailyApps.putIfAbsent(dateKey, () => {});
-            dailyApps[dateKey]!.update(
-              package,
-              (v) => v + minutes,
-              ifAbsent: () => minutes,
-            );
+  //           dailyApps.putIfAbsent(dateKey, () => {});
+  //           dailyApps[dateKey]!.update(
+  //             package,
+  //             (v) => v + minutes,
+  //             ifAbsent: () => minutes,
+  //           );
 
-            dailyTotal.update(
-              dateKey,
-              (v) => v + minutes,
-              ifAbsent: () => minutes,
-            );
-          }
-        }
-      }
+  //           dailyTotal.update(
+  //             dateKey,
+  //             (v) => v + minutes,
+  //             ifAbsent: () => minutes,
+  //           );
+  //         }
+  //       }
+  //     }
 
-      final batchWrite = db.batch();
-      final flatRef = db
-          .collection("blocked_items")
-          .doc(userId)
-          .collection("usage_daily_flat");
+  //     final batchWrite = db.batch();
+  //     final flatRef = db
+  //         .collection("blocked_items")
+  //         .doc(userId)
+  //         .collection("usage_daily_flat");
 
-      dailyApps.forEach((dateKey, apps) {
-        batchWrite.set(flatRef.doc(dateKey), {
-          "totalMinutes": dailyTotal[dateKey] ?? 0,
-          "apps": apps,
-          "updatedAt": FieldValue.serverTimestamp(),
-        });
-      });
+  //     dailyApps.forEach((dateKey, apps) {
+  //       batchWrite.set(flatRef.doc(dateKey), {
+  //         "totalMinutes": dailyTotal[dateKey] ?? 0,
+  //         "apps": apps,
+  //         "updatedAt": FieldValue.serverTimestamp(),
+  //       });
+  //     });
 
-      await batchWrite.commit();
+  //     await batchWrite.commit();
 
-      debugPrint("✅ rebuildUsageDailyFlat DONE (${dailyApps.length} days)");
-    } catch (e) {
-      debugPrint("❌ rebuildUsageDailyFlat ERROR: $e");
-    }
-  }
+  //     debugPrint("✅ rebuildUsageDailyFlat DONE (${dailyApps.length} days)");
+  //   } catch (e) {
+  //     debugPrint("❌ rebuildUsageDailyFlat ERROR: $e");
+  //   }
+  // }
 
   List<List<T>> chunkList<T>(List<T> list, int size) {
     final chunks = <List<T>>[];

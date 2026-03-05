@@ -1,4 +1,4 @@
-import { defineString } from "firebase-functions/params";
+import { defineSecret, defineString } from "firebase-functions/params";
 
 export const TZ = "Asia/Ho_Chi_Minh";
 export const REGION = "asia-southeast1";
@@ -13,3 +13,12 @@ export const REMIND_INTERVAL_SEC = 10;
 export const REMIND_MAX_SECONDS = 30 * 60;
 
 export const SOS_REMINDER_WORKER_URL = defineString("SOS_REMINDER_WORKER_URL");
+
+// thêm để send email
+export const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
+export const MAIL_FROM = defineString("MAIL_FROM");
+
+
+
+// RESEND_API_KEY=re_aNk2vcpx_Lst9HFZTPH7hK2m2Npj43XYa
+// MAIL_FROM=Kid Manager <no-reply@homiesmart.io.vn>

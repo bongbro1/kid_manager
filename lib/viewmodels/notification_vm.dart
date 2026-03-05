@@ -18,9 +18,17 @@ class NotificationVM extends ChangeNotifier {
   bool _loading = false;
   bool get loading => _loading;
 
+  
+
+  /// ==============================
+  /// 🔢 UNREAD COUNT
+  /// ==============================
+  int get unreadCount => _notifications.where((e) => !e.isRead).length;
+
   /// ==============================
   /// 📡 START LISTEN
   /// ==============================
+
   void listen(String uid) {
     _sub?.cancel(); // cancel trước
 
@@ -77,11 +85,6 @@ class NotificationVM extends ChangeNotifier {
   Future<void> delete(String id) async {
     await _repo.delete(id);
   }
-
-  /// ==============================
-  /// 🔢 UNREAD COUNT
-  /// ==============================
-  int get unreadCount => _notifications.where((e) => !e.isRead).length;
 
   void clear() {
     _sub?.cancel();

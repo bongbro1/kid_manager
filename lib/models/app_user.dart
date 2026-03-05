@@ -17,6 +17,7 @@ class AppUser {
   final DateTime? createdAt;
   final DateTime? lastActiveAt;
   final String? familyId;
+  final bool isActive;
 
   /// child only
   final String? parentUid;
@@ -38,6 +39,7 @@ class AppUser {
     this.lastActiveAt,
     this.parentUid,
     this.subscription,
+    this.isActive = false,
   });
 
   bool get isParent => role == UserRole.parent;
@@ -56,6 +58,7 @@ class AppUser {
     'locale': locale,
     'timezone': timezone,
     'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
+    'isActive': isActive,
     'lastActiveAt': lastActiveAt == null
         ? null
         : Timestamp.fromDate(lastActiveAt!),
@@ -80,6 +83,7 @@ class AppUser {
       createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
       lastActiveAt: (d['lastActiveAt'] as Timestamp?)?.toDate(),
       parentUid: d['parentUid'],
+      isActive: d['isActive'] ?? false,
       subscription: d['subscription'] == null
           ? null
           : SubscriptionInfo.fromMap(
@@ -97,6 +101,7 @@ class AppUser {
     DateTime? lastActiveAt,
     SubscriptionInfo? subscription,
     String? familyId,
+    bool? isActive,
   }) {
     return AppUser(
       uid: uid,
@@ -110,6 +115,7 @@ class AppUser {
       createdAt: createdAt,
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
       parentUid: parentUid,
+      isActive: isActive ?? this.isActive,
       subscription: subscription ?? this.subscription,
     );
   }
