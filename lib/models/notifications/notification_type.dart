@@ -33,7 +33,7 @@ class NotificationConfig {
           primary: const Color(0xFFEF4444),
           light: const Color(0xFFFEE2E2),
           iconBuilder: () => const LayeredCircleIcon(
-            outerColor: Color(0xFFEFF6FF),
+            outerColor: Color(0xFFFFF0F0),
             middleColor: Color(0xFFFEE2E2),
             innerColor: Color(0xFFEF4444),
             shadowColor: Color(0xFFFECACA),

@@ -65,6 +65,14 @@ class ZoneRepository {
 
   /// Child ghi event enter/exit → Cloud Function sẽ chuyển thành notifications + FCM
   Future<void> pushZoneEvent(String childUid, Map<String, dynamic> event) async {
-    await _eventsRef(childUid).push().set(event);
+    try {
+      final ref = _eventsRef(childUid).push();
+      await ref.set(event);
+      debugPrint("✅ pushZoneEvent OK path=zoneEventsByChild/$childUid/${ref.key} data=$event");
+    } catch (e, st) {
+      debugPrint("❌ pushZoneEvent FAIL $e");
+      debugPrint("$st");
+      rethrow;
+    }
   }
 }

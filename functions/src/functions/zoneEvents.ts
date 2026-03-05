@@ -34,6 +34,7 @@ async function writeInbox(opts: {
   await db.doc(`users/${opts.toUid}/notifications/${id}`).set({
     senderId: opts.senderId,
     receiverId: opts.toUid,
+    title: opts.eventKey,
     type: opts.type,
     eventKey: opts.eventKey,
     body: opts.body,
@@ -71,9 +72,14 @@ async function sendToUserTokens(opts: {
   });
 
   if (tokens.length === 0) return;
-
+const title = opts.eventKey; // hoặc bạn tự build title tiếng việt, nhưng bạn đang dùng eventKey để app dịch
+const body = opts.zoneName;  // hoặc bodyText nếu muốn có phút
   const resp = await admin.messaging().sendEachForMulticast({
     tokens,
+ notification: {
+    title,        // tối thiểu để hệ thống hiện notification khi app background
+    body,
+  },
     data: {
       type: "ZONE",
       eventKey: opts.eventKey,
@@ -83,9 +89,14 @@ async function sendToUserTokens(opts: {
     },
     android: { priority: "high" },
     apns: {
-      payload: { aps: { "content-available": 1 } },
-      headers: { "apns-priority": "10" },
+    payload: {
+      aps: {
+        alert: { title, body },   // ✅ iOS hiện được
+        sound: "default",
+      },
     },
+    headers: { "apns-priority": "10" },
+  },
   });
 
   // dọn token chết

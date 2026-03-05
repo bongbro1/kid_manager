@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
-import 'package:kid_manager/models/notification_type.dart';
+import 'package:kid_manager/models/notifications/notification_type.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/imgbb_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
@@ -22,7 +22,7 @@ import 'package:kid_manager/widgets/app/app_image_modal.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notice_card.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
-import 'package:kid_manager/widgets/app/notification_dialog.dart';
+import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
 import 'package:kid_manager/widgets/common/tappable_photo.dart';
@@ -42,6 +42,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final _dobCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   bool allowLocationTracking = false;
+  bool _initialized = false;
   int _age = 0;
 
   @override
@@ -51,6 +52,26 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UserVm>().loadProfile();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final vm = context.read<UserVm>();
+    final p = vm.profile;
+
+    if (p != null) {
+      _nameCtrl.text = p.name;
+      _phoneCtrl.text = p.phone;
+      _genderCtrl.text = p.gender;
+      _dobCtrl.text = p.dob;
+      _addressCtrl.text = p.address;
+
+      allowLocationTracking = p.allowTracking;
+
+      _age = calculateAgeFromDateString(p.dob);
+    }
   }
 
   Future<void> _updateUserInfo() async {
@@ -81,10 +102,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     if (ok) {
       NotificationDialog.show(
         context,
-        type: DialogType.warning,
+        type: DialogType.success,
         title: "Thành công",
-        message:
-            "Bạn có chắc chắn muốn thực?",
+        message: "Cập nhật thông tin thành công?",
       );
       vm.listenProfile();
     } else {
@@ -110,14 +130,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     }
 
     final isChild = p.role.toString() == "child";
-    _nameCtrl.text = p.name;
-    _phoneCtrl.text = p.phone;
-    _genderCtrl.text = p.gender;
-    _dobCtrl.text = p.dob;
-    _addressCtrl.text = p.address;
-    allowLocationTracking = p.allowTracking;
-
-    _age = calculateAgeFromDateString(p.dob);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
@@ -370,8 +382,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 label: "Quyền theo dõi",
                                 text: "Cho phép đối phương theo dõi vị trí",
                                 value: allowLocationTracking,
-                                onChanged: (v) =>
-                                    setState(() => allowLocationTracking = v),
+                                onChanged: (v) {
+                                  setState(() {
+                                    allowLocationTracking = v;
+                                  });
+                                  debugPrint("changed: $allowLocationTracking");
+                                },
                               ),
                           ],
                         ),

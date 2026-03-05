@@ -21,7 +21,7 @@ class AppAvatar extends StatelessWidget {
     user.avatarUrl != null && user.avatarUrl!.isNotEmpty
         ? NetworkImage(user.avatarUrl!)
         : const AssetImage('assets/images/avatar_default.png');
-    print("AVATAR :${imageProvider}");
+    // print("AVATAR :${imageProvider}");
     return Stack(
       clipBehavior: Clip.none,
       children: [
