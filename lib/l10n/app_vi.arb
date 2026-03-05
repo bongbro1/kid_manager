@@ -1,0 +1,14 @@
+{
+  "@@locale": "vi",
+  "zone_default": "Thông báo vùng",
+
+  "zone_enter_danger_parent": "⚠️ Bé vào vùng nguy hiểm",
+  "zone_exit_danger_parent": "✅ Bé rời vùng nguy hiểm",
+  "zone_enter_safe_parent": "✅ Bé vào vùng an toàn",
+  "zone_exit_safe_parent": "ℹ️ Bé rời vùng an toàn",
+
+  "zone_enter_danger_child": "⚠️ Bạn đang vào vùng nguy hiểm",
+  "zone_exit_danger_child": "✅ Bạn đã ra khỏi vùng nguy hiểm",
+  "zone_enter_safe_child": "✅ Bạn đang vào vùng an toàn",
+  "zone_exit_safe_child": "ℹ️ Bạn đã ra khỏi vùng an toàn"
+}

@@ -74,7 +74,7 @@ class ParentZonesVm extends ChangeNotifier {
         throw Exception("Unauthenticated");
       }
       // check overlap bằng list đang có trong VM
-      final hit = findOverlappingZone(candidate: zone, existing: _zones, bufferM: 5);
+      final hit = findOverlappingZone(candidate: zone, existing: _zones);
       if (hit != null) {
         throw Exception("Zone overlaps with '${hit.name}'");
       }
@@ -109,7 +109,7 @@ class ParentZonesVm extends ChangeNotifier {
       type: ZoneType.safe,
       lat: lat,
       lng: lng,
-      radiusM: 200,
+      radiusM: 64,
       enabled: true,
       createdBy: uid,
       createdAt: now,

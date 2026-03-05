@@ -7,7 +7,6 @@ import 'package:kid_manager/background/background_worker.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/user/user_types.dart';
-import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
@@ -21,8 +20,13 @@ import 'app.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  debugPrint('🔔 BG message id=${message.messageId} data=${message.data}');
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  debugPrint('🔔 FCM BG messageId=${message.messageId} data=${message.data}');
+  await LocalNotificationService.init();
+
+  // gọi hàm xử lý bg (mình sẽ đưa bên dưới)
+  await NotificationService.handleMessageForLocalNotification(message);
 }
 
 Future<void> main() async {
@@ -32,20 +36,20 @@ Future<void> main() async {
   };
 
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  await LocalNotificationService.init();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await NotificationService.init();
 
   await dotenv.load(fileName: ".env");
+  final accessToken = dotenv.env['ACCESS_TOKEN'] ?? '';
+  MapboxOptions.setAccessToken(accessToken);
 
-  String ACCESS_TOKEN = dotenv.env['ACCESS_TOKEN'] ?? '';
-  MapboxOptions.setAccessToken(ACCESS_TOKEN);
-
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await LocalAlarmService.I.init();
-  // ✅ FCM Background handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  await initializeDateFormatting('vi_VN', null);
+  await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
 
-  // ✅ permission
   final settings = await FirebaseMessaging.instance.requestPermission(
     alert: true,
     badge: true,
@@ -54,20 +58,14 @@ Future<void> main() async {
   );
   debugPrint('🔔 FCM permission=${settings.authorizationStatus}');
 
-  //  token
   final token = await FirebaseMessaging.instance.getToken();
-
-  await initializeDateFormatting('vi_VN', null);
-
-  await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+  debugPrint('🔔 FCM token=$token');
 
   final storageService = await StorageService.create();
-
   final role = storageService.getString(StorageKeys.role);
 
   if (role != null && roleFromString(role) == UserRole.child) {
     final parentId = storageService.getString(StorageKeys.parentId);
-
     if (parentId != null && parentId.isNotEmpty) {
       AuthRuntimeManager.start(parentId: parentId);
     }

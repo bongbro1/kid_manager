@@ -49,18 +49,27 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
   bool _isOverlapping = false;
   GeoZone? _overlapWith;
 
-  Timer? _camDebounce;
 
   Uint8List? _safeIcon;
   Uint8List? _dangerIcon;
 
+  DateTime _lastCamTick = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _camSyncing = false;
+
+// radius thực để lưu (m)
   static const double _minRadiusM = 20;
   static const double _maxRadiusM = 5000;
+
+// radius hiển thị cố định trên màn hình (px)
+  static const double _minRadiusPx = 52;   // bé hơn tí (bạn chỉnh 48~60)
+  static const double _defaultRadiusPx = 58;
+
   static const double _handleSize = 36;
   static const double _ringStroke = 2.5;
   static const double _screenPadding = 14;
-  static const double _overlapBufferM = 5;
 
+
+  double _radiusPxFixed = _defaultRadiusPx;
   @override
   void initState() {
     super.initState();
@@ -72,9 +81,35 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     if (z != null) _center = mbx.Position(z.lng, z.lat);
   }
 
+  void _recalcOverlapMeters() {
+    if (_center == null) return;
+
+    final tmp = GeoZone(
+      id: widget.zone?.id ?? "_draft",
+      name: _name,
+      type: _type,
+      lat: _center!.lat.toDouble(),
+      lng: _center!.lng.toDouble(),
+      radiusM: _radiusM,
+      enabled: true,
+      createdBy: widget.zone?.createdBy ?? "",
+      createdAt: widget.zone?.createdAt ?? 0,
+      updatedAt: 0,
+    );
+
+    final hit = findOverlappingZone(
+      candidate: tmp,
+      existing: widget.existingZones,
+      bufferM: 1.0,
+    );
+
+    _isOverlapping = hit != null;
+    _overlapWith = hit;
+  }
+
+
   @override
   void dispose() {
-    _camDebounce?.cancel();
     _nameCtrl.dispose();
     super.dispose();
   }
@@ -102,9 +137,9 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
             min(mapW, mapH) / 2 - _screenPadding - _handleSize / 2,
           );
 
-          final radiusPx =
-          (_radiusM / max(0.01, _metersPerPixel)).clamp(6.0, maxRadiusPx);
-
+          final radiusPx = _radiusPxFixed.clamp(_minRadiusPx, maxRadiusPx);
+          final avatarSize = (radiusPx * 0.65).clamp(28.0, 44.0);
+          final badgeSize = avatarSize;
           return Stack(
             children: [
               // MAP
@@ -133,13 +168,13 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                       icon: Icons.home,
                       bg: const Color(0xFF1E88E5),
                       fg: Colors.white,
-                      size: 48,
+                      size: avatarSize,
                     );
                     _dangerIcon ??= await MarkerIconFactory.makeCircleIcon(
                       icon: Icons.warning_amber_rounded,
                       bg: const Color(0xFFE53935),
                       fg: Colors.white,
-                      size: 48,
+                      size: badgeSize,
                     );
 
                     // map circles + icons for all zones
@@ -151,20 +186,29 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                       dangerIcon: _dangerIcon!,
                     );
 
-                    await _syncFromCamera();
+                    await _syncFromCamera(updateRadiusFromPx: true);
                   },
 
-                  onCameraChangeListener: (_) {
+                  onCameraChangeListener: (_) async {
                     if (_draggingHandle) return;
-                    _camDebounce?.cancel();
-                    _camDebounce = Timer(const Duration(milliseconds: 50), () async {
-                      await _syncFromCamera();
-                    });
+
+                    final now = DateTime.now();
+                    if (now.difference(_lastCamTick).inMilliseconds < 50) return; // ~20fps
+                    _lastCamTick = now;
+
+                    if (_camSyncing) return;
+                    _camSyncing = true;
+                    try {
+                      await _syncFromCamera(updateRadiusFromPx: true);
+                    } finally {
+                      _camSyncing = false;
+                    }
                   },
                   onMapIdleListener: (_) async {
                     if (_draggingHandle) return;
-                    await _syncFromCamera();
+                    await _syncFromCamera(updateRadiusFromPx: true);
                   },
+
                 ),
               ),
 
@@ -204,11 +248,11 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   alignment: Alignment.center,
-                                  child: const Text(
+                                  child: Text(
                                     "!",
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 26,
+                                      fontSize: (badgeSize * 0.62).clamp(14.0, 26.0),
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),
@@ -216,7 +260,7 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                               else
                                 Icon(
                                   _type == ZoneType.safe ? Icons.home : Icons.warning_amber_rounded,
-                                  size: 42,
+                                  size: avatarSize,
                                   color: baseColor,
                                 ),
                               const SizedBox(height: 42),
@@ -318,8 +362,7 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                 onChanged: (v) {
                                   if (v == null) return;
                                   setState(() => _type = v);
-                                  _recalcOverlap();
-                                },
+                                  _recalcOverlapMeters();                                },
                                 decoration: const InputDecoration(
                                   labelText: "Loại vùng",
                                   border: OutlineInputBorder(),
@@ -386,7 +429,7 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
   }
 
   Future<void> _onSavePressed() async {
-    await _syncFromCamera();
+    await _syncFromCamera(updateRadiusFromPx: true);
     if (_center == null) return;
 
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -409,7 +452,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     final hit = findOverlappingZone(
       candidate: candidate,
       existing: widget.existingZones,
-      bufferM: _overlapBufferM,
     );
 
     if (hit != null) {
@@ -424,7 +466,7 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     Navigator.pop(context, candidate);
   }
 
-  Future<void> _syncFromCamera() async {
+  Future<void> _syncFromCamera({required bool updateRadiusFromPx}) async {
     if (_map == null || !_styleReady) return;
 
     final cs = await _map!.getCameraState();
@@ -434,36 +476,18 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     final lat = _center!.lat.toDouble();
     _metersPerPixel = metersPerPixelFromZoomLat(zoom: zoom, lat: lat);
 
-    _radiusM = _radiusM.clamp(_minRadiusM, _maxRadiusM);
-    _recalcOverlap();
+    if (updateRadiusFromPx) {
+      _radiusM = (_radiusPxFixed * _metersPerPixel).clamp(_minRadiusM, _maxRadiusM);
+    }
+
+    _recalcOverlapMeters();
+
     if (mounted) setState(() {});
   }
 
-  void _recalcOverlap() {
-    if (_center == null) return;
 
-    final tmp = GeoZone(
-      id: widget.zone?.id ?? "_draft",
-      name: _name,
-      type: _type,
-      lat: _center!.lat.toDouble(),
-      lng: _center!.lng.toDouble(),
-      radiusM: _radiusM,
-      enabled: true,
-      createdBy: widget.zone?.createdBy ?? "",
-      createdAt: widget.zone?.createdAt ?? 0,
-      updatedAt: 0,
-    );
 
-    final hit = findOverlappingZone(
-      candidate: tmp,
-      existing: widget.existingZones,
-      bufferM: _overlapBufferM,
-    );
 
-    _isOverlapping = hit != null;
-    _overlapWith = hit;
-  }
 
   void _updateRadiusByDrag({
     required Offset globalPos,
@@ -476,15 +500,16 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     final center = Offset(box.size.width / 2, box.size.height / 2);
 
     final dist = (local - center).distance;
-    final radiusPx = (dist - _handleSize / 2).clamp(0.0, maxRadiusPx);
+    final newPx = (dist - _handleSize / 2).clamp(_minRadiusPx, maxRadiusPx);
 
-    final meters = (radiusPx * max(0.01, _metersPerPixel))
-        .clamp(_minRadiusM, _maxRadiusM);
+    setState(() {
+      _radiusPxFixed = newPx;
+      _radiusM =
+          (_radiusPxFixed * _metersPerPixel).clamp(_minRadiusM, _maxRadiusM);
+    });
 
-    setState(() => _radiusM = meters);
-    _recalcOverlap();
+    _recalcOverlapMeters();
   }
-
   String _randomId() => DateTime.now().millisecondsSinceEpoch.toString();
 }
 
