@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-
+import 'package:kid_manager/utils/ui_helpers.dart';
+import 'package:kid_manager/utils/notification_helper.dart';
+import 'package:kid_manager/models/notification_type.dart';
 import '../../../models/memory_day.dart';
 import '../../../viewmodels/memory_day_vm.dart';
 
@@ -23,6 +25,37 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
 
   bool get _isEdit => widget.memory != null;
 
+  bool _submitting = false;
+
+  bool get _hasChanged {
+    final initTitle = (widget.memory?.title ?? '').trim();
+    final initNote = (widget.memory?.note ?? '').trim();
+    final initDate = _normalize(widget.memory?.date ?? DateTime.now());
+    final initRepeat = widget.memory?.repeatYearly ?? true;
+
+    final curTitle = _titleCtrl.text.trim();
+    final curNote = _noteCtrl.text.trim();
+    final curDate = _normalize(_date ?? DateTime.now());
+    final curRepeat = _repeatYearly;
+
+    return curTitle != initTitle ||
+        curNote != initNote ||
+        curDate != initDate ||
+        curRepeat != initRepeat;
+  }
+
+Future<bool> _onBack() async {
+  if (!_hasChanged) return true;
+  if (!mounted) return true;
+
+  final ok = await Notify.confirm(
+    context,
+    title: 'Chưa lưu',
+    message: 'Bạn chưa lưu, bạn có chắc muốn thoát?',
+  );
+
+  return ok;
+}
   @override
   void initState() {
     super.initState();
@@ -66,7 +99,10 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
   Widget build(BuildContext context) {
     final dateText = _date == null ? '' : DateFormat('dd/MM/yyyy').format(_date!);
 
-    return Container(
+    // ignore: deprecated_member_use
+    return WillPopScope(
+    onWillPop: _onBack,
+    child: Container(
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -123,6 +159,7 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -136,7 +173,11 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
             alignment: Alignment.centerLeft,
             child: IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () async {
+                final ok = await _onBack();
+                if (!mounted) return;
+                if (ok) Navigator.pop(context);
+              },
             ),
           ),
           Text(
@@ -157,48 +198,82 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
         height: 52,
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: _isValid
-              ? () async {
-                  final d = _normalize(_date!);
+          onPressed: (_isValid && !_submitting)
+            ? () async {
+                setState(() => _submitting = true);
+                final vm = context.read<MemoryDayViewModel>();
 
-                  if (_isEdit) {
-                    final updated = widget.memory!.copyWith(
-                      title: _titleCtrl.text.trim(),
-                      note: _noteCtrl.text.trim(),
-                      date: d,
-                      repeatYearly: _repeatYearly,
-                      updatedAt: DateTime.now(),
-                    );
-                    await vm.updateMemory(updated);
-                    await vm.loadMonth();
-                  } else {
-                    final created = MemoryDay(
-                      id: '',
-                      ownerParentUid: vm.ownerUid,
-                      title: _titleCtrl.text.trim(),
-                      note: _noteCtrl.text.trim(),
-                      date: d,
-                      repeatYearly: _repeatYearly,
-                      month: d.month,
-                      day: d.day,
-                      createdAt: DateTime.now(),
-                      updatedAt: DateTime.now(),
-                    );
-                    await vm.addMemory(created);
-                    await vm.loadMonth(); // reload để hiện chấm vàng trên calendar ngay lập tức
-                  }
+                try {
+                  await runWithLoading<void>(context, () async {
+                    final d = _normalize(_date!);
+
+                    if (_isEdit) {
+                      final updated = widget.memory!.copyWith(
+                        title: _titleCtrl.text.trim(),
+                        note: _noteCtrl.text.trim(),
+                        date: d,
+                        repeatYearly: _repeatYearly,
+                        updatedAt: DateTime.now(),
+                      );
+                      await vm.updateMemory(updated);
+                    } else {
+                      final created = MemoryDay(
+                        id: '',
+                        ownerParentUid: vm.ownerUid,
+                        title: _titleCtrl.text.trim(),
+                        note: _noteCtrl.text.trim(),
+                        date: d,
+                        repeatYearly: _repeatYearly,
+                        month: d.month,
+                        day: d.day,
+                        createdAt: DateTime.now(),
+                        updatedAt: DateTime.now(),
+                      );
+                      await vm.addMemory(created);
+                    }
+                  });
 
                   if (!mounted) return;
-                  Navigator.pop(context);
+
+                  // ✅ success: Tiếp tục => đóng dialog + đóng sheet
+                  await Notify.show(
+                    context,
+                    type: DialogType.success,
+                    title: 'Hoàn thành',
+                    message: _isEdit
+                        ? 'Bạn đã lưu thay đổi thành công'
+                        : 'Bạn đã thêm ngày đáng nhớ thành công',
+                    onConfirm: () {
+                      // NotificationDialog đã pop dialog trước rồi mới gọi callback
+                      if (mounted && Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop(); // đóng sheet
+                      }
+                    },
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+
+                  // ✅ lỗi: Tiếp tục => chỉ đóng dialog, ở lại sheet
+                  await Notify.show(
+                    context,
+                    type: DialogType.error,
+                    title: 'Thất bại',
+                    message: 'Đã có lỗi xảy ra, vui lòng thử lại',
+                  );
+                } finally {
+                  if (mounted) setState(() => _submitting = false);
                 }
-              : null,
+              }
+            : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF3F7CFF),
             disabledBackgroundColor: Colors.grey.shade300,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
           ),
           child: Text(
-            _isEdit ? 'Lưu thay đổi' : 'Thêm ngày đáng nhớ',
+            _submitting
+                ? 'Đang lưu...'
+                : (_isEdit ? 'Lưu thay đổi' : 'Thêm ngày đáng nhớ'),
             style: const TextStyle(
               fontFamily: 'Poppins',
               color: Colors.white,

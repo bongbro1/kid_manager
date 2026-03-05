@@ -3,12 +3,14 @@ import 'package:intl/intl.dart';
 import 'package:kid_manager/widgets/parent/schedule/schedule_period_selector.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/utils/ui_helpers.dart';
+import 'package:kid_manager/utils/confirm_exit_dialog.dart';
 
 import '../../../models/schedule.dart';
 import '../../../viewmodels/schedule_vm.dart';
-import 'package:kid_manager/widgets/common/app_popup.dart';
 import 'package:kid_manager/utils/exceptions.dart';
-
+import 'package:kid_manager/widgets/app/notification_dialog.dart';
+import 'package:kid_manager/models/notification_type.dart';
+import 'package:kid_manager/utils/cupertino_time_picker.dart';
 
 class EditScheduleScreen extends StatefulWidget {
   final Schedule schedule;
@@ -22,6 +24,9 @@ class EditScheduleScreen extends StatefulWidget {
 class _EditScheduleScreenState extends State<EditScheduleScreen> {
   late TextEditingController _titleCtrl;
   late TextEditingController _descCtrl;
+  late final TextEditingController _dateCtrl;
+  late final TextEditingController _startCtrl;
+  late final TextEditingController _endCtrl;
 
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -35,14 +40,46 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
     super.initState();
 
     _titleCtrl = TextEditingController(text: widget.schedule.title);
-    _descCtrl = TextEditingController(text: widget.schedule.description);
+    _descCtrl = TextEditingController(text: widget.schedule.description ?? '');
 
     _startTime = TimeOfDay.fromDateTime(widget.schedule.startAt);
-    _endTime = TimeOfDay.fromDateTime(widget.schedule.endAt);
-    _period = widget.schedule.period;
+    _endTime   = TimeOfDay.fromDateTime(widget.schedule.endAt);
+    _period    = widget.schedule.period;
 
-    // ✅ nếu muốn period luôn theo start time:
+    _dateCtrl  = TextEditingController(
+      text: DateFormat('dd/MM/yyyy').format(widget.schedule.date),
+    );
+
+    _startCtrl = TextEditingController();
+    _endCtrl   = TextEditingController();
+
     _syncPeriodFromTime();
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _dateCtrl.dispose();
+    _startCtrl.dispose();
+    _endCtrl.dispose();
+    super.dispose();
+  }
+
+  bool _didInitText = false;
+
+  String formatTime24(TimeOfDay t) =>
+    '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInitText) return;
+
+    _startCtrl.text = _startTime == null ? '' : formatTime24(_startTime!);
+    _endCtrl.text   = _endTime == null ? '' : formatTime24(_endTime!);
+
+    _didInitText = true;
   }
 
   bool get _hasChanged {
@@ -87,38 +124,11 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   }
 
   Future<bool> _onBack() async {
-    if (!_hasChanged) return true;
-    if (!mounted) return true;
+  if (!_hasChanged) return true;
+  if (!mounted) return true;
 
-    final shouldExit = await showDialog<bool>(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Chưa lưu'),
-        content: const Text('Bạn chưa lưu, bạn có chắc muốn thoát?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false), // ✅ pop dialog đúng context
-            child: const Text('Ở lại'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true), // ✅ pop dialog đúng context
-            child: const Text('Thoát'),
-          ),
-        ],
-      ),
-    );
-
-    return shouldExit ?? false;
-  }
-
-  @override
-  void dispose() {
-    _titleCtrl.dispose();
-    _descCtrl.dispose();
-    super.dispose();
-  }
+  return await confirmExitUnsavedChanges(context);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -246,33 +256,37 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
 
               if (ok != true || !mounted) return;
 
-              final res = await AppPopup.show<bool>(
-                context,
-                type: AppPopupType.success,
+              final rootCtx = Navigator.of(context, rootNavigator: true).context;
+              await NotificationDialog.show(
+                rootCtx,
+                type: DialogType.success,
                 title: 'Hoàn thành',
-                message: 'Bạn đã chỉnh sửa lịch trình thành công',
-                primaryText: 'Tiếp tục',
-                primaryResult: true,
+                message: 'Bạn đã sửa thành công',
+                onConfirm: () {
+                  if (mounted) Navigator.pop(context); // đóng sheet edit
+                },
               );
-
-              if (res == true && mounted) Navigator.pop(context);
             } on ScheduleOverlapException catch (e) {
               if (!mounted) return;
-              await AppPopup.show<void>(
-                context,
-                type: AppPopupType.warning,
+
+              final rootCtx = Navigator.of(context, rootNavigator: true).context;
+              await NotificationDialog.show(
+                rootCtx,
+                type: DialogType.error,
                 title: 'Cảnh báo',
                 message: e.message,
-                primaryText: 'Tiếp tục',
+                onConfirm: null,
               );
             } catch (_) {
               if (!mounted) return;
-              await AppPopup.show<void>(
-                context,
-                type: AppPopupType.error,
+
+              final rootCtx = Navigator.of(context, rootNavigator: true).context;
+              await NotificationDialog.show(
+                rootCtx,
+                type: DialogType.error,
                 title: 'Thất bại',
                 message: 'Đã có lỗi xảy ra, vui lòng thử lại',
-                primaryText: 'Tiếp tục',
+                onConfirm: null,
               );
             } finally {
               if (mounted) setState(() => _submitting = false);
@@ -337,6 +351,38 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   );
 }
 
+  Widget _dateField() {
+    return _readonlyField(
+      label: 'Ngày',
+      controller: _dateCtrl,
+    );
+  }
+
+  Widget _readonlyField({
+    required String label,
+    required TextEditingController controller,
+    VoidCallback? onTap,
+  }) {
+    return TextFormField(
+      readOnly: true,
+      controller: controller,
+      onTap: onTap,
+      decoration: InputDecoration(
+        labelText: label,
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        filled: true,
+        fillColor: const Color(0xFFF5F6F8),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF3F7CFF), width: 1.2),
+        ),
+      ),
+    );
+  }
 
   Widget _counter() {
     return Align(
@@ -346,13 +392,6 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
         style: const TextStyle(fontSize: 12, color: Colors.grey),
       ),
     );
-  }
-
-  Widget _dateField() {
-    return _readonlyField(
-    label: 'Ngày',
-    value: DateFormat('dd/MM/yyyy').format(widget.schedule.date),
-  );
   }
 
   bool get _isTimeInvalid {
@@ -366,13 +405,16 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
 
   Widget _timeRow() {
   return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Expanded(
         child: _timePicker(
           label: 'Giờ bắt đầu',
+          controller: _startCtrl,
           time: _startTime,
           onPick: (t) => setState(() {
             _startTime = t;
+            _startCtrl.text = formatTime24(t);
             _syncPeriodFromTime();
           }),
         ),
@@ -381,13 +423,12 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
       Expanded(
         child: _timePicker(
           label: 'Giờ kết thúc',
+          controller: _endCtrl,
           time: _endTime,
-          errorText: _isTimeInvalid
-              ? 'Giờ kết thúc phải lớn hơn'
-              : null,
+          errorText: _isTimeInvalid ? 'Giờ kết thúc phải lớn hơn' : null,
           onPick: (t) => setState(() {
             _endTime = t;
-            _syncPeriodFromTime();
+            _endCtrl.text = formatTime24(t);
           }),
         ),
       ),
@@ -395,27 +436,44 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   );
 }
 
-Widget _timePicker({
+  Widget _timePicker({
   required String label,
+  required TextEditingController controller,
   required TimeOfDay? time,
   required ValueChanged<TimeOfDay> onPick,
   String? errorText,
 }) {
   return TextFormField(
     readOnly: true,
-    controller: TextEditingController(
-      text: time == null ? '' : time.format(context),
-    ),
+    controller: controller,
     onTap: () async {
-      final t = await showTimePicker(
-        context: context,
-        initialTime: time ?? TimeOfDay.now(),
+      if (_submitting) return;
+
+      final t = await AppWheelTimePicker.show(
+        context,
+        title: label,
+        initial: time,
+        primaryColor: const Color(0xFF3F7CFF),
+        minuteInterval: 1,
       );
+
       if (t != null) onPick(t);
     },
     decoration: InputDecoration(
       labelText: label,
       errorText: errorText,
+
+      // giữ layout ổn định, nhưng giảm khoảng trống
+      helperText: ' ',
+      helperStyle: const TextStyle(fontSize: 1, height: 0.1),
+      errorStyle: const TextStyle(fontSize: 12, height: 0.9),
+
+      suffixIcon: const Padding(
+        padding: EdgeInsets.only(right: 4),
+        child: Icon(Icons.access_time_rounded, size: 18, color: Colors.grey),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+
       floatingLabelBehavior: FloatingLabelBehavior.auto,
       filled: true,
       fillColor: const Color(0xFFF5F6F8),
@@ -424,27 +482,17 @@ Widget _timePicker({
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
       ),
-
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: Color(0xFF3F7CFF),
-        ),
+        borderSide: const BorderSide(color: Color(0xFF3F7CFF), width: 1.2),
       ),
-
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: Colors.red,
-        ),
+        borderSide: const BorderSide(color: Colors.red),
       ),
-
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: Colors.red,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
     ),
   );
@@ -455,39 +503,6 @@ Widget _periodRow() {
       value: _period,
       onChanged: null,
       enabled: false,
-    );
-  }
-
-
-  Widget _readonlyField({
-    required String label,
-    required String value,
-    VoidCallback? onTap,
-  }) {
-    return TextFormField(
-      readOnly: true,
-      controller: TextEditingController(text: value),
-      onTap: onTap,
-      decoration: InputDecoration(
-        labelText: label,
-        floatingLabelBehavior: FloatingLabelBehavior.auto,
-
-        filled: true,
-        fillColor: const Color(0xFFF5F6F8),
-
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: Color(0xFF3F7CFF),
-            width: 1.2,
-          ),
-        ),
-      ),
     );
   }
 }

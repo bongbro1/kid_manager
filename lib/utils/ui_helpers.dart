@@ -1,38 +1,47 @@
 import 'package:flutter/material.dart';
 
+/// Loading dạng Overlay (KHÔNG pop Navigator) => tránh treo / pop nhầm sheet.
 Future<T> runWithLoading<T>(
   BuildContext context,
   Future<T> Function() action,
 ) async {
-  final rootNav = Navigator.of(context, rootNavigator: true);
+  final overlay = Overlay.of(context, rootOverlay: true);
+  if (overlay == null) {
+    return await action();
+  }
 
-  bool dialogOpen = true;
+  late final OverlayEntry entry;
 
-  // show loading bằng context của root navigator để chắc chắn cùng stack
-  showDialog<void>(
-    context: rootNav.context,
-    barrierDismissible: false,
-    useRootNavigator: true,
-    builder: (_) => const Center(
-      child: SizedBox(
-        width: 60,
-        height: 60,
-        child: CircularProgressIndicator(strokeWidth: 4),
-      ),
-    ),
-  ).then((_) {
-    dialogOpen = false;
-  });
+  entry = OverlayEntry(
+    builder: (_) => const _BlockingLoadingOverlay(),
+  );
 
-  // đảm bảo route đã push xong
-  await Future.delayed(Duration.zero);
+  overlay.insert(entry);
 
   try {
     return await action();
   } finally {
-    // chỉ pop nếu loading dialog vẫn còn mở
-    if (dialogOpen && rootNav.canPop()) {
-      rootNav.pop();
-    }
+    entry.remove();
+  }
+}
+
+class _BlockingLoadingOverlay extends StatelessWidget {
+  const _BlockingLoadingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: const [
+        // chặn thao tác
+        ModalBarrier(dismissible: false, color: Colors.black26),
+        Center(
+          child: SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(strokeWidth: 4),
+          ),
+        ),
+      ],
+    );
   }
 }
