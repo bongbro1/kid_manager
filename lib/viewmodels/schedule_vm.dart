@@ -248,6 +248,32 @@ Future<void> bindChildSession({
 
   notifyListeners();
 }
+
+//xuất lịch theo khoảng thời gian (dùng cho export Excel)
+  Future<List<Schedule>> getSchedulesForExport({
+    required String childId,
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) async {
+    final start = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    final endExclusive = DateTime(toDate.year, toDate.month, toDate.day + 1);
+
+    final list = await _repo.getSchedulesByRange(
+      parentUid: scheduleOwnerUid,
+      childId: childId,
+      start: start,
+      end: endExclusive,
+    );
+
+    list.sort((a, b) {
+      final dateCmp = DateTime(a.date.year, a.date.month, a.date.day)
+          .compareTo(DateTime(b.date.year, b.date.month, b.date.day));
+      if (dateCmp != 0) return dateCmp;
+      return a.startAt.compareTo(b.startAt);
+    });
+
+    return list;
+  }
 }
 
 // Extension để check overlap khi add/update schedule

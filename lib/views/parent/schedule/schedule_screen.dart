@@ -6,6 +6,7 @@ import 'package:kid_manager/views/parent/memory_day/memory_day_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/views/parent/schedule/schedule_import_excel_screen.dart';
+import 'package:kid_manager/views/parent/schedule/schedule_export_excel_screen.dart';
 
 import '../../../core/app_colors.dart';
 import '../../../core/app_text_styles.dart';
@@ -53,6 +54,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       },
     );
   }
+
+  String _selectedChildName(List<AppUser> children, String? selectedId) {
+  if (children.isEmpty) return 'Bé';
+  final selected = selectedId == null
+      ? children.first
+      : children.firstWhere(
+          (c) => c.uid == selectedId,
+          orElse: () => children.first,
+        );
+
+  return (selected.displayName ?? selected.email ?? selected.uid).trim();
+}
 
   Future<void> _bindParentSessionIfNeeded() async {
     if (_binding) return;
@@ -128,6 +141,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             padding: EdgeInsets.zero,
             children: [
               const ListTile(
+                leading: const Icon(Icons.menu, color: Color.fromARGB(255, 0, 0, 0)),
                 title: Text(
                   'Menu',
                   style: TextStyle(fontWeight: FontWeight.w600),
@@ -160,6 +174,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     debugPrint('[SCHEDULE_IMPORT] needReload=true -> reload schedules');
                     await _reloadSchedulesAfterImport();
                   }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.file_download, color: Color.fromARGB(255, 0, 238, 255)),
+                title: const Text('Xuất file Excel'),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ScheduleExportExcelScreen(
+                        initialChildId: scheduleVm.selectedChildId,
+                      ),
+                    ),
+                  );
                 },
               ),
             ],

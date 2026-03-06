@@ -40,7 +40,7 @@ import 'viewmodels/schedule_vm.dart';
 import 'package:kid_manager/repositories/memory_day_repository.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 
-import 'package:kid_manager/services/schedule_import_service.dart';
+import 'package:kid_manager/services/schedule/schedule_import_service.dart';
 import 'package:kid_manager/viewmodels/schedule_import_vm.dart';
 
 class MyApp extends StatefulWidget {

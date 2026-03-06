@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "1081020222417",
+    "firebase_url": "https://kidmanager-b4a8f-default-rtdb.firebaseio.com",
     "project_id": "kidmanager-b4a8f",
     "storage_bucket": "kidmanager-b4a8f.firebasestorage.app"
   },

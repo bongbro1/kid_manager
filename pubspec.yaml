@@ -91,8 +91,9 @@ dependencies:
   file_picker: ^8.0.0
   excel: ^4.0.2
   share_plus: ^10.0.2
+  open_filex: ^4.7.0
   file_saver: ^0.2.13
-  open_filex: ^4.3.2
+  flutter_file_dialog: ^3.0.3
   
 
 dev_dependencies:
@@ -118,6 +119,7 @@ flutter:
     - assets/icons/
     - assets/images/
     - assets/sounds/
+    - assets/templates/schedule_template.xlsx
     - .env
   fonts:
     - family: Poppins
