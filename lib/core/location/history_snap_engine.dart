@@ -9,7 +9,6 @@ class HistorySnapEngine {
   static const int _chunkSize = 50;
   static const double _minDistanceMeters = 5;
 
-  final _distance = const osm.Distance();
 
   Future<SnapHistoryResult> snapHistory(
       List<LocationData> history,

@@ -1,40 +1,51 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
+import 'package:kid_manager/models/notifications/notification_source.dart';
 
 class NotificationRepository {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// ==============================
-  /// 📡 STREAM INBOX REALTIME
-  /// ==============================
+  final FirebaseFirestore _fs;
+  NotificationRepository({FirebaseFirestore? fs}) : _fs = fs ?? FirebaseFirestore.instance;
+
+  // users/{uid}/notifications
+  Stream<List<AppNotification>> streamUserInbox(String uid) {
+    return _fs
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .orderBy('createdAt', descending: true)
+        .limit(200)
+        .snapshots()
+        .map((snap) => snap.docs
+        .map((d) => AppNotification.fromMap(d.id, d.data(), store: NotificationStore.userInbox))
+        .toList());
+  }
+
+  // notifications (root)
   Stream<List<AppNotification>> streamUserNotifications(String uid) {
-    return _db
+    return _fs
         .collection('notifications')
         .where('receiverId', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
+        .limit(200)
         .snapshots()
-        .map(
-          (snap) => snap.docs
-              .map((d) => AppNotification.fromMap(d.id, d.data()))
-              .toList(),
-        );
+        .map((snap) => snap.docs
+        .map((d) => AppNotification.fromMap(d.id, d.data(), store: NotificationStore.global))
+        .toList());
   }
 
-  // Stream<int> listenUnreadCount(String userId) {
-  //   return FirebaseFirestore.instance
-  //       .collection("notifications")
-  //       .where("receiverId", isEqualTo: userId)
-  //       .where("isRead", isEqualTo: false)
-  //       .snapshots()
-  //       .map((snap) => snap.docs.length);
-  // }
+  Stream<List<AppNotification>> watchBySource(String uid, NotificationSource source) {
+    switch (source) {
+      case NotificationSource.global:
+        return streamUserNotifications(uid);
+      case NotificationSource.userInbox:
+        return streamUserInbox(uid);
+    }
+  }
 
-  /// ==============================
-  /// ✉️ CREATE → TRIGGER PUSH
-  /// Flutter chỉ tạo doc
-  /// Cloud Function sẽ gửi FCM
-  /// ==============================
+  // ===== giữ để NotificationService không lỗi (global create) =====
   Future<void> create({
     required String senderId,
     required String receiverId,
@@ -44,41 +55,62 @@ class NotificationRepository {
     Map<String, dynamic>? data,
     String? familyId,
   }) async {
-    await _db.collection('notifications').add({
+    await _fs.collection('notifications').add({
       'senderId': senderId,
       'receiverId': receiverId,
       'familyId': familyId,
-
       'type': type,
       'title': title,
       'body': body,
       'data': data ?? {},
-
       'isRead': false,
       'status': 'pending',
-
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  /// ==============================
-  /// ✅ MARK AS READ
-  /// ==============================
-  Future<void> markAsRead(String notificationId) async {
-    await _db.collection('notifications').doc(notificationId).update({
-      'isRead': true,
-    });
+  // ===== mark/delete GLOBAL =====
+  Future<void> markAsReadGlobal(String id) async {
+    await _fs.collection('notifications').doc(id).update({'isRead': true});
   }
 
-  /// ==============================
-  /// 🗑 DELETE
-  /// ==============================
-  Future<void> delete(String notificationId) async {
-    await _db.collection('notifications').doc(notificationId).delete();
+  Future<void> deleteGlobal(String id) async {
+    await _fs.collection('notifications').doc(id).delete();
   }
+
+  // ===== mark/delete INBOX users/{uid}/notifications =====
+  Future<void> markAsReadInbox(String uid, String id) async {
+    await _fs.collection('users').doc(uid).collection('notifications').doc(id).update({'isRead': true});
+  }
+
+  Future<void> deleteInbox(String uid, String id) async {
+    await _fs.collection('users').doc(uid).collection('notifications').doc(id).delete();
+  }
+
+  Future<NotificationDetailModel> getNotificationDetailByItem(String uid, AppNotification n) async {
+    final docRef = (n.store == NotificationStore.userInbox)
+        ? _fs.collection('users').doc(uid).collection('notifications').doc(n.id)
+        : _fs.collection('notifications').doc(n.id);
+
+    final doc = await docRef.get();
+    if (!doc.exists) throw Exception("Notification not found");
+
+    final map = doc.data() as Map<String, dynamic>;
+    final type = (map['type'] ?? '').toString();
+    final data = Map<String, dynamic>.from(map['data'] ?? {});
+    final content = (map['body'] ?? '').toString();
+
+    return NotificationDetailModel(
+      id: doc.id,
+      title: (map['title'] ?? '').toString(),
+      content: content,
+      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : DateTime.now(),
+      type: type,
+      data: data,
+    );  }
 
   Future<NotificationDetailModel> getNotificationDetail(String id) async {
-    final doc = await _db.collection('notifications').doc(id).get();
+    final doc = await _fs.collection('notifications').doc(id).get();
 
     if (!doc.exists) {
       throw Exception("Notification not found");

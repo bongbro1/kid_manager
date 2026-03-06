@@ -4,12 +4,13 @@ import 'package:kid_manager/models/notifications/notification_detail_model.dart'
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/notifications/blocked_app_detail_widget.dart';
+import 'package:kid_manager/widgets/notifications/notification_detail_body.dart';
 import 'package:provider/provider.dart';
 
 class NotificationDetailScreen extends StatefulWidget {
-  final String notificationId;
+  final AppNotification item;
 
-  const NotificationDetailScreen({super.key, required this.notificationId});
+  const NotificationDetailScreen({super.key, required this.item});
 
   @override
   State<NotificationDetailScreen> createState() =>
@@ -20,12 +21,8 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
   @override
   void initState() {
     super.initState();
-
-    /// Load detail sau khi build xong
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<NotificationVM>().loadNotificationDetail(
-        widget.notificationId,
-      );
+      context.read<NotificationVM>().loadNotificationDetailItem(widget.item);
     });
   }
 
@@ -177,7 +174,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
 
                         const SizedBox(height: 12),
 
-                        BlockedAppDetailWidget(detail: detail),
+                        NotificationDetailBody(detail: detail),
                       ],
                     ),
                   ),

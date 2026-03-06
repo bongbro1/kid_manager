@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class LocalNotificationService {
@@ -23,7 +24,7 @@ class LocalNotificationService {
       importance: Importance.max,
       priority: Priority.high,
     );
-
+    debugPrint('🔔 LocalNotificationService.show title="$title" body="$body"');
     const details = NotificationDetails(
       android: androidDetails,
     );

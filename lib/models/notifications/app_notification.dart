@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/notifications/blocked_app_data.dart';
 
+/// Doc đang nằm ở đâu (runtime only)
+enum NotificationStore { global, userInbox }
+
 enum NotificationType {
   blockedApp,
   sos,
@@ -10,6 +13,7 @@ enum NotificationType {
   schedule,
   battery,
   birthday,
+  zone,     // ✅ thêm
   system,
 }
 
@@ -30,6 +34,8 @@ extension NotificationTypeX on NotificationType {
         return "battery";
       case NotificationType.birthday:
         return "birthday";
+      case NotificationType.zone:
+        return "zone"; // ✅ chuẩn hoá cho app
       case NotificationType.system:
         return "system";
     }
@@ -37,9 +43,35 @@ extension NotificationTypeX on NotificationType {
 
   /// Convert từ Firestore string → enum
   static NotificationType fromString(String value) {
+    final v = value.toString().trim().toLowerCase();
+
+    // ✅ Map tương thích ngược (CF của bạn đang dùng "ZONE")
+    if (v == "zone") return NotificationType.zone;
+    if (v == "zone_event") return NotificationType.zone;
+    if (v == "zoneevent") return NotificationType.zone;
+    if (v == "zone-alert") return NotificationType.zone;
+    if (v == "zonealert") return NotificationType.zone;
+    if (v == "zone_notification") return NotificationType.zone;
+    if (v == "zone-notification") return NotificationType.zone;
+    if (v == "zone_notif") return NotificationType.zone;
+    if (v == "zone-notif") return NotificationType.zone;
+    if (v == "zoneevents") return NotificationType.zone;
+    if (v == "zoneeventbychild") return NotificationType.zone;
+    if (v == "zonebychild") return NotificationType.zone;
+    if (v == "zone") return NotificationType.zone;
+
+    // CF bạn đang set "ZONE" (uppercase) => cũng map về zone
+    if (v == "zone".toLowerCase() || v == "zone".toUpperCase().toLowerCase()) {
+      return NotificationType.zone;
+    }
+    if (v == "zone".toUpperCase().toLowerCase()) return NotificationType.zone;
+
+    // map uppercase "ZONE"
+    if (value.toString().trim() == "ZONE") return NotificationType.zone;
+
     return NotificationType.values.firstWhere(
-      (e) => e.value == value,
-      orElse: () => NotificationType.system, // fallback an toàn
+          (e) => e.value == v,
+      orElse: () => NotificationType.system,
     );
   }
 
@@ -101,6 +133,14 @@ extension NotificationTypeX on NotificationType {
           iconColor: Color(0xFFDB2777),
         );
 
+      case NotificationType.zone:
+        return const NotificationStyle(
+          icon: Icons.my_location_rounded,
+          bgColor: Color(0xFFEFF6FF),
+          borderColor: Color(0xFFBFDBFE),
+          iconColor: Color(0xFF2563EB),
+        );
+
       case NotificationType.system:
         return const NotificationStyle(
           icon: Icons.settings_rounded,
@@ -142,6 +182,9 @@ class AppNotification {
   final DateTime? createdAt;
   final Map<String, dynamic> data;
 
+  /// runtime: doc ở global hay userInbox
+  final NotificationStore store;
+
   AppNotification({
     required this.id,
     required this.senderId,
@@ -154,32 +197,38 @@ class AppNotification {
     required this.status,
     required this.data,
     required this.createdAt,
+    required this.store,
   });
 
-  factory AppNotification.fromMap(String id, Map<String, dynamic> map) {
+  factory AppNotification.fromMap(
+      String id,
+      Map<String, dynamic> map, {
+        required NotificationStore store,
+      }) {
+    final rawTitle = (map['title'] ?? '').toString();
+    final rawEventKey = (map['eventKey'] ?? map['data']?['eventKey'] ?? '').toString();
+
     return AppNotification(
       id: id,
-      senderId: map['senderId'] ?? '',
-      receiverId: map['receiverId'] ?? '',
-      familyId: map['familyId'],
-      type: map['type'] ?? '',
-      title: map['title'] ?? '',
-      body: map['body'] ?? '',
-      isRead: map['isRead'] ?? false,
-      status: map['status'] ?? 'pending',
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
+      senderId: (map['senderId'] ?? '').toString(),
+      receiverId: (map['receiverId'] ?? '').toString(),
+      familyId: map['familyId']?.toString(),
+      type: (map['type'] ?? '').toString(),
+
+      // ✅ fallback: nếu title rỗng thì dùng eventKey (zone.*)
+      title: rawTitle.trim().isNotEmpty ? rawTitle : rawEventKey,
+
+      body: (map['body'] ?? '').toString(),
+      isRead: (map['isRead'] ?? false) == true,
+      status: (map['status'] ?? 'pending').toString(),
+      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : null,
       data: Map<String, dynamic>.from(map['data'] ?? {}),
+      store: store,
     );
   }
 
-  // 👇 thêm cái này
-  NotificationType get notificationType {
-    return NotificationTypeX.fromString(type);
-  }
+  NotificationType get notificationType => NotificationTypeX.fromString(type);
 
-  // get data cho blocked_app
   BlockedAppData? get blockedAppData {
     if (notificationType != NotificationType.blockedApp) return null;
     return BlockedAppData.fromMap(data);

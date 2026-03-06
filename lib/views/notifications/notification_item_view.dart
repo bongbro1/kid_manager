@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
 
@@ -28,6 +29,7 @@ class NotificationItemView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = item.notificationType.style;
+    final titleText = _displayTitle(context, item);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -78,7 +80,7 @@ class NotificationItemView extends StatelessWidget {
                           Expanded(
                             flex: 7,
                             child: Text(
-                              item.title,
+                              titleText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -192,6 +194,39 @@ class NotificationItemView extends StatelessWidget {
   }
 }
 
+
+String _displayTitle(BuildContext context, AppNotification item) {
+  final l10n = AppLocalizations.of(context);
+  final t = item.title.trim();
+
+  if (t.startsWith('zone.')) {
+    switch (t) {
+      case 'zone.enter.danger.parent':
+        return l10n.zone_enter_danger_parent;
+      case 'zone.exit.danger.parent':
+        return l10n.zone_exit_danger_parent;
+      case 'zone.enter.safe.parent':
+        return l10n.zone_enter_safe_parent;
+      case 'zone.exit.safe.parent':
+        return l10n.zone_exit_safe_parent;
+
+      case 'zone.enter.danger.child':
+        return l10n.zone_enter_danger_child;
+      case 'zone.exit.danger.child':
+        return l10n.zone_exit_danger_child;
+      case 'zone.enter.safe.child':
+        return l10n.zone_enter_safe_child;
+      case 'zone.exit.safe.child':
+        return l10n.zone_exit_safe_child;
+
+      default:
+        return l10n.zone_default;
+    }
+  }
+
+  // ✅ các loại khác: birthday/system/sos/... giữ nguyên title trong DB
+  return t.isEmpty ? l10n.zone_default : t;
+}
 class BirthdayWishModal extends StatelessWidget {
   final String name;
 

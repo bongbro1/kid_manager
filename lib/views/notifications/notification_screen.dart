@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:kid_manager/views/notifications/notification_item_view.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
@@ -9,7 +10,15 @@ import 'package:provider/provider.dart';
 import '../../services/storage_service.dart';
 
 class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({super.key});
+  final String uid;
+  final List<NotificationSource> sources;
+  final bool systemOnly;
+  const NotificationScreen({
+    super.key,
+    required this.uid,
+    this.sources = const [NotificationSource.userInbox],
+    this.systemOnly =false
+  });
 
   @override
   State<NotificationScreen> createState() => _NotificationScreenState();
@@ -17,11 +26,22 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen>
     with RouteAware {
+
+  void _listen() {
+    context.read<NotificationVM>().listenMulti(
+      uid: widget.uid,
+      sources: widget.sources,
+      filter: widget.systemOnly
+          ? (n) => n.senderId == "system" || n.type == "system"
+          : null,
+    );
+  }
   @override
   void initState() {
     super.initState();
-    _init();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _listen());
   }
+
 
   @override
   void didChangeDependencies() {
@@ -39,21 +59,12 @@ class _NotificationScreenState extends State<NotificationScreen>
     super.dispose();
   }
 
-  /// 🔥 CHẠY MỖI LẦN MÀN HÌNH ĐƯỢC SHOW LẠI
+  ///  CHẠY MỖI LẦN MÀN HÌNH ĐƯỢC SHOW LẠI
   @override
   void didPopNext() {
-    debugPrint("Notification screen visible again");
-    _init(); // reload lại
+   _listen();
   }
 
-  Future<void> _init() async {
-    final storage = context.read<StorageService>();
-    final uid = await storage.getString(StorageKeys.uid);
-
-    if (uid != null && mounted) {
-      context.read<NotificationVM>().listen(uid);
-    }
-  }
 
   bool _isSameDay(DateTime? a, DateTime? b) {
     if (a == null || b == null) return false;
@@ -122,13 +133,13 @@ class _NotificationScreenState extends State<NotificationScreen>
                                   key: ValueKey(item.id),
                                   item: item,
                                   onTap: () {
-                                    vm.markAsRead(item.id);
+                                    vm.markAsRead(item);
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) =>
                                             NotificationDetailScreen(
-                                              notificationId: item.id,
+                                              item: item,
                                             ),
                                       ),
                                     );

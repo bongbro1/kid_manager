@@ -13,11 +13,11 @@ class BlockedAppDetailWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = detail.data;
 
-    final studentName = data["studentName"] ?? "";
-    final appName = data["appName"] ?? "";
-    final blockedAt = data["blockedAt"] ?? "";
-    final allowedFrom = data["allowedFrom"] ?? "";
-    final allowedTo = data["allowedTo"] ?? "";
+    final studentName = (data["studentName"] ?? "").toString();
+    final appName = (data["appName"] ?? "").toString();
+    final blockedAt = (data["blockedAt"] ?? "").toString();
+    final allowedFrom = (data["allowedFrom"] ?? "").toString();
+    final allowedTo = (data["allowedTo"] ?? "").toString();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(4),
@@ -65,11 +65,7 @@ class BlockedAppDetailWidget extends StatelessWidget {
           _buildInfoRow(Icons.person_outline, "Tài khoản", displayName),
           _buildInfoRow(Icons.apps, "Ứng dụng", appName),
           _buildInfoRow(Icons.access_time, "Thời điểm", blockedAt),
-          _buildInfoRow(
-            Icons.schedule,
-            "Khung giờ cho phép",
-            "$allowedFrom - $allowedTo",
-          ),
+          _buildInfoRow(Icons.schedule, "Khung giờ cho phép", "$allowedFrom - $allowedTo"),
         ],
       ),
     );

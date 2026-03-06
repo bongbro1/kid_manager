@@ -1,5 +1,6 @@
 import 'package:kid_manager/features/presentation/shared/app_bottom_bar_config.dart';
 import 'package:kid_manager/features/presentation/shared/state/mapbox_controller.dart';
+import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
@@ -7,6 +8,7 @@ import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
 import 'package:kid_manager/views/notifications/notification_screen.dart';
 import 'package:kid_manager/views/notifications/notification_debug_screen.dart';
+import 'package:kid_manager/views/notifications/notification_tab.dart';
 import 'package:kid_manager/views/parent/dashboard/app_management_screen.dart';
 import 'package:kid_manager/views/parent/location/parent_location_screen.dart';
 import 'package:kid_manager/views/parent/schedule/schedule_screen.dart';
@@ -46,13 +48,16 @@ class AppShellConfig {
 
     BottomTabConfig(
       iconAsset: 'assets/icons/sms.svg',
-      root: const NotificationScreen(),
+      root: const NotificationTab(
+        sources: [NotificationSource.userInbox],
+      ),
     ),
 
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
-      root: const NotificationScreen(),
-      showBadge: true,
+      root: const NotificationTab(
+        sources: [NotificationSource.global, NotificationSource.userInbox],
+      ),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
@@ -91,8 +96,9 @@ class AppShellConfig {
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
-      root: const NotificationScreen(),
-      showBadge: true,
+      root: const NotificationTab(
+        sources: [NotificationSource.global, NotificationSource.userInbox],
+      ),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',

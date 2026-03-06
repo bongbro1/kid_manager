@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
-import 'package:kid_manager/features/map_engine/services/segmented_map_matcher.dart';
 import 'package:kid_manager/features/map_engine/trace_preprocessor.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -19,7 +18,6 @@ class MapMatchedResult {
 }
 
 class MapMatchingService {
-  late SegmentedMapMatcher _segmentedMapMatcher;
   /// profile: 'mapbox/driving' | 'mapbox/walking' | 'mapbox/cycling' | 'mapbox/driving-traffic'
     Future<MapMatchedResult?> matchTrace(
         List<LocationData> rawHistory, {

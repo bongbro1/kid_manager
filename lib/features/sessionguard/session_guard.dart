@@ -84,8 +84,9 @@ class _SessionGuardState extends State<SessionGuard> {
         if (shouldTriggerMeWatch) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            context.read<UserVm>().watchMe(uid!);
-            context.read<AppManagementVM>().watchChildren(uid!);
+            context.read<UserVm>().watchMe(uid);
+            context.read<UserVm>().watchMe(uid);
+            context.read<AppManagementVM>().watchChildren(uid);
           });
         }
 
@@ -93,7 +94,7 @@ class _SessionGuardState extends State<SessionGuard> {
         if (shouldTriggerChildrenWatch) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            context.read<UserVm>().watchChildren(uid!);
+            context.read<UserVm>().watchChildren(uid);
           });
         }
 

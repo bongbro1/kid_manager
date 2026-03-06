@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,6 +9,7 @@ import 'package:kid_manager/repositories/location/location_repository_impl.dart'
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/app_installed_service.dart';
@@ -32,6 +32,7 @@ import 'core/constants.dart';
 import 'core/theme.dart';
 
 import 'features/sessionguard/session_guard.dart';
+import 'l10n/app_localizations.dart';
 import 'services/firebase_auth_service.dart';
 import 'repositories/auth_repository.dart';
 import 'viewmodels/auth_vm.dart';
@@ -187,6 +188,21 @@ class _MyAppState extends State<MyApp> {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
+
+        // ✅ gen-l10n
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en'),
+          Locale('vi'),
+        ],
+
+        // ❌ bỏ: locale: context.locale,
+
         navigatorKey: AlertService.navigatorKey,
         navigatorObservers: [routeObserver],
         theme: AppTheme.light(),
