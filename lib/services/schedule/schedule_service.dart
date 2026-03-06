@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/schedule.dart';
+import '../../models/schedule.dart';
 
 class ScheduleService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/models/notifications/notification_type.dart';
 import 'package:provider/provider.dart';
+import 'package:kid_manager/utils/ui_helpers.dart';
+import 'package:kid_manager/utils/notification_helper.dart';
 
 import '../../../viewmodels/memory_day_vm.dart';
 import '../../../models/memory_day.dart';
@@ -118,35 +121,42 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
                     daysLeft: daysLeft,
                     onEdit: () => _openEditSheet(context, m),
                     onDelete: () async {
-                      final ok = await _confirmDelete(context);
+                      final ok = await Notify.confirm(
+                        context,
+                        title: 'Xóa ngày đáng nhớ',
+                        message: 'Bạn có chắc muốn xóa?',
+                      );
+
                       if (ok != true) return;
-                      await vm.deleteMemory(m.id);
-                      await vm.loadMonth(); // reload sau khi xóa để cập nhật list
+
+                      try {
+                        await runWithLoading<void>(context, () async {
+                          await vm.deleteMemory(m.id);
+                        });
+
+                        if (!context.mounted) return;
+
+                        await Notify.show(
+                          context,
+                          type: DialogType.success,
+                          title: 'Hoàn thành',
+                          message: 'Bạn đã xóa thành công',
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+
+                        await Notify.show(
+                          context,
+                          type: DialogType.error,
+                          title: 'Thất bại',
+                          message: 'Xóa thất bại, vui lòng thử lại',
+                        );
+                      }
                     },
                   ),
                 );
               },
             ),
-    );
-  }
-
-  Future<bool?> _confirmDelete(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Xóa ngay đáng nhớ'),
-        content: const Text('Bạn có chắc muốn xóa?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Hủy'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -237,12 +247,20 @@ class _MemoryDayCard extends StatelessWidget {
           Column(
             children: [
               IconButton(
-                icon: const Icon(Icons.edit, size: 18),
+                icon: Image.asset(
+                  'assets/images/edit.png',
+                  width: 18,
+                  height: 18,
+                ),
                 onPressed: onEdit,
                 visualDensity: VisualDensity.compact,
               ),
               IconButton(
-                icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                icon: Image.asset(
+                  'assets/images/delete.png', 
+                  width: 18, 
+                  height: 18
+                ),
                 onPressed: onDelete,
                 visualDensity: VisualDensity.compact,
               ),

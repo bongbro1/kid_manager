@@ -62,6 +62,7 @@ class AppShellConfig {
       root: const NotificationTab(
         sources: [NotificationSource.global, NotificationSource.userInbox],
       ),
+      showBadge: true
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
@@ -103,6 +104,7 @@ class AppShellConfig {
       root: const NotificationTab(
         sources: [NotificationSource.global, NotificationSource.userInbox],
       ),
+      showBadge: true
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',

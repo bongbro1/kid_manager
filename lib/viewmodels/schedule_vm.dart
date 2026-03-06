@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/views/parent/schedule/schedule_screen.dart';
 import '../models/schedule.dart';
 import '../repositories/schedule_repository.dart';
 import 'auth_vm.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/exceptions.dart';
 
 class ScheduleViewModel extends ChangeNotifier {
   final ScheduleRepository _repo;
@@ -142,9 +142,10 @@ class ScheduleViewModel extends ChangeNotifier {
     );
 
     if (overlapped != null) {
-      throw Exception(
-        'Trùng lịch với "${overlapped.title}" '
-        '(${_hhmm(overlapped.startAt)} - ${_hhmm(overlapped.endAt)})',
+      throw ScheduleOverlapException(
+        'Trùng với lịch "${overlapped.title}" '
+        '(${_hhmm(overlapped.startAt)} - ${_hhmm(overlapped.endAt)}). '
+        'Vui lòng chọn giờ khác.',
       );
     }
 
@@ -160,25 +161,25 @@ class ScheduleViewModel extends ChangeNotifier {
   }
 
   Future<void> updateSchedule(Schedule s) async {
-  // ✅ check overlap trước khi update (bỏ qua chính nó)
-  final overlapped = await _findOverlapOnDay(
-    childId: s.childId,
-    day: s.date,
-    newStart: s.startAt,
-    newEnd: s.endAt,
-    ignoreScheduleId: s.id,
-  );
-
-  if (overlapped != null) {
-    throw Exception(
-      'Trùng lịch với "${overlapped.title}" '
-      '(${_hhmm(overlapped.startAt)} - ${_hhmm(overlapped.endAt)})',
+    final overlapped = await _findOverlapOnDay(
+      childId: s.childId,
+      day: s.date,
+      newStart: s.startAt,
+      newEnd: s.endAt,
+      ignoreScheduleId: s.id,
     );
-  }
 
-  await _repo.updateSchedule(scheduleOwnerUid, s);
-  await loadMonth();
-}
+    if (overlapped != null) {
+      throw ScheduleOverlapException(
+        'Trùng với lịch "${overlapped.title}" '
+        '(${_hhmm(overlapped.startAt)} - ${_hhmm(overlapped.endAt)}). '
+        'Vui lòng chọn giờ khác.',
+      );
+    }
+
+    await _repo.updateSchedule(scheduleOwnerUid, s);
+    await loadMonth();
+  }
 
   Future<void> deleteSchedule(String id) async {
   try {
@@ -248,6 +249,31 @@ Future<void> bindChildSession({
   notifyListeners();
 }
 
+//xuất lịch theo khoảng thời gian (dùng cho export Excel)
+  Future<List<Schedule>> getSchedulesForExport({
+    required String childId,
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) async {
+    final start = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    final endExclusive = DateTime(toDate.year, toDate.month, toDate.day + 1);
+
+    final list = await _repo.getSchedulesByRange(
+      parentUid: scheduleOwnerUid,
+      childId: childId,
+      start: start,
+      end: endExclusive,
+    );
+
+    list.sort((a, b) {
+      final dateCmp = DateTime(a.date.year, a.date.month, a.date.day)
+          .compareTo(DateTime(b.date.year, b.date.month, b.date.day));
+      if (dateCmp != 0) return dateCmp;
+      return a.startAt.compareTo(b.startAt);
+    });
+
+    return list;
+  }
 }
 
 // Extension để check overlap khi add/update schedule

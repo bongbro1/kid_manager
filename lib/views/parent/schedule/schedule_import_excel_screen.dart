@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/services/schedule_import_service.dart';
+import 'package:kid_manager/services/schedule/schedule_import_service.dart';
 import 'package:provider/provider.dart';
-import 'package:file_saver/file_saver.dart';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_text_styles.dart';
@@ -108,36 +111,57 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   try {
     debugPrint('$tag ===== START =====');
 
-    final svc = context.read<ScheduleImportVM>().service;
-    final File tempFile = await svc.generateTemplateExcel();
-    final Uint8List bytes = await tempFile.readAsBytes();
+    // 1) đọc file mẫu từ assets
+    final data = await rootBundle.load(
+      'assets/templates/schedule_template.xlsx',
+    );
+    final bytes = data.buffer.asUint8List();
+
+    debugPrint('$tag asset bytes.length = ${bytes.length}');
+
+    // 2) ghi ra file tạm để dùng cho save dialog
+    final tempDir = await getTemporaryDirectory();
+    final tempFile = File('${tempDir.path}/schedule_template.xlsx');
+    await tempFile.writeAsBytes(bytes, flush: true);
 
     debugPrint('$tag tempFile.path = ${tempFile.path}');
     debugPrint('$tag tempFile.exists = ${await tempFile.exists()}');
     debugPrint('$tag tempFile.length = ${await tempFile.length()}');
-    debugPrint('$tag bytes.length = ${bytes.length}');
 
-    debugPrint('$tag calling FileSaver.saveFile ...');
-    final result = await FileSaver.instance.saveFile(
-      name: 'schedule_template_${DateTime.now().millisecondsSinceEpoch}',
-      bytes: bytes,
-      ext: 'xlsx',
-      mimeType: MimeType.microsoftExcel,
+    // 3) mở hộp thoại cho user chọn nơi lưu
+    final savedPath = await FlutterFileDialog.saveFile(
+      params: SaveFileDialogParams(
+        sourceFilePath: tempFile.path,
+        fileName: 'schedule_template.xlsx',
+      ),
     );
 
-    debugPrint('$tag FileSaver result = $result (type=${result.runtimeType})');
+    debugPrint('$tag savedPath = $savedPath');
 
     if (!mounted) return;
-    final msg = (result is String && result.isNotEmpty)
-        ? 'Đã lưu file mẫu: $result'
-        : 'Đã lưu file mẫu (không trả về đường dẫn).';
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+    if (savedPath == null || savedPath.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bạn đã huỷ lưu file mẫu')),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Đã lưu file mẫu thành công')),
+    );
+
+    // 4) mở file luôn sau khi lưu
+    final result = await OpenFilex.open(savedPath);
+    debugPrint('$tag open result: type=${result.type} message=${result.message}');
 
     debugPrint('$tag ===== END OK =====');
   } catch (e, s) {
     debugPrint('$tag ERROR = $e');
     debugPrint('$tag STACK = $s');
+
     if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Tải file mẫu thất bại: $e')),
     );
@@ -291,6 +315,7 @@ Future<void> _showSuccessDialog(BuildContext context) async {
           'Thêm file Excel',
           style: AppTextStyles.scheduleAppBarTitle,
         ),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.darkText),
           onPressed: () => Navigator.pop(context, _needReload), // trả về needReload khi pop

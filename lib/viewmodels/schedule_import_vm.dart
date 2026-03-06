@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/services/schedule_import_service.dart';
+import 'package:kid_manager/services/schedule/schedule_import_service.dart';
 
 class ScheduleImportVM extends ChangeNotifier {
   final ScheduleImportService service;

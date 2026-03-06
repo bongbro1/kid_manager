@@ -1,11 +1,13 @@
   import 'package:flutter/material.dart';
+  import 'package:kid_manager/utils/ui_helpers.dart';
   import 'package:provider/provider.dart';
   import 'package:kid_manager/core/storage_keys.dart';
   import 'package:kid_manager/services/storage_service.dart';
+  import 'package:kid_manager/utils/confirm_delete_dialog.dart';
+  import 'package:kid_manager/utils/notify_dialog.dart';
 
   import '../../../../../core/app_text_styles.dart';
   import '../../../../../models/schedule.dart';
-  import '../../../../../utils/schedule_utils.dart';
   import '../../../../../viewmodels/schedule_vm.dart';
   import '../../../views/parent/schedule/edit_schedule_sheet.dart';
   import '../../../../../viewmodels/memory_day_vm.dart';
@@ -129,7 +131,7 @@
                 ),
                 const SizedBox(width: 10),
                 _ActionIcon(
-                  asset: 'assets/icons/delete.png',
+                  asset: 'assets/images/delete.png',
                   onTap: () => _deleteSchedule(screenContext),
                 ),
               ],
@@ -164,44 +166,40 @@
     Future<void> _deleteSchedule(BuildContext context) async {
       final vm = context.read<ScheduleViewModel>();
 
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Xóa lịch trình'),
-          content: const Text('Bạn có chắc muốn xóa?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Hủy'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(
-                'Xóa',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        ),
+      final confirm = await confirmDelete(
+        context,
+        title: 'Xóa lịch trình',
+        message: 'Bạn có chắc muốn xóa?',
       );
 
       if (confirm != true) return;
 
       try {
-        await vm.deleteSchedule(schedule.id);
+        await runWithLoading<void>(context, () async {
+          await vm.deleteSchedule(schedule.id);
+        });
 
         if (!context.mounted) return;
 
-        await showScheduleSuccess(context, 'Bạn đã xóa thành công');
+        await showSuccessDialog(
+          context,
+          title: 'Hoàn thành',
+          message: 'Bạn đã xóa thành công',
+          // Nếu bạn muốn xoá xong tự đóng sheet/detail luôn:
+          // onConfirm: () { if (context.mounted) Navigator.pop(context); },
+        );
       } catch (e) {
         if (!context.mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Xóa thất bại: $e')),
+        await showErrorDialog(
+          context,
+          title: 'Thất bại',
+          message: 'Xóa thất bại: $e',
         );
       }
     }
   }
+
   class MemoryDayItem extends StatelessWidget {
   final MemoryDay memory;
   final BuildContext screenContext;
@@ -275,7 +273,7 @@
                 ),
                 const SizedBox(width: 10),
                 _ActionIcon(
-                  asset: 'assets/icons/delete.png',
+                  asset: 'assets/images/delete.png',
                   onTap: () => _deleteMemory(screenContext),
                 ),
               ],
@@ -299,28 +297,36 @@
   Future<void> _deleteMemory(BuildContext context) async {
     final vm = context.read<MemoryDayViewModel>();
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Xóa kỷ niệm'),
-        content: const Text('Bạn có chắc muốn xóa?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Hủy'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final confirm = await confirmDelete(
+      context,
+      title: 'Xóa kỷ niệm',
+      message: 'Bạn có chắc muốn xóa?',
     );
 
     if (confirm != true) return;
 
-    await vm.deleteMemory(memory.id);
-    await vm.loadMonth();
+    try {
+      await runWithLoading<void>(context, () async {
+        await vm.deleteMemory(memory.id);
+        await vm.loadMonth();
+      });
+
+      if (!context.mounted) return;
+
+      await showSuccessDialog(
+        context,
+        title: 'Hoàn thành',
+        message: 'Bạn đã xóa thành công',
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      await showErrorDialog(
+        context,
+        title: 'Thất bại',
+        message: 'Xóa thất bại: $e',
+      );
+    }
   }
 }
 
