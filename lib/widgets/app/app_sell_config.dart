@@ -5,6 +5,7 @@ import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
+import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
 import 'package:kid_manager/views/notifications/notification_debug_screen.dart';
 import 'package:kid_manager/views/notifications/notification_tab.dart';
@@ -36,6 +37,10 @@ class AppShellConfig {
             ),
           ),
           ChangeNotifierProvider(create: (_) => MapboxController()),
+          ChangeNotifierProvider(
+            create: (_) => ZoneStatusVm(),
+            child: ParentAllChildrenMapScreen(),
+          )
         ],
         child: const ParentAllChildrenMapScreen(),
       ),

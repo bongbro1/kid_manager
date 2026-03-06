@@ -33,7 +33,8 @@ class _NotificationTabState extends State<NotificationTab> {
   Future<void> _ensureUid() async {
     if (_loadingUid) return;
 
-    final uidFromUserVm = context.select<UserVm, String?>((vm) => vm.me?.uid);
+    // ✅ KHÔNG dùng context.select ngoài build
+    final uidFromUserVm = context.read<UserVm>().me?.uid;
     if (uidFromUserVm != null && uidFromUserVm.isNotEmpty) return;
 
     if (_uidFromStorage != null && _uidFromStorage!.isNotEmpty) return;
@@ -42,6 +43,7 @@ class _NotificationTabState extends State<NotificationTab> {
     try {
       final storage = context.read<StorageService>();
       final uid = await storage.getString(StorageKeys.uid);
+
       if (!mounted) return;
       setState(() => _uidFromStorage = uid);
     } finally {
@@ -51,6 +53,7 @@ class _NotificationTabState extends State<NotificationTab> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ select chỉ dùng trong build
     final uid = context.select<UserVm, String?>((vm) => vm.me?.uid);
     final finalUid = (uid != null && uid.isNotEmpty) ? uid : (_uidFromStorage ?? "");
 

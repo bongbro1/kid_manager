@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
@@ -11,7 +13,10 @@ class MapboxController extends ChangeNotifier {
   mbx.MapboxMap? _map;
   bool _styleReady = false;
   bool get isReady => _styleReady;
-
+// trong MapboxController
+  mbx.Position? getChildPosition(String childId) {
+    return _currentPositions[childId] ?? _lastPositions[childId];
+  }
   Timer? _debounce;
 
   final Map<String, Uint8List> _avatarCache = {}; // childId -> bytes
@@ -25,6 +30,14 @@ class MapboxController extends ChangeNotifier {
   Map<String, mbx.Position> _lastPositions = {};
   Map<String, double> _lastHeadings = {};
   Map<String, String> _lastNames = {};
+
+  // ================= FOCUS BUBBLE (MAP LAYER) =================
+  static const String _bubbleSourceId = "focus-bubble-source";
+  static const String _bubbleLayerId  = "focus-bubble-layer";
+  static const String _bubbleImageId  = "focus_bubble_img";
+
+  String? _bubbleCacheKey; // để tránh regenerate PNG khi text không đổi
+  bool _bubbleReady = false;
   Future<void> _styleQueue = Future.value();
 
   void attach(mbx.MapboxMap map) {
@@ -256,7 +269,7 @@ class MapboxController extends ChangeNotifier {
 
     _addedStyleImages.clear();
 
-    // Source FIRST
+    // ===== children-source =====
     if (!await map.style.styleSourceExists("children-source")) {
       await map.style.addSource(
         mbx.GeoJsonSource(
@@ -269,7 +282,7 @@ class MapboxController extends ChangeNotifier {
       );
     }
 
-    // Icon layer
+    // ===== children-layer (AVATAR) =====
     if (!await map.style.styleLayerExists("children-layer")) {
       await map.style.addLayer(
         mbx.SymbolLayer(
@@ -294,39 +307,94 @@ class MapboxController extends ChangeNotifier {
       );
     }
 
-    // Name layer
+    // ===== name-layer (TÊN) =====
     if (!await map.style.styleLayerExists("name-layer")) {
-      await map.style.addLayer(
-        mbx.SymbolLayer(
-          id: "name-layer",
-          sourceId: "children-source",
-          filter: ["!", ["has", "point_count"]],
-          textFieldExpression: ["get", "name"],
-          textSize: 14,
-          textColor: 0xFF111111,
-          textHaloColor: 0xFFFFFFFF,
-          textHaloWidth: 3.0,
-          textHaloBlur: 0.4,
-          textAllowOverlap: true,
-          textIgnorePlacement: true,
+      final nameLayer = mbx.SymbolLayer(
+        id: "name-layer",
+        sourceId: "children-source",
+        filter: ["!", ["has", "point_count"]],
+        textFieldExpression: ["get", "name"],
+        textSize: 14,
+        textColor: 0xFF111111,
+        textHaloColor: 0xFFFFFFFF,
+        textHaloWidth: 3.0,
+        textHaloBlur: 0.4,
+        textAllowOverlap: true,
+        textIgnorePlacement: true,
+        textAnchor: mbx.TextAnchor.BOTTOM,
+        textOffset: [0, -2.6],
+      );
 
-          //  đặt tên lên trên icon
-          textAnchor: mbx.TextAnchor.BOTTOM,
-          textOffset: [0, -2.6], // tăng/giảm để vừa ý (2.0 -> 2.6)
+      // ✅ đặt name-layer lên trên children-layer
+      await map.style.addLayerAt(
+        nameLayer,
+        mbx.LayerPosition(above: "children-layer"),
+      );
+    }
+
+    // ================= FOCUS BUBBLE =================
+    // ===== bubble source =====
+    if (!await map.style.styleSourceExists(_bubbleSourceId)) {
+      await map.style.addSource(
+        mbx.GeoJsonSource(
+          id: _bubbleSourceId,
+          data: jsonEncode({"type": "FeatureCollection", "features": []}),
         ),
       );
     }
 
+    // Nếu bubble layer đã tồn tại (style reload) thì remove để đảm bảo thứ tự
+    if (await map.style.styleLayerExists(_bubbleLayerId)) {
+      try {
+        await map.style.removeStyleLayer(_bubbleLayerId);
+      } catch (_) {}
+    }
+
+    final bubbleLayer = mbx.SymbolLayer(
+      id: _bubbleLayerId,
+      sourceId: _bubbleSourceId,
+      iconImageExpression: ["get", "bubble_img"],
+      iconAllowOverlap: true,
+      iconIgnorePlacement: true,
+      iconAnchor: mbx.IconAnchor.BOTTOM,
+
+      //  luôn ưu tiên vẽ trên cùng trong symbol rendering
+      symbolSortKeyExpression: ["literal", 999999], // đúng type
+      //  kích thước bubble theo zoom
+      iconSizeExpression: [
+        "interpolate", ["linear"], ["zoom"],
+        5,  0.48,
+        10, 0.55,
+        16, 0.62,
+        18, 0.64,
+      ],
+
+      //  đặt bubble nằm ngay TRÊN name-layer (đừng kéo quá cao)
+
+      iconOffsetExpression: [
+        "interpolate", ["linear"], ["zoom"],
+        5,  ["literal", [0, -80]],
+        10, ["literal", [0, -80]],
+        16, ["literal", [0, -80]],
+        18, ["literal", [0, -80]],
+      ],
+    );
+
+    //  bubble nằm TRÊN name-layer
+    await map.style.addLayerAt(
+      bubbleLayer,
+      mbx.LayerPosition(above: "name-layer"),
+    );
+
+    _bubbleReady = true;
     _styleReady = true;
     notifyListeners();
 
-    //  QUAN TRỌNG: style reload xong -> re-add lại các avatar đã cache
-    // (nếu không, iconImageExpression trỏ tới id mà style mới chưa có)
+    // re-add cached avatars (nếu có)
     for (final entry in _avatarBytesById.entries) {
       await _addPngStyleImageIfNeeded(entry.key, entry.value);
     }
   }
-
 
   String _normalizeAvatarKey(String raw) {
     final s = raw.trim();
@@ -404,6 +472,75 @@ class MapboxController extends ChangeNotifier {
     }
   }
 
+  Future<void> clearFocusBubble() async {
+    final map = _map;
+    if (map == null || !_styleReady) return;
+
+    final source = await map.style.getSource(_bubbleSourceId);
+    if (source is mbx.GeoJsonSource) {
+      await source.updateGeoJSON(jsonEncode({"type": "FeatureCollection", "features": []}));
+    }
+  }
+
+  /// text: "đã ở nhà · 2g47 phút trước"
+  /// icon: Icons.home / Icons.warning_amber_rounded ...
+  Future<void> setFocusBubble({
+    required String childId,
+    required String text,
+    required IconData icon,
+  }) async {
+    final map = _map;
+    if (map == null || !_styleReady || !_bubbleReady) return;
+
+    final pos = getChildPosition(childId);
+    if (pos == null) {
+      debugPrint("❌ setFocusBubble: pos null child=$childId");
+      return;
+    }
+
+    // 1) đảm bảo style image bubble đã có (PNG)
+    final key = "${icon.codePoint}:${text.trim()}";
+    if (_bubbleCacheKey != key) {
+      _bubbleCacheKey = key;
+      final png = await _makeBubblePng(text: text, icon: icon);
+
+      // remove cũ (nếu có) rồi add mới
+      try {
+        await map.style.removeStyleImage(_bubbleImageId);
+      } catch (_) {}
+
+      await map.style.addStyleImage(
+        _bubbleImageId,
+        1.0,
+        mbx.MbxImage(width: png.w, height: png.h, data: png.png),
+        false,
+        [],
+        [],
+        null,
+      );
+    }
+
+    // 2) update geojson source (1 feature)
+    final feature = {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [pos.lng, pos.lat],
+      },
+      "properties": {
+        "bubble_img": _bubbleImageId,
+      }
+    };
+
+    final source = await map.style.getSource(_bubbleSourceId);
+    if (source is mbx.GeoJsonSource) {
+      await source.updateGeoJSON(jsonEncode({
+        "type": "FeatureCollection",
+        "features": [feature],
+      }));
+    }
+  }
+
   // ================= UPDATE SOURCE =================
 
   Future<void> updateChildren({
@@ -423,7 +560,6 @@ class MapboxController extends ChangeNotifier {
       final pos = entry.value;
 
       final avatarId = _avatarCache.containsKey(id) ? id : defaultAvatarId;
-      // debugPrint("🧩 feature id=$id avatarId=$avatarId cache=${_avatarCache.containsKey(id)}");
       return {
         "type": "Feature",
         "geometry": {
@@ -447,13 +583,116 @@ class MapboxController extends ChangeNotifier {
     }
   }
 
+  Future<({Uint8List png, int w, int h})> _makeBubblePng({
+    required String text,
+    required IconData icon,
+  }) async {
+    const double fontSize = 18;
+    const double iconSize = 20;
+    const double padX = 14;
+    const double padY = 10;
+    const double gap = 8;
+    const double radius = 999;
+
+    // tail
+    const double tailW = 16;
+    const double tailH = 10;
+
+    // measure text
+    final pb = ui.ParagraphBuilder(
+      ui.ParagraphStyle(fontSize: fontSize, maxLines: 1, textDirection: ui.TextDirection.ltr),
+    )
+      ..pushStyle(ui.TextStyle(
+        color: const ui.Color(0xFF111111),
+        fontSize: fontSize,
+        fontWeight: ui.FontWeight.w600,
+      ))
+      ..addText(text);
+
+    final p = pb.build()..layout(const ui.ParagraphConstraints(width: 2000));
+    final textW = p.maxIntrinsicWidth;
+    final textH = p.height;
+
+    // icon glyph
+    final iconChar = String.fromCharCode(icon.codePoint);
+    final ib = ui.ParagraphBuilder(
+      ui.ParagraphStyle(fontSize: iconSize, maxLines: 1, textDirection: ui.TextDirection.ltr),
+    )
+      ..pushStyle(ui.TextStyle(
+        color: const ui.Color(0xFF616161),
+        fontSize: iconSize,
+        fontFamily: icon.fontFamily ?? "MaterialIcons",
+      ))
+      ..addText(iconChar);
+
+    final ip = ib.build()..layout(const ui.ParagraphConstraints(width: 2000));
+    final iconW = ip.maxIntrinsicWidth;
+    final iconH = ip.height;
+
+    final bodyH = (max(textH, iconH) + padY * 2).ceil();
+    final bodyW = (padX * 2 + iconW + gap + textW).ceil();
+
+    // ✅ tổng height có thêm tailH
+    final w = bodyW;
+    final h = (bodyH + tailH).ceil();
+
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    final bodyRect = ui.Rect.fromLTWH(0, 0, w.toDouble(), bodyH.toDouble());
+    final bodyRRect = ui.RRect.fromRectAndRadius(bodyRect, const ui.Radius.circular(radius));
+
+    // shadow
+    final shadowPaint = ui.Paint()
+      ..color = const ui.Color(0x22000000)
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 8);
+
+    canvas.drawRRect(bodyRRect.shift(const ui.Offset(0, 3)), shadowPaint);
+
+    // tail shadow
+    final cx = w / 2.0;
+    final tailShadow = ui.Path()
+      ..moveTo(cx - tailW / 2, bodyH - 1)
+      ..lineTo(cx + tailW / 2, bodyH - 1)
+      ..lineTo(cx, bodyH + tailH)
+      ..close();
+    canvas.drawPath(tailShadow.shift(const ui.Offset(0, 3)), shadowPaint);
+
+    // bg
+    final bgPaint = ui.Paint()..color = const ui.Color(0xFFFFFFFF);
+    canvas.drawRRect(bodyRRect, bgPaint);
+
+    // tail
+    final tail = ui.Path()
+      ..moveTo(cx - tailW / 2, bodyH - 1)
+      ..lineTo(cx + tailW / 2, bodyH - 1)
+      ..lineTo(cx, bodyH + tailH)
+      ..close();
+    canvas.drawPath(tail, bgPaint);
+
+    // icon + text
+    final iconY = (bodyH - iconH) / 2;
+    canvas.drawParagraph(ip, ui.Offset(padX, iconY));
+
+    final textX = padX + iconW + gap;
+    final textY = (bodyH - textH) / 2;
+    canvas.drawParagraph(p, ui.Offset(textX, textY));
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(w, h);
+    final bd = await img.toByteData(format: ui.ImageByteFormat.png);
+    if (bd == null) throw Exception("bubble toByteData null");
+
+    return (png: bd.buffer.asUint8List(), w: w, h: h);
+  }
+
   // ================= CAMERA =================
 
   Future<int> zoomToChild(String childId) async {
     final map = _map;
     if (map == null) return 0;
 
-    final pos = _currentPositions[childId];
+    final pos = _currentPositions[childId] ?? _lastPositions[childId];
     if (pos == null) return 0;
 
     const duration = 900;

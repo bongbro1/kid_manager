@@ -54,11 +54,11 @@ class AuthVM extends ChangeNotifier {
         throw Exception("Tài khoản không tồn tại");
       }
 
-      /// ❌ chưa verify OTP
-      if (userInfo.isActive != true) {
-        await _authRepo.logout();
-        throw Exception("Tài khoản chưa được kích hoạt");
-      }
+      // /// ❌ chưa verify OTP
+      // if (userInfo.isActive != true) {
+      //   await _authRepo.logout();
+      //   throw Exception("Tài khoản chưa được kích hoạt");
+      // }
 
       /// ✅ hợp lệ
       _user = user;

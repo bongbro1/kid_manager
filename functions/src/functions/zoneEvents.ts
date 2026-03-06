@@ -39,6 +39,7 @@ async function writeInbox(opts: {
     eventKey: opts.eventKey,
     body: opts.body,
     data: opts.data,
+    childUid: String(opts.data.childUid ?? ""),
     isRead: false,
     status: "sent",
     day,
@@ -72,14 +73,14 @@ async function sendToUserTokens(opts: {
   });
 
   if (tokens.length === 0) return;
-const title = opts.eventKey; // hoặc bạn tự build title tiếng việt, nhưng bạn đang dùng eventKey để app dịch
-const body = opts.zoneName;  // hoặc bodyText nếu muốn có phút
+  const title = opts.eventKey; // hoặc bạn tự build title tiếng việt, nhưng bạn đang dùng eventKey để app dịch
+  const body = opts.zoneName;  // hoặc bodyText nếu muốn có phút
   const resp = await admin.messaging().sendEachForMulticast({
     tokens,
- notification: {
-    title,        // tối thiểu để hệ thống hiện notification khi app background
-    body,
-  },
+    notification: {
+      title,        // tối thiểu để hệ thống hiện notification khi app background
+      body,
+    },
     data: {
       type: "ZONE",
       eventKey: opts.eventKey,
@@ -89,14 +90,14 @@ const body = opts.zoneName;  // hoặc bodyText nếu muốn có phút
     },
     android: { priority: "high" },
     apns: {
-    payload: {
-      aps: {
-        alert: { title, body },   // ✅ iOS hiện được
-        sound: "default",
+      payload: {
+        aps: {
+          alert: { title, body },   // ✅ iOS hiện được
+          sound: "default",
+        },
       },
+      headers: { "apns-priority": "10" },
     },
-    headers: { "apns-priority": "10" },
-  },
   });
 
   // dọn token chết
@@ -169,7 +170,7 @@ export const onZoneEventCreated = onValueCreated(
 
     let durationSec = 0;
     let durationMin = 0;
-
+    let enterAt:number | null = null;
     if (action === "enter") {
       await presenceRef.set({
         inside: true,
@@ -189,6 +190,37 @@ export const onZoneEventCreated = onValueCreated(
       durationMin = Math.max(1, Math.round(durationSec / 60));
 
       await presenceRef.remove();
+    }
+    // ✅ update daily per-zone stats (chỉ khi exit và có duration)
+    if (action === "exit" && durationSec > 0) {
+      const day = dayInVN(eventTs); // dùng eventTs để đúng ngày VN
+      const zoneStatRef = db.doc(`zoneStatsByChild/${childUid}/days/${day}/zones/${zoneId}`);
+
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(zoneStatRef);
+        const cur = snap.exists ? (snap.data() as any) : {};
+
+        const prevTotal = Number(cur.totalSec ?? 0);
+        const prevSessions = Number(cur.sessions ?? 0);
+
+        tx.set(
+          zoneStatRef,
+          {
+            zoneId: String(zoneId),
+            zoneName: String(zoneName),
+            zoneType: String(zoneType),
+
+            totalSec: prevTotal + durationSec,
+            sessions: prevSessions + 1,
+
+            lastEnterAt: cur.lastEnterAt ?? (enterAt ?? eventTs),
+            lastExitAt: eventTs,
+
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      });
     }
 
     // body hiển thị (tuỳ chọn): chỉ exit mới thêm phút
