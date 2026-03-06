@@ -127,8 +127,9 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                                 context.read<AppManagementVM>().selectChild(
                                   user.id,
                                 );
+                                widget.onTapApps();
                               },
-                              child: UserItem(
+                              child: UserItemWidget(
                                 name: slice[i].name,
                                 avatarUrl: slice[i].avatarUrl,
                                 isOnline: slice[i].isOnline,
@@ -261,14 +262,14 @@ class _ArrowBtn extends StatelessWidget {
   }
 }
 
-class UserItem extends StatelessWidget {
+class UserItemWidget extends StatelessWidget {
   final String name;
   final String avatarUrl;
   final bool isOnline;
   final double size;
   final bool isSelected;
 
-  const UserItem({
+  const UserItemWidget({
     super.key,
     required this.name,
     required this.avatarUrl,
@@ -279,7 +280,6 @@ class UserItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<UserVm>();
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       // crossAxisAlignment: CrossAxisAlignment.center,

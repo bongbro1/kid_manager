@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
@@ -98,6 +99,35 @@ class AuthVM extends ChangeNotifier {
 
   Future<void> onLoginSuccess(String userId) async {}
 
+  Future<String?> forgotPassword(String email) async {
+    return await _runAuthAction<String>(() async {
+      // 1️⃣ tìm user theo email
+      final user = await _userRepo.getUserByEmail(email);
+
+      if (user == null) {
+        throw Exception("Email chưa đăng ký");
+      }
+
+      // 2️⃣ tạo OTP
+      await _otpRepo.createOtp(
+        uid: user.id,
+        email: email,
+        type: MailType.resetPassword,
+      );
+
+      return user.id;
+    });
+  }
+
+  Future<void> resetPassword({
+    required String uid,
+    required String newPassword,
+  }) async {
+    await _runAuthAction(() async {
+      await _authRepo.resetPassword(uid: uid, newPassword: newPassword);
+    });
+  }
+
   Future<String?> register(String email, String password) async {
     return await _runAuthAction<String>(() async {
       // 1️⃣ tạo account
@@ -115,7 +145,11 @@ class AuthVM extends ChangeNotifier {
       );
 
       // 3️⃣ tạo OTP
-      await _otpRepo.createOtp(uid: uid, email: email);
+      await _otpRepo.createOtp(
+        uid: uid,
+        email: email,
+        type: MailType.verifyEmail,
+      );
 
       await _authRepo.logout();
       return uid;
@@ -135,11 +169,19 @@ class AuthVM extends ChangeNotifier {
       final result = await action();
       return result;
     } on FirebaseAuthException catch (e) {
-      debugPrint("AUTH ERROR: $e");
+      debugPrint("AUTH ERROR (Firebase): $e");
+
       _error = _mapFirebaseError(e);
       return null;
+    } on Exception catch (e) {
+      debugPrint("AUTH ERROR (Exception): $e");
+
+      // lấy message thật
+      _error = e.toString().replaceFirst("Exception: ", "");
+      return null;
     } catch (e) {
-      debugPrint("AUTH ERROR: $e");
+      debugPrint("AUTH ERROR (Unknown): $e");
+
       _error = 'Có lỗi xảy ra. Vui lòng thử lại.';
       return null;
     } finally {

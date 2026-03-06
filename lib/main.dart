@@ -48,7 +48,7 @@ Future<void> main() async {
 
   await LocalAlarmService.I.init();
   await initializeDateFormatting('vi_VN', null);
-  await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+  await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
 
   final settings = await FirebaseMessaging.instance.requestPermission(
     alert: true,

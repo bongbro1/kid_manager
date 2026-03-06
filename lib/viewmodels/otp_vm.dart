@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 
@@ -19,25 +20,65 @@ class OtpVM extends ChangeNotifier {
   String? error;
 
   bool get canResend => countdown == 0;
+  bool get isLocked => countdown > 61;
 
   /// =============================
   /// COUNTDOWN
   /// =============================
 
   void startCountdown(int seconds) {
+    _timer?.cancel();
+
     countdown = seconds;
     notifyListeners();
 
-    _timer?.cancel();
-
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (countdown == 0) {
+      if (countdown <= 1) {
+        countdown = 0;
         timer.cancel();
       } else {
         countdown--;
-        notifyListeners();
       }
+
+      notifyListeners();
     });
+  }
+
+  Future<void> syncCooldown(String uid) async {
+    final doc = await repo.getOtpDoc(uid);
+
+    if (doc == null) {
+      countdown = 0;
+      notifyListeners();
+      return;
+    }
+
+    final data = doc.data()!;
+
+    if (data["lockedUntil"] != null) {
+      final lockedUntil = data["lockedUntil"].toDate();
+      final seconds = lockedUntil.difference(DateTime.now()).inSeconds;
+
+      if (seconds > 0) {
+        startCountdown(seconds - 1);
+        return;
+      }
+    }
+
+    if (data["lastSentAt"] != null) {
+      final lastSent = data["lastSentAt"].toDate();
+      final diff = DateTime.now().difference(lastSent).inSeconds;
+
+      final remaining = 60 - diff;
+
+      if (remaining > 0) {
+        startCountdown(remaining);
+        return;
+      }
+    }
+
+    countdown = 0;
+    notifyListeners();
   }
 
   /// =============================
@@ -55,6 +96,10 @@ class OtpVM extends ChangeNotifier {
 
       final result = await repo.verifyOtp(uid: uid, inputCode: code);
 
+      if (result == OtpVerifyResult.tooManyAttempts) {
+        await syncCooldown(uid);
+      }
+
       return result;
     } catch (e) {
       error = e.toString();
@@ -69,7 +114,11 @@ class OtpVM extends ChangeNotifier {
   /// RESEND OTP
   /// =============================
 
-  Future<bool> resendOtp({required String uid, required String email}) async {
+  Future<bool> resendOtp({
+    required String uid,
+    required String email,
+    required MailType type,
+  }) async {
     if (!canResend) return false;
 
     try {
@@ -77,10 +126,10 @@ class OtpVM extends ChangeNotifier {
       error = null;
       notifyListeners();
 
-      final ok = await repo.resendOtp(uid: uid, email: email);
+      final ok = await repo.resendOtp(uid: uid, email: email, type: type);
 
       if (ok) {
-        startCountdown(60);
+        await syncCooldown(uid);
         return true;
       } else {
         error = "Vui lòng chờ trước khi gửi lại mã";

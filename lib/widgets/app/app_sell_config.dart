@@ -6,7 +6,6 @@ import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
-import 'package:kid_manager/views/notifications/notification_screen.dart';
 import 'package:kid_manager/views/notifications/notification_debug_screen.dart';
 import 'package:kid_manager/views/notifications/notification_tab.dart';
 import 'package:kid_manager/views/parent/dashboard/app_management_screen.dart';

@@ -1,7 +1,5 @@
 import 'package:kid_manager/background/foreground_watcher.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/user/user_types.dart';
-
 import '../services/firebase_auth_service.dart';
 import 'user_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,6 +22,13 @@ class AuthRepository {
       final appUser = await _users.getUserById(fbUser.uid);
       return appUser;
     });
+  }
+
+  Future<void> resetPassword({
+    required String uid,
+    required String newPassword,
+  }) {
+    return _authService.resetPassword(uid: uid, newPassword: newPassword);
   }
 
   // ===== Actions =====

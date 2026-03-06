@@ -4,6 +4,7 @@ import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/debug/seed_demo_history_rtdb.dart';
+import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
 import 'package:kid_manager/models/notifications/notification_type.dart';
@@ -118,7 +119,11 @@ class _LoginScreenState extends State<LoginScreen> {
         await AuthRuntimeManager.stop();
       }
 
-      // đoạn này còn lỗi phần nhấp vào đăng ký sau đó ra đăng nhập thì nó không tự chuyển sang màn home
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const SessionGuard()),
+        (route) => false,
+      );
     } catch (e) {
       NotificationDialog.show(
         context,

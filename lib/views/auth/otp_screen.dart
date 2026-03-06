@@ -1,19 +1,31 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/models/notifications/notification_type.dart';
+import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
+import 'package:kid_manager/views/auth/reset_pass_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:provider/provider.dart';
 
+enum OtpPurpose { verifyEmail, resetPassword }
+
 class OtpScreen extends StatefulWidget {
   final String uid;
   final String email;
+  final OtpPurpose purpose;
 
-  const OtpScreen({super.key, required this.uid, required this.email});
+  const OtpScreen({
+    super.key,
+    required this.uid,
+    required this.email,
+    required this.purpose,
+  });
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -23,9 +35,9 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final vm = context.read<OtpVM>();
-      vm.startCountdown(60);
+      context.read<OtpVM>().syncCooldown(widget.uid);
     });
   }
 
@@ -60,17 +72,13 @@ class _OtpScreenState extends State<OtpScreen> {
 
     /// 1. kiểm tra đủ 4 ký tự
     if (otp.length != 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng nhập đủ 4 số OTP")),
-      );
+      AlertService.showSnack('Vui lòng nhập đủ 4 số OTP', isError: true);
       return;
     }
 
     /// 2. kiểm tra toàn number
     if (!RegExp(r'^\d+$').hasMatch(otp)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("OTP chỉ được chứa số")));
+      AlertService.showSnack('OTP chỉ được chứa số', isError: true);
       return;
     }
 
@@ -84,44 +92,55 @@ class _OtpScreenState extends State<OtpScreen> {
     /// 4. xử lý result
     switch (result) {
       case OtpVerifyResult.success:
-        NotificationDialog.show(
-          context,
-          type: DialogType.success,
-          title: "Thành công",
-          message: "Đăng ký tài khoản thành công",
-        );
-        
-        await Future.delayed(const Duration(milliseconds: 1000));
+        if (widget.purpose == OtpPurpose.verifyEmail) {
+          NotificationDialog.show(
+            context,
+            type: DialogType.success,
+            title: "Thành công",
+            message: "Đăng ký tài khoản thành công",
+          );
 
-        if (!mounted) return;
+          await Future.delayed(const Duration(milliseconds: 1000));
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
+          if (!mounted) return;
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+        }
+
+        if (widget.purpose == OtpPurpose.resetPassword) {
+          if (!mounted) return;
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  ResetPasswordScreen(uid: widget.uid, email: widget.email),
+            ),
+          );
+        }
+
         break;
 
       case OtpVerifyResult.invalid:
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("OTP không đúng")));
+        AlertService.showSnack("OTP không đúng", isError: true);
         break;
 
       case OtpVerifyResult.expired:
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("OTP đã hết hạn")));
+        AlertService.showSnack("OTP đã hết hạn", isError: true);
         break;
 
       case OtpVerifyResult.tooManyAttempts:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Bạn đã nhập sai quá nhiều lần")),
+        AlertService.showSnack(
+          "Bạn đã nhập sai quá 3 lần. Vui lòng chờ 10 phút.",
+          isError: true,
         );
+        vm.startCountdown(600);
         break;
       case OtpVerifyResult.notFound:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Không tìm thấy yêu cầu OTP")),
-        );
+        AlertService.showSnack("Không tìm thấy yêu cầu OTP", isError: true);
         break;
     }
   }
@@ -236,24 +255,25 @@ class _OtpScreenState extends State<OtpScreen> {
 
                   const SizedBox(height: 20),
                   GestureDetector(
-                    onTap: vm.canResend
-                        ? () async {
-                            final ok = await vm.resendOtp(
-                              uid: widget.uid,
-                              email: widget.email,
-                            );
+                    onTap: () async {
+                      if (vm.loading || !vm.canResend) return;
 
-                            if (!ok && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Vui lòng chờ trước khi gửi lại mã",
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        : null,
+                      final ok = await vm.resendOtp(
+                        uid: widget.uid,
+                        email: widget.email,
+                        type: widget.purpose == OtpPurpose.verifyEmail
+                            ? MailType.verifyEmail
+                            : MailType.resetPassword,
+                      );
+
+                      if (!ok && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Vui lòng chờ trước khi gửi lại mã"),
+                          ),
+                        );
+                      }
+                    },
                     child: Text(
                       vm.countdown > 0
                           ? 'Gửi lại mã sau ${vm.countdown}s'
@@ -274,7 +294,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     text: 'Xác minh',
                     width: 150,
                     height: 50,
-                    onPressed: _handleVerifyOtp,
+                    onPressed: vm.isLocked ? null : _handleVerifyOtp,
                   ),
                 ],
               ),

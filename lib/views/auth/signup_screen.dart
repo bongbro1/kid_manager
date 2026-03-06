@@ -69,7 +69,8 @@ class _SignupScreenState extends State<SignupScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => OtpScreen(uid: uid, email: email),
+        builder: (_) =>
+            OtpScreen(uid: uid, email: email, purpose: OtpPurpose.verifyEmail),
       ),
     );
   }

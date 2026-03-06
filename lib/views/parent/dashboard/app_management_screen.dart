@@ -26,6 +26,9 @@ class _AppManagementScreenState extends State<AppManagementScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
 
     Future.microtask(() async {
       final vm = context.read<AppManagementVM>();
@@ -78,14 +81,14 @@ class _AppManagementScreenState extends State<AppManagementScreen>
   }
 
   void _goTab(int index) {
-    _tabController.animateTo(index);
+    setState(() {
+      _tabController.animateTo(index);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final app_vm = context.watch<AppManagementVM>();
-    final apps = app_vm.apps;
-
     if (!app_vm.hasChild) {
       return const NoChildScreen();
     }

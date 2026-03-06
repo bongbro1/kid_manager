@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/alert_service.dart';
 
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/core/validators.dart';
+import 'package:kid_manager/models/notifications/notification_type.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
@@ -8,6 +11,7 @@ import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/personal_info_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
+import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:provider/provider.dart';
 
 class AddAccountScreen extends StatefulWidget {
@@ -46,34 +50,59 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
   void _onAddAccount() async {
     final dob = parseDateFromText(_dobCtrl.text);
+    final email = _emailCtrl.text.trim();
 
     if (dob == null) {
       debugPrint('ChildADD: Ngày sinh không hợp lệ');
+      AlertService.showSnack('Ngày sinh không hợp lệ', isError: true);
       return;
     }
 
-    final userVM = context.read<UserRepository>();
+    // if (!Validators.isValidEmail(email)) {
+    //   AlertService.showSnack('Email không hợp lệ', isError: true);
+    //   return;
+    // }
+
+    final userRepo = context.read<UserRepository>();
     final storage = context.read<StorageService>();
 
     final parentUid = storage.getString(StorageKeys.uid);
     if (parentUid == null) {
       debugPrint('ChildADD: Chưa đăng nhập phụ huynh');
+      AlertService.showSnack(
+        'Phiên đăng nhập đã hết. Vui lòng đăng nhập lại',
+        isError: true,
+      );
       return;
     }
 
-    final childId = await userVM.createChildAccount(
-      parentUid: parentUid,
-      email: _emailCtrl.text.trim(),
-      password: _passwordCtrl.text,
-      displayName: _nameCtrl.text.trim(),
-      dob: dob,
-      locale: localeString,
-      timezone: timezone,
-    );
+    try {
+      final childId = await userRepo.createChildAccount(
+        parentUid: parentUid,
+        email: email,
+        password: _passwordCtrl.text,
+        displayName: _nameCtrl.text.trim(),
+        dob: dob,
+        locale: localeString,
+        timezone: timezone,
+      );
 
-    debugPrint('ChildADD: Tạo tài khoản cho con thành công: + ${childId}');
-    if (childId != null) {
+      debugPrint('ChildADD: Tạo tài khoản cho con thành công: $childId');
+
+      if (!mounted) return;
+
+      NotificationDialog.show(
+        context,
+        type: DialogType.success,
+        title: "Thành công",
+        message: "Tạo tài khoản thành công",
+      );
+
       Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      AlertService.showSnack(e.toString(), isError: true);
     }
   }
 

@@ -61,9 +61,9 @@ class AppManagementVM extends ChangeNotifier {
     _childrenSub = _userRepo
         .watchChildrenByParentUid(parentUid)
         .listen(
-          (list) {
+          (list) async {
             children = list.map(ChildItem.fromUser).toList();
-            autoSelectFirstChild();
+            await autoSelectFirstChild();
 
             _loading = false;
             notifyListeners();
@@ -84,7 +84,6 @@ class AppManagementVM extends ChangeNotifier {
       return;
     }
     await loadApps(_selectedChildId!);
-    // await rebuildUsageFlat(_selectedChildId!);
     await loadUsageHistory(_selectedChildId!);
   }
 
@@ -147,13 +146,16 @@ class AppManagementVM extends ChangeNotifier {
   //   _loading = false;
   //   notifyListeners();
   // }
-
-  void autoSelectFirstChild() {
+  Future<void> autoSelectFirstChild() async {
     if (children.isEmpty) return;
 
     if (_selectedChildId == null) {
-      _selectedChildId = children.first.id;
-      loadAppsForSelectedChild();
+      if (!children.any((c) => c.id == _selectedChildId)) {
+        _selectedChildId = children.first.id;
+      }
+
+      await loadAppsForSelectedChild();
+
       notifyListeners();
     }
   }
