@@ -43,9 +43,19 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<key>NSUserNotificationUsageDescription</key>
+    <string>Ứng dụng cần gửi thông báo SOS khẩn cấp.</string>
+
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Ứng dụng cần truy cập vị trí để theo dõi và bảo vệ trẻ.</string>
+
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Ứng dụng cần truy cập vị trí liên tục để hỗ trợ tính năng an toàn.</string>
 </dict>
 </plist>

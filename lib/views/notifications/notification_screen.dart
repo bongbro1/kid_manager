@@ -40,11 +40,11 @@ class _NotificationScreenState extends State<NotificationScreen>
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _listen());
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >
           _scrollController.position.maxScrollExtent - _maxCountInPage) {
-        debugPrint("📍 Near bottom -> trigger loadMore()");
         context.read<NotificationVM>().loadMore();
       }
     });
@@ -92,7 +92,7 @@ class _NotificationScreenState extends State<NotificationScreen>
     final notifications = vm.notifications;
 
     return GestureDetector(
-      behavior: HitTestBehavior.translucent, // 👈 quan trọng
+      behavior: HitTestBehavior.translucent,
       onTap: () {
         FocusScope.of(context).unfocus();
       },
@@ -137,6 +137,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                                     (vm.hasMore ? 1 : 0),
                                 itemBuilder: (context, index) {
                                   if (index >= vm.notifications.length) {
+                                    if (!vm.loadingMore)
+                                      return const SizedBox.shrink();
+
                                     return const Padding(
                                       padding: EdgeInsets.symmetric(
                                         vertical: 24,

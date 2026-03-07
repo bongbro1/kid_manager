@@ -6,7 +6,7 @@ import 'package:kid_manager/models/user/user_subscription.dart';
 class AppUser {
   final String uid;
   final UserRole role;
-
+  final String? phone;
   final String? email;
   final String? displayName;
   final String? photoUrl;
@@ -40,6 +40,7 @@ class AppUser {
     this.parentUid,
     this.subscription,
     this.isActive = false,
+    this.phone,
   });
 
   bool get isParent => role == UserRole.parent;
@@ -55,6 +56,7 @@ class AppUser {
     'displayName': displayName,
     'photoUrl': photoUrl,
     'avatarUrl': avatarUrl,
+    'phone': phone,
     'locale': locale,
     'timezone': timezone,
     'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
@@ -77,7 +79,7 @@ class AppUser {
       displayName: d['displayName'],
       photoUrl: d['photoUrl'],
       avatarUrl: d['avatarUrl'],
-
+      phone: d['phone'],
       locale: d['locale'],
       timezone: d['timezone'],
       createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
@@ -97,6 +99,7 @@ class AppUser {
     String? displayName,
     String? photoUrl,
     String? locale,
+    String? phone,
     String? timezone,
     DateTime? lastActiveAt,
     SubscriptionInfo? subscription,
@@ -109,6 +112,7 @@ class AppUser {
       email: email ?? this.email,
       familyId: familyId ?? this.familyId,
       displayName: displayName ?? this.displayName,
+      phone: phone ?? this.phone,
       photoUrl: photoUrl ?? this.photoUrl,
       locale: locale ?? this.locale,
       timezone: timezone ?? this.timezone,

@@ -12,6 +12,7 @@ class ParentChildListItem extends StatelessWidget {
   final VoidCallback onOpenHistory;
   final VoidCallback onLocate;
   final VoidCallback onChat;
+  final VoidCallback onPhone;
 
   const ParentChildListItem({
     super.key,
@@ -20,6 +21,7 @@ class ParentChildListItem extends StatelessWidget {
     required this.onOpenHistory,
     required this.onLocate,
     required this.onChat,
+    required this.onPhone,
   });
 
   bool get isOnline {
@@ -51,14 +53,12 @@ class ParentChildListItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            /// ✅ LEFT AREA (tap -> history)
             Expanded(
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: onOpenHistory,
                 child: Row(
                   children: [
-                    /// AVATAR
                     Stack(
                       children: [
                         AppAvatar(user: child, size: 61),
@@ -78,8 +78,6 @@ class ParentChildListItem extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(width: 12),
-
-                    /// NAME + STATUS
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,13 +108,11 @@ class ParentChildListItem extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(width: 8),
-
-            /// ✅ RIGHT AREA (only icons clickable)
             _ActionPill(
               onChat: onChat,
               onLocate: onLocate,
+              onPhone: onPhone,
             ),
           ],
         ),
@@ -125,17 +121,15 @@ class ParentChildListItem extends StatelessWidget {
   }
 }
 
-/* ============================================================
-   ACTION BUTTON
-============================================================ */
-
 class _ActionPill extends StatelessWidget {
   final VoidCallback onChat;
   final VoidCallback onLocate;
+  final VoidCallback onPhone;
 
   const _ActionPill({
     required this.onChat,
     required this.onLocate,
+    required this.onPhone,
   });
 
   @override
@@ -150,7 +144,6 @@ class _ActionPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          /// CHAT
           InkWell(
             onTap: onChat,
             borderRadius: const BorderRadius.horizontal(
@@ -169,15 +162,27 @@ class _ActionPill extends StatelessWidget {
               ),
             ),
           ),
-
-          /// divider
           Container(
             width: 1,
             height: 20,
             color: Colors.grey.shade300,
           ),
-
-          /// GPS
+          InkWell(
+            onTap: onPhone,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Icon(
+                Icons.call_rounded,
+                size: 22,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 20,
+            color: Colors.grey.shade300,
+          ),
           InkWell(
             onTap: onLocate,
             borderRadius: const BorderRadius.horizontal(
@@ -201,4 +206,3 @@ class _ActionPill extends StatelessWidget {
     );
   }
 }
-

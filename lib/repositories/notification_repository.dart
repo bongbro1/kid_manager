@@ -10,7 +10,15 @@ class NotificationRepository {
 
   final int _maxCountInPage = 20;
 
-  // users/{uid}/notifications
+  Stream<int> watchUnreadCount(String uid) {
+    return _fs
+        .collection('notifications')
+        .where('receiverId', isEqualTo: uid)
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .map((snap) => snap.size);
+  }
+
   Stream<List<AppNotification>> streamUserInbox(String uid) {
     return _fs
         .collection('users')
@@ -46,7 +54,6 @@ class NotificationRepository {
         .get();
   }
 
-  // notifications (root)
   Stream<List<AppNotification>> streamUserNotifications(String uid) {
     return _fs
         .collection('notifications')
@@ -79,7 +86,6 @@ class NotificationRepository {
     }
   }
 
-  // ===== giữ để NotificationService không lỗi (global create) =====
   Future<void> create({
     required String senderId,
     required String receiverId,
@@ -103,7 +109,6 @@ class NotificationRepository {
     });
   }
 
-  // ===== mark/delete GLOBAL =====
   Future<void> markAsReadGlobal(String id) async {
     await _fs.collection('notifications').doc(id).update({'isRead': true});
   }
@@ -112,7 +117,6 @@ class NotificationRepository {
     await _fs.collection('notifications').doc(id).delete();
   }
 
-  // ===== mark/delete INBOX users/{uid}/notifications =====
   Future<void> markAsReadInbox(String uid, String id) async {
     await _fs
         .collection('users')
@@ -179,14 +183,13 @@ class NotificationRepository {
       final allowedTo = data["allowedTo"] ?? "";
 
       content =
-          "đã mở ứng dụng $appName lúc $blockedAt "
-          "ngoài khung giờ cho phép ($allowedFrom - $allowedTo). "
-          "Hệ thống đã tự động chặn ứng dụng.";
+          "đã mở ứng dụng $appName lúc $blockedAt ngoài khung giờ cho phép "
+          "($allowedFrom - $allowedTo). Hệ thống đã tự động chặn ứng dụng.";
     }
 
     return NotificationDetailModel(
       id: doc.id,
-      title: map['title'] ?? '',
+      title: (map['title'] ?? '').toString(),
       content: content,
       createdAt: map['createdAt'] != null
           ? (map['createdAt'] as Timestamp).toDate()

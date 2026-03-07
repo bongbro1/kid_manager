@@ -118,7 +118,7 @@ class ZoneStatusVm extends ChangeNotifier {
       _lastEvent = snap.docs.first.data();
 
       debugPrint("🔎 lastZoneEvent viewer=$viewerUid child=$childId");
-      q.get().then((s) => debugPrint("🔎 once get count=${s.docs.length}"));
+      q.get().then((s) => debugPrint("🔎 lastZoneEvent get count=${s.docs.length}"));
       _recompute();
     }, onError: (e) {
       debugPrint("❌ _listenLastZoneEvent error: $e");
