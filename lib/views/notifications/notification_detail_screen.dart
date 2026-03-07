@@ -25,6 +25,84 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       context.read<NotificationVM>().loadNotificationDetailItem(widget.item);
     });
   }
+  Color _resolveTopIconColor(NotificationDetailModel detail) {
+    if (detail.notificationType != NotificationType.zone) {
+      return detail.notificationType.style.iconColor;
+    }
+
+    final data = detail.data;
+    final zoneType = (data['zoneType'] ?? '').toString().toLowerCase();
+    final action = (data['action'] ?? '').toString().toLowerCase();
+
+    final isDanger = zoneType == 'danger';
+    final isEnter = action == 'enter';
+
+    if (isDanger && isEnter) return const Color(0xFFE53E3E);
+    if (isDanger && !isEnter) return const Color(0xFF38A169);
+    return const Color(0xFF3182CE);
+  }
+
+  Color _resolveTopBgColor(NotificationDetailModel detail) {
+    if (detail.notificationType != NotificationType.zone) {
+      return detail.notificationType.style.bgColor;
+    }
+
+    final data = detail.data;
+    final zoneType = (data['zoneType'] ?? '').toString().toLowerCase();
+    final action = (data['action'] ?? '').toString().toLowerCase();
+
+    final isDanger = zoneType == 'danger';
+    final isEnter = action == 'enter';
+
+    if (isDanger && isEnter) return const Color(0xFFFFF5F5);
+    if (isDanger && !isEnter) return const Color(0xFFF0FFF4);
+    return const Color(0xFFEFF6FF);
+  }
+  String _buildDisplayTitle(NotificationDetailModel detail) {
+    if (detail.notificationType != NotificationType.zone) {
+      return detail.title; // giữ nguyên type khác
+    }
+
+    final data = detail.data;
+    final zoneType = (data['zoneType'] ?? '').toString().toLowerCase();
+    final action = (data['action'] ?? '').toString().toLowerCase();
+    final childName =
+    (data['childName'] ??
+        data['displayName'] ??
+        data['name'] ??
+        data['fullName'] ??
+        'Bé')
+        .toString();
+
+    if (zoneType == 'danger' && action == 'enter') {
+      return '$childName đã vào vùng nguy hiểm';
+    }
+    if (zoneType == 'safe' && action == 'exit') {
+      return '$childName đã rời vùng an toàn';
+    }
+    if (zoneType == 'danger' && action == 'exit') {
+      return '$childName đã rời vùng nguy hiểm';
+    }
+
+    return detail.title;
+  }
+
+  IconData _resolveTopIcon(NotificationDetailModel detail) {
+    if (detail.notificationType != NotificationType.zone) {
+      return detail.notificationType.style.icon;
+    }
+
+    final data = detail.data;
+    final zoneType = (data['zoneType'] ?? '').toString().toLowerCase();
+    final action = (data['action'] ?? '').toString().toLowerCase();
+
+    final isDanger = zoneType == 'danger';
+    final isEnter = action == 'enter';
+
+    if (isDanger && isEnter) return Icons.warning_amber_rounded;
+    if (isDanger && !isEnter) return Icons.verified_rounded;
+    return Icons.location_on_outlined;
+  }
 
   String _formatTimeAgo(DateTime? time) {
     if (time == null) return "";
@@ -83,14 +161,13 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: style.bgColor,
-                            border: Border.all(color: style.borderColor),
+                            color: _resolveTopBgColor(detail),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Icon(
-                            style.icon,
+                            _resolveTopIcon(detail),
                             size: 36,
-                            color: style.iconColor,
+                            color: _resolveTopIconColor(detail),
                           ),
                         ),
 
@@ -98,7 +175,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
 
                         /// TITLE
                         Text(
-                          detail.title,
+                          _buildDisplayTitle(detail),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Color(0xFF0F172A),

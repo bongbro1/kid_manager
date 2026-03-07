@@ -39,7 +39,13 @@ class NotificationVM extends ChangeNotifier {
   /// ==============================
 
   void listen(String uid) {
-    listenMulti(uid: uid, sources: const [NotificationSource.global]);
+    listenMulti(
+      uid: uid,
+      sources: const [
+        NotificationSource.userInbox,
+        NotificationSource.global,
+      ],
+    );
   }
 
   void listenMulti({
@@ -120,11 +126,11 @@ class NotificationVM extends ChangeNotifier {
     await Future.delayed(const Duration(milliseconds: 300));
   }
 
-  Future<void> loadNotificationDetail(String id) async {
+  Future<void> loadNotificationDetail(String id,AppNotification n) async {
     try {
       _loading = true;
       notifyListeners();
-      notificationDetail = await _repo.getNotificationDetail(id);
+      notificationDetail = await _repo.getNotificationDetailByItem(id,n);
     } catch (e) {
       notificationDetail = null;
       _error = e.toString();
@@ -139,10 +145,17 @@ class NotificationVM extends ChangeNotifier {
     final uid = _uid;
     if (uid == null) return;
 
-    if (n.store == NotificationStore.userInbox) {
-      await _repo.markAsReadInbox(uid, n.id);
-    } else {
-      await _repo.markAsReadGlobal(n.id);
+    try {
+      debugPrint("🔎 markAsRead store=${n.store} vmUid=$uid notifId=${n.id}");
+
+      if (n.store == NotificationStore.userInbox) {
+        await _repo.markAsReadInbox(uid, n.id);
+      } else {
+        await _repo.markAsReadGlobal(n.id);
+      }
+    } catch (e) {
+      debugPrint("❌ markAsRead error: $e");
+      rethrow;
     }
   }
 

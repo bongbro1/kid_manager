@@ -361,6 +361,16 @@ class UserRepository {
       rethrow;
     }
   }
+  /// THÊM HÀM NÀY
+  Future<void> updateUserProfileByUid({
+    required String uid,
+    required Map<String, dynamic> data,
+  }) async {
+    await _db.collection('users').doc(uid).set(
+      data,
+      SetOptions(merge: true),
+    );
+  }
 
   Stream<List<AppUser>> watchChildrenByParentUid(String parentUid) {
     return _db

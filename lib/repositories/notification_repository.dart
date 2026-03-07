@@ -1,15 +1,17 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
+import 'package:flutter/foundation.dart';
 
 class NotificationRepository {
-
   final FirebaseFirestore _fs;
-  NotificationRepository({FirebaseFirestore? fs}) : _fs = fs ?? FirebaseFirestore.instance;
+  NotificationRepository({FirebaseFirestore? fs})
+      : _fs = fs ?? FirebaseFirestore.instance;
 
-  // users/{uid}/notifications
   Stream<List<AppNotification>> streamUserInbox(String uid) {
     return _fs
         .collection('users')
@@ -19,11 +21,14 @@ class NotificationRepository {
         .limit(200)
         .snapshots()
         .map((snap) => snap.docs
-        .map((d) => AppNotification.fromMap(d.id, d.data(), store: NotificationStore.userInbox))
+        .map((d) => AppNotification.fromMap(
+      d.id,
+      d.data(),
+      store: NotificationStore.userInbox,
+    ))
         .toList());
   }
 
-  // notifications (root)
   Stream<List<AppNotification>> streamUserNotifications(String uid) {
     return _fs
         .collection('notifications')
@@ -32,7 +37,11 @@ class NotificationRepository {
         .limit(200)
         .snapshots()
         .map((snap) => snap.docs
-        .map((d) => AppNotification.fromMap(d.id, d.data(), store: NotificationStore.global))
+        .map((d) => AppNotification.fromMap(
+      d.id,
+      d.data(),
+      store: NotificationStore.global,
+    ))
         .toList());
   }
 
@@ -45,7 +54,6 @@ class NotificationRepository {
     }
   }
 
-  // ===== giữ để NotificationService không lỗi (global create) =====
   Future<void> create({
     required String senderId,
     required String receiverId,
@@ -69,7 +77,6 @@ class NotificationRepository {
     });
   }
 
-  // ===== mark/delete GLOBAL =====
   Future<void> markAsReadGlobal(String id) async {
     await _fs.collection('notifications').doc(id).update({'isRead': true});
   }
@@ -78,17 +85,74 @@ class NotificationRepository {
     await _fs.collection('notifications').doc(id).delete();
   }
 
-  // ===== mark/delete INBOX users/{uid}/notifications =====
   Future<void> markAsReadInbox(String uid, String id) async {
-    await _fs.collection('users').doc(uid).collection('notifications').doc(id).update({'isRead': true});
+    await _fs
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .doc(id)
+        .update({'isRead': true});
   }
 
   Future<void> deleteInbox(String uid, String id) async {
-    await _fs.collection('users').doc(uid).collection('notifications').doc(id).delete();
+    await _fs
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .doc(id)
+        .delete();
+  }
+
+
+  void debugPrintMap(
+      Map<String, dynamic> map, {
+        String title = 'DEBUG MAP',
+        int indent = 0,
+      }) {
+    final space = '  ' * indent;
+
+    if (indent == 0) {
+      debugPrint('========== $title ==========');
+    }
+
+    map.forEach((key, value) {
+      if (value is Map) {
+        debugPrint('$space$key: {');
+        debugPrintMap(
+          Map<String, dynamic>.from(value),
+          title: title,
+          indent: indent + 1,
+        );
+        debugPrint('$space}');
+      } else if (value is List) {
+        debugPrint('$space$key: [');
+        for (int i = 0; i < value.length; i++) {
+          final item = value[i];
+          if (item is Map) {
+            debugPrint('$space  [$i]: {');
+            debugPrintMap(
+              Map<String, dynamic>.from(item),
+              title: title,
+              indent: indent + 2,
+            );
+            debugPrint('$space  }');
+          } else {
+            debugPrint('$space  [$i]: $item (${item.runtimeType})');
+          }
+        }
+        debugPrint('$space]');
+      } else {
+        debugPrint('$space$key: $value (${value.runtimeType})');
+      }
+    });
+
+    if (indent == 0) {
+      debugPrint('================================');
+    }
   }
 
   Future<NotificationDetailModel> getNotificationDetailByItem(String uid, AppNotification n) async {
-    final docRef = (n.store == NotificationStore.userInbox)
+    final docRef = n.store == NotificationStore.userInbox
         ? _fs.collection('users').doc(uid).collection('notifications').doc(n.id)
         : _fs.collection('notifications').doc(n.id);
 
@@ -98,29 +162,14 @@ class NotificationRepository {
     final map = doc.data() as Map<String, dynamic>;
     final type = (map['type'] ?? '').toString();
     final data = Map<String, dynamic>.from(map['data'] ?? {});
-    final content = (map['body'] ?? '').toString();
-
-    return NotificationDetailModel(
-      id: doc.id,
-      title: (map['title'] ?? '').toString(),
-      content: content,
-      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : DateTime.now(),
-      type: type,
-      data: data,
-    );  }
-
-  Future<NotificationDetailModel> getNotificationDetail(String id) async {
-    final doc = await _fs.collection('notifications').doc(id).get();
-
-    if (!doc.exists) {
-      throw Exception("Notification not found");
-    }
-
-    final map = doc.data()!;
-    final type = map['type'] ?? '';
-    final data = Map<String, dynamic>.from(map['data'] ?? {});
-
-    String content = map['body'] ?? '';
+    String content = (map['body'] ?? '').toString();
+    debugPrint('=========== getNotificationDetailByItem ===========');
+    debugPrint('doc.id = ${doc.id}');
+    debugPrint('type = $type');
+    debugPrint('title = ${map['title']}');
+    debugPrint('body = ${map['body']}');
+    debugPrintMap(data, title: 'NOTIFICATION DATA');
+    debugPrint('===================================================');
 
     if (type == NotificationType.blockedApp.value) {
       final appName = data["appName"] ?? "";
@@ -129,14 +178,13 @@ class NotificationRepository {
       final allowedTo = data["allowedTo"] ?? "";
 
       content =
-          "đã mở ứng dụng $appName lúc $blockedAt "
-          "ngoài khung giờ cho phép ($allowedFrom - $allowedTo). "
-          "Hệ thống đã tự động chặn ứng dụng.";
+      "đã mở ứng dụng $appName lúc $blockedAt ngoài khung giờ cho phép "
+          "($allowedFrom - $allowedTo). Hệ thống đã tự động chặn ứng dụng.";
     }
 
     return NotificationDetailModel(
       id: doc.id,
-      title: map['title'] ?? '',
+      title: (map['title'] ?? '').toString(),
       content: content,
       createdAt: map['createdAt'] != null
           ? (map['createdAt'] as Timestamp).toDate()
@@ -146,22 +194,3 @@ class NotificationRepository {
     );
   }
 }
-
-
-// notifications/{notificationId}
-// {
-//   senderId: "uid" | null,
-//   receiverId: "uid",
-//   familyId: "...",
-
-//   type: "SOS",
-
-//   title: "...",
-//   body: "...",
-//   data: {...},
-
-//   isRead: false,
-//   status: "pending",   // CF sẽ đổi → sent / failed
-
-//   createdAt: serverTimestamp()
-// }
