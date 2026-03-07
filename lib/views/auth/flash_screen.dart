@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/features/permissions/permission_onboarding_flow.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -12,6 +13,9 @@ class FlashScreen extends StatefulWidget {
 }
 
 class _FlashScreenState extends State<FlashScreen> {
+  bool _showPermissionFlow = false;
+  bool _permissionsDone = false;
+
   void _onContinue() {
     context.read<SessionVM>().finishSplash();
   }
@@ -25,16 +29,13 @@ class _FlashScreenState extends State<FlashScreen> {
   }
 
   Future<void> _init() async {
-    debugPrint("🚀 Flash init start");
-
     final appVM = context.read<AppManagementVM>();
-
     try {
       await appVM.loadAndSeedApp();
-    } catch (e, s) {
-      debugPrint("❌ loadAndSeedApp ERROR: $e");
-      debugPrint("$s");
-    }
+    } catch (_) {}
+
+    if (!mounted) return;
+    setState(() => _showPermissionFlow = true);
   }
 
   @override
@@ -42,6 +43,18 @@ class _FlashScreenState extends State<FlashScreen> {
     final appVM = context.watch<AppManagementVM>();
 
     if (appVM.loading) return LoadingOverlay();
+
+    if (_showPermissionFlow && !_permissionsDone) {
+      return PermissionOnboardingFlow(
+        onFinished: () {
+          if (!mounted) return;
+          setState(() {
+            _permissionsDone = true;
+          });
+        },
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -55,7 +68,6 @@ class _FlashScreenState extends State<FlashScreen> {
                   children: [
                     _LogoStack(),
                     const SizedBox(height: 24),
-
                     const SizedBox(
                       width: 241,
                       child: Text(
@@ -71,9 +83,7 @@ class _FlashScreenState extends State<FlashScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
                     const SizedBox(
                       width: 241,
                       child: Text(
@@ -93,8 +103,6 @@ class _FlashScreenState extends State<FlashScreen> {
                 ),
               ),
             ),
-
-            /// ===== CONTINUE BUTTON =====
             Padding(
               padding: const EdgeInsets.only(bottom: 40, right: 53, top: 24),
               child: Align(
@@ -125,7 +133,6 @@ class _FlashScreenState extends State<FlashScreen> {
     );
   }
 }
-
 class _LogoStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
