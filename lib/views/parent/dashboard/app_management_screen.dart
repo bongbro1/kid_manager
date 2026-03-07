@@ -20,25 +20,23 @@ class AppManagementScreen extends StatefulWidget {
 class _AppManagementScreenState extends State<AppManagementScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  int _tabIndex = 0;
 
   // sau chuyển ra flash screen
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _tabIndex = _tabController.index;
     _tabController.addListener(() {
-      // chỉ rebuild khi đã đổi tab thật sự
-      if (!_tabController.indexIsChanging && mounted) {
-        setState(() => _tabIndex = _tabController.index);
-      }
+      setState(() {});
     });
 
     Future.microtask(() async {
-      context.read<AppManagementVM>().loadChildren();
+      final vm = context.read<AppManagementVM>();
+
+      // await vm.loadChildren(); // đợi load xong + set selectedChildId
       if (!mounted) return;
-      await context.read<AppManagementVM>().loadAppsForSelectedChild();
+
+      await vm.loadAppsForSelectedChild(); // giờ mới load app
     });
   }
 
@@ -83,14 +81,14 @@ class _AppManagementScreenState extends State<AppManagementScreen>
   }
 
   void _goTab(int index) {
-    _tabController.animateTo(index);
+    setState(() {
+      _tabController.animateTo(index);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final app_vm = context.watch<AppManagementVM>();
-    final apps = app_vm.apps;
-
     if (!app_vm.hasChild) {
       return const NoChildScreen();
     }

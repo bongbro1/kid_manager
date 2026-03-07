@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,7 +7,9 @@ import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository_impl.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
+import 'package:kid_manager/repositories/otp_repository.dart';
 
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/app_installed_service.dart';
@@ -21,6 +22,7 @@ import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:kid_manager/viewmodels/otp_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -30,6 +32,7 @@ import 'core/constants.dart';
 import 'core/theme.dart';
 
 import 'features/sessionguard/session_guard.dart';
+import 'l10n/app_localizations.dart';
 import 'services/firebase_auth_service.dart';
 import 'repositories/auth_repository.dart';
 import 'viewmodels/auth_vm.dart';
@@ -80,6 +83,7 @@ class _MyAppState extends State<MyApp> {
       secondaryAuthService,
     );
     final authRepo = AuthRepository(authService, userRepo);
+    final otpRepo = OtpRepository(FirebaseFirestore.instance);
     final scheduleRepo = ScheduleRepository(FirebaseFirestore.instance);
     final appRepo = AppManagementRepository(
       appInstalledService,
@@ -102,11 +106,14 @@ class _MyAppState extends State<MyApp> {
         Provider.value(value: userRepo),
         Provider.value(value: authRepo),
         Provider.value(value: appRepo),
+        Provider.value(value: otpRepo),
 
         // ViewModels
         ChangeNotifierProvider(
           create: (context) => AuthVM(
-            context.read<AuthRepository>(),
+            authRepo,
+            userRepo,
+            otpRepo,
             context.read<StorageService>(),
           ),
         ),
@@ -123,6 +130,8 @@ class _MyAppState extends State<MyApp> {
             context.read<StorageService>(),
           ),
         ),
+
+        ChangeNotifierProvider(create: (context) => OtpVM(otpRepo)),
 
         Provider<ScheduleRepository>.value(value: scheduleRepo),
 
@@ -179,6 +188,21 @@ class _MyAppState extends State<MyApp> {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
+
+        // ✅ gen-l10n
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en'),
+          Locale('vi'),
+        ],
+
+        // ❌ bỏ: locale: context.locale,
+
         navigatorKey: AlertService.navigatorKey,
         navigatorObservers: [routeObserver],
         theme: AppTheme.light(),

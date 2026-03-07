@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/services/notifications/sos_notification_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
+import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/flash_screen.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
@@ -83,7 +84,9 @@ class _SessionGuardState extends State<SessionGuard> {
         if (shouldTriggerMeWatch) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            context.read<UserVm>().watchMe(uid!);
+            context.read<UserVm>().watchMe(uid);
+            context.read<UserVm>().watchMe(uid);
+            context.read<AppManagementVM>().watchChildren(uid);
           });
         }
 
@@ -91,7 +94,7 @@ class _SessionGuardState extends State<SessionGuard> {
         if (shouldTriggerChildrenWatch) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            context.read<UserVm>().watchChildren(uid!);
+            context.read<UserVm>().watchChildren(uid);
           });
         }
 

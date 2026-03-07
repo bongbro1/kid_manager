@@ -9,9 +9,9 @@ object ForegroundAppBridge {
     var eventSink: EventChannel.EventSink? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    fun send(packageName: String) {
+    fun send(data: Map<String, String>) {
         mainHandler.post {
-            eventSink?.success(packageName)
+            eventSink?.success(data)
         }
     }
 }

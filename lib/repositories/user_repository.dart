@@ -124,6 +124,7 @@ class UserRepository {
           'startAt': FieldValue.serverTimestamp(),
           'endAt': null,
         },
+        'isActive': false,
       })..removeWhere((_, v) => v == null),
     );
 
@@ -186,15 +187,15 @@ class UserRepository {
     required String timezone,
   }) async {
     try {
-      // 1) Lấy familyId của parent
+      /// 1️⃣ Lấy familyId của parent
       final parentSnap = await userRef(parentUid).get();
       final familyId = parentSnap.data()?['familyId'];
 
       if (familyId == null || (familyId is String && familyId.isEmpty)) {
-        throw StateError("Parent missing familyId");
+        throw "Parent missing familyId";
       }
 
-      // 2) Tạo Auth user
+      /// 2️⃣ Tạo Auth user
       final cred = await _secondaryAuth!.createUser(
         email: email.trim(),
         password: password,
@@ -202,7 +203,7 @@ class UserRepository {
 
       final childUid = cred.user!.uid;
 
-      // 3) Ghi Firestore bằng batch
+      /// 3️⃣ Batch Firestore
       final batch = _db.batch();
 
       batch.set(
@@ -220,9 +221,10 @@ class UserRepository {
           'createdAt': FieldValue.serverTimestamp(),
           'lastActiveAt': FieldValue.serverTimestamp(),
           'avatarUrl': '',
+          'isActive': true,
         }..removeWhere((_, v) => v == null),
       );
-      print("Lỗi ở đây 1");
+
       batch.set(
         _db
             .collection('families')
@@ -236,48 +238,50 @@ class UserRepository {
           'joinedAt': FieldValue.serverTimestamp(),
         },
       );
-      print("Lỗi ở đây 2");
+
       await batch.commit();
 
       return childUid;
     }
-    //  Bắt lỗi Firebase Auth (email trùng, password yếu, email sai định dạng...)
+    /// 🔥 Firebase Auth errors
     on FirebaseAuthException catch (e) {
-      // Gợi ý message theo code
       switch (e.code) {
         case 'email-already-in-use':
-          throw Exception("Email đã được sử dụng.");
+          throw "Email đã được sử dụng";
+
         case 'invalid-email':
-          throw Exception("Email không hợp lệ.");
+          throw "Email không hợp lệ";
+
         case 'weak-password':
-          throw Exception("Mật khẩu quá yếu (hãy dùng mạnh hơn).");
+          throw "Mật khẩu quá yếu";
+
         case 'operation-not-allowed':
-          throw Exception(
-            "Chức năng tạo tài khoản chưa được bật trong Firebase Auth.",
-          );
+          throw "Chức năng tạo tài khoản chưa bật trong Firebase Auth";
+
         default:
-          throw Exception("Lỗi tạo tài khoản: ${e.message ?? e.code}");
+          throw e.message ?? "Lỗi tạo tài khoản";
       }
     }
-    // Bắt lỗi Firestore
+    /// 🔥 Firestore errors
     on FirebaseException catch (e) {
-      // FirebaseException dùng cho Firestore/Storage... (Firestore thường code: permission-denied, unavailable...)
       switch (e.code) {
         case 'permission-denied':
-          throw Exception("Không đủ quyền ghi dữ liệu (permission-denied).");
+          throw "Không đủ quyền ghi dữ liệu";
+
         case 'unavailable':
-          throw Exception("Firestore tạm thời không khả dụng. Thử lại sau.");
+          throw "Firestore tạm thời không khả dụng";
+
         default:
-          throw Exception("Lỗi Firestore: ${e.message ?? e.code}");
+          throw e.message ?? "Lỗi Firestore";
       }
     }
-    //  Bắt lỗi logic (familyId null, v.v.)
+    /// 🔥 Logic error
     on StateError catch (e) {
-      throw Exception("Dữ liệu không hợp lệ: ${e.message}");
+      throw e.message ?? "Dữ liệu không hợp lệ";
     }
-    //  Bắt mọi lỗi còn lại
+    /// 🔥 Unknown
     catch (e) {
-      throw Exception("Tạo tài khoản con thất bại: $e");
+      throw "Tạo tài khoản con thất bại";
     }
   }
 
@@ -292,6 +296,20 @@ class UserRepository {
 
     if (!doc.exists) return null;
     return UserProfile.fromMap(uid, doc.data()!);
+  }
+
+  Future<UserProfile?> getUserByEmail(String email) async {
+    final snap = await _db
+        .collection("users")
+        .where("email", isEqualTo: email.trim())
+        .limit(1)
+        .get();
+
+    if (snap.docs.isEmpty) return null;
+
+    final doc = snap.docs.first;
+
+    return UserProfile.fromMap(doc.id, doc.data());
   }
 
   Stream<UserProfile?> listenUserProfile(String uid) {
@@ -342,6 +360,16 @@ class UserRepository {
       debugPrint("❌ ERROR getChildrenByParentUid: $e");
       rethrow;
     }
+  }
+
+  Stream<List<AppUser>> watchChildrenByParentUid(String parentUid) {
+    return _db
+        .collection("users")
+        .where("parentUid", isEqualTo: parentUid)
+        .snapshots()
+        .map((snap) {
+          return snap.docs.map((d) => AppUser.fromDoc(d)).toList();
+        });
   }
 
   Future<UserRole> getUserRole(String uid) async {

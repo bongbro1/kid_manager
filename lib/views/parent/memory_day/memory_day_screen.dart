@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/models/notifications/notification_type.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/utils/ui_helpers.dart';
 import 'package:kid_manager/utils/notification_helper.dart';
-import 'package:kid_manager/models/notification_type.dart';
 
 import '../../../viewmodels/memory_day_vm.dart';
 import '../../../models/memory_day.dart';

@@ -13,6 +13,16 @@ class AppWatcherService : Service() {
 
     private lateinit var workerThread: HandlerThread
     private lateinit var workerHandler: Handler
+    private var lastSentPackage: String? = null
+    private fun getAppName(packageName: String): String {
+        return try {
+            val pm = applicationContext.packageManager
+            val appInfo = pm.getApplicationInfo(packageName, 0)
+            pm.getApplicationLabel(appInfo).toString()
+        } catch (e: Exception) {
+            packageName
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -27,8 +37,17 @@ class AppWatcherService : Service() {
 
                 val pkg = getForegroundApp()
 
-                if (pkg != null) {
-                    ForegroundAppBridge.send(pkg)
+                if (pkg != null && pkg != lastSentPackage) {
+                    lastSentPackage = pkg
+
+                    val appName = getAppName(pkg)
+
+                    val map = mapOf(
+                        "packageName" to pkg,
+                        "appName" to appName
+                    )
+
+                    ForegroundAppBridge.send(map)
                 }
 
                 workerHandler.postDelayed(this, 2000)

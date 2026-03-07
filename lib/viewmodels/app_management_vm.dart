@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_item_model.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
@@ -41,12 +42,38 @@ class AppManagementVM extends ChangeNotifier {
   int _usageVersion = 0;
   int get usageVersion => _usageVersion;
 
+  StreamSubscription<List<AppUser>>? _childrenSub;
+
   Future<void> selectChild(String uid) async {
     if (_selectedChildId == uid) return;
 
     _selectedChildId = uid;
     notifyListeners();
     await loadAppsForSelectedChild();
+  }
+
+  Future<void> watchChildren(String parentUid) async {
+    _childrenSub?.cancel();
+
+    _loading = true;
+    notifyListeners();
+
+    _childrenSub = _userRepo
+        .watchChildrenByParentUid(parentUid)
+        .listen(
+          (list) async {
+            children = list.map(ChildItem.fromUser).toList();
+            await autoSelectFirstChild();
+
+            _loading = false;
+            notifyListeners();
+          },
+          onError: (e) {
+            _error = e.toString();
+            _loading = false;
+            notifyListeners();
+          },
+        );
   }
 
   Future<void> loadAppsForSelectedChild() async {
@@ -57,8 +84,7 @@ class AppManagementVM extends ChangeNotifier {
       return;
     }
     await loadApps(_selectedChildId!);
-    await rebuildUsageFlat();
-    await loadUsageHistory();
+    await loadUsageHistory(_selectedChildId!);
   }
 
   /// Load + seed + sync usage
@@ -96,37 +122,40 @@ class AppManagementVM extends ChangeNotifier {
     }
   }
 
-  Future<void> loadChildren() async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
+  // Future<void> loadChildren() async {
+  //   _loading = true;
+  //   _error = null;
+  //   notifyListeners();
 
-    try {
-      final uid = _storage.getString(StorageKeys.uid);
+  //   try {
+  //     final uid = _storage.getString(StorageKeys.uid);
 
-      if (uid == null) {
-        _error = "Không tìm thấy userId";
-        _loading = false;
-        notifyListeners();
-        return;
-      }
+  //     if (uid == null) {
+  //       _error = "Không tìm thấy userId";
+  //       _loading = false;
+  //       notifyListeners();
+  //       return;
+  //     }
 
-      children = await _userRepo.getChildrenByParentUid(uid);
-      autoSelectFirstChild();
-    } catch (e) {
-      _error = e.toString();
-    }
+  //     children = await _userRepo.getChildrenByParentUid(uid);
+  //     autoSelectFirstChild();
+  //   } catch (e) {
+  //     _error = e.toString();
+  //   }
 
-    _loading = false;
-    notifyListeners();
-  }
-
-  void autoSelectFirstChild() {
+  //   _loading = false;
+  //   notifyListeners();
+  // }
+  Future<void> autoSelectFirstChild() async {
     if (children.isEmpty) return;
 
     if (_selectedChildId == null) {
-      _selectedChildId = children.first.id;
-      loadAppsForSelectedChild();
+      if (!children.any((c) => c.id == _selectedChildId)) {
+        _selectedChildId = children.first.id;
+      }
+
+      await loadAppsForSelectedChild();
+
       notifyListeners();
     }
   }
@@ -195,13 +224,11 @@ class AppManagementVM extends ChangeNotifier {
     return _repo.fetchUsageRule(userId: childId, packageName: packageName);
   }
 
-  Future<void> loadUsageHistory() async {
-    if (_selectedChildId == null) return;
-
-    debugPrint("📥 loadUsageHistory START for child = $_selectedChildId");
+  Future<void> loadUsageHistory(String selectedChildId) async {
+    debugPrint("📥 loadUsageHistory START for child = $selectedChildId");
 
     try {
-      final result = await _repo.loadUsageHistory(_selectedChildId!);
+      final result = await _repo.loadUsageHistory(selectedChildId);
 
       _usageMap = result.totalUsage;
       _appUsageMap = result.perAppUsage;
@@ -226,8 +253,13 @@ class AppManagementVM extends ChangeNotifier {
     debugPrint("📤 loadUsageHistory END");
   }
 
-  Future<void> rebuildUsageFlat() async {
-    if (_selectedChildId == null) return;
-    await _repo.rebuildUsageDailyFlat(_selectedChildId!);
+  @override
+  void dispose() {
+    _childrenSub?.cancel();
+    super.dispose();
   }
+
+  // Future<void> rebuildUsageFlat(String selectedChildId) async {
+  //   await _repo.rebuildUsageDailyFlat(selectedChildId);
+  // }
 }

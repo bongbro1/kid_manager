@@ -16,10 +16,12 @@ class BottomTab {
 class BottomTabConfig {
   final String iconAsset;
   final Widget root;
+  final bool showBadge;
 
   const BottomTabConfig({
     required this.iconAsset,
     required this.root,
+    this.showBadge = false,
   });
 }
 

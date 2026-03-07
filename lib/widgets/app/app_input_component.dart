@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class AppLabeledTextField extends StatelessWidget {
@@ -109,10 +108,10 @@ class AppLabeledCheckbox extends StatelessWidget {
             child: Row(
               children: [
                 Transform.translate(
-                  offset: const Offset(-4, 0), // 👈 chỉnh -2, -4, -6 tùy ý
+                  offset: const Offset(0, 0),
                   child: Checkbox(
                     value: value,
-                    onChanged: (v) => onChanged(v ?? false),
+                    onChanged: null,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: const VisualDensity(
                       horizontal: -4,
@@ -121,9 +120,10 @@ class AppLabeledCheckbox extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    side: const BorderSide(color: Color(0xFFEEEFF1)),
+                    side: const BorderSide(color: Color(0xFF4A4A4A)),
                   ),
                 ),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     text,

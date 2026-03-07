@@ -15,7 +15,6 @@ class AppButton extends StatelessWidget {
   final double? width;
   final double? height;
 
-  // NEW: typography
   final double? fontSize;
   final FontWeight? fontWeight;
   final String? fontFamily;
@@ -48,8 +47,11 @@ class AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     final bgColor = backgroundColor ?? theme.colorScheme.primary;
     final fgColor = foregroundColor ?? theme.colorScheme.onPrimary;
+
+    final bool isDisabled = loading || onPressed == null;
 
     final textStyle = theme.textTheme.labelLarge?.copyWith(
       color: outlined ? bgColor : fgColor,
@@ -60,28 +62,7 @@ class AppButton extends StatelessWidget {
       height: lineHeight,
     );
 
-    final style = ElevatedButton.styleFrom(
-      backgroundColor: outlined ? Colors.transparent : bgColor,
-      foregroundColor: fgColor,
-
-      // 🔥 TẮT HIỆU ỨNG
-      splashFactory: NoSplash.splashFactory,
-      shadowColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
-
-      disabledBackgroundColor: bgColor.withOpacity(0.5),
-      disabledForegroundColor: fgColor.withOpacity(0.7),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
-        side: outlined ? BorderSide(color: bgColor) : BorderSide.none,
-      ),
-      padding:
-          padding ?? const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      elevation: 0,
-      textStyle: textStyle,
-    );
-
-    final child = loading
+    Widget child = loading
         ? SizedBox(
             width: 18,
             height: 18,
@@ -94,26 +75,67 @@ class AppButton extends StatelessWidget {
             data: IconThemeData(color: outlined ? bgColor : fgColor, size: 18),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (icon != null) ...[
-                  ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      outlined ? bgColor : fgColor,
-                      BlendMode.srcIn,
+                  TweenAnimationBuilder<Color?>(
+                    duration: const Duration(milliseconds: 200),
+                    tween: ColorTween(
+                      begin: outlined ? bgColor : fgColor,
+                      end: outlined ? bgColor : fgColor,
                     ),
-                    child: icon!,
+                    builder: (context, color, child) {
+                      return ColorFiltered(
+                        colorFilter: ColorFilter.mode(
+                          color ?? fgColor,
+                          BlendMode.srcIn,
+                        ),
+                        child: child,
+                      );
+                    },
+                    child: icon,
                   ),
                   const SizedBox(width: 8),
                 ],
-                Text(text),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  style: textStyle!,
+                  child: Text(text),
+                ),
               ],
             ),
           );
 
-    Widget button = ElevatedButton(
-      onPressed: loading ? null : onPressed,
-      style: style,
-      child: child,
+    Widget button = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: outlined ? Colors.transparent : bgColor,
+        borderRadius: BorderRadius.circular(30),
+        border: outlined ? Border.all(color: bgColor) : null,
+      ),
+      child: ElevatedButton(
+        onPressed: isDisabled ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: fgColor,
+          shadowColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          splashFactory: NoSplash.splashFactory,
+          padding:
+              padding ??
+              const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        ),
+        child: child,
+      ),
+    );
+
+    button = AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: isDisabled ? 0.8 : 1,
+      child: button,
     );
 
     if (width != null || height != null) {
@@ -123,7 +145,6 @@ class AppButton extends StatelessWidget {
         child: button,
       );
     } else if (fullWidth) {
-      button = const SizedBox(width: double.infinity, child: SizedBox());
       button = SizedBox(width: double.infinity, child: button);
     }
 

@@ -1,0 +1,11 @@
+{
+  "zone.enter.danger.parent": "⚠️ Bé vào vùng nguy hiểm",
+  "zone.exit.danger.parent": "✅ Bé rời vùng nguy hiểm",
+  "zone.enter.safe.parent": "✅ Bé vào vùng an toàn",
+  "zone.exit.safe.parent": "ℹ️ Bé rời vùng an toàn",
+
+  "zone.enter.danger.child": "⚠️ Bạn đang vào vùng nguy hiểm",
+  "zone.exit.danger.child": "✅ Bạn đã ra khỏi vùng nguy hiểm",
+  "zone.enter.safe.child": "✅ Bạn đang vào vùng an toàn",
+  "zone.exit.safe.child": "ℹ️ Bạn đã ra khỏi vùng an toàn"
+}

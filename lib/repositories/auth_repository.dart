@@ -1,7 +1,5 @@
 import 'package:kid_manager/background/foreground_watcher.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/user/user_types.dart';
-
 import '../services/firebase_auth_service.dart';
 import 'user_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -26,6 +24,13 @@ class AuthRepository {
     });
   }
 
+  Future<void> resetPassword({
+    required String uid,
+    required String newPassword,
+  }) {
+    return _authService.resetPassword(uid: uid, newPassword: newPassword);
+  }
+
   // ===== Actions =====
   Future<UserCredential> login(String email, String password) {
     return _authService.signIn(email.trim(), password);
@@ -36,13 +41,6 @@ class AuthRepository {
     required String password,
   }) async {
     final cred = await _authService.signUp(email.trim(), password);
-
-    final u = cred.user!;
-    await _users.createParentIfMissing(
-      uid: u.uid,
-      email: u.email ?? email.trim(),
-    );
-
     return cred;
   }
 
@@ -51,4 +49,3 @@ class AuthRepository {
     await _authService.signOut();
   }
 }
-

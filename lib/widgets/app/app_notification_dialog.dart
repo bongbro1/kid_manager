@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:kid_manager/models/notification_type.dart';
+import 'package:kid_manager/models/notifications/notification_type.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
 
 class NotificationDialog extends StatelessWidget {

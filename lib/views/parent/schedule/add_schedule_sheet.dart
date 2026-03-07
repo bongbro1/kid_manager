@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/models/notifications/notification_type.dart';
 import 'package:kid_manager/utils/exceptions.dart';
+import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/parent/schedule/schedule_period_selector.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/utils/ui_helpers.dart';
-import 'package:kid_manager/widgets/app/notification_dialog.dart';
-import 'package:kid_manager/models/notification_type.dart';
 import 'package:kid_manager/utils/cupertino_time_picker.dart';
 import 'package:kid_manager/utils/confirm_exit_dialog.dart';
 
