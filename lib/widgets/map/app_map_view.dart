@@ -5,11 +5,12 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 class AppMapView extends StatefulWidget {
   final Function(MapboxMap) onMapCreated;
   final Future<void> Function(MapboxMap map)? onStyleLoaded;
-
+  final void Function(MapContentGestureContext context)? onTapListener;
   const AppMapView({
     super.key,
     required this.onMapCreated,
     this.onStyleLoaded,
+    this.onTapListener,
   });
 
   @override
@@ -63,6 +64,7 @@ class _AppMapViewState extends State<AppMapView> {
             _map = map;
             widget.onMapCreated(map);
           },
+          onTapListener: widget.onTapListener,
 
           onStyleLoadedListener: (_) async {
             final map = _map;
