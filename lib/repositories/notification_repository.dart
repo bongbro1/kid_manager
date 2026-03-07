@@ -1,13 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
 
 class NotificationRepository {
-
   final FirebaseFirestore _fs;
-  NotificationRepository({FirebaseFirestore? fs}) : _fs = fs ?? FirebaseFirestore.instance;
+  NotificationRepository({FirebaseFirestore? fs})
+    : _fs = fs ?? FirebaseFirestore.instance;
+
+  final int _maxCountInPage = 20;
 
   // users/{uid}/notifications
   Stream<List<AppNotification>> streamUserInbox(String uid) {
@@ -18,9 +19,31 @@ class NotificationRepository {
         .orderBy('createdAt', descending: true)
         .limit(200)
         .snapshots()
-        .map((snap) => snap.docs
-        .map((d) => AppNotification.fromMap(d.id, d.data(), store: NotificationStore.userInbox))
-        .toList());
+        .map(
+          (snap) => snap.docs
+              .map(
+                (d) => AppNotification.fromMap(
+                  d.id,
+                  d.data(),
+                  store: NotificationStore.userInbox,
+                ),
+              )
+              .toList(),
+        );
+  }
+
+  // new query
+  Future<QuerySnapshot<Map<String, dynamic>>> fetchOlderNotifications({
+    required String uid,
+    required Timestamp lastCreatedAt,
+  }) {
+    return _fs
+        .collection('notifications')
+        .where('receiverId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .startAfter([lastCreatedAt])
+        .limit(_maxCountInPage)
+        .get();
   }
 
   // notifications (root)
@@ -29,14 +52,25 @@ class NotificationRepository {
         .collection('notifications')
         .where('receiverId', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
-        .limit(200)
+        .limit(_maxCountInPage)
         .snapshots()
-        .map((snap) => snap.docs
-        .map((d) => AppNotification.fromMap(d.id, d.data(), store: NotificationStore.global))
-        .toList());
+        .map(
+          (snap) => snap.docs
+              .map(
+                (d) => AppNotification.fromMap(
+                  d.id,
+                  d.data(),
+                  store: NotificationStore.global,
+                ),
+              )
+              .toList(),
+        );
   }
 
-  Stream<List<AppNotification>> watchBySource(String uid, NotificationSource source) {
+  Stream<List<AppNotification>> watchBySource(
+    String uid,
+    NotificationSource source,
+  ) {
     switch (source) {
       case NotificationSource.global:
         return streamUserNotifications(uid);
@@ -80,14 +114,27 @@ class NotificationRepository {
 
   // ===== mark/delete INBOX users/{uid}/notifications =====
   Future<void> markAsReadInbox(String uid, String id) async {
-    await _fs.collection('users').doc(uid).collection('notifications').doc(id).update({'isRead': true});
+    await _fs
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .doc(id)
+        .update({'isRead': true});
   }
 
   Future<void> deleteInbox(String uid, String id) async {
-    await _fs.collection('users').doc(uid).collection('notifications').doc(id).delete();
+    await _fs
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .doc(id)
+        .delete();
   }
 
-  Future<NotificationDetailModel> getNotificationDetailByItem(String uid, AppNotification n) async {
+  Future<NotificationDetailModel> getNotificationDetailByItem(
+    String uid,
+    AppNotification n,
+  ) async {
     final docRef = (n.store == NotificationStore.userInbox)
         ? _fs.collection('users').doc(uid).collection('notifications').doc(n.id)
         : _fs.collection('notifications').doc(n.id);
@@ -104,10 +151,13 @@ class NotificationRepository {
       id: doc.id,
       title: (map['title'] ?? '').toString(),
       content: content,
-      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : DateTime.now(),
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
       type: type,
       data: data,
-    );  }
+    );
+  }
 
   Future<NotificationDetailModel> getNotificationDetail(String id) async {
     final doc = await _fs.collection('notifications').doc(id).get();

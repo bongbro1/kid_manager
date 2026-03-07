@@ -5,3 +5,10 @@ enum OtpVerifyResult {
   tooManyAttempts,
   notFound,
 }
+enum OtpResendResult {
+  success,
+  cooldown,
+  locked,
+  maxResend,
+  notFound,
+}

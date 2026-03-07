@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
@@ -54,20 +55,23 @@ class OtpVM extends ChangeNotifier {
     }
 
     final data = doc.data()!;
+    final now = DateTime.now();
 
+    /// check locked
     if (data["lockedUntil"] != null) {
-      final lockedUntil = data["lockedUntil"].toDate();
-      final seconds = lockedUntil.difference(DateTime.now()).inSeconds;
+      final lockedUntil = (data["lockedUntil"] as Timestamp).toDate();
+      final seconds = lockedUntil.difference(now).inSeconds;
 
       if (seconds > 0) {
-        startCountdown(seconds - 1);
+        startCountdown(seconds);
         return;
       }
     }
 
+    /// check resend cooldown
     if (data["lastSentAt"] != null) {
-      final lastSent = data["lastSentAt"].toDate();
-      final diff = DateTime.now().difference(lastSent).inSeconds;
+      final lastSent = (data["lastSentAt"] as Timestamp).toDate();
+      final diff = now.difference(lastSent).inSeconds;
 
       final remaining = 60 - diff;
 
@@ -77,6 +81,7 @@ class OtpVM extends ChangeNotifier {
       }
     }
 
+    /// nếu không bị lock và hết cooldown
     countdown = 0;
     notifyListeners();
   }
@@ -114,30 +119,50 @@ class OtpVM extends ChangeNotifier {
   /// RESEND OTP
   /// =============================
 
-  Future<bool> resendOtp({
+  Future<OtpResendResult> resendOtp({
     required String uid,
     required String email,
     required MailType type,
   }) async {
-    if (!canResend) return false;
+    if (!canResend) {
+      return OtpResendResult.cooldown;
+    }
 
     try {
       loading = true;
       error = null;
       notifyListeners();
 
-      final ok = await repo.resendOtp(uid: uid, email: email, type: type);
+      final result = await repo.resendOtp(uid: uid, email: email, type: type);
 
-      if (ok) {
-        await syncCooldown(uid);
-        return true;
-      } else {
-        error = "Vui lòng chờ trước khi gửi lại mã";
-        return false;
+      switch (result) {
+        case OtpResendResult.success:
+          await syncCooldown(uid);
+          break;
+
+        case OtpResendResult.cooldown:
+          error = "Vui lòng chờ trước khi gửi lại mã";
+          break;
+
+        case OtpResendResult.locked:
+          error = "Bạn đã gửi OTP quá nhiều lần. Vui lòng thử lại sau";
+          await syncCooldown(uid);
+          break;
+
+        case OtpResendResult.maxResend:
+          error = "Bạn đã gửi OTP quá nhiều lần";
+          await syncCooldown(uid);
+          break;
+
+        case OtpResendResult.notFound:
+          error = "Không tìm thấy OTP";
+          break;
       }
+
+      return result;
     } catch (e) {
       error = e.toString();
-      return false;
+      return OtpResendResult.notFound;
     } finally {
       loading = false;
       notifyListeners();

@@ -4,7 +4,6 @@ import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/models/notifications/notification_type.dart';
-import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/auth/reset_pass_screen.dart';
@@ -258,7 +257,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     onTap: () async {
                       if (vm.loading || !vm.canResend) return;
 
-                      final ok = await vm.resendOtp(
+                      final result = await vm.resendOtp(
                         uid: widget.uid,
                         email: widget.email,
                         type: widget.purpose == OtpPurpose.verifyEmail
@@ -266,11 +265,9 @@ class _OtpScreenState extends State<OtpScreen> {
                             : MailType.resetPassword,
                       );
 
-                      if (!ok && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Vui lòng chờ trước khi gửi lại mã"),
-                          ),
+                      if (result != OtpResendResult.success) {
+                        AlertService.showSnack(
+                          vm.error ?? "Không thể gửi lại OTP",
                         );
                       }
                     },

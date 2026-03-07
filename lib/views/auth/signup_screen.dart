@@ -1,9 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/models/notifications/notification_type.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
+import 'package:kid_manager/views/terms_screen.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -205,15 +207,38 @@ class _SignupScreenState extends State<SignupScreen> {
                                     ),
                                     const SizedBox(width: 12),
                                     // Text
-                                    const Text(
-                                      'Đồng ý với điều khoản của chúng tôi',
-                                      style: TextStyle(
-                                        color: Color(0xFF6C7278),
-                                        fontSize: 15,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w500,
-                                        height: 1.5,
-                                        letterSpacing: -0.15,
+                                    RichText(
+                                      text: TextSpan(
+                                        text:
+                                            'Đồng ý với điều khoản, ',
+                                        style: const TextStyle(
+                                          color: Color(0xFF6C7278),
+                                          fontSize: 15,
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.w500,
+                                          height: 1.5,
+                                          letterSpacing: -0.15,
+                                        ),
+                                        children: [
+                                          TextSpan(
+                                            text: 'tại đây',
+                                            style: const TextStyle(
+                                              color: Colors.blue,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                            ),
+                                            recognizer: TapGestureRecognizer()
+                                              ..onTap = () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        const TermsScreen(),
+                                                  ),
+                                                );
+                                              },
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],

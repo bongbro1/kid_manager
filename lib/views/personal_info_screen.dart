@@ -1,30 +1,22 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
-import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/models/notifications/notification_type.dart';
 import 'package:kid_manager/models/user/user_types.dart';
-import 'package:kid_manager/services/imgbb_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
-import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
-import 'package:kid_manager/widgets/app/app_image_modal.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
-import 'package:kid_manager/widgets/app/app_notice_card.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
-import 'package:kid_manager/widgets/common/notification_modal.dart';
 import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:provider/provider.dart';
 

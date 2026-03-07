@@ -4,6 +4,7 @@ import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
+import 'package:kid_manager/viewmodels/otp_vm.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
@@ -27,9 +28,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _sendOtp() async {
-    final vm = context.read<AuthVM>();
+    final authVm = context.read<AuthVM>();
+    final otpVm = context.read<OtpVM>();
+
     final email = _emailController.text.trim();
-    // Validate
+
+    /// Validate
     if (email.isEmpty) {
       AlertService.showSnack('Vui lòng nhập đầy đủ thông tin', isError: true);
       return;
@@ -39,12 +43,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       AlertService.showSnack('Email không hợp lệ', isError: true);
       return;
     }
-    final uid = await vm.forgotPassword(email);
+
+    final uid = await authVm.forgotPassword(email);
 
     if (uid == null) {
-      AlertService.showSnack(vm.error ?? 'Đăng ký thất bại', isError: true);
+      AlertService.showSnack(authVm.error ?? 'Gửi OTP thất bại', isError: true);
       return;
     }
+
+    /// start cooldown ngay lập tức
+
+    if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -148,7 +158,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   // Button bottom
                   AppButton(
                     height: 60,
-                    text: 'Lấy lại mật khẩu',
+                    text: 'Tiếp tục',
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     onPressed: _sendOtp,

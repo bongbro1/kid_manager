@@ -10,6 +10,7 @@ class OtpRepository {
 
   OtpRepository(this._db);
 
+  static const int _maxResendCount = 5;
   static const int _expiryMinutes = 5;
   static const int _maxAttempts = 3;
 
@@ -59,8 +60,9 @@ class OtpRepository {
       "attempts": 0,
       "maxAttempts": _maxAttempts,
       "lockedUntil": null,
-      "createdAt": FieldValue.serverTimestamp(),
-      "lastSentAt": FieldValue.serverTimestamp(),
+      "createdAt": Timestamp.now(),
+      "lastSentAt": Timestamp.now(),
+      "resendCount": 1,
     });
 
     await _sendOtpEmail(email: email, uid: uid, code: code, type: type);
@@ -137,7 +139,7 @@ class OtpRepository {
     return doc;
   }
 
-  Future<bool> resendOtp({
+  Future<OtpResendResult> resendOtp({
     required String email,
     required String uid,
     required MailType type,
@@ -146,7 +148,7 @@ class OtpRepository {
     final doc = await ref.get();
 
     if (!doc.exists) {
-      return false;
+      return OtpResendResult.notFound;
     }
 
     final data = doc.data()!;
@@ -157,16 +159,29 @@ class OtpRepository {
         : null;
 
     if (lockedUntil != null && DateTime.now().isBefore(lockedUntil)) {
-      return false;
+      return OtpResendResult.locked;
     }
 
-    /// check resend cooldown
+    /// check resend limit
+    final resendCount = data["resendCount"] ?? 0;
+
+    if (resendCount >= _maxResendCount) {
+      await ref.update({
+        "lockedUntil": Timestamp.fromDate(
+          DateTime.now().add(const Duration(minutes: 10)),
+        ),
+      });
+
+      return OtpResendResult.maxResend;
+    }
+
+    /// check cooldown
     if (data["lastSentAt"] != null) {
       final lastSent = (data["lastSentAt"] as Timestamp).toDate();
       final diff = DateTime.now().difference(lastSent).inSeconds;
 
       if (diff < 60) {
-        return false;
+        return OtpResendResult.cooldown;
       }
     }
 
@@ -178,12 +193,13 @@ class OtpRepository {
       "expiresAt": Timestamp.fromDate(
         DateTime.now().add(const Duration(minutes: _expiryMinutes)),
       ),
-      "lastSentAt": FieldValue.serverTimestamp(),
+      "lastSentAt": Timestamp.now(),
+      "resendCount": FieldValue.increment(1),
     });
 
     await _sendOtpEmail(email: email, uid: uid, code: code, type: type);
 
-    return true;
+    return OtpResendResult.success;
   }
 
   /// ================================

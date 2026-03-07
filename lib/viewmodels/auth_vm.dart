@@ -55,10 +55,10 @@ class AuthVM extends ChangeNotifier {
       }
 
       // /// ❌ chưa verify OTP
-      // if (userInfo.isActive != true) {
-      //   await _authRepo.logout();
-      //   throw Exception("Tài khoản chưa được kích hoạt");
-      // }
+      if (userInfo.isActive != true) {
+        await _authRepo.logout();
+        throw Exception("Tài khoản chưa được kích hoạt");
+      }
 
       /// ✅ hợp lệ
       _user = user;

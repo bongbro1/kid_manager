@@ -13,7 +13,15 @@ enum NotificationType {
   schedule,
   battery,
   birthday,
-  zone,     // ✅ thêm
+  zone, // ✅ thêm
+  system,
+}
+
+enum NotificationFilter {
+  all,
+  activity, // hoạt động học tập
+  alert, // cảnh báo khẩn
+  reminder, // nhắc nhở
   system,
 }
 
@@ -38,6 +46,27 @@ extension NotificationTypeX on NotificationType {
         return "zone"; // ✅ chuẩn hoá cho app
       case NotificationType.system:
         return "system";
+    }
+  }
+
+  NotificationFilter get filter {
+    switch (this) {
+      case NotificationType.blockedApp:
+      case NotificationType.usageLimitExceeded:
+        return NotificationFilter.activity;
+
+      case NotificationType.sos:
+      case NotificationType.heartbeatLost:
+      case NotificationType.battery:
+      case NotificationType.zone:
+        return NotificationFilter.alert;
+
+      case NotificationType.schedule:
+      case NotificationType.birthday:
+        return NotificationFilter.reminder;
+
+      case NotificationType.system:
+        return NotificationFilter.system;
     }
   }
 
@@ -70,7 +99,7 @@ extension NotificationTypeX on NotificationType {
     if (value.toString().trim() == "ZONE") return NotificationType.zone;
 
     return NotificationType.values.firstWhere(
-          (e) => e.value == v,
+      (e) => e.value == v,
       orElse: () => NotificationType.system,
     );
   }
@@ -201,12 +230,13 @@ class AppNotification {
   });
 
   factory AppNotification.fromMap(
-      String id,
-      Map<String, dynamic> map, {
-        required NotificationStore store,
-      }) {
+    String id,
+    Map<String, dynamic> map, {
+    required NotificationStore store,
+  }) {
     final rawTitle = (map['title'] ?? '').toString();
-    final rawEventKey = (map['eventKey'] ?? map['data']?['eventKey'] ?? '').toString();
+    final rawEventKey = (map['eventKey'] ?? map['data']?['eventKey'] ?? '')
+        .toString();
 
     return AppNotification(
       id: id,
@@ -221,7 +251,9 @@ class AppNotification {
       body: (map['body'] ?? '').toString(),
       isRead: (map['isRead'] ?? false) == true,
       status: (map['status'] ?? 'pending').toString(),
-      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : null,
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as Timestamp).toDate()
+          : null,
       data: Map<String, dynamic>.from(map['data'] ?? {}),
       store: store,
     );

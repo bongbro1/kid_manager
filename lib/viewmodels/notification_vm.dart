@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
@@ -15,7 +16,19 @@ class NotificationVM extends ChangeNotifier {
   final Map<NotificationSource, List<AppNotification>> _cache = {};
 
   List<AppNotification> _notifications = [];
+  final List<AppNotification> _paged = [];
   List<AppNotification> get notifications => _notifications;
+  final int _maxCountInPage = 20;
+  Timestamp? _lastCreatedAt;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  bool get hasMore => _hasMore;
+
+  NotificationFilter _activeFilter = NotificationFilter.all;
+  NotificationFilter get activeFilter => _activeFilter;
+
+  String _searchKeyword = "";
+  String get searchKeyword => _searchKeyword;
 
   NotificationDetailModel? notificationDetail;
 
@@ -26,8 +39,6 @@ class NotificationVM extends ChangeNotifier {
   String? get error => _error;
 
   String? _uid; // ✅ lưu uid đang listen
-
-
 
   /// ==============================
   /// 🔢 UNREAD COUNT
@@ -47,33 +58,132 @@ class NotificationVM extends ChangeNotifier {
     required List<NotificationSource> sources,
     NotificationPredicate? filter,
   }) {
-    _uid = uid;
-
     _cancelAll();
+    _uid = uid;
     _loading = true;
     _error = null;
+    _hasMore = true;
+    _lastCreatedAt = null;
+
     notifyListeners();
 
     for (final src in sources) {
-      final sub = _repo.watchBySource(uid, src).listen(
-            (list) {
-          debugPrint("📥 notif source=$src uid=$uid count=${list.length}"
-              " latest=${list.isNotEmpty ? list.first.id : 'none'}");
-          _cache[src] = list;
-          _emitMerged(sources, filter);
-        },
-        onError: (e) {
-          debugPrint("❌ notif source=$src error=$e");
-          _error = e.toString();
-          _loading = false;
-          notifyListeners();
-        },
-      );
+      final sub = _repo.watchBySource(uid, src).listen((list) {
+        _cache[src] = list;
+
+        if (_lastCreatedAt == null && list.isNotEmpty) {
+          _lastCreatedAt = Timestamp.fromDate(list.last.createdAt!);
+        }
+
+        _emitMerged(sources, filter);
+      });
+
       _subs.add(sub);
     }
   }
 
-  void _emitMerged(List<NotificationSource> sources, NotificationPredicate? filter) {
+  Future<void> loadMore() async {
+    if (_loadingMore || !_hasMore || _lastCreatedAt == null || _uid == null)
+      return;
+
+    _loadingMore = true;
+
+    try {
+      final snap = await _repo.fetchOlderNotifications(
+        uid: _uid!,
+        lastCreatedAt: _lastCreatedAt!,
+      );
+      if (snap.docs.isEmpty) {
+        _hasMore = false;
+        return;
+      }
+
+      final more = snap.docs
+          .map(
+            (d) => AppNotification.fromMap(
+              d.id,
+              d.data(),
+              store: NotificationStore.global,
+            ),
+          )
+          .toList();
+
+      debugPrint(
+        "➕ Append ${more.length} notifications"
+        " first=${more.first.id}"
+        " last=${more.last.id}",
+      );
+      final existingIds = {
+        ..._notifications.map((e) => e.id),
+        ..._paged.map((e) => e.id),
+      };
+
+      _paged.addAll(more.where((n) => !existingIds.contains(n.id)));
+
+      _emitMerged(_cache.keys.toList(), null);
+
+      _lastCreatedAt = Timestamp.fromDate(more.last.createdAt!);
+      if (snap.docs.length < _maxCountInPage) {
+        _hasMore = false;
+      }
+
+      debugPrint(
+        "📊 Total notifications now = ${_notifications.length}"
+        " newLastCreatedAt=$_lastCreatedAt",
+      );
+    } catch (e) {
+      debugPrint("loadMore error: $e");
+    } finally {
+      _loadingMore = false;
+    }
+  }
+
+  void setFilter(NotificationFilter filter) {
+    _activeFilter = filter;
+
+    // rebuild lại danh sách
+    _emitMerged(_cache.keys.toList(), null);
+  }
+
+  List<AppNotification> _applyFilter(List<AppNotification> list) {
+    if (_activeFilter == NotificationFilter.all) {
+      return list;
+    }
+
+    return list.where((n) {
+      NotificationType? type;
+
+      try {
+        type = NotificationType.values.firstWhere((t) => t.value == n.type);
+      } catch (_) {
+        return false;
+      }
+
+      return type.filter == _activeFilter;
+    }).toList();
+  }
+
+  void setSearch(String keyword) {
+    _searchKeyword = keyword.trim().toLowerCase();
+
+    _emitMerged(_cache.keys.toList(), null);
+  }
+
+  List<AppNotification> _applySearch(List<AppNotification> list) {
+    if (_searchKeyword.isEmpty) return list;
+
+    return list.where((n) {
+      final title = (n.title ?? "").toLowerCase();
+      final body = (n.body ?? "").toLowerCase();
+
+      return title.contains(_searchKeyword) || body.contains(_searchKeyword);
+    }).toList();
+  }
+
+  void _emitMerged(
+    List<NotificationSource> sources,
+    NotificationPredicate? filter,
+  ) {
     final all = <AppNotification>[];
     for (final src in sources) {
       all.addAll(_cache[src] ?? const []);
@@ -88,18 +198,19 @@ class NotificationVM extends ChangeNotifier {
     if (filter != null) {
       dedup = dedup.where(filter).toList();
     }
-
-    dedup.sort((a, b) {
+    dedup = _applyFilter(dedup);
+    dedup = _applySearch(dedup);
+    final merged = [...dedup, ..._paged];
+    merged.sort((a, b) {
       final ta = a.createdAt?.millisecondsSinceEpoch ?? 0;
       final tb = b.createdAt?.millisecondsSinceEpoch ?? 0;
       return tb.compareTo(ta);
     });
+    _notifications = merged;
 
-    _notifications = dedup;
     _loading = false;
     notifyListeners();
   }
-
 
   Future<void> loadNotificationDetailItem(AppNotification n) async {
     try {
@@ -116,6 +227,7 @@ class NotificationVM extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   Future<void> refresh() async {
     await Future.delayed(const Duration(milliseconds: 300));
   }
@@ -157,10 +269,13 @@ class NotificationVM extends ChangeNotifier {
     }
   }
 
-
   void clear() {
     _cancelAll();
     _notifications = [];
+    _paged.clear();
+    _hasMore = true;
+    _lastCreatedAt = null;
+
     notifyListeners();
   }
 
