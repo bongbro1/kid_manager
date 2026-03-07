@@ -30,7 +30,7 @@ class _SosCircleButtonState extends State<SosCircleButton>
   @override
   Widget build(BuildContext context) {
     const double core = 52;
-    const Color blue = Color(0xFF2F6BFF);
+    const Color red = Color(0xFFC50F0F);
 
     return AnimatedBuilder(
       animation: _ctrl,
@@ -50,7 +50,7 @@ class _SosCircleButtonState extends State<SosCircleButton>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: blue.withOpacity(pulseOpacity),
+                    color: red.withOpacity(pulseOpacity),
                     width: 3,
                   ),
                 ),
@@ -61,7 +61,7 @@ class _SosCircleButtonState extends State<SosCircleButton>
               height: core + 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: blue.withOpacity(0.35), width: 2),
+                border: Border.all(color: red.withOpacity(0.35), width: 2),
               ),
             ),
             Container(
@@ -69,7 +69,7 @@ class _SosCircleButtonState extends State<SosCircleButton>
               height: core + 10,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: blue.withOpacity(0.60), width: 2),
+                border: Border.all(color: red.withOpacity(0.60), width: 2),
               ),
             ),
             Material(
@@ -81,7 +81,7 @@ class _SosCircleButtonState extends State<SosCircleButton>
                   width: core,
                   height: core,
                   decoration: const BoxDecoration(
-                    color: blue,
+                    color: red,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
