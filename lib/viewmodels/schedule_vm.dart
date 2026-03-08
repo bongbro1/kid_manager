@@ -195,6 +195,7 @@ class ScheduleViewModel extends ChangeNotifier {
     // đảm bảo dot + list khớp tuyệt đối với server
     await loadMonth();
   } catch (e) {
+    loadMonth(); // reload để đồng bộ lại UI nếu xóa thất bại
     rethrow;
   }
 }

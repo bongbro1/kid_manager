@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 
 enum DialogType { success, error, info, warning }
 
-class NotificationConfig {
+class DialogConfig {
   final Color primary;
   final Color light;
   final Widget Function() iconBuilder;
 
-  const NotificationConfig({
+  const DialogConfig({
     required this.primary,
     required this.light,
     required this.iconBuilder,
   });
 
-  static NotificationConfig from(DialogType type) {
+  static DialogConfig from(DialogType type) {
     switch (type) {
       case DialogType.success:
-        return NotificationConfig(
+        return DialogConfig(
           primary: const Color(0xFF22C55E),
           light: const Color(0xFFDCFCE7),
           iconBuilder: () => const LayeredCircleIcon(
@@ -29,7 +29,7 @@ class NotificationConfig {
         );
 
       case DialogType.error:
-        return NotificationConfig(
+        return DialogConfig(
           primary: const Color(0xFFEF4444),
           light: const Color(0xFFFEE2E2),
           iconBuilder: () => const LayeredCircleIcon(
@@ -42,7 +42,7 @@ class NotificationConfig {
         );
 
       case DialogType.info:
-        return NotificationConfig(
+        return DialogConfig(
           primary: const Color(0xFF3B82F6),
           light: const Color(0xFFDBEAFE),
           iconBuilder: () => const LayeredCircleIcon(
@@ -55,7 +55,7 @@ class NotificationConfig {
         );
 
       case DialogType.warning:
-        return NotificationConfig(
+        return DialogConfig(
           primary: const Color(0xFFF59E0B),
           light: const Color(0xFFFEF3C7),
           iconBuilder: () => const LayeredCircleIcon(

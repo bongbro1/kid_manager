@@ -144,25 +144,57 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
             top: false,
             child: SosCircleButton(
               onPressed: () async {
-                final loc = context.read<ChildLocationViewModel>().currentLocation;
-                final displayName = context.select<UserVm, String?>((vm) => vm.me?.displayName).toString();
-                if (loc == null) return;
-
+                final vm = context.read<ChildLocationViewModel>();
+                final loc = vm.currentLocation;
+                final displayName = context.read<UserVm>().me?.displayName ?? 'Unknown';
                 final sosVm = context.read<SosViewModel>();
-                if (sosVm.sending) return;
 
-                final sosId = await sosVm.triggerSos(
-                  lat: loc.latitude,
-                  lng: loc.longitude,
-                  acc: loc.accuracy,
-                    createdByName:displayName
-                );
+                debugPrint('🆘 Child SOS tapped');
+                debugPrint('🆘 loc=$loc');
+                debugPrint('🆘 sending=${sosVm.sending}');
+                debugPrint('🆘 familyId=${context.read<UserVm>().familyId}');
+                debugPrint('🆘 uid=${context.read<UserVm>().me?.uid}');
 
-                if (!context.mounted) return;
+                if (loc == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Chưa lấy được vị trí hiện tại')),
+                  );
+                  return;
+                }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại')),
-                );
+                if (sosVm.sending) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đang gửi SOS...')),
+                  );
+                  return;
+                }
+
+                try {
+                  final sosId = await sosVm.triggerSos(
+                    lat: loc.latitude,
+                    lng: loc.longitude,
+                    acc: loc.accuracy,
+                    createdByName: displayName,
+                  );
+
+                  if (!context.mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại',
+                      ),
+                    ),
+                  );
+                } catch (e, st) {
+                  debugPrint('❌ triggerSos error: $e');
+                  debugPrint('$st');
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Lỗi gửi SOS: $e')),
+                  );
+                }
               },
             ),
           ),

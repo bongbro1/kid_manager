@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
@@ -95,7 +96,7 @@ class NotificationRepository {
     Map<String, dynamic>? data,
     String? familyId,
   }) async {
-    await _fs.collection('notifications').add({
+    final payload = <String, dynamic>{
       'senderId': senderId,
       'receiverId': receiverId,
       'familyId': familyId,
@@ -106,7 +107,25 @@ class NotificationRepository {
       'isRead': false,
       'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    debugPrint(
+      '[NotificationRepository] create called '
+          'senderId=$senderId receiverId=$receiverId '
+          'type=$type title="$title" body="$body" familyId=$familyId data=$data',
+    );
+
+    try {
+      final docRef = await _fs.collection('notifications').add(payload);
+
+      debugPrint(
+        '[NotificationRepository] create success docId=${docRef.id}',
+      );
+    } catch (e, st) {
+      debugPrint('[NotificationRepository] create error: $e');
+      debugPrintStack(stackTrace: st);
+      rethrow;
+    }
   }
 
   Future<void> markAsReadGlobal(String id) async {

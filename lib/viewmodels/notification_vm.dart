@@ -60,29 +60,31 @@ class NotificationVM extends ChangeNotifier {
   //   );
   // }
 
-  void listenMulti({
+  Future<void> listenMulti({
     required String uid,
     required List<NotificationSource> sources,
     NotificationPredicate? filter,
-  }) {
-    _cancelAll();
+  }) async {
+    _uid = null;
+    await _cancelAll();
+    _resetState();
     _uid = uid;
     _loading = true;
     _error = null;
-    _hasMore = true;
-    _lastCreatedAt = null;
 
     notifyListeners();
 
     // lắng nghe số lượng thông báo
     _unreadSub?.cancel();
     _unreadSub = _repo.watchUnreadCount(uid).listen((count) {
+      if (_uid != uid) return;
       _unreadCount = count;
       notifyListeners();
     });
 
     for (final src in sources) {
       final sub = _repo.watchBySource(uid, src).listen((list) {
+        if (_uid != uid) return;
         _cache[src] = list;
 
         if (_lastCreatedAt == null && list.isNotEmpty) {
@@ -293,23 +295,48 @@ class NotificationVM extends ChangeNotifier {
     }
   }
 
-  void clear() {
-    _cancelAll();
-    _notifications = [];
-    _paged.clear();
-    _hasMore = true;
-    _lastCreatedAt = null;
-
+  Future<void> clear() async {
+    _uid = null; // chặn event cũ ngay lập tức
+    await _cancelAll();
+    _resetState();
     notifyListeners();
   }
 
-  void _cancelAll() {
+  Future<void> _cancelAll() async {
+    final futures = <Future<void>>[];
+
     for (final s in _subs) {
-      s.cancel();
+      futures.add(s.cancel());
     }
-    _unreadSub?.cancel();
     _subs.clear();
+
+    if (_unreadSub != null) {
+      futures.add(_unreadSub!.cancel());
+      _unreadSub = null;
+    }
+
+    await Future.wait(futures);
     _cache.clear();
+  }
+
+  void _resetState() {
+    _notifications = [];
+    _paged.clear();
+    _cache.clear();
+
+    _lastCreatedAt = null;
+    _hasMore = true;
+    _loadingMore = false;
+
+    _activeFilter = NotificationFilter.all;
+    _searchKeyword = "";
+
+    notificationDetail = null;
+
+    _loading = false;
+    _error = null;
+
+    _unreadCount = 0;
   }
 
   @override

@@ -14,6 +14,7 @@ enum NotificationType {
   battery,
   birthday,
   zone, // ✅ thêm
+  subscription,
   system,
 }
 
@@ -45,6 +46,7 @@ extension NotificationTypeX on NotificationType {
       case NotificationType.zone:
         return "zone"; // ✅ chuẩn hoá cho app
       case NotificationType.system:
+      case NotificationType.subscription:
         return "system";
     }
   }
@@ -66,6 +68,7 @@ extension NotificationTypeX on NotificationType {
         return NotificationFilter.reminder;
 
       case NotificationType.system:
+      case NotificationType.subscription:
         return NotificationFilter.system;
     }
   }
@@ -170,6 +173,13 @@ extension NotificationTypeX on NotificationType {
           iconColor: Color(0xFF2563EB),
         );
 
+      case NotificationType.subscription:
+        return const NotificationStyle(
+          icon: Icons.settings_rounded,
+          bgColor: Color(0xFFEFF6FF),
+          borderColor: Color(0xFFDBEAFE),
+          iconColor: Color(0xFF2563EB),
+        );
       case NotificationType.system:
         return const NotificationStyle(
           icon: Icons.settings_rounded,

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:kid_manager/helpers/app_rule_checker_helper.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/blocked_app_data.dart';
+import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 
@@ -28,10 +29,7 @@ class ForegroundApp {
   final String packageName;
   final String appName;
 
-  ForegroundApp({
-    required this.packageName,
-    required this.appName,
-  });
+  ForegroundApp({required this.packageName, required this.appName});
 }
 
 class WatcherService {
@@ -50,16 +48,14 @@ class WatcherService {
     await _channel.invokeMethod("stopWatcher");
   }
 }
+
 class RealtimeAppMonitor {
   static StreamSubscription<ForegroundApp>? _sub;
 
   static String? _parentId;
   static String? _displayName;
 
-  static void start({
-    required String parentId,
-    required String displayName,
-  }) {
+  static void start({required String parentId, required String displayName}) {
     _parentId = parentId;
     _displayName = displayName;
 
@@ -118,11 +114,13 @@ class RealtimeAppMonitor {
       );
 
       await NotificationService.sendSystem(
-        receiverId: _parentId!,
-        type: NotificationType.blockedApp.value,
-        title: "Ứng dụng bị chặn",
-        body: "$_displayName đang mở ứng dụng bị cấm: $appName",
-        data: blockedData.toMap(),
+        NotificationPayload(
+          receiverId: _parentId!,
+          type: NotificationType.blockedApp,
+          title: "Ứng dụng bị chặn",
+          body: "$_displayName đang mở ứng dụng bị cấm: $appName",
+          data: blockedData.toMap(),
+        ),
       );
 
       debugPrint("📨 Sent system notification to parent");

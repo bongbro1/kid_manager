@@ -2,7 +2,8 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { REGION } from "./config";
 
 setGlobalOptions({ region: REGION });
-// firebase deploy --only functions   
+// firebase deploy --only functions
+MAIL_FROM=Kid Manager <no-reply@homiesmart.io.vn>
 // $env:FUNCTIONS_DISCOVERY_TIMEOUT=30
 export * from "./functions/mirror";
 export * from "./functions/tokens";
@@ -13,3 +14,6 @@ export * from "./functions/zones";
 export * from "./functions/zoneEvents";
 export * from "./functions/send_email";
 export * from "./functions/user_auth";
+export * from "./functions/subscriptionTriggers";
+export { sendFamilyMessage } from "./functions/family_chat";
+export { markFamilyChatRead } from "./functions/family_chat_read";

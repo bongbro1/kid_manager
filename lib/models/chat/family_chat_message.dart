@@ -9,6 +9,8 @@ class FamilyChatMessage {
   final String text;
   final String type;
   final DateTime? createdAt;
+  final String verifyState;
+  final String? verifyError;
 
   const FamilyChatMessage({
     required this.id,
@@ -19,6 +21,8 @@ class FamilyChatMessage {
     required this.text,
     required this.type,
     required this.createdAt,
+    required this.verifyState,
+    required this.verifyError,
   });
 
   factory FamilyChatMessage.fromDoc(
@@ -26,6 +30,7 @@ class FamilyChatMessage {
         required String familyId,
       }) {
     final data = doc.data() ?? <String, dynamic>{};
+
     return FamilyChatMessage(
       id: doc.id,
       familyId: familyId,
@@ -35,6 +40,8 @@ class FamilyChatMessage {
       text: (data['text'] ?? '').toString(),
       type: (data['type'] ?? 'text').toString(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      verifyState: (data['verifyState'] ?? 'verified').toString(),
+      verifyError: data['verifyError']?.toString(),
     );
   }
 }

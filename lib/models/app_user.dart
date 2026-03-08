@@ -9,7 +9,7 @@ class AppUser {
   final String? phone;
   final String? email;
   final String? displayName;
-  final String? photoUrl;
+  final String? coverUrl;
   final String? avatarUrl;
   final String? locale;
   final String? timezone;
@@ -32,7 +32,7 @@ class AppUser {
     this.avatarUrl,
     this.email,
     this.displayName,
-    this.photoUrl,
+    this.coverUrl,
     this.locale,
     this.timezone,
     this.createdAt,
@@ -54,7 +54,7 @@ class AppUser {
     'familyId': familyId,
     'email': email,
     'displayName': displayName,
-    'photoUrl': photoUrl,
+    'coverUrl': coverUrl,
     'avatarUrl': avatarUrl,
     'phone': phone,
     'locale': locale,
@@ -77,7 +77,7 @@ class AppUser {
       familyId: d['familyId'],
       email: d['email'],
       displayName: d['displayName'],
-      photoUrl: d['photoUrl'],
+      coverUrl: d['coverUrl'],
       avatarUrl: d['avatarUrl'],
       phone: d['phone'],
       locale: d['locale'],
@@ -97,7 +97,8 @@ class AppUser {
   AppUser copyWith({
     String? email,
     String? displayName,
-    String? photoUrl,
+    String? coverUrl,
+    String? avatarUrl,
     String? locale,
     String? phone,
     String? timezone,
@@ -113,7 +114,8 @@ class AppUser {
       familyId: familyId ?? this.familyId,
       displayName: displayName ?? this.displayName,
       phone: phone ?? this.phone,
-      photoUrl: photoUrl ?? this.photoUrl,
+      coverUrl: coverUrl ?? this.coverUrl,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       locale: locale ?? this.locale,
       timezone: timezone ?? this.timezone,
       createdAt: createdAt,

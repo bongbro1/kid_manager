@@ -17,11 +17,14 @@ class BottomTabConfig {
   final String iconAsset;
   final Widget root;
   final bool showBadge;
-
+  final Stream<int> Function(BuildContext context)? badgeCountStreamBuilder;
   const BottomTabConfig({
     required this.iconAsset,
     required this.root,
     this.showBadge = false,
+    this.badgeCountStreamBuilder,
   });
+
+
 }
 

@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
 import 'package:kid_manager/models/chat/family_chat_message.dart';
+import 'package:kid_manager/models/chat/family_chat_state.dart';
 
 class FamilyChatRepository {
   FamilyChatRepository({
@@ -18,16 +20,18 @@ class FamilyChatRepository {
     return _db.collection('families').doc(familyId).collection('messages');
   }
 
+  DocumentReference<Map<String, dynamic>> _chatStateDoc(String familyId, String uid) {
+    return _db.collection('families').doc(familyId).collection('chatStates').doc(uid);
+  }
+
   Stream<List<FamilyChatMessage>> watchMessages(String familyId, {int limit = 200}) {
     return _messageCollection(familyId)
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-          .map((doc) => FamilyChatMessage.fromDoc(doc, familyId: familyId))
-          .toList(),
-    );
+        .map((snapshot) => snapshot.docs
+        .map((doc) => FamilyChatMessage.fromDoc(doc, familyId: familyId))
+        .toList());
   }
 
   Stream<List<FamilyChatMember>> watchMembers(String familyId) {
@@ -78,55 +82,66 @@ class FamilyChatRepository {
     });
   }
 
-  Future<void> sendTextMessage({
+
+  Stream<int> watchUnreadCount({
     required String familyId,
-    required String senderUid,
-    required String senderName,
-    required String senderRole,
+    required String uid,
+  }) {
+    return _chatStateDoc(familyId, uid).snapshots().map((doc) {
+      final data = doc.data();
+      debugPrint('[watchUnreadCount] familyId=$familyId uid=$uid exists=${doc.exists} data=$data');
+
+      if (!doc.exists) return 0;
+      return FamilyChatState.fromDoc(doc).unreadCount;
+    });
+  }
+
+  Future<Map<String, dynamic>> sendTextMessage({
     required String text,
   }) async {
     final normalized = text.trim();
-    if (normalized.isEmpty) return;
+    if (normalized.isEmpty) {
+      return <String, dynamic>{};
+    }
 
     if (normalized.length > 1000) {
-      throw ArgumentError.value(normalized.length, 'text', 'Message too long (>1000 chars)');
+      throw ArgumentError.value(
+        normalized.length,
+        'text',
+        'Message too long (>1000 chars)',
+      );
     }
+
+    debugPrint('[FamilyChatRepository] sendTextMessage start text="$normalized"');
 
     try {
-      await _functions.httpsCallable('sendFamilyMessage').call({'text': normalized});
-      return;
-    } on FirebaseFunctionsException catch (e) {
-      final fallbackCodes = {'not-found', 'unimplemented'};
-      if (!fallbackCodes.contains(e.code)) {
-        rethrow;
-      }
+      final result = await _functions.httpsCallable('sendFamilyMessage').call({
+        'text': normalized,
+      });
+
+      debugPrint('[FamilyChatRepository] raw result.data=${result.data}');
+
+      final map = result.data is Map
+          ? Map<String, dynamic>.from(result.data as Map)
+          : <String, dynamic>{};
+
+      debugPrint('[FamilyChatRepository] parsed result=$map');
+      return map;
+    } on FirebaseFunctionsException catch (e, st) {
+      debugPrint(
+        '[FamilyChatRepository] FirebaseFunctionsException '
+            'code=${e.code} message=${e.message} details=${e.details}',
+      );
+      debugPrintStack(stackTrace: st);
+      rethrow;
+    } catch (e, st) {
+      debugPrint('[FamilyChatRepository] sendTextMessage error: $e');
+      debugPrintStack(stackTrace: st);
+      rethrow;
     }
+  }
 
-    final messageRef = _messageCollection(familyId).doc();
-    final now = FieldValue.serverTimestamp();
-
-    final batch = _db.batch();
-    batch.set(messageRef, {
-      'id': messageRef.id,
-      'familyId': familyId,
-      'senderUid': senderUid,
-      'senderRole': senderRole,
-      'senderName': senderName,
-      'text': normalized,
-      'type': 'text',
-      'createdAt': now,
-    });
-
-    batch.set(
-      _db.collection('families').doc(familyId),
-      {
-        'lastMessageAt': now,
-        'lastMessageBy': senderUid,
-        'lastMessageText': normalized,
-      },
-      SetOptions(merge: true),
-    );
-
-    await batch.commit();
+  Future<void> markAsRead() async {
+    await _functions.httpsCallable('markFamilyChatRead').call();
   }
 }

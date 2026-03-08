@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import 'package:kid_manager/models/app_user.dart';
@@ -8,8 +7,8 @@ extension AppUserAvatar on AppUser {
   Future<Uint8List> loadAvatarBytes() async {
     try {
       // Nếu có avatarUrl
-      if (photoUrl != null && photoUrl!.isNotEmpty) {
-        final res = await http.get(Uri.parse(photoUrl!));
+      if (coverUrl != null && coverUrl!.isNotEmpty) {
+        final res = await http.get(Uri.parse(coverUrl!));
         if (res.statusCode == 200) {
           return res.bodyBytes;
         }
