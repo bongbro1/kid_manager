@@ -79,6 +79,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final cred = await authVM.login(email, password);
 
+      if (!mounted) return;
+
       if (cred == null) {
         NotificationDialog.show(
           context,
@@ -88,12 +90,14 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         return;
       }
+
       final uid = cred.user!.uid;
 
       await storage.setString(StorageKeys.uid, uid);
 
-      UserProfile? profile = await userVM.loadProfile();
+      final profile = await userVM.loadProfile();
       if (profile == null) return;
+
       await storage.setString(StorageKeys.role, profile.role!);
       await storage.setString(StorageKeys.parentId, profile.parentUid ?? '');
       await storage.setString(StorageKeys.displayName, profile.name);
@@ -106,7 +110,6 @@ class _LoginScreenState extends State<LoginScreen> {
         await storage.remove(StorageKeys.login_preference);
       }
 
-      // 🔥 GỌI SAU LOGIN
       debugPrint("🚀 Running role: ${profile.role}");
 
       if (roleFromString(profile.role!) == UserRole.child) {
@@ -119,12 +122,19 @@ class _LoginScreenState extends State<LoginScreen> {
         await AuthRuntimeManager.stop();
       }
 
+      if (!mounted) return;
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const SessionGuard()),
         (route) => false,
       );
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('Login error: $e');
+      debugPrintStack(stackTrace: st);
+
+      if (!mounted) return;
+
       NotificationDialog.show(
         context,
         type: DialogType.error,
