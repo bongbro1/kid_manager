@@ -65,6 +65,9 @@ class Schedule {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+    /// số lần đã có history edit
+  final int editCount;
+
   const Schedule({
     required this.id,
     required this.childId,
@@ -77,6 +80,7 @@ class Schedule {
     required this.period,
     this.createdAt,
     this.updatedAt,
+    this.editCount = 0,
   });
 
   factory Schedule.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -94,6 +98,9 @@ class Schedule {
       period: periodFromKey((d['period'] ?? 'morning') as String),
       createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (d['updatedAt'] as Timestamp?)?.toDate(),
+      editCount: (d['editCount'] ?? 0) is int
+          ? (d['editCount'] ?? 0) as int
+          : int.tryParse('${d['editCount']}') ?? 0,
     );
   }
 
@@ -105,12 +112,10 @@ class Schedule {
         'date': Timestamp.fromDate(date),
         'startAt': Timestamp.fromDate(startAt),
         'endAt': Timestamp.fromDate(endAt),
-
-        // ✅ LƯU ĐÚNG: morning/afternoon/evening
         'period': periodKey(period),
-
         'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
         'updatedAt': updatedAt == null ? null : Timestamp.fromDate(updatedAt!),
+        'editCount': editCount,
       }..removeWhere((k, v) => v == null);
 
   Schedule copyWith({
@@ -121,6 +126,7 @@ class Schedule {
     DateTime? endAt,
     SchedulePeriod? period,
     DateTime? updatedAt,
+    int? editCount,
   }) {
     return Schedule(
       id: id,
@@ -134,6 +140,7 @@ class Schedule {
       period: period ?? this.period,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      editCount: editCount ?? this.editCount,
     );
   }
 }

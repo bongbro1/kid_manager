@@ -13,6 +13,7 @@
   import '../../../../../viewmodels/memory_day_vm.dart';
   import '../../../../../models/memory_day.dart';
   import '../../../views/parent/memory_day/memory_day_sheet.dart';
+  import '../../../views/parent/schedule/schedule_history_screen.dart';
 
   class ScheduleList extends StatelessWidget {
     const ScheduleList({super.key});
@@ -123,6 +124,15 @@
                 const SizedBox(width: 8),
                 Text(duration, style: AppTextStyles.scheduleItemTimeRange),
                 const Spacer(),
+
+                if (schedule.editCount > 0) ...[
+                  _ActionIcon(
+                    asset: 'assets/images/icon_history.png',
+                    onTap: () => _openHistoryScreen(context),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+
                 _ActionIcon(
                   asset: 'assets/images/edit.png',
                   width: 18,
@@ -197,6 +207,15 @@
           message: 'Xóa thất bại: $e',
         );
       }
+    }
+
+    Future<void> _openHistoryScreen(BuildContext context) {
+      return Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ScheduleHistoryScreen(schedule: schedule),
+        ),
+      );
     }
   }
 

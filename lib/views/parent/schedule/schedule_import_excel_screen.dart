@@ -749,13 +749,13 @@ class _PreviewRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: r.error != null
-                ? Text('Dòng ${r.rowIndex}: ${r.error}',
+                ? Text('Dòng ${r.rowIndex - 1}: ${r.error}',
                     style: AppTextStyles.body)
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Dòng ${r.rowIndex}: ${s!.title}',
+                        'Dòng ${r.rowIndex - 1}: ${s!.title}',
                         style: AppTextStyles.scheduleItemTitle,
                       ),
                       const SizedBox(height: 4),
