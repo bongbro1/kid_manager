@@ -293,7 +293,6 @@ Future<void> _showSuccessDialog(BuildContext context) async {
 
     final children = userVm.children;
 
-    // ✅ auto select khi children vừa load về (watchChildren async)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (importVm.selectedChildId == null && children.isNotEmpty) {
@@ -301,115 +300,146 @@ Future<void> _showSuccessDialog(BuildContext context) async {
       }
     });
 
+    final hasPreview = !importVm.loading && importVm.preview != null;
+    final canImport = hasPreview && importVm.preview!.okCount > 0;
+
     return WillPopScope(
-    onWillPop: () async {
-      Navigator.pop(context, _needReload);
-      return false; // chặn pop mặc định
-    },
-    child: Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Thêm file Excel',
-          style: AppTextStyles.scheduleAppBarTitle,
+      onWillPop: () async {
+        Navigator.pop(context, _needReload);
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: const Text(
+            'Thêm file Excel',
+            style: AppTextStyles.scheduleAppBarTitle,
+          ),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.darkText),
+            onPressed: () => Navigator.pop(context, _needReload),
+          ),
         ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.darkText),
-          onPressed: () => Navigator.pop(context, _needReload), // trả về needReload khi pop
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        children: [
-          _SectionCard(
+
+        // ✅ nút import ghim dưới đáy
+        bottomNavigationBar: hasPreview
+            ? SafeArea(
+                top: false,
+                child: Container(
+                  color: AppColors.background,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: _PrimaryButton(
+                    text: 'Thêm ${importVm.preview!.okCount} lịch',
+                    icon: Icons.check_circle,
+                    onTap: canImport ? _importNow : null,
+                  ),
+                ),
+              )
+            : null,
+
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Chọn bé', style: AppTextStyles.body),
-                const SizedBox(height: 10),
-                _ChildDropdown(
-                  children: children,
-                  selectedId: importVm.selectedChildId,
-                  onChanged: (id) {
-                    importVm.setChild(id);
-                    setState(() {
-                      _pickedBytes = null;
-                      _pickedName = null;
-                    });
-                  },
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _PrimaryOutlineButton(
-                        text: 'Tải file mẫu',
-                        icon: Icons.download,
-                        onTap: importVm.loading ? null : _downloadTemplate,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _PrimaryButton(
-                        text: _pickedName == null ? 'Chọn file Excel' : 'Chọn file khác',
-                        icon: Icons.upload_file,
-                        onTap: importVm.loading ? null : _pickExcel,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                  Row(
+                // phần trên
+                _SectionCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          'Đã chọn: $_pickedName',
-                          style: AppTextStyles.scheduleItemTime,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      const Text('Chọn bé', style: AppTextStyles.body),
+                      const SizedBox(height: 10),
+                      _ChildDropdown(
+                        children: children,
+                        selectedId: importVm.selectedChildId,
+                        onChanged: (id) {
+                          importVm.setChild(id);
+                          setState(() {
+                            _pickedBytes = null;
+                            _pickedName = null;
+                          });
+                        },
                       ),
-                      TextButton(
-                        onPressed: importVm.loading ? null : _resetPickedFile,
-                        child: const Text('Đổi file'),
-                      )
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _PrimaryOutlineButton(
+                              text: 'Tải file mẫu',
+                              icon: Icons.download,
+                              onTap: importVm.loading ? null : _downloadTemplate,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _PrimaryButton(
+                              text: _pickedName == null
+                                  ? 'Chọn file Excel'
+                                  : 'Chọn file khác',
+                              icon: Icons.upload_file,
+                              onTap: importVm.loading ? null : _pickExcel,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Đã chọn: ${_pickedName ?? ""}',
+                              style: AppTextStyles.scheduleItemTime,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: importVm.loading ? null : _resetPickedFile,
+                            child: const Text('Đổi file'),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
+                ),
+
+                const SizedBox(height: 14),
+
+                if (importVm.loading)
+                  const Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(18),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  )
+                else if (importVm.error != null)
+                  Expanded(
+                    child: _SectionCard(
+                      child: Text(
+                        importVm.error!,
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                  )
+                else if (importVm.preview != null) ...[
+                  _PreviewSummary(preview: importVm.preview!),
+                  const SizedBox(height: 10),
+
+                  // ✅ preview chiếm phần còn lại và tự scroll bên trong
+                  Expanded(
+                    child: _PreviewList(preview: importVm.preview!),
+                  ),
+                ] else
+                  const Expanded(child: SizedBox()),
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          if (importVm.loading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(18),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-          if (!importVm.loading && importVm.error != null)
-            _SectionCard(
-              child: Text(
-                importVm.error!,
-                style: const TextStyle(color: AppColors.error),
-              ),
-            ),
-          if (!importVm.loading && importVm.preview != null) ...[
-            _PreviewSummary(preview: importVm.preview!),
-            const SizedBox(height: 10),
-            _PreviewList(preview: importVm.preview!),
-            const SizedBox(height: 14),
-            _PrimaryButton(
-              text: 'Thêm ${importVm.preview!.okCount} lịch',
-              icon: Icons.check_circle,
-              onTap: importVm.preview!.okCount == 0 ? null : _importNow,
-
-            ),
-          ],
-        ],
+        ),
       ),
-    ),
     );
   }
 }
@@ -636,7 +666,37 @@ class _PreviewList extends StatelessWidget {
         children: [
           const Text('Xem trước dữ liệu', style: AppTextStyles.title),
           const SizedBox(height: 10),
-          ...preview.rows.map((r) => _PreviewRow(r: r)),
+
+          if (preview.warning != null) ...[
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7D6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text(
+                preview.warning!,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF8A6D00),
+                ),
+              ),
+            ),
+          ],
+
+          Expanded(
+            child: ListView.separated(
+              physics: const BouncingScrollPhysics(),
+              itemCount: preview.rows.length,
+              itemBuilder: (context, index) {
+                return _PreviewRow(r: preview.rows[index]);
+              },
+              separatorBuilder: (_, __) => const SizedBox(height: 0),
+            ),
+          ),
         ],
       ),
     );
@@ -649,7 +709,7 @@ class _PreviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg = const Color.fromARGB(255, 151, 255, 157);
+    Color bg = const Color.fromARGB(255, 172, 255, 176);
     String status = 'OK';
 
     if (r.error != null) {
@@ -689,13 +749,13 @@ class _PreviewRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: r.error != null
-                ? Text('Dòng ${r.rowIndex}: ${r.error}',
+                ? Text('Dòng ${r.rowIndex - 1}: ${r.error}',
                     style: AppTextStyles.body)
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Dòng ${r.rowIndex}: ${s!.title}',
+                        'Dòng ${r.rowIndex - 1}: ${s!.title}',
                         style: AppTextStyles.scheduleItemTitle,
                       ),
                       const SizedBox(height: 4),

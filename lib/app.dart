@@ -24,6 +24,7 @@ import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
+import 'package:kid_manager/viewmodels/schedule_history_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/subscription_vm.dart';
 import 'package:kid_manager/viewmodels/terms_vm.dart';
@@ -158,14 +159,14 @@ class _MyAppState extends State<MyApp> {
         ),
 
         // MemoryDay
+        ChangeNotifierProvider(create: (_) => MemoryDayViewModel(memoryRepo)),
+
         ChangeNotifierProvider(
-          create: (context) => ScheduleImportVM(
-            ScheduleImportService(context.read<ScheduleRepository>()),
+          create: (context) => ScheduleHistoryViewModel(
+            context.read<ScheduleRepository>(),
+            context.read<AuthVM>(),
           ),
         ),
-
-        // MemoryDay
-        ChangeNotifierProvider(create: (_) => MemoryDayViewModel(memoryRepo)),
 
         Provider<LocationServiceInterface>(
           create: (_) => LocationServiceImpl(),
