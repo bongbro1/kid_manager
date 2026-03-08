@@ -10,7 +10,10 @@ import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/widgets/app/app_shell.dart';
 import 'package:provider/provider.dart';
-import 'package:kid_manager/services/notifications/sos_sound_prompt.dart';
+
+import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/services/location/location_service.dart';
+import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 
 class SessionGuard extends StatefulWidget {
   const SessionGuard({super.key});
@@ -46,51 +49,31 @@ class _SessionGuardState extends State<SessionGuard> {
         final uid = session.user?.uid;
         final isParent = session.isParent;
 
-        // debugPrint("========== SESSION GUARD ==========");
-        // debugPrint("status: $status");
-        // debugPrint("uid: $uid");
-        // debugPrint("isParent: $isParent");
-        // debugPrint("_lastStatus (old): $_lastStatus");
-        // debugPrint("_lastUid (old): $_lastUid");
-        // debugPrint("_lastIsParent (old): $_lastIsParent");
-
-        //  tính điều kiện dựa trên _last... (giá trị cũ)
         final shouldTriggerMeWatch =
             status == SessionStatus.authenticated &&
-            uid != null &&
-            (_lastStatus != status || _lastUid != uid);
+                uid != null &&
+                (_lastStatus != status || _lastUid != uid);
 
         final shouldTriggerChildrenWatch =
             status == SessionStatus.authenticated &&
-            isParent == true &&
-            uid != null &&
-            (_lastStatus != status ||
-                _lastUid != uid ||
-                _lastIsParent != isParent);
+                isParent == true &&
+                uid != null &&
+                (_lastStatus != status ||
+                    _lastUid != uid ||
+                    _lastIsParent != isParent);
 
-        // debugPrint("shouldTriggerMeWatch: $shouldTriggerMeWatch");
-        // debugPrint("shouldTriggerChildrenWatch: $shouldTriggerChildrenWatch");
-
-        // sau đó mới cập nhật _last...
         _lastStatus = status;
         _lastUid = uid;
         _lastIsParent = isParent;
 
-        // debugPrint("_lastStatus (new): $_lastStatus");
-        // debugPrint("_lastUid (new): $_lastUid");
-        // debugPrint("_lastIsParent (new): $_lastIsParent");
-
-        //  gọi watchMe 1 lần
         if (shouldTriggerMeWatch) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            context.read<UserVm>().watchMe(uid);
             context.read<UserVm>().watchMe(uid);
             context.read<AppManagementVM>().watchChildren(uid);
           });
         }
 
-        //  gọi watchChildren 1 lần (chỉ parent)
         if (shouldTriggerChildrenWatch) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
@@ -107,7 +90,6 @@ class _SessionGuardState extends State<SessionGuard> {
             return const LoginScreen();
 
           case SessionStatus.authenticated:
-
             if (uid == null) {
               return const FlashScreen();
             }
@@ -117,14 +99,92 @@ class _SessionGuardState extends State<SessionGuard> {
 
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (!mounted) return;
-                await SosNotificationService.instance.init(onTapSos: (data) {});
-
-                await SosSoundPrompt.showIfNeeded(context);
+                await SosNotificationService.instance.init(
+                  onTapSos: (data) {},
+                );
               });
             }
-            return AppShell(mode: isParent ? AppMode.parent : AppMode.child);
+
+            if (isParent == true) {
+              return MultiProvider(
+                providers: [
+                  ChangeNotifierProvider(
+                    create: (context) => ParentLocationVm(
+                      context.read<LocationRepository>(),
+                      context.read<LocationServiceInterface>(),
+                    ),
+                  ),
+                ],
+                child: const _ParentWarmupShell(),
+              );
+            }
+
+            return const AppShell(mode: AppMode.child);
         }
       },
     );
+  }
+}
+
+class _ParentWarmupShell extends StatefulWidget {
+  const _ParentWarmupShell();
+
+  @override
+  State<_ParentWarmupShell> createState() => _ParentWarmupShellState();
+}
+
+class _ParentWarmupShellState extends State<_ParentWarmupShell> {
+  bool _started = false;
+
+  late final UserVm _userVm;
+  late final ParentLocationVm _locationVm;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+
+    _userVm = context.read<UserVm>();
+    _locationVm = context.read<ParentLocationVm>();
+
+    _userVm.addListener(_onUserChanged);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      try {
+        await _locationVm.startMyLocation();
+      } catch (e, st) {
+        debugPrint('🔥 startMyLocation failed: $e');
+        debugPrint('$st');
+      }
+
+      _syncChildrenWatch();
+    });
+  }
+
+  void _onUserChanged() {
+    _syncChildrenWatch();
+  }
+
+  void _syncChildrenWatch() {
+    if (!mounted) return;
+
+    final ids = _userVm.childrenIds;
+    if (ids.isEmpty) return;
+
+    _locationVm.syncWatching(ids);
+  }
+
+  @override
+  void dispose() {
+    _userVm.removeListener(_onUserChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const AppShell(mode: AppMode.parent);
   }
 }
