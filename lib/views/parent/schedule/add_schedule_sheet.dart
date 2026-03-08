@@ -420,7 +420,7 @@ Widget _timePicker({
                     final schedule = Schedule(
                       id: '',
                       childId: widget.childId,
-                      parentUid: vm.parentUid,
+                      parentUid: vm.scheduleOwnerUid,
                       title: _titleCtrl.text.trim(),
                       description: _descCtrl.text.trim(),
                       date: normalizedDate,
