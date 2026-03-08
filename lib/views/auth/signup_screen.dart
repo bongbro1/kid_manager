@@ -2,7 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/validators.dart';
-import 'package:kid_manager/models/notifications/notification_type.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
 import 'package:kid_manager/views/terms_screen.dart';

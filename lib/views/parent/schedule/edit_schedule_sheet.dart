@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:kid_manager/models/notifications/notification_type.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/parent/schedule/schedule_period_selector.dart';
 import 'package:provider/provider.dart';

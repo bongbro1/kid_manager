@@ -9,7 +9,7 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get zone_default => 'Thông báo vùng';
+  String get zone_default => 'Thông báo hehehe';
 
   @override
   String get zone_enter_danger_parent => '⚠️ Bé vào vùng nguy hiểm';

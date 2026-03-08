@@ -7,7 +7,7 @@ import 'package:kid_manager/debug/seed_demo_history_rtdb.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
-import 'package:kid_manager/models/notifications/notification_type.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';

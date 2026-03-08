@@ -9,6 +9,7 @@ import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:kid_manager/repositories/subscription_repository.dart';
 import 'package:kid_manager/repositories/terms_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
@@ -24,6 +25,7 @@ import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
+import 'package:kid_manager/viewmodels/subscription_vm.dart';
 import 'package:kid_manager/viewmodels/terms_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -88,6 +90,7 @@ class _MyAppState extends State<MyApp> {
     final authRepo = AuthRepository(authService, userRepo);
     final otpRepo = OtpRepository(FirebaseFirestore.instance);
     final termsRepo = TermsRepository(FirebaseFirestore.instance);
+    final subscriptionRepo = SubscriptionRepository(FirebaseFirestore.instance);
     final scheduleRepo = ScheduleRepository(FirebaseFirestore.instance);
     final appRepo = AppManagementRepository(
       appInstalledService,
@@ -112,6 +115,7 @@ class _MyAppState extends State<MyApp> {
         Provider.value(value: appRepo),
         Provider.value(value: otpRepo),
         Provider.value(value: termsRepo),
+        Provider.value(value: subscriptionRepo),
 
         // ViewModels
         ChangeNotifierProvider(
@@ -138,6 +142,7 @@ class _MyAppState extends State<MyApp> {
 
         ChangeNotifierProvider(create: (context) => OtpVM(otpRepo)),
         ChangeNotifierProvider(create: (context) => TermsVM(termsRepo)),
+        ChangeNotifierProvider(create: (context) => SubscriptionVM(subscriptionRepo)),
 
         Provider<ScheduleRepository>.value(value: scheduleRepo),
 

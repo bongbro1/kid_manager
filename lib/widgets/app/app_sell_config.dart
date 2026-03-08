@@ -36,11 +36,16 @@ class AppShellConfig {
       iconAsset: 'assets/icons/dashboard.svg',
       root: const AppManagementScreen(),
     ),
+
+    // BottomTabConfig(
+    //   iconAsset: 'assets/icons/sms.svg',
+    //   root: const NotificationTab(
+    //     sources: [NotificationSource.userInbox],
+    //   ),
+    // ),
     BottomTabConfig(
-      iconAsset: 'assets/icons/sms.svg',
-      root: const NotificationTab(
-        sources: [NotificationSource.userInbox],
-      ),
+      iconAsset: 'assets/icons/bell.svg',
+      root: const NotificationDebugScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',

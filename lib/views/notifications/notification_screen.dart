@@ -27,8 +27,8 @@ class _NotificationScreenState extends State<NotificationScreen>
     with RouteAware {
   final ScrollController _scrollController = ScrollController();
   final int _maxCountInPage = 20;
-  void _listen() {
-    context.read<NotificationVM>().listenMulti(
+  Future<void> _listen() async {
+    await context.read<NotificationVM>().listenMulti(
       uid: widget.uid,
       sources: widget.sources,
       filter: widget.systemOnly
@@ -41,7 +41,9 @@ class _NotificationScreenState extends State<NotificationScreen>
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _listen());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _listen();
+    });
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >
           _scrollController.position.maxScrollExtent - _maxCountInPage) {

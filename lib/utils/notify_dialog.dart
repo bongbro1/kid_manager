@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/models/notifications/notification_type.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 
 Future<void> showSuccessDialog(

@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:kid_manager/models/notifications/notification_type.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
 
 class NotificationDialog extends StatelessWidget {
@@ -45,7 +45,7 @@ class NotificationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final config = NotificationConfig.from(type);
+    final config = DialogConfig.from(type);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -81,7 +81,7 @@ class NotificationDialog extends StatelessWidget {
 }
 
 class _IconSection extends StatelessWidget {
-  final NotificationConfig config;
+  final DialogConfig config;
 
   const _IconSection({required this.config});
 

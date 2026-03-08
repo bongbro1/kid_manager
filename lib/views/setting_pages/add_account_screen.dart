@@ -3,7 +3,7 @@ import 'package:kid_manager/core/alert_service.dart';
 
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/core/validators.dart';
-import 'package:kid_manager/models/notifications/notification_type.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';

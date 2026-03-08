@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
-import 'package:kid_manager/models/notifications/notification_type.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/auth/reset_pass_screen.dart';

@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 
@@ -9,7 +10,9 @@ class NotificationService {
     debugPrint('🔔 NotificationService.init()');
 
     FirebaseMessaging.onMessage.listen((m) async {
-      debugPrint('🔔 onMessage (FG) id=${m.messageId} data=${m.data} notif=${m.notification?.title}');
+      debugPrint(
+        '🔔 onMessage (FG) id=${m.messageId} data=${m.data} notif=${m.notification?.title}',
+      );
       await handleMessageForLocalNotification(m);
     });
 
@@ -20,12 +23,37 @@ class NotificationService {
     // Log cái message khiến app mở từ terminated (nếu có)
     final initial = await FirebaseMessaging.instance.getInitialMessage();
     if (initial != null) {
-      debugPrint('🔔 getInitialMessage id=${initial.messageId} data=${initial.data}');
+      debugPrint(
+        '🔔 getInitialMessage id=${initial.messageId} data=${initial.data}',
+      );
     }
   }
 
-  static Future<void> handleMessageForLocalNotification(RemoteMessage message) async {
+  static Future<void> handleMessageForLocalNotification(
+    RemoteMessage message,
+  ) async {
     debugPrint('🔔 handleMessageForLocalNotification() data=${message.data}');
+
+    final type = message.data['type']?.toString().toLowerCase() ?? '';
+
+    if (type != 'zone') {
+      final title =
+          message.notification?.title ??
+          message.data['title']?.toString() ??
+          'Thông báo';
+
+      final body =
+          message.notification?.body ??
+          message.data['body']?.toString() ??
+          'Bạn có thông báo mới';
+
+      debugPrint(
+        '🔔 show normal local notification title="$title" body="$body"',
+      );
+
+      await LocalNotificationService.show(title: title, body: body);
+      return;
+    }
 
     final key = message.data['eventKey']?.toString() ?? 'zone.default';
     final zoneName = message.data['zoneName']?.toString() ?? '';
@@ -39,7 +67,7 @@ class NotificationService {
     final title = _zoneTitleFromKey(l10n, key);
     final body = zoneName;
 
-    debugPrint('🔔 show local notification title="$title" body="$body"');
+    debugPrint('🔔 show zone local notification title="$title" body="$body"');
 
     await LocalNotificationService.show(title: title, body: body);
   }
@@ -73,20 +101,14 @@ class NotificationService {
   /// ==============================
   /// ⚙️ SYSTEM → USER
   /// ==============================
-  static Future<void> sendSystem({
-    required String receiverId,
-    required String type,
-    required String title,
-    required String body,
-    Map<String, dynamic>? data,
-  }) {
+  static Future<void> sendSystem(NotificationPayload payload) {
     return _repo.create(
       senderId: _systemSender,
-      receiverId: receiverId,
-      type: type,
-      title: title,
-      body: body,
-      data: data,
+      receiverId: payload.receiverId,
+      type: payload.type.name,
+      title: payload.title,
+      body: payload.body,
+      data: payload.data,
     );
   }
 

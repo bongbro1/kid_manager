@@ -13,3 +13,4 @@ export * from "./functions/zones";
 export * from "./functions/zoneEvents";
 export * from "./functions/send_email";
 export * from "./functions/user_auth";
+export * from "./functions/subscriptionTriggers";

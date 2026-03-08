@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/models/notifications/app_notification.dart';
+import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -31,7 +34,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
 
   final _familyController = TextEditingController();
 
-  String _type = "message";
+  NotificationType _selectedType = NotificationType.system;
   bool _loading = false;
 
   Future<void> _sendUserToUser() async {
@@ -41,7 +44,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       final payload = {
         "senderId": _selectedSenderId!,
         "receiverId": _selectedReceiverId!,
-        "type": _type,
+        "type": _selectedType.value,
         "title": _titleController.text.trim(),
         "body": _bodyController.text.trim(),
         "familyId": _familyController.text.trim().isEmpty
@@ -81,11 +84,29 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
     setState(() => _loading = true);
 
     try {
+      final payload = {
+        "receiverId": _selectedReceiverId,
+        "type": _selectedType.name,
+        "title": _titleController.text.trim(),
+        "body": _bodyController.text.trim(),
+      };
+
+      debugPrint("========== DEBUG SYSTEM SEND ==========");
+      debugPrint(payload.toString());
+      debugPrint("receiverId length: ${payload["receiverId"]?.length}");
+      debugPrint("type: ${payload["type"]}");
+      debugPrint("title: ${payload["title"]}");
+      debugPrint("body: ${payload["body"]}");
+      debugPrint("=======================================");
+
       await NotificationService.sendSystem(
-        receiverId: _selectedReceiverId!,
-        type: _type,
-        title: _titleController.text.trim(),
-        body: _bodyController.text.trim(),
+        NotificationPayload(
+          receiverId: _selectedReceiverId!,
+          type: _selectedType,
+          title: _titleController.text.trim(),
+          body: _bodyController.text.trim(),
+          data: {"debug": true},
+        ),
       );
 
       if (mounted) {
@@ -93,7 +114,10 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
           const SnackBar(content: Text("✅ System notification sent")),
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint("ERROR SEND SYSTEM: $e");
+      debugPrint(stack.toString());
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("❌ Error: $e")));
@@ -102,25 +126,35 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
     setState(() => _loading = false);
   }
 
-  Future<void> _sendChildAlert() async {
+  Future<void> _testSubscription(String status) async {
+    if (_selectedReceiverId == null) return;
+
     setState(() => _loading = true);
 
     try {
-      // await NotificationService.sendChildAlert(
-      //   childId: _senderController.text.trim(),
-      //   parentId: _receiverController.text.trim(),
-      //   type: _type,
-      //   title: _titleController.text.trim(),
-      //   body: _bodyController.text.trim(),
-      //   familyId: _familyController.text.trim().isEmpty
-      //       ? null
-      //       : _familyController.text.trim(),
-      // );
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_selectedReceiverId)
+          .set({
+            'subscription': {
+              'plan': 'pro',
+              'status': status,
+              'startAt': Timestamp.fromDate(DateTime.now()),
+              'endAt': Timestamp.fromDate(
+                DateTime.now().add(const Duration(days: 30)),
+              ),
+              'isTrial': status == 'trial',
+              'autoRenew': true,
+              'productId': 'pro_monthly',
+              'platform': 'android',
+              'updatedAt': FieldValue.serverTimestamp(),
+            },
+          }, SetOptions(merge: true));
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("🚨 Child alert sent")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Subscription status → $status")),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(
@@ -218,20 +252,22 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
 
             const SizedBox(height: 12),
 
-            DropdownButtonFormField<String>(
-              value: _type,
+            DropdownButtonFormField<NotificationType>(
+              value: _selectedType,
               decoration: const InputDecoration(
-                labelText: "Notification Type",
+                labelText: "Type",
                 border: OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(value: "message", child: Text("message")),
-                DropdownMenuItem(value: "alert", child: Text("alert")),
-                DropdownMenuItem(value: "system", child: Text("system")),
-              ],
+              items: NotificationType.values.map((type) {
+                return DropdownMenuItem<NotificationType>(
+                  value: type,
+                  child: Text(type.name),
+                );
+              }).toList(),
               onChanged: (value) {
+                if (value == null) return;
                 setState(() {
-                  _type = value ?? "message";
+                  _selectedType = value;
                 });
               },
             ),
@@ -242,18 +278,41 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
               const CircularProgressIndicator()
             else ...[
               ElevatedButton(
-                onPressed: _sendUserToUser,
-                child: const Text("👤 Send User → User"),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
                 onPressed: _sendSystem,
                 child: const Text("⚙️ Send System → User"),
               ),
+              const SizedBox(height: 20),
+
+              const Text(
+                "Subscription Test",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+
               const SizedBox(height: 10),
+
               ElevatedButton(
-                onPressed: _sendChildAlert,
-                child: const Text("🚨 Send Child → Parent"),
+                onPressed: () => _testSubscription("trial"),
+                child: const Text("🧪 Start Trial"),
+              ),
+
+              ElevatedButton(
+                onPressed: () => _testSubscription("active"),
+                child: const Text("✅ Activate Subscription"),
+              ),
+
+              ElevatedButton(
+                onPressed: () => _testSubscription("expired"),
+                child: const Text("⛔ Expire Subscription"),
+              ),
+
+              ElevatedButton(
+                onPressed: () => _testSubscription("canceled"),
+                child: const Text("🚫 Cancel Subscription"),
+              ),
+
+              ElevatedButton(
+                onPressed: () => _testSubscription("payment_failed"),
+                child: const Text("💳 Payment Failed"),
               ),
             ],
           ],
