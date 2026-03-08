@@ -4,7 +4,15 @@ import 'package:kid_manager/models/notifications/notification_detail_model.dart'
 
 class ZoneDetailWidget extends StatelessWidget {
   final NotificationDetailModel detail;
-  const ZoneDetailWidget({super.key, required this.detail});
+  final VoidCallback? onViewMap;
+  final VoidCallback? onPhone;
+
+  const ZoneDetailWidget({
+    super.key,
+    required this.detail,
+    this.onViewMap,
+    this.onPhone,
+  });
 
   Map<String, dynamic> get _data => detail.data;
 
@@ -172,7 +180,7 @@ class ZoneDetailWidget extends StatelessWidget {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          onPressed: () {},
+          onPressed: onViewMap,
           icon: const Icon(Icons.map_outlined, size: 18),
           label: const Text('Xem trên bản đồ chính'),
           style: ElevatedButton.styleFrom(
@@ -199,7 +207,7 @@ class ZoneDetailWidget extends StatelessWidget {
       child: SizedBox(
         width: double.infinity,
         child: OutlinedButton.icon(
-          onPressed: () {},
+          onPressed: onPhone,
           icon: const Icon(Icons.phone_in_talk_outlined, size: 18),
           label: const Text('Liên hệ ngay'),
           style: OutlinedButton.styleFrom(

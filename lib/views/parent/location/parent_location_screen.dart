@@ -4,8 +4,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
+import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
+import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/views/parent/location/parent_children_list_screen.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
 import 'package:kid_manager/widgets/sos/sos_view.dart';
@@ -45,6 +47,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
   Timer? _syncDebounce;
   Uint8List? _defaultAvatarBytes;
+  final FamilyChatRepository _chatRepo = FamilyChatRepository();
 
   @override
   bool get wantKeepAlive => true;
@@ -232,8 +235,30 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
         latest: latest,
         isSearching: false,
         onToggleSearch: () {},
-        onOpenChat: () {},
-        onSendQuickMessage: (msg) async {},
+        onOpenChat: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const FamilyGroupChatScreen(),
+            ),
+          );
+        },
+        onSendQuickMessage: (msg) async {
+          final me = _userVm.me;
+          final familyId = _userVm.familyId;
+          if (me == null || familyId == null) {
+            throw StateError('Missing user or family');
+          }
+
+          await _chatRepo.sendTextMessage(
+            familyId: familyId,
+            senderUid: me.uid,
+            senderName: me.displayName ?? me.email ?? me.uid,
+            senderRole: me.role.name,
+            text: msg,
+          );
+        },
       ),
     );
   }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/helpers/phone/phone_helps.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
-import 'package:kid_manager/widgets/notifications/blocked_app_detail_widget.dart';
 import 'package:kid_manager/widgets/notifications/notification_detail_body.dart';
 import 'package:provider/provider.dart';
 
@@ -103,6 +103,34 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     if (isDanger && !isEnter) return Icons.verified_rounded;
     return Icons.location_on_outlined;
   }
+
+
+  void _handleZoneViewMap(NotificationDetailModel detail) {
+    // TODO: mở bản đồ chính / focus child / focus zone
+  }
+
+  Future<void> _handleZonePhone(NotificationDetailModel detail) async {
+    final childId = (detail.data['childUid'] ?? '').toString().trim();
+    final childName = (detail.data['childName'] ??
+        detail.data['displayName'] ??
+        detail.data['name'] ??
+        'Bé')
+        .toString();
+
+    if (childId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không tìm thấy thông tin của bé')),
+      );
+      return;
+    }
+
+    await handleCallChildByProfile(
+      context: context,
+      childId: childId,
+      childName: childName,
+    );
+  }
+
 
   String _formatTimeAgo(DateTime? time) {
     if (time == null) return "";
@@ -251,7 +279,14 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
 
                         const SizedBox(height: 12),
 
-                        NotificationDetailBody(detail: detail),
+                        NotificationDetailBody(detail: detail,
+                          onZoneViewMap: detail.notificationType == NotificationType.zone
+                              ? () => _handleZoneViewMap(detail)
+                              : null,
+                          onZonePhone: detail.notificationType == NotificationType.zone
+                              ? () => _handleZonePhone(detail)
+                              : null,
+                        ),
                       ],
                     ),
                   ),

@@ -3,6 +3,7 @@ import 'package:kid_manager/features/presentation/shared/state/mapbox_controller
 import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
+import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
 import 'package:kid_manager/views/notifications/notification_debug_screen.dart';
 import 'package:kid_manager/views/notifications/notification_tab.dart';
@@ -38,9 +39,7 @@ class AppShellConfig {
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/sms.svg',
-      root: const NotificationTab(
-        sources: [NotificationSource.userInbox],
-      ),
+      root: const FamilyGroupChatScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
@@ -76,8 +75,8 @@ class AppShellConfig {
       ),
     ),
     BottomTabConfig(
-      iconAsset: 'assets/icons/bell.svg',
-      root: const NotificationDebugScreen(),
+      iconAsset: 'assets/icons/sms.svg',
+      root: const FamilyGroupChatScreen(),
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
