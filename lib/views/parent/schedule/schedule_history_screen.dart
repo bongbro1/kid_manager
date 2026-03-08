@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/schedule.dart';
 import '../../../models/schedule_history.dart';
-import '../../../models/notifications/notification_type.dart';
 import '../../../viewmodels/schedule_history_vm.dart';
 import '../../../viewmodels/schedule_vm.dart';
 import '../../../widgets/app/app_notification_dialog.dart';
