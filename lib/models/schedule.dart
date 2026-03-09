@@ -18,7 +18,7 @@ SchedulePeriod periodFromKey(String v) {
   }
 }
 
-// ✅ Lưu Firestore bằng key EN (đúng chuẩn để query/parse ổn định)
+// ✅ Lưu Firestore bằng key EN
 String periodKey(SchedulePeriod p) {
   switch (p) {
     case SchedulePeriod.afternoon:
@@ -65,7 +65,7 @@ class Schedule {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-    /// số lần đã có history edit
+  /// số lần đã có history edit
   final int editCount;
 
   const Schedule({
@@ -119,26 +119,30 @@ class Schedule {
       }..removeWhere((k, v) => v == null);
 
   Schedule copyWith({
+    String? id,
+    String? childId,
+    String? parentUid,
     String? title,
     String? description,
     DateTime? date,
     DateTime? startAt,
     DateTime? endAt,
     SchedulePeriod? period,
+    DateTime? createdAt,
     DateTime? updatedAt,
     int? editCount,
   }) {
     return Schedule(
-      id: id,
-      childId: childId,
-      parentUid: parentUid,
+      id: id ?? this.id,
+      childId: childId ?? this.childId,
+      parentUid: parentUid ?? this.parentUid,
       title: title ?? this.title,
       description: description ?? this.description,
       date: date ?? this.date,
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
       period: period ?? this.period,
-      createdAt: createdAt,
+      createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       editCount: editCount ?? this.editCount,
     );

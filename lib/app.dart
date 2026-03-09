@@ -16,6 +16,7 @@ import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/app_installed_service.dart';
 import 'package:kid_manager/services/permission_service.dart';
+import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/services/usage_sync_service.dart';
@@ -149,9 +150,18 @@ class _MyAppState extends State<MyApp> {
 
         Provider<ScheduleRepository>.value(value: scheduleRepo),
 
+        Provider<ScheduleNotificationService>(
+          create: (context) => ScheduleNotificationService(
+            context.read<UserRepository>(),
+          ),
+        ),
+
         ChangeNotifierProvider(
-          create: (context) =>
-              ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
+          create: (context) => ScheduleViewModel(
+            scheduleRepo,
+            context.read<AuthVM>(),
+            context.read<ScheduleNotificationService>(),
+          ),
         ),
 
         ChangeNotifierProvider(

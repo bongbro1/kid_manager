@@ -97,7 +97,7 @@ class AppManagementVM extends ChangeNotifier {
 
       _apps = await _repo.loadAppsFromFirestore(userId);
       notifyListeners();
-      await _repo.syncTodayUsage(userId: userId);
+      // await _repo.syncTodayUsage(userId: userId);
     } catch (e, stack) {
       debugPrint("❌ loadApps ERROR: $e");
       debugPrint("STACK: $stack");
@@ -109,18 +109,18 @@ class AppManagementVM extends ChangeNotifier {
   }
 
   /// Chỉ sync usage (khi app đã seed)
-  Future<void> syncUsageOnly(String userId) async {
-    _setLoading(true);
-    _error = null;
+  // Future<void> syncUsageOnly(String userId) async {
+  //   _setLoading(true);
+  //   _error = null;
 
-    try {
-      await _repo.syncTodayUsage(userId: userId);
-    } catch (e) {
-      _error = 'Không thể cập nhật usage';
-    } finally {
-      _setLoading(false);
-    }
-  }
+  //   try {
+  //     await _repo.syncTodayUsage(userId: userId);
+  //   } catch (e) {
+  //     _error = 'Không thể cập nhật usage';
+  //   } finally {
+  //     _setLoading(false);
+  //   }
+  // }
 
   // Future<void> loadChildren() async {
   //   _loading = true;

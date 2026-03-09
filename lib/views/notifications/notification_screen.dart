@@ -173,7 +173,6 @@ class _NotificationScreenState extends State<NotificationScreen>
                                         key: ValueKey(item.id),
                                         item: item,
                                         onTap: () {
-                                          vm.markAsRead(item);
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(

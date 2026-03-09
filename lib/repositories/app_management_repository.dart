@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
@@ -231,7 +233,7 @@ class AppManagementRepository {
       final ms = int.tryParse(s.totalTimeInForeground ?? '') ?? 0;
       final last = int.tryParse(s.lastTimeUsed ?? '') ?? 0;
 
-      usageMsByPkg[pkg] = (usageMsByPkg[pkg] ?? 0) + ms;
+      usageMsByPkg[pkg] = max(usageMsByPkg[pkg] ?? 0, ms);
 
       if (last > (lastUsedByPkg[pkg] ?? 0)) {
         lastUsedByPkg[pkg] = last;

@@ -22,19 +22,18 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await NotificationService.handleMessageForLocalNotification(message);
 }
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  await NotificationService.init();
   debugPrint("MAIN START");
   await LocalNotificationService.init();
-debugPrint("MAIN AFTER INIT");
+  debugPrint("MAIN AFTER INIT");
+  await NotificationService.init();
 
   await dotenv.load(fileName: ".env");
 
@@ -60,14 +59,12 @@ debugPrint("MAIN AFTER INIT");
 
   runApp(
     MultiProvider(
-      providers: [
-        Provider<StorageService>.value(value: storageService),
-      ],
+      providers: [Provider<StorageService>.value(value: storageService)],
       child: const MyApp(),
     ),
   );
 
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    await LocalNotificationService.consumePendingTap();
-  });
+  // WidgetsBinding.instance.addPostFrameCallback((_) async {
+  //   await LocalNotificationService.consumePendingTap();
+  // });
 }

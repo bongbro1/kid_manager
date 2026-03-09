@@ -15,7 +15,12 @@ import '../../../widgets/parent/schedule/schedule_calendar.dart';
 import '../../../widgets/parent/schedule/schedule_list.dart';
 
 class ChildScheduleScreen extends StatefulWidget {
-  const ChildScheduleScreen({super.key});
+  final DateTime? initialDate;
+
+  const ChildScheduleScreen({
+    super.key,
+    this.initialDate,
+  });
 
   @override
   State<ChildScheduleScreen> createState() => _ChildScheduleScreenState();
@@ -25,6 +30,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
   String? _lastChildUid;
   String? _lastOwnerUid;
   bool _binding = false;
+  bool _appliedNotificationTarget = false;
 
   void _openAddScheduleSheet({
     required BuildContext context,
@@ -51,6 +57,31 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         );
       },
     );
+  }
+
+  Future<void> _applyNotificationTargetIfNeeded({
+    required String parentUid,
+    required String childUid,
+  }) async {
+    if (_appliedNotificationTarget) return;
+    if (widget.initialDate == null) return;
+
+    _appliedNotificationTarget = true;
+
+    final scheduleVm = context.read<ScheduleViewModel>();
+    final memoryVm = context.read<MemoryDayViewModel>();
+
+    await scheduleVm.openFromNotification(
+      ownerParentUid: parentUid,
+      childId: childUid,
+      date: widget.initialDate!,
+    );
+
+    memoryVm.bindCalendarState(
+      focusedMonth: scheduleVm.focusedMonth,
+      selectedDate: scheduleVm.selectedDate,
+    );
+    await memoryVm.loadMonth();
   }
 
   Future<void> _bindSessionIfNeeded() async {
@@ -100,6 +131,10 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         );
 
         await memoryVm.loadMonth();
+        await _applyNotificationTargetIfNeeded(
+          parentUid: parentUid,
+          childUid: childUid,
+        );
       }
     } finally {
       _binding = false;

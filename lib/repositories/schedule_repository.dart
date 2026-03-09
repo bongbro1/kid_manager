@@ -36,7 +36,9 @@ class ScheduleRepository {
         .orderBy('startAt')
         .get();
 
-    return snapshot.docs.map((doc) => Schedule.fromFirestore(doc)).toList();
+    return snapshot.docs
+    .map((doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid))
+    .toList();
   }
 
   Future<List<Schedule>> getSchedulesByRange({
@@ -52,11 +54,14 @@ class ScheduleRepository {
         .orderBy('startAt')
         .get();
 
-    return snapshot.docs.map((doc) => Schedule.fromFirestore(doc)).toList();
+    return snapshot.docs
+    .map((doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid))
+    .toList();
   }
 
-  Future<void> createSchedule(String parentUid, Schedule s) async {
-    await _scheduleCol(parentUid).add(s.toMap());
+  Future<String> createSchedule(String parentUid, Schedule s) async {
+    final ref = await _scheduleCol(parentUid).add(s.toMap());
+    return ref.id;
   }
 
   /// update có lưu history snapshot của bản cũ

@@ -32,7 +32,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
 
     Future.microtask(() async {
       final vm = context.read<AppManagementVM>();
-      await vm.loadAppsForSelectedChild(); // giờ mới load app
+      await vm.loadAppsForSelectedChild();
     });
   }
 

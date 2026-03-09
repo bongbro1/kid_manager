@@ -1,14 +1,16 @@
 import 'dart:convert';
-
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
+import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 
 class NotificationService {
+  static const _channel = MethodChannel('notification_intent');
   static Future<void> init() async {
     debugPrint('🔔 NotificationService.init()');
 
@@ -18,6 +20,60 @@ class NotificationService {
       );
       await handleMessageForLocalNotification(m);
     });
+
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'notificationTap') {
+        final payload = call.arguments as String?;
+        if (payload != null) {
+          final data = jsonDecode(payload);
+
+          await handleTap(data);
+        }
+      }
+    });
+  }
+
+  static Future<void> handleTap(Map<String, dynamic> data) async {
+    final type = data["type"];
+    final notificationId = data['notificationId']?.toString();
+    if (notificationId == null || notificationId.isEmpty) {
+      debugPrint('🔔 notificationId missing');
+      return;
+    }
+
+    final repo = NotificationRepository();
+    final item = await repo.getItemById(notificationId);
+    if (item == null) {
+      debugPrint('🔔 notification not found: $notificationId');
+      return;
+    }
+
+    if (type != "sos") {
+      final navigator = AppNavigator.navigatorKey.currentState;
+      if (navigator != null) {
+        navigator.push(
+          MaterialPageRoute(
+            builder: (_) => NotificationDetailScreen(item: item),
+          ),
+        );
+        return;
+      }
+
+      return;
+    }
+
+    if (type == "sos") {
+      final navigator = AppNavigator.navigatorKey.currentState;
+      if (navigator != null) {
+        debugPrint('🔔 VÀO MÀN SOS');
+        // navigator.push(
+        //   MaterialPageRoute(
+        //     builder: (_) => SosScreen(),
+        //   ),
+        // );
+        return;
+      }
+    }
   }
 
   static Future<void> handleMessageForLocalNotification(

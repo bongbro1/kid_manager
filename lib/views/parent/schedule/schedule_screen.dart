@@ -18,7 +18,16 @@ import '../../../widgets/parent/schedule/schedule_calendar.dart';
 import '../../../widgets/parent/schedule/schedule_list.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+  final String? initialChildId;
+  final DateTime? initialDate;
+  final String? initialOwnerParentUid;
+
+  const ScheduleScreen({
+    super.key,
+    this.initialChildId,
+    this.initialDate,
+    this.initialOwnerParentUid,
+  });
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -27,6 +36,7 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   String? _lastParentUid;
   bool _binding = false;
+  bool _appliedNotificationTarget = false;
 
   void _openAddScheduleSheet({
     required BuildContext context,
@@ -56,16 +66,42 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   String _selectedChildName(List<AppUser> children, String? selectedId) {
-  if (children.isEmpty) return 'Bé';
-  final selected = selectedId == null
-      ? children.first
-      : children.firstWhere(
-          (c) => c.uid == selectedId,
-          orElse: () => children.first,
-        );
+    if (children.isEmpty) return 'Bé';
+    final selected = selectedId == null
+        ? children.first
+        : children.firstWhere(
+            (c) => c.uid == selectedId,
+            orElse: () => children.first,
+          );
 
-  return (selected.displayName ?? selected.email ?? selected.uid).trim();
-}
+    return (selected.displayName ?? selected.email ?? selected.uid).trim();
+  }
+
+  Future<void> _applyNotificationTargetIfNeeded() async {
+    if (_appliedNotificationTarget) return;
+    if (widget.initialChildId == null ||
+        widget.initialDate == null ||
+        widget.initialOwnerParentUid == null) {
+      return;
+    }
+
+    _appliedNotificationTarget = true;
+
+    final scheduleVm = context.read<ScheduleViewModel>();
+    final memoryVm = context.read<MemoryDayViewModel>();
+
+    await scheduleVm.openFromNotification(
+      ownerParentUid: widget.initialOwnerParentUid!,
+      childId: widget.initialChildId!,
+      date: widget.initialDate!,
+    );
+
+    memoryVm.bindCalendarState(
+      focusedMonth: scheduleVm.focusedMonth,
+      selectedDate: scheduleVm.selectedDate,
+    );
+    await memoryVm.loadMonth();
+  }
 
   Future<void> _bindParentSessionIfNeeded() async {
     if (_binding) return;
@@ -107,6 +143,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
         // Load memory month hiện tại
         await memoryVm.loadMonth();
+        await _applyNotificationTargetIfNeeded();
       }
     } finally {
       _binding = false;
@@ -126,7 +163,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     });
 
     // ✅ Auto select bé đầu tiên nếu chưa chọn bé
-    if (scheduleVm.selectedChildId == null && children.isNotEmpty) {
+    if (widget.initialChildId == null &&
+    scheduleVm.selectedChildId == null &&
+    children.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         scheduleVm.setChild(children.first.uid); // setChild sẽ reset về today + loadMonth
