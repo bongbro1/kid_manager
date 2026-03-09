@@ -8,11 +8,11 @@ import '../../../core/app_text_styles.dart';
 import '../../../core/storage_keys.dart';
 import '../../../services/storage_service.dart';
 import '../../../viewmodels/schedule_vm.dart';
-
 import '../../../views/parent/schedule/add_schedule_sheet.dart';
 import '../../../widgets/parent/schedule/create_schedule_button.dart';
 import '../../../widgets/parent/schedule/schedule_calendar.dart';
 import '../../../widgets/parent/schedule/schedule_list.dart';
+import '../../../widgets/parent/schedule/schedule_menu_drawer.dart';
 
 class ChildScheduleScreen extends StatefulWidget {
   final DateTime? initialDate;
@@ -141,6 +141,26 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
     }
   }
 
+  Future<void> _reloadSchedulesAfterImport() async {
+    final scheduleVm = context.read<ScheduleViewModel>();
+    final memoryVm = context.read<MemoryDayViewModel>();
+
+    if (scheduleVm.selectedChildId == null) {
+      debugPrint('[CHILD_SCHEDULE_IMPORT] selectedChildId=null -> skip reload');
+      return;
+    }
+
+    await scheduleVm.loadMonth();
+
+    memoryVm.bindCalendarState(
+      focusedMonth: scheduleVm.focusedMonth,
+      selectedDate: scheduleVm.selectedDate,
+    );
+    await memoryVm.loadMonth();
+
+    debugPrint('[CHILD_SCHEDULE_IMPORT] reload done');
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheduleVm = context.watch<ScheduleViewModel>();
@@ -151,12 +171,19 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
     });
 
     return Scaffold(
+      drawer: ScheduleMenuDrawer(
+        selectedChildId: scheduleVm.selectedChildId,
+        lockChildSelection: true,
+        onImportSuccess: _reloadSchedulesAfterImport,
+      ),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: AppColors.darkText),
-          onPressed: () {},
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu, color: AppColors.darkText),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
         ),
         title: const Text(
           'Lịch trình',
@@ -170,7 +197,8 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
           const SizedBox(height: 16),
           if (scheduleVm.selectedChildId == null)
             const Expanded(
-                child: Center(child: CircularProgressIndicator()))
+              child: Center(child: CircularProgressIndicator()),
+            )
           else
             const Expanded(child: ScheduleList()),
           CreateScheduleButton(

@@ -39,7 +39,7 @@ class ScheduleViewModel extends ChangeNotifier {
   /// list hiển thị bên dưới
   List<Schedule> schedules = [];
 
-  String get parentUid {
+  String get actorUid {
     final uid = _authVM.user?.uid;
     if (uid == null) {
       throw Exception('User chưa đăng nhập');
@@ -292,7 +292,7 @@ class ScheduleViewModel extends ChangeNotifier {
   Future<void> _safeNotifyCreated(Schedule schedule) async {
     try {
       await _scheduleNotificationService.notifyCreated(
-        actorUid: parentUid,
+        actorUid: actorUid,
         scheduleOwnerUid: scheduleOwnerUid,
         schedule: schedule,
       );
@@ -304,7 +304,7 @@ class ScheduleViewModel extends ChangeNotifier {
   Future<void> _safeNotifyUpdated(Schedule schedule) async {
     try {
       await _scheduleNotificationService.notifyUpdated(
-        actorUid: parentUid,
+        actorUid: actorUid,
         scheduleOwnerUid: scheduleOwnerUid,
         schedule: schedule,
       );
@@ -316,7 +316,7 @@ class ScheduleViewModel extends ChangeNotifier {
   Future<void> _safeNotifyDeleted(Schedule schedule) async {
     try {
       await _scheduleNotificationService.notifyDeleted(
-        actorUid: parentUid,
+        actorUid: actorUid,
         scheduleOwnerUid: scheduleOwnerUid,
         schedule: schedule,
       );

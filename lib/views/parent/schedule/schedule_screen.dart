@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
-import 'package:kid_manager/views/parent/memory_day/memory_day_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/views/parent/schedule/schedule_import_excel_screen.dart';
-import 'package:kid_manager/views/parent/schedule/schedule_export_excel_screen.dart';
 
 import '../../../core/app_colors.dart';
 import '../../../core/app_text_styles.dart';
@@ -16,6 +13,7 @@ import '../../../views/parent/schedule/add_schedule_sheet.dart';
 import '../../../widgets/parent/schedule/create_schedule_button.dart';
 import '../../../widgets/parent/schedule/schedule_calendar.dart';
 import '../../../widgets/parent/schedule/schedule_list.dart';
+import '../../../widgets/parent/schedule/schedule_menu_drawer.dart';
 
 class ScheduleScreen extends StatefulWidget {
   final String? initialChildId;
@@ -63,18 +61,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         );
       },
     );
-  }
-
-  String _selectedChildName(List<AppUser> children, String? selectedId) {
-    if (children.isEmpty) return 'Bé';
-    final selected = selectedId == null
-        ? children.first
-        : children.firstWhere(
-            (c) => c.uid == selectedId,
-            orElse: () => children.first,
-          );
-
-    return (selected.displayName ?? selected.email ?? selected.uid).trim();
   }
 
   Future<void> _applyNotificationTargetIfNeeded() async {
@@ -164,8 +150,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     // ✅ Auto select bé đầu tiên nếu chưa chọn bé
     if (widget.initialChildId == null &&
-    scheduleVm.selectedChildId == null &&
-    children.isNotEmpty) {
+        scheduleVm.selectedChildId == null &&
+        children.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         scheduleVm.setChild(children.first.uid); // setChild sẽ reset về today + loadMonth
@@ -174,66 +160,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
 
     return Scaffold(
-      drawer: Drawer(
-        child: SafeArea(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const ListTile(
-                leading: const Icon(Icons.menu, color: Color.fromARGB(255, 0, 0, 0)),
-                title: Text(
-                  'Menu',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.star, color: Color(0xFFF4B400)),
-                title: const Text('Ngày đáng nhớ'),
-                onTap: () {
-                  Navigator.pop(context); // đóng drawer
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const MemoryDayScreen()),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.upload_file, color: Color.fromARGB(255, 0, 224, 49)),
-                title: const Text('Thêm file Excel'),
-                onTap: () async {
-                  Navigator.pop(context); // đóng drawer
-
-                  final needReload = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ScheduleImportExcelScreen()),
-                  );
-
-                  // ✅ IMPORT XONG -> RELOAD NGAY
-                  if (needReload == true) {
-                    debugPrint('[SCHEDULE_IMPORT] needReload=true -> reload schedules');
-                    await _reloadSchedulesAfterImport();
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.file_download, color: Color.fromARGB(255, 0, 238, 255)),
-                title: const Text('Xuất file Excel'),
-                onTap: () async {
-                  Navigator.pop(context);
-
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ScheduleExportExcelScreen(
-                        initialChildId: scheduleVm.selectedChildId,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
+      drawer: ScheduleMenuDrawer(
+        selectedChildId: scheduleVm.selectedChildId,
+        lockChildSelection: false,
+        onImportSuccess: _reloadSchedulesAfterImport,
       ),
       appBar: AppBar(
         backgroundColor: Colors.white,

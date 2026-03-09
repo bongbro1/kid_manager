@@ -7,18 +7,22 @@ import 'package:provider/provider.dart';
 
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_text_styles.dart';
+import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/services/schedule/schedule_excel_service.dart';
+import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/schedule_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 
 class ScheduleExportExcelScreen extends StatefulWidget {
   final String? initialChildId;
+  final bool lockChildSelection;
 
   const ScheduleExportExcelScreen({
     super.key,
     this.initialChildId,
+    this.lockChildSelection = false,
   });
 
   @override
@@ -33,8 +37,15 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
   bool _loading = false;
 
   String? _selectedChildId;
+  String? _currentUid;
+  String? _role;
+  String? _ownerParentUid;
+  String? _lockedChildName;
+
   DateTime _fromDate = _normalize(DateTime.now());
   DateTime _toDate = _normalize(DateTime.now());
+
+  bool get _isChildMode => widget.lockChildSelection || _role == 'child';
 
   @override
   void didChangeDependencies() {
@@ -42,13 +53,54 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
     if (_didInit) return;
     _didInit = true;
 
-    final userVm = context.read<UserVm>();
-    final children = userVm.children;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _initSession();
+    });
+  }
 
-    if (widget.initialChildId != null) {
-      _selectedChildId = widget.initialChildId;
-    } else if (children.isNotEmpty) {
-      _selectedChildId = children.first.uid;
+  Future<void> _initSession() async {
+    final storage = context.read<StorageService>();
+    final userVm = context.read<UserVm>();
+    final scheduleVm = context.read<ScheduleViewModel>();
+
+    final currentUid = storage.getString(StorageKeys.uid);
+    final role = storage.getString(StorageKeys.role);
+
+    if (currentUid == null) return;
+
+    _currentUid = currentUid;
+    _role = role;
+
+    if (_isChildMode) {
+      if (userVm.profile == null || userVm.profile!.id != currentUid) {
+        await userVm.loadProfile();
+      }
+
+      final ownerParentUid = userVm.profile?.parentUid;
+      if (ownerParentUid == null || ownerParentUid.isEmpty) return;
+
+      _ownerParentUid = ownerParentUid;
+      scheduleVm.setScheduleOwnerUid(ownerParentUid);
+
+      _selectedChildId = widget.initialChildId ?? currentUid;
+
+      final name = (userVm.profile?.name ?? '').trim();
+      _lockedChildName = name.isEmpty ? 'Bé của bạn' : name;
+    } else {
+      _ownerParentUid = currentUid;
+      scheduleVm.setScheduleOwnerUid(currentUid);
+      userVm.watchChildren(currentUid);
+
+      final children = userVm.children;
+      if (widget.initialChildId != null && widget.initialChildId!.isNotEmpty) {
+        _selectedChildId = widget.initialChildId;
+      } else if (children.isNotEmpty) {
+        _selectedChildId = children.first.uid;
+      }
+    }
+
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -100,7 +152,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
       barrierDismissible: false,
       builder: (dialogCtx) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
             child: Column(
@@ -114,7 +167,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
-                    child: Icon(Icons.check, size: 42, color: AppColors.primary),
+                    child:
+                        Icon(Icons.check, size: 42, color: AppColors.primary),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -200,7 +254,9 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
 
       if (schedules.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không có lịch trong khoảng ngày đã chọn')),
+          const SnackBar(
+            content: Text('Không có lịch trong khoảng ngày đã chọn'),
+          ),
         );
         return;
       }
@@ -237,7 +293,9 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
       if (!mounted) return;
 
       final result = await OpenFilex.open(savedPath);
-      debugPrint('$tag open result: type=${result.type} message=${result.message}');
+      debugPrint(
+        '$tag open result: type=${result.type} message=${result.message}',
+      );
     } catch (e, s) {
       debugPrint('$tag ERROR = $e');
       debugPrint('$tag STACK = $s');
@@ -266,11 +324,14 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
     final userVm = context.watch<UserVm>();
     final children = userVm.children;
 
-    if (_selectedChildId == null && children.isNotEmpty) {
+    if (!_isChildMode && _selectedChildId == null && children.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         setState(() {
-          _selectedChildId = children.first.uid;
+          _selectedChildId = widget.initialChildId != null &&
+                  widget.initialChildId!.isNotEmpty
+              ? widget.initialChildId
+              : children.first.uid;
         });
       });
     }
@@ -299,17 +360,21 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
               children: [
                 const Text('Chọn bé', style: AppTextStyles.body),
                 const SizedBox(height: 10),
-                _ChildDropdown(
-                  children: children,
-                  selectedId: _selectedChildId,
-                  onChanged: _loading
-                      ? null
-                      : (id) {
-                          setState(() {
-                            _selectedChildId = id;
-                          });
-                        },
-                ),
+                _isChildMode
+                    ? _LockedChildBox(
+                        label: _lockedChildName ?? 'Bé của bạn',
+                      )
+                    : _ChildDropdown(
+                        children: children,
+                        selectedId: _selectedChildId,
+                        onChanged: _loading
+                            ? null
+                            : (id) {
+                                setState(() {
+                                  _selectedChildId = id;
+                                });
+                              },
+                      ),
                 const SizedBox(height: 14),
                 const Text('Khoảng thời gian', style: AppTextStyles.body),
                 const SizedBox(height: 10),
@@ -358,6 +423,38 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
             text: _loading ? 'Đang xuất...' : 'Xuất file',
             icon: Icons.download,
             onTap: _loading ? null : _exportExcel,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LockedChildBox extends StatelessWidget {
+  final String label;
+
+  const _LockedChildBox({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.body,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
