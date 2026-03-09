@@ -7,7 +7,7 @@ import '../../../core/app_colors.dart';
 import '../../../core/app_text_styles.dart';
 import '../../../core/storage_keys.dart';
 import '../../../services/storage_service.dart';
-import '../../../viewmodels/schedule_vm.dart';
+import '../../../viewmodels/schedule/schedule_vm.dart';
 import '../../../views/parent/schedule/add_schedule_sheet.dart';
 import '../../../widgets/parent/schedule/create_schedule_button.dart';
 import '../../../widgets/parent/schedule/schedule_calendar.dart';

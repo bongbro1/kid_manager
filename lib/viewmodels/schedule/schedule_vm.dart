@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
-import '../models/schedule.dart';
-import '../repositories/schedule_repository.dart';
-import 'auth_vm.dart';
+import '../../models/schedule.dart';
+import '../../repositories/schedule_repository.dart';
+import '../auth_vm.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../utils/exceptions.dart';
+import '../../utils/exceptions.dart';
 
 class ScheduleViewModel extends ChangeNotifier {
   final ScheduleRepository _repo;

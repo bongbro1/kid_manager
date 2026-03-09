@@ -8,7 +8,7 @@ import 'package:kid_manager/utils/ui_helpers.dart';
 import 'package:kid_manager/utils/confirm_exit_dialog.dart';
 
 import '../../../models/schedule.dart';
-import '../../../viewmodels/schedule_vm.dart';
+import '../../../viewmodels/schedule/schedule_vm.dart';
 import 'package:kid_manager/utils/exceptions.dart';
 import 'package:kid_manager/utils/cupertino_time_picker.dart';
 

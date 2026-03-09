@@ -13,10 +13,10 @@ import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_text_styles.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/viewmodels/schedule_import_vm.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_import_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/viewmodels/schedule_vm.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 
 class ScheduleImportExcelScreen extends StatefulWidget {
   final String? initialChildId;

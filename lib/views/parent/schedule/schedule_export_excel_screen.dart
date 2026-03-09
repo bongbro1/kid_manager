@@ -12,7 +12,7 @@ import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/services/schedule/schedule_excel_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/viewmodels/schedule_vm.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 
 class ScheduleExportExcelScreen extends StatefulWidget {

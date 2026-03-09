@@ -7,7 +7,7 @@ import 'package:kid_manager/models/app_user.dart';
 
 import '../../../core/app_colors.dart';
 import '../../../core/app_text_styles.dart';
-import '../../../viewmodels/schedule_vm.dart';
+import '../../../viewmodels/schedule/schedule_vm.dart';
 import '../../../viewmodels/user_vm.dart';
 import '../../../views/parent/schedule/add_schedule_sheet.dart';
 import '../../../widgets/parent/schedule/create_schedule_button.dart';
@@ -136,6 +136,41 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
+  Widget _buildSelectedChildAvatar(List<AppUser> children, String? selectedId) {
+    if (children.isEmpty) {
+      return const CircleAvatar(
+        radius: 18,
+        child: Text('?'),
+      );
+    }
+
+    final AppUser selected = selectedId == null
+        ? children.first
+        : children.firstWhere(
+            (c) => c.uid == selectedId,
+            orElse: () => children.first,
+          );
+
+    final avatar = (selected.avatarUrl ?? '').trim();
+
+    return CircleAvatar(
+      radius: 18,
+      backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+      child: avatar.isEmpty
+          ? Text(
+              _nameInitial(selected),
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            )
+          : null,
+    );
+  }
+
+  String _nameInitial(AppUser user) {
+    final name = (user.displayName ?? user.email ?? '').trim();
+    if (name.isEmpty) return 'B';
+    return name[0].toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheduleVm = context.watch<ScheduleViewModel>();
@@ -194,21 +229,35 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       scheduleVm.setChild(childUid);
                       _syncMemoryWithSchedule();
                     },
-                    itemBuilder: (_) => children
-                        .map(
-                          (c) => PopupMenuItem(
-                            value: c.uid,
-                            child: Text(c.displayName ?? c.email ?? c.uid),
-                          ),
-                        )
-                        .toList(),
-                    child: CircleAvatar(
-                      radius: 18,
-                      child: Text(
-                        _initialOf(children, scheduleVm.selectedChildId),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
+                    itemBuilder: (_) => children.map((c) {
+                      final avatar = (c.avatarUrl ?? '').trim();
+
+                      return PopupMenuItem(
+                        value: c.uid,
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundImage:
+                                  avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                              child: avatar.isEmpty
+                                  ? Text(
+                                      _nameInitial(c),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(c.displayName ?? c.email ?? c.uid),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    child: _buildSelectedChildAvatar(children, scheduleVm.selectedChildId),
                   ),
           ),
         ],
@@ -259,20 +308,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     debugPrint('[SCHEDULE_IMPORT] reload done');
   }
 
-  String _initialOf(List<AppUser> children, String? selectedId) {
-    if (children.isEmpty) return '?';
+  // String _initialOf(List<AppUser> children, String? selectedId) {
+  //   if (children.isEmpty) return '?';
 
-    final AppUser selected = selectedId == null
-        ? children.first
-        : children.firstWhere(
-            (c) => c.uid == selectedId,
-            orElse: () => children.first,
-          );
+  //   final AppUser selected = selectedId == null
+  //       ? children.first
+  //       : children.firstWhere(
+  //           (c) => c.uid == selectedId,
+  //           orElse: () => children.first,
+  //         );
 
-    final name = (selected.displayName ?? selected.email ?? '').trim();
-    if (name.isEmpty) return 'B';
-    return name[0].toUpperCase();
-  }
+  //   final name = (selected.displayName ?? selected.email ?? '').trim();
+  //   if (name.isEmpty) return 'B';
+  //   return name[0].toUpperCase();
+  // }
 
   Future<void> _syncMemoryWithSchedule() async {
     final scheduleVm = context.read<ScheduleViewModel>();
