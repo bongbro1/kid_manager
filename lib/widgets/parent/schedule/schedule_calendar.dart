@@ -7,7 +7,7 @@
 
   import '../../../../../core/app_colors.dart';
   import '../../../../../core/app_text_styles.dart';
-  import '../../../../../viewmodels/schedule_vm.dart';
+  import '../../../viewmodels/schedule/schedule_vm.dart';
 
 
   class ScheduleCalendar extends StatefulWidget {

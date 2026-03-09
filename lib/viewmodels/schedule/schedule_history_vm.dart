@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/schedule_history.dart';
-import '../repositories/schedule_repository.dart';
-import 'auth_vm.dart';
+import '../../models/schedule_history.dart';
+import '../../repositories/schedule_repository.dart';
+import '../auth_vm.dart';
 
 class ScheduleHistoryViewModel extends ChangeNotifier {
   final ScheduleRepository _repo;

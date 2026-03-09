@@ -13,13 +13,20 @@ import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_text_styles.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/viewmodels/schedule_import_vm.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_import_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/viewmodels/schedule_vm.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 
 class ScheduleImportExcelScreen extends StatefulWidget {
-  const ScheduleImportExcelScreen({super.key});
+  final String? initialChildId;
+  final bool lockChildSelection;
+
+  const ScheduleImportExcelScreen({
+    super.key,
+    this.initialChildId,
+    this.lockChildSelection = false,
+  });
 
   @override
   State<ScheduleImportExcelScreen> createState() =>
@@ -33,10 +40,12 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   bool _didInit = false;
   bool _needReload = false;
 
-  String? _parentUid(BuildContext context) {
-    final storage = context.read<StorageService>();
-    return storage.getString(StorageKeys.uid);
-  }
+  String? _currentUid;
+  String? _role;
+  String? _ownerParentUid;
+  String? _lockedChildName;
+
+  bool get _isChildMode => widget.lockChildSelection || _role == 'child';
 
   @override
   void didChangeDependencies() {
@@ -44,211 +53,264 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     if (_didInit) return;
     _didInit = true;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      final parentUid = _parentUid(context);
-      if (parentUid == null) return;
-
-      final userVm = context.read<UserVm>();
-      // ✅ đúng API bạn đang dùng ở ScheduleScreen
-      userVm.watchChildren(parentUid);
-
-      // auto select bé đầu tiên (nếu đã có sẵn children)
-      final importVm = context.read<ScheduleImportVM>();
-      if (importVm.selectedChildId == null && userVm.children.isNotEmpty) {
-        importVm.setChild(userVm.children.first.uid);
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _initSession();
     });
   }
 
-  void _resetPickedFile() {
-  setState(() {
-    _pickedBytes = null;
-    _pickedName = null;
-  });
-  context.read<ScheduleImportVM>().resetAllKeepChild();
-}
+  Future<void> _initSession() async {
+    final storage = context.read<StorageService>();
+    final userVm = context.read<UserVm>();
+    final importVm = context.read<ScheduleImportVM>();
+    final scheduleVm = context.read<ScheduleViewModel>();
 
-  Future<void> _pickExcel() async {
-  // reset preview trước khi pick lại
-  context.read<ScheduleImportVM>().resetAllKeepChild();
+    final currentUid = storage.getString(StorageKeys.uid);
+    final role = storage.getString(StorageKeys.role);
 
-  final res = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: const ['xlsx'],
-    withData: true,
-  );
-  if (res == null) return;
+    if (currentUid == null) return;
 
-  final file = res.files.first;
-  if (file.bytes == null) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Không đọc được file, thử lại.')),
-    );
-    return;
+    _currentUid = currentUid;
+    _role = role;
+
+    if (_isChildMode) {
+      if (userVm.profile == null || userVm.profile!.id != currentUid) {
+        await userVm.loadProfile();
+      }
+
+      final ownerParentUid = userVm.profile?.parentUid;
+      if (ownerParentUid == null || ownerParentUid.isEmpty) return;
+
+      _ownerParentUid = ownerParentUid;
+      scheduleVm.setScheduleOwnerUid(ownerParentUid);
+
+      final childId = widget.initialChildId ?? currentUid;
+      if (importVm.selectedChildId != childId) {
+        importVm.setChild(childId);
+      }
+
+      final name = (userVm.profile?.name ?? '').trim();
+      _lockedChildName = name.isEmpty ? 'Bé của bạn' : name;
+    } else {
+      _ownerParentUid = currentUid;
+      scheduleVm.setScheduleOwnerUid(currentUid);
+
+      userVm.watchChildren(currentUid);
+
+      final children = userVm.children;
+      final initialChildId = widget.initialChildId;
+
+      if (importVm.selectedChildId == null) {
+        if (initialChildId != null && initialChildId.isNotEmpty) {
+          importVm.setChild(initialChildId);
+        } else if (children.isNotEmpty) {
+          importVm.setChild(children.first.uid);
+        }
+      }
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
-  setState(() {
-    _pickedBytes = file.bytes!;
-    _pickedName = file.name;
-  });
+  void _resetPickedFile() {
+    setState(() {
+      _pickedBytes = null;
+      _pickedName = null;
+    });
+    context.read<ScheduleImportVM>().resetAllKeepChild();
+  }
 
-  final parentUid = _parentUid(context);
-  if (parentUid == null) return;
+  Future<void> _pickExcel() async {
+    context.read<ScheduleImportVM>().resetAllKeepChild();
 
-  if (!mounted) return;
-  await context.read<ScheduleImportVM>().previewFile(
-    bytes: _pickedBytes!,
-    parentUid: parentUid,
-  );
-}
-
-  Future<void> _downloadTemplate() async {
-  const tag = '[SCHEDULE_TEMPLATE]';
-
-  try {
-    debugPrint('$tag ===== START =====');
-
-    // 1) đọc file mẫu từ assets
-    final data = await rootBundle.load(
-      'assets/templates/schedule_template.xlsx',
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['xlsx'],
+      withData: true,
     );
-    final bytes = data.buffer.asUint8List();
+    if (res == null) return;
 
-    debugPrint('$tag asset bytes.length = ${bytes.length}');
-
-    // 2) ghi ra file tạm để dùng cho save dialog
-    final tempDir = await getTemporaryDirectory();
-    final tempFile = File('${tempDir.path}/schedule_template.xlsx');
-    await tempFile.writeAsBytes(bytes, flush: true);
-
-    debugPrint('$tag tempFile.path = ${tempFile.path}');
-    debugPrint('$tag tempFile.exists = ${await tempFile.exists()}');
-    debugPrint('$tag tempFile.length = ${await tempFile.length()}');
-
-    // 3) mở hộp thoại cho user chọn nơi lưu
-    final savedPath = await FlutterFileDialog.saveFile(
-      params: SaveFileDialogParams(
-        sourceFilePath: tempFile.path,
-        fileName: 'schedule_template.xlsx',
-      ),
-    );
-
-    debugPrint('$tag savedPath = $savedPath');
-
-    if (!mounted) return;
-
-    if (savedPath == null || savedPath.isEmpty) {
+    final file = res.files.first;
+    if (file.bytes == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bạn đã huỷ lưu file mẫu')),
+        const SnackBar(content: Text('Không đọc được file, thử lại.')),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã lưu file mẫu thành công')),
-    );
+    setState(() {
+      _pickedBytes = file.bytes!;
+      _pickedName = file.name;
+    });
 
-    // 4) mở file luôn sau khi lưu
-    final result = await OpenFilex.open(savedPath);
-    debugPrint('$tag open result: type=${result.type} message=${result.message}');
-
-    debugPrint('$tag ===== END OK =====');
-  } catch (e, s) {
-    debugPrint('$tag ERROR = $e');
-    debugPrint('$tag STACK = $s');
+    final ownerParentUid = _ownerParentUid;
+    if (ownerParentUid == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không xác định được chủ sở hữu lịch.')),
+      );
+      return;
+    }
 
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Tải file mẫu thất bại: $e')),
-    );
+    await context.read<ScheduleImportVM>().previewFile(
+          bytes: _pickedBytes!,
+          parentUid: ownerParentUid,
+        );
   }
-}
 
-Future<void> _showSuccessDialog(BuildContext context) async {
-  await showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogCtx) {
-      return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 86,
-                height: 86,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8F0FF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Icon(Icons.check, size: 42, color: AppColors.primary),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Thành công',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.darkText,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Thêm lịch thành công',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: AppColors.secondaryText),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF3F4F6),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  // ✅ đóng dialog bằng context của dialog
-                  onPressed: () => Navigator.of(dialogCtx).pop(),
-                  child: const Text(
-                    'Tiếp tục',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.darkText,
-                    ),
-                  ),
-                ),
-              )
-            ],
-          ),
+  Future<void> _downloadTemplate() async {
+    const tag = '[SCHEDULE_TEMPLATE]';
+
+    try {
+      debugPrint('$tag ===== START =====');
+
+      final data = await rootBundle.load(
+        'assets/templates/schedule_template.xlsx',
+      );
+      final bytes = data.buffer.asUint8List();
+
+      debugPrint('$tag asset bytes.length = ${bytes.length}');
+
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/schedule_template.xlsx');
+      await tempFile.writeAsBytes(bytes, flush: true);
+
+      debugPrint('$tag tempFile.path = ${tempFile.path}');
+      debugPrint('$tag tempFile.exists = ${await tempFile.exists()}');
+      debugPrint('$tag tempFile.length = ${await tempFile.length()}');
+
+      final savedPath = await FlutterFileDialog.saveFile(
+        params: SaveFileDialogParams(
+          sourceFilePath: tempFile.path,
+          fileName: 'schedule_template.xlsx',
         ),
       );
-    },
-  );
-}
+
+      debugPrint('$tag savedPath = $savedPath');
+
+      if (!mounted) return;
+
+      if (savedPath == null || savedPath.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bạn đã huỷ lưu file mẫu')),
+        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã lưu file mẫu thành công')),
+      );
+
+      final result = await OpenFilex.open(savedPath);
+      debugPrint(
+        '$tag open result: type=${result.type} message=${result.message}',
+      );
+
+      debugPrint('$tag ===== END OK =====');
+    } catch (e, s) {
+      debugPrint('$tag ERROR = $e');
+      debugPrint('$tag STACK = $s');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tải file mẫu thất bại: $e')),
+      );
+    }
+  }
+
+  Future<void> _showSuccessDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 86,
+                  height: 86,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE8F0FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child:
+                        Icon(Icons.check, size: 42, color: AppColors.primary),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Thành công',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkText,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Thêm lịch thành công',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF3F4F6),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(dialogCtx).pop(),
+                    child: const Text(
+                      'Tiếp tục',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkText,
+                      ),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _importNow() async {
-    final parentUid = _parentUid(context);
-    if (parentUid == null) return;
+    final ownerParentUid = _ownerParentUid;
+    if (ownerParentUid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không xác định được chủ sở hữu lịch')),
+      );
+      return;
+    }
 
     final vm = context.read<ScheduleImportVM>();
 
-    final imported = await vm.importNow(parentUid: parentUid);
+    final imported = await vm.importNow(parentUid: ownerParentUid);
 
     if (!mounted) return;
 
-    // ❌ thất bại
     if (vm.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Import thất bại: ${vm.error}')),
@@ -256,7 +318,6 @@ Future<void> _showSuccessDialog(BuildContext context) async {
       return;
     }
 
-    // không có dòng hợp lệ
     if (imported <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Không có lịch hợp lệ để import.')),
@@ -264,41 +325,38 @@ Future<void> _showSuccessDialog(BuildContext context) async {
       return;
     }
 
-    // ✅ 1) reload lịch bên ngoài NGAY LẬP TỨC
-    // Vì ScheduleViewModel ở Provider phía trên ScheduleScreen
     try {
       await context.read<ScheduleViewModel>().loadMonth();
     } catch (e) {
-      // nếu Provider không có ScheduleViewModel thì thôi, vẫn đánh dấu needReload
       debugPrint('[SCHEDULE_IMPORT] cannot reload ScheduleViewModel here: $e');
     }
 
-    // ✅ 2) đánh dấu cần reload khi quay về
     _needReload = true;
 
-    // ✅ 3) hiện thông báo thành công
     await _showSuccessDialog(context);
     if (!mounted) return;
 
-    // ✅ 4) reset giao diện import để tiếp tục import
     _resetPickedFile();
-
-    // NOTE: không pop về Schedule ở đây nữa
   }
 
   @override
   Widget build(BuildContext context) {
     final userVm = context.watch<UserVm>();
     final importVm = context.watch<ScheduleImportVM>();
-
     final children = userVm.children;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (importVm.selectedChildId == null && children.isNotEmpty) {
-        importVm.setChild(children.first.uid);
-      }
-    });
+    if (!_isChildMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (importVm.selectedChildId == null && children.isNotEmpty) {
+          importVm.setChild(
+            widget.initialChildId != null && widget.initialChildId!.isNotEmpty
+                ? widget.initialChildId
+                : children.first.uid,
+          );
+        }
+      });
+    }
 
     final hasPreview = !importVm.loading && importVm.preview != null;
     final canImport = hasPreview && importVm.preview!.okCount > 0;
@@ -323,8 +381,6 @@ Future<void> _showSuccessDialog(BuildContext context) async {
             onPressed: () => Navigator.pop(context, _needReload),
           ),
         ),
-
-        // ✅ nút import ghim dưới đáy
         bottomNavigationBar: hasPreview
             ? SafeArea(
                 top: false,
@@ -339,30 +395,32 @@ Future<void> _showSuccessDialog(BuildContext context) async {
                 ),
               )
             : null,
-
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
               children: [
-                // phần trên
                 _SectionCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Chọn bé', style: AppTextStyles.body),
                       const SizedBox(height: 10),
-                      _ChildDropdown(
-                        children: children,
-                        selectedId: importVm.selectedChildId,
-                        onChanged: (id) {
-                          importVm.setChild(id);
-                          setState(() {
-                            _pickedBytes = null;
-                            _pickedName = null;
-                          });
-                        },
-                      ),
+                      _isChildMode
+                          ? _LockedChildBox(
+                              label: _lockedChildName ?? 'Bé của bạn',
+                            )
+                          : _ChildDropdown(
+                              children: children,
+                              selectedId: importVm.selectedChildId,
+                              onChanged: (id) {
+                                importVm.setChild(id);
+                                setState(() {
+                                  _pickedBytes = null;
+                                  _pickedName = null;
+                                });
+                              },
+                            ),
                       const SizedBox(height: 14),
                       Row(
                         children: [
@@ -370,7 +428,8 @@ Future<void> _showSuccessDialog(BuildContext context) async {
                             child: _PrimaryOutlineButton(
                               text: 'Tải file mẫu',
                               icon: Icons.download,
-                              onTap: importVm.loading ? null : _downloadTemplate,
+                              onTap:
+                                  importVm.loading ? null : _downloadTemplate,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -396,7 +455,8 @@ Future<void> _showSuccessDialog(BuildContext context) async {
                             ),
                           ),
                           TextButton(
-                            onPressed: importVm.loading ? null : _resetPickedFile,
+                            onPressed:
+                                importVm.loading ? null : _resetPickedFile,
                             child: const Text('Đổi file'),
                           ),
                         ],
@@ -404,9 +464,7 @@ Future<void> _showSuccessDialog(BuildContext context) async {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 14),
-
                 if (importVm.loading)
                   const Expanded(
                     child: Center(
@@ -428,8 +486,6 @@ Future<void> _showSuccessDialog(BuildContext context) async {
                 else if (importVm.preview != null) ...[
                   _PreviewSummary(preview: importVm.preview!),
                   const SizedBox(height: 10),
-
-                  // ✅ preview chiếm phần còn lại và tự scroll bên trong
                   Expanded(
                     child: _PreviewList(preview: importVm.preview!),
                   ),
@@ -444,7 +500,37 @@ Future<void> _showSuccessDialog(BuildContext context) async {
   }
 }
 
-// ================= UI WIDGETS =================
+class _LockedChildBox extends StatelessWidget {
+  final String label;
+
+  const _LockedChildBox({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.body,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _SectionCard extends StatelessWidget {
   final Widget child;
@@ -666,7 +752,6 @@ class _PreviewList extends StatelessWidget {
         children: [
           const Text('Xem trước dữ liệu', style: AppTextStyles.title),
           const SizedBox(height: 10),
-
           if (preview.warning != null) ...[
             Container(
               width: double.infinity,
@@ -686,7 +771,6 @@ class _PreviewList extends StatelessWidget {
               ),
             ),
           ],
-
           Expanded(
             child: ListView.separated(
               physics: const BouncingScrollPhysics(),
@@ -749,8 +833,10 @@ class _PreviewRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: r.error != null
-                ? Text('Dòng ${r.rowIndex - 1}: ${r.error}',
-                    style: AppTextStyles.body)
+                ? Text(
+                    'Dòng ${r.rowIndex - 1}: ${r.error}',
+                    style: AppTextStyles.body,
+                  )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -765,14 +851,20 @@ class _PreviewRow extends StatelessWidget {
                       ),
                       if ((s.description ?? '').isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text(s.description!, style: AppTextStyles.scheduleItemTime),
+                        Text(
+                          s.description!,
+                          style: AppTextStyles.scheduleItemTime,
+                        ),
                       ],
                       if (r.isDuplicateInDb)
                         const Padding(
                           padding: EdgeInsets.only(top: 4),
                           child: Text(
                             'Trùng với dữ liệu đã có trên hệ thống',
-                            style: TextStyle(fontSize: 13, color: Color(0xFF8A6D00)),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF8A6D00),
+                            ),
                           ),
                         ),
                       if (r.isDuplicateInFile)
@@ -780,7 +872,10 @@ class _PreviewRow extends StatelessWidget {
                           padding: EdgeInsets.only(top: 4),
                           child: Text(
                             'Trùng trong file',
-                            style: TextStyle(fontSize: 13, color: Color(0xFF8A6D00)),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF8A6D00),
+                            ),
                           ),
                         ),
                     ],
@@ -793,5 +888,6 @@ class _PreviewRow extends StatelessWidget {
 
   static String _two(int n) => n.toString().padLeft(2, '0');
   static String _fmtTime(DateTime d) => '${_two(d.hour)}:${_two(d.minute)}';
-  static String _fmtDate(DateTime d) => '${_two(d.day)}/${_two(d.month)}/${d.year}';
+  static String _fmtDate(DateTime d) =>
+      '${_two(d.day)}/${_two(d.month)}/${d.year}';
 }

@@ -8,7 +8,7 @@
 
   import '../../../../../core/app_text_styles.dart';
   import '../../../../../models/schedule.dart';
-  import '../../../../../viewmodels/schedule_vm.dart';
+  import '../../../viewmodels/schedule/schedule_vm.dart';
   import '../../../views/parent/schedule/edit_schedule_sheet.dart';
   import '../../../../../viewmodels/memory_day_vm.dart';
   import '../../../../../models/memory_day.dart';

@@ -26,7 +26,7 @@ import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
-import 'package:kid_manager/viewmodels/schedule_history_vm.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_history_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/subscription_vm.dart';
 import 'package:kid_manager/viewmodels/terms_vm.dart';
@@ -45,13 +45,13 @@ import 'repositories/auth_repository.dart';
 import 'viewmodels/auth_vm.dart';
 
 import 'repositories/schedule_repository.dart';
-import 'viewmodels/schedule_vm.dart';
+import 'viewmodels/schedule/schedule_vm.dart';
 
 import 'package:kid_manager/repositories/memory_day_repository.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
-import 'package:kid_manager/viewmodels/schedule_import_vm.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_import_vm.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
