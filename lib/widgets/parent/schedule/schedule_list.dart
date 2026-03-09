@@ -1,5 +1,6 @@
   import 'package:flutter/material.dart';
   import 'package:kid_manager/utils/ui_helpers.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
   import 'package:provider/provider.dart';
   import 'package:kid_manager/core/storage_keys.dart';
   import 'package:kid_manager/services/storage_service.dart';
@@ -8,7 +9,6 @@
 
   import '../../../../../core/app_text_styles.dart';
   import '../../../../../models/schedule.dart';
-  import '../../../viewmodels/schedule/schedule_vm.dart';
   import '../../../views/parent/schedule/edit_schedule_sheet.dart';
   import '../../../../../viewmodels/memory_day_vm.dart';
   import '../../../../../models/memory_day.dart';

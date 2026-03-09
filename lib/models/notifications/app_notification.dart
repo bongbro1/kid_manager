@@ -11,6 +11,7 @@ enum NotificationType {
   heartbeatLost,
   usageLimitExceeded,
   schedule,
+  memoryDay, 
   battery,
   birthday,
   zone, // ✅ thêm
@@ -39,6 +40,8 @@ extension NotificationTypeX on NotificationType {
         return "usage_limit_exceeded";
       case NotificationType.schedule:
         return "schedule";
+      case NotificationType.memoryDay:
+        return "memory_day";
       case NotificationType.battery:
         return "battery";
       case NotificationType.birthday:
@@ -64,6 +67,7 @@ extension NotificationTypeX on NotificationType {
         return NotificationFilter.alert;
 
       case NotificationType.schedule:
+      case NotificationType.memoryDay:
       case NotificationType.birthday:
         return NotificationFilter.reminder;
 
@@ -147,6 +151,14 @@ extension NotificationTypeX on NotificationType {
           bgColor: Color(0xFFEEF2FF),
           borderColor: Color(0xFFC7D2FE),
           iconColor: Color(0xFF4F46E5),
+        );
+
+      case NotificationType.memoryDay:
+        return const NotificationStyle(
+          icon: Icons.star_border_rounded,
+          bgColor: Color.fromARGB(255, 250, 255, 176),
+          borderColor: Color.fromARGB(255, 192, 189, 0),
+          iconColor: Color.fromARGB(255, 252, 143, 0),
         );
 
       case NotificationType.battery:

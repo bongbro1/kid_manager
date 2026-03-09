@@ -17,6 +17,7 @@ import 'package:kid_manager/viewmodels/schedule/schedule_import_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
+import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
 
 class ScheduleImportExcelScreen extends StatefulWidget {
   final String? initialChildId;
@@ -111,6 +112,23 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+    String? _resolveSelectedChildName(UserVm userVm, String? childId) {
+    if (childId == null || childId.isEmpty) return null;
+
+    if (_isChildMode) {
+      final n = (_lockedChildName ?? '').trim();
+      return n.isEmpty ? null : n;
+    }
+
+    for (final c in userVm.children) {
+      if (c.uid == childId) {
+        final name = (c.displayName ?? c.email ?? '').trim();
+        return name.isEmpty ? null : name;
+      }
+    }
+    return null;
   }
 
   void _resetPickedFile() {
@@ -329,6 +347,28 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
       await context.read<ScheduleViewModel>().loadMonth();
     } catch (e) {
       debugPrint('[SCHEDULE_IMPORT] cannot reload ScheduleViewModel here: $e');
+    }
+
+    final actorUid = _currentUid;
+    final childId = vm.selectedChildId;
+    final userVm = context.read<UserVm>();
+    final childName = _resolveSelectedChildName(userVm, childId);
+
+    if (actorUid != null &&
+        actorUid.isNotEmpty &&
+        childId != null &&
+        childId.isNotEmpty) {
+      try {
+        await context.read<ScheduleNotificationService>().notifyScheduleImported(
+              actorUid: actorUid,
+              ownerParentUid: ownerParentUid,
+              childId: childId,
+              importCount: imported,
+              childName: childName,
+            );
+      } catch (e) {
+        debugPrint('[SCHEDULE_IMPORT_NOTIFY] failed: $e');
+      }
     }
 
     _needReload = true;

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/models/memory_day.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 
 import '../../models/notifications/app_notification.dart';
@@ -125,6 +126,226 @@ class ScheduleNotificationService {
     );
   }
 
+    Future<void> notifyMemoryDayCreated({
+    required String actorUid,
+    required String ownerParentUid,
+    required MemoryDay memoryDay,
+  }) async {
+    await _sendMemoryDay(
+      action: 'created',
+      actorUid: actorUid,
+      ownerParentUid: ownerParentUid,
+      memoryDay: memoryDay,
+    );
+  }
+
+  Future<void> notifyMemoryDayUpdated({
+    required String actorUid,
+    required String ownerParentUid,
+    required MemoryDay memoryDay,
+  }) async {
+    await _sendMemoryDay(
+      action: 'updated',
+      actorUid: actorUid,
+      ownerParentUid: ownerParentUid,
+      memoryDay: memoryDay,
+    );
+  }
+
+  Future<void> notifyMemoryDayDeleted({
+    required String actorUid,
+    required String ownerParentUid,
+    required MemoryDay memoryDay,
+  }) async {
+    await _sendMemoryDay(
+      action: 'deleted',
+      actorUid: actorUid,
+      ownerParentUid: ownerParentUid,
+      memoryDay: memoryDay,
+    );
+  }
+
+  Future<void> notifyScheduleImported({
+    required String actorUid,
+    required String ownerParentUid,
+    required String childId,
+    required int importCount,
+    String? childName,
+  }) async {
+    final actorIsParent = actorUid == ownerParentUid;
+    final receiverId = actorIsParent ? childId : ownerParentUid;
+
+    if (receiverId.isEmpty) {
+      debugPrint('[SCHEDULE_IMPORT_NOTIFY] skip: empty receiver');
+      return;
+    }
+
+    if (receiverId == actorUid) {
+      debugPrint('[SCHEDULE_IMPORT_NOTIFY] skip self notification');
+      return;
+    }
+
+    String resolvedChildName = (childName ?? '').trim();
+    if (resolvedChildName.isEmpty) {
+      final child = await _userRepo.getUserById(childId);
+      resolvedChildName = _resolveChildName(child?.displayName, childId);
+    }
+
+    final title = 'Lịch trình mới được thêm';
+    final body = actorIsParent
+        ? 'Cha vừa thêm $importCount lịch cho $resolvedChildName.'
+        : 'Con vừa thêm $importCount lịch.';
+
+    final data = {
+      'entity': 'schedule_import',
+      'action': 'imported',
+      'actorUid': actorUid,
+      'actorRole': actorIsParent ? 'parent' : 'child',
+      'ownerParentUid': ownerParentUid,
+      'childId': childId,
+      'childName': resolvedChildName,
+      'importCount': importCount.toString(),
+    };
+
+    await NotificationService.sendUserToUser(
+      senderId: actorUid,
+      receiverId: receiverId,
+      type: NotificationType.schedule.value,
+      title: title,
+      body: body,
+      data: data,
+    );
+  }
+
+  Future<void> _sendMemoryDay({
+    required String action,
+    required String actorUid,
+    required String ownerParentUid,
+    required MemoryDay memoryDay,
+  }) async {
+    final actorIsParent = actorUid == ownerParentUid;
+
+    final title = _buildMemoryDayTitle(action);
+    final body = _buildMemoryDayBody(
+      action: action,
+      actorIsParent: actorIsParent,
+      memoryDay: memoryDay,
+    );
+
+    final data = {
+      'entity': 'memory_day',
+      'action': action,
+      'actorUid': actorUid,
+      'actorRole': actorIsParent ? 'parent' : 'child',
+      'ownerParentUid': ownerParentUid,
+      'memoryDayId': memoryDay.id,
+      'memoryDayTitle': memoryDay.title,
+      'date': DateFormat('dd/MM/yyyy').format(memoryDay.date),
+      'dateIso': memoryDay.date.toIso8601String(),
+      'repeatYearly': memoryDay.repeatYearly.toString(),
+      'note': (memoryDay.note ?? '').trim(),
+    };
+
+    if (actorIsParent) {
+      // Parent thao tác -> gửi cho tất cả child của parent
+      final children = await _userRepo.getChildrenByParentUid(ownerParentUid);
+
+      for (final child in children) {
+      final receiverId = child.id;
+      if (receiverId.isEmpty || receiverId == actorUid) continue;
+
+      try {
+        await NotificationService.sendUserToUser(
+          senderId: actorUid,
+          receiverId: receiverId,
+          type: NotificationType.memoryDay.value,
+          title: title,
+          body: body,
+          data: {
+            ...data,
+            'childId': child.id,
+            'childName': _resolveChildName(child.name, child.id),
+          },
+        );
+      } catch (e) {
+        debugPrint(
+          '[MEMORY_DAY_NOTIFY] failed send to child=$receiverId action=$action error=$e',
+        );
+      }
+    }
+      return;
+    }
+
+    // Child thao tác -> parent nhận
+    final receiverId = ownerParentUid;
+
+    if (receiverId.isEmpty) {
+      debugPrint('[MEMORY_DAY_NOTIFY] skip: empty receiver');
+      return;
+    }
+
+    if (receiverId == actorUid) {
+      debugPrint('[MEMORY_DAY_NOTIFY] skip self notification');
+      return;
+    }
+
+    await NotificationService.sendUserToUser(
+      senderId: actorUid,
+      receiverId: receiverId,
+      type: NotificationType.memoryDay.value,
+      title: title,
+      body: body,
+      data: data,
+    );
+  }
+
+  String _buildMemoryDayTitle(String action) {
+    switch (action) {
+      case 'created':
+        return 'Ngày đáng nhớ mới';
+      case 'updated':
+        return 'Ngày đáng nhớ đã thay đổi';
+      case 'deleted':
+        return 'Ngày đáng nhớ đã bị xóa';
+      default:
+        return 'Ngày đáng nhớ có thay đổi';
+    }
+  }
+
+  String _buildMemoryDayBody({
+    required String action,
+    required bool actorIsParent,
+    required MemoryDay memoryDay,
+  }) {
+    final title = memoryDay.title.trim().isEmpty
+        ? 'Không có tiêu đề'
+        : memoryDay.title.trim();
+
+    if (actorIsParent) {
+      switch (action) {
+        case 'created':
+          return 'Cha đã thêm ngày đáng nhớ "$title".';
+        case 'updated':
+          return 'Cha đã chỉnh sửa ngày đáng nhớ "$title".';
+        case 'deleted':
+          return 'Cha đã xóa ngày đáng nhớ "$title".';
+        default:
+          return 'Cha đã thay đổi ngày đáng nhớ "$title".';
+      }
+    } else {
+      switch (action) {
+        case 'created':
+          return 'Con đã thêm ngày đáng nhớ "$title".';
+        case 'updated':
+          return 'Con đã chỉnh sửa ngày đáng nhớ "$title".';
+        case 'deleted':
+          return 'Con đã xóa ngày đáng nhớ "$title".';
+        default:
+          return 'Con đã thay đổi ngày đáng nhớ "$title".';
+      }
+    }
+  }
+
   String _buildTitle(String action) {
     switch (action) {
       case 'created':
@@ -155,15 +376,15 @@ class ScheduleNotificationService {
     if (actorIsParent) {
       switch (action) {
         case 'created':
-          return 'Ba/Mẹ đã thêm lịch "$title" cho $childName vào $date, $time.';
+          return 'Cha đã thêm lịch "$title" cho $childName vào $date, $time.';
         case 'updated':
-          return 'Ba/Mẹ đã chỉnh sửa lịch "$title" của $childName.';
+          return 'Cha đã chỉnh sửa lịch "$title" của $childName.';
         case 'deleted':
-          return 'Ba/Mẹ đã xóa lịch "$title" của $childName.';
+          return 'Cha đã xóa lịch "$title" của $childName.';
         case 'restored':
-          return 'Ba/Mẹ đã khôi phục một phiên bản cũ của lịch "$title" của $childName.';
+          return 'Cha đã khôi phục một phiên bản cũ của lịch "$title" của $childName.';
         default:
-          return 'Ba/Mẹ đã thay đổi lịch "$title" của $childName.';
+          return 'Cha đã thay đổi lịch "$title" của $childName.';
       }
     } else {
       switch (action) {
@@ -174,7 +395,7 @@ class ScheduleNotificationService {
         case 'deleted':
           return '$childName đã xóa lịch "$title".';
         case 'restored':
-          return '$childName đã khôi phục một phiên bản cũ của lịch "$title".';
+          return '$childName đã khôi phục lịch sử sửa của lịch "$title".';
         default:
           return '$childName đã thay đổi lịch "$title".';
       }

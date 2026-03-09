@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../models/memory_day.dart';
 import '../repositories/memory_day_repository.dart';
+import '../viewmodels/auth_vm.dart';
+import '../services/schedule/schedule_notification_service.dart';
 
 class MemoryDayViewModel extends ChangeNotifier {
   final MemoryDayRepository _repo;
+  final AuthVM _authVm;
+  final ScheduleNotificationService _notify;
 
-  MemoryDayViewModel(this._repo);
+  MemoryDayViewModel(this._repo, this._authVm, this._notify);
 
   String? _ownerUid;
 
@@ -14,6 +18,8 @@ class MemoryDayViewModel extends ChangeNotifier {
     if (v == null) throw Exception('Chưa set ownerUid');
     return v;
   }
+
+  String? get _actorUid => _authVm.user?.uid;
 
   // ==========================
   // TOKEN TÁCH RIÊNG
@@ -148,16 +154,63 @@ class MemoryDayViewModel extends ChangeNotifier {
   Future<void> addMemory(MemoryDay m) async {
     await _repo.create(ownerUid, m);
     await Future.wait([loadMonth(), loadAll()]);
+
+    final actorUid = _actorUid;
+    if (actorUid != null && actorUid.isNotEmpty) {
+        try {
+        await _notify.notifyMemoryDayCreated(
+          actorUid: actorUid,
+          ownerParentUid: ownerUid,
+          memoryDay: m,
+        );
+      } catch (e) {
+        debugPrint('[MEMORY_DAY_VM] notify created failed: $e');
+      }
+    }
   }
 
   Future<void> updateMemory(MemoryDay m) async {
     await _repo.update(ownerUid, m);
     await Future.wait([loadMonth(), loadAll()]);
+
+    final actorUid = _actorUid;
+    if (actorUid != null && actorUid.isNotEmpty) {
+      try {
+        await _notify.notifyMemoryDayUpdated(
+          actorUid: actorUid,
+          ownerParentUid: ownerUid,
+          memoryDay: m,
+        );
+      } catch (e) {
+        debugPrint('[MEMORY_DAY_VM] notify updated failed: $e');
+      }
+    }
   }
 
   Future<void> deleteMemory(String id) async {
+    final existing = await _repo.getById(
+      ownerParentUid: ownerUid,
+      id: id,
+    );
+        debugPrint(
+      '[MEMORY_DAY_VM] deleteMemory id=$id existing=${existing?.title} ownerUid=$ownerUid actorUid=$_actorUid',
+    );
+
     await _repo.delete(ownerUid, id);
     await Future.wait([loadMonth(), loadAll()]);
+
+    final actorUid = _actorUid;
+    if (existing != null && actorUid != null && actorUid.isNotEmpty) {
+      try {
+        await _notify.notifyMemoryDayDeleted(
+          actorUid: actorUid,
+          ownerParentUid: ownerUid,
+          memoryDay: existing,
+        );
+      } catch (e) {
+        debugPrint('[MEMORY_DAY_VM] notify deleted failed: $e');
+      }
+    }
   }
 
   // ==========================

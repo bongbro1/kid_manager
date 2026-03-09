@@ -25,6 +25,10 @@ class NotificationDetailBody extends StatelessWidget {
       return ScheduleDetailWidget(detail: detail);
     }
 
+    if (detail.notificationType == NotificationType.memoryDay) {
+      return ScheduleDetailWidget(detail: detail);
+    }
+
     return Text(
       detail.content,
       style: const TextStyle(color: Color(0xFF0F172A)),

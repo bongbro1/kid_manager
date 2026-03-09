@@ -171,7 +171,13 @@ class _MyAppState extends State<MyApp> {
         ),
 
         // MemoryDay
-        ChangeNotifierProvider(create: (_) => MemoryDayViewModel(memoryRepo)),
+        ChangeNotifierProvider(
+          create: (context) => MemoryDayViewModel(
+            memoryRepo,
+            context.read<AuthVM>(),
+            context.read<ScheduleNotificationService>(),
+          ),
+        ),
 
         ChangeNotifierProvider(
           create: (context) => ScheduleHistoryViewModel(
