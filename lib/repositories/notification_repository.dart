@@ -136,7 +136,7 @@ class NotificationRepository {
   }
 
   Future<NotificationDetailModel> getNotificationDetailByItem(
-    String uid,
+    String? uid,
     AppNotification n,
   ) async {
     final docRef = (n.store == NotificationStore.userInbox)
@@ -163,7 +163,15 @@ class NotificationRepository {
     );
   }
 
-  Future<NotificationDetailModel> getNotificationDetail(String id) async {
+  Future<AppNotification?> getItemById(String id) async {
+    final doc = await _fs.collection('notifications').doc(id).get();
+
+    if (!doc.exists || doc.data() == null) return null;
+
+    return AppNotification.fromDoc(doc, store: NotificationStore.global);
+  }
+
+  Future<NotificationDetailModel?> getNotificationDetail(String id) async {
     final doc = await _fs.collection('notifications').doc(id).get();
 
     if (!doc.exists) {

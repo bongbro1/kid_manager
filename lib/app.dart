@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
@@ -29,6 +30,7 @@ import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/subscription_vm.dart';
 import 'package:kid_manager/viewmodels/terms_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:provider/provider.dart';
 
 import 'core/alert_service.dart';
@@ -49,8 +51,6 @@ import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
 import 'package:kid_manager/viewmodels/schedule_import_vm.dart';
-
-
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -143,7 +143,9 @@ class _MyAppState extends State<MyApp> {
 
         ChangeNotifierProvider(create: (context) => OtpVM(otpRepo)),
         ChangeNotifierProvider(create: (context) => TermsVM(termsRepo)),
-        ChangeNotifierProvider(create: (context) => SubscriptionVM(subscriptionRepo)),
+        ChangeNotifierProvider(
+          create: (context) => SubscriptionVM(subscriptionRepo),
+        ),
 
         Provider<ScheduleRepository>.value(value: scheduleRepo),
 
@@ -198,6 +200,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: AppNavigator.navigatorKey,
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
 
@@ -211,7 +214,7 @@ class _MyAppState extends State<MyApp> {
         supportedLocales: const [Locale('en'), Locale('vi')],
 
         // ❌ bỏ: locale: context.locale,
-        navigatorKey: AlertService.navigatorKey,
+        // navigatorKey: AlertService.navigatorKey,
         navigatorObservers: [routeObserver],
         theme: AppTheme.light(),
         themeMode: ThemeMode.system,

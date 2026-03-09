@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
@@ -15,24 +18,12 @@ class NotificationService {
       );
       await handleMessageForLocalNotification(m);
     });
-
-    FirebaseMessaging.onMessageOpenedApp.listen((m) {
-      debugPrint('🔔 onMessageOpenedApp id=${m.messageId} data=${m.data}');
-    });
-
-    // Log cái message khiến app mở từ terminated (nếu có)
-    final initial = await FirebaseMessaging.instance.getInitialMessage();
-    if (initial != null) {
-      debugPrint(
-        '🔔 getInitialMessage id=${initial.messageId} data=${initial.data}',
-      );
-    }
   }
 
   static Future<void> handleMessageForLocalNotification(
     RemoteMessage message,
   ) async {
-    debugPrint('🔔 handleMessageForLocalNotification() data=${message.data}');
+    // debugPrint('🔔 handleMessageForLocalNotification() data=${message.data}');
 
     final type = message.data['type']?.toString().toLowerCase() ?? '';
 
@@ -47,11 +38,20 @@ class NotificationService {
           message.data['body']?.toString() ??
           'Bạn có thông báo mới';
 
-      debugPrint(
-        '🔔 show normal local notification title="$title" body="$body"',
-      );
+      // debugPrint(
+      //   '🔔 show normal local notification title="$title" body="$body"',
+      // );
 
-      await LocalNotificationService.show(title: title, body: body);
+      await LocalNotificationService.show(
+        title: title,
+        body: body,
+        payload: jsonEncode(message.data),
+      );
+      return;
+    }
+
+    if (message.data["type"] == "test") {
+      debugPrint("TEST NOTIFICATION CLICKED");
       return;
     }
 
@@ -69,7 +69,11 @@ class NotificationService {
 
     debugPrint('🔔 show zone local notification title="$title" body="$body"');
 
-    await LocalNotificationService.show(title: title, body: body);
+    await LocalNotificationService.show(
+      title: title,
+      body: body,
+      payload: jsonEncode(message.data),
+    );
   }
 
   static const _systemSender = 'system';

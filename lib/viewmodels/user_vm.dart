@@ -9,7 +9,7 @@ import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
-import 'package:kid_manager/services/imgbb_service.dart';
+import 'package:kid_manager/services/image_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 
 class UserVm extends ChangeNotifier {
@@ -211,9 +211,10 @@ class UserVm extends ChangeNotifier {
       final uid = FirebaseAuth.instance.currentUser!.uid;
 
       // 1️⃣ Upload lên ImgBB
-      final url = await ImgBBService.updateUserPhoto(
+      final url = await FirebaseStorageService.uploadUserPhoto(
         file: file,
-        field: type == UserPhotoType.avatar ? 'avatarUrl' : 'coverUrl',
+        uid: uid,
+        type: type,
       );
 
       // 2️⃣ Update Firestore

@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -277,6 +280,19 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
             if (_loading)
               const CircularProgressIndicator()
             else ...[
+              ElevatedButton(
+                onPressed: () async {
+                  await LocalNotificationService.show(
+                    title: 'Test local',
+                    body: 'Tap me',
+                    payload: jsonEncode({
+                      "notificationId": "06eloLbzICVdapzFdDF0",
+                      "type": "test",
+                    }),
+                  );
+                },
+                child: const Text('Show test notification'),
+              ),
               ElevatedButton(
                 onPressed: _sendSystem,
                 child: const Text("⚙️ Send System → User"),
