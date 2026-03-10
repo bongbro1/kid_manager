@@ -14,15 +14,9 @@ class RemovedAppDetailWidget extends StatelessWidget {
 
     final data = detail.data;
 
-    final childId = (data["childId"] ?? "").toString();
-    final packageName = (data["packageName"] ?? "").toString();
+    final childName = (data["childName"] ?? "").toString();
+    final appName = (data["appName"] ?? "").toString();
     final removedAt = (data["removedAt"] ?? "").toString();
-    final childName = vm.getChildNameById(childId);
-    final appName = vm.getAppNameByPackage(
-      userId: childId,
-      packageName: packageName,
-    );
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(4),
       child: Column(

@@ -60,21 +60,25 @@ void callbackDispatcher() {
         debugPrint("👨‍👩‍👧 Running parent heartbeat");
 
         // 🔹 Lấy danh sách child
-        final childIds = await userRepo.getChildUserIds(userId);
+        final childrens = await userRepo.getChildUsers(userId);
         final storage = await StorageService.create();
         final localState = AppStateLocalService(storage);
 
-        for (final childId in childIds) {
-          final apps = await repo.loadAppsFromFirestore(childId);
+        for (final child in childrens) {
+          final apps = await repo.loadAppsFromFirestore(child.id);
 
           final alive = isAppAliveFromInstalled(packageName, apps);
 
-          final wasSent = localState.wasRemovalNotified(childId, packageName);
+          final appName = apps[packageName].name;
+
+          final wasSent = localState.wasRemovalNotified(child.id, packageName);
 
           if (!alive && !wasSent) {
             final removedData = RemovedAppData(
-              childId: childId,
+              childId: child.id,
+              childName: child.displayName,
               packageName: packageName,
+              appName: appName,
               removedAt: DateFormat("HH:mm:ss").format(DateTime.now()),
             );
 
@@ -83,16 +87,16 @@ void callbackDispatcher() {
                 receiverId: userId,
                 type: NotificationType.appRemoved,
                 title: "Ứng dụng đã bị gỡ",
-                body: "Thiết bị của con đã gỡ ứng dụng: $packageName",
+                body: "Thiết bị của con đã gỡ ứng dụng: $appName",
                 data: removedData.toMap(),
               ),
             );
 
-            await localState.markRemovalNotified(childId, packageName);
+            await localState.markRemovalNotified(child.id, packageName);
           }
 
           if (alive && wasSent) {
-            await localState.resetRemovalNotified(childId, packageName);
+            await localState.resetRemovalNotified(child.id, packageName);
           }
           debugPrint(alive ? "✅ App still installed" : "🪦 App removed");
         }

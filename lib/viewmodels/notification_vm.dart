@@ -18,7 +18,6 @@ class NotificationVM extends ChangeNotifier {
   List<AppNotification> _notifications = [];
   final List<AppNotification> _paged = [];
   List<AppNotification> get notifications => _notifications;
-  final Set<String> _resolvedIds = {};
   final int _maxCountInPage = 20;
   Timestamp? _lastCreatedAt;
   bool _loadingMore = false;
@@ -61,19 +60,6 @@ class NotificationVM extends ChangeNotifier {
   //   );
   // }
 
-  String? getChildNameById(String childId) {
-    if (childId.isEmpty) return null;
-    return _repo.getCachedChildName(childId);
-  }
-
-  String? getAppNameByPackage({
-    required String userId,
-    required String packageName,
-  }) {
-    if (packageName.isEmpty) return null;
-
-    return _repo.getCachedAppName(userId: userId, packageName: packageName);
-  }
 
   Future<void> listenMulti({
     required String uid,
@@ -232,19 +218,6 @@ class NotificationVM extends ChangeNotifier {
 
     result = _applyFilter(result);
     result = _applySearch(result);
-
-    /// resolve only new notifications
-    final needResolve = result
-        .where((n) => !_resolvedIds.contains(n.id))
-        .toList();
-
-    if (needResolve.isNotEmpty) {
-      await _repo.resolveNotificationMetadata(needResolve);
-
-      for (final n in needResolve) {
-        _resolvedIds.add(n.id);
-      }
-    }
 
     _notifications = result;
 

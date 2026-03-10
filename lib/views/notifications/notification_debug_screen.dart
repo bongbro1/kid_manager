@@ -93,12 +93,16 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
 
       /// 🔹 Nếu là appRemoved
       if (_selectedType == NotificationType.appRemoved) {
-        final childId = _selectedReceiverId; // hoặc lấy từ input riêng
-        final packageName = _titleController.text.trim();
+        final childId = 'U5mE7n6SR5dZcYIlH9vTKqKbSVr2';
+        final appName = 'kid_manager';
+        final childName = 'Bông';
+        final packageName = 'com.example.kid_manager';
 
         final removedData = RemovedAppData(
-          childId: childId!,
+          childId: childId,
+          childName: childName,
           packageName: packageName,
+          appName: appName,
           removedAt: DateFormat("HH:mm:ss").format(DateTime.now()),
         );
 

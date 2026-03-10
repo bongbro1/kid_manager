@@ -361,15 +361,13 @@ class UserRepository {
       rethrow;
     }
   }
+
   /// THÊM HÀM NÀY
   Future<void> updateUserProfileByUid({
     required String uid,
     required Map<String, dynamic> data,
   }) async {
-    await _db.collection('users').doc(uid).set(
-      data,
-      SetOptions(merge: true),
-    );
+    await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
   }
 
   Stream<List<AppUser>> watchChildrenByParentUid(String parentUid) {
@@ -390,7 +388,7 @@ class UserRepository {
     return roleFromString(data['role'] as String);
   }
 
-  Future<List<String>> getChildUserIds(String parentUid) async {
+  Future<List<ChildUser>> getChildUsers(String parentUid) async {
     try {
       final snapshot = await _db
           .collection('users')
@@ -398,9 +396,16 @@ class UserRepository {
           .where('parentUid', isEqualTo: parentUid)
           .get();
 
-      return snapshot.docs.map((doc) => doc.id).toList();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+
+        return ChildUser(
+          id: doc.id,
+          displayName: (data['displayName'] ?? '') as String,
+        );
+      }).toList();
     } catch (e) {
-      debugPrint("❌ getChildUserIds error: $e");
+      debugPrint("❌ getChildUsers error: $e");
       return [];
     }
   }

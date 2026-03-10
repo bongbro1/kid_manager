@@ -3,6 +3,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/models/user/user_subscription.dart';
 
+class ChildUser {
+  final String id;
+  final String displayName;
+
+  ChildUser({
+    required this.id,
+    required this.displayName,
+  });
+}
+
 class AppUser {
   final String uid;
   final UserRole role;

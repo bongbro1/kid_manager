@@ -8,94 +8,61 @@ class NotificationRepository {
   NotificationRepository({FirebaseFirestore? fs})
     : _fs = fs ?? FirebaseFirestore.instance;
 
-  final Map<String, String> _childNameCache = {};
-  final Map<String, String> _appNameCache = {};
-
   final int _maxCountInPage = 20;
-  Future<String?> getChildDisplayName(String childId) async {
-    if (_childNameCache.containsKey(childId)) {
-      return _childNameCache[childId];
-    }
+  // Future<String?> getChildDisplayName(String childId) async {
+  //   if (_childNameCache.containsKey(childId)) {
+  //     return _childNameCache[childId];
+  //   }
 
-    try {
-      final doc = await _fs.collection('users').doc(childId).get();
+  //   try {
+  //     final doc = await _fs.collection('users').doc(childId).get();
 
-      if (!doc.exists) return null;
+  //     if (!doc.exists) return null;
 
-      final data = doc.data();
-      if (data == null) return null;
+  //     final data = doc.data();
+  //     if (data == null) return null;
 
-      // optional: đảm bảo đúng role child
-      if (data['role'] != 'child') return null;
+  //     // optional: đảm bảo đúng role child
+  //     if (data['role'] != 'child') return null;
 
-      final name = data['displayName'] as String?;
+  //     final name = data['displayName'] as String?;
 
-      if (name != null && name.isNotEmpty) {
-        _childNameCache[childId] = name;
-      }
+  //     if (name != null && name.isNotEmpty) {
+  //       _childNameCache[childId] = name;
+  //     }
 
-      return name;
-    } catch (_) {
-      return null;
-    }
-  }
+  //     return name;
+  //   } catch (_) {
+  //     return null;
+  //   }
+  // }
 
-  Future<String?> getAppName({
-    required String userId,
-    required String packageName,
-  }) async {
-    final key = "$userId|$packageName";
+  // Future<String?> getAppName({
+  //   required String userId,
+  //   required String packageName,
+  // }) async {
+  //   final key = "$userId|$packageName";
 
-    final cached = _appNameCache[key];
-    if (cached != null) return cached;
+  //   final cached = _appNameCache[key];
+  //   if (cached != null) return cached;
 
-    try {
-      final doc = await _fs
-          .doc("blocked_items/$userId/apps/$packageName")
-          .get();
+  //   try {
+  //     final doc = await _fs
+  //         .doc("blocked_items/$userId/apps/$packageName")
+  //         .get();
 
-      final name = doc.data()?['name'] as String?;
+  //     final name = doc.data()?['name'] as String?;
 
-      if (name != null) {
-        _appNameCache[key] = name;
-      }
+  //     if (name != null) {
+  //       _appNameCache[key] = name;
+  //     }
 
-      return name;
-    } catch (_) {
-      return null;
-    }
-  }
+  //     return name;
+  //   } catch (_) {
+  //     return null;
+  //   }
+  // }
 
-  Future<void> resolveNotificationMetadata(List<AppNotification> list) async {
-    final childIds = <String>{};
-    final appPairs = <MapEntry<String, String>>[];
-
-    for (final n in list) {
-      if (n.childId != null) {
-        childIds.add(n.childId!);
-        if (n.packageName != null) {
-          appPairs.add(MapEntry(n.childId!, n.packageName!));
-        }
-      }
-    }
-    await Future.wait([
-      ...childIds.map(getChildDisplayName),
-      ...appPairs.map((e) => getAppName(userId: e.key, packageName: e.value)),
-    ]);
-  }
-
-  String? getCachedChildName(String? childId) {
-    if (childId == null) return null;
-    return _childNameCache[childId];
-  }
-
-  String? getCachedAppName({
-    required String userId,
-    required String packageName,
-  }) {
-    final key = "$userId|$packageName";
-    return _appNameCache[key];
-  }
 
   Stream<int> watchUnreadCount(String uid) {
     return _fs
