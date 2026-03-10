@@ -1,9 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
 import 'package:kid_manager/models/chat/family_chat_message.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
+import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
 
@@ -31,16 +33,25 @@ class LocalPendingChatMessage {
 }
 
 class FamilyGroupChatScreen extends StatefulWidget {
-  const FamilyGroupChatScreen({super.key});
+  final String? initialFamilyId;
+  final String? initialMessageId;
+
+  const FamilyGroupChatScreen({
+    super.key,
+    this.initialFamilyId,
+    this.initialMessageId,
+  });
 
   @override
   State<FamilyGroupChatScreen> createState() => _FamilyGroupChatScreenState();
 }
-
 class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
   final FamilyChatRepository _repo = FamilyChatRepository();
   final TextEditingController _textController = TextEditingController();
   final List<LocalPendingChatMessage> _pendingMessages = [];
+  final NotificationRepository _notificationRepo = NotificationRepository();
+  bool _clearedChatNotification = false;
+
   @override
   void dispose() {
     _textController.dispose();
@@ -93,12 +104,31 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
     });
   }
 
+  Future<void> _clearChatNotificationIfNeeded(String familyId) async {
+    if (_clearedChatNotification) return;
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+
+    try {
+      await _notificationRepo.deleteFamilyChatNotificationsForFamily(
+        uid: uid,
+        familyId: familyId,
+      );
+      _clearedChatNotification = true;
+      debugPrint('✅ cleared family_chat notifications for familyId=$familyId');
+    } catch (e, st) {
+      debugPrint('❌ clear family_chat notifications error: $e');
+      debugPrintStack(stackTrace: st);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final me = context.select<UserVm, AppUser?>((vm) => vm.me);
-    final familyId = context.select<UserVm, String?>((vm) => vm.familyId);
-
-    if (me == null || familyId == null) {
+    final vmFamilyId = context.select<UserVm, String?>((vm) => vm.familyId);
+    final familyId = widget.initialFamilyId ?? vmFamilyId;
+    if (me == null || familyId == null || familyId.isEmpty) {
       _resetLocalState();
       return Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
@@ -113,6 +143,9 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
     }
 
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _clearChatNotificationIfNeeded(familyId);
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),

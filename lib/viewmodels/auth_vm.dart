@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import '../repositories/auth_repository.dart';
 
@@ -60,10 +62,14 @@ class AuthVM extends ChangeNotifier {
         throw Exception("Tài khoản chưa được kích hoạt");
       }
 
-      /// ✅ hợp lệ
+      ///  hợp lệ
       _user = user;
+      debugPrint("User : $_user");
       notifyListeners();
 
+      await _authRepo.registerCurrentFcmToken(
+        platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+      );
       return cred;
     });
   }
@@ -157,8 +163,26 @@ class AuthVM extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _authRepo.logout();
-    await _storage.clearAuthData();
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        await FcmPushReceiverService.removeToken(user.uid);
+      }
+
+      await _authRepo.logout();
+      await _storage.clearAuthData();
+    } catch (e) {
+      _error = e.toString();
+      debugPrint("❌ Logout error: $e");
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   Future<T?> _runAuthAction<T>(Future<T> Function() action) async {

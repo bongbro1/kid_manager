@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
@@ -12,9 +13,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kid_manager/repositories/subscription_repository.dart';
 import 'package:kid_manager/repositories/terms_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/app_state_local_service.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/app_installed_service.dart';
 import 'package:kid_manager/services/permission_service.dart';
+import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/services/usage_sync_service.dart';
@@ -24,11 +27,12 @@ import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
-import 'package:kid_manager/viewmodels/schedule_history_vm.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_history_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/subscription_vm.dart';
 import 'package:kid_manager/viewmodels/terms_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:provider/provider.dart';
 
 import 'core/alert_service.dart';
@@ -42,15 +46,13 @@ import 'repositories/auth_repository.dart';
 import 'viewmodels/auth_vm.dart';
 
 import 'repositories/schedule_repository.dart';
-import 'viewmodels/schedule_vm.dart';
+import 'viewmodels/schedule/schedule_vm.dart';
 
 import 'package:kid_manager/repositories/memory_day_repository.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
-import 'package:kid_manager/viewmodels/schedule_import_vm.dart';
-
-
+import 'package:kid_manager/viewmodels/schedule/schedule_import_vm.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -143,13 +145,31 @@ class _MyAppState extends State<MyApp> {
 
         ChangeNotifierProvider(create: (context) => OtpVM(otpRepo)),
         ChangeNotifierProvider(create: (context) => TermsVM(termsRepo)),
-        ChangeNotifierProvider(create: (context) => SubscriptionVM(subscriptionRepo)),
+        ChangeNotifierProvider(
+          create: (context) => SubscriptionVM(subscriptionRepo),
+        ),
 
         Provider<ScheduleRepository>.value(value: scheduleRepo),
 
-        ChangeNotifierProvider(
+        Provider<ScheduleNotificationService>(
           create: (context) =>
-              ScheduleViewModel(scheduleRepo, context.read<AuthVM>()),
+              ScheduleNotificationService(context.read<UserRepository>()),
+        ),
+        Provider<LocationServiceInterface>(
+          create: (_) => LocationServiceImpl(),
+        ),
+        Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
+        Provider<AppStateLocalService>(
+          create: (context) =>
+              AppStateLocalService(context.read<StorageService>()),
+        ),
+
+        ChangeNotifierProvider(
+          create: (context) => ScheduleViewModel(
+            scheduleRepo,
+            context.read<AuthVM>(),
+            context.read<ScheduleNotificationService>(),
+          ),
         ),
 
         ChangeNotifierProvider(
@@ -167,11 +187,6 @@ class _MyAppState extends State<MyApp> {
             context.read<AuthVM>(),
           ),
         ),
-
-        Provider<LocationServiceInterface>(
-          create: (_) => LocationServiceImpl(),
-        ),
-        Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
 
         ChangeNotifierProvider<SessionVM>(
           create: (context) => SessionVM(context.read<AuthRepository>()),
@@ -198,6 +213,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: AppNavigator.navigatorKey,
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
 
@@ -211,7 +227,7 @@ class _MyAppState extends State<MyApp> {
         supportedLocales: const [Locale('en'), Locale('vi')],
 
         // ❌ bỏ: locale: context.locale,
-        navigatorKey: AlertService.navigatorKey,
+        // navigatorKey: AlertService.navigatorKey,
         navigatorObservers: [routeObserver],
         theme: AppTheme.light(),
         themeMode: ThemeMode.system,

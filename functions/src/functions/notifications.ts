@@ -50,11 +50,9 @@ export const onNotificationCreated = onDocumentCreated(
 
     await admin.messaging().sendEachForMulticast({
       tokens,
-      notification: {
-        title: data.title ?? "Thông báo",
-        body: data.body ?? "Bạn có thông báo mới",
-      },
       data: {
+        title: String(data.title ?? "Thông báo"),
+        body: String(data.body ?? "Bạn có thông báo mới"),
         type: String(data.type ?? "GENERIC"),
         notificationId,
         ...convertDataToString(data.data),

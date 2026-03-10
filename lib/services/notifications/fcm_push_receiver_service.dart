@@ -66,7 +66,25 @@ class FcmPushReceiverService {
           "platform": platform,
           "updatedAt": FieldValue.serverTimestamp(),
         });
+  }
 
-    debugPrint("✅ FCM token saved");
+  static Future<void> removeToken(String uid) async {
+    try {
+      final token = await _messaging.getToken();
+      if (token == null) return;
+
+      final tokenId = sha256.convert(utf8.encode(token)).toString();
+
+      await _db
+          .collection('users')
+          .doc(uid)
+          .collection('fcmTokens')
+          .doc(tokenId)
+          .delete();
+
+      await _messaging.deleteToken();
+    } catch (e) {
+      debugPrint("❌ Remove FCM token error: $e");
+    }
   }
 }

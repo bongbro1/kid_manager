@@ -88,7 +88,10 @@ class AuthRuntimeManager {
       await FcmPushReceiverService.init(uid);
 
       if (_parentId != null && _displayName != null) {
-        RealtimeAppMonitor.start(parentId: _parentId!, displayName: _displayName!);
+        RealtimeAppMonitor.start(
+          parentId: _parentId!,
+          displayName: _displayName!,
+        );
       }
 
       if (token != _opToken) return;
@@ -109,7 +112,8 @@ class AuthRuntimeManager {
 
   static Future<void> _safeLogout(int token) async {
     /// already stopped
-    if (_state == _RuntimeState.stopped || _state == _RuntimeState.stopping) return;
+    if (_state == _RuntimeState.stopped || _state == _RuntimeState.stopping)
+      return;
 
     _state = _RuntimeState.stopping;
 

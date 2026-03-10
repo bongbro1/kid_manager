@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 
 import '../../../models/schedule.dart';
 import '../../../models/schedule_history.dart';
-import '../../../viewmodels/schedule_history_vm.dart';
-import '../../../viewmodels/schedule_vm.dart';
+import '../../../viewmodels/schedule/schedule_history_vm.dart';
+import '../../../viewmodels/schedule/schedule_vm.dart';
 import '../../../widgets/app/app_notification_dialog.dart';
 
 class ScheduleHistoryScreen extends StatefulWidget {

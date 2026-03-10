@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
-import '../models/schedule.dart';
-import '../repositories/schedule_repository.dart';
-import 'auth_vm.dart';
+import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
+import '../../models/schedule.dart';
+import '../../repositories/schedule_repository.dart';
+import '../auth_vm.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../utils/exceptions.dart';
+import '../../utils/exceptions.dart';
 
 class ScheduleViewModel extends ChangeNotifier {
   final ScheduleRepository _repo;
   final AuthVM _authVM;
+  final ScheduleNotificationService _scheduleNotificationService;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  ScheduleViewModel(this._repo, this._authVM);
+  ScheduleViewModel(
+    this._repo,
+    this._authVM,
+    this._scheduleNotificationService,
+  );
 
   int _loadToken = 0;
-
-  // ======================
-  // STATE
-  // ======================
 
   /// tháng đang focus (để load calendar)
   DateTime focusedMonth = DateTime.now();
@@ -37,7 +39,7 @@ class ScheduleViewModel extends ChangeNotifier {
   /// list hiển thị bên dưới
   List<Schedule> schedules = [];
 
-  String get parentUid {
+  String get actorUid {
     final uid = _authVM.user?.uid;
     if (uid == null) {
       throw Exception('User chưa đăng nhập');
@@ -63,14 +65,14 @@ class ScheduleViewModel extends ChangeNotifier {
 
   /// chọn bé
   Future<void> setChild(String id) async {
-  selectedChildId = id;
+    selectedChildId = id;
 
-  final now = DateTime.now();
-  selectedDate = _normalize(now);
-  focusedMonth = DateTime(now.year, now.month, 1);
+    final now = DateTime.now();
+    selectedDate = _normalize(now);
+    focusedMonth = DateTime(now.year, now.month, 1);
 
-  await loadMonth();
-}
+    await loadMonth();
+  }
 
   /// chọn ngày
   void setDate(DateTime date) {
@@ -81,10 +83,10 @@ class ScheduleViewModel extends ChangeNotifier {
 
   /// bấm ← →
   Future<void> changeMonth(DateTime newDate) async {
-  focusedMonth = DateTime(newDate.year, newDate.month, 1);
-  selectedDate = DateTime(newDate.year, newDate.month, 1);
-  await loadMonth();
-}
+    focusedMonth = DateTime(newDate.year, newDate.month, 1);
+    selectedDate = DateTime(newDate.year, newDate.month, 1);
+    await loadMonth();
+  }
 
   /// calendar dùng để vẽ dot
   bool hasSchedule(DateTime day) {
@@ -133,7 +135,6 @@ class ScheduleViewModel extends ChangeNotifier {
   // ======================
 
   Future<void> addSchedule(Schedule s) async {
-    // ✅ check overlap trước khi tạo
     final overlapped = await _findOverlapOnDay(
       childId: s.childId,
       day: s.date,
@@ -149,7 +150,11 @@ class ScheduleViewModel extends ChangeNotifier {
       );
     }
 
-    await _repo.createSchedule(scheduleOwnerUid, s);
+    final normalized = s.copyWith(parentUid: scheduleOwnerUid);
+    final createdId = await _repo.createSchedule(scheduleOwnerUid, normalized);
+    final createdSchedule = normalized.copyWith(id: createdId);
+
+    await _safeNotifyCreated(createdSchedule);
     await loadMonth();
   }
 
@@ -176,29 +181,34 @@ class ScheduleViewModel extends ChangeNotifier {
         'Vui lòng chọn giờ khác.',
       );
     }
-
-    await _repo.updateSchedule(scheduleOwnerUid, s);
+    final normalized = s.copyWith(parentUid: scheduleOwnerUid);
+    await _repo.updateSchedule(scheduleOwnerUid, normalized);
+    await _safeNotifyUpdated(normalized);
     await loadMonth();
   }
 
   Future<void> deleteSchedule(String id) async {
-  try {
-    // optimistic UI
-    schedules.removeWhere((e) => e.id == id);
-    for (final entry in monthSchedules.entries) {
-      entry.value.removeWhere((e) => e.id == id);
+    final deletedSchedule = _findScheduleById(id);
+
+    try {
+      schedules.removeWhere((e) => e.id == id);
+      for (final entry in monthSchedules.entries) {
+        entry.value.removeWhere((e) => e.id == id);
+      }
+      notifyListeners();
+
+      await _repo.deleteSchedule(scheduleOwnerUid, id);
+
+      if (deletedSchedule != null) {
+        await _safeNotifyDeleted(deletedSchedule);
+      }
+
+      await loadMonth();
+    } catch (e) {
+      await loadMonth();
+      rethrow;
     }
-    notifyListeners();
-
-    await _repo.deleteSchedule(scheduleOwnerUid, id);
-
-    // đảm bảo dot + list khớp tuyệt đối với server
-    await loadMonth();
-  } catch (e) {
-    loadMonth(); // reload để đồng bộ lại UI nếu xóa thất bại
-    rethrow;
   }
-}
 
   // ======================
   // HELPERS
@@ -217,21 +227,21 @@ class ScheduleViewModel extends ChangeNotifier {
     return DateTime(d.year, d.month, d.day);
   }
 
-// khi bind session mới (đổi user hoặc đổi owner), gọi hàm này để reset state và load lịch mới
-Future<void> bindChildSession({
-  required String childUid,
-  required String ownerParentUid,
-}) async {
-  // nếu đổi user / đổi owner thì reset để tránh dính state cũ
-  final needReset =
-      selectedChildId != childUid || _scheduleOwnerUid != ownerParentUid;
+  // khi bind session mới (đổi user hoặc đổi owner), gọi hàm này để reset state và load lịch mới
+  Future<void> bindChildSession({
+    required String childUid,
+    required String ownerParentUid,
+  }) async {
+    // nếu đổi user / đổi owner thì reset để tránh dính state cũ
+    final needReset =
+        selectedChildId != childUid || _scheduleOwnerUid != ownerParentUid;
 
-  if (needReset) {
-    resetForNewSession();
-    setScheduleOwnerUid(ownerParentUid);
-    await setChild(childUid); // setChild sẽ gọi loadMonth
+    if (needReset) {
+      resetForNewSession();
+      setScheduleOwnerUid(ownerParentUid);
+      await setChild(childUid); // setChild sẽ gọi loadMonth
+    }
   }
-}
 
   // khi logout hoặc chuyển sang bé khác, reset hết state để tránh hiển thị nhầm
   void resetForNewSession() {
@@ -242,15 +252,15 @@ Future<void> bindChildSession({
     isLoading = false;
     selectedChildId = null;
 
-  // reset về today (hoặc giữ nguyên tùy bạn)
-  final now = DateTime.now();
-  selectedDate = _normalize(now);
-  focusedMonth = DateTime(now.year, now.month, 1);
+    // reset về today (hoặc giữ nguyên tùy bạn)
+    final now = DateTime.now();
+    selectedDate = _normalize(now);
+    focusedMonth = DateTime(now.year, now.month, 1);
 
-  notifyListeners();
-}
+    notifyListeners();
+  }
 
-//xuất lịch theo khoảng thời gian (dùng cho export Excel)
+  //xuất lịch theo khoảng thời gian (dùng cho export Excel)
   Future<List<Schedule>> getSchedulesForExport({
     required String childId,
     required DateTime fromDate,
@@ -267,20 +277,111 @@ Future<void> bindChildSession({
     );
 
     list.sort((a, b) {
-      final dateCmp = DateTime(a.date.year, a.date.month, a.date.day)
-          .compareTo(DateTime(b.date.year, b.date.month, b.date.day));
+      final dateCmp = DateTime(
+        a.date.year,
+        a.date.month,
+        a.date.day,
+      ).compareTo(DateTime(b.date.year, b.date.month, b.date.day));
       if (dateCmp != 0) return dateCmp;
       return a.startAt.compareTo(b.startAt);
     });
 
     return list;
   }
+
+  Future<void> _safeNotifyCreated(Schedule schedule) async {
+    try {
+      await _scheduleNotificationService.notifyCreated(
+        actorUid: actorUid,
+        scheduleOwnerUid: scheduleOwnerUid,
+        schedule: schedule,
+      );
+    } catch (e) {
+      debugPrint('[SCHEDULE_NOTIFY][created] $e');
+    }
+  }
+
+  Future<void> _safeNotifyUpdated(Schedule schedule) async {
+    try {
+      await _scheduleNotificationService.notifyUpdated(
+        actorUid: actorUid,
+        scheduleOwnerUid: scheduleOwnerUid,
+        schedule: schedule,
+      );
+    } catch (e) {
+      debugPrint('[SCHEDULE_NOTIFY][updated] $e');
+    }
+  }
+
+  Future<void> _safeNotifyDeleted(Schedule schedule) async {
+    try {
+      await _scheduleNotificationService.notifyDeleted(
+        actorUid: actorUid,
+        scheduleOwnerUid: scheduleOwnerUid,
+        schedule: schedule,
+      );
+    } catch (e) {
+      debugPrint('[SCHEDULE_NOTIFY][deleted] $e');
+    }
+  }
+
+  Schedule? _findScheduleById(String id) {
+    for (final s in schedules) {
+      if (s.id == id) return s;
+    }
+
+    for (final entry in monthSchedules.entries) {
+      for (final s in entry.value) {
+        if (s.id == id) return s;
+      }
+    }
+    return null;
+  }
+
+  Future<void> openFromNotification({
+    required String ownerParentUid,
+    required String childId,
+    required DateTime date,
+  }) async {
+    _loadToken++;
+
+    setScheduleOwnerUid(ownerParentUid);
+    selectedChildId = childId;
+
+    focusedMonth = DateTime(date.year, date.month, 1);
+    selectedDate = _normalize(date);
+
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final list = await _repo.getSchedulesByMonth(
+        parentUid: scheduleOwnerUid,
+        childId: childId,
+        month: focusedMonth,
+      );
+
+      monthSchedules = _groupByDay(list);
+      schedules = monthSchedules[selectedDate] ?? [];
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
 }
 
+// ====================================================
 // Extension để check overlap khi add/update schedule
-
 extension _TimeOverlap on ScheduleViewModel {
-  bool _isOverlapping(DateTime aStart, DateTime aEnd, DateTime bStart, DateTime bEnd) {
+  bool _isOverlapping(
+    DateTime aStart,
+    DateTime aEnd,
+    DateTime bStart,
+    DateTime bEnd,
+  ) {
     // cho phép liền kề: end == start => KHÔNG overlap
     return aStart.isBefore(bEnd) && aEnd.isAfter(bStart);
   }

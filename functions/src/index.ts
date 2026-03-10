@@ -3,7 +3,7 @@ import { REGION } from "./config";
 
 setGlobalOptions({ region: REGION });
 // firebase deploy --only functions
-MAIL_FROM=Kid Manager <no-reply@homiesmart.io.vn>
+//MAIL_FROM=Kid Manager <no-reply@homiesmart.io.vn>
 // $env:FUNCTIONS_DISCOVERY_TIMEOUT=30
 export * from "./functions/mirror";
 export * from "./functions/tokens";

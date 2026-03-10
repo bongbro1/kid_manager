@@ -95,35 +95,52 @@ if (!req.auth?.uid) {
 
   await batch.commit();
 
-  // Tao notification sau khi gui tin nhan thanh cong
-  const notifyBatch = db.batch();
-
   for (const memberDoc of membersSnap.docs) {
     const memberUid = memberDoc.id;
     if (memberUid === uid) continue;
 
-    const notifRef = db.collection("notifications").doc();
+    const tokenSnap = await db.collection(`users/${memberUid}/fcmTokens`).get();
+    if (tokenSnap.empty) continue;
 
-    notifyBatch.set(notifRef, {
-      senderId: uid,
-      receiverId: memberUid,
-      type: "family_chat",
-      title: senderName,
-      body: text,
-      familyId,
-      isRead: false,
-      status: "pending",
-      createdAt: now,
+    const tokens = tokenSnap.docs
+      .map((d) => d.data()?.token)
+      .filter((t): t is string => typeof t === "string" && t.length > 0);
+
+    if (!tokens.length) continue;
+
+    await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification: {
+        title: senderName,
+        body: text,
+      },
       data: {
+        type: "family_chat",
+        route: "family_group_chat",
         familyId,
         messageId: messageRef.id,
-        route: "family_group_chat",
         senderUid: uid,
+        senderName,
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+      },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: "chat_messages",
+          priority: "high",
+          defaultSound: true,
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: "default",
+            badge: 1,
+          },
+        },
       },
     });
   }
-
-  await notifyBatch.commit();
 
   return {
     ok: true,

@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final cred = await authVM.login(email, password);
-
+      debugPrint("[CRED] = $cred");
       if (!mounted) return;
 
       if (cred == null) {
@@ -92,15 +92,32 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final uid = cred.user!.uid;
+      debugPrint('[LoginScreen] uid=$uid');
 
       await storage.setString(StorageKeys.uid, uid);
+      debugPrint('[LoginScreen] saved uid=${storage.getString(StorageKeys.uid)}');
 
-      final profile = await userVM.loadProfile();
-      if (profile == null) return;
+      final profile = await userVM.loadProfile(uid: uid,caller: 'LoginScreen');
+      debugPrint("[LoginScreen] Profile : ${profile}");
+      if (profile == null) {
+        NotificationDialog.show(
+          context,
+          type: DialogType.error,
+          title: "Thất bại",
+          message: "Không tải được hồ sơ người dùng",
+        );
+        return;
+      }
 
-      await storage.setString(StorageKeys.role, profile.role!);
-      await storage.setString(StorageKeys.parentId, profile.parentUid ?? '');
+      await storage.setString(StorageKeys.role, profile.role ?? '');
       await storage.setString(StorageKeys.displayName, profile.name);
+
+      final role = roleFromString(profile.role ?? 'child');
+      final parentId = role == UserRole.child
+          ? (profile.parentUid ?? '')
+          : uid;
+
+      await storage.setString(StorageKeys.parentId, parentId);
 
       if (rememberPassword) {
         final session = LoginSession(email: email, uid: uid, remember: true);

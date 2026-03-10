@@ -423,7 +423,7 @@ class MapboxController extends ChangeNotifier {
     required Uint8List defaultBytes,
   }) async {
     if (photoUrlOrData == null || photoUrlOrData.trim().isEmpty) {
-      debugPrint("🟡 avatar none child=$childId -> default");
+      // debugPrint("🟡 avatar none child=$childId -> default");
       _avatarCache.remove(childId);
       _avatarBytesById.remove(childId);
       _avatarKeyById.remove(childId);
@@ -432,9 +432,9 @@ class MapboxController extends ChangeNotifier {
 
     final key = _normalizeAvatarKey(photoUrlOrData);
     if (key != photoUrlOrData.trim()) {
-      debugPrint("🧹 avatar key normalized child=$childId");
-      debugPrint("   raw=${photoUrlOrData.trim()}");
-      debugPrint("   key=$key");
+      // debugPrint("🧹 avatar key normalized child=$childId");
+      // debugPrint("   raw=${photoUrlOrData.trim()}");
+      // debugPrint("   key=$key");
     }
 
     final oldKey = _avatarKeyById[childId];

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
@@ -40,9 +41,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserVm>().loadProfile();
+      final authUid = FirebaseAuth.instance.currentUser?.uid;
+      context.read<UserVm>().loadProfile(
+        uid: authUid,
+        caller: 'PersonalInfoScreen',
+      );
     });
   }
 
@@ -109,19 +113,50 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     context.read<UserVm>().listenProfile();
   }
 
+  Future<void> _logout() async {
+    final authVM = context.read<AuthVM>();
+    final notiVM = context.read<NotificationVM>();
+    final rootNav = Navigator.of(context, rootNavigator: true);
+
+    await notiVM.clear();
+    await authVM.logout();
+
+    rootNav.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SessionGuard()),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<UserVm>();
     final p = vm.profile;
+
+    if (p != null && !_initialized) {
+      _nameCtrl.text = p.name;
+      _phoneCtrl.text = p.phone;
+      _genderCtrl.text = p.gender;
+      _dobCtrl.text = p.dob;
+      _addressCtrl.text = p.address;
+      allowLocationTracking = p.allowTracking;
+      _age = calculateAgeFromDateString(p.dob);
+      _initialized = true;
+    }
+
     if (vm.loading) {
-      return LoadingOverlay();
+      return const LoadingOverlay();
     }
 
-    if (p == null) {
-      return const Scaffold(body: Center(child: Text("Không có dữ liệu")));
-    }
+    // if (p == null) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     if (!mounted) return;
+    //     _logout();
+    //   });
 
-    final isChild = p.role.toString() == "child";
+    //   return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    // }
+
+    final isChild = p?.role.toString() == "child";
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
@@ -195,7 +230,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 child: tappablePhoto(
                                   context: context,
                                   vm: vm,
-                                  url: p.coverUrl,
+                                  url: p?.coverUrl,
                                   fallbackAsset: "assets/images/cover.png",
                                   onReplace: (index, file) {
                                     return vm.updateUserPhoto(
@@ -205,9 +240,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   },
                                   child: Image(
                                     image:
-                                        ((p.coverUrl ?? '').trim().isNotEmpty)
+                                        ((p?.coverUrl ?? '').trim().isNotEmpty)
                                         ? NetworkImage(
-                                            (p.coverUrl ?? '').trim(),
+                                            (p?.coverUrl ?? '').trim(),
                                           )
                                         : const AssetImage(
                                                 "assets/images/cover.png",
@@ -245,7 +280,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                       tappablePhoto(
                                         context: context,
                                         vm: vm,
-                                        url: p.avatarUrl,
+                                        url: p?.avatarUrl,
                                         fallbackAsset: "assets/images/u1.png",
                                         onReplace: (index, file) {
                                           return vm.updateUserPhoto(
@@ -266,11 +301,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                             ),
                                             image: DecorationImage(
                                               image:
-                                                  ((p.avatarUrl ?? '')
+                                                  ((p?.avatarUrl ?? '')
                                                       .trim()
                                                       .isNotEmpty)
                                                   ? NetworkImage(
-                                                      (p.avatarUrl ?? '')
+                                                      (p?.avatarUrl ?? '')
                                                           .trim(),
                                                     )
                                                   : const AssetImage(
@@ -403,6 +438,7 @@ class MoreActionSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final role = context.watch<UserVm>().profile?.role;
+    final isParent = roleFromString(role ?? 'child') == UserRole.parent;
 
     return AppOverlaySheet(
       // height: 240,
@@ -444,7 +480,7 @@ class MoreActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            if (roleFromString(role!) == UserRole.parent) ...[
+            if (isParent) ...[
               SettingItem(
                 title: "Thêm tài khoản",
                 iconPath: "assets/icons/account.png",
@@ -502,83 +538,91 @@ class ConfirmLogoutSheet extends StatelessWidget {
       );
     }
 
-    return AppOverlaySheet(
-      height: 210,
-      showHandle: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            const SizedBox(height: 6),
-            Container(
-              width: 345,
-              decoration: ShapeDecoration(
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(
-                    width: 1,
-                    strokeAlign: BorderSide.strokeAlignCenter,
-                    color: const Color(0xFFEDF1F7),
+    final vm = context.watch<AuthVM>();
+    if (vm.error != null) {
+      return Text(vm.error!);
+    }
+
+    return Stack(
+      children: [
+        AppOverlaySheet(
+          height: 210,
+          showHandle: true,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                const SizedBox(height: 6),
+                Container(
+                  width: 345,
+                  decoration: ShapeDecoration(
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(
+                        width: 1,
+                        strokeAlign: BorderSide.strokeAlignCenter,
+                        color: const Color(0xFFEDF1F7),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
 
-            const SizedBox(height: 30),
-            Text(
-              'Bạn muốn đăng xuất?',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: const Color(0xFF212121),
-                fontSize: 16,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                height: 1.38,
-                letterSpacing: -0.41,
-              ),
-            ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      height: 50,
-                      text: 'Hủy bỏ',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      backgroundColor: const Color(0xFFE6F5FF),
-                      foregroundColor: const Color(0xFF3A7DFF),
-                    ),
+                const SizedBox(height: 30),
+                Text(
+                  'Bạn muốn đăng xuất?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: const Color(0xFF212121),
+                    fontSize: 16,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                    height: 1.38,
+                    letterSpacing: -0.41,
                   ),
+                ),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: AppButton(
+                          height: 50,
+                          text: 'Hủy bỏ',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          backgroundColor: const Color(0xFFE6F5FF),
+                          foregroundColor: const Color(0xFF3A7DFF),
+                        ),
+                      ),
 
-                  const SizedBox(width: 12),
+                      const SizedBox(width: 12),
 
-                  Expanded(
-                    child: AppButton(
-                      height: 50,
-                      text: 'Xác nhận',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await Future.delayed(const Duration(milliseconds: 150));
-                        await _logout();
-                      },
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
+                      Expanded(
+                        child: AppButton(
+                          height: 50,
+                          text: 'Xác nhận',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          onPressed: () async {
+                            await _logout();
+                          },
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        if (vm.loading) LoadingOverlay(),
+      ],
     );
   }
 }

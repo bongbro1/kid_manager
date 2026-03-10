@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
+import 'package:kid_manager/models/notifications/removed_app_data.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -84,30 +89,42 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
     setState(() => _loading = true);
 
     try {
-      final payload = {
-        "receiverId": _selectedReceiverId,
-        "type": _selectedType.name,
-        "title": _titleController.text.trim(),
-        "body": _bodyController.text.trim(),
-      };
+      Map<String, dynamic>? data;
+
+      /// 🔹 Nếu là appRemoved
+      if (_selectedType == NotificationType.appRemoved) {
+        final childId = _selectedReceiverId; // hoặc lấy từ input riêng
+        final packageName = _titleController.text.trim();
+
+        final removedData = RemovedAppData(
+          childId: childId!,
+          packageName: packageName,
+          removedAt: DateFormat("HH:mm:ss").format(DateTime.now()),
+        );
+
+        data = removedData.toMap();
+      } else {
+        /// 🔹 các loại khác
+        data = {"debug": true};
+      }
+
+      final payload = NotificationPayload(
+        receiverId: _selectedReceiverId!,
+        type: _selectedType,
+        title: _titleController.text.trim(),
+        body: _bodyController.text.trim(),
+        data: data,
+      );
 
       debugPrint("========== DEBUG SYSTEM SEND ==========");
-      debugPrint(payload.toString());
-      debugPrint("receiverId length: ${payload["receiverId"]?.length}");
-      debugPrint("type: ${payload["type"]}");
-      debugPrint("title: ${payload["title"]}");
-      debugPrint("body: ${payload["body"]}");
+      debugPrint("receiverId: ${payload.receiverId}");
+      debugPrint("type: ${payload.type}");
+      debugPrint("title: ${payload.title}");
+      debugPrint("body: ${payload.body}");
+      debugPrint("data: ${payload.data}");
       debugPrint("=======================================");
 
-      await NotificationService.sendSystem(
-        NotificationPayload(
-          receiverId: _selectedReceiverId!,
-          type: _selectedType,
-          title: _titleController.text.trim(),
-          body: _bodyController.text.trim(),
-          data: {"debug": true},
-        ),
-      );
+      await NotificationService.sendSystem(payload);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -118,12 +135,16 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       debugPrint("ERROR SEND SYSTEM: $e");
       debugPrint(stack.toString());
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("❌ Error: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("❌ Error: $e")));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
-
-    setState(() => _loading = false);
   }
 
   Future<void> _testSubscription(String status) async {
@@ -277,6 +298,19 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
             if (_loading)
               const CircularProgressIndicator()
             else ...[
+              ElevatedButton(
+                onPressed: () async {
+                  await LocalNotificationService.show(
+                    title: 'Test local',
+                    body: 'Tap me',
+                    payload: jsonEncode({
+                      "notificationId": "06eloLbzICVdapzFdDF0",
+                      "type": "test",
+                    }),
+                  );
+                },
+                child: const Text('Show test notification'),
+              ),
               ElevatedButton(
                 onPressed: _sendSystem,
                 child: const Text("⚙️ Send System → User"),

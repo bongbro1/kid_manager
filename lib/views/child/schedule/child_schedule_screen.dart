@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -7,15 +8,20 @@ import '../../../core/app_colors.dart';
 import '../../../core/app_text_styles.dart';
 import '../../../core/storage_keys.dart';
 import '../../../services/storage_service.dart';
-import '../../../viewmodels/schedule_vm.dart';
-
+import '../../../viewmodels/schedule/schedule_vm.dart';
 import '../../../views/parent/schedule/add_schedule_sheet.dart';
 import '../../../widgets/parent/schedule/create_schedule_button.dart';
 import '../../../widgets/parent/schedule/schedule_calendar.dart';
 import '../../../widgets/parent/schedule/schedule_list.dart';
+import '../../../widgets/parent/schedule/schedule_menu_drawer.dart';
 
 class ChildScheduleScreen extends StatefulWidget {
-  const ChildScheduleScreen({super.key});
+  final DateTime? initialDate;
+
+  const ChildScheduleScreen({
+    super.key,
+    this.initialDate,
+  });
 
   @override
   State<ChildScheduleScreen> createState() => _ChildScheduleScreenState();
@@ -25,6 +31,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
   String? _lastChildUid;
   String? _lastOwnerUid;
   bool _binding = false;
+  bool _appliedNotificationTarget = false;
 
   void _openAddScheduleSheet({
     required BuildContext context,
@@ -53,6 +60,31 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
     );
   }
 
+  Future<void> _applyNotificationTargetIfNeeded({
+    required String parentUid,
+    required String childUid,
+  }) async {
+    if (_appliedNotificationTarget) return;
+    if (widget.initialDate == null) return;
+
+    _appliedNotificationTarget = true;
+
+    final scheduleVm = context.read<ScheduleViewModel>();
+    final memoryVm = context.read<MemoryDayViewModel>();
+
+    await scheduleVm.openFromNotification(
+      ownerParentUid: parentUid,
+      childId: childUid,
+      date: widget.initialDate!,
+    );
+
+    memoryVm.bindCalendarState(
+      focusedMonth: scheduleVm.focusedMonth,
+      selectedDate: scheduleVm.selectedDate,
+    );
+    await memoryVm.loadMonth();
+  }
+
   Future<void> _bindSessionIfNeeded() async {
     if (_binding) return;
     _binding = true;
@@ -63,12 +95,12 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
       final scheduleVm = context.read<ScheduleViewModel>();
       final memoryVm = context.read<MemoryDayViewModel>();
 
-      final childUid = storage.getString(StorageKeys.uid);
+      final childUid = storage.getString(StorageKeys.uid) ?? FirebaseAuth.instance.currentUser?.uid;
       if (childUid == null) return;
 
       // load profile đúng child hiện tại
       if (userVm.profile == null || userVm.profile!.id != childUid) {
-        await userVm.loadProfile();
+        await userVm.loadProfile(uid: childUid,caller: 'ChildScheduleScreen');
       }
 
       final parentUid = userVm.profile?.parentUid;
@@ -100,10 +132,34 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         );
 
         await memoryVm.loadMonth();
+        await _applyNotificationTargetIfNeeded(
+          parentUid: parentUid,
+          childUid: childUid,
+        );
       }
     } finally {
       _binding = false;
     }
+  }
+
+  Future<void> _reloadSchedulesAfterImport() async {
+    final scheduleVm = context.read<ScheduleViewModel>();
+    final memoryVm = context.read<MemoryDayViewModel>();
+
+    if (scheduleVm.selectedChildId == null) {
+      debugPrint('[CHILD_SCHEDULE_IMPORT] selectedChildId=null -> skip reload');
+      return;
+    }
+
+    await scheduleVm.loadMonth();
+
+    memoryVm.bindCalendarState(
+      focusedMonth: scheduleVm.focusedMonth,
+      selectedDate: scheduleVm.selectedDate,
+    );
+    await memoryVm.loadMonth();
+
+    debugPrint('[CHILD_SCHEDULE_IMPORT] reload done');
   }
 
   @override
@@ -116,12 +172,19 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
     });
 
     return Scaffold(
+      drawer: ScheduleMenuDrawer(
+        selectedChildId: scheduleVm.selectedChildId,
+        lockChildSelection: true,
+        onImportSuccess: _reloadSchedulesAfterImport,
+      ),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: AppColors.darkText),
-          onPressed: () {},
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu, color: AppColors.darkText),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
         ),
         title: const Text(
           'Lịch trình',
@@ -135,7 +198,8 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
           const SizedBox(height: 16),
           if (scheduleVm.selectedChildId == null)
             const Expanded(
-                child: Center(child: CircularProgressIndicator()))
+              child: Center(child: CircularProgressIndicator()),
+            )
           else
             const Expanded(child: ScheduleList()),
           CreateScheduleButton(

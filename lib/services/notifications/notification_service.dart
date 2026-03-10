@@ -1,38 +1,171 @@
+import 'dart:convert';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
+import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
+import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
+import 'package:kid_manager/widgets/app/app_sell_config.dart';
+
+// TODO: import đúng màn hình này nếu project đang dùng
+// import 'package:kid_manager/views/family/family_group_chat_screen.dart';
 
 class NotificationService {
-  static const _systemSender = 'system';
+  NotificationService._();
+
+  static const String _systemSender = 'system';
+  static const MethodChannel _channel = MethodChannel('notification_intent');
   static final NotificationRepository _repo = NotificationRepository();
 
   static Future<void> init() async {
     debugPrint('🔔 NotificationService.init()');
 
-    FirebaseMessaging.onMessage.listen((message) async {
+    // Foreground message
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       debugPrint(
         '🔔 onMessage (FG) id=${message.messageId} data=${message.data} notif=${message.notification?.title}',
       );
       await handleMessageForLocalNotification(message);
     });
 
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+    // App ở background, user tap notification FCM
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
       debugPrint(
         '🔔 onMessageOpenedApp id=${message.messageId} data=${message.data}',
       );
-      handleNotificationTap(message);
+      await handleTap(message.data);
     });
 
-    final initial = await FirebaseMessaging.instance.getInitialMessage();
-    if (initial != null) {
+    // App mở từ terminated state bằng FCM
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
       debugPrint(
-        '🔔 getInitialMessage id=${initial.messageId} data=${initial.data}',
+        '🔔 getInitialMessage id=${initialMessage.messageId} data=${initialMessage.data}',
       );
-      handleNotificationTap(initial);
+      await handleTap(initialMessage.data);
     }
+
+    // User tap local notification
+    _channel.setMethodCallHandler((MethodCall call) async {
+      if (call.method != 'notificationTap') return;
+
+      final payload = call.arguments as String?;
+      if (payload == null || payload.isEmpty) {
+        debugPrint('🔔 notificationTap payload is null/empty');
+        return;
+      }
+
+      try {
+        final decoded = jsonDecode(payload);
+        if (decoded is Map<String, dynamic>) {
+          await handleTap(decoded);
+        } else if (decoded is Map) {
+          await handleTap(Map<String, dynamic>.from(decoded));
+        } else {
+          debugPrint('🔔 notificationTap payload is not a valid map');
+        }
+      } catch (e, st) {
+        debugPrint('🔔 Failed to decode notification payload: $e');
+        debugPrintStack(stackTrace: st);
+      }
+    });
+  }
+
+  static Future<void> handleInitialMessage() async {
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      debugPrint(
+        '🔔 handleInitialMessage id=${initialMessage.messageId} data=${initialMessage.data}',
+      );
+      await handleTap(initialMessage.data);
+    }
+  }
+
+  static Future<void> handleTap(Map<String, dynamic> data) async {
+    final type = data['type']?.toString().toLowerCase() ?? '';
+    final notificationId = data['notificationId']?.toString();
+    final familyId = data['familyId']?.toString();
+    final messageId = data['messageId']?.toString();
+    final eventId = data['eventId']?.toString();
+    final route = data['route']?.toString();
+
+    debugPrint(
+      '🔔 handleTap type=$type notificationId=$notificationId familyId=$familyId messageId=$messageId eventId=$eventId route=$route',
+    );
+
+    if (type == 'test') {
+      debugPrint('🔔 TEST NOTIFICATION CLICKED');
+      return;
+    }
+
+    final navigator = AppNavigator.navigatorKey.currentState;
+    if (navigator == null) {
+      debugPrint('🔔 Navigator is null, cannot navigate');
+      return;
+    }
+
+    if (type == 'sos') {
+      debugPrint('🔔 Navigate to SOS screen');
+      // TODO: push SOS screen here
+      return;
+    }
+
+    if (type == 'family_chat' || route == 'family_group_chat') {
+      if (familyId == null || familyId.isEmpty) {
+        debugPrint('🔔 family_chat tapped but familyId missing');
+        return;
+      }
+
+      // TODO: mở lại khi đã import FamilyGroupChatScreen
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => FamilyGroupChatScreen(
+            initialFamilyId: familyId,
+            initialMessageId: messageId,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (type == 'family_event') {
+      debugPrint('🔔 family_event tapped eventId=$eventId');
+      // TODO: navigate event detail
+      return;
+    }
+
+    if (type == 'zone') {
+      debugPrint('🔔 zone notification tapped');
+      // TODO: navigate zone detail if needed
+      return;
+    }
+
+    if (notificationId == null || notificationId.isEmpty) {
+      debugPrint('🔔 notificationId missing, skip detail navigation');
+      return;
+    }
+
+    final item = await _repo.getItemById(notificationId);
+    if (item == null) {
+      debugPrint('🔔 notification not found: $notificationId');
+      return;
+    }
+
+    if (type != 'sos') {
+      activeTabNotifier.value = AppShellConfig.notificationTabIndex;
+    }
+
+    navigator.push(
+      MaterialPageRoute(
+        builder: (_) => NotificationDetailScreen(item: item),
+      ),
+    );
   }
 
   static Future<void> handleMessageForLocalNotification(
@@ -57,44 +190,13 @@ class NotificationService {
       return;
     }
 
+    if (type == 'test') {
+      debugPrint('🔔 TEST NOTIFICATION RECEIVED');
+      await _showDefaultNotification(message);
+      return;
+    }
+
     await _showDefaultNotification(message);
-  }
-
-  static void handleNotificationTap(RemoteMessage message) {
-    final type = message.data['type']?.toString().toLowerCase() ?? '';
-    final familyId = message.data['familyId']?.toString();
-    final route = message.data['route']?.toString();
-    final messageId = message.data['messageId']?.toString();
-    final eventId = message.data['eventId']?.toString();
-
-    debugPrint(
-      '🔔 handleNotificationTap() type=$type route=$route familyId=$familyId messageId=$messageId eventId=$eventId',
-    );
-
-    if (type == 'family_chat') {
-      // TODO:
-      // navigatorKey.currentState?.pushNamed(
-      //   '/family-group-chat',
-      //   arguments: {'familyId': familyId, 'messageId': messageId},
-      // );
-      return;
-    }
-
-    if (type == 'family_event') {
-      // TODO:
-      // navigatorKey.currentState?.pushNamed(
-      //   '/family-event-detail',
-      //   arguments: {'familyId': familyId, 'eventId': eventId},
-      // );
-      return;
-    }
-
-    if (type == 'zone') {
-      // TODO: route den man hinh phu hop neu can
-      return;
-    }
-
-    // TODO: default route neu can
   }
 
   static Future<void> _showDefaultNotification(RemoteMessage message) async {
@@ -108,11 +210,13 @@ class NotificationService {
             message.data['body']?.toString() ??
             'Bạn có thông báo mới';
 
-    debugPrint(
-      '🔔 show default local notification title="$title" body="$body"',
-    );
+    debugPrint('🔔 show default local notification title="$title" body="$body"');
 
-    await LocalNotificationService.show(title: title, body: body);
+    await LocalNotificationService.show(
+      title: title,
+      body: body,
+      payload: jsonEncode(message.data),
+    );
   }
 
   static Future<void> _showFamilyChatNotification(RemoteMessage message) async {
@@ -130,7 +234,11 @@ class NotificationService {
       '🔔 show family chat local notification title="$title" body="$body"',
     );
 
-    await LocalNotificationService.show(title: title, body: body);
+    await LocalNotificationService.show(
+      title: title,
+      body: body,
+      payload: jsonEncode(message.data),
+    );
   }
 
   static Future<void> _showFamilyEventNotification(
@@ -150,7 +258,11 @@ class NotificationService {
       '🔔 show family event local notification title="$title" body="$body"',
     );
 
-    await LocalNotificationService.show(title: title, body: body);
+    await LocalNotificationService.show(
+      title: title,
+      body: body,
+      payload: jsonEncode(message.data),
+    );
   }
 
   static Future<void> _showZoneNotification(RemoteMessage message) async {
@@ -166,11 +278,13 @@ class NotificationService {
     final title = _zoneTitleFromKey(l10n, key);
     final body = zoneName;
 
-    debugPrint(
-      '🔔 show zone local notification title="$title" body="$body"',
-    );
+    debugPrint('🔔 show zone local notification title="$title" body="$body"');
 
-    await LocalNotificationService.show(title: title, body: body);
+    await LocalNotificationService.show(
+      title: title,
+      body: body,
+      payload: jsonEncode(message.data),
+    );
   }
 
   static Future<void> sendUserToUser({
@@ -334,16 +448,13 @@ class NotificationService {
           familyId: familyId,
         );
 
-        debugPrint(
-          '[NotificationService] create success receiverId=$uid',
-        );
+        debugPrint('[NotificationService] create success receiverId=$uid');
       });
 
       await Future.wait(futures);
 
       debugPrint(
-        '[NotificationService] sendFamilyChatToMembers done '
-            'count=${targets.length}',
+        '[NotificationService] sendFamilyChatToMembers done count=${targets.length}',
       );
     } catch (e, st) {
       debugPrint('[NotificationService] sendFamilyChatToMembers error: $e');

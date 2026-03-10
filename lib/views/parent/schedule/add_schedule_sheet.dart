@@ -10,7 +10,7 @@ import 'package:kid_manager/utils/cupertino_time_picker.dart';
 import 'package:kid_manager/utils/confirm_exit_dialog.dart';
 
 import '../../../models/schedule.dart';
-import '../../../viewmodels/schedule_vm.dart';
+import '../../../viewmodels/schedule/schedule_vm.dart';
 
 class AddScheduleScreen extends StatefulWidget {
   final String childId;
@@ -420,7 +420,7 @@ Widget _timePicker({
                     final schedule = Schedule(
                       id: '',
                       childId: widget.childId,
-                      parentUid: vm.parentUid,
+                      parentUid: vm.scheduleOwnerUid,
                       title: _titleCtrl.text.trim(),
                       description: _descCtrl.text.trim(),
                       date: normalizedDate,

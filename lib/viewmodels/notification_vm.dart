@@ -236,7 +236,7 @@ class NotificationVM extends ChangeNotifier {
       _loading = true;
       notifyListeners();
 
-      notificationDetail = await _repo.getNotificationDetailByItem(_uid!, n);
+      notificationDetail = await _repo.getNotificationDetailByItem(_uid, n);
     } catch (e) {
       debugPrint("Load notification detail error: $e");
       notificationDetail = null;

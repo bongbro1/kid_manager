@@ -62,6 +62,7 @@ class UserProfile {
     String? role,
     String? avatarUrl,
     String? coverUrl,
+    String? parentUid,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -74,6 +75,7 @@ class UserProfile {
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       coverUrl: coverUrl ?? this.coverUrl,
+      parentUid: parentUid ?? this.parentUid,
     );
   }
 

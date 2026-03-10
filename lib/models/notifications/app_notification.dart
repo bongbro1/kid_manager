@@ -6,6 +6,7 @@ import 'package:kid_manager/models/notifications/blocked_app_data.dart';
 enum NotificationStore { global, userInbox }
 
 enum NotificationType {
+  appRemoved,
   blockedApp,
   sos,
   heartbeatLost,
@@ -29,6 +30,8 @@ enum NotificationFilter {
 extension NotificationTypeX on NotificationType {
   String get value {
     switch (this) {
+      case NotificationType.appRemoved:
+        return "app_removed";
       case NotificationType.blockedApp:
         return "blocked_app";
       case NotificationType.sos:
@@ -53,6 +56,7 @@ extension NotificationTypeX on NotificationType {
 
   NotificationFilter get filter {
     switch (this) {
+      case NotificationType.appRemoved:
       case NotificationType.blockedApp:
       case NotificationType.usageLimitExceeded:
         return NotificationFilter.activity;
@@ -109,6 +113,7 @@ extension NotificationTypeX on NotificationType {
 
   NotificationStyle get style {
     switch (this) {
+      case NotificationType.appRemoved:
       case NotificationType.blockedApp:
         return const NotificationStyle(
           icon: Icons.block_rounded,
@@ -224,7 +229,7 @@ class AppNotification {
   /// runtime: doc ở global hay userInbox
   final NotificationStore store;
 
-  AppNotification({
+  const AppNotification({
     required this.id,
     required this.senderId,
     required this.receiverId,
@@ -245,8 +250,8 @@ class AppNotification {
     required NotificationStore store,
   }) {
     final rawTitle = (map['title'] ?? '').toString();
-    final rawEventKey = (map['eventKey'] ?? map['data']?['eventKey'] ?? '')
-        .toString();
+    final rawEventKey =
+        (map['eventKey'] ?? map['data']?['eventKey'] ?? '').toString();
 
     return AppNotification(
       id: id,
@@ -254,19 +259,32 @@ class AppNotification {
       receiverId: (map['receiverId'] ?? '').toString(),
       familyId: map['familyId']?.toString(),
       type: (map['type'] ?? '').toString(),
-
-      // ✅ fallback: nếu title rỗng thì dùng eventKey (zone.*)
       title: rawTitle.trim().isNotEmpty ? rawTitle : rawEventKey,
-
       body: (map['body'] ?? '').toString(),
       isRead: (map['isRead'] ?? false) == true,
       status: (map['status'] ?? 'pending').toString(),
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
+      createdAt: _readDate(map['createdAt']),
       data: Map<String, dynamic>.from(map['data'] ?? {}),
       store: store,
     );
+  }
+
+  factory AppNotification.fromDoc(
+    DocumentSnapshot<Map<String, dynamic>> doc, {
+    required NotificationStore store,
+  }) {
+    return AppNotification.fromMap(
+      doc.id,
+      doc.data() ?? <String, dynamic>{},
+      store: store,
+    );
+  }
+
+  static DateTime? _readDate(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
   }
 
   NotificationType get notificationType => NotificationTypeX.fromString(type);

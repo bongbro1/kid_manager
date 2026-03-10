@@ -22,7 +22,9 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<NotificationVM>().loadNotificationDetailItem(widget.item);
+      final vm = context.read<NotificationVM>();
+      vm.markAsRead(widget.item);
+      vm.loadNotificationDetailItem(widget.item);
     });
   }
   Color _resolveTopIconColor(NotificationDetailModel detail) {
@@ -59,8 +61,23 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     return const Color(0xFFEFF6FF);
   }
   String _buildDisplayTitle(NotificationDetailModel detail) {
-    if (detail.notificationType != NotificationType.zone) {
-      return detail.title; // giữ nguyên type khác
+    if (detail.notificationType == NotificationType.schedule) {
+      final data = detail.data;
+      final action = (data['action'] ?? '').toString();
+      final childName = (data['childName'] ?? 'Bé').toString();
+
+      switch (action) {
+        case 'created':
+          return 'Lịch trình mới của $childName';
+        case 'updated':
+          return 'Lịch trình của $childName đã thay đổi';
+        case 'deleted':
+          return 'Lịch trình của $childName đã bị xóa';
+        case 'restored':
+          return 'Lịch trình của $childName đã được khôi phục';
+        default:
+          return detail.title;
+      }
     }
 
     final data = detail.data;

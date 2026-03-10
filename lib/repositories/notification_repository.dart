@@ -41,6 +41,27 @@ class NotificationRepository {
         );
   }
 
+  Future<void> deleteFamilyChatNotificationsForFamily({
+    required String uid,
+    required String familyId,
+  }) async {
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .where('type', isEqualTo: 'family_chat')
+        .where('familyId', isEqualTo: familyId)
+        .get();
+
+    if (snap.docs.isEmpty) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
   // new query
   Future<QuerySnapshot<Map<String, dynamic>>> fetchOlderNotifications({
     required String uid,
@@ -155,7 +176,7 @@ class NotificationRepository {
   }
 
   Future<NotificationDetailModel> getNotificationDetailByItem(
-    String uid,
+    String? uid,
     AppNotification n,
   ) async {
     final docRef = (n.store == NotificationStore.userInbox)
@@ -182,7 +203,15 @@ class NotificationRepository {
     );
   }
 
-  Future<NotificationDetailModel> getNotificationDetail(String id) async {
+  Future<AppNotification?> getItemById(String id) async {
+    final doc = await _fs.collection('notifications').doc(id).get();
+
+    if (!doc.exists || doc.data() == null) return null;
+
+    return AppNotification.fromDoc(doc, store: NotificationStore.global);
+  }
+
+  Future<NotificationDetailModel?> getNotificationDetail(String id) async {
     final doc = await _fs.collection('notifications').doc(id).get();
 
     if (!doc.exists) {

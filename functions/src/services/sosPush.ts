@@ -8,25 +8,65 @@ export async function sendSosPush(params: {
   lat?: number | null;
   lng?: number | null;
   createdByName?: string | null;
+  attempt?: number;
 }) {
-  const { familyId, sosId, childUid, lat, lng } = params;
+  const {
+    familyId,
+    sosId,
+    childUid,
+    lat,
+    lng,
+    createdByName,
+    attempt = 0,
+  } = params;
 
   const tokenSnap = await db.collection(`families/${familyId}/fcmTokens`).get();
 
-  const tokens: Array<{ token: string; tokenHash: string; uid: string; platform?: string }> = [];
+  const tokens: Array<{
+    token: string;
+    tokenHash: string;
+    uid: string;
+    platform?: string;
+  }> = [];
+
   tokenSnap.forEach((doc) => {
     const data = doc.data() as any;
     const token: string | undefined = data.token;
     const uid: string | undefined = data.uid;
     if (!token || !uid) return;
+
+    // Không gửi lại cho chính người tạo SOS
     if (uid === childUid) return;
-    tokens.push({ token, tokenHash: doc.id, uid, platform: data.platform });
+
+    tokens.push({
+      token,
+      tokenHash: doc.id,
+      uid,
+      platform: data.platform,
+    });
   });
 
-  if (!tokens.length) return { attemptedRecipients: 0, success: 0, invalidTokensRemoved: 0 };
+  if (!tokens.length) {
+    return {
+      attemptedRecipients: 0,
+      success: 0,
+      invalidTokensRemoved: 0,
+    };
+  }
+
+  const title =
+    attempt > 0 ? "🚨 NHẮC LẠI SOS KHẨN CẤP" : "🚨 SOS KHẨN CẤP";
+
+  const body =
+    attempt > 0
+      ? `${createdByName || "Một thành viên"} vẫn chưa được xác nhận an toàn. Chạm để xem vị trí.`
+      : `${createdByName || "Một thành viên"} đang cầu cứu. Chạm để xem vị trí.`;
 
   const baseMessage: Omit<admin.messaging.MulticastMessage, "tokens"> = {
-    notification: { title: "🚨 SOS KHẨN CẤP", body: "Có thành viên đang cầu cứu. Chạm để xem vị trí." },
+    notification: {
+      title,
+      body,
+    },
     data: {
       type: "SOS",
       familyId: String(familyId),
@@ -34,7 +74,8 @@ export async function sendSosPush(params: {
       childUid: String(childUid),
       lat: lat != null ? String(lat) : "",
       lng: lng != null ? String(lng) : "",
-      createdByName: params.createdByName ? String(params.createdByName) : "",
+      createdByName: createdByName ? String(createdByName) : "",
+      attempt: String(attempt),
     },
     android: {
       priority: "high",
@@ -48,8 +89,15 @@ export async function sendSosPush(params: {
       },
     },
     apns: {
-      headers: { "apns-priority": "10", "apns-collapse-id": `sos_${sosId}` },
-      payload: { aps: { sound: "sos.caf" } },
+      headers: {
+        "apns-priority": "10",
+        "apns-collapse-id": `sos_${sosId}`,
+      },
+      payload: {
+        aps: {
+          sound: "sos.caf",
+        },
+      },
     },
   };
 
@@ -73,6 +121,7 @@ export async function sendSosPush(params: {
 
     resp.responses.forEach((r, i) => {
       if (r.success) return;
+
       const code: string | undefined = (r.error as any)?.code;
       if (isInvalidTokenErrorCode(code)) {
         const meta = c[i];
@@ -83,8 +132,14 @@ export async function sendSosPush(params: {
       }
     });
 
-    if (hasDeletes) await batch.commit();
+    if (hasDeletes) {
+      await batch.commit();
+    }
   }
 
-  return { attemptedRecipients: totalAttempt, success, invalidTokensRemoved: invalidRemoved };
+  return {
+    attemptedRecipients: totalAttempt,
+    success,
+    invalidTokensRemoved: invalidRemoved,
+  };
 }

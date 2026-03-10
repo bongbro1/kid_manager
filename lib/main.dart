@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/background/background_worker.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
-import 'package:kid_manager/core/storage_keys.dart';
-import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
@@ -23,26 +20,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('🔔 BG message id=${message.messageId} data=${message.data}');
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await LocalNotificationService.init();
-
-  // gọi hàm xử lý bg (mình sẽ đưa bên dưới)
   await NotificationService.handleMessageForLocalNotification(message);
 }
 
 Future<void> main() async {
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    debugPrint('🔥 Flutter error: ${details.exception}');
-  };
-
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await LocalNotificationService.init();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  debugPrint("MAIN START");
+  await LocalNotificationService.init();
+  debugPrint("MAIN AFTER INIT");
   await NotificationService.init();
 
   await dotenv.load(fileName: ".env");
+
   final accessToken = dotenv.env['ACCESS_TOKEN'] ?? '';
   MapboxOptions.setAccessToken(accessToken);
 
@@ -54,24 +50,14 @@ Future<void> main() async {
     alert: true,
     badge: true,
     sound: true,
-    provisional: false,
   );
+
   debugPrint('🔔 FCM permission=${settings.authorizationStatus}');
 
   final token = await FirebaseMessaging.instance.getToken();
   debugPrint('🔔 FCM token=$token');
 
   final storageService = await StorageService.create();
-  final role = storageService.getString(StorageKeys.role);
-
-  if (role != null && roleFromString(role) == UserRole.child) {
-    final parentId = storageService.getString(StorageKeys.parentId);
-    final displayName = storageService.getString(StorageKeys.displayName);
-
-    if (parentId != null && parentId.isNotEmpty && displayName != null && displayName.isNotEmpty) {
-      AuthRuntimeManager.start(parentId: parentId, displayName: displayName);
-    }
-  }
 
   runApp(
     MultiProvider(
@@ -79,4 +65,8 @@ Future<void> main() async {
       child: const MyApp(),
     ),
   );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await NotificationService.handleInitialMessage();
+  });
 }

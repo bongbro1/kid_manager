@@ -1,39 +1,69 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class LocalNotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
-
   static Future<void> init() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // debugPrint('STEP INIT START');
+    // ✅ Tạo notification channel cho Android 8+
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
 
-    const settings = InitializationSettings(
-      android: android,
+    await androidPlugin?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'default_channel',
+        'Default',
+        description: 'Default notifications',
+        importance: Importance.max,
+      ),
     );
 
-    await _plugin.initialize(settings);
+    // debugPrint('STEP INIT DONE');
   }
 
   static Future<void> show({
     required String title,
     required String body,
+    String? payload,
   }) async {
-    const androidDetails = AndroidNotificationDetails(
-      'default_channel',
-      'Default',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-    debugPrint('🔔 LocalNotificationService.show title="$title" body="$body"');
-    const details = NotificationDetails(
-      android: androidDetails,
-    );
+    // debugPrint("========== LOCAL NOTIFICATION DEBUG ==========");
+    // debugPrint("TIME: ${DateTime.now()}");
+    // debugPrint("TITLE: $title");
+    // debugPrint("BODY: $body");
+    // debugPrint("PAYLOAD: $payload");
 
-    await _plugin.show(
-      0,
-      title,
-      body,
-      details,
-    );
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'default_channel',
+        'Default',
+        channelDescription: 'Default notifications',
+        importance: Importance.max,
+        priority: Priority.high,
+        category: AndroidNotificationCategory.message,
+      );
+
+      const details = NotificationDetails(android: androidDetails);
+
+      final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+      await _plugin.show(id, title, body, details, payload: payload);
+    } catch (e, s) {
+      debugPrint("LOCAL NOTIFICATION ERROR: $e");
+      debugPrint("$s");
+    }
+
+    debugPrint("==============================================");
   }
 }
+
+
+
+// LocalNotificationService.show()
+//         ↓
+// User tap notification
+//         ↓
+// onDidReceiveNotificationResponse
+//         ↓
+// _storePayload(payload)
