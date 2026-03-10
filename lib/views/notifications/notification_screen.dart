@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
@@ -10,13 +9,11 @@ import 'package:kid_manager/widgets/notifications/notification_empty_view.dart';
 import 'package:provider/provider.dart';
 
 class NotificationScreen extends StatefulWidget {
-  final String? uid;
   final List<NotificationSource> sources;
   final bool systemOnly;
 
   const NotificationScreen({
     super.key,
-    required this.uid,
     this.sources = const [
       NotificationSource.userInbox,
       NotificationSource.global,
@@ -33,33 +30,21 @@ class _NotificationScreenState extends State<NotificationScreen>
   final ScrollController _scrollController = ScrollController();
   final int _maxCountInPage = 20;
 
-  Future<void> _listen() async {
-    final resolvedUid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
-    if (resolvedUid == null || resolvedUid.isEmpty) return;
+  void _applyCurrentFilter() {
+    final vm = context.read<NotificationVM>();
 
-    await context.read<NotificationVM>().listenMulti(
-      uid: resolvedUid,
-      sources: widget.sources,
-      filter: (n) {
-        // 1. bỏ notification chat khỏi màn hình thông báo
-        if (n.type == 'family_chat') return false;
-
-        // 2. nếu chỉ lấy system
-        if (widget.systemOnly) {
-          return n.senderId == 'system' || n.type == 'system';
-        }
-
-        return true;
-      },
-    );
+    if (widget.systemOnly) {
+      vm.setFilter(NotificationFilter.system);
+    }
   }
 
   @override
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _listen();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _applyCurrentFilter();
     });
 
     _scrollController.addListener(() {
@@ -89,7 +74,8 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   @override
   void didPopNext() {
-    _listen();
+    if (!mounted) return;
+    context.read<NotificationVM>().refresh();
   }
 
   void _onFilterChanged(NotificationFilter filter) {
@@ -105,10 +91,22 @@ class _NotificationScreenState extends State<NotificationScreen>
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  List<AppNotification> _buildVisibleNotifications(List<AppNotification> items) {
+    return items.where((n) {
+      if (n.type == 'family_chat') return false;
+
+      if (widget.systemOnly) {
+        return n.senderId == 'system' || n.type == 'system';
+      }
+
+      return true;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<NotificationVM>();
-    final notifications = vm.notifications;
+    final notifications = _buildVisibleNotifications(vm.notifications);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -132,6 +130,21 @@ class _NotificationScreenState extends State<NotificationScreen>
               Expanded(
                 child: vm.loading
                     ? const Center(child: CircularProgressIndicator())
+                    : vm.error != null
+                    ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      vm.error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                )
                     : RefreshIndicator(
                   onRefresh: () async {
                     await vm.refresh();
@@ -155,8 +168,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                         }
 
                         return const Padding(
-                          padding:
-                          EdgeInsets.symmetric(vertical: 24),
+                          padding: EdgeInsets.symmetric(vertical: 24),
                           child: Center(
                             child: CircularProgressIndicator(),
                           ),

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/storage_keys.dart';
@@ -18,15 +17,12 @@ class UserVm extends ChangeNotifier {
 
   UserVm(this._userRepo, this._storage);
 
-  /* ============================================================
-     GENERAL STATE
-  ============================================================ */
-
   bool _loading = false;
   bool get loading => _loading;
 
   String? _error;
   String? get error => _error;
+
   UserProfile? profile;
 
   AppUser? me;
@@ -34,13 +30,42 @@ class UserVm extends ChangeNotifier {
 
   StreamSubscription<AppUser?>? _meSub;
   StreamSubscription<UserProfile?>? _profileSubscription;
+  StreamSubscription<List<AppUser>>? _childrenSub;
+
+  final List<AppUser> _children = [];
+  List<AppUser> get children => _children;
+  List<String> get childrenIds => _children.map((c) => c.uid).toList();
 
   void _setError(String msg) {
     _error = msg;
     notifyListeners();
   }
 
-  List<UserItem> users = [];
+  Future<void> setCurrentUser(String uid) async {
+    if (uid.isEmpty) return;
+
+    _error = null;
+    watchMe(uid);
+    listenProfile(uid: uid);
+  }
+
+  Future<void> clear() async {
+    await _childrenSub?.cancel();
+    await _profileSubscription?.cancel();
+    await _meSub?.cancel();
+
+    _childrenSub = null;
+    _profileSubscription = null;
+    _meSub = null;
+
+    _loading = false;
+    _error = null;
+    profile = null;
+    me = null;
+    _children.clear();
+
+    notifyListeners();
+  }
 
   Future<void> loadUsers() async {
     try {
@@ -57,48 +82,41 @@ class UserVm extends ChangeNotifier {
     }
   }
 
+  List<UserItem> users = [];
+
   void watchMe(String uid) {
     _meSub?.cancel();
 
-    _meSub = _userRepo
-        .watchUserById(uid)
-        .listen(
+    _meSub = _userRepo.watchUserById(uid).listen(
           (u) {
-            me = u;
-            notifyListeners();
-          },
-          onError: (e) {
-            _error = 'Lỗi load user: $e';
-            notifyListeners();
-          },
-        );
+        me = u;
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = 'Lỗi load user: $e';
+        notifyListeners();
+      },
+    );
   }
-  /* ============================================================
-     CHILDREN (USER DOMAIN)
-  ============================================================ */
-
-  final List<AppUser> _children = [];
-  List<AppUser> get children => _children;
-
-  List<String> get childrenIds => _children.map((c) => c.uid).toList();
-
-  StreamSubscription<List<AppUser>>? _childrenSub;
 
   void watchChildren(String parentUid) {
     _childrenSub?.cancel();
-    _childrenSub = _userRepo.watchChildren(parentUid).listen((list) {
-      _children
-        ..clear()
-        ..addAll(list);
-      notifyListeners();
-    }, onError: (e) => _setError('Lỗi load children: $e'));
+
+    _childrenSub = _userRepo.watchChildren(parentUid).listen(
+          (list) {
+        _children
+          ..clear()
+          ..addAll(list);
+        notifyListeners();
+      },
+      onError: (e) => _setError('Lỗi load children: $e'),
+    );
   }
 
-  /* ============================================================
-     CREATE CHILD
-  ============================================================ */
-
-  Future<UserProfile?> loadProfile({String? uid, String caller = 'unknown'}) async {
+  Future<UserProfile?> loadProfile({
+    String? uid,
+    String caller = 'unknown',
+  }) async {
     _error = null;
     _loading = true;
     notifyListeners();
@@ -119,6 +137,11 @@ class UserVm extends ChangeNotifier {
       }
 
       profile = await _userRepo.getUserProfile(resolvedUid);
+
+      // Quan trọng: bind luôn AppUser realtime cho phiên hiện tại
+      watchMe(resolvedUid);
+      listenProfile(uid: resolvedUid);
+
       return profile;
     } catch (e) {
       _error = e.toString();
@@ -152,6 +175,7 @@ class UserVm extends ChangeNotifier {
       },
     );
   }
+
   Future<UserRole> fetchUserRole(String uid) {
     return _userRepo.getUserRole(uid);
   }
@@ -164,7 +188,6 @@ class UserVm extends ChangeNotifier {
     required String address,
     required bool allowTracking,
   }) async {
-    // reset state
     _error = null;
 
     final userId = _storage.getString(StorageKeys.uid);
@@ -174,16 +197,16 @@ class UserVm extends ChangeNotifier {
       return false;
     }
 
-    // ✅ validate basic (bạn tự nâng cấp)
     if (name.trim().isEmpty) {
       _error = "Họ và tên không được để trống";
       return false;
     }
 
     _loading = true;
+    notifyListeners();
 
     try {
-      final _newprofile = UserProfile(
+      final newProfile = UserProfile(
         id: userId,
         name: name.trim(),
         phone: phone.trim(),
@@ -193,15 +216,15 @@ class UserVm extends ChangeNotifier {
         allowTracking: allowTracking,
       );
 
-      await _userRepo.updateUserProfile(_newprofile);
-
-      _loading = false;
+      await _userRepo.updateUserProfile(newProfile);
       return true;
     } catch (e) {
-      _loading = false;
       _error = e.toString();
       notifyListeners();
       return false;
+    } finally {
+      _loading = false;
+      notifyListeners();
     }
   }
 
@@ -216,14 +239,12 @@ class UserVm extends ChangeNotifier {
 
       final uid = FirebaseAuth.instance.currentUser!.uid;
 
-      // 1️⃣ Upload lên ImgBB
       final url = await FirebaseStorageService.uploadUserPhoto(
         file: file,
         uid: uid,
         type: type,
       );
 
-      // 2️⃣ Update Firestore
       final success = await _userRepo.updateUserPhotoUrl(
         uid: uid,
         url: url,
@@ -242,6 +263,7 @@ class UserVm extends ChangeNotifier {
           profile = profile!.copyWith(coverUrl: url);
         }
       }
+
       return true;
     } catch (e) {
       _error = e.toString();
