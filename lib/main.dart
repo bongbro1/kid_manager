@@ -30,7 +30,11 @@ Future<void> main() async {
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  debugPrint("MAIN START");
   await LocalNotificationService.init();
+  debugPrint("MAIN AFTER INIT");
   await NotificationService.init();
 
   await dotenv.load(fileName: ".env");
@@ -61,4 +65,8 @@ Future<void> main() async {
       child: const MyApp(),
     ),
   );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await NotificationService.handleInitialMessage();
+  });
 }

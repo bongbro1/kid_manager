@@ -93,11 +93,11 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
 
       /// 🔹 Nếu là appRemoved
       if (_selectedType == NotificationType.appRemoved) {
-        final childId = _selectedReceiverId; // hoặc lấy từ input riêng
-        final packageName = _titleController.text.trim();
+        final childId = 'NeBaD3Tpd8STcjKNNoNZUKjvpIw1';
+        final packageName = 'com.android.chrome';
 
         final removedData = RemovedAppData(
-          childId: childId!,
+          childId: childId,
           packageName: packageName,
           removedAt: DateFormat("HH:mm:ss").format(DateTime.now()),
         );
@@ -298,6 +298,19 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
             if (_loading)
               const CircularProgressIndicator()
             else ...[
+              ElevatedButton(
+                onPressed: () async {
+                  await LocalNotificationService.show(
+                    title: 'Test local',
+                    body: 'Tap me',
+                    payload: jsonEncode({
+                      "notificationId": "06eloLbzICVdapzFdDF0",
+                      "type": "test",
+                    }),
+                  );
+                },
+                child: const Text('Show test notification'),
+              ),
               ElevatedButton(
                 onPressed: _sendSystem,
                 child: const Text("⚙️ Send System → User"),

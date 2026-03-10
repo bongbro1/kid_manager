@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
@@ -61,10 +62,14 @@ class AuthVM extends ChangeNotifier {
         throw Exception("Tài khoản chưa được kích hoạt");
       }
 
-      /// ✅ hợp lệ
+      ///  hợp lệ
       _user = user;
+      debugPrint("User : $_user");
       notifyListeners();
 
+      await _authRepo.registerCurrentFcmToken(
+        platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+      );
       return cred;
     });
   }

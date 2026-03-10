@@ -4,8 +4,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
+import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
+import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/views/parent/location/parent_children_list_screen.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
 import 'package:kid_manager/widgets/sos/sos_view.dart';
@@ -45,6 +47,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
   Timer? _syncDebounce;
   Uint8List? _defaultAvatarBytes;
+  final FamilyChatRepository _chatRepo = FamilyChatRepository();
 
   @override
   bool get wantKeepAlive => true;
@@ -232,8 +235,28 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
         latest: latest,
         isSearching: false,
         onToggleSearch: () {},
-        onOpenChat: () {},
-        onSendQuickMessage: (msg) async {},
+        onOpenChat: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const FamilyGroupChatScreen(),
+            ),
+          );
+        },
+        onSendQuickMessage: (msg) async {
+          final me = _userVm.me;
+          final familyId = _userVm.familyId;
+          if (me == null || familyId == null) {
+            throw StateError('Missing user or family');
+          }
+
+          _chatRepo
+              .sendTextMessage(
+            text: msg,
+          )
+              .catchError((_) {});
+        },
       ),
     );
   }
@@ -255,171 +278,172 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     final children = List.of(userVm.children);
 
     return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: _MapLoadingPlaceholder(),
-          ),
-          Positioned.fill(
-            child: AnimatedOpacity(
-              opacity: _isMapVisualReady ? 1 : 0,
-              duration: const Duration(milliseconds: 250),
-              child: AppMapView(
-                onMapCreated: (map) {
-                  _map = map;
-                  _controller.attach(map);
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: _MapLoadingPlaceholder(),
+            ),
+            Positioned.fill(
+              child: AnimatedOpacity(
+                opacity: _isMapVisualReady ? 1 : 0,
+                duration: const Duration(milliseconds: 250),
+                child: AppMapView(
+                  onMapCreated: (map) {
+                    _map = map;
+                    _controller.attach(map);
 
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      _onSosFocus();
+                    });
+                  },
+                  onStyleLoaded: (map) async {
+                    _map = map;
+
+                    await _controller.onStyleLoaded();
                     if (!mounted) return;
-                    _onSosFocus();
-                  });
-                },
-                onStyleLoaded: (map) async {
-                  _map = map;
 
-                  await _controller.onStyleLoaded();
-                  if (!mounted) return;
-
-                  if (!_isMapVisualReady) {
-                    setState(() => _isMapVisualReady = true);
-                  }
-
-                  try {
-                    final defaultBytes =
-                        _defaultAvatarBytes ??
-                            (await rootBundle.load("assets/images/avatar_default.png"))
-                                .buffer
-                                .asUint8List();
-
-                    await _controller.setDefaultAvatar(defaultBytes);
-                    await _syncToMap();
-                    await _focusFirstChildOnce();
-
-                    for (final c in _userVm.children) {
-                      unawaited(
-                        _controller.setAvatarSmart(
-                          childId: c.uid,
-                          photoUrlOrData: c.avatarUrl,
-                          defaultBytes: defaultBytes,
-                        ),
-                      );
+                    if (!_isMapVisualReady) {
+                      setState(() => _isMapVisualReady = true);
                     }
-                  } catch (e, st) {
-                    debugPrint("🔥 Setup Error: $e");
-                    debugPrint("$st");
-                  }
-                },
-                onTapListener: (tapContext) async {
-                  if (_map == null) return;
 
-                  final features = await _map!.queryRenderedFeatures(
-                    mbx.RenderedQueryGeometry.fromScreenCoordinate(
-                      tapContext.touchPosition,
-                    ),
-                    mbx.RenderedQueryOptions(
-                      layerIds: ["children-layer"],
-                      filter: null,
-                    ),
-                  );
+                    try {
+                      final defaultBytes =
+                          _defaultAvatarBytes ??
+                              (await rootBundle.load("assets/images/avatar_default.png"))
+                                  .buffer
+                                  .asUint8List();
 
-                  if (features.isEmpty) return;
+                      await _controller.setDefaultAvatar(defaultBytes);
+                      await _syncToMap();
+                      await _focusFirstChildOnce();
 
-                  final queried = features.first?.queriedFeature;
-                  if (queried == null) return;
+                      for (final c in _userVm.children) {
+                        unawaited(
+                          _controller.setAvatarSmart(
+                            childId: c.uid,
+                            photoUrlOrData: c.avatarUrl,
+                            defaultBytes: defaultBytes,
+                          ),
+                        );
+                      }
+                    } catch (e, st) {
+                      debugPrint("🔥 Setup Error: $e");
+                      debugPrint("$st");
+                    }
+                  },
+                  onTapListener: (tapContext) async {
+                    if (_map == null) return;
 
-                  final rawFeature = queried.feature as Map<String?, Object?>?;
-                  if (rawFeature == null) return;
-
-                  final props = rawFeature["properties"] as Map?;
-                  if (props == null) return;
-
-                  final childId = props["id"]?.toString();
-                  if (childId == null) return;
-
-                  await _focusChild(
-                    childId: childId,
-                    openSheet: true,
-                    animate: true,
-                  );
-                },
-              ),
-            ),
-          ),
-
-          Positioned(
-            left: 12,
-            top: 90,
-            child: SafeArea(
-              child: SosCircleButton(
-                onPressed: () async {
-                  final sosVm = context.read<SosViewModel>();
-                  final myLocation = _locationVm.myLocation;
-                  final displayName = context
-                      .select<UserVm, String?>((vm) => vm.me?.displayName)
-                      .toString();
-
-                  if (myLocation == null) return;
-                  if (sosVm.sending) return;
-
-                  final sosId = await sosVm.triggerSos(
-                    lat: myLocation.latitude,
-                    lng: myLocation.longitude,
-                    acc: myLocation.accuracy,
-                    createdByName: displayName,
-                  );
-
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại',
+                    final features = await _map!.queryRenderedFeatures(
+                      mbx.RenderedQueryGeometry.fromScreenCoordinate(
+                        tapContext.touchPosition,
                       ),
-                    ),
-                  );
-                },
+                      mbx.RenderedQueryOptions(
+                        layerIds: ["children-layer"],
+                        filter: null,
+                      ),
+                    );
+
+                    if (features.isEmpty) return;
+
+                    final queried = features.first?.queriedFeature;
+                    if (queried == null) return;
+
+                    final rawFeature = queried.feature as Map<String?, Object?>?;
+                    if (rawFeature == null) return;
+
+                    final props = rawFeature["properties"] as Map?;
+                    if (props == null) return;
+
+                    final childId = props["id"]?.toString();
+                    if (childId == null) return;
+
+                    await _focusChild(
+                      childId: childId,
+                      openSheet: true,
+                      animate: true,
+                    );
+                  },
+                ),
               ),
             ),
-          ),
 
-          Positioned(
-            left: 12,
-            right: 12,
-            bottom: 16,
-            child: SafeArea(
-              child: MapBottomControls(
-                children: children,
-                onMyLocation: () async {
-                  await _syncToMap();
-                },
-                onTapChild: (child) async {
-                  await _syncToMap();
-                  await _focusChild(
-                    childId: child.uid,
-                    openSheet: true,
-                    animate: true,
-                  );
-                },
-                onMore: () async {
-                  final selectedChild = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ParentChildrenListScreen(),
-                    ),
-                  );
-                  if (selectedChild == null) return;
+            Positioned(
+              left: 12,
+              top: 90,
+              child: SafeArea(
+                child: SosCircleButton(
+                  onPressed: () async {
+                    final sosVm = context.read<SosViewModel>();
+                    final myLocation = _locationVm.myLocation;
+                    debugPrint('Vo denn day');
+                    final displayName = context.read<UserVm>().me?.displayName ?? 'Unknown';
 
-                  await _syncToMap();
-                  await _focusChild(
-                    childId: selectedChild.uid,
-                    openSheet: true,
-                    animate: true,
-                  );
-                },
+                    debugPrint('myLocation=$myLocation');
+                    debugPrint('sending=${sosVm.sending}');
+                    if (myLocation == null) return;
+                    if (sosVm.sending) return;
+
+                    final sosId = await sosVm.triggerSos(
+                      lat: myLocation.latitude,
+                      lng: myLocation.longitude,
+                      acc: myLocation.accuracy,
+                      createdByName: displayName,
+                    );
+
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại',
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
-      )
+
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 16,
+              child: SafeArea(
+                child: MapBottomControls(
+                  children: children,
+                  onMyLocation: () async {
+                    await _syncToMap();
+                  },
+                  onTapChild: (child) async {
+                    await _syncToMap();
+                    await _focusChild(
+                      childId: child.uid,
+                      openSheet: true,
+                      animate: true,
+                    );
+                  },
+                  onMore: () async {
+                    final selectedChild = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ParentChildrenListScreen(),
+                      ),
+                    );
+                    if (selectedChild == null) return;
+
+                    await _syncToMap();
+                    await _focusChild(
+                      childId: selectedChild.uid,
+                      openSheet: true,
+                      animate: true,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        )
     );
 
   }

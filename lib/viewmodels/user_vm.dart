@@ -98,44 +98,27 @@ class UserVm extends ChangeNotifier {
      CREATE CHILD
   ============================================================ */
 
-  void listenProfile() {
-    final uid = _storage.getString(StorageKeys.uid);
-
-    if (uid == null) {
-      _error = "Không tìm thấy userId";
-      notifyListeners();
-      return;
-    }
-
-    _profileSubscription?.cancel(); // tránh listen trùng
-
-    _profileSubscription = _userRepo
-        .listenUserProfile(uid)
-        .listen(
-          (data) {
-            profile = data;
-            notifyListeners();
-          },
-          onError: (e) {
-            _error = e.toString();
-            notifyListeners();
-          },
-        );
-  }
-
-  Future<UserProfile?> loadProfile() async {
+  Future<UserProfile?> loadProfile({String? uid, String caller = 'unknown'}) async {
     _error = null;
     _loading = true;
     notifyListeners();
 
     try {
-      final uid = _storage.getString(StorageKeys.uid);
-      if (uid == null) {
+      final storageUid = _storage.getString(StorageKeys.uid);
+      final authUid = FirebaseAuth.instance.currentUser?.uid;
+      final resolvedUid = uid ?? storageUid ?? authUid;
+
+      debugPrint('[loadProfile][$caller] param uid=$uid');
+      debugPrint('[loadProfile][$caller] storage uid=$storageUid');
+      debugPrint('[loadProfile][$caller] auth uid=$authUid');
+      debugPrint('[loadProfile][$caller] resolvedUid=$resolvedUid');
+
+      if (resolvedUid == null || resolvedUid.isEmpty) {
         _error = "Không tìm thấy userId";
         return null;
       }
 
-      profile = await _userRepo.getUserProfile(uid);
+      profile = await _userRepo.getUserProfile(resolvedUid);
       return profile;
     } catch (e) {
       _error = e.toString();
@@ -146,6 +129,29 @@ class UserVm extends ChangeNotifier {
     }
   }
 
+  void listenProfile({String? uid}) {
+    final storageUid = _storage.getString(StorageKeys.uid);
+    final authUid = FirebaseAuth.instance.currentUser?.uid;
+    final resolvedUid = uid ?? storageUid ?? authUid;
+
+    if (resolvedUid == null || resolvedUid.isEmpty) {
+      _error = "Không tìm thấy userId";
+      notifyListeners();
+      return;
+    }
+
+    _profileSubscription?.cancel();
+    _profileSubscription = _userRepo.listenUserProfile(resolvedUid).listen(
+          (data) {
+        profile = data;
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = e.toString();
+        notifyListeners();
+      },
+    );
+  }
   Future<UserRole> fetchUserRole(String uid) {
     return _userRepo.getUserRole(uid);
   }

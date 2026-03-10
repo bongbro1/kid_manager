@@ -11,8 +11,9 @@ class ZoneRepository {
     FirebaseDatabase? db,
     FirebaseFunctions? functions,
   })  : _db = db ?? FirebaseDatabase.instance,
-        _functions = functions ?? FirebaseFunctions.instance;
-
+        _functions = functions ?? FirebaseFunctions.instanceFor(
+          region: 'asia-southeast1',
+        );
   DatabaseReference _zonesRef(String childUid) => _db.ref("zonesByChild/$childUid");
   DatabaseReference _eventsRef(String childUid) => _db.ref("zoneEventsByChild/$childUid");
 

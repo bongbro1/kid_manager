@@ -1,3 +1,6 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/background/foreground_watcher.dart';
 import 'package:kid_manager/models/app_user.dart';
 import '../services/firebase_auth_service.dart';
@@ -46,6 +49,45 @@ class AuthRepository {
 
   Future<void> logout() async {
     RealtimeAppMonitor.stop();
+
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+
+      if (token != null && token.isNotEmpty) {
+        await FirebaseFunctions.instanceFor(region: 'asia-southeast1')
+            .httpsCallable('unregisterFcmToken')
+            .call({
+          'token': token,
+        });
+      }
+    } catch (e, st) {
+      debugPrint('[AuthRepository] unregisterFcmToken error: $e');
+      debugPrintStack(stackTrace: st);
+    }
+
     await _authService.signOut();
+  }
+
+  Future<void> registerCurrentFcmToken({
+    required String platform,
+  }) async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      debugPrint('[AuthRepository] registerCurrentFcmToken token=$token');
+
+      if (token == null || token.isEmpty) return;
+
+      await FirebaseFunctions.instanceFor(region: 'asia-southeast1')
+          .httpsCallable('registerFcmToken')
+          .call({
+        'token': token,
+        'platform': platform,
+      });
+
+      debugPrint('[AuthRepository] registerFcmToken success');
+    } catch (e, st) {
+      debugPrint('[AuthRepository] registerFcmToken error: $e');
+      debugPrintStack(stackTrace: st);
+    }
   }
 }

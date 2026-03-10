@@ -10,14 +10,30 @@ import 'package:kid_manager/widgets/notifications/schedule_import_detail_widget.
 
 class NotificationDetailBody extends StatelessWidget {
   final NotificationDetailModel detail;
-  const NotificationDetailBody({super.key, required this.detail});
+  final VoidCallback? onZoneViewMap;
+  final VoidCallback? onZonePhone;
+
+  const NotificationDetailBody({
+    super.key,
+    required this.detail,
+    this.onZoneViewMap,
+    this.onZonePhone,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final type = (detail.type).toString().trim();
+    final type = detail.type.toString().trim().toLowerCase();
 
     if (type.toUpperCase() == 'ZONE' || type.toLowerCase() == 'zone') {
       return ZoneDetailWidget(detail: detail);
+    }
+
+    if (type == 'zone') {
+      return ZoneDetailWidget(
+        detail: detail,
+        onViewMap: onZoneViewMap,
+        onPhone: onZonePhone,
+      );
     }
     if (detail.notificationType == NotificationType.appRemoved) {
       return RemovedAppDetailWidget(detail: detail);

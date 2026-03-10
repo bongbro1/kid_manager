@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
@@ -40,9 +41,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserVm>().loadProfile();
+      final authUid = FirebaseAuth.instance.currentUser?.uid;
+      context.read<UserVm>().loadProfile(
+        uid: authUid,
+        caller: 'PersonalInfoScreen',
+      );
     });
   }
 
@@ -127,8 +131,20 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   Widget build(BuildContext context) {
     final vm = context.watch<UserVm>();
     final p = vm.profile;
+
+    if (p != null && !_initialized) {
+      _nameCtrl.text = p.name;
+      _phoneCtrl.text = p.phone;
+      _genderCtrl.text = p.gender;
+      _dobCtrl.text = p.dob;
+      _addressCtrl.text = p.address;
+      allowLocationTracking = p.allowTracking;
+      _age = calculateAgeFromDateString(p.dob);
+      _initialized = true;
+    }
+
     if (vm.loading) {
-      return LoadingOverlay();
+      return const LoadingOverlay();
     }
 
     // if (p == null) {
@@ -422,6 +438,7 @@ class MoreActionSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final role = context.watch<UserVm>().profile?.role;
+    final isParent = roleFromString(role ?? 'child') == UserRole.parent;
 
     return AppOverlaySheet(
       // height: 240,
@@ -463,7 +480,7 @@ class MoreActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            if (roleFromString(role!) == UserRole.parent) ...[
+            if (isParent) ...[
               SettingItem(
                 title: "Thêm tài khoản",
                 iconPath: "assets/icons/account.png",

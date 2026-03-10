@@ -231,6 +231,9 @@ class _MyAppState extends State<MyApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('en'), Locale('vi')],
+
+        // ❌ bỏ: locale: context.locale,
+        // navigatorKey: AlertService.navigatorKey,
         navigatorObservers: [routeObserver],
         theme: AppTheme.light(),
         themeMode: ThemeMode.system,

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -94,12 +95,12 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
       final scheduleVm = context.read<ScheduleViewModel>();
       final memoryVm = context.read<MemoryDayViewModel>();
 
-      final childUid = storage.getString(StorageKeys.uid);
+      final childUid = storage.getString(StorageKeys.uid) ?? FirebaseAuth.instance.currentUser?.uid;
       if (childUid == null) return;
 
       // load profile đúng child hiện tại
       if (userVm.profile == null || userVm.profile!.id != childUid) {
-        await userVm.loadProfile();
+        await userVm.loadProfile(uid: childUid,caller: 'ChildScheduleScreen');
       }
 
       final parentUid = userVm.profile?.parentUid;

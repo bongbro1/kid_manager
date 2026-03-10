@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
@@ -9,13 +10,17 @@ import 'package:kid_manager/widgets/notifications/notification_empty_view.dart';
 import 'package:provider/provider.dart';
 
 class NotificationScreen extends StatefulWidget {
-  final String uid;
+  final String? uid;
   final List<NotificationSource> sources;
   final bool systemOnly;
+
   const NotificationScreen({
     super.key,
     required this.uid,
-    this.sources = const [NotificationSource.userInbox],
+    this.sources = const [
+      NotificationSource.userInbox,
+      NotificationSource.global,
+    ],
     this.systemOnly = false,
   });
 
@@ -27,13 +32,25 @@ class _NotificationScreenState extends State<NotificationScreen>
     with RouteAware {
   final ScrollController _scrollController = ScrollController();
   final int _maxCountInPage = 20;
+
   Future<void> _listen() async {
+    final resolvedUid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (resolvedUid == null || resolvedUid.isEmpty) return;
+
     await context.read<NotificationVM>().listenMulti(
-      uid: widget.uid,
+      uid: resolvedUid,
       sources: widget.sources,
-      filter: widget.systemOnly
-          ? (n) => n.senderId == "system" || n.type == "system"
-          : null,
+      filter: (n) {
+        // 1. bỏ notification chat khỏi màn hình thông báo
+        if (n.type == 'family_chat') return false;
+
+        // 2. nếu chỉ lấy system
+        if (widget.systemOnly) {
+          return n.senderId == 'system' || n.type == 'system';
+        }
+
+        return true;
+      },
     );
   }
 
@@ -44,6 +61,7 @@ class _NotificationScreenState extends State<NotificationScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _listen();
     });
+
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >
           _scrollController.position.maxScrollExtent - _maxCountInPage) {
@@ -78,14 +96,13 @@ class _NotificationScreenState extends State<NotificationScreen>
     context.read<NotificationVM>().setFilter(filter);
   }
 
-  bool _isSameDay(DateTime? a, DateTime? b) {
-    if (a == null || b == null) return false;
-
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
   void _onSearch(String keyword) {
     context.read<NotificationVM>().setSearch(keyword);
+  }
+
+  bool _isSameDay(DateTime? a, DateTime? b) {
+    if (a == null || b == null) return false;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   @override
@@ -95,101 +112,96 @@ class _NotificationScreenState extends State<NotificationScreen>
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: () {
-        FocusScope.of(context).unfocus();
-      },
+      onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Column(
             children: [
-              /// HEADER (đứng im)
               _NotificationHeader(
                 searchKeyword: vm.searchKeyword,
-                onSearch: (keyword) {
-                  _onSearch(keyword);
-                },
+                onSearch: _onSearch,
                 activeFilter: vm.activeFilter,
                 onFilterChanged: _onFilterChanged,
               ),
-
-              /// DIVIDER (đứng im)
-              const Divider(height: 2, thickness: 2, color: Color(0xFFF1F5F9)),
-
-              /// LIST (chỉ phần này scroll)
+              const Divider(
+                height: 2,
+                thickness: 2,
+                color: Color(0xFFF1F5F9),
+              ),
               Expanded(
                 child: vm.loading
                     ? const Center(child: CircularProgressIndicator())
                     : RefreshIndicator(
-                        onRefresh: () async {
-                          await vm.refresh();
-                        },
-                        child: notifications.isEmpty
-                            ? const NotificationEmptyView()
-                            : ListView.builder(
-                                controller: _scrollController,
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  0,
-                                  16,
-                                  16,
-                                ),
-                                itemCount:
-                                    vm.notifications.length +
-                                    (vm.hasMore ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index >= vm.notifications.length) {
-                                    if (!vm.loadingMore)
-                                      return const SizedBox.shrink();
+                  onRefresh: () async {
+                    await vm.refresh();
+                  },
+                  child: notifications.isEmpty
+                      ? const NotificationEmptyView()
+                      : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(
+                      16,
+                      0,
+                      16,
+                      16,
+                    ),
+                    itemCount:
+                    notifications.length + (vm.hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index >= notifications.length) {
+                        if (!vm.loadingMore) {
+                          return const SizedBox.shrink();
+                        }
 
-                                    return const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 24,
-                                      ),
-                                      child: Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    );
-                                  }
-                                  final item = vm.notifications[index];
+                        return const Padding(
+                          padding:
+                          EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
 
-                                  final bool showDateHeader =
-                                      index == 0 ||
-                                      !_isSameDay(
-                                        item.createdAt,
-                                        vm.notifications[index - 1].createdAt,
-                                      );
+                      final item = notifications[index];
 
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (showDateHeader) ...[
-                                        const SizedBox(height: 16),
-                                        _buildDateHeader(item.createdAt!),
-                                        const SizedBox(height: 12),
-                                      ],
-                                      NotificationItemView(
-                                        key: ValueKey(item.id),
+                      final showDateHeader =
+                          index == 0 ||
+                              !_isSameDay(
+                                item.createdAt,
+                                notifications[index - 1].createdAt,
+                              );
+
+                      return Column(
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                        children: [
+                          if (showDateHeader) ...[
+                            const SizedBox(height: 16),
+                            _buildDateHeader(item.createdAt!),
+                            const SizedBox(height: 12),
+                          ],
+                          NotificationItemView(
+                            key: ValueKey(item.id),
+                            item: item,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      NotificationDetailScreen(
                                         item: item,
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  NotificationDetailScreen(
-                                                    item: item,
-                                                  ),
-                                            ),
-                                          );
-                                        },
                                       ),
-                                      const SizedBox(height: 12),
-                                    ],
-                                  );
-                                },
-                              ),
-                      ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ),
             ],
           ),
@@ -203,13 +215,12 @@ class _NotificationScreenState extends State<NotificationScreen>
     final yesterday = now.subtract(const Duration(days: 1));
 
     String text;
-
     if (_isSameDay(date, now)) {
-      text = "HÔM NAY";
+      text = 'HÔM NAY';
     } else if (_isSameDay(date, yesterday)) {
-      text = "HÔM QUA";
+      text = 'HÔM QUA';
     } else {
-      text = "${date.day}/${date.month}/${date.year}";
+      text = '${date.day}/${date.month}/${date.year}';
     }
 
     return SizedBox(
@@ -234,12 +245,12 @@ class _NotificationHeader extends StatefulWidget {
   final Function(NotificationFilter) onFilterChanged;
 
   const _NotificationHeader({
-    Key? key,
+    super.key,
     required this.searchKeyword,
     required this.onSearch,
     required this.activeFilter,
     required this.onFilterChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<_NotificationHeader> createState() => _NotificationHeaderState();
@@ -251,6 +262,14 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
+  final filters = const [
+    (NotificationFilter.all, 'Tất cả', Icons.notifications),
+    (NotificationFilter.activity, 'Hoạt động', Icons.school),
+    (NotificationFilter.alert, 'Cảnh báo', Icons.warning),
+    (NotificationFilter.reminder, 'Nhắc nhở', Icons.event),
+    (NotificationFilter.system, 'Thông báo hệ thống', Icons.campaign),
+  ];
+
   void _onSearch(String keyword) {
     widget.onSearch(keyword.trim());
   }
@@ -259,6 +278,7 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
   void initState() {
     super.initState();
     _controller.text = widget.searchKeyword;
+
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus && _isSearching) {
         setState(() {
@@ -277,13 +297,6 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
     }
   }
 
-  final filters = [
-    (NotificationFilter.all, "Tất cả", Icons.notifications),
-    (NotificationFilter.activity, "Hoạt động", Icons.school),
-    (NotificationFilter.alert, "Cảnh báo", Icons.warning),
-    (NotificationFilter.reminder, "Nhắc nhở", Icons.event),
-    (NotificationFilter.system, "Thông báo hệ thống", Icons.campaign),
-  ];
   void _showFilter() {
     showModalBottomSheet(
       context: context,
@@ -296,14 +309,11 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 12),
-
               const Text(
-                "Lọc thông báo",
+                'Lọc thông báo',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-
               const SizedBox(height: 12),
-
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: filters.map((f) {
@@ -324,7 +334,6 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
                   );
                 }).toList(),
               ),
-
               const SizedBox(height: 12),
             ],
           ),
@@ -340,13 +349,12 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         transitionBuilder: (child, animation) {
-          final slide =
-              Tween<Offset>(
-                begin: const Offset(0.0, -0.2),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              );
+          final slide = Tween<Offset>(
+            begin: const Offset(0.0, -0.2),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+          );
 
           return FadeTransition(
             opacity: animation,
@@ -360,12 +368,12 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
 
   Widget _buildNormalHeader() {
     return Stack(
-      key: const ValueKey("normal"),
+      key: const ValueKey('normal'),
       alignment: Alignment.center,
       children: [
         const Center(
           child: Text(
-            "Thông báo",
+            'Thông báo',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
         ),
@@ -381,7 +389,9 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
             ),
             _CircleIconButton(
               icon: Icons.search,
-              color: widget.searchKeyword == '' ? Colors.black : Colors.blue,
+              color: widget.searchKeyword.isEmpty
+                  ? Colors.black
+                  : Colors.blue,
               onTap: () {
                 setState(() {
                   _isSearching = true;
@@ -400,7 +410,7 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
 
   Widget _buildSearchBox() {
     return Padding(
-      key: const ValueKey("search"),
+      key: const ValueKey('search'),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
@@ -410,12 +420,12 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
               height: 44,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: Colors.white, // 👈 nền trắng hoàn toàn
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
                   color: _isFocused
-                      ? const Color(0xFF2563EB) // focus xanh nhẹ
-                      : const Color(0xFFE5E7EB), // viền xám nhẹ
+                      ? const Color(0xFF2563EB)
+                      : const Color(0xFFE5E7EB),
                   width: 1,
                 ),
               ),
@@ -436,22 +446,19 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
                           fontWeight: FontWeight.w500,
                           color: Color(0xFF111827),
                         ),
-
                         onChanged: _onSearch,
                         decoration: const InputDecoration(
-                          hintText: "Tìm thông báo",
+                          hintText: 'Tìm thông báo',
                           hintStyle: TextStyle(
                             color: Color(0xFF9CA3AF),
                             fontWeight: FontWeight.w400,
                           ),
-
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
                           disabledBorder: InputBorder.none,
                           errorBorder: InputBorder.none,
                           focusedErrorBorder: InputBorder.none,
-
                           isCollapsed: true,
                           filled: true,
                           fillColor: Colors.transparent,
@@ -496,7 +503,7 @@ class _CircleIconButton extends StatelessWidget {
   const _CircleIconButton({
     required this.icon,
     required this.onTap,
-    this.color = Colors.black, // default
+    this.color = Colors.black,
   });
 
   @override
@@ -509,7 +516,9 @@ class _CircleIconButton extends StatelessWidget {
         child: SizedBox(
           width: 44,
           height: 44,
-          child: Center(child: Icon(icon, size: 24, color: color)),
+          child: Center(
+            child: Icon(icon, size: 24, color: color),
+          ),
         ),
       ),
     );

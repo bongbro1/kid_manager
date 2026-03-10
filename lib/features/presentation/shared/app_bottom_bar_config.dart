@@ -15,10 +15,15 @@ class BottomTabConfig {
   final bool showBadge;
   final bool isNotificationTab;
 
+  final Stream<int> Function(BuildContext context)? badgeCountStreamBuilder;
   const BottomTabConfig({
     required this.iconAsset,
     required this.root,
+    this.badgeCountStreamBuilder,
     this.showBadge = false,
     this.isNotificationTab = false,
   });
+
+
 }
+

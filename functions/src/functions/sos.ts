@@ -2,8 +2,20 @@ import { randomUUID } from "crypto";
 import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { admin, db } from "../bootstrap";
-import { REGION, TZ, SOS_DAILY_LIMIT, SOS_MIN_INTERVAL_SEC, RATE_DOC_TTL_DAYS, REMIND_MAX_SECONDS } from "../config";
-import { mustString, mustNumber, dayKeyInTZ, validateLatLng } from "../helpers";
+import {
+REGION,
+TZ,
+SOS_DAILY_LIMIT,
+SOS_MIN_INTERVAL_SEC,
+RATE_DOC_TTL_DAYS,
+REMIND_MAX_SECONDS,
+} from "../config";
+import {
+mustString,
+mustNumber,
+dayKeyInTZ,
+validateLatLng,
+} from "../helpers";
 import { getUserFamilyAndRole, requireFamilyMember } from "../services/user";
 import { sendSosPush } from "../services/sosPush";
 import { enqueueSosReminder } from "../services/tasks";
@@ -11,56 +23,95 @@ import { enqueueSosReminder } from "../services/tasks";
 // WORKER
 export const sosReminderWorker = onRequest({ region: REGION }, async (req, res) => {
 try {
-if (req.method !== "POST") return void res.status(405).send("Method not allowed");
+if (req.method !== "POST") {
+      return void res.status(405).send("Method not allowed");
+    }
 
-    const { familyId, sosId, createdAtMs } = req.body ?? {};
-    if (!familyId || !sosId || !createdAtMs) return void res.status(400).send("Missing params");
+    const { familyId, sosId, createdAtMs, attempt } = req.body ?? {};
+    if (!familyId || !sosId || !createdAtMs || !attempt) {
+      return void res.status(400).send("Missing params");
+    }
 
     const ageSec = (Date.now() - Number(createdAtMs)) / 1000;
-    if (ageSec > REMIND_MAX_SECONDS) return void res.status(200).send("Expired reminder window");
+    if (ageSec > REMIND_MAX_SECONDS) {
+      return void res.status(200).send("Expired reminder window");
+    }
 
     const sosRef = db.doc(`families/${familyId}/sos/${sosId}`);
     const snap = await sosRef.get();
-    if (!snap.exists) return void res.status(200).send("SOS not found");
+    if (!snap.exists) {
+      return void res.status(200).send("SOS not found");
+    }
 
     const sos = snap.data() as any;
-    if (sos.status !== "active") return void res.status(200).send("SOS not active, stop");
+    if (sos.status !== "active") {
+      return void res.status(200).send("SOS not active, stop");
+    }
 
+    const currentAttempt = Number(attempt);
     const loc = sos.location ?? {};
     const childUid = sos.createdBy ?? "";
     const createdByName = sos.createdByName ?? "";
 
-    await sendSosPush({
+    const pushRes = await sendSosPush({
       familyId: String(familyId),
       sosId: String(sosId),
       childUid: String(childUid),
       lat: loc.lat != null ? Number(loc.lat) : null,
       lng: loc.lng != null ? Number(loc.lng) : null,
       createdByName: String(createdByName),
+      attempt: currentAttempt,
     });
 
-    await enqueueSosReminder({
+    await sosRef.set(
+      {
+        reminder: {
+          lastAttempt: currentAttempt,
+          lastSentAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastSuccess: pushRes.success,
+        },
+      },
+      { merge: true }
+    );
+
+    const nextAttempt = currentAttempt + 1;
+    const enqueueRes = await enqueueSosReminder({
       familyId: String(familyId),
       sosId: String(sosId),
       createdAtMs: Number(createdAtMs),
+      attempt: nextAttempt,
     });
 
-    res.status(200).send("OK");
+    await sosRef.set(
+      {
+        reminder: {
+          nextAttempt:
+            enqueueRes && "attempt" in enqueueRes ? nextAttempt : null,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+      },
+      { merge: true }
+    );
+
+    return void res.status(200).send("OK");
   } catch (e: any) {
     console.error("sosReminderWorker error:", e?.stack ?? e);
-    res.status(500).send("ERR");
+    return void res.status(500).send("ERR");
   }
 });
 
 // CREATE SOS
 export const createSos = onCall({ region: REGION }, async (req) => {
-  if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+  if (!req.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Login required");
+  }
   const uid = req.auth.uid;
 
   const eventId = mustString(req.data?.eventId, "eventId");
   const lat = mustNumber(req.data?.lat, "lat");
   const lng = mustNumber(req.data?.lng, "lng");
   const acc = req.data?.acc == null ? null : mustNumber(req.data?.acc, "acc");
+
   validateLatLng(lat, lng);
 
   const now = new Date();
@@ -71,10 +122,15 @@ export const createSos = onCall({ region: REGION }, async (req) => {
 
   const createdByNameRaw = req.data?.createdByName;
   const createdByName =
-    typeof createdByNameRaw === "string" ? createdByNameRaw.trim().slice(0, 80) : "";
+    typeof createdByNameRaw === "string"
+      ? createdByNameRaw.trim().slice(0, 80)
+      : "";
 
   if (role !== "child" && role !== "parent") {
-    throw new HttpsError("permission-denied", "Only family members can trigger SOS");
+    throw new HttpsError(
+      "permission-denied",
+      "Only family members can trigger SOS"
+    );
   }
 
   await requireFamilyMember(familyId, uid);
@@ -88,13 +144,20 @@ export const createSos = onCall({ region: REGION }, async (req) => {
 
   const result = await db.runTransaction(async (tx) => {
     const existingSos = await tx.get(sosRef);
-    if (existingSos.exists) return { sosId: eventId, created: false, dayKey, limited: false };
+    if (existingSos.exists) {
+      return { sosId: eventId, created: false, dayKey, limited: false };
+    }
 
     const rateSnap = await tx.get(rateRef);
-    const currentCount = rateSnap.exists ? ((rateSnap.get("count") as number) ?? 0) : 0;
+    const currentCount = rateSnap.exists
+      ? ((rateSnap.get("count") as number) ?? 0)
+      : 0;
 
     if (currentCount >= SOS_DAILY_LIMIT) {
-      throw new HttpsError("resource-exhausted", `Daily SOS limit reached (${SOS_DAILY_LIMIT}/day). dayKey=${dayKey}`);
+      throw new HttpsError(
+        "resource-exhausted",
+        `Daily SOS limit reached (${SOS_DAILY_LIMIT}/day). dayKey=${dayKey}`
+      );
     }
 
     const lastAt = rateSnap.exists
@@ -104,7 +167,10 @@ export const createSos = onCall({ region: REGION }, async (req) => {
     if (lastAt) {
       const deltaMs = nowTs.toMillis() - lastAt.toMillis();
       if (deltaMs < SOS_MIN_INTERVAL_SEC * 1000) {
-        throw new HttpsError("resource-exhausted", `SOS too frequent. Wait at least ${SOS_MIN_INTERVAL_SEC}s between SOS.`);
+        throw new HttpsError(
+          "resource-exhausted",
+          `SOS too frequent. Wait at least ${SOS_MIN_INTERVAL_SEC}s between SOS.`
+        );
       }
     }
 
@@ -135,29 +201,49 @@ export const createSos = onCall({ region: REGION }, async (req) => {
       status: "active",
       location: { lat, lng, acc },
       dayKey,
+      reminder: {
+        initialPushSent: false,
+        lastAttempt: 0,
+      },
     });
 
     return { sosId: eventId, created: true, dayKey, limited: false };
   });
 
   if (result.created) {
-    const pushRes = await sendSosPush({ familyId, sosId: eventId, childUid: uid, lat, lng, createdByName });
+    const pushRes = await sendSosPush({
+      familyId,
+      sosId: eventId,
+      childUid: uid,
+      lat,
+      lng,
+      createdByName,
+      attempt: 0,
+    });
 
     await sosRef.update({
       "fanout.sentAt": admin.firestore.FieldValue.serverTimestamp(),
       "fanout.attemptedRecipients": pushRes.attemptedRecipients,
       "fanout.success": pushRes.success,
       "fanout.invalidTokensRemoved": pushRes.invalidTokensRemoved,
+      "reminder.initialPushSent": true,
+      "reminder.lastAttempt": 0,
+      "reminder.lastSentAt": admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    await enqueueSosReminder({ familyId, sosId: eventId, createdAtMs: Date.now() });
+    await enqueueSosReminder({
+      familyId,
+      sosId: eventId,
+      createdAtMs: Date.now(),
+      attempt: 1,
+    });
   }
 
   return {
     ok: true,
     ...result,
     familyId,
-    debugVersion: "createSos-v2026-03-02-01",
+    debugVersion: "createSos-v2026-03-09-01",
     createdByNameEcho: createdByName,
     createdByNameRawEcho: req.data?.createdByName ?? null,
     keysEcho: Object.keys(req.data ?? {}),
@@ -169,7 +255,9 @@ export const createSos = onCall({ region: REGION }, async (req) => {
 
 // RESOLVE
 export const resolveSos = onCall({ region: REGION }, async (req) => {
-  if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+  if (!req.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Login required");
+  }
   const uid = req.auth.uid;
 
   const familyId = mustString(req.data?.familyId, "familyId");
@@ -178,15 +266,21 @@ export const resolveSos = onCall({ region: REGION }, async (req) => {
   await requireFamilyMember(familyId, uid);
 
   const ref = db.doc(`families/${familyId}/sos/${sosId}`);
+
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    if (!snap.exists) throw new HttpsError("not-found", "SOS not found");
-    if (snap.data()!.status === "resolved") return;
+    if (!snap.exists) {
+      throw new HttpsError("not-found", "SOS not found");
+    }
+    if (snap.data()!.status === "resolved") {
+      return;
+    }
 
     tx.update(ref, {
       status: "resolved",
       resolvedBy: uid,
       resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      "reminder.stoppedAt": admin.firestore.FieldValue.serverTimestamp(),
     });
   });
 
@@ -195,14 +289,21 @@ export const resolveSos = onCall({ region: REGION }, async (req) => {
 
 // FALLBACK TRIGGER
 export const onSosCreated = onDocumentCreated(
-  { document: "families/{familyId}/sos/{sosId}", region: REGION, retry: true },
+  {
+    document: "families/{familyId}/sos/{sosId}",
+    region: REGION,
+    retry: true,
+  },
   async (event) => {
     const snap = event.data;
     if (!snap) return;
 
-    const { familyId, sosId } = event.params as { familyId: string; sosId: string };
-    const sos = snap.data() as any;
+    const { familyId, sosId } = event.params as {
+      familyId: string;
+      sosId: string;
+    };
 
+    const sos = snap.data() as any;
     const createdBy: string | undefined = sos.createdBy;
     if (!createdBy) return;
     if (sos.status !== "active") return;
@@ -234,6 +335,7 @@ export const onSosCreated = onDocumentCreated(
           "fanout.claimId": claimId,
           "fanout.attempted": admin.firestore.FieldValue.increment(1),
         });
+
         return true;
       });
 
@@ -246,6 +348,8 @@ export const onSosCreated = onDocumentCreated(
         childUid: String(createdBy),
         lat: loc.lat != null ? Number(loc.lat) : null,
         lng: loc.lng != null ? Number(loc.lng) : null,
+        createdByName: sos.createdByName ?? "",
+        attempt: 0,
       });
 
       await sosRef.update({
@@ -255,9 +359,17 @@ export const onSosCreated = onDocumentCreated(
         "fanout.invalidTokensRemoved": pushRes.invalidTokensRemoved,
         "fanout.claimedAt": admin.firestore.FieldValue.delete(),
         "fanout.claimId": admin.firestore.FieldValue.delete(),
+        "reminder.initialPushSent": true,
+        "reminder.lastAttempt": 0,
+        "reminder.lastSentAt": admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      await enqueueSosReminder({ familyId, sosId, createdAtMs: Date.now() });
+      await enqueueSosReminder({
+        familyId,
+        sosId,
+        createdAtMs: Date.now(),
+        attempt: 1,
+      });
     } catch (err: any) {
       console.error(`[SOS] ERROR familyId=${familyId} sosId=${sosId} claimId=${claimId}`);
       console.error(err?.stack ?? err);
