@@ -122,7 +122,7 @@ bool isAppAliveFromInstalled(
       final lastSeen = app.lastSeen?.toDate();
       if (lastSeen == null) return false;
 
-      return now.difference(lastSeen) <= const Duration(minutes: 20);
+      return now.difference(lastSeen) <= const Duration(hours: 1);
     }
   }
 

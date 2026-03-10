@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
+import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:provider/provider.dart';
 
 class RemovedAppDetailWidget extends StatelessWidget {
   final NotificationDetailModel detail;
 
-  const RemovedAppDetailWidget({
-    super.key,
-    required this.detail,
-  });
+  const RemovedAppDetailWidget({super.key, required this.detail});
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<NotificationVM>();
+
     final data = detail.data;
 
     final childId = (data["childId"] ?? "").toString();
     final packageName = (data["packageName"] ?? "").toString();
     final removedAt = (data["removedAt"] ?? "").toString();
+    final childName = vm.getChildNameById(childId);
+    final appName = vm.getAppNameByPackage(
+      userId: childId,
+      packageName: packageName,
+    );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(4),
@@ -23,8 +29,8 @@ class RemovedAppDetailWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildInfoCard(
-            childId: childId,
-            packageName: packageName,
+            childName: childName!,
+            appName: appName!,
             removedAt: removedAt,
           ),
           const SizedBox(height: 20),
@@ -37,8 +43,8 @@ class RemovedAppDetailWidget extends StatelessWidget {
   }
 
   Widget _buildInfoCard({
-    required String childId,
-    required String packageName,
+    required String childName,
+    required String appName,
     required String removedAt,
   }) {
     return Container(
@@ -56,8 +62,8 @@ class RemovedAppDetailWidget extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildInfoRow(Icons.person_outline, "Thiết bị", childId),
-          _buildInfoRow(Icons.apps, "Ứng dụng đã gỡ", packageName),
+          _buildInfoRow(Icons.person_outline, "Thiết bị của", childName),
+          _buildInfoRow(Icons.apps, "Ứng dụng đã gỡ", appName),
           _buildInfoRow(Icons.delete_outline, "Thời điểm gỡ", removedAt),
         ],
       ),
@@ -130,10 +136,7 @@ class RemovedAppDetailWidget extends StatelessWidget {
         },
         child: const Text(
           "Xem danh sách ứng dụng",
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
         ),
       ),
     );

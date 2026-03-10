@@ -106,7 +106,7 @@ extension NotificationTypeX on NotificationType {
     if (value.toString().trim() == "ZONE") return NotificationType.zone;
 
     return NotificationType.values.firstWhere(
-      (e) => e.value == v,
+      (e) => e.name.toLowerCase() == v,
       orElse: () => NotificationType.system,
     );
   }
@@ -250,8 +250,8 @@ class AppNotification {
     required NotificationStore store,
   }) {
     final rawTitle = (map['title'] ?? '').toString();
-    final rawEventKey =
-        (map['eventKey'] ?? map['data']?['eventKey'] ?? '').toString();
+    final rawEventKey = (map['eventKey'] ?? map['data']?['eventKey'] ?? '')
+        .toString();
 
     return AppNotification(
       id: id,
@@ -286,6 +286,10 @@ class AppNotification {
     if (value is DateTime) return value;
     return null;
   }
+
+  String? get childId => data['childId']?.toString();
+
+  String? get packageName => data['packageName']?.toString();
 
   NotificationType get notificationType => NotificationTypeX.fromString(type);
 
