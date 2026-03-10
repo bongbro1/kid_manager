@@ -9,11 +9,8 @@ class UserProfile {
   final String dob;
   final String address;
   final bool allowTracking;
-
   final String? role;
-  final String? parentUid; // ✅ NEW
-
-  // 🔥 thêm mới (nullable)
+  final String? parentUid;
   final String? avatarUrl;
   final String? coverUrl;
 
@@ -31,10 +28,9 @@ class UserProfile {
     this.parentUid,
   });
 
-  /// 🔹 Convert sang Firestore
   Map<String, dynamic> toMap() {
     final data = {
-      "displayName": name, // đồng bộ với createChildAccount
+      "displayName": name,
       "phone": phone,
       "gender": gender,
       "dob": dob,
@@ -43,10 +39,9 @@ class UserProfile {
       "role": role,
       "avatarUrl": avatarUrl,
       "coverUrl": coverUrl,
-      "parentUid": parentUid, // ✅ NEW (giữ merge, null sẽ bị remove)
+      "parentUid": parentUid,
     };
 
-    // 🔥 tự động bỏ null field
     data.removeWhere((key, value) => value == null);
     return data;
   }
@@ -62,6 +57,7 @@ class UserProfile {
     String? role,
     String? avatarUrl,
     String? coverUrl,
+    String? parentUid,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -74,10 +70,10 @@ class UserProfile {
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       coverUrl: coverUrl ?? this.coverUrl,
+      parentUid: parentUid ?? this.parentUid,
     );
   }
 
-  /// 🔹 Tạo object từ Firestore
   factory UserProfile.fromMap(String id, Map<String, dynamic> data) {
     String dobStr = '';
     final rawDob = data['dob'];
@@ -89,11 +85,16 @@ class UserProfile {
     } else if (rawDob is int) {
       date = DateTime.fromMillisecondsSinceEpoch(rawDob);
     } else if (rawDob is String) {
-      // nếu trước đó đã lưu dạng dd/MM/yyyy thì giữ nguyên
+      final value = rawDob.trim();
+
       try {
-        date = DateTime.parse(rawDob); // trường hợp iso string
+        date = DateFormat('dd/MM/yyyy').parseStrict(value);
       } catch (_) {
-        dobStr = rawDob; // fallback giữ nguyên
+        try {
+          date = DateTime.parse(value);
+        } catch (_) {
+          dobStr = value;
+        }
       }
     }
 
@@ -112,7 +113,7 @@ class UserProfile {
       role: (data["role"] ?? "child").toString(),
       avatarUrl: data["avatarUrl"]?.toString(),
       coverUrl: data["coverUrl"]?.toString(),
-      parentUid: data["parentUid"]?.toString()
+      parentUid: data["parentUid"]?.toString(),
     );
   }
 }

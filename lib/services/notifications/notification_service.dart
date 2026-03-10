@@ -11,8 +11,14 @@ import 'package:kid_manager/services/notifications/local_notification_service.da
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 
 class NotificationService {
+  static bool _initialized = false;
+  static String? _lastHandledNotificationId;
   static const _channel = MethodChannel('notification_intent');
+
   static Future<void> init() async {
+    if (_initialized) return;
+    _initialized = true;
+
     debugPrint('🔔 NotificationService.init()');
 
     FirebaseMessaging.onMessage.listen((m) async {
@@ -22,25 +28,54 @@ class NotificationService {
       await handleMessageForLocalNotification(m);
     });
 
+    // App đang background, user bấm push system notification
+    FirebaseMessaging.onMessageOpenedApp.listen((m) async {
+      debugPrint(
+        '🔔 onMessageOpenedApp id=${m.messageId} data=${m.data}',
+      );
+      await handleTap(Map<String, dynamic>.from(m.data));
+    });
+
+    // App bị kill hẳn, user bấm push để mở app
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      debugPrint(
+        '🔔 getInitialMessage id=${initialMessage.messageId} data=${initialMessage.data}',
+      );
+
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await handleTap(Map<String, dynamic>.from(initialMessage.data));
+      });
+    }
+
+    // Local notification tap / native channel cũ
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'notificationTap') {
         final payload = call.arguments as String?;
         if (payload != null) {
           final data = jsonDecode(payload);
-
-          await handleTap(data);
+          await handleTap(Map<String, dynamic>.from(data));
         }
       }
     });
   }
 
   static Future<void> handleTap(Map<String, dynamic> data) async {
-    final type = data["type"];
+    final type = data["type"]?.toString();
     final notificationId = data['notificationId']?.toString();
+
+    debugPrint('🔔 handleTap type=$type notificationId=$notificationId data=$data');
+
     if (notificationId == null || notificationId.isEmpty) {
       debugPrint('🔔 notificationId missing');
       return;
     }
+
+    if (_lastHandledNotificationId == notificationId) {
+      debugPrint('🔔 duplicate tap ignored: $notificationId');
+      return;
+    }
+    _lastHandledNotificationId = notificationId;
 
     final repo = NotificationRepository();
     final item = await repo.getItemById(notificationId);
@@ -49,31 +84,24 @@ class NotificationService {
       return;
     }
 
-    if (type != "sos") {
-      final navigator = AppNavigator.navigatorKey.currentState;
-      if (navigator != null) {
-        navigator.push(
-          MaterialPageRoute(
-            builder: (_) => NotificationDetailScreen(item: item),
-          ),
-        );
-        return;
-      }
+    final navigator = AppNavigator.navigatorKey.currentState;
+    if (navigator == null) {
+      debugPrint('🔔 navigator not ready');
+      return;
+    }
 
+    if (type != "sos") {
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => NotificationDetailScreen(item: item),
+        ),
+      );
       return;
     }
 
     if (type == "sos") {
-      final navigator = AppNavigator.navigatorKey.currentState;
-      if (navigator != null) {
-        debugPrint('🔔 VÀO MÀN SOS');
-        // navigator.push(
-        //   MaterialPageRoute(
-        //     builder: (_) => SosScreen(),
-        //   ),
-        // );
-        return;
-      }
+      debugPrint('🔔 VÀO MÀN SOS');
+      return;
     }
   }
 
