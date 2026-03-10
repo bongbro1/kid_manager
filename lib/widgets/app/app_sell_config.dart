@@ -104,7 +104,6 @@ class AppShellConfig {
         iconAsset: 'assets/icons/sms.svg',
         root: const FamilyGroupChatScreen(),
         showBadge: true,
-        isNotificationTab: true,
         badgeCountStreamBuilder: (context) {
           final userVm = context.read<UserVm>();
           final familyId = userVm.familyId;
@@ -138,12 +137,10 @@ class AppShellConfig {
       ),
     ],
     chatTabIndex: 1,
-
   );
 
   static int get notificationTabIndex {
     final parentIndex = parent().tabs.indexWhere((t) => t.isNotificationTab);
-
     if (parentIndex >= 0) return parentIndex;
 
     return child().tabs.indexWhere((t) => t.isNotificationTab);

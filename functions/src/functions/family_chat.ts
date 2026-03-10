@@ -14,7 +14,7 @@ if (!req.auth?.uid) {
   const uid = req.auth.uid;
   const text = mustString(req.data?.text, "text").trim();
 
-  if (text.isEmpty) {
+  if (text.length === 0) {
     throw new HttpsError("invalid-argument", "text is required");
   }
 
@@ -42,6 +42,7 @@ if (!req.auth?.uid) {
   const messageRef = familyRef.collection("messages").doc();
   const now = admin.firestore.FieldValue.serverTimestamp();
 
+  // 1) Lưu message + update family + update chatStates
   const batch = db.batch();
 
   batch.set(messageRef, {
@@ -95,6 +96,38 @@ if (!req.auth?.uid) {
 
   await batch.commit();
 
+  // 2) Lưu chatNotifications riêng cho từng người nhận
+  const chatNotifBatch = db.batch();
+
+  for (const memberDoc of membersSnap.docs) {
+    const memberUid = memberDoc.id;
+    if (memberUid === uid) continue;
+
+    const chatNotifRef = db.doc(
+      `users/${memberUid}/chatNotifications/${messageRef.id}`
+    );
+
+    chatNotifBatch.set(
+      chatNotifRef,
+      {
+        id: messageRef.id,
+        type: "family_chat",
+        familyId,
+        messageId: messageRef.id,
+        senderUid: uid,
+        senderName,
+        body: text,
+        route: "family_group_chat",
+        isRead: false,
+        createdAt: now,
+      },
+      { merge: true }
+    );
+  }
+
+  await chatNotifBatch.commit();
+
+  // 3) Gửi FCM push cho từng người nhận
   for (const memberDoc of membersSnap.docs) {
     const memberUid = memberDoc.id;
     if (memberUid === uid) continue;

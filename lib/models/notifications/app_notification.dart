@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/models/notifications/blocked_app_data.dart';
 
 /// Doc đang nằm ở đâu (runtime only)
-enum NotificationStore { global, userInbox }
+enum NotificationStore { global, userInbox ,chatInbox}
 
 enum NotificationType {
   appRemoved,

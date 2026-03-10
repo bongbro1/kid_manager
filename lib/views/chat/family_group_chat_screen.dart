@@ -45,11 +45,13 @@ class FamilyGroupChatScreen extends StatefulWidget {
   @override
   State<FamilyGroupChatScreen> createState() => _FamilyGroupChatScreenState();
 }
+
 class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
   final FamilyChatRepository _repo = FamilyChatRepository();
+  final NotificationRepository _notificationRepo = NotificationRepository();
   final TextEditingController _textController = TextEditingController();
   final List<LocalPendingChatMessage> _pendingMessages = [];
-  final NotificationRepository _notificationRepo = NotificationRepository();
+
   bool _clearedChatNotification = false;
 
   @override
@@ -62,6 +64,32 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
     _textController.clear();
     _pendingMessages.clear();
   }
+
+  Future<void> _clearChatNotificationIfNeeded(String familyId) async {
+    if (_clearedChatNotification) return;
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+
+    try {
+      await _notificationRepo.deleteChatNotificationsForFamily(
+        uid: uid,
+        familyId: familyId,
+      );
+
+      await _notificationRepo.markFamilyChatRead(
+        familyId: familyId,
+        uid: uid,
+      );
+
+      _clearedChatNotification = true;
+      debugPrint('✅ cleared chatNotifications for familyId=$familyId');
+    } catch (e, st) {
+      debugPrint('❌ clear chatNotifications error: $e');
+      debugPrintStack(stackTrace: st);
+    }
+  }
+
   void _sendMessage({
     required AppUser me,
     required String familyId,
@@ -104,30 +132,12 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
     });
   }
 
-  Future<void> _clearChatNotificationIfNeeded(String familyId) async {
-    if (_clearedChatNotification) return;
-
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return;
-
-    try {
-      await _notificationRepo.deleteFamilyChatNotificationsForFamily(
-        uid: uid,
-        familyId: familyId,
-      );
-      _clearedChatNotification = true;
-      debugPrint('✅ cleared family_chat notifications for familyId=$familyId');
-    } catch (e, st) {
-      debugPrint('❌ clear family_chat notifications error: $e');
-      debugPrintStack(stackTrace: st);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final me = context.select<UserVm, AppUser?>((vm) => vm.me);
     final vmFamilyId = context.select<UserVm, String?>((vm) => vm.familyId);
     final familyId = widget.initialFamilyId ?? vmFamilyId;
+
     if (me == null || familyId == null || familyId.isEmpty) {
       _resetLocalState();
       return Scaffold(
@@ -141,7 +151,6 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _clearChatNotificationIfNeeded(familyId);

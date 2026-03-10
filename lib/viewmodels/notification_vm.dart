@@ -40,26 +40,12 @@ class NotificationVM extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  String? _uid; // ✅ lưu uid đang listen
+  String? _uid;
 
-  /// ==============================
-  /// 🔢 UNREAD COUNT
-  /// ==============================
   int _unreadCount = 0;
   int get unreadCount => _unreadCount;
 
   StreamSubscription? _unreadSub;
-
-  /// ==============================
-  /// 📡 START LISTEN
-  /// ==============================
-
-  // void listen(String uid) {
-  //   listenMulti(
-  //     uid: uid,
-  //     sources: const [NotificationSource.userInbox, NotificationSource.global],
-  //   );
-  // }
 
   String? getChildNameById(String childId) {
     if (childId.isEmpty) return null;
@@ -73,6 +59,25 @@ class NotificationVM extends ChangeNotifier {
     if (packageName.isEmpty) return null;
 
     return _repo.getCachedAppName(userId: userId, packageName: packageName);
+  }
+
+  Future<void> bindUser({
+    required String? uid,
+    required List<NotificationSource> sources,
+    NotificationPredicate? filter,
+  }) async {
+    if (uid == null || uid.isEmpty) {
+      await clear();
+      return;
+    }
+
+    if (_uid == uid && _cache.isNotEmpty) return;
+
+    await listenMulti(
+      uid: uid,
+      sources: sources,
+      filter: filter,
+    );
   }
 
   Future<void> listenMulti({
@@ -89,7 +94,6 @@ class NotificationVM extends ChangeNotifier {
 
     notifyListeners();
 
-    // lắng nghe số lượng thông báo
     _unreadSub?.cancel();
     _unreadSub = _repo.watchUnreadCount(uid).listen((count) {
       if (_uid != uid) return;
@@ -114,14 +118,19 @@ class NotificationVM extends ChangeNotifier {
   }
 
   Future<void> loadMore() async {
-    if (_loadingMore || !_hasMore || _lastCreatedAt == null || _uid == null)
+    if (_loadingMore || !_hasMore || _lastCreatedAt == null || _uid == null) {
       return;
+    }
+
     _loadingMore = true;
+    notifyListeners();
+
     try {
       final snap = await _repo.fetchOlderNotifications(
         uid: _uid!,
         lastCreatedAt: _lastCreatedAt!,
       );
+
       if (snap.docs.isEmpty) {
         _hasMore = false;
         return;
@@ -130,11 +139,11 @@ class NotificationVM extends ChangeNotifier {
       final more = snap.docs
           .map(
             (d) => AppNotification.fromMap(
-              d.id,
-              d.data(),
-              store: NotificationStore.global,
-            ),
-          )
+          d.id,
+          d.data(),
+          store: NotificationStore.global,
+        ),
+      )
           .toList();
 
       final existingIds = {
@@ -143,20 +152,21 @@ class NotificationVM extends ChangeNotifier {
       };
 
       _paged.addAll(more.where((n) => !existingIds.contains(n.id)));
-      _emitMerged(_cache.keys.toList(), null);
+      await _emitMerged(_cache.keys.toList(), null);
       _lastCreatedAt = Timestamp.fromDate(more.last.createdAt!);
+
       if (snap.docs.length < _maxCountInPage) {
         _hasMore = false;
       }
 
       debugPrint(
-        "📊 Total notifications now = ${_notifications.length}"
-        " newLastCreatedAt=$_lastCreatedAt",
+        "📊 Total notifications now = ${_notifications.length} newLastCreatedAt=$_lastCreatedAt",
       );
     } catch (e) {
       debugPrint("loadMore error: $e");
     } finally {
       _loadingMore = false;
+      notifyListeners();
     }
   }
 
@@ -178,7 +188,6 @@ class NotificationVM extends ChangeNotifier {
 
   void setSearch(String keyword) {
     _searchKeyword = keyword.trim().toLowerCase();
-
     _emitMerged(_cache.keys.toList(), null);
   }
 
@@ -186,27 +195,24 @@ class NotificationVM extends ChangeNotifier {
     if (_searchKeyword.isEmpty) return list;
 
     return list.where((n) {
-      final title = (n.title).toLowerCase();
-      final body = (n.body).toLowerCase();
-
+      final title = n.title.toLowerCase();
+      final body = n.body.toLowerCase();
       return title.contains(_searchKeyword) || body.contains(_searchKeyword);
     }).toList();
   }
 
   Future<void> _emitMerged(
-    List<NotificationSource> sources,
-    NotificationPredicate? filter,
-  ) async {
+      List<NotificationSource> sources,
+      NotificationPredicate? filter,
+      ) async {
     final all = <AppNotification>[];
 
     for (final src in sources) {
       all.addAll(_cache[src] ?? const []);
     }
 
-    // merge realtime + paged
     final merged = [...all, ..._paged];
 
-    // dedup
     final seen = <String>{};
     final dedup = <AppNotification>[];
 
@@ -216,14 +222,12 @@ class NotificationVM extends ChangeNotifier {
       }
     }
 
-    // sort trước
     dedup.sort((a, b) {
       final ta = a.createdAt?.millisecondsSinceEpoch ?? 0;
       final tb = b.createdAt?.millisecondsSinceEpoch ?? 0;
       return tb.compareTo(ta);
     });
 
-    // apply filter/search sau cùng
     var result = dedup;
 
     if (filter != null) {
@@ -233,7 +237,6 @@ class NotificationVM extends ChangeNotifier {
     result = _applyFilter(result);
     result = _applySearch(result);
 
-    /// resolve only new notifications
     final needResolve = result
         .where((n) => !_resolvedIds.contains(n.id))
         .toList();
@@ -247,7 +250,6 @@ class NotificationVM extends ChangeNotifier {
     }
 
     _notifications = result;
-
     _loading = false;
     notifyListeners();
   }
@@ -286,7 +288,6 @@ class NotificationVM extends ChangeNotifier {
     }
   }
 
-  /// ✅ auto đúng source: global vs userInbox
   Future<void> markAsRead(AppNotification n) async {
     final uid = _uid;
     if (uid == null) return;
@@ -317,7 +318,7 @@ class NotificationVM extends ChangeNotifier {
   }
 
   Future<void> clear() async {
-    _uid = null; // chặn event cũ ngay lập tức
+    _uid = null;
     await _cancelAll();
     _resetState();
     notifyListeners();
@@ -344,6 +345,7 @@ class NotificationVM extends ChangeNotifier {
     _notifications = [];
     _paged.clear();
     _cache.clear();
+    _resolvedIds.clear();
 
     _lastCreatedAt = null;
     _hasMore = true;
