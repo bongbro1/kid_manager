@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -83,29 +84,85 @@ class NotificationService {
   static Future<void> handleMessageForLocalNotification(
     RemoteMessage message,
   ) async {
-    // debugPrint('🔔 handleMessageForLocalNotification() data=${message.data}');
+    final data = message.data;
+    final type = data['type']?.toString().toLowerCase() ?? '';
 
-    final type = message.data['type']?.toString().toLowerCase() ?? '';
+    // Guard riêng cho schedule + memory_day
+    if (type == 'schedule' || type == 'memory_day') {
+      final currentUid = FirebaseAuth.instance.currentUser?.uid;
+      final actorUid = data['actorUid']?.toString();
+      final actorRole = data['actorRole']?.toString().toLowerCase();
+      final childId = data['childId']?.toString();
+      final ownerParentUid = data['ownerParentUid']?.toString();
 
-    if (type != 'zone') {
+      if (currentUid == null || currentUid.isEmpty) {
+        debugPrint('🔕 [$type] skip: no current user');
+        return;
+      }
+
+      // self notification
+      if (actorUid != null && actorUid == currentUid) {
+        debugPrint(
+          '🔕 [$type] skip self notification: currentUid=$currentUid actorUid=$actorUid',
+        );
+        return;
+      }
+
+      String? expectedReceiverId;
+
+      if (actorRole == 'child') {
+        expectedReceiverId = ownerParentUid;
+      } else if (actorRole == 'parent') {
+        expectedReceiverId = childId;
+      } else {
+        expectedReceiverId = ownerParentUid;
+      }
+
+      if (expectedReceiverId == null || expectedReceiverId.isEmpty) {
+        debugPrint('🔕 [$type] skip: expectedReceiverId is null/empty');
+        return;
+      }
+
+      if (expectedReceiverId != currentUid) {
+        debugPrint(
+          '🔕 [$type] skip wrong receiver: currentUid=$currentUid expectedReceiverId=$expectedReceiverId actorUid=$actorUid',
+        );
+        return;
+      }
+
       final title =
           message.notification?.title ??
-          message.data['title']?.toString() ??
+          data['title']?.toString() ??
           'Thông báo';
 
       final body =
           message.notification?.body ??
-          message.data['body']?.toString() ??
+          data['body']?.toString() ??
           'Bạn có thông báo mới';
-
-      // debugPrint(
-      //   '🔔 show normal local notification title="$title" body="$body"',
-      // );
 
       await LocalNotificationService.show(
         title: title,
         body: body,
-        payload: jsonEncode(message.data),
+        payload: jsonEncode(data),
+      );
+      return;
+    }
+
+    if (type != 'zone') {
+      final title =
+          message.notification?.title ??
+          data['title']?.toString() ??
+          'Thông báo';
+
+      final body =
+          message.notification?.body ??
+          data['body']?.toString() ??
+          'Bạn có thông báo mới';
+
+      await LocalNotificationService.show(
+        title: title,
+        body: body,
+        payload: jsonEncode(data),
       );
       return;
     }

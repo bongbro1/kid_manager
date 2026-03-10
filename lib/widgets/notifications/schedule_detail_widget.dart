@@ -110,7 +110,7 @@ class ScheduleDetailWidget extends StatelessWidget {
 
         _infoTile(
           icon: Icons.child_care_rounded,
-          label: 'Bé',
+          label: 'Tên bé',
           value: childName,
         ),
         const SizedBox(height: 18),
