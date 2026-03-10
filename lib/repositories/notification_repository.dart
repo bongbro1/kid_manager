@@ -9,60 +9,6 @@ class NotificationRepository {
     : _fs = fs ?? FirebaseFirestore.instance;
 
   final int _maxCountInPage = 20;
-  // Future<String?> getChildDisplayName(String childId) async {
-  //   if (_childNameCache.containsKey(childId)) {
-  //     return _childNameCache[childId];
-  //   }
-
-  //   try {
-  //     final doc = await _fs.collection('users').doc(childId).get();
-
-  //     if (!doc.exists) return null;
-
-  //     final data = doc.data();
-  //     if (data == null) return null;
-
-  //     // optional: đảm bảo đúng role child
-  //     if (data['role'] != 'child') return null;
-
-  //     final name = data['displayName'] as String?;
-
-  //     if (name != null && name.isNotEmpty) {
-  //       _childNameCache[childId] = name;
-  //     }
-
-  //     return name;
-  //   } catch (_) {
-  //     return null;
-  //   }
-  // }
-
-  // Future<String?> getAppName({
-  //   required String userId,
-  //   required String packageName,
-  // }) async {
-  //   final key = "$userId|$packageName";
-
-  //   final cached = _appNameCache[key];
-  //   if (cached != null) return cached;
-
-  //   try {
-  //     final doc = await _fs
-  //         .doc("blocked_items/$userId/apps/$packageName")
-  //         .get();
-
-  //     final name = doc.data()?['name'] as String?;
-
-  //     if (name != null) {
-  //       _appNameCache[key] = name;
-  //     }
-
-  //     return name;
-  //   } catch (_) {
-  //     return null;
-  //   }
-  // }
-
 
   Stream<int> watchUnreadCount(String uid) {
     return _fs

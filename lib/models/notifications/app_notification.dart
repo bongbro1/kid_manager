@@ -33,29 +33,30 @@ extension NotificationTypeX on NotificationType {
   String get value {
     switch (this) {
       case NotificationType.appRemoved:
-        return "app_removed";
+        return "appRemoved";
       case NotificationType.blockedApp:
-        return "blocked_app";
+        return "blockedApp";
       case NotificationType.sos:
         return "sos";
       case NotificationType.heartbeatLost:
-        return "heartbeat_lost";
+        return "heartbeatLost";
       case NotificationType.usageLimitExceeded:
-        return "usage_limit_exceeded";
+        return "usageLimitExceeded";
       case NotificationType.schedule:
         return "schedule";
       case NotificationType.memoryDay:
-        return "memory_day";
+        return "memoryDay";
       case NotificationType.importExcel:
-        return "import_excel";
+        return "importExcel";
       case NotificationType.battery:
         return "battery";
       case NotificationType.birthday:
         return "birthday";
       case NotificationType.zone:
-        return "zone"; // ✅ chuẩn hoá cho app
-      case NotificationType.system:
+        return "zone";
       case NotificationType.subscription:
+        return "subscription";
+      case NotificationType.system:
         return "system";
     }
   }

@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
-import 'package:kid_manager/viewmodels/notification_vm.dart';
-import 'package:provider/provider.dart';
-
 class RemovedAppDetailWidget extends StatelessWidget {
   final NotificationDetailModel detail;
 
@@ -10,8 +7,6 @@ class RemovedAppDetailWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<NotificationVM>();
-
     final data = detail.data;
 
     final childName = (data["childName"] ?? "").toString();
@@ -23,8 +18,8 @@ class RemovedAppDetailWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildInfoCard(
-            childName: childName!,
-            appName: appName!,
+            childName: childName,
+            appName: appName,
             removedAt: removedAt,
           ),
           const SizedBox(height: 20),
