@@ -45,6 +45,16 @@ void callbackDispatcher() {
         if (userId == null) return true;
 
         debugPrint("👶 Running child sync");
+        await NotificationService.sendSystem(
+              NotificationPayload(
+                receiverId: userId,
+                type: NotificationType.system,
+                title: "Đã cập nhật dữ liệu sử dụng",
+                body: "Hệ thống đã cập nhật dữ liệu sử dụng của: $userId lên cloud.",
+                data: null,
+              ),
+            );
+
         await repo.syncTodayUsage(userId: userId);
 
         return true;

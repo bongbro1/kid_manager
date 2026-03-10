@@ -65,7 +65,8 @@ class BlockedAppDetailWidget extends StatelessWidget {
           _buildInfoRow(Icons.person_outline, "Tài khoản", displayName),
           _buildInfoRow(Icons.apps, "Ứng dụng", appName),
           _buildInfoRow(Icons.access_time, "Thời điểm", blockedAt),
-          _buildInfoRow(Icons.schedule, "Khung giờ cho phép", "$allowedFrom - $allowedTo"),
+          if(allowedFrom != "")
+            _buildInfoRow(Icons.schedule, "Khung giờ cho phép", "$allowedFrom - $allowedTo"),
         ],
       ),
     );

@@ -38,11 +38,11 @@ class AppRuleChecker {
     /// 🔁 Override
     final override = rule.overrides?[today];
 
-    if (override == "allowFullDay") {
+    if (override == DayOverride.allowFullDay) {
       return const BlockCheckResult(isBlocked: false);
     }
 
-    if (override == "blockFullDay") {
+    if (override == DayOverride.blockFullDay) {
       return const BlockCheckResult(isBlocked: true, reason: "override_block");
     }
 
