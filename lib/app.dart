@@ -32,10 +32,8 @@ import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/subscription_vm.dart';
 import 'package:kid_manager/viewmodels/terms_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:provider/provider.dart';
 
-import 'core/alert_service.dart';
 import 'core/constants.dart';
 import 'core/theme.dart';
 
@@ -53,6 +51,7 @@ import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_import_vm.dart';
+import 'package:kid_manager/models/notifications/notification_source.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -78,7 +77,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    // ====== Copy y nguyên đoạn build của bạn từ đây xuống ======
     final authService = FirebaseAuthService();
     final secondaryAuthService = SecondaryAuthService();
     final permissionService = PermissionService();
@@ -106,13 +104,11 @@ class _MyAppState extends State<MyApp> {
 
     return MultiProvider(
       providers: [
-        // services
         Provider.value(value: authService),
         Provider.value(value: permissionService),
         Provider.value(value: appInstalledService),
         Provider.value(value: usageService),
 
-        // repositories
         Provider.value(value: userRepo),
         Provider.value(value: authRepo),
         Provider.value(value: appRepo),
@@ -120,7 +116,6 @@ class _MyAppState extends State<MyApp> {
         Provider.value(value: termsRepo),
         Provider.value(value: subscriptionRepo),
 
-        // ViewModels
         ChangeNotifierProvider(
           create: (context) => AuthVM(
             authRepo,
@@ -178,7 +173,6 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
 
-        // MemoryDay
         ChangeNotifierProvider(
           create: (context) => MemoryDayViewModel(
             memoryRepo,
@@ -198,11 +192,6 @@ class _MyAppState extends State<MyApp> {
           create: (context) => SessionVM(context.read<AuthRepository>()),
         ),
 
-        ChangeNotifierProvider(
-          create: (_) => NotificationVM(NotificationRepository()),
-        ),
-
-        // ✅ đây là điểm khác: dùng .value để giữ instance
         ChangeNotifierProvider.value(value: _sosVm),
 
         ChangeNotifierProvider<UserVm>(
@@ -211,6 +200,26 @@ class _MyAppState extends State<MyApp> {
             context.read<StorageService>(),
           ),
         ),
+
+        ChangeNotifierProxyProvider<UserVm, NotificationVM>(
+          create: (_) => NotificationVM(NotificationRepository()),
+          update: (_, userVm, vm) {
+            vm ??= NotificationVM(NotificationRepository());
+
+            Future.microtask(() {
+              vm!.bindUser(
+                uid: userVm.me?.uid,
+                sources: const [
+                  NotificationSource.global,
+                  NotificationSource.userInbox,
+                ],
+              );
+            });
+
+            return vm;
+          },
+        ),
+
         ChangeNotifierProvider<ParentLocationVm>(
           create: (context) => ParentLocationVm(
             context.read<LocationRepository>(),
@@ -222,8 +231,6 @@ class _MyAppState extends State<MyApp> {
         navigatorKey: AppNavigator.navigatorKey,
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
-
-        // ✅ gen-l10n
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

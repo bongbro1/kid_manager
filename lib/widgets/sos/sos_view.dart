@@ -11,6 +11,7 @@ class SosCircleButton extends StatefulWidget {
 class _SosCircleButtonState extends State<SosCircleButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
+  bool _tapLocked = false;
 
   @override
   void initState() {
@@ -25,6 +26,20 @@ class _SosCircleButtonState extends State<SosCircleButton>
   void dispose() {
     _ctrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleTap() async {
+    if (_tapLocked) return;
+    _tapLocked = true;
+
+    try {
+      widget.onPressed();
+      await Future.delayed(const Duration(milliseconds: 700));
+    } finally {
+      if (mounted) {
+        _tapLocked = false;
+      }
+    }
   }
 
   @override
@@ -75,7 +90,7 @@ class _SosCircleButtonState extends State<SosCircleButton>
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: widget.onPressed,
+                onTap: _handleTap,
                 customBorder: const CircleBorder(),
                 child: Ink(
                   width: core,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 import 'package:kid_manager/widgets/app/app_bottom_nav.dart';
@@ -19,10 +20,14 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+  final FamilyChatRepository _chatRepository = FamilyChatRepository();
 
   late final AppShellConfig _config = widget.mode == AppMode.parent
       ? AppShellConfig.parent()
       : AppShellConfig.child();
+
+  int get _notificationTabIndex =>
+      _config.tabs.indexWhere((t) => t.isNotificationTab);
 
   late final List<GlobalKey<NavigatorState>> _navKeys = List.generate(
     _config.tabs.length,
@@ -43,6 +48,11 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+
+    notificationTabIndexNotifier.value = _config.tabs.indexWhere(
+      (t) => t.isNotificationTab,
+    );
+
     activeTabNotifier.addListener(_syncTabFromNotifier);
   }
 
@@ -56,10 +66,27 @@ class _AppShellState extends State<AppShell> {
   Future<void> _onNavTap(int i) async {
     if (i == _index) {
       _navKeys[i].currentState?.popUntil((r) => r.isFirst);
+
+      if (i == _config.chatTabIndex) {
+        try {
+          await _chatRepository.markAsRead();
+        } catch (e) {
+          debugPrint('markAsRead error: $e');
+        }
+      }
       return;
     }
+
     setState(() => _index = i);
     activeTabNotifier.value = i;
+
+    if (i == _config.chatTabIndex) {
+      try {
+        await _chatRepository.markAsRead();
+      } catch (e) {
+        debugPrint('markAsRead error: $e');
+      }
+    }
   }
 
   Future<bool> _onWillPop() async {
@@ -88,6 +115,7 @@ class _AppShellState extends State<AppShell> {
                     (t) => BottomNavItem(
                       iconAsset: t.iconAsset,
                       showBadge: t.showBadge,
+                      badgeCountStreamBuilder: t.badgeCountStreamBuilder,
                     ),
                   )
                   .toList(),

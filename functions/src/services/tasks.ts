@@ -1,34 +1,93 @@
 import { CloudTasksClient } from "@google-cloud/tasks";
-import { SOS_REMINDER_WORKER_URL, TASK_LOCATION, TASK_QUEUE, REMIND_INTERVAL_SEC } from "../config";
-import { getProjectId } from "../helpers";
+import { REGION } from "../config";
 
-const tasksClient = new CloudTasksClient();
+const client = new CloudTasksClient();
 
-export async function enqueueSosReminder(params: { familyId: string; sosId: string; createdAtMs: number }) {
-  const project = getProjectId();
-  if (!project) throw new Error("Missing GCLOUD_PROJECT");
+// Đổi các biến này theo project của bạn
+const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "";
+const QUEUE_ID = process.env.SOS_REMINDER_QUEUE_ID || "sos-reminder-queue";
+const WORKER_URL = process.env.SOS_REMINDER_WORKER_URL || "";
+const TASK_CALLER_SA =
+process.env.SOS_TASK_CALLER_SA || ""; // vd: firebase-adminsdk-xxx@project-id.iam.gserviceaccount.com
 
-  const parent = tasksClient.queuePath(project, TASK_LOCATION, TASK_QUEUE);
+export function getReminderDelaySec(attempt: number): number | null {
+  // attempt = 1 là lần nhắc đầu tiên sau push ban đầu
+  switch (attempt) {
+    case 1:
+      return 45;
+    case 2:
+      return 120;
+    case 3:
+      return 300;
+    case 4:
+    case 5:
+    case 6:
+      return 600;
+    default:
+      return null;
+  }
+}
 
-  const workerUrl = SOS_REMINDER_WORKER_URL.value();
-  if (!workerUrl) throw new Error("Missing SOS_REMINDER_WORKER_URL env");
+export async function enqueueSosReminder(params: {
+  familyId: string;
+  sosId: string;
+  createdAtMs: number;
+  attempt: number;
+}) {
+  const { familyId, sosId, createdAtMs, attempt } = params;
 
-  const scheduleTime = { seconds: Math.floor(Date.now() / 1000) + REMIND_INTERVAL_SEC };
+  const delaySec = getReminderDelaySec(attempt);
+  if (delaySec == null) {
+    return { enqueued: false, reason: "max-attempt-reached" };
+  }
 
-  const payload = Buffer.from(
-    JSON.stringify({ familyId: params.familyId, sosId: params.sosId, createdAtMs: params.createdAtMs })
-  ).toString("base64");
+  if (!PROJECT_ID) {
+    throw new Error("Missing PROJECT_ID");
+  }
+  if (!WORKER_URL) {
+    throw new Error("Missing SOS_REMINDER_WORKER_URL");
+  }
+  if (!TASK_CALLER_SA) {
+    throw new Error("Missing SOS_TASK_CALLER_SA");
+  }
+
+  const parent = client.queuePath(PROJECT_ID, REGION, QUEUE_ID);
+
+  const scheduleSeconds = Math.floor(Date.now() / 1000) + delaySec;
+
+  const payload = {
+    familyId,
+    sosId,
+    createdAtMs,
+    attempt,
+  };
 
   const task = {
     httpRequest: {
       httpMethod: "POST" as const,
-      url: workerUrl,
-      headers: { "Content-Type": "application/json" },
-      body: payload,
-      oidcToken: { serviceAccountEmail: `${project}@appspot.gserviceaccount.com` },
+      url: WORKER_URL,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      oidcToken: {
+        serviceAccountEmail: TASK_CALLER_SA,
+      },
+      body: Buffer.from(JSON.stringify(payload)).toString("base64"),
     },
-    scheduleTime,
+    scheduleTime: {
+      seconds: scheduleSeconds,
+    },
   };
 
-  await tasksClient.createTask({ parent, task });
+  const [resp] = await client.createTask({
+    parent,
+    task,
+  });
+
+  return {
+    enqueued: true,
+    taskName: resp.name ?? null,
+    delaySec,
+    attempt,
+  };
 }

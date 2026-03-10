@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/notifications/sos_notification_service.dart';
+import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -67,9 +70,29 @@ class _SessionGuardState extends State<SessionGuard> {
         _lastIsParent = isParent;
 
         if (shouldTriggerMeWatch) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
             if (!mounted) return;
-            context.read<UserVm>().watchMe(uid);
+
+            final userVm = context.read<UserVm>();
+            final storage = context.read<StorageService>();
+
+            final profile = await userVm.loadProfile(uid: uid, caller: 'SessionGuard');
+
+            await storage.setString(StorageKeys.uid, uid);
+
+            if (profile != null) {
+              await storage.setString(StorageKeys.role, profile.role ?? '');
+              await storage.setString(StorageKeys.displayName, profile.name);
+
+              final role = roleFromString(profile.role ?? 'child');
+              final parentId = role == UserRole.child
+                  ? (profile.parentUid ?? '')
+                  : uid;
+
+              await storage.setString(StorageKeys.parentId, parentId);
+            }
+
+            userVm.watchMe(uid);
             context.read<AppManagementVM>().watchChildren(uid);
           });
         }

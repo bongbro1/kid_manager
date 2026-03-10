@@ -303,6 +303,19 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
               const CircularProgressIndicator()
             else ...[
               ElevatedButton(
+                onPressed: () async {
+                  await LocalNotificationService.show(
+                    title: 'Test local',
+                    body: 'Tap me',
+                    payload: jsonEncode({
+                      "notificationId": "06eloLbzICVdapzFdDF0",
+                      "type": "test",
+                    }),
+                  );
+                },
+                child: const Text('Show test notification'),
+              ),
+              ElevatedButton(
                 onPressed: _sendSystem,
                 child: const Text("⚙️ Send System → User"),
               ),

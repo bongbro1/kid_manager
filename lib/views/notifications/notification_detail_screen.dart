@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/helpers/phone/phone_helps.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
@@ -120,19 +121,47 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     return Icons.location_on_outlined;
   }
 
-  // String _formatTimeAgo(DateTime? time) {
-  //   if (time == null) return "";
 
-  //   final diff = DateTime.now().difference(time);
+  void _handleZoneViewMap(NotificationDetailModel detail) {
+    // TODO: mở bản đồ chính / focus child / focus zone
+  }
 
-  //   if (diff.inMinutes < 60) {
-  //     return "${diff.inMinutes} phút trước";
-  //   } else if (diff.inHours < 24) {
-  //     return "${diff.inHours} giờ trước";
-  //   } else {
-  //     return "${diff.inDays} ngày trước";
-  //   }
-  // }
+  Future<void> _handleZonePhone(NotificationDetailModel detail) async {
+    final childId = (detail.data['childUid'] ?? '').toString().trim();
+    final childName = (detail.data['childName'] ??
+        detail.data['displayName'] ??
+        detail.data['name'] ??
+        'Bé')
+        .toString();
+
+    if (childId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không tìm thấy thông tin của bé')),
+      );
+      return;
+    }
+
+    await handleCallChildByProfile(
+      context: context,
+      childId: childId,
+      childName: childName,
+    );
+  }
+
+
+  String _formatTimeAgo(DateTime? time) {
+    if (time == null) return "";
+
+    final diff = DateTime.now().difference(time);
+
+    if (diff.inMinutes < 60) {
+      return "${diff.inMinutes} phút trước";
+    } else if (diff.inHours < 24) {
+      return "${diff.inHours} giờ trước";
+    } else {
+      return "${diff.inDays} ngày trước";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -267,7 +296,14 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
 
                         const SizedBox(height: 12),
 
-                        NotificationDetailBody(detail: detail),
+                        NotificationDetailBody(detail: detail,
+                          onZoneViewMap: detail.notificationType == NotificationType.zone
+                              ? () => _handleZoneViewMap(detail)
+                              : null,
+                          onZonePhone: detail.notificationType == NotificationType.zone
+                              ? () => _handleZonePhone(detail)
+                              : null,
+                        ),
                       ],
                     ),
                   ),

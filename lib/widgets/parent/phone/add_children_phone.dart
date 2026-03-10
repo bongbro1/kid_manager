@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/widgets/parent/phone/pick_child_phone_screen.dart';
 import 'package:provider/provider.dart';
 
 class AddChildPhoneScreen extends StatefulWidget {
-  final AppUser child;
+  final String childId;
+  final String childName;
 
   const AddChildPhoneScreen({
     super.key,
-    required this.child,
+    required this.childId,
+    required this.childName,
   });
 
   @override
@@ -32,7 +33,7 @@ class _AddChildPhoneScreenState extends State<AddChildPhoneScreen> {
     setState(() => _saving = true);
     try {
       await context.read<UserRepository>().updateUserProfileByUid(
-        uid: widget.child.uid,
+        uid: widget.childId,
         data: {
           'phone': phone.trim(),
         },
