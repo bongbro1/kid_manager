@@ -53,6 +53,7 @@ class AppShellConfig {
         sources: [NotificationSource.global, NotificationSource.userInbox],
       ),
       showBadge: true,
+      isNotificationTab: true,
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
@@ -82,14 +83,11 @@ class AppShellConfig {
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/bell.svg',
-      root: const NotificationDebugScreen(),
-    ),
-    BottomTabConfig(
-      iconAsset: 'assets/icons/bell.svg',
       root: const NotificationTab(
         sources: [NotificationSource.global, NotificationSource.userInbox],
       ),
       showBadge: true,
+      isNotificationTab: true,
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
@@ -100,4 +98,11 @@ class AppShellConfig {
       root: const PersonalInfoScreen(),
     ),
   ]);
+  static int get notificationTabIndex {
+    final parentIndex = parent().tabs.indexWhere((t) => t.isNotificationTab);
+
+    if (parentIndex >= 0) return parentIndex;
+
+    return child().tabs.indexWhere((t) => t.isNotificationTab);
+  }
 }

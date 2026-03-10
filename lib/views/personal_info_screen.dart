@@ -109,6 +109,20 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     context.read<UserVm>().listenProfile();
   }
 
+  Future<void> _logout() async {
+    final authVM = context.read<AuthVM>();
+    final notiVM = context.read<NotificationVM>();
+    final rootNav = Navigator.of(context, rootNavigator: true);
+
+    await notiVM.clear();
+    await authVM.logout();
+
+    rootNav.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SessionGuard()),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<UserVm>();
@@ -117,11 +131,16 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       return LoadingOverlay();
     }
 
-    if (p == null) {
-      return const Scaffold(body: Center(child: Text("Không có dữ liệu")));
-    }
+    // if (p == null) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     if (!mounted) return;
+    //     _logout();
+    //   });
 
-    final isChild = p.role.toString() == "child";
+    //   return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    // }
+
+    final isChild = p?.role.toString() == "child";
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
@@ -195,7 +214,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 child: tappablePhoto(
                                   context: context,
                                   vm: vm,
-                                  url: p.coverUrl,
+                                  url: p?.coverUrl,
                                   fallbackAsset: "assets/images/cover.png",
                                   onReplace: (index, file) {
                                     return vm.updateUserPhoto(
@@ -205,9 +224,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   },
                                   child: Image(
                                     image:
-                                        ((p.coverUrl ?? '').trim().isNotEmpty)
+                                        ((p?.coverUrl ?? '').trim().isNotEmpty)
                                         ? NetworkImage(
-                                            (p.coverUrl ?? '').trim(),
+                                            (p?.coverUrl ?? '').trim(),
                                           )
                                         : const AssetImage(
                                                 "assets/images/cover.png",
@@ -245,7 +264,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                       tappablePhoto(
                                         context: context,
                                         vm: vm,
-                                        url: p.avatarUrl,
+                                        url: p?.avatarUrl,
                                         fallbackAsset: "assets/images/u1.png",
                                         onReplace: (index, file) {
                                           return vm.updateUserPhoto(
@@ -266,11 +285,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                             ),
                                             image: DecorationImage(
                                               image:
-                                                  ((p.avatarUrl ?? '')
+                                                  ((p?.avatarUrl ?? '')
                                                       .trim()
                                                       .isNotEmpty)
                                                   ? NetworkImage(
-                                                      (p.avatarUrl ?? '')
+                                                      (p?.avatarUrl ?? '')
                                                           .trim(),
                                                     )
                                                   : const AssetImage(
@@ -502,83 +521,91 @@ class ConfirmLogoutSheet extends StatelessWidget {
       );
     }
 
-    return AppOverlaySheet(
-      height: 210,
-      showHandle: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            const SizedBox(height: 6),
-            Container(
-              width: 345,
-              decoration: ShapeDecoration(
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(
-                    width: 1,
-                    strokeAlign: BorderSide.strokeAlignCenter,
-                    color: const Color(0xFFEDF1F7),
+    final vm = context.watch<AuthVM>();
+    if (vm.error != null) {
+      return Text(vm.error!);
+    }
+
+    return Stack(
+      children: [
+        AppOverlaySheet(
+          height: 210,
+          showHandle: true,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                const SizedBox(height: 6),
+                Container(
+                  width: 345,
+                  decoration: ShapeDecoration(
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(
+                        width: 1,
+                        strokeAlign: BorderSide.strokeAlignCenter,
+                        color: const Color(0xFFEDF1F7),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
 
-            const SizedBox(height: 30),
-            Text(
-              'Bạn muốn đăng xuất?',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: const Color(0xFF212121),
-                fontSize: 16,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                height: 1.38,
-                letterSpacing: -0.41,
-              ),
-            ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      height: 50,
-                      text: 'Hủy bỏ',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      backgroundColor: const Color(0xFFE6F5FF),
-                      foregroundColor: const Color(0xFF3A7DFF),
-                    ),
+                const SizedBox(height: 30),
+                Text(
+                  'Bạn muốn đăng xuất?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: const Color(0xFF212121),
+                    fontSize: 16,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                    height: 1.38,
+                    letterSpacing: -0.41,
                   ),
+                ),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: AppButton(
+                          height: 50,
+                          text: 'Hủy bỏ',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          backgroundColor: const Color(0xFFE6F5FF),
+                          foregroundColor: const Color(0xFF3A7DFF),
+                        ),
+                      ),
 
-                  const SizedBox(width: 12),
+                      const SizedBox(width: 12),
 
-                  Expanded(
-                    child: AppButton(
-                      height: 50,
-                      text: 'Xác nhận',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await Future.delayed(const Duration(milliseconds: 150));
-                        await _logout();
-                      },
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
+                      Expanded(
+                        child: AppButton(
+                          height: 50,
+                          text: 'Xác nhận',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          onPressed: () async {
+                            await _logout();
+                          },
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        if (vm.loading) LoadingOverlay(),
+      ],
     );
   }
 }

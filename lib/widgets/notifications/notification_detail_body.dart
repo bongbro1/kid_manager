@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/widgets/notifications/blocked_app_detail_widget.dart';
+import 'package:kid_manager/widgets/notifications/removed_app_detail_widget.dart';
 import 'package:kid_manager/widgets/notifications/zone_details_widgets.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/widgets/notifications/schedule_detail_widget.dart';
@@ -15,6 +16,9 @@ class NotificationDetailBody extends StatelessWidget {
 
     if (type.toUpperCase() == 'ZONE' || type.toLowerCase() == 'zone') {
       return ZoneDetailWidget(detail: detail);
+    }
+    if (detail.notificationType == NotificationType.appRemoved) {
+      return RemovedAppDetailWidget(detail: detail);
     }
 
     if (detail.notificationType == NotificationType.blockedApp) {

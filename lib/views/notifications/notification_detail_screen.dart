@@ -120,19 +120,19 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     return Icons.location_on_outlined;
   }
 
-  String _formatTimeAgo(DateTime? time) {
-    if (time == null) return "";
+  // String _formatTimeAgo(DateTime? time) {
+  //   if (time == null) return "";
 
-    final diff = DateTime.now().difference(time);
+  //   final diff = DateTime.now().difference(time);
 
-    if (diff.inMinutes < 60) {
-      return "${diff.inMinutes} phút trước";
-    } else if (diff.inHours < 24) {
-      return "${diff.inHours} giờ trước";
-    } else {
-      return "${diff.inDays} ngày trước";
-    }
-  }
+  //   if (diff.inMinutes < 60) {
+  //     return "${diff.inMinutes} phút trước";
+  //   } else if (diff.inHours < 24) {
+  //     return "${diff.inHours} giờ trước";
+  //   } else {
+  //     return "${diff.inDays} ngày trước";
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

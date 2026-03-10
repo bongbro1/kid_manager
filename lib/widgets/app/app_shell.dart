@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
@@ -25,17 +26,19 @@ class _AppShellState extends State<AppShell> {
 
   late final List<GlobalKey<NavigatorState>> _navKeys = List.generate(
     _config.tabs.length,
-        (_) => GlobalKey<NavigatorState>(),
+    (_) => GlobalKey<NavigatorState>(),
   );
 
-  late final List<Widget> _tabs = List.generate(
-    _config.tabs.length,
-        (i) => Navigator(
-      key: _navKeys[i],
-      onGenerateRoute: (_) =>
-          MaterialPageRoute(builder: (_) => _config.tabs[i].root),
-    ),
-  );
+  late final List<Widget> _tabs = List.generate(_config.tabs.length, (i) {
+    final tab = _config.tabs[i];
+
+    final isNotificationTab = _config.tabs[i].isNotificationTab;
+
+    return Navigator(
+      key: isNotificationTab ? NotificationTabNavigator.key : _navKeys[i],
+      onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => tab.root),
+    );
+  });
 
   @override
   void initState() {
@@ -78,18 +81,15 @@ class _AppShellState extends State<AppShell> {
       child: Stack(
         children: [
           Scaffold(
-            body: IndexedStack(
-              index: _index,
-              children: _tabs,
-            ),
+            body: IndexedStack(index: _index, children: _tabs),
             bottomNavigationBar: AppBottomNav(
               items: _config.tabs
                   .map(
                     (t) => BottomNavItem(
-                  iconAsset: t.iconAsset,
-                  showBadge: t.showBadge,
-                ),
-              )
+                      iconAsset: t.iconAsset,
+                      showBadge: t.showBadge,
+                    ),
+                  )
                   .toList(),
               currentIndex: _index,
               onTap: _onNavTap,

@@ -1,8 +1,14 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:kid_manager/firebase_options.dart';
 import 'package:kid_manager/models/app_item_model.dart';
+import 'package:kid_manager/models/notifications/app_notification.dart';
+import 'package:kid_manager/models/notifications/notification_payload.dart';
+import 'package:kid_manager/models/notifications/removed_app_data.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/app_state_local_service.dart';
+import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -55,14 +61,39 @@ void callbackDispatcher() {
 
         // 🔹 Lấy danh sách child
         final childIds = await userRepo.getChildUserIds(userId);
+        final storage = await StorageService.create();
+        final localState = AppStateLocalService(storage);
 
         for (final childId in childIds) {
           final apps = await repo.loadAppsFromFirestore(childId);
 
-          final alive = await isAppAliveFromInstalled(packageName, apps);
+          final alive = isAppAliveFromInstalled(packageName, apps);
 
-          debugPrint("💓 Heartbeat check for child: $childId");
-          debugPrint("📦 package: $packageName");
+          final wasSent = localState.wasRemovalNotified(childId, packageName);
+
+          if (!alive && !wasSent) {
+            final removedData = RemovedAppData(
+              childId: childId,
+              packageName: packageName,
+              removedAt: DateFormat("HH:mm:ss").format(DateTime.now()),
+            );
+
+            await NotificationService.sendSystem(
+              NotificationPayload(
+                receiverId: userId,
+                type: NotificationType.appRemoved,
+                title: "Ứng dụng đã bị gỡ",
+                body: "Thiết bị của con đã gỡ ứng dụng: $packageName",
+                data: removedData.toMap(),
+              ),
+            );
+
+            await localState.markRemovalNotified(childId, packageName);
+          }
+
+          if (alive && wasSent) {
+            await localState.resetRemovalNotified(childId, packageName);
+          }
           debugPrint(alive ? "✅ App still installed" : "🪦 App removed");
         }
         return true;
@@ -91,7 +122,7 @@ bool isAppAliveFromInstalled(
       final lastSeen = app.lastSeen?.toDate();
       if (lastSeen == null) return false;
 
-      return now.difference(lastSeen) <= const Duration(hours: 1);
+      return now.difference(lastSeen) <= const Duration(minutes: 20);
     }
   }
 

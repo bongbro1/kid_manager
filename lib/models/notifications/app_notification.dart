@@ -6,6 +6,7 @@ import 'package:kid_manager/models/notifications/blocked_app_data.dart';
 enum NotificationStore { global, userInbox }
 
 enum NotificationType {
+  appRemoved,
   blockedApp,
   sos,
   heartbeatLost,
@@ -29,6 +30,8 @@ enum NotificationFilter {
 extension NotificationTypeX on NotificationType {
   String get value {
     switch (this) {
+      case NotificationType.appRemoved:
+        return "app_removed";
       case NotificationType.blockedApp:
         return "blocked_app";
       case NotificationType.sos:
@@ -53,6 +56,7 @@ extension NotificationTypeX on NotificationType {
 
   NotificationFilter get filter {
     switch (this) {
+      case NotificationType.appRemoved:
       case NotificationType.blockedApp:
       case NotificationType.usageLimitExceeded:
         return NotificationFilter.activity;
@@ -109,6 +113,7 @@ extension NotificationTypeX on NotificationType {
 
   NotificationStyle get style {
     switch (this) {
+      case NotificationType.appRemoved:
       case NotificationType.blockedApp:
         return const NotificationStyle(
           icon: Icons.block_rounded,

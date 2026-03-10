@@ -13,6 +13,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kid_manager/repositories/subscription_repository.dart';
 import 'package:kid_manager/repositories/terms_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/app_state_local_service.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/app_installed_service.dart';
 import 'package:kid_manager/services/permission_service.dart';
@@ -151,9 +152,16 @@ class _MyAppState extends State<MyApp> {
         Provider<ScheduleRepository>.value(value: scheduleRepo),
 
         Provider<ScheduleNotificationService>(
-          create: (context) => ScheduleNotificationService(
-            context.read<UserRepository>(),
-          ),
+          create: (context) =>
+              ScheduleNotificationService(context.read<UserRepository>()),
+        ),
+        Provider<LocationServiceInterface>(
+          create: (_) => LocationServiceImpl(),
+        ),
+        Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
+        Provider<AppStateLocalService>(
+          create: (context) =>
+              AppStateLocalService(context.read<StorageService>()),
         ),
 
         ChangeNotifierProvider(
@@ -179,11 +187,6 @@ class _MyAppState extends State<MyApp> {
             context.read<AuthVM>(),
           ),
         ),
-
-        Provider<LocationServiceInterface>(
-          create: (_) => LocationServiceImpl(),
-        ),
-        Provider<LocationRepository>(create: (_) => LocationRepositoryImpl()),
 
         ChangeNotifierProvider<SessionVM>(
           create: (context) => SessionVM(context.read<AuthRepository>()),
@@ -222,9 +225,6 @@ class _MyAppState extends State<MyApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('en'), Locale('vi')],
-
-        // ❌ bỏ: locale: context.locale,
-        // navigatorKey: AlertService.navigatorKey,
         navigatorObservers: [routeObserver],
         theme: AppTheme.light(),
         themeMode: ThemeMode.system,

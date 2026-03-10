@@ -32,6 +32,7 @@ class ForegroundApp {
   ForegroundApp({required this.packageName, required this.appName});
 }
 
+// xem child đang mở app nào và thực hiện gửi noti về cho parent nếu app bị cấm
 class WatcherService {
   static const _channel = MethodChannel("watcher");
 
@@ -73,9 +74,6 @@ class RealtimeAppMonitor {
   static Future<void> _onPackageChanged(ForegroundApp app) async {
     final pkg = app.packageName;
     final appName = app.appName;
-
-    debugPrint("📦 Checking rule for: $appName ($pkg)");
-
     final result = AppRuleChecker.check(pkg);
 
     // 👉 Không bị block thì thôi
@@ -86,7 +84,6 @@ class RealtimeAppMonitor {
 
     // 👉 chống spam notification
     if (lastTime != null && now.difference(lastTime) < _cooldown) {
-      debugPrint("⏳ Skip duplicate notification for $appName");
       return;
     }
 

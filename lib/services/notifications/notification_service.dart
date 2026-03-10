@@ -3,11 +3,13 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
+import 'package:kid_manager/widgets/app/app_sell_config.dart';
 
 class NotificationService {
   static const _channel = MethodChannel('notification_intent');
@@ -49,15 +51,17 @@ class NotificationService {
     }
 
     if (type != "sos") {
-      final navigator = AppNavigator.navigatorKey.currentState;
-      if (navigator != null) {
-        navigator.push(
+      activeTabNotifier.value = AppShellConfig.notificationTabIndex;
+      Future.microtask(() {
+        final nav = NotificationTabNavigator.key.currentState;
+        if (nav == null) return;
+
+        nav.push(
           MaterialPageRoute(
             builder: (_) => NotificationDetailScreen(item: item),
           ),
         );
-        return;
-      }
+      });
 
       return;
     }

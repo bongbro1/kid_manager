@@ -45,12 +45,12 @@ class MainActivity : FlutterActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
 
-        Log.d("NOTI_DEBUG", "onNewIntent called")
-        Log.d("NOTI_DEBUG", "extras=" + intent.extras)
+        // Log.d("NOTI_DEBUG", "onNewIntent called")
+        // Log.d("NOTI_DEBUG", "extras=" + intent.extras)
 
         val payload = intent.extras?.getString("payload")
 
-        Log.d("NOTI_DEBUG", "payload=$payload")
+        // Log.d("NOTI_DEBUG", "payload=$payload")
 
         if (payload != null) {
             MethodChannel(
