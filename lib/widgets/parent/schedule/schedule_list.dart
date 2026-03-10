@@ -230,9 +230,7 @@ import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
   });
 
   bool _canEdit(BuildContext context) {
-    final storage = context.read<StorageService>();
-    final role = storage.getString(StorageKeys.role);
-    return role == 'parent'; // ✅ chỉ cha mới được sửa/xóa
+    return true;
   }
 
   @override

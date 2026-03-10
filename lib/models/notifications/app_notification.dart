@@ -11,7 +11,8 @@ enum NotificationType {
   heartbeatLost,
   usageLimitExceeded,
   schedule,
-  memoryDay, 
+  memoryDay,
+  importExcel, 
   battery,
   birthday,
   zone, // ✅ thêm
@@ -42,6 +43,8 @@ extension NotificationTypeX on NotificationType {
         return "schedule";
       case NotificationType.memoryDay:
         return "memory_day";
+      case NotificationType.importExcel:
+        return "import_excel";
       case NotificationType.battery:
         return "battery";
       case NotificationType.birthday:
@@ -68,6 +71,7 @@ extension NotificationTypeX on NotificationType {
 
       case NotificationType.schedule:
       case NotificationType.memoryDay:
+      case NotificationType.importExcel:
       case NotificationType.birthday:
         return NotificationFilter.reminder;
 
@@ -147,7 +151,7 @@ extension NotificationTypeX on NotificationType {
 
       case NotificationType.schedule:
         return const NotificationStyle(
-          icon: Icons.calendar_today_rounded,
+          icon: Icons.calendar_month_rounded,
           bgColor: Color(0xFFEEF2FF),
           borderColor: Color(0xFFC7D2FE),
           iconColor: Color(0xFF4F46E5),
@@ -158,7 +162,15 @@ extension NotificationTypeX on NotificationType {
           icon: Icons.star_border_rounded,
           bgColor: Color.fromARGB(255, 250, 255, 176),
           borderColor: Color.fromARGB(255, 192, 189, 0),
-          iconColor: Color.fromARGB(255, 252, 143, 0),
+          iconColor: Color.fromARGB(255, 192, 189, 0), //Color.fromARGB(255, 252, 143, 0),
+        );
+
+      case NotificationType.importExcel:
+        return const NotificationStyle(
+          icon: Icons.upload_file_rounded,
+          bgColor: Color.fromARGB(255, 162, 255, 182),
+          borderColor: Color.fromARGB(255, 0, 224, 49),
+          iconColor: Color.fromARGB(255, 0, 224, 49),
         );
 
       case NotificationType.battery:

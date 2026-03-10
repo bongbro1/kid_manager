@@ -175,6 +175,11 @@ class ScheduleNotificationService {
     final actorIsParent = actorUid == ownerParentUid;
     final receiverId = actorIsParent ? childId : ownerParentUid;
 
+    final actorChildName = await _resolveActorChildName(
+      actorUid: actorUid,
+      ownerParentUid: ownerParentUid,
+    );
+
     if (receiverId.isEmpty) {
       debugPrint('[SCHEDULE_IMPORT_NOTIFY] skip: empty receiver');
       return;
@@ -194,7 +199,7 @@ class ScheduleNotificationService {
     final title = 'Lịch trình mới được thêm';
     final body = actorIsParent
         ? 'Cha vừa thêm $importCount lịch cho $resolvedChildName.'
-        : 'Con vừa thêm $importCount lịch.';
+        : '$actorChildName vừa thêm $importCount lịch.';
 
     final data = {
       'entity': 'schedule_import',
@@ -204,13 +209,14 @@ class ScheduleNotificationService {
       'ownerParentUid': ownerParentUid,
       'childId': childId,
       'childName': resolvedChildName,
+      'actorChildName': actorIsParent ? '' : actorChildName,
       'importCount': importCount.toString(),
     };
 
     await NotificationService.sendUserToUser(
       senderId: actorUid,
       receiverId: receiverId,
-      type: NotificationType.schedule.value,
+      type: NotificationType.importExcel.value,
       title: title,
       body: body,
       data: data,
@@ -225,10 +231,16 @@ class ScheduleNotificationService {
   }) async {
     final actorIsParent = actorUid == ownerParentUid;
 
+    final actorChildName = await _resolveActorChildName(
+      actorUid: actorUid,
+      ownerParentUid: ownerParentUid,
+    );
+
     final title = _buildMemoryDayTitle(action);
     final body = _buildMemoryDayBody(
       action: action,
       actorIsParent: actorIsParent,
+      actorChildName: actorChildName,
       memoryDay: memoryDay,
     );
 
@@ -244,6 +256,7 @@ class ScheduleNotificationService {
       'dateIso': memoryDay.date.toIso8601String(),
       'repeatYearly': memoryDay.repeatYearly.toString(),
       'note': (memoryDay.note ?? '').trim(),
+      'childName': actorIsParent ? '' : actorChildName,
     };
 
     if (actorIsParent) {
@@ -315,6 +328,7 @@ class ScheduleNotificationService {
   String _buildMemoryDayBody({
     required String action,
     required bool actorIsParent,
+    required String actorChildName,
     required MemoryDay memoryDay,
   }) {
     final title = memoryDay.title.trim().isEmpty
@@ -335,13 +349,13 @@ class ScheduleNotificationService {
     } else {
       switch (action) {
         case 'created':
-          return 'Con đã thêm ngày đáng nhớ "$title".';
+          return '$actorChildName đã thêm ngày đáng nhớ "$title".';
         case 'updated':
-          return 'Con đã chỉnh sửa ngày đáng nhớ "$title".';
+          return '$actorChildName đã chỉnh sửa ngày đáng nhớ "$title".';
         case 'deleted':
-          return 'Con đã xóa ngày đáng nhớ "$title".';
+          return '$actorChildName đã xóa ngày đáng nhớ "$title".';
         default:
-          return 'Con đã thay đổi ngày đáng nhớ "$title".';
+          return '$actorChildName đã thay đổi ngày đáng nhớ "$title".';
       }
     }
   }
@@ -405,6 +419,16 @@ class ScheduleNotificationService {
   String _resolveChildName(String? name, String fallbackUid) {
     final n = (name ?? '').trim();
     return n.isEmpty ? 'Bé' : n;
+  }
+
+  Future<String> _resolveActorChildName({
+    required String actorUid,
+    required String ownerParentUid,
+  }) async {
+    if (actorUid == ownerParentUid) return 'Ba/Mẹ';
+
+    final child = await _userRepo.getUserById(actorUid);
+    return _resolveChildName(child?.displayName, actorUid);
   }
 
   String _hhmm(DateTime d) {
