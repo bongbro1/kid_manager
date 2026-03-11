@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:kid_manager/api/sos_api.dart';
 import 'package:kid_manager/core/location/motion_detector.dart';
 import 'package:kid_manager/core/location/send_policy.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
@@ -11,7 +9,6 @@ import 'package:kid_manager/core/location/tracking_state.dart';
 import 'package:kid_manager/core/zones/zone_monitor.dart';
 import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
 import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
-import 'package:kid_manager/helpers/location/transport_mode_detector.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
@@ -104,7 +101,18 @@ class ChildLocationViewModel extends ChangeNotifier {
     _activitySub = null;
     _lastActivity = null;
   }
+  bool _isJumpTooLarge(LocationData? prev, LocationData next) {
+    if (prev == null) return false;
 
+    final dtSec = (next.timestamp - prev.timestamp) / 1000.0;
+    if (dtSec <= 0) return true;
+
+    final distanceMeters = prev.distanceTo(next) * 1000.0;
+    final speedMps = distanceMeters / dtSec;
+
+    // > 45 m/s ~ 162 km/h, với trẻ em gần như bất thường
+    return speedMps > 45;
+  }
   Future<void> _ensureZoneMonitor() async {
     if (_zonesInited) return;
 
@@ -187,8 +195,9 @@ class ChildLocationViewModel extends ChangeNotifier {
 
       final result = _engine.process(raw, _lastActivity);
       _transport = result.transport;
-      _currentLocation = result.filteredLocation;
-      try {
+      if (_currentLocation == null || result.filteredLocation.accuracy <= 50) {
+        _currentLocation = result.filteredLocation;
+      }      try {
         if (_zonesInited) {
           await _zoneMonitor.onLocation(result.filteredLocation);
         }
@@ -211,30 +220,43 @@ class ChildLocationViewModel extends ChangeNotifier {
       // =========================
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final acc = result.filteredLocation.accuracy;
+      final rejectVeryBadAcc = acc > 100;
+      final goodHistoryAcc = acc <= 30; // bạn có thể chỉnh 50/80 tuỳ
+      final filtered = result.filteredLocation;
 
-      final goodAcc = acc <= 80; // bạn có thể chỉnh 50/80 tuỳ
-
+      if (_isJumpTooLarge(_currentLocation, filtered) && filtered.accuracy > 20) {
+        debugPrint('⛔ Skip jump point: acc=${filtered.accuracy}');
+        return;
+      }
       try {
-        if (goodAcc) {
-          // update current mỗi 3s
-          if (nowMs - _lastCurrentSentAtMs >= 3000) {
-            _lastCurrentSentAtMs = nowMs;
-            await _locationRepository.updateMyCurrent(payload);
-          }
-        } else {
-          // accuracy xấu: update current thưa 30s (keep-alive)
-          if (nowMs - _lastBadAccCurrentSentAtMs >= 30000) {
-            _lastBadAccCurrentSentAtMs = nowMs;
-            await _locationRepository.updateMyCurrent(payload);
+        if (!rejectVeryBadAcc) {
+          if (acc <= 20) {
+            if (nowMs - _lastCurrentSentAtMs >= 3000) {
+              _lastCurrentSentAtMs = nowMs;
+              await _locationRepository.updateMyCurrent(payload);
+            }
+          } else if (acc <= 50) {
+            if (nowMs - _lastCurrentSentAtMs >= 8000) {
+              _lastCurrentSentAtMs = nowMs;
+              await _locationRepository.updateMyCurrent(payload);
+            }
+          } else {
+            if (nowMs - _lastBadAccCurrentSentAtMs >= 30000) {
+              _lastBadAccCurrentSentAtMs = nowMs;
+              await _locationRepository.updateMyCurrent(payload);
+            }
           }
         }
+
+
+
+
 
         // =========================
         // 2) Append HISTORY only when policy allows
         // =========================
-        if (result.shouldSend) {
+        if (result.shouldSend && goodHistoryAcc) {
           await _locationRepository.appendMyHistory(payload);
-          debugPrint("📤 HISTORY PUSH = ${payload.toJson()}");
         }
 
         debugPrint(
@@ -249,8 +271,9 @@ class ChildLocationViewModel extends ChangeNotifier {
         _setError(e);
       }
 
-      _appendTrail(result.filteredLocation);
-      notifyListeners();
+      if (acc <= 30) {
+        _appendTrail(result.filteredLocation);
+      }      notifyListeners();
     });
   }
 
