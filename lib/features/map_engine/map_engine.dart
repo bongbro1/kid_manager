@@ -6,6 +6,7 @@ import 'package:kid_manager/features/map_engine/history_renderer.dart';
 import 'package:kid_manager/features/map_engine/route_renderer.dart';
 import 'package:kid_manager/features/map_engine/services/map_matching_service.dart';
 import 'package:kid_manager/features/map_engine/services/segmented_map_matcher.dart';
+import 'package:kid_manager/features/map_engine/start_end/start_end_marker_renderer.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -33,9 +34,9 @@ class MapEngine {
   int _lastFollowMs = 0;
 
   List<double>? _anchor; // [lng,lat] điểm neo cuối cùng (road hoặc straight)
-
+  final void Function(LocationData point)? onHistoryPointSelected;
   ChildBlueDotRenderer? childDot;
-
+  late StartEndMarkerRenderer startEndMarkers;
   final _segMatcher = SegmentedMapMatcher(MapMatchingService());
   InteractionController? interaction;
 
@@ -46,10 +47,12 @@ class MapEngine {
         this.enableRoute = true,
         this.enableInteraction = true,
         this.enableCameraFollow = true,
+        this.onHistoryPointSelected
       }) {
     route = RouteRenderer(map);
     history = HistoryRenderer(map);
     camera = CameraController(map);
+    startEndMarkers = StartEndMarkerRenderer(map);
 
     if (enableChildDot) {
       childDot = ChildBlueDotRenderer(map);
@@ -59,7 +62,24 @@ class MapEngine {
   Future<void> init() async {
     if (enableRoute) await route.init();
     if (enableHistory) await history.init(visible: showHistoryDots); // ✅
+    await startEndMarkers.init();
+
     if (enableChildDot) await childDot!.init();
+  }
+
+  void handleMapTap(MapContentGestureContext gestureContext) {
+    final currentInteraction = interaction;
+    if (currentInteraction == null) return;
+
+    final coord = gestureContext.point.coordinates;
+    final lat = coord.lat.toDouble();
+    final lng = coord.lng.toDouble();
+
+    currentInteraction.handleTap(
+      lat: lat,
+      lng: lng,
+      maxDistanceMeters: 35,
+    );
   }
 
   Future<void> setHistoryDotsVisible(bool v) async {
@@ -109,16 +129,16 @@ class MapEngine {
         await route.renderRoad([]);
         await route.renderStraightSegments([]);
       }
+      await startEndMarkers.clear();
       return;
     }
 
-    // sort để chắc đúng thứ tự
     final sorted = [...data]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-    // nếu <2 điểm thì chỉ vẽ points
     if (sorted.length < 2) {
       if (enableHistory) await history.render(sorted);
-      // anchor + lastMatchedTs vẫn set để incremental không kéo từ đầu
+      await startEndMarkers.renderSinglePoint(sorted.last);
+
       _lastMatchedTs = sorted.last.timestamp;
       _anchor = <double>[sorted.last.longitude, sorted.last.latitude];
       return;
@@ -131,18 +151,14 @@ class MapEngine {
 
     if (enableRoute) {
       if (matched != null && matched.routeCoordinates.length >= 2) {
-        // road
         _matchedRoute = matched.routeCoordinates;
         await route.renderRoad(_matchedRoute);
 
-        // straight (từ segment ngắn/fail do SegmentedMapMatcher build)
         _straightSegs = matched.straightSegments;
         await route.renderStraightSegments(_straightSegs);
 
-        // anchor = cuối road
         _anchor = _matchedRoute.last;
       } else {
-        // match fail: road rỗng, straight = full raw
         _matchedRoute = [];
         await route.renderRoad([]);
 
@@ -157,26 +173,31 @@ class MapEngine {
       await history.render(pointsToShow);
     }
 
-    // fit 1 lần
+    await startEndMarkers.render(sorted);
+
     if (!_didInitialFit) {
       _didInitialFit = true;
       await camera.fitToRoute(pointsToShow);
     }
 
     if (enableInteraction) {
-      interaction = InteractionController(map, pointsToShow, context);
-      await interaction!.attach();
+      interaction = InteractionController(
+        pointsToShow,
+        onPointSelected: onHistoryPointSelected,
+      );
     }
 
-    // ✅ CỰC QUAN TRỌNG: set lastMatchedTs để incremental không kéo từ điểm đầu
     _lastMatchedTs = sorted.last.timestamp;
 
-    // ✅ cập nhật anchor chắc chắn đúng
     if (_matchedRoute.isNotEmpty) {
       _anchor = _matchedRoute.last;
     } else if (_straightSegs.isNotEmpty && _straightSegs.last.isNotEmpty) {
       _anchor = _straightSegs.last.last;
     }
+  }
+
+  Future<void> updateEndMarkerRealtime(LocationData loc) async {
+    await startEndMarkers.updateEndMarker(loc);
   }
 
   Future<void> updateMatchedRouteIncremental(
@@ -192,6 +213,8 @@ class MapEngine {
     if (latestTs <= _lastMatchedTs) {
       // vẫn update points để user thấy realtime
       if (enableHistory) await history.render(sorted);
+      await startEndMarkers.updateEndMarker(sorted.last);
+
       return;
     }
 
@@ -263,9 +286,12 @@ class MapEngine {
       if (enableHistory) await history.render(sorted);
 
       if (enableInteraction) {
-        interaction ??= InteractionController(map, sorted, context);
-        await interaction!.attach();
+        interaction = InteractionController(
+          sorted,
+          onPointSelected: onHistoryPointSelected,
+        );
       }
+      await startEndMarkers.updateEndMarker(sorted.last);
       return;
     }
 
@@ -276,6 +302,8 @@ class MapEngine {
     if (newCoords.length < 2) {
       _lastMatchedTs = latestTs;
       if (enableHistory) await history.render(sorted);
+      await startEndMarkers.updateEndMarker(sorted.last);
+
       return;
     }
 
@@ -314,9 +342,12 @@ class MapEngine {
     if (enableHistory) await history.render(matched.snappedPoints);
 
     if (enableInteraction) {
-      interaction ??= InteractionController(map, matched.snappedPoints, context);
-      await interaction!.attach();
+      interaction = InteractionController(
+        matched.snappedPoints,
+        onPointSelected: onHistoryPointSelected,
+      );
     }
+    await startEndMarkers.updateEndMarker(sorted.last);
   }
 
   Future<void> updateChildRealtime(LocationData loc) async {
@@ -338,18 +369,24 @@ class MapEngine {
     if (data.isEmpty) return;
 
     await history.render(data);
+    await startEndMarkers.updateEndMarker(data.last);
 
     if (enableInteraction) {
-      interaction ??= InteractionController(map, data, context);
-      await interaction!.attach();
+      interaction = InteractionController(
+        data,
+        onPointSelected: onHistoryPointSelected,
+      );
     }
   }
 
-  void resetForNewHistory() {
+  Future<void> resetForNewHistory() async {
     _matchedRoute = [];
     _straightSegs = [];
     _anchor = null;
     _lastMatchedTs = 0;
-    _didInitialFit = false; // ✅ reset zoom flag luôn
+    _didInitialFit = false;
+    interaction =null;
+    interaction = null;
+    await startEndMarkers.clear();
   }
 }
