@@ -42,7 +42,10 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
 
     if (!hasAllPermissions) {
       debugPrint("❌ Missing permissions");
-      return;
+      await requestMissingPermissions();
+
+      await checkPermissions();
+      if (!hasAllPermissions) return;
     }
 
     final uid = storage.getString(StorageKeys.uid);

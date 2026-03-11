@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/background/foreground_watcher.dart';
+import 'package:kid_manager/background/native_watcher_service.dart';
 import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
-import 'package:kid_manager/services/rule_runtime_service.dart';
 
 enum _RuntimeState { stopped, starting, running, stopping }
 
@@ -27,12 +26,10 @@ class AuthRuntimeManager {
     User? lastUser;
 
     _sub = FirebaseAuth.instance.authStateChanges().listen((user) {
-      final sameLoginState =
-          (lastUser == null && user == null) ||
-          (lastUser != null && user != null);
+      final sameUser = lastUser?.uid == user?.uid;
 
-      // 🔒 Ignore token refresh / reconnect
-      if (sameLoginState) return;
+      // Ignore duplicate event for same uid
+      if (sameUser) return;
 
       lastUser = user;
       _handleAuthChanged(user);
@@ -68,10 +65,14 @@ class AuthRuntimeManager {
   // ================= LOGIN =================
 
   static Future<void> _safeLogin(String uid, int token) async {
-    /// already running with same user -> ignore
-    if (_state == _RuntimeState.running && _currentUid == uid) return;
+    if (_state == _RuntimeState.running && _currentUid == uid) {
+      final running = await NativeWatcherService.isWatcherRunning();
+      if (running) {
+        debugPrint("🟡 Runtime already running and watcher alive");
+        return;
+      }
+    }
 
-    /// avoid parallel start
     if (_state == _RuntimeState.starting) return;
 
     _state = _RuntimeState.starting;
@@ -80,23 +81,31 @@ class AuthRuntimeManager {
     debugPrint("🟢 Runtime starting for $uid");
 
     try {
-      await WatcherService.start();
-
-      /// if another auth event happened -> cancel this flow
       if (token != _opToken) return;
 
       await FcmPushReceiverService.init(uid);
 
-      if (_parentId != null && _displayName != null) {
-        RealtimeAppMonitor.start(
-          parentId: _parentId!,
-          displayName: _displayName!,
-        );
-      }
-
       if (token != _opToken) return;
 
-      await RuleRuntimeService.start(uid);
+      if (_parentId != null && _displayName != null) {
+        final running = await NativeWatcherService.isWatcherRunning();
+
+        if (!running) {
+          final ok = await NativeWatcherService.startWatcher(
+            userId: uid,
+            parentId: _parentId,
+            childName: _displayName,
+          );
+
+          debugPrint(
+            ok
+                ? "✅ Native watcher started"
+                : "❌ Native watcher failed to start",
+          );
+        } else {
+          debugPrint("🟡 Native watcher already running");
+        }
+      }
 
       if (token != _opToken) return;
 
@@ -120,15 +129,9 @@ class AuthRuntimeManager {
     debugPrint("🔴 Runtime stopping");
 
     try {
-      RuleRuntimeService.stop();
-
       if (token != _opToken) return;
 
-      RealtimeAppMonitor.stop();
-
-      if (token != _opToken) return;
-
-      await WatcherService.stop();
+      await NativeWatcherService.stopWatcher();
     } catch (e) {
       debugPrint("❌ Runtime stop error: $e");
     }

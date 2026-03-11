@@ -1,45 +1,87 @@
 package com.example.kid_manager
 
 import android.content.Intent
+import android.os.Bundle
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.EventChannel
-import android.os.Bundle
-
+import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+
+    private val WATCHER_CHANNEL = "watcher"
+    private val NOTIFICATION_CHANNEL = "notification_intent"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "watcher")
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WATCHER_CHANNEL)
             .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "startWatcher" -> {
+                        val userId = call.argument<String>("userId")
+                        val parentId = call.argument<String>("parentId")
+                        val childName = call.argument<String>("childName")
 
-                if (call.method == "startWatcher") {
+                        if (userId.isNullOrBlank()) {
+                            result.error("INVALID_ARGS", "userId is required", null)
+                            return@setMethodCallHandler
+                        }
 
-                    val intent = Intent(this, AppWatcherService::class.java)
-                    startForegroundService(intent)
+                        val prefs = getSharedPreferences("watcher_prefs", MODE_PRIVATE)
+                        prefs.edit()
+                            .putString("userId", userId)
+                            .putString("parentId", parentId)
+                            .putString("childName", childName)
+                            .putBoolean("watcher_enabled", true)
+                            .apply()
 
-                    result.success(true)
+                        val intent = Intent(this, AppWatcherService::class.java).apply {
+                            putExtra("userId", userId)
+                            putExtra("parentId", parentId)
+                            putExtra("childName", childName)
+                        }
+
+                        startForegroundService(intent)
+                        result.success(true)
+                    }
+
+                    "stopWatcher" -> {
+                        val prefs = getSharedPreferences("watcher_prefs", MODE_PRIVATE)
+                        prefs.edit()
+                            .putBoolean("watcher_enabled", false)
+                            .remove("userId")
+                            .remove("parentId")
+                            .remove("childName")
+                            .apply()
+
+                        val intent = Intent(this, AppWatcherService::class.java)
+                        stopService(intent)
+                        result.success(true)
+                    }
+
+
+                    "isWatcherRunning" -> {
+                        result.success(AppWatcherService.isRunning)
+                    }
+
+                    
+                    else -> result.notImplemented()
                 }
             }
 
-        EventChannel(flutterEngine.dartExecutor.binaryMessenger, "watcher_stream")
-            .setStreamHandler(object : EventChannel.StreamHandler {
+        // EventChannel(flutterEngine.dartExecutor.binaryMessenger, "watcher_stream")
+        //     .setStreamHandler(object : EventChannel.StreamHandler {
+        //         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+        //             ForegroundAppBridge.eventSink = events
+        //         }
 
-                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-                    ForegroundAppBridge.eventSink = events
-                }
-
-                override fun onCancel(arguments: Any?) {
-                    ForegroundAppBridge.eventSink = null
-                }
-            })
+        //         override fun onCancel(arguments: Any?) {
+        //             ForegroundAppBridge.eventSink = null
+        //         }
+        //     })
     }
-
-    private val CHANNEL = "notification_intent"
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -55,8 +97,10 @@ class MainActivity : FlutterActivity() {
         if (payload != null) {
             MethodChannel(
                 flutterEngine?.dartExecutor?.binaryMessenger!!,
-                CHANNEL
+                NOTIFICATION_CHANNEL
             ).invokeMethod("notificationTap", payload)
         }
     }
+
+    
 }
