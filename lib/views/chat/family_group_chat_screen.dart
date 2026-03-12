@@ -136,7 +136,7 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
 
       setState(() {
         final index =
-        _pendingMessages.indexWhere((m) => m.localId == pending.localId);
+            _pendingMessages.indexWhere((m) => m.localId == pending.localId);
         if (index != -1) {
           _pendingMessages[index] =
               _pendingMessages[index].copyWith(failed: true);
