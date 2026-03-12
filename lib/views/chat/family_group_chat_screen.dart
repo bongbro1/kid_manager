@@ -53,6 +53,9 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
   final List<LocalPendingChatMessage> _pendingMessages = [];
 
   bool _clearedChatNotification = false;
+  String? _activeFamilyId;
+  Stream<List<FamilyChatMember>>? _membersStream;
+  Stream<List<FamilyChatMessage>>? _messagesStream;
 
   @override
   void dispose() {
@@ -63,6 +66,23 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
   void _resetLocalState() {
     _textController.clear();
     _pendingMessages.clear();
+  }
+
+  void _ensureChatStreams(String familyId) {
+    final hasActiveStreams = _membersStream != null && _messagesStream != null;
+    if (_activeFamilyId == familyId && hasActiveStreams) {
+      return;
+    }
+
+    _activeFamilyId = familyId;
+    _membersStream = _repo.watchMembers(familyId);
+    _messagesStream = _repo.watchMessages(familyId);
+    _clearedChatNotification = false;
+    _resetLocalState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _clearChatNotificationIfNeeded(familyId);
+    });
   }
 
   Future<void> _clearChatNotificationIfNeeded(String familyId) async {
@@ -83,17 +103,14 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
       );
 
       _clearedChatNotification = true;
-      debugPrint('✅ cleared chatNotifications for familyId=$familyId');
+      debugPrint('[FamilyGroupChatScreen] cleared chat notifications for familyId=$familyId');
     } catch (e, st) {
-      debugPrint('❌ clear chatNotifications error: $e');
+      debugPrint('[FamilyGroupChatScreen] clear chat notifications error: $e');
       debugPrintStack(stackTrace: st);
     }
   }
 
-  void _sendMessage({
-    required AppUser me,
-    required String familyId,
-  }) {
+  void _sendMessage() {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
@@ -146,132 +163,266 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF0F172A),
           elevation: 0.5,
-          title: const Text('Nhóm chat gia đình'),
+          title: const Text('Family group chat'),
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _clearChatNotificationIfNeeded(familyId);
-    });
+    _ensureChatStreams(familyId);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
-        elevation: 0.5,
-        titleSpacing: 16,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Family Chat',
-              style: TextStyle(
-                fontSize: 18,
+    final membersStream = _membersStream!;
+    final messagesStream = _messagesStream!;
+
+    return StreamBuilder<List<FamilyChatMember>>(
+      stream: membersStream,
+      builder: (context, membersSnapshot) {
+        final members = membersSnapshot.data ?? const <FamilyChatMember>[];
+        final isMembersLoading =
+            membersSnapshot.connectionState == ConnectionState.waiting &&
+                members.isEmpty;
+
+        final memberNamesByUid = <String, String>{
+          for (final member in members) member.uid: member.displayName,
+        };
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFF0F172A),
+            elevation: 0.5,
+            titleSpacing: 12,
+            title: _ChatHeader(
+              members: members,
+              myUid: me.uid,
+              isLoading: isMembersLoading,
+            ),
+          ),
+          body: Column(
+            children: [
+              _MembersBar(
+                members: members,
+                myUid: me.uid,
+                isLoading: isMembersLoading,
+              ),
+              Expanded(
+                child: _MessagesView(
+                  messagesStream: messagesStream,
+                  myUid: me.uid,
+                  pendingMessages: _pendingMessages,
+                  memberNamesByUid: memberNamesByUid,
+                ),
+              ),
+              _Composer(
+                controller: _textController,
+                onSend: _sendMessage,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ChatHeader extends StatelessWidget {
+  const _ChatHeader({
+    required this.members,
+    required this.myUid,
+    required this.isLoading,
+  });
+
+  final List<FamilyChatMember> members;
+  final String myUid;
+  final bool isLoading;
+
+  String _safeDisplayName(FamilyChatMember member) {
+    if (member.uid == myUid) return 'You';
+    final text = member.displayName.trim();
+    return text.isEmpty ? 'Member' : text;
+  }
+
+  String _memberSummary() {
+    if (isLoading) return 'Loading members...';
+    if (members.isEmpty) return 'No members found';
+
+    final names = members.map(_safeDisplayName).toList(growable: false);
+
+    const maxVisible = 3;
+    if (names.length <= maxVisible) {
+      return names.join(', ');
+    }
+
+    final visible = names.take(maxVisible).join(', ');
+    return '$visible +${names.length - maxVisible}';
+  }
+
+  String _memberCountLabel() {
+    if (members.isEmpty) return '';
+    if (members.length == 1) return '1 member';
+    return '${members.length} members';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final countLabel = _memberCountLabel();
+
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: const Color(0xFFDBEAFE),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Icons.groups_rounded,
+            color: Color(0xFF1D4ED8),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Family Group Chat',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _memberSummary(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (countLabel.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Text(
+              countLabel,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF1D4ED8),
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
               ),
             ),
-            SizedBox(height: 2),
-            Text(
-              'Realtime group chat',
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-            ),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          _MembersBar(
-            membersStream: _repo.watchMembers(familyId),
-            myUid: me.uid,
           ),
-          Expanded(
-            child: _MessagesView(
-              messagesStream: _repo.watchMessages(familyId),
-              myUid: me.uid,
-              pendingMessages: _pendingMessages,
-            ),
-          ),
-          _Composer(
-            controller: _textController,
-            onSend: () => _sendMessage(me: me, familyId: familyId),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
 
 class _MembersBar extends StatelessWidget {
   const _MembersBar({
-    required this.membersStream,
+    required this.members,
     required this.myUid,
+    required this.isLoading,
   });
 
-  final Stream<List<FamilyChatMember>> membersStream;
+  final List<FamilyChatMember> members;
   final String myUid;
+  final bool isLoading;
+
+  String _safeDisplayName(String rawName) {
+    final text = rawName.trim();
+    return text.isEmpty ? 'Member' : text;
+  }
+
+  String _initialOf(String rawName) {
+    final text = rawName.trim();
+    if (text.isEmpty) return '?';
+    return text.substring(0, 1).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading && members.isEmpty) {
+      return const SizedBox(
+        height: 52,
+        child: Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    if (members.isEmpty) {
+      return const SizedBox(height: 8);
+    }
+
     return Container(
       height: 64,
       color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: StreamBuilder<List<FamilyChatMember>>(
-        stream: membersStream,
-        builder: (context, snapshot) {
-          final members = snapshot.data ?? const <FamilyChatMember>[];
-          if (members.isEmpty) {
-            return const SizedBox.shrink();
-          }
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: members.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, index) {
+          final member = members[index];
+          final isMe = member.uid == myUid;
+          final roleColor = member.role == 'parent'
+              ? const Color(0xFFF59E0B)
+              : const Color(0xFF38BDF8);
 
-          return ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: members.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (_, index) {
-              final member = members[index];
-              final isMe = member.uid == myUid;
-              return Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isMe
-                      ? const Color(0xFFDBEAFE)
-                      : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: member.role == 'parent'
-                            ? const Color(0xFFF59E0B)
-                            : const Color(0xFF38BDF8),
-                        shape: BoxShape.circle,
-                      ),
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: isMe ? const Color(0xFFDBEAFE) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 11,
+                  backgroundColor: roleColor.withAlpha(30),
+                  child: Text(
+                    _initialOf(member.displayName),
+                    style: TextStyle(
+                      color: roleColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      isMe ? 'You' : member.displayName,
-                      style: const TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              );
-            },
+                const SizedBox(width: 8),
+                Text(
+                  isMe ? 'You' : _safeDisplayName(member.displayName),
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -284,11 +435,27 @@ class _MessagesView extends StatelessWidget {
     required this.messagesStream,
     required this.myUid,
     required this.pendingMessages,
+    required this.memberNamesByUid,
   });
 
   final Stream<List<FamilyChatMessage>> messagesStream;
   final String myUid;
   final List<LocalPendingChatMessage> pendingMessages;
+  final Map<String, String> memberNamesByUid;
+
+  String _resolveSenderName(FamilyChatMessage message) {
+    final currentName = memberNamesByUid[message.senderUid]?.trim();
+    if (currentName != null && currentName.isNotEmpty) {
+      return currentName;
+    }
+
+    final fallback = message.senderName.trim();
+    if (fallback.isNotEmpty) {
+      return fallback;
+    }
+
+    return 'Member';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -316,34 +483,44 @@ class _MessagesView extends StatelessWidget {
           );
         }
 
-        return ListView(
+        final pendingCount = pendingMessages.length;
+        final totalCount = pendingCount + messages.length;
+
+        return ListView.builder(
           reverse: true,
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-          children: [
-            ...pendingMessages.map(
-                  (m) => Padding(
+          itemCount: totalCount,
+          itemBuilder: (context, index) {
+            if (index < pendingCount) {
+              final localMessage = pendingMessages[index];
+              return Padding(
+                key: ValueKey('local-${localMessage.localId}'),
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: _LocalPendingBubble(message: m),
+                  child: _LocalPendingBubble(message: localMessage),
+                ),
+              );
+            }
+
+            final message = messages[index - pendingCount];
+            final isMine = message.senderUid == myUid;
+
+            return Padding(
+              key: ValueKey('server-${message.id}'),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Align(
+                alignment: isMine
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                child: _MessageBubble(
+                  message: message,
+                  isMine: isMine,
+                  displaySenderName: _resolveSenderName(message),
                 ),
               ),
-            ),
-            ...messages.map(
-                  (message) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Align(
-                  alignment: message.senderUid == myUid
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: _MessageBubble(
-                    message: message,
-                    isMine: message.senderUid == myUid,
-                  ),
-                ),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -361,9 +538,8 @@ class _LocalPendingBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusText = message.failed ? 'failed' : 'sending...';
 
-    final statusColor = message.failed
-        ? const Color(0xFFDC2626)
-        : const Color(0xFF64748B);
+    final statusColor =
+    message.failed ? const Color(0xFFDC2626) : const Color(0xFF64748B);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
@@ -409,10 +585,12 @@ class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.message,
     required this.isMine,
+    required this.displaySenderName,
   });
 
   final FamilyChatMessage message;
   final bool isMine;
+  final String displaySenderName;
 
   @override
   Widget build(BuildContext context) {
@@ -433,9 +611,7 @@ class _MessageBubble extends StatelessWidget {
             bottomRight: Radius.circular(isMine ? 4 : 16),
           ),
           border: Border.all(
-            color: isMine
-                ? const Color(0xFFBBF7D0)
-                : const Color(0xFFE2E8F0),
+            color: isMine ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0),
           ),
           boxShadow: const [
             BoxShadow(
@@ -451,7 +627,7 @@ class _MessageBubble extends StatelessWidget {
           children: [
             if (!isMine) ...[
               Text(
-                message.senderName,
+                displaySenderName,
                 style: const TextStyle(
                   color: Color(0xFF2563EB),
                   fontSize: 11,
@@ -559,3 +735,4 @@ class _Composer extends StatelessWidget {
     );
   }
 }
+

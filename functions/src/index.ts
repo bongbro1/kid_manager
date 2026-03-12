@@ -17,3 +17,6 @@ export * from "./functions/user_auth";
 export * from "./functions/subscriptionTriggers";
 export { sendFamilyMessage } from "./functions/family_chat";
 export { markFamilyChatRead } from "./functions/family_chat_read";
+
+export { reportTrackingStatus } from "./functions/tracking/reportTrackingStatus";
+export { notifyTrackingStatusChanged } from "./functions/tracking/notifyTrackingStatusChanged";

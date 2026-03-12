@@ -1,0 +1,25 @@
+{
+  "zone.enter.danger.parent.title": "⚠️ Child entered a danger zone",
+  "zone.enter.danger.parent.body": "{childName} entered {zoneName}.",
+
+  "zone.exit.danger.parent.title": "✅ Child left a danger zone",
+  "zone.exit.danger.parent.body": "{childName} left {zoneName}{durationSuffix}.",
+
+  "zone.enter.safe.parent.title": "✅ Child entered a safe zone",
+  "zone.enter.safe.parent.body": "{childName} entered {zoneName}.",
+
+  "zone.exit.safe.parent.title": "ℹ️ Child left a safe zone",
+  "zone.exit.safe.parent.body": "{childName} left {zoneName}{durationSuffix}.",
+
+  "zone.enter.danger.child.title": "⚠️ You entered a danger zone",
+  "zone.enter.danger.child.body": "You entered {zoneName}.",
+
+  "zone.exit.danger.child.title": "✅ You left a danger zone",
+  "zone.exit.danger.child.body": "You left {zoneName}{durationSuffix}.",
+
+  "zone.enter.safe.child.title": "✅ You entered a safe zone",
+  "zone.enter.safe.child.body": "You entered {zoneName}.",
+
+  "zone.exit.safe.child.title": "ℹ️ You left a safe zone",
+  "zone.exit.safe.child.body": "You left {zoneName}{durationSuffix}."
+}

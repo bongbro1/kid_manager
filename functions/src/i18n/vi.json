@@ -1,0 +1,25 @@
+{
+  "zone.enter.danger.parent.title": "⚠️ Bé vào vùng nguy hiểm",
+  "zone.enter.danger.parent.body": "{childName} đã vào {zoneName}.",
+
+  "zone.exit.danger.parent.title": "✅ Bé rời vùng nguy hiểm",
+  "zone.exit.danger.parent.body": "{childName} đã rời {zoneName}{durationSuffix}.",
+
+  "zone.enter.safe.parent.title": "✅ Bé vào vùng an toàn",
+  "zone.enter.safe.parent.body": "{childName} đã vào {zoneName}.",
+
+  "zone.exit.safe.parent.title": "ℹ️ Bé rời vùng an toàn",
+  "zone.exit.safe.parent.body": "{childName} đã rời {zoneName}{durationSuffix}.",
+
+  "zone.enter.danger.child.title": "⚠️ Bạn đang vào vùng nguy hiểm",
+  "zone.enter.danger.child.body": "Bạn đã vào {zoneName}.",
+
+  "zone.exit.danger.child.title": "✅ Bạn đã ra khỏi vùng nguy hiểm",
+  "zone.exit.danger.child.body": "Bạn đã rời {zoneName}{durationSuffix}.",
+
+  "zone.enter.safe.child.title": "✅ Bạn đang vào vùng an toàn",
+  "zone.enter.safe.child.body": "Bạn đã vào {zoneName}.",
+
+  "zone.exit.safe.child.title": "ℹ️ Bạn đã ra khỏi vùng an toàn",
+  "zone.exit.safe.child.body": "Bạn đã rời {zoneName}{durationSuffix}."
+}
