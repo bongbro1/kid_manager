@@ -1,48 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
+import 'package:kid_manager/utils/app_localizations_loader.dart';
+
 import '../../models/schedule.dart';
 import '../../repositories/schedule_repository.dart';
-import '../auth_vm.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/exceptions.dart';
+import '../auth_vm.dart';
 
 class ScheduleViewModel extends ChangeNotifier {
   final ScheduleRepository _repo;
   final AuthVM _authVM;
   final ScheduleNotificationService _scheduleNotificationService;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final UserRepository _userRepo;
 
   ScheduleViewModel(
     this._repo,
     this._authVM,
     this._scheduleNotificationService,
+    this._userRepo,
   );
 
   int _loadToken = 0;
 
-  /// tháng đang focus (để load calendar)
   DateTime focusedMonth = DateTime.now();
-
-  /// ngày đang chọn
   DateTime selectedDate = DateTime.now();
-
-  /// child đang chọn
   String? selectedChildId;
 
   bool isLoading = false;
   String? error;
 
-  /// Map dùng cho DOT calendar
-  /// key = yyyy-mm-dd (normalized)
   Map<DateTime, List<Schedule>> monthSchedules = {};
-
-  /// list hiển thị bên dưới
   List<Schedule> schedules = [];
 
   String get actorUid {
     final uid = _authVM.user?.uid;
     if (uid == null) {
-      throw Exception('User chưa đăng nhập');
+      throw Exception('USER_NOT_LOGGED_IN');
     }
     return uid;
   }
@@ -51,7 +46,7 @@ class ScheduleViewModel extends ChangeNotifier {
 
   String get scheduleOwnerUid {
     final uid = _scheduleOwnerUid;
-    if (uid == null) throw Exception('Chưa set scheduleOwnerUid');
+    if (uid == null) throw Exception('SCHEDULE_OWNER_UID_NOT_SET');
     return uid;
   }
 
@@ -59,11 +54,6 @@ class ScheduleViewModel extends ChangeNotifier {
     _scheduleOwnerUid = uid;
   }
 
-  // ======================
-  // PUBLIC API (UI gọi)
-  // ======================
-
-  /// chọn bé
   Future<void> setChild(String id) async {
     selectedChildId = id;
 
@@ -120,19 +110,14 @@ class ScheduleViewModel extends ChangeNotifier {
       schedules = monthSchedules[key] ?? [];
     } catch (e) {
       if (token != _loadToken) return;
-      error = e.toString();
+      error = _cleanErrorMessage(e);
     } finally {
-      // ✅ luôn tắt loading nếu đây là request mới nhất
       if (token == _loadToken) {
         isLoading = false;
         notifyListeners();
       }
     }
   }
-
-  // ======================
-  // CRUD
-  // ======================
 
   Future<void> addSchedule(Schedule s) async {
     final overlapped = await _findOverlapOnDay(
@@ -143,10 +128,13 @@ class ScheduleViewModel extends ChangeNotifier {
     );
 
     if (overlapped != null) {
+      final l10n = await _loadActorL10n();
       throw ScheduleOverlapException(
-        'Trùng với lịch "${overlapped.title}" '
-        '(${_hhmm(overlapped.startAt)} - ${_hhmm(overlapped.endAt)}). '
-        'Vui lòng chọn giờ khác.',
+        l10n.scheduleOverlapConflictMessage(
+          overlapped.title,
+          _hhmm(overlapped.startAt),
+          _hhmm(overlapped.endAt),
+        ),
       );
     }
 
@@ -158,7 +146,6 @@ class ScheduleViewModel extends ChangeNotifier {
     await loadMonth();
   }
 
-  // helper format
   String _hhmm(DateTime d) {
     final h = d.hour.toString().padLeft(2, '0');
     final m = d.minute.toString().padLeft(2, '0');
@@ -175,12 +162,16 @@ class ScheduleViewModel extends ChangeNotifier {
     );
 
     if (overlapped != null) {
+      final l10n = await _loadActorL10n();
       throw ScheduleOverlapException(
-        'Trùng với lịch "${overlapped.title}" '
-        '(${_hhmm(overlapped.startAt)} - ${_hhmm(overlapped.endAt)}). '
-        'Vui lòng chọn giờ khác.',
+        l10n.scheduleOverlapConflictMessage(
+          overlapped.title,
+          _hhmm(overlapped.startAt),
+          _hhmm(overlapped.endAt),
+        ),
       );
     }
+
     final normalized = s.copyWith(parentUid: scheduleOwnerUid);
     await _repo.updateSchedule(scheduleOwnerUid, normalized);
     await _safeNotifyUpdated(normalized);
@@ -239,20 +230,19 @@ class ScheduleViewModel extends ChangeNotifier {
     if (needReset) {
       resetForNewSession();
       setScheduleOwnerUid(ownerParentUid);
-      await setChild(childUid); // setChild sẽ gọi loadMonth
+      await setChild(childUid);
     }
   }
 
   // khi logout hoặc chuyển sang bé khác, reset hết state để tránh hiển thị nhầm
   void resetForNewSession() {
-    _loadToken++; // invalidate các load cũ
+    _loadToken++;
     monthSchedules = {};
     schedules = [];
     error = null;
     isLoading = false;
     selectedChildId = null;
 
-    // reset về today (hoặc giữ nguyên tùy bạn)
     final now = DateTime.now();
     selectedDate = _normalize(now);
     focusedMonth = DateTime(now.year, now.month, 1);
@@ -365,16 +355,25 @@ class ScheduleViewModel extends ChangeNotifier {
       monthSchedules = _groupByDay(list);
       schedules = monthSchedules[selectedDate] ?? [];
     } catch (e) {
-      error = e.toString();
+      error = _cleanErrorMessage(e);
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
+
+  Future<AppLocalizations> _loadActorL10n() {
+    return AppLocalizationsLoader.loadForUser(
+      userRepository: _userRepo,
+      uid: _authVM.user?.uid,
+    );
+  }
+
+  String _cleanErrorMessage(Object e) {
+    return e.toString().replaceFirst('Exception: ', '').trim();
+  }
 }
 
-// ====================================================
-// Extension để check overlap khi add/update schedule
 extension _TimeOverlap on ScheduleViewModel {
   bool _isOverlapping(
     DateTime aStart,
@@ -382,7 +381,6 @@ extension _TimeOverlap on ScheduleViewModel {
     DateTime bStart,
     DateTime bEnd,
   ) {
-    // cho phép liền kề: end == start => KHÔNG overlap
     return aStart.isBefore(bEnd) && aEnd.isAfter(bStart);
   }
 
@@ -391,7 +389,7 @@ extension _TimeOverlap on ScheduleViewModel {
     required DateTime day,
     required DateTime newStart,
     required DateTime newEnd,
-    String? ignoreScheduleId, // dùng cho update
+    String? ignoreScheduleId,
   }) async {
     final dayStart = DateTime(day.year, day.month, day.day);
     final dayEnd = dayStart.add(const Duration(days: 1));

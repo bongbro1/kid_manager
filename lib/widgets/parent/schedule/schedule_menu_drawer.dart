@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/views/parent/memory_day/memory_day_screen.dart';
 import 'package:kid_manager/views/parent/schedule/schedule_export_excel_screen.dart';
 import 'package:kid_manager/views/parent/schedule/schedule_import_excel_screen.dart';
@@ -17,31 +18,27 @@ class ScheduleMenuDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Drawer(
       child: SafeArea(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const ListTile(
-              leading: Icon(
-                Icons.menu,
-                color: Color.fromARGB(255, 0, 0, 0),
-              ),
+            ListTile(
+              leading: Icon(Icons.menu, color: Color.fromARGB(255, 0, 0, 0)),
               title: Text(
-                'Menu',
+                l10n.scheduleDrawerMenuTitle,
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
             ListTile(
               leading: const Icon(Icons.star, color: Color(0xFFF4B400)),
-              title: const Text('Ngày đáng nhớ'),
+              title: Text(l10n.memoryDayTitle),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const MemoryDayScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const MemoryDayScreen()),
                 );
               },
             ),
@@ -50,7 +47,7 @@ class ScheduleMenuDrawer extends StatelessWidget {
                 Icons.upload_file,
                 color: Color.fromARGB(255, 0, 224, 49),
               ),
-              title: const Text('Thêm file Excel'),
+              title: Text(l10n.scheduleImportTitle),
               onTap: () async {
                 Navigator.pop(context);
 
@@ -74,7 +71,7 @@ class ScheduleMenuDrawer extends StatelessWidget {
                 Icons.file_download,
                 color: Color.fromARGB(255, 0, 238, 255),
               ),
-              title: const Text('Xuất file Excel'),
+              title: Text(l10n.scheduleExportTitle),
               onTap: () async {
                 Navigator.pop(context);
 

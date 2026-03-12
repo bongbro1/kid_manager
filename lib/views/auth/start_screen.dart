@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/widgets/common/social_login_button.dart';
 
 import '../../core/app_colors.dart';
@@ -21,6 +22,7 @@ class StartScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     // Theo spec bạn đưa:
     return Scaffold(
       backgroundColor: AppColors.surface, // #FFFFFF
@@ -30,8 +32,8 @@ class StartScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Bắt Đầu Ngay',
+              Text(
+                l10n.authStartTitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xFF333333),
@@ -43,10 +45,10 @@ class StartScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const SizedBox(
+              SizedBox(
                 width: 180,
                 child: Text(
-                  'Tiếp tục với ứng dụng ngay thôi!',
+                  l10n.authStartSubtitle,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFF333333),
@@ -61,7 +63,7 @@ class StartScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               SocialLoginButton(
-                text: 'Tiếp tục với Google',
+                text: l10n.authContinueWithGoogle,
                 iconAsset: 'assets/icons/google.svg',
                 onTap: () {
                   // TODO: Google login
@@ -71,7 +73,7 @@ class StartScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               SocialLoginButton(
-                text: 'Tiếp tục với Facebook',
+                text: l10n.authContinueWithFacebook,
                 iconAsset: 'assets/icons/facebook.svg',
                 onTap: () {
                   // TODO: Facebook login
@@ -81,7 +83,7 @@ class StartScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               SocialLoginButton(
-                text: 'Tiếp tục với Apple',
+                text: l10n.authContinueWithApple,
                 iconAsset: 'assets/icons/apple.svg',
                 onTap: () {
                   // TODO: Apple login
@@ -91,7 +93,7 @@ class StartScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               SocialLoginButton(
-                text: 'Tiếp tục với số điện thoại',
+                text: l10n.authContinueWithPhone,
                 iconAsset: 'assets/icons/mobile.svg',
                 onTap: () {
                   // TODO: Phone login
@@ -116,7 +118,7 @@ class StartScreen extends StatelessWidget {
                     AppButton(
                       width: 360,
                       height: 60,
-                      text: 'Đăng nhập',
+                      text: l10n.authLoginButton,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       onPressed: () {
@@ -132,7 +134,7 @@ class StartScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     AppButton(
-                      text: 'Đăng ký',
+                      text: l10n.authSignupButton,
                       width: 360,
                       height: 60,
                       fontSize: 16,
@@ -158,13 +160,13 @@ class StartScreen extends StatelessWidget {
                 height: 1,
                 decoration: BoxDecoration(color: const Color(0x331A1A1A)),
               ),
-              
+
               const SizedBox(height: 16),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Chính sách bảo mật', style: _policyStyle),
+                  Text(l10n.authPrivacyPolicy, style: _policyStyle),
                   const SizedBox(width: 8),
                   const DecoratedBox(
                     decoration: BoxDecoration(
@@ -174,7 +176,7 @@ class StartScreen extends StatelessWidget {
                     child: SizedBox(width: 4, height: 4),
                   ),
                   const SizedBox(width: 8),
-                  Text('Điều khoản dịch vụ', style: _policyStyle),
+                  Text(l10n.authTermsOfService, style: _policyStyle),
                 ],
               ),
             ],

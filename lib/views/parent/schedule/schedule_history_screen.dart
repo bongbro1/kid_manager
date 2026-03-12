@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:provider/provider.dart';
 
@@ -12,10 +13,7 @@ import '../../../widgets/app/app_notification_dialog.dart';
 class ScheduleHistoryScreen extends StatefulWidget {
   final Schedule schedule;
 
-  const ScheduleHistoryScreen({
-    super.key,
-    required this.schedule,
-  });
+  const ScheduleHistoryScreen({super.key, required this.schedule});
 
   @override
   State<ScheduleHistoryScreen> createState() => _ScheduleHistoryScreenState();
@@ -47,12 +45,11 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = context.watch<ScheduleHistoryViewModel>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lịch sử chỉnh sửa'),
-      ),
+      appBar: AppBar(title: Text(l10n.scheduleHistoryTitle)),
       body: Builder(
         builder: (_) {
           if (vm.isLoading) {
@@ -64,9 +61,7 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
           }
 
           if (vm.histories.isEmpty) {
-            return const Center(
-              child: Text('Chưa có lịch sử chỉnh sửa'),
-            );
+            return Center(child: Text(l10n.scheduleHistoryEmpty));
           }
 
           final grouped = _groupHistories(vm.histories);
@@ -88,7 +83,9 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
     );
   }
 
-  Map<String, List<ScheduleHistory>> _groupHistories(List<ScheduleHistory> items) {
+  Map<String, List<ScheduleHistory>> _groupHistories(
+    List<ScheduleHistory> items,
+  ) {
     final map = <String, List<ScheduleHistory>>{};
 
     for (final item in items) {
@@ -100,17 +97,19 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
   }
 
   String _groupTitle(DateTime dt) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final date = DateTime(dt.year, dt.month, dt.day);
 
-    if (date == today) return 'Hôm nay';
-    if (date == yesterday) return 'Hôm qua';
+    if (date == today) return l10n.scheduleHistoryToday;
+    if (date == yesterday) return l10n.scheduleHistoryYesterday;
     return DateFormat('dd/MM/yyyy').format(dt);
   }
 
   Future<void> _onRestore(ScheduleHistory item) async {
+    final l10n = AppLocalizations.of(context);
     if (_restoring) return;
 
     final historyVm = context.read<ScheduleHistoryViewModel>();
@@ -120,18 +119,16 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Khôi phục lịch trình'),
-        content: const Text(
-          'Bạn có chắc muốn khôi phục phiên bản này không?',
-        ),
+        title: Text(l10n.scheduleHistoryRestoreDialogTitle),
+        content: Text(l10n.scheduleHistoryRestoreDialogMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Hủy'),
+            child: Text(l10n.cancelButton),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Khôi phục'),
+            child: Text(l10n.scheduleHistoryRestoreButton),
           ),
         ],
       ),
@@ -167,8 +164,8 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
       await NotificationDialog.show(
         rootCtx,
         type: DialogType.success,
-        title: 'Hoàn thành',
-        message: 'Bạn đã khôi phục thành công',
+        title: l10n.updateSuccessTitle,
+        message: l10n.scheduleHistoryRestoreSuccessMessage,
         onConfirm: () {
           if (mounted) Navigator.pop(context, true);
         },
@@ -181,8 +178,8 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
       await NotificationDialog.show(
         rootCtx,
         type: DialogType.error,
-        title: 'Thất bại',
-        message: 'Khôi phục thất bại: $e',
+        title: l10n.updateErrorTitle,
+        message: l10n.scheduleHistoryRestoreFailed(e.toString()),
         onConfirm: null,
       );
     } finally {
@@ -199,9 +196,7 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
       useRootNavigator: true,
       builder: (_) => const PopScope(
         canPop: false,
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: Center(child: CircularProgressIndicator()),
       ),
     );
   }
@@ -231,10 +226,7 @@ class _HistorySection extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 10, top: 4),
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
         ),
         ...items.map(
@@ -275,6 +267,7 @@ class _HistoryCardState extends State<_HistoryCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final item = widget.item;
     final currentTitle = widget.currentTitle.trim();
     final historyTitle = item.title.trim();
@@ -286,7 +279,8 @@ class _HistoryCardState extends State<_HistoryCard> {
     final timeText =
         '${two(item.startAt.hour)}:${two(item.startAt.minute)} - ${two(item.endAt.hour)}:${two(item.endAt.minute)}';
 
-    final showOldTitle = historyTitle.isNotEmpty && historyTitle != currentTitle;
+    final showOldTitle =
+        historyTitle.isNotEmpty && historyTitle != currentTitle;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -340,7 +334,7 @@ class _HistoryCardState extends State<_HistoryCard> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Đã sửa lúc $savedTime',
+                          l10n.scheduleHistoryEditedAt(savedTime),
                           style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF5F6368),
@@ -366,8 +360,9 @@ class _HistoryCardState extends State<_HistoryCard> {
           ),
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 180),
-            crossFadeState:
-                _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             firstChild: const SizedBox.shrink(),
             secondChild: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -378,7 +373,7 @@ class _HistoryCardState extends State<_HistoryCard> {
 
                   if (showOldTitle) ...[
                     _InfoRow(
-                      label: 'Tên lịch trình:',
+                      label: l10n.scheduleHistoryLabelTitle,
                       value: historyTitle,
                     ),
                     const SizedBox(height: 10),
@@ -386,19 +381,19 @@ class _HistoryCardState extends State<_HistoryCard> {
 
                   if ((item.description ?? '').trim().isNotEmpty) ...[
                     _InfoRow(
-                      label: 'Mô tả:',
+                      label: l10n.scheduleHistoryLabelDescription,
                       value: item.description!.trim(),
                     ),
                     const SizedBox(height: 10),
                   ],
 
                   _InfoRow(
-                    label: 'Ngày:',
+                    label: l10n.scheduleHistoryLabelDate,
                     value: dateText,
                   ),
                   const SizedBox(height: 10),
                   _InfoRow(
-                    label: 'Thời gian:',
+                    label: l10n.scheduleHistoryLabelTime,
                     value: timeText,
                   ),
                   const SizedBox(height: 16),
@@ -410,21 +405,19 @@ class _HistoryCardState extends State<_HistoryCard> {
                         onPressed: widget.onRestore,
                         icon: const Icon(Icons.history, size: 18),
                         label: Text(
-                          widget.restoring ? 'Đang khôi phục...' : 'Khôi phục',
+                          widget.restoring
+                              ? l10n.scheduleHistoryRestoringButton
+                              : l10n.scheduleHistoryRestoreButton,
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF3F7CFF),
                           elevation: 0,
-                          side: const BorderSide(
-                            color: Color(0xFFE0E0E0),
-                          ),
+                          side: const BorderSide(color: Color(0xFFE0E0E0)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(22),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                         ),
                       ),
                     ),
@@ -443,10 +436,7 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {

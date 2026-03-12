@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:provider/provider.dart';
@@ -138,10 +139,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   Widget _buildSelectedChildAvatar(List<AppUser> children, String? selectedId) {
     if (children.isEmpty) {
-      return const CircleAvatar(
-        radius: 18,
-        child: Text('?'),
-      );
+      return const CircleAvatar(radius: 18, child: Text('?'));
     }
 
     final AppUser selected = selectedId == null
@@ -175,6 +173,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget build(BuildContext context) {
     final scheduleVm = context.watch<ScheduleViewModel>();
     final userVm = context.watch<UserVm>();
+    final l10n = AppLocalizations.of(context);
     final List<AppUser> children = userVm.children;
 
     // ✅ mỗi lần build đều bind lại theo session (có guard)
@@ -189,7 +188,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         children.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        scheduleVm.setChild(children.first.uid); // setChild sẽ reset về today + loadMonth
+        scheduleVm.setChild(
+          children.first.uid,
+        ); // setChild sẽ reset về today + loadMonth
         _syncMemoryWithSchedule();
       });
     }
@@ -209,8 +210,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
-        title: const Text(
-          'Lịch trình',
+        title: Text(
+          l10n.scheduleScreenTitle,
           style: AppTextStyles.scheduleAppBarTitle,
         ),
         centerTitle: true,
@@ -218,10 +219,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: children.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
                       padding: EdgeInsets.only(right: 8),
-                      child: Text('Chưa có bé'),
+                      child: Text(l10n.scheduleNoChild),
                     ),
                   )
                 : PopupMenuButton<String>(
@@ -238,8 +239,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           children: [
                             CircleAvatar(
                               radius: 14,
-                              backgroundImage:
-                                  avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                              backgroundImage: avatar.isNotEmpty
+                                  ? NetworkImage(avatar)
+                                  : null,
                               child: avatar.isEmpty
                                   ? Text(
                                       _nameInitial(c),
@@ -257,7 +259,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         ),
                       );
                     }).toList(),
-                    child: _buildSelectedChildAvatar(children, scheduleVm.selectedChildId),
+                    child: _buildSelectedChildAvatar(
+                      children,
+                      scheduleVm.selectedChildId,
+                    ),
                   ),
           ),
         ],

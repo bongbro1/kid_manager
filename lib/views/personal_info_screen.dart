@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
@@ -19,6 +18,8 @@ import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/common/tappable_photo.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/views/language_selector_sheet.dart';
 import 'package:provider/provider.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -70,15 +71,26 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _genderCtrl.dispose();
+    _dobCtrl.dispose();
+    _addressCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _updateUserInfo() async {
     final dob = parseDateFromText(_dobCtrl.text);
+    final l10n = AppLocalizations.of(context);
 
     if (dob == null) {
       NotificationDialog.show(
         context,
         type: DialogType.error,
-        title: "Thất bại",
-        message: "Ngày sinh không hợp lệ",
+        title: l10n.updateErrorTitle,
+        message: l10n.invalidBirthDate,
       );
       return;
     }
@@ -99,8 +111,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       NotificationDialog.show(
         context,
         type: DialogType.success,
-        title: "Thành công",
-        message: "Cập nhật thông tin thành công",
+        title: l10n.updateSuccessTitle,
+        message: l10n.updateSuccessMessage,
       );
       vm.listenProfile();
     } else {
@@ -113,22 +125,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     context.read<UserVm>().listenProfile();
   }
 
-  Future<void> _logout() async {
-    final authVM = context.read<AuthVM>();
-    final notiVM = context.read<NotificationVM>();
-    final rootNav = Navigator.of(context, rootNavigator: true);
-
-    await notiVM.clear();
-    await authVM.logout();
-
-    rootNav.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const SessionGuard()),
-      (_) => false,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = context.watch<UserVm>();
     final p = vm.profile;
 
@@ -146,15 +145,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     if (vm.loading) {
       return const LoadingOverlay();
     }
-
-    // if (p == null) {
-    //   WidgetsBinding.instance.addPostFrameCallback((_) {
-    //     if (!mounted) return;
-    //     _logout();
-    //   });
-
-    //   return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    // }
 
     final isChild = p?.role.toString() == "child";
 
@@ -189,10 +179,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Center(
                     child: Text(
-                      "Thông tin cá nhân",
+                      l10n.personalInfoTitle,
                       style: TextStyle(
                         color: Color(0xFF222B45),
                         fontSize: 20,
@@ -338,7 +328,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              "$_age tuổi",
+                                              l10n.yearsOld.replaceFirst(
+                                                '%d',
+                                                _age.toString(),
+                                              ),
                                               style: TextStyle(
                                                 color: Color(0xFF212121),
                                                 fontSize: 13,
@@ -375,39 +368,39 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             const SizedBox(height: 18),
 
                             AppLabeledTextField(
-                              label: "Họ và tên",
-                              hint: "Nhập họ và tên",
+                              label: l10n.fullNameLabel,
+                              hint: l10n.fullNameHint,
                               controller: _nameCtrl,
                             ),
 
                             AppLabeledTextField(
-                              label: "Số điện thoại",
-                              hint: "+84 012345678",
+                              label: l10n.phoneLabel,
+                              hint: l10n.phoneHint,
                               controller: _phoneCtrl,
                             ),
 
                             AppLabeledTextField(
-                              label: "Giới tính",
-                              hint: "Nam",
+                              label: l10n.genderLabel,
+                              hint: l10n.genderHint,
                               controller: _genderCtrl,
                             ),
 
                             AppLabeledTextField(
-                              label: "Ngày sinh",
-                              hint: "12/12/2003",
+                              label: l10n.birthDateLabel,
+                              hint: l10n.birthDateHint,
                               controller: _dobCtrl,
                             ),
 
                             AppLabeledTextField(
-                              label: "Địa chỉ",
-                              hint: "Xã Điềm Thụy, Tỉnh Thái Nguyên",
+                              label: l10n.addressLabel,
+                              hint: l10n.addressHint,
                               controller: _addressCtrl,
                             ),
 
                             if (!isChild)
                               AppLabeledCheckbox(
-                                label: "Quyền theo dõi",
-                                text: "Cho phép đối phương theo dõi vị trí",
+                                label: l10n.locationTrackingLabel,
+                                text: l10n.allowLocationTrackingText,
                                 value: allowLocationTracking,
                                 onChanged: (v) {
                                   setState(() {
@@ -451,7 +444,7 @@ class MoreActionSheet extends StatelessWidget {
             const SizedBox(height: 14),
 
             SettingItem(
-              title: "Giao diện ứng dụng",
+              title: AppLocalizations.of(context).appAppearanceTitle,
               iconPath: "assets/icons/color_palette.svg",
               iconType: AppIconType.svg,
               iconSize: 20,
@@ -467,7 +460,7 @@ class MoreActionSheet extends StatelessWidget {
             const SizedBox(height: 10),
 
             SettingItem(
-              title: "About app",
+              title: AppLocalizations.of(context).aboutAppTitle,
               iconPath: "assets/icons/info.png",
               iconType: AppIconType.png,
               iconSize: 17,
@@ -479,10 +472,25 @@ class MoreActionSheet extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
+            SettingItem(
+              title: AppLocalizations.of(context).languageSetting,
+              iconPath: "assets/icons/menu.svg",
+              iconType: AppIconType.svg,
+              iconSize: 20,
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (_) => const LanguageSelectorSheet(),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
 
             if (isParent) ...[
               SettingItem(
-                title: "Thêm tài khoản",
+                title: AppLocalizations.of(context).addAccountTitle,
                 iconPath: "assets/icons/account.png",
                 iconType: AppIconType.png,
                 iconSize: 18,
@@ -496,13 +504,14 @@ class MoreActionSheet extends StatelessWidget {
               const SizedBox(height: 10),
             ],
             SettingItem(
-              title: "Đăng xuất",
+              title: AppLocalizations.of(context).logoutTitle,
               iconPath: "assets/icons/log_out.png",
               iconType: AppIconType.png,
               iconSize: 17,
               onTap: () {
                 Navigator.pop(context);
                 Future.delayed(const Duration(milliseconds: 100), () {
+                  if (!context.mounted) return;
                   showModalBottomSheet(
                     context: context,
                     backgroundColor: Colors.transparent,
@@ -524,7 +533,9 @@ class ConfirmLogoutSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Future<void> _logout() async {
+    final l10n = AppLocalizations.of(context);
+    
+    Future<void> logout() async {
       final authVM = context.read<AuthVM>();
       final notiVM = context.read<NotificationVM>();
       final rootNav = Navigator.of(context, rootNavigator: true);
@@ -569,7 +580,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
 
                 const SizedBox(height: 30),
                 Text(
-                  'Bạn muốn đăng xuất?',
+                  l10n.confirmLogoutQuestion,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: const Color(0xFF212121),
@@ -588,7 +599,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
                       Expanded(
                         child: AppButton(
                           height: 50,
-                          text: 'Hủy bỏ',
+                          text: l10n.cancelButton,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           onPressed: () {
@@ -604,11 +615,11 @@ class ConfirmLogoutSheet extends StatelessWidget {
                       Expanded(
                         child: AppButton(
                           height: 50,
-                          text: 'Xác nhận',
+                          text: l10n.confirmButton,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           onPressed: () async {
-                            await _logout();
+                            await logout();
                           },
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,

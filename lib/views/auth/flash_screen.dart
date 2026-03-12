@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/permissions/permission_onboarding_flow.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -41,6 +42,7 @@ class _FlashScreenState extends State<FlashScreen> {
   @override
   Widget build(BuildContext context) {
     final appVM = context.watch<AppManagementVM>();
+    final l10n = AppLocalizations.of(context);
 
     if (appVM.loading) return LoadingOverlay();
 
@@ -68,10 +70,10 @@ class _FlashScreenState extends State<FlashScreen> {
                   children: [
                     _LogoStack(),
                     const SizedBox(height: 24),
-                    const SizedBox(
+                    SizedBox(
                       width: 241,
                       child: Text(
-                        'Chào mừng đến với ứng dụng',
+                        l10n.flashWelcomeTitle,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Color(0xFF2D2B2E),
@@ -84,10 +86,10 @@ class _FlashScreenState extends State<FlashScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const SizedBox(
+                    SizedBox(
                       width: 241,
                       child: Text(
-                        'Ứng dụng theo dõi con cái',
+                        l10n.flashWelcomeSubtitle,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Color(0xFF2D2B2E),
@@ -109,10 +111,10 @@ class _FlashScreenState extends State<FlashScreen> {
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
                   onTap: _onContinue,
-                  child: const SizedBox(
+                  child: SizedBox(
                     width: 41,
                     child: Text(
-                      'Tiếp',
+                      l10n.flashNext,
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         color: Color(0xFF2D2B2E),
@@ -133,6 +135,7 @@ class _FlashScreenState extends State<FlashScreen> {
     );
   }
 }
+
 class _LogoStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import '../../../models/schedule.dart';
 
 class SchedulePeriodSelector extends StatelessWidget {
@@ -15,13 +16,14 @@ class SchedulePeriodSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final canTap = enabled && onChanged != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Thời gian',
+        Text(
+          l10n.schedulePeriodTitle,
           style: TextStyle(
             fontFamily: 'Poppins',
             fontSize: 16,
@@ -55,7 +57,9 @@ class SchedulePeriodSelector extends StatelessWidget {
                               : const Color(0xFFF2F3F5),
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: selected ? style.dotColor : Colors.transparent,
+                            color: selected
+                                ? style.dotColor
+                                : Colors.transparent,
                             width: 1,
                           ),
                         ),
@@ -72,7 +76,7 @@ class SchedulePeriodSelector extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              periodLabel(p),
+                              _periodLabel(l10n, p),
                               style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w500,
@@ -100,10 +104,7 @@ class _PeriodStyle {
   final Color dotColor;
   final Color selectedBg;
 
-  const _PeriodStyle({
-    required this.dotColor,
-    required this.selectedBg,
-  });
+  const _PeriodStyle({required this.dotColor, required this.selectedBg});
 }
 
 _PeriodStyle _periodStyle(SchedulePeriod p) {
@@ -123,5 +124,16 @@ _PeriodStyle _periodStyle(SchedulePeriod p) {
         dotColor: Color(0xFF3B82F6),
         selectedBg: Color(0xFFE8F1FF),
       );
+  }
+}
+
+String _periodLabel(AppLocalizations l10n, SchedulePeriod p) {
+  switch (p) {
+    case SchedulePeriod.morning:
+      return l10n.schedulePeriodMorning;
+    case SchedulePeriod.afternoon:
+      return l10n.schedulePeriodAfternoon;
+    case SchedulePeriod.evening:
+      return l10n.schedulePeriodEvening;
   }
 }

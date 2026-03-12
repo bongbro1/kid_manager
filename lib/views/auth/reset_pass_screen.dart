@@ -5,11 +5,11 @@ import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
-import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -65,10 +65,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   Future<void> _resetPassword() async {
     final authVM = context.read<AuthVM>();
+    final l10n = AppLocalizations.of(context);
     if (!_isPasswordValid) return;
 
     if (_passwordController.text != _confirmController.text) {
-      AlertService.showSnack('Mật khẩu nhập lại không khớp', isError: true);
+      AlertService.showSnack(l10n.resetPasswordConfirmMismatch, isError: true);
       return;
     }
 
@@ -83,10 +84,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       NotificationDialog.show(
         context,
         type: DialogType.success,
-        title: "Thành công",
-        message: "Đặt lại mật khẩu thành công",
+        title: l10n.updateSuccessTitle,
+        message: l10n.resetPasswordSuccessMessage,
       );
       await Future.delayed(const Duration(milliseconds: 1000));
+      if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
@@ -100,6 +102,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AuthVM>();
+    final l10n = AppLocalizations.of(context);
     return Stack(
       children: [
         Scaffold(
@@ -139,9 +142,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           width: 289,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
-                                'ĐẶT LẠI \nMẬT KHẨU MỚI',
+                                l10n.resetPasswordTitle,
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontFamily: 'Poppins',
@@ -150,9 +153,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                   letterSpacing: -0.19,
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Text(
-                                'Điền mật khẩu mới của bạn!',
+                                l10n.resetPasswordSubtitle,
                                 style: TextStyle(
                                   color: Color(0xFF4A4A4A),
                                   fontSize: 15,
@@ -168,9 +171,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       const SizedBox(height: 20),
 
                       AuthTextField(
-                        label: 'Mật khẩu mới',
+                        label: l10n.resetPasswordNewLabel,
                         controller: _passwordController,
-                        hintText: 'Nhập mật khẩu',
+                        hintText: l10n.authEnterPasswordHint,
                         keyboardType: TextInputType.text,
                         obscureText: true,
                         isPassword: true,
@@ -178,9 +181,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       ),
 
                       AuthTextField(
-                        label: 'Nhập lại mật khẩu',
+                        label: l10n.resetPasswordConfirmLabel,
                         controller: _confirmController,
-                        hintText: 'Nhập lại mật khẩu',
+                        hintText: l10n.resetPasswordConfirmLabel,
                         keyboardType: TextInputType.text,
                         obscureText: true,
                         isPassword: true,
@@ -203,8 +206,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "Mật khẩu cần có",
+                            Text(
+                              l10n.resetPasswordRuleTitle,
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
@@ -213,10 +216,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
                             const SizedBox(height: 10),
 
-                            _buildRule(_hasMinLength, "Ít nhất 8 ký tự"),
-                            _buildRule(_hasUppercase, "Có chữ hoa"),
-                            _buildRule(_hasLowercase, "Có chữ thường"),
-                            _buildRule(_hasNumber, "Có số"),
+                            _buildRule(
+                              _hasMinLength,
+                              l10n.resetPasswordRuleMinLength,
+                            ),
+                            _buildRule(
+                              _hasUppercase,
+                              l10n.resetPasswordRuleUppercase,
+                            ),
+                            _buildRule(
+                              _hasLowercase,
+                              l10n.resetPasswordRuleLowercase,
+                            ),
+                            _buildRule(
+                              _hasNumber,
+                              l10n.resetPasswordRuleNumber,
+                            ),
                           ],
                         ),
                       ),
@@ -225,7 +240,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
                       AppButton(
                         height: 60,
-                        text: 'Hoàn tất',
+                        text: l10n.resetPasswordCompleteButton,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         onPressed: _isPasswordValid ? _resetPassword : null,

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:provider/provider.dart';
 
@@ -59,6 +60,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
   }
 
   Future<void> _initSession() async {
+    final l10n = AppLocalizations.of(context);
     final storage = context.read<StorageService>();
     final userVm = context.read<UserVm>();
     final scheduleVm = context.read<ScheduleViewModel>();
@@ -85,7 +87,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
       _selectedChildId = widget.initialChildId ?? currentUid;
 
       final name = (userVm.profile?.name ?? '').trim();
-      _lockedChildName = name.isEmpty ? 'Bé của bạn' : name;
+      _lockedChildName = name.isEmpty ? l10n.scheduleYourChild : name;
     } else {
       _ownerParentUid = currentUid;
       scheduleVm.setScheduleOwnerUid(currentUid);
@@ -147,13 +149,15 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
   }
 
   Future<void> _showSuccessDialog(BuildContext context, int count) async {
+    final l10n = AppLocalizations.of(context);
     await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogCtx) {
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
             child: Column(
@@ -167,13 +171,16 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
-                    child:
-                        Icon(Icons.check, size: 42, color: AppColors.primary),
+                    child: Icon(
+                      Icons.check,
+                      size: 42,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Thành công',
+                Text(
+                  l10n.updateSuccessTitle,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -182,7 +189,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Xuất file Excel thành công ($count lịch)',
+                  l10n.scheduleExportSuccessMessage(count),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 14,
@@ -202,8 +209,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                       ),
                     ),
                     onPressed: () => Navigator.of(dialogCtx).pop(),
-                    child: const Text(
-                      'Tiếp tục',
+                    child: Text(
+                      l10n.authContinueButton,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -211,7 +218,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                       ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -222,19 +229,18 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
 
   Future<void> _exportExcel() async {
     const tag = '[SCHEDULE_EXPORT]';
+    final l10n = AppLocalizations.of(context);
 
     if (_selectedChildId == null || _selectedChildId!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn bé')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.schedulePleaseSelectChild)));
       return;
     }
 
     if (_fromDate.isAfter(_toDate)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ngày bắt đầu không được lớn hơn ngày kết thúc'),
-        ),
+        SnackBar(content: Text(l10n.scheduleExportInvalidDateRange)),
       );
       return;
     }
@@ -254,9 +260,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
 
       if (schedules.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Không có lịch trong khoảng ngày đã chọn'),
-          ),
+          SnackBar(content: Text(l10n.scheduleExportNoDataInRange)),
         );
         return;
       }
@@ -265,6 +269,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
         schedules: schedules,
         fromDate: _fromDate,
         toDate: _toDate,
+        localeCode: Localizations.localeOf(context).languageCode,
       );
 
       debugPrint('$tag tempFile.path = ${tempFile.path}');
@@ -284,7 +289,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
 
       if (savedPath == null || savedPath.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bạn đã huỷ lưu file')),
+          SnackBar(content: Text(l10n.scheduleExportSaveCanceled)),
         );
         return;
       }
@@ -302,7 +307,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Xuất file thất bại: $e')),
+        SnackBar(content: Text(l10n.scheduleExportFailed(e.toString()))),
       );
     } finally {
       if (mounted) {
@@ -313,14 +318,13 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
 
   String _two(int n) => n.toString().padLeft(2, '0');
 
-  String _ddMmYyyy(DateTime d) =>
-      '${_two(d.day)}/${_two(d.month)}/${d.year}';
+  String _ddMmYyyy(DateTime d) => '${_two(d.day)}/${_two(d.month)}/${d.year}';
 
-  String _yyyyMmDd(DateTime d) =>
-      '${d.year}-${_two(d.month)}-${_two(d.day)}';
+  String _yyyyMmDd(DateTime d) => '${d.year}-${_two(d.month)}-${_two(d.day)}';
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final userVm = context.watch<UserVm>();
     final children = userVm.children;
 
@@ -328,8 +332,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         setState(() {
-          _selectedChildId = widget.initialChildId != null &&
-                  widget.initialChildId!.isNotEmpty
+          _selectedChildId =
+              widget.initialChildId != null && widget.initialChildId!.isNotEmpty
               ? widget.initialChildId
               : children.first.uid;
         });
@@ -341,8 +345,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Xuất file Excel',
+        title: Text(
+          l10n.scheduleExportTitle,
           style: AppTextStyles.scheduleAppBarTitle,
         ),
         centerTitle: true,
@@ -358,11 +362,11 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Chọn bé', style: AppTextStyles.body),
+                Text(l10n.scheduleSelectChildLabel, style: AppTextStyles.body),
                 const SizedBox(height: 10),
                 _isChildMode
                     ? _LockedChildBox(
-                        label: _lockedChildName ?? 'Bé của bạn',
+                        label: _lockedChildName ?? l10n.scheduleYourChild,
                       )
                     : _ChildDropdown(
                         children: children,
@@ -376,7 +380,10 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                               },
                       ),
                 const SizedBox(height: 14),
-                const Text('Khoảng thời gian', style: AppTextStyles.body),
+                Text(
+                  l10n.scheduleExportDateRangeLabel,
+                  style: AppTextStyles.body,
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -410,8 +417,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                     color: const Color(0xFFF3F8FF),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'File xuất sẽ gồm các cột: title, description, date, start, end',
+                  child: Text(
+                    l10n.scheduleExportColumnsHint,
                     style: AppTextStyles.scheduleItemTime,
                   ),
                 ),
@@ -420,9 +427,12 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
           ),
           const SizedBox(height: 16),
           _PrimaryButton(
-            text: _loading ? 'Đang xuất...' : 'Xuất file',
+            text: _loading
+                ? l10n.scheduleExportLoadingButton
+                : l10n.scheduleExportSubmitButton,
             icon: Icons.download,
             onTap: _loading ? null : _exportExcel,
+            isLoading: _loading,
           ),
         ],
       ),
@@ -499,8 +509,9 @@ class _ChildDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (children.isEmpty) {
-      return const Text('Chưa có bé', style: AppTextStyles.body);
+      return Text(l10n.scheduleNoChild, style: AppTextStyles.body);
     }
 
     return Container(
@@ -537,10 +548,7 @@ class _DateBox extends StatelessWidget {
   final String text;
   final VoidCallback? onTap;
 
-  const _DateBox({
-    required this.text,
-    required this.onTap,
-  });
+  const _DateBox({required this.text, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -583,11 +591,13 @@ class _PrimaryButton extends StatelessWidget {
   final String text;
   final IconData icon;
   final VoidCallback? onTap;
+  final bool isLoading;
 
   const _PrimaryButton({
     required this.text,
     required this.icon,
     required this.onTap,
+    this.isLoading = false,
   });
 
   @override
@@ -605,7 +615,7 @@ class _PrimaryButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (onTap == null && text == 'Đang xuất...')
+              if (onTap == null && isLoading)
                 const SizedBox(
                   width: 18,
                   height: 18,

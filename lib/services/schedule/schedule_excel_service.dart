@@ -1,19 +1,25 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:excel/excel.dart';
-import 'package:path_provider/path_provider.dart';
-
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/schedule.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ScheduleExcelService {
   Future<File> exportSchedulesToExcel({
     required List<Schedule> schedules,
     required DateTime fromDate,
     required DateTime toDate,
+    String? localeCode,
   }) async {
+    final lang = (localeCode ?? 'vi').toLowerCase();
+    final l10n = await AppLocalizations.delegate.load(
+      Locale(lang == 'en' ? 'en' : 'vi'),
+    );
+
     final excel = Excel.createExcel();
 
-    // Đảm bảo chỉ có 1 sheet tên schedule
     if (!excel.tables.containsKey('schedule')) {
       if (excel.tables.isNotEmpty) {
         final firstName = excel.tables.keys.first;
@@ -64,7 +70,7 @@ class ScheduleExcelService {
 
     final bytes = excel.encode();
     if (bytes == null) {
-      throw Exception('Không tạo được file Excel');
+      throw Exception(l10n.scheduleExportErrorCreateExcelFile);
     }
 
     final dir = await getTemporaryDirectory();

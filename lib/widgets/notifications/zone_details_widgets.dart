@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 
 class ZoneDetailWidget extends StatelessWidget {
@@ -22,54 +23,65 @@ class ZoneDetailWidget extends StatelessWidget {
   String get _zoneType => (_data['zoneType'] ?? '').toString().toLowerCase();
   String get _action => (_data['action'] ?? '').toString().toLowerCase();
 
-  String get _childName =>
+  String _childName(AppLocalizations l10n) =>
       (_data['childName'] ??
-          _data['displayName'] ??
-          _data['name'] ??
-          _data['fullName'] ??
-          'Bé')
+              _data['displayName'] ??
+              _data['name'] ??
+              _data['fullName'] ??
+              l10n.notificationsDefaultChildName)
           .toString();
 
   bool get _isDanger => _zoneType == 'danger';
   bool get _isEnter => _action == 'enter';
 
-  String get _descriptionText {
+  String _descriptionText(AppLocalizations l10n) {
+    final childName = _childName(l10n);
     if (_isDanger && _isEnter) {
-      return 'Vị trí của $_childName đã được ghi nhận tại $_zoneName. '
-          'Hệ thống ghi nhận bé đã vào vùng nguy hiểm lúc ${_clock(detail.createdAt)}.';
+      return l10n.notificationsZoneDangerEnterDescription(
+        childName,
+        _zoneName,
+        _clock(detail.createdAt),
+      );
     }
     if (!_isDanger && !_isEnter) {
-      return 'Vị trí của $_childName đã được ghi nhận tại $_zoneName. '
-          'Hệ thống ghi nhận bé đã rời vùng an toàn lúc ${_clock(detail.createdAt)}.';
+      return l10n.notificationsZoneSafeExitDescription(
+        childName,
+        _zoneName,
+        _clock(detail.createdAt),
+      );
     }
     if (_isDanger && !_isEnter) {
-      return 'Vị trí của $_childName đã được ghi nhận tại $_zoneName. '
-          'Hệ thống ghi nhận bé đã rời vùng nguy hiểm lúc ${_clock(detail.createdAt)}.';
+      return l10n.notificationsZoneDangerExitDescription(
+        childName,
+        _zoneName,
+        _clock(detail.createdAt),
+      );
     }
-    return 'Vị trí của $_childName đã được cập nhật tại $_zoneName.';
+    return l10n.notificationsZoneUpdatedDescription(childName, _zoneName);
   }
 
   String _clock(DateTime dt) => DateFormat('HH:mm').format(dt);
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDescription(),
+        _buildDescription(l10n),
         const SizedBox(height: 16),
         _buildMapPreview(),
         const SizedBox(height: 16),
-        _buildPrimaryButton(),
+        _buildPrimaryButton(l10n),
         const SizedBox(height: 10),
-        _buildSecondaryButton(),
+        _buildSecondaryButton(l10n),
       ],
     );
   }
 
-  Widget _buildDescription() {
+  Widget _buildDescription(AppLocalizations l10n) {
     return Text(
-      _descriptionText,
+      _descriptionText(l10n),
       style: const TextStyle(
         fontSize: 15,
         height: 1.6,
@@ -174,7 +186,7 @@ class ZoneDetailWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildPrimaryButton() {
+  Widget _buildPrimaryButton(AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
@@ -182,7 +194,7 @@ class ZoneDetailWidget extends StatelessWidget {
         child: ElevatedButton.icon(
           onPressed: onViewMap,
           icon: const Icon(Icons.map_outlined, size: 18),
-          label: const Text('Xem trên bản đồ chính'),
+          label: Text(l10n.notificationsZoneViewOnMainMapButton),
           style: ElevatedButton.styleFrom(
             elevation: 0,
             backgroundColor: const Color(0xFF3B82F6),
@@ -201,7 +213,7 @@ class ZoneDetailWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildSecondaryButton() {
+  Widget _buildSecondaryButton(AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
@@ -209,7 +221,7 @@ class ZoneDetailWidget extends StatelessWidget {
         child: OutlinedButton.icon(
           onPressed: onPhone,
           icon: const Icon(Icons.phone_in_talk_outlined, size: 18),
-          label: const Text('Liên hệ ngay'),
+          label: Text(l10n.notificationsContactNowButton),
           style: OutlinedButton.styleFrom(
             elevation: 0,
             foregroundColor: const Color(0xFF334155),

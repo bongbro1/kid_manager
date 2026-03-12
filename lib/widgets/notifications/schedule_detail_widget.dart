@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../../../../core/app_colors.dart';
 
@@ -11,23 +12,20 @@ import 'package:kid_manager/core/app_route_observer.dart';
 class ScheduleDetailWidget extends StatelessWidget {
   final NotificationDetailModel detail;
 
-  const ScheduleDetailWidget({
-    super.key,
-    required this.detail,
-  });
+  const ScheduleDetailWidget({super.key, required this.detail});
 
-  String _actionText(String action) {
+  String _actionText(AppLocalizations l10n, String action) {
     switch (action) {
       case 'created':
-        return 'Đã thêm';
+        return l10n.notificationsActionCreated;
       case 'updated':
-        return 'Đã chỉnh sửa';
+        return l10n.notificationsActionUpdated;
       case 'deleted':
-        return 'Đã xóa';
+        return l10n.notificationsActionDeleted;
       case 'restored':
-        return 'Đã khôi phục';
+        return l10n.notificationsActionRestored;
       default:
-        return 'Đã thay đổi';
+        return l10n.notificationsActionChanged;
     }
   }
 
@@ -72,10 +70,12 @@ class ScheduleDetailWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final data = detail.data;
 
     final action = (data['action'] ?? '').toString();
-    final childName = (data['childName'] ?? 'Bé').toString();
+    final childName = (data['childName'] ?? l10n.notificationsDefaultChildName)
+        .toString();
     final scheduleTitle = (data['scheduleTitle'] ?? '').toString();
     final date = (data['date'] ?? '').toString();
     final startAt = (data['startAt'] ?? '').toString();
@@ -95,7 +95,7 @@ class ScheduleDetailWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _actionBadge(
-          text: _actionText(action),
+          text: _actionText(l10n, action),
           icon: _actionIcon(action),
           color: actionColor,
         ),
@@ -103,14 +103,16 @@ class ScheduleDetailWidget extends StatelessWidget {
 
         _infoTile(
           icon: Icons.menu_book_rounded,
-          label: 'Tên lịch',
-          value: scheduleTitle.isEmpty ? 'Không có tiêu đề' : scheduleTitle,
+          label: l10n.notificationsScheduleTitleLabel,
+          value: scheduleTitle.isEmpty
+              ? l10n.notificationsNoTitle
+              : scheduleTitle,
         ),
         const SizedBox(height: 14),
 
         _infoTile(
           icon: Icons.child_care_rounded,
-          label: 'Tên bé',
+          label: l10n.notificationsChildNameLabel,
           value: childName,
         ),
         const SizedBox(height: 18),
@@ -127,7 +129,7 @@ class ScheduleDetailWidget extends StatelessWidget {
             children: [
               _timeRow(
                 icon: Icons.calendar_today_rounded,
-                label: 'Ngày',
+                label: l10n.notificationsDateLabel,
                 value: date,
               ),
               const SizedBox(height: 12),
@@ -135,7 +137,7 @@ class ScheduleDetailWidget extends StatelessWidget {
               const SizedBox(height: 12),
               _timeRow(
                 icon: Icons.access_time_rounded,
-                label: 'Thời gian',
+                label: l10n.notificationsTimeLabel,
                 value: '$startAt - $endAt',
               ),
             ],
@@ -169,12 +171,9 @@ class ScheduleDetailWidget extends StatelessWidget {
                     }
                   : null,
               icon: const Icon(Icons.calendar_today_rounded, size: 18),
-              label: const Text(
-                'Xem lịch',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
+              label: Text(
+                l10n.notificationsViewScheduleButton,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
               style: ElevatedButton.styleFrom(
                 elevation: 0,
@@ -237,11 +236,7 @@ class ScheduleDetailWidget extends StatelessWidget {
             color: const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: const Color(0xFF475569),
-          ),
+          child: Icon(icon, size: 18, color: const Color(0xFF475569)),
         ),
         const SizedBox(width: 12),
         Expanded(

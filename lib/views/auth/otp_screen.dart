@@ -10,6 +10,7 @@ import 'package:kid_manager/views/auth/reset_pass_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 enum OtpPurpose { verifyEmail, resetPassword }
@@ -68,16 +69,17 @@ class _OtpScreenState extends State<OtpScreen> {
 
   Future<void> _handleVerifyOtp() async {
     final otp = _otp;
+    final l10n = AppLocalizations.of(context);
 
     /// 1. kiểm tra đủ 4 ký tự
     if (otp.length != 4) {
-      AlertService.showSnack('Vui lòng nhập đủ 4 số OTP', isError: true);
+      AlertService.showSnack(l10n.otpNeed4Digits, isError: true);
       return;
     }
 
     /// 2. kiểm tra toàn number
     if (!RegExp(r'^\d+$').hasMatch(otp)) {
-      AlertService.showSnack('OTP chỉ được chứa số', isError: true);
+      AlertService.showSnack(l10n.otpDigitsOnly, isError: true);
       return;
     }
 
@@ -95,8 +97,8 @@ class _OtpScreenState extends State<OtpScreen> {
           NotificationDialog.show(
             context,
             type: DialogType.success,
-            title: "Thành công",
-            message: "Đăng ký tài khoản thành công",
+            title: l10n.updateSuccessTitle,
+            message: l10n.authRegisterSuccessMessage,
           );
 
           await Future.delayed(const Duration(milliseconds: 1000));
@@ -124,22 +126,19 @@ class _OtpScreenState extends State<OtpScreen> {
         break;
 
       case OtpVerifyResult.invalid:
-        AlertService.showSnack("OTP không đúng", isError: true);
+        AlertService.showSnack(l10n.otpIncorrect, isError: true);
         break;
 
       case OtpVerifyResult.expired:
-        AlertService.showSnack("OTP đã hết hạn", isError: true);
+        AlertService.showSnack(l10n.otpExpired, isError: true);
         break;
 
       case OtpVerifyResult.tooManyAttempts:
-        AlertService.showSnack(
-          "Bạn đã nhập sai quá 3 lần. Vui lòng chờ 10 phút.",
-          isError: true,
-        );
+        AlertService.showSnack(l10n.otpTooManyAttempts, isError: true);
         vm.startCountdown(600);
         break;
       case OtpVerifyResult.notFound:
-        AlertService.showSnack("Không tìm thấy yêu cầu OTP", isError: true);
+        AlertService.showSnack(l10n.otpRequestNotFound, isError: true);
         break;
     }
   }
@@ -147,6 +146,7 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<OtpVM>();
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -156,10 +156,10 @@ class _OtpScreenState extends State<OtpScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     width: 169,
                     child: Text(
-                      'NHẬP MÃ OTP',
+                      l10n.otpTitle,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 24,
@@ -169,11 +169,11 @@ class _OtpScreenState extends State<OtpScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const SizedBox(
+                  SizedBox(
                     width: 250,
                     height: 45,
                     child: Text(
-                      'Chúng tôi đã gửi mã xác minh đến địa chỉ email của bạn',
+                      l10n.otpInstruction,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF4A4A4A),
@@ -267,14 +267,14 @@ class _OtpScreenState extends State<OtpScreen> {
 
                       if (result != OtpResendResult.success) {
                         AlertService.showSnack(
-                          vm.error ?? "Không thể gửi lại OTP",
+                          vm.error ?? l10n.authSendOtpFailed,
                         );
                       }
                     },
                     child: Text(
                       vm.countdown > 0
-                          ? 'Gửi lại mã sau ${vm.countdown}s'
-                          : 'Gửi lại mã',
+                          ? l10n.otpResendIn(vm.countdown)
+                          : l10n.otpResend,
                       style: TextStyle(
                         color: vm.countdown > 0
                             ? Colors.grey
@@ -288,7 +288,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   const SizedBox(height: 20),
 
                   AppButton(
-                    text: 'Xác minh',
+                    text: l10n.otpVerifyButton,
                     width: 150,
                     height: 50,
                     onPressed: vm.isLocked ? null : _handleVerifyOtp,

@@ -59,7 +59,7 @@ class ParentLocationVm extends ChangeNotifier {
         requireBackground: false,
       );
       if (!ok) {
-        _setError('Không có quyền vị trí');
+        _setError('noLocationPermission');
         return;
       }
 
@@ -83,7 +83,7 @@ class ParentLocationVm extends ChangeNotifier {
         requireBackground: false,
       );
       if (!ok) {
-        _setError('Không có quyền vị trí');
+        _setError('noLocationPermission');
         return null;
       }
 
@@ -174,14 +174,19 @@ class ParentLocationVm extends ChangeNotifier {
     notifyListeners();
   }
 
-
   /* ============================================================
      HISTORY + STATS
   ============================================================ */
 
-  Future<List<LocationData>> loadLocationHistoryByDay(String childUid, DateTime day) async {
+  Future<List<LocationData>> loadLocationHistoryByDay(
+    String childUid,
+    DateTime day,
+  ) async {
     try {
-      final history = await _locationRepo.getLocationHistoryByDay(childUid, day);
+      final history = await _locationRepo.getLocationHistoryByDay(
+        childUid,
+        day,
+      );
       final valid = history.where(_isValidLocation).toList();
 
       _childrenTrails[childUid] = valid;

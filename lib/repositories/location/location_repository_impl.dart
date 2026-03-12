@@ -353,7 +353,6 @@ class LocationRepositoryImpl implements LocationRepository {
   //   list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
   //   return list;
   // }
-  @override
   Future<List<LocationData>> getLocationHistory(String childId) async {
     final now = DateTime.now();
     _log('getLocationHistory -> fallback today=${now.toIso8601String()}');

@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 
 class BlockedAppDetailWidget extends StatelessWidget {
   final NotificationDetailModel detail;
 
-  const BlockedAppDetailWidget({
-    super.key,
-    required this.detail,
-  });
+  const BlockedAppDetailWidget({super.key, required this.detail});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final data = detail.data;
 
     final studentName = (data["studentName"] ?? "").toString();
@@ -30,11 +29,12 @@ class BlockedAppDetailWidget extends StatelessWidget {
             blockedAt: blockedAt,
             allowedFrom: allowedFrom,
             allowedTo: allowedTo,
+            l10n: l10n,
           ),
           const SizedBox(height: 20),
-          _buildWarningBox(),
+          _buildWarningBox(l10n),
           const SizedBox(height: 30),
-          _buildActionButton(context),
+          _buildActionButton(context, l10n),
         ],
       ),
     );
@@ -46,6 +46,7 @@ class BlockedAppDetailWidget extends StatelessWidget {
     required String blockedAt,
     required String allowedFrom,
     required String allowedTo,
+    required AppLocalizations l10n,
   }) {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 6, 18, 6),
@@ -62,10 +63,22 @@ class BlockedAppDetailWidget extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildInfoRow(Icons.person_outline, "Tài khoản", displayName),
-          _buildInfoRow(Icons.apps, "Ứng dụng", appName),
-          _buildInfoRow(Icons.access_time, "Thời điểm", blockedAt),
-          _buildInfoRow(Icons.schedule, "Khung giờ cho phép", "$allowedFrom - $allowedTo"),
+          _buildInfoRow(
+            Icons.person_outline,
+            l10n.notificationsBlockedAccountLabel,
+            displayName,
+          ),
+          _buildInfoRow(Icons.apps, l10n.notificationsBlockedAppLabel, appName),
+          _buildInfoRow(
+            Icons.access_time,
+            l10n.notificationsBlockedTimeLabel,
+            blockedAt,
+          ),
+          _buildInfoRow(
+            Icons.schedule,
+            l10n.notificationsBlockedAllowedWindowLabel,
+            "$allowedFrom - $allowedTo",
+          ),
         ],
       ),
     );
@@ -96,21 +109,21 @@ class BlockedAppDetailWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildWarningBox() {
+  Widget _buildWarningBox(AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFFEF3C7),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706)),
-          SizedBox(width: 10),
+          const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706)),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              "Ứng dụng đã bị chặn tự động bởi hệ thống.",
-              style: TextStyle(
+              l10n.notificationsBlockedWarningMessage,
+              style: const TextStyle(
                 color: Color(0xFF92400E),
                 fontWeight: FontWeight.w600,
               ),
@@ -121,7 +134,7 @@ class BlockedAppDetailWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(BuildContext context) {
+  Widget _buildActionButton(BuildContext context, AppLocalizations l10n) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -135,9 +148,12 @@ class BlockedAppDetailWidget extends StatelessWidget {
         onPressed: () {
           // TODO: Navigate
         },
-        child: const Text(
-          "Xem cấu hình thời gian",
-          style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFFFFFFF)),
+        child: Text(
+          l10n.notificationsBlockedViewConfigButton,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFFFFFFFF),
+          ),
         ),
       ),
     );

@@ -25,6 +25,7 @@ import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
+import 'package:kid_manager/viewmodels/locale_vm.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_history_vm.dart';
@@ -164,12 +165,16 @@ class _MyAppState extends State<MyApp> {
             scheduleRepo,
             context.read<AuthVM>(),
             context.read<ScheduleNotificationService>(),
+            context.read<UserRepository>(),
           ),
         ),
 
         ChangeNotifierProvider(
           create: (context) => ScheduleImportVM(
-            ScheduleImportService(context.read<ScheduleRepository>()),
+            ScheduleImportService(
+              context.read<ScheduleRepository>(),
+              context.read<UserRepository>(),
+            ),
           ),
         ),
 
@@ -201,6 +206,15 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
 
+        ChangeNotifierProxyProvider<UserVm, LocaleVm>(
+          create: (context) => LocaleVm(context.read<StorageService>()),
+          update: (context, userVm, localeVm) {
+            localeVm ??= LocaleVm(context.read<StorageService>());
+            localeVm.syncFromProfile(userVm.profile?.locale);
+            return localeVm;
+          },
+        ),
+
         ChangeNotifierProxyProvider<UserVm, NotificationVM>(
           create: (_) => NotificationVM(NotificationRepository()),
           update: (_, userVm, vm) {
@@ -227,21 +241,27 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
       ],
-      child: MaterialApp(
-        navigatorKey: AppNavigator.navigatorKey,
-        debugShowCheckedModeBanner: false,
-        title: AppConstants.appName,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('en'), Locale('vi')],
-        navigatorObservers: [routeObserver],
-        theme: AppTheme.light(),
-        themeMode: ThemeMode.system,
-        home: const SessionGuard(),
+      child: Builder(
+        builder: (context) {
+          final locale = context.watch<LocaleVm>().locale;
+          return MaterialApp(
+            navigatorKey: AppNavigator.navigatorKey,
+            debugShowCheckedModeBanner: false,
+            title: AppConstants.appName,
+            locale: locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en'), Locale('vi')],
+            navigatorObservers: [routeObserver],
+            theme: AppTheme.light(),
+            themeMode: ThemeMode.system,
+            home: const SessionGuard(),
+          );
+        },
       ),
     );
   }

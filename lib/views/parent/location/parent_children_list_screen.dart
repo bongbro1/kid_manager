@@ -1,15 +1,11 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/phone/phone_helps.dart';
-import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/app_user_extensions.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/views/location/child_detail_map_screen.dart';
-import 'package:kid_manager/widgets/app/app_notice_card.dart';
 import 'package:kid_manager/widgets/location/parent_child_list_item.dart';
-import 'package:kid_manager/widgets/parent/phone/add_children_phone.dart';
 import 'package:provider/provider.dart';
 
 class ParentChildrenListScreen extends StatelessWidget {

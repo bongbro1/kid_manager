@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
@@ -60,6 +61,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   }
 
   Future<void> _initSession() async {
+    final l10n = AppLocalizations.of(context);
     final storage = context.read<StorageService>();
     final userVm = context.read<UserVm>();
     final importVm = context.read<ScheduleImportVM>();
@@ -90,7 +92,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
       }
 
       final name = (userVm.profile?.name ?? '').trim();
-      _lockedChildName = name.isEmpty ? 'Bé của bạn' : name;
+      _lockedChildName = name.isEmpty ? l10n.scheduleYourChild : name;
     } else {
       _ownerParentUid = currentUid;
       scheduleVm.setScheduleOwnerUid(currentUid);
@@ -114,7 +116,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     }
   }
 
-    String? _resolveSelectedChildName(UserVm userVm, String? childId) {
+  String? _resolveSelectedChildName(UserVm userVm, String? childId) {
     if (childId == null || childId.isEmpty) return null;
 
     if (_isChildMode) {
@@ -140,6 +142,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   }
 
   Future<void> _pickExcel() async {
+    final l10n = AppLocalizations.of(context);
     context.read<ScheduleImportVM>().resetAllKeepChild();
 
     final res = await FilePicker.platform.pickFiles(
@@ -153,7 +156,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     if (file.bytes == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không đọc được file, thử lại.')),
+        SnackBar(content: Text(l10n.scheduleImportCannotReadFile)),
       );
       return;
     }
@@ -166,21 +169,22 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     final ownerParentUid = _ownerParentUid;
     if (ownerParentUid == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không xác định được chủ sở hữu lịch.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.scheduleImportMissingOwner)));
       return;
     }
 
     if (!mounted) return;
     await context.read<ScheduleImportVM>().previewFile(
-          bytes: _pickedBytes!,
-          parentUid: ownerParentUid,
-        );
+      bytes: _pickedBytes!,
+      parentUid: ownerParentUid,
+    );
   }
 
   Future<void> _downloadTemplate() async {
     const tag = '[SCHEDULE_TEMPLATE]';
+    final l10n = AppLocalizations.of(context);
 
     try {
       debugPrint('$tag ===== START =====');
@@ -213,13 +217,13 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
 
       if (savedPath == null || savedPath.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bạn đã huỷ lưu file mẫu')),
+          SnackBar(content: Text(l10n.scheduleTemplateSaveCanceled)),
         );
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã lưu file mẫu thành công')),
+        SnackBar(content: Text(l10n.scheduleTemplateSavedSuccess)),
       );
 
       final result = await OpenFilex.open(savedPath);
@@ -235,19 +239,23 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tải file mẫu thất bại: $e')),
+        SnackBar(
+          content: Text(l10n.scheduleTemplateDownloadFailed(e.toString())),
+        ),
       );
     }
   }
 
   Future<void> _showSuccessDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogCtx) {
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
             child: Column(
@@ -261,13 +269,16 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
-                    child:
-                        Icon(Icons.check, size: 42, color: AppColors.primary),
+                    child: Icon(
+                      Icons.check,
+                      size: 42,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Thành công',
+                Text(
+                  l10n.updateSuccessTitle,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -275,8 +286,8 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Thêm lịch thành công',
+                Text(
+                  l10n.scheduleImportSuccessMessage,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -296,8 +307,8 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                       ),
                     ),
                     onPressed: () => Navigator.of(dialogCtx).pop(),
-                    child: const Text(
-                      'Tiếp tục',
+                    child: Text(
+                      l10n.authContinueButton,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -305,7 +316,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                       ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -315,11 +326,12 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   }
 
   Future<void> _importNow() async {
+    final l10n = AppLocalizations.of(context);
     final ownerParentUid = _ownerParentUid;
     if (ownerParentUid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không xác định được chủ sở hữu lịch')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.scheduleImportMissingOwner)));
       return;
     }
 
@@ -331,15 +343,15 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
 
     if (vm.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Import thất bại: ${vm.error}')),
+        SnackBar(content: Text(l10n.scheduleImportFailed(vm.error!))),
       );
       return;
     }
 
     if (imported <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không có lịch hợp lệ để import.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.scheduleImportNoValidItems)));
       return;
     }
 
@@ -359,7 +371,9 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
         childId != null &&
         childId.isNotEmpty) {
       try {
-        await context.read<ScheduleNotificationService>().notifyScheduleImported(
+        await context
+            .read<ScheduleNotificationService>()
+            .notifyScheduleImported(
               actorUid: actorUid,
               ownerParentUid: ownerParentUid,
               childId: childId,
@@ -381,6 +395,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final userVm = context.watch<UserVm>();
     final importVm = context.watch<ScheduleImportVM>();
     final children = userVm.children;
@@ -411,8 +426,8 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          title: const Text(
-            'Thêm file Excel',
+          title: Text(
+            l10n.scheduleImportTitle,
             style: AppTextStyles.scheduleAppBarTitle,
           ),
           centerTitle: true,
@@ -428,7 +443,9 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                   color: AppColors.background,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   child: _PrimaryButton(
-                    text: 'Thêm ${importVm.preview!.okCount} lịch',
+                    text: l10n.scheduleImportAddCount(
+                      importVm.preview!.okCount,
+                    ),
                     icon: Icons.check_circle,
                     onTap: canImport ? _importNow : null,
                   ),
@@ -444,11 +461,14 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Chọn bé', style: AppTextStyles.body),
+                      Text(
+                        l10n.scheduleSelectChildLabel,
+                        style: AppTextStyles.body,
+                      ),
                       const SizedBox(height: 10),
                       _isChildMode
                           ? _LockedChildBox(
-                              label: _lockedChildName ?? 'Bé của bạn',
+                              label: _lockedChildName ?? l10n.scheduleYourChild,
                             )
                           : _ChildDropdown(
                               children: children,
@@ -466,18 +486,19 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                         children: [
                           Expanded(
                             child: _PrimaryOutlineButton(
-                              text: 'Tải file mẫu',
+                              text: l10n.scheduleTemplateDownloadButton,
                               icon: Icons.download,
-                              onTap:
-                                  importVm.loading ? null : _downloadTemplate,
+                              onTap: importVm.loading
+                                  ? null
+                                  : _downloadTemplate,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _PrimaryButton(
                               text: _pickedName == null
-                                  ? 'Chọn file Excel'
-                                  : 'Chọn file khác',
+                                  ? l10n.scheduleImportPickFileButton
+                                  : l10n.scheduleImportPickAnotherFileButton,
                               icon: Icons.upload_file,
                               onTap: importVm.loading ? null : _pickExcel,
                             ),
@@ -489,15 +510,18 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Đã chọn: ${_pickedName ?? ""}',
+                              l10n.scheduleImportSelectedFile(
+                                _pickedName ?? '',
+                              ),
                               style: AppTextStyles.scheduleItemTime,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           TextButton(
-                            onPressed:
-                                importVm.loading ? null : _resetPickedFile,
-                            child: const Text('Đổi file'),
+                            onPressed: importVm.loading
+                                ? null
+                                : _resetPickedFile,
+                            child: Text(l10n.scheduleImportChangeFileButton),
                           ),
                         ],
                       ),
@@ -526,9 +550,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                 else if (importVm.preview != null) ...[
                   _PreviewSummary(preview: importVm.preview!),
                   const SizedBox(height: 10),
-                  Expanded(
-                    child: _PreviewList(preview: importVm.preview!),
-                  ),
+                  Expanded(child: _PreviewList(preview: importVm.preview!)),
                 ] else
                   const Expanded(child: SizedBox()),
               ],
@@ -609,8 +631,9 @@ class _ChildDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (children.isEmpty) {
-      return const Text('Chưa có bé', style: AppTextStyles.body);
+      return Text(l10n.scheduleNoChild, style: AppTextStyles.body);
     }
 
     return Container(
@@ -730,23 +753,24 @@ class _PreviewSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return _SectionCard(
       child: Row(
         children: [
           _Chip(
-            label: 'OK: ${preview.okCount}',
+            label: l10n.scheduleImportSummaryOk(preview.okCount),
             bg: const Color(0xFFE9F9EF),
             fg: AppColors.success,
           ),
           const SizedBox(width: 8),
           _Chip(
-            label: 'Trùng: ${preview.duplicateCount}',
+            label: l10n.scheduleImportSummaryDuplicate(preview.duplicateCount),
             bg: const Color(0xFFFFF7D6),
             fg: const Color(0xFF8A6D00),
           ),
           const SizedBox(width: 8),
           _Chip(
-            label: 'Lỗi: ${preview.errorCount}',
+            label: l10n.scheduleImportSummaryError(preview.errorCount),
             bg: const Color(0xFFFFE8E8),
             fg: AppColors.error,
           ),
@@ -773,8 +797,10 @@ class _Chip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTextStyles.scheduleItemTime
-            .copyWith(color: fg, fontWeight: FontWeight.w700),
+        style: AppTextStyles.scheduleItemTime.copyWith(
+          color: fg,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -786,11 +812,12 @@ class _PreviewList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Xem trước dữ liệu', style: AppTextStyles.title),
+          Text(l10n.scheduleImportPreviewTitle, style: AppTextStyles.title),
           const SizedBox(height: 10),
           if (preview.warning != null) ...[
             Container(
@@ -804,10 +831,7 @@ class _PreviewList extends StatelessWidget {
               ),
               child: Text(
                 preview.warning!,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF8A6D00),
-                ),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF8A6D00)),
               ),
             ),
           ],
@@ -833,15 +857,16 @@ class _PreviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     Color bg = const Color.fromARGB(255, 172, 255, 176);
-    String status = 'OK';
+    String status = l10n.scheduleImportStatusOk;
 
     if (r.error != null) {
       bg = const Color(0xFFFFE8E8);
-      status = 'LỖI';
+      status = l10n.scheduleImportStatusError;
     } else if (r.isDuplicateInFile || r.isDuplicateInDb) {
       bg = const Color(0xFFFFF7D6);
-      status = 'TRÙNG';
+      status = l10n.scheduleImportStatusDuplicate;
     }
 
     final s = r.schedule;
@@ -866,22 +891,23 @@ class _PreviewRow extends StatelessWidget {
             ),
             child: Text(
               status,
-              style: AppTextStyles.scheduleItemTime
-                  .copyWith(fontWeight: FontWeight.w700),
+              style: AppTextStyles.scheduleItemTime.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: r.error != null
                 ? Text(
-                    'Dòng ${r.rowIndex - 1}: ${r.error}',
+                    l10n.scheduleImportRowError(r.rowIndex - 1, r.error ?? ''),
                     style: AppTextStyles.body,
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Dòng ${r.rowIndex - 1}: ${s!.title}',
+                        l10n.scheduleImportRowTitle(r.rowIndex - 1, s!.title),
                         style: AppTextStyles.scheduleItemTitle,
                       ),
                       const SizedBox(height: 4),
@@ -897,10 +923,10 @@ class _PreviewRow extends StatelessWidget {
                         ),
                       ],
                       if (r.isDuplicateInDb)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.only(top: 4),
                           child: Text(
-                            'Trùng với dữ liệu đã có trên hệ thống',
+                            l10n.scheduleImportDuplicateInSystem,
                             style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFF8A6D00),
@@ -908,10 +934,10 @@ class _PreviewRow extends StatelessWidget {
                           ),
                         ),
                       if (r.isDuplicateInFile)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.only(top: 4),
                           child: Text(
-                            'Trùng trong file',
+                            l10n.scheduleImportDuplicateInFile,
                             style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFF8A6D00),
