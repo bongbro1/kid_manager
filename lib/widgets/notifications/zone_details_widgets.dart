@@ -22,6 +22,8 @@ class ZoneDetailWidget extends StatelessWidget {
 
   String get _zoneType => (_data['zoneType'] ?? '').toString().toLowerCase();
   String get _action => (_data['action'] ?? '').toString().toLowerCase();
+  String get _eventKey =>
+      (_data['eventKey'] ?? detail.title ?? '').toString().toLowerCase();
 
   String _childName(AppLocalizations l10n) =>
       (_data['childName'] ??
@@ -31,8 +33,11 @@ class ZoneDetailWidget extends StatelessWidget {
               l10n.notificationsDefaultChildName)
           .toString();
 
-  bool get _isDanger => _zoneType == 'danger';
-  bool get _isEnter => _action == 'enter';
+  bool get _isDanger =>
+      _zoneType.isNotEmpty ? _zoneType == 'danger' : _eventKey.contains('.danger.');
+  bool get _isEnter =>
+      _action.isNotEmpty ? _action == 'enter' : _eventKey.contains('zone.enter.');
+  bool get _isChildAudience => _eventKey.endsWith('.child');
 
   String _descriptionText(AppLocalizations l10n) {
     final childName = _childName(l10n);
@@ -275,3 +280,4 @@ class _MapGridPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+

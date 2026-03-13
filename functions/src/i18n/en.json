@@ -1,14 +1,29 @@
 {
-  "zone.enter.danger.parent": "⚠️ Child entered a danger zone",
-  "zone.exit.danger.parent": "✅ Child left a danger zone",
-  "zone.enter.safe.parent": "✅ Child entered a safe zone",
-  "zone.exit.safe.parent": "ℹ️ Child left a safe zone",
+  "zone.enter.danger.parent.title": "⚠️ Child entered a danger zone",
+  "zone.enter.danger.parent.body": "{childName} entered {zoneName}.",
 
-  "zone.enter.danger.child": "⚠️ You entered a danger zone",
-  "zone.exit.danger.child": "✅ You left a danger zone",
-  "zone.enter.safe.child": "✅ You entered a safe zone",
-  "zone.exit.safe.child": "ℹ️ You left a safe zone",
+  "zone.exit.danger.parent.title": "✅ Child left a danger zone",
+  "zone.exit.danger.parent.body": "{childName} left {zoneName}{durationSuffix}.",
 
+  "zone.enter.safe.parent.title": "✅ Child entered a safe zone",
+  "zone.enter.safe.parent.body": "{childName} entered {zoneName}.",
+
+  "zone.exit.safe.parent.title": "ℹ️ Child left a safe zone",
+  "zone.exit.safe.parent.body": "{childName} left {zoneName}{durationSuffix}.",
+
+  "zone.enter.danger.child.title": "⚠️ You entered a danger zone",
+  "zone.enter.danger.child.body": "You entered {zoneName}.",
+
+  "zone.exit.danger.child.title": "✅ You left a danger zone",
+  "zone.exit.danger.child.body": "You left {zoneName}{durationSuffix}.",
+
+  "zone.enter.safe.child.title": "✅ You entered a safe zone",
+  "zone.enter.safe.child.body": "You entered {zoneName}.",
+
+  "zone.exit.safe.child.title": "ℹ️ You left a safe zone",
+  "zone.exit.safe.child.body": "You left {zoneName}{durationSuffix}.",
+
+  
   "tracking.location_service_off.parent.title": "Child turned off location",
   "tracking.location_service_off.parent.body": "{childName} turned off GPS/location on the device.",
 
@@ -39,3 +54,4 @@
   "tracking.ok.child.title": "Location is working again",
   "tracking.ok.child.body": "Your location is updating normally now."
 }
+

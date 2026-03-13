@@ -1,11 +1,10 @@
 import { onValueCreated } from "firebase-functions/v2/database";
 import { admin, db } from "../bootstrap";
 import { randomUUID } from "crypto";
+import { sendLocalizedNotification } from "../functions/notifications/sendLocalizedNotification";
 
 const RTDB_REGION = "us-central1";
-
 function dayInVN(ms: number) {
-  // YYYY-MM-DD theo giờ VN (Asia/Ho_Chi_Minh)
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
     year: "numeric",
@@ -21,12 +20,12 @@ function dayInVN(ms: number) {
 
 async function writeInbox(opts: {
   toUid: string;
-  senderId: string; // "system" hoặc childUid
-  type: string; // "ZONE"
-  eventKey: string; // zone.enter.danger.parent / child
-  body: string; // zoneName hoặc zoneName + duration
+  senderId: string;
+  type: string;
+  eventKey: string;
+  body: string;
   data: Record<string, any>;
-  createdAtMs: number; // để tính day
+  createdAtMs: number;
 }) {
   const id = randomUUID();
   const day = dayInVN(opts.createdAtMs);
@@ -45,77 +44,8 @@ async function writeInbox(opts: {
     day,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
-}
 
-async function sendToUserTokens(opts: {
-  uid: string;
-  eventKey: string;
-  zoneName: string;
-  payload: Record<string, string>;
-}) {
-  // lấy lang của user (để app dịch đúng cả background)
-  const userSnap = await db.doc(`users/${opts.uid}`).get();
-  const user = userSnap.exists ? (userSnap.data() as any) : {};
-  const lang = (user.lang ?? user.locale ?? "vi").toString().toLowerCase();
-
-  const tokensSnap = await db.collection(`users/${opts.uid}/fcmTokens`).get();
-  if (tokensSnap.empty) return;
-
-  const tokens: string[] = [];
-  const tokenDocIds: string[] = [];
-
-  tokensSnap.forEach((doc) => {
-    const t = (doc.data() as any)?.token?.toString();
-    if (t && t.length >= 20) {
-      tokens.push(t);
-      tokenDocIds.push(doc.id);
-    }
-  });
-
-  if (tokens.length === 0) return;
-  const title = opts.eventKey; // hoặc bạn tự build title tiếng việt, nhưng bạn đang dùng eventKey để app dịch
-  const body = opts.zoneName;  // hoặc bodyText nếu muốn có phút
-  const resp = await admin.messaging().sendEachForMulticast({
-    tokens,
-    notification: {
-      title,        // tối thiểu để hệ thống hiện notification khi app background
-      body,
-    },
-    data: {
-      type: "ZONE",
-      eventKey: opts.eventKey,
-      zoneName: opts.zoneName,
-      lang,
-      ...opts.payload,
-    },
-    android: { priority: "high" },
-    apns: {
-      payload: {
-        aps: {
-          alert: { title, body },   // ✅ iOS hiện được
-          sound: "default",
-        },
-      },
-      headers: { "apns-priority": "10" },
-    },
-  });
-
-  // dọn token chết
-  const batch = db.batch();
-  resp.responses.forEach((r, idx) => {
-    if (r.success) return;
-
-    const code = (r.error as any)?.code?.toString() ?? "";
-    const shouldDelete =
-      code.includes("messaging/registration-token-not-registered") ||
-      code.includes("messaging/invalid-registration-token");
-
-    if (shouldDelete) {
-      batch.delete(db.doc(`users/${opts.uid}/fcmTokens/${tokenDocIds[idx]}`));
-    }
-  });
-
-  await batch.commit();
+  return id;
 }
 
 export const onZoneEventCreated = onValueCreated(
@@ -125,53 +55,65 @@ export const onZoneEventCreated = onValueCreated(
     const ev = event.data?.val();
     if (!ev) return;
 
-    // lấy parentUid
     const childSnap = await db.doc(`users/${childUid}`).get();
     if (!childSnap.exists) return;
 
     const child = childSnap.data() as any;
     const parentUid: string | undefined = child.parentUid;
-    if (!parentUid) return;
+    if (!parentUid) {
+      console.log(`[ZONE_EVENT] child has no parentUid childUid=${childUid}`);
+      return;
+    }
+
+    const childName = String(child.displayName ?? child.name ?? "Bé");
 
     const zoneId = String(ev.zoneId ?? "");
-    const zoneType = (ev.zoneType ?? ev.type ?? "").toString(); // safe|danger
-    const action = (ev.action ?? ev.eventType ?? "").toString(); // enter|exit
-    const zoneName = (ev.zoneName ?? "Vùng").toString();
+    if (!zoneId) {
+      console.log(`[ZONE_EVENT] Missing zoneId childUid=${childUid} eventId=${eventId}`);
+      return;
+    }
+
+    const zoneType = String(ev.zoneType ?? ev.type ?? "").toLowerCase();
+    const action = String(ev.action ?? ev.eventType ?? "").toLowerCase();
+    const zoneName = String(ev.zoneName ?? "Vùng");
 
     const isDanger = zoneType === "danger";
     const isEnter = action === "enter";
+    const isExit = action === "exit";
 
-    // key cho PARENT / CHILD
-    const parentKey =
-      isDanger
-        ? isEnter
-          ? "zone.enter.danger.parent"
-          : "zone.exit.danger.parent"
-        : isEnter
-          ? "zone.enter.safe.parent"
-          : "zone.exit.safe.parent";
+    if (!isEnter && !isExit) {
+      console.log(
+        `[ZONE_EVENT] Skip unknown action childUid=${childUid} eventId=${eventId} action=${action}`
+      );
+      return;
+    }
 
-    const childKey =
-      isDanger
-        ? isEnter
-          ? "zone.enter.danger.child"
-          : "zone.exit.danger.child"
-        : isEnter
-          ? "zone.enter.safe.child"
-          : "zone.exit.safe.child";
+    const parentKey = isDanger
+      ? isEnter
+        ? "zone.enter.danger.parent"
+        : "zone.exit.danger.parent"
+      : isEnter
+      ? "zone.enter.safe.parent"
+      : "zone.exit.safe.parent";
+
+    const childKey = isDanger
+      ? isEnter
+        ? "zone.enter.danger.child"
+        : "zone.exit.danger.child"
+      : isEnter
+      ? "zone.enter.safe.child"
+      : "zone.exit.safe.child";
 
     const nowMs = Date.now();
     const eventTs = Number(ev.timestamp ?? nowMs);
 
-    // ============================
-    // Duration tracking (enter/exit)
-    // ============================
     const presenceRef = admin.database().ref(`zonePresenceByChild/${childUid}/${zoneId}`);
 
     let durationSec = 0;
     let durationMin = 0;
-    let enterAt:number | null = null;
-    if (action === "enter") {
+    let enterAt: number | null = null;
+
+    if (isEnter) {
       await presenceRef.set({
         inside: true,
         zoneType,
@@ -181,19 +123,19 @@ export const onZoneEventCreated = onValueCreated(
       });
     }
 
-    if (action === "exit") {
+    if (isExit) {
       const snap = await presenceRef.get();
       const pres = snap.exists() ? snap.val() : null;
 
-      const enterAt = pres?.enterAt ? Number(pres.enterAt) : null;
+      enterAt = pres?.enterAt ? Number(pres.enterAt) : null;
       durationSec = enterAt ? Math.max(0, Math.floor((eventTs - enterAt) / 1000)) : 0;
-      durationMin = Math.max(1, Math.round(durationSec / 60));
+      durationMin = durationSec > 0 ? Math.max(1, Math.round(durationSec / 60)) : 0;
 
       await presenceRef.remove();
     }
-    // ✅ update daily per-zone stats (chỉ khi exit và có duration)
-    if (action === "exit" && durationSec > 0) {
-      const day = dayInVN(eventTs); // dùng eventTs để đúng ngày VN
+
+    if (isExit && durationSec > 0) {
+      const day = dayInVN(eventTs);
       const zoneStatRef = db.doc(`zoneStatsByChild/${childUid}/days/${day}/zones/${zoneId}`);
 
       await db.runTransaction(async (tx) => {
@@ -206,16 +148,13 @@ export const onZoneEventCreated = onValueCreated(
         tx.set(
           zoneStatRef,
           {
-            zoneId: String(zoneId),
-            zoneName: String(zoneName),
-            zoneType: String(zoneType),
-
+            zoneId,
+            zoneName,
+            zoneType,
             totalSec: prevTotal + durationSec,
             sessions: prevSessions + 1,
-
             lastEnterAt: cur.lastEnterAt ?? (enterAt ?? eventTs),
             lastExitAt: eventTs,
-
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           },
           { merge: true }
@@ -223,16 +162,15 @@ export const onZoneEventCreated = onValueCreated(
       });
     }
 
-    // body hiển thị (tuỳ chọn): chỉ exit mới thêm phút
-    const bodyText =
-      action === "exit" && durationMin > 0 ? `${zoneName} • ${durationMin} phút` : zoneName;
+    const inboxBody = isExit && durationMin > 0 ? `${zoneName} • ${durationMin} phút` : zoneName;
 
     const payloadForHistory = {
       childUid: String(childUid),
-      zoneId: String(zoneId),
-      zoneType: String(zoneType),
-      action: String(action),
-      zoneName: String(zoneName),
+      childName,
+      zoneId,
+      zoneType,
+      action,
+      zoneName,
       eventId: String(eventId),
       timestamp: String(eventTs),
       lat: String(ev.lat ?? ""),
@@ -241,67 +179,86 @@ export const onZoneEventCreated = onValueCreated(
       durationMin: String(durationMin),
     };
 
-    // ✅ 1) Lưu inbox lịch sử cho CHA
-    await writeInbox({
+    const parentNotificationId = await writeInbox({
       toUid: parentUid,
       senderId: "system",
       type: "ZONE",
       eventKey: parentKey,
-      body: bodyText,
+      body: inboxBody,
       data: payloadForHistory,
       createdAtMs: nowMs,
     });
 
-    // ✅ 2) Lưu inbox lịch sử cho CON
-    await writeInbox({
+    const childNotificationId = await writeInbox({
       toUid: childUid,
       senderId: "system",
       type: "ZONE",
       eventKey: childKey,
-      body: bodyText,
+      body: inboxBody,
       data: payloadForHistory,
       createdAtMs: nowMs,
     });
 
-    // ✅ 3) Gửi push cho CHA
-    const payloadForPush = {
-      childUid: String(childUid),
-      zoneId: String(zoneId),
-      zoneType: String(zoneType),
-      action: String(action),
-      eventId: String(eventId),
-      timestamp: String(eventTs),
-      durationSec: String(durationSec),
-      durationMin: String(durationMin),
-    };
+    const durationSuffix = durationMin > 0 ? ` • ${durationMin} phút` : "";
 
-    await sendToUserTokens({
+    await sendLocalizedNotification({
       uid: parentUid,
+      type: "zone",
       eventKey: parentKey,
-      zoneName,
-      payload: payloadForPush,
+      titleParams: {
+        childName,
+        zoneName,
+        durationSuffix,
+      },
+      bodyParams: {
+        childName,
+        zoneName,
+        durationSuffix,
+      },
+      data: {
+        childUid: String(childUid),
+        childName,
+        zoneId,
+        zoneType,
+        action,
+        zoneName,
+        eventId: String(eventId),
+        notificationId: parentNotificationId,
+        timestamp: String(eventTs),
+        durationSec: String(durationSec),
+        durationMin: String(durationMin),
+      },
+      channelId: "zone_alerts",
     });
 
-    // ✅ 4) Gửi push cho CON
-    await sendToUserTokens({
+    await sendLocalizedNotification({
       uid: childUid,
+      type: "zone",
       eventKey: childKey,
-      zoneName,
-      payload: payloadForPush,
+      titleParams: {
+        childName,
+        zoneName,
+        durationSuffix,
+      },
+      bodyParams: {
+        childName,
+        zoneName,
+        durationSuffix,
+      },
+      data: {
+        childUid: String(childUid),
+        childName,
+        zoneId,
+        zoneType,
+        action,
+        zoneName,
+        eventId: String(eventId),
+        notificationId: childNotificationId,
+        timestamp: String(eventTs),
+        durationSec: String(durationSec),
+        durationMin: String(durationMin),
+      },
+      channelId: "zone_alerts",
     });
-
-    // (Optional) Nếu bạn vẫn muốn lưu “global” để admin/analytics:
-    // await db.collection("notifications").add({
-    //   receiverId: parentUid,
-    //   senderId: "system",
-    //   type: "ZONE",
-    //   eventKey: parentKey,
-    //   body: bodyText,
-    //   data: payloadForHistory,
-    //   isRead: false,
-    //   status: "sent",
-    //   day: dayInVN(nowMs),
-    //   createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    // });
   }
 );

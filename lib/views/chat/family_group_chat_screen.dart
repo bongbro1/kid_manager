@@ -539,7 +539,7 @@ class _LocalPendingBubble extends StatelessWidget {
     final statusText = message.failed ? 'failed' : 'sending...';
 
     final statusColor =
-        message.failed ? const Color(0xFFDC2626) : const Color(0xFF64748B);
+    message.failed ? const Color(0xFFDC2626) : const Color(0xFF64748B);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
@@ -623,7 +623,7 @@ class _MessageBubble extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             if (!isMine) ...[
               Text(

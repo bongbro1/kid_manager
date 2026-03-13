@@ -5,6 +5,7 @@ lib/**/*.js.map
 # TypeScript v1 declaration files
 typings/
 
+.env.kidmanager-b4a8f
 # Node.js dependency directory
 node_modules/
 *.local

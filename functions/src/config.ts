@@ -8,6 +8,7 @@ export const SOS_MIN_INTERVAL_SEC = 10;
 export const RATE_DOC_TTL_DAYS = 14;
 
 export const TASK_LOCATION = "asia-southeast1";
+export const RTDB_TRIGGER_REGION = "us-central1";
 export const TASK_QUEUE = "sos-reminder-queue";
 export const REMIND_INTERVAL_SEC = 10;
 export const REMIND_MAX_SECONDS = 30 * 60;
