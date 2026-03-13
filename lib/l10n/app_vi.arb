@@ -764,6 +764,20 @@
   "zone_enter_danger_child": "⚠️ Bạn đang vào vùng nguy hiểm",
   "zone_exit_danger_child": "✅ Bạn đã ra khỏi vùng nguy hiểm",
   "zone_enter_safe_child": "✅ Bạn đang vào vùng an toàn",
-  "zone_exit_safe_child": "ℹ️ Bạn đã ra khỏi vùng an toàn"
+  "zone_exit_safe_child": "ℹ️ Bạn đã ra khỏi vùng an toàn",
+  
+  "tracking_location_service_off_parent_title": "Con đã tắt định vị",
+  "tracking_location_permission_denied_parent_title": "Con đã tắt quyền vị trí",
+  "tracking_background_disabled_parent_title": "Định vị nền đã bị tắt",
+  "tracking_location_stale_parent_title": "Không nhận được vị trí mới",
+  "tracking_ok_parent_title": "Định vị đã hoạt động lại",
+
+  "tracking_location_service_off_child_title": "Định vị đang tắt",
+  "tracking_location_permission_denied_child_title": "Quyền vị trí đang tắt",
+  "tracking_background_disabled_child_title": "Định vị nền đang tắt",
+  "tracking_location_stale_child_title": "Vị trí chưa được cập nhật",
+  "tracking_ok_child_title": "Định vị đã hoạt động lại",
+
+  "tracking_default_title": "Thông báo định vị"
 }
 
