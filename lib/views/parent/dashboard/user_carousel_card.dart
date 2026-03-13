@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:kid_manager/core/app_colors.dart';
-import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
-import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
-import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:provider/provider.dart';
 
 class UserCarouselCard extends StatefulWidget {
@@ -280,6 +277,9 @@ class UserItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final trimmedAvatar = avatarUrl.trim();
+    final hasAvatar = trimmedAvatar.isNotEmpty;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       // crossAxisAlignment: CrossAxisAlignment.center,
@@ -302,15 +302,25 @@ class UserItemWidget extends StatelessWidget {
                 ),
               ),
               child: ClipOval(
-                child: Image(
-                  image: ((avatarUrl).trim().isNotEmpty)
-                      ? NetworkImage((avatarUrl).trim())
-                      : const AssetImage("assets/images/avatar_default.png")
-                            as ImageProvider,
-                  width: 500,
-                  height: 230,
-                  fit: BoxFit.cover,
-                ),
+                child: hasAvatar
+                    ? Image.network(
+                        trimmedAvatar,
+                        width: size,
+                        height: size,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Image.asset(
+                          "assets/images/avatar_default.png",
+                          width: size,
+                          height: size,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Image.asset(
+                        "assets/images/avatar_default.png",
+                        width: size,
+                        height: size,
+                        fit: BoxFit.cover,
+                      ),
               ),
             ),
 

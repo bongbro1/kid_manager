@@ -10,11 +10,15 @@ Widget tappablePhoto({
   required UserVm vm,
   required String? url,
   required String fallbackAsset,
-  required Widget child, // widget hiển thị ảnh (Container/Image/...)
+  required Widget child, 
   Future<bool> Function(int index, File file)? onReplace,
 }) {
   final u = (url ?? '').trim();
-  final provider = u.isNotEmpty
+  final uri = Uri.tryParse(u);
+  final hasHttpImage = uri != null &&
+      uri.host.isNotEmpty &&
+      (uri.scheme == 'http' || uri.scheme == 'https');
+  final provider = hasHttpImage
       ? NetworkImage(u)
       : AssetImage(fallbackAsset) as ImageProvider;
 
@@ -28,6 +32,7 @@ Widget tappablePhoto({
             ? null
             : (index, file) async {
                 final ok = await onReplace(index, file);
+                if (!context.mounted) return;
                 if (!ok) {
                   NotificationDialog.show(
                     context,

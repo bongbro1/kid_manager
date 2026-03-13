@@ -6,6 +6,8 @@ import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
+import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
@@ -17,6 +19,7 @@ import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
+import 'package:kid_manager/widgets/common/smart_network_image.dart';
 import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/views/language_selector_sheet.dart';
@@ -125,6 +128,26 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     context.read<UserVm>().listenProfile();
   }
 
+  Widget _buildCoverPhoto(String? coverUrl) {
+    return SmartNetworkImage(
+      imageUrl: coverUrl,
+      fallbackAsset: "assets/images/cover.png",
+      width: 500,
+      height: 200,
+      fit: BoxFit.cover,
+    );
+  }
+
+  Widget _buildAvatarPhoto(String? avatarUrl) {
+    return SmartNetworkImage(
+      imageUrl: avatarUrl,
+      fallbackAsset: "assets/images/u1.png",
+      width: 60,
+      height: 60,
+      fit: BoxFit.cover,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -228,20 +251,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                       type: UserPhotoType.cover,
                                     );
                                   },
-                                  child: Image(
-                                    image:
-                                        ((p?.coverUrl ?? '').trim().isNotEmpty)
-                                        ? NetworkImage(
-                                            (p?.coverUrl ?? '').trim(),
-                                          )
-                                        : const AssetImage(
-                                                "assets/images/cover.png",
-                                              )
-                                              as ImageProvider,
-                                    width: 500,
-                                    height: 200,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  child: _buildCoverPhoto(p?.coverUrl),
                                 ),
                               ),
                             ),
@@ -282,27 +292,15 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           width: 60,
                                           height: 60,
                                           decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              78.5,
-                                            ),
+                                            shape: BoxShape.circle,
                                             border: Border.all(
                                               width: 2,
                                               color: const Color(0xFF5EC8F2),
                                             ),
-                                            image: DecorationImage(
-                                              image:
-                                                  ((p?.avatarUrl ?? '')
-                                                      .trim()
-                                                      .isNotEmpty)
-                                                  ? NetworkImage(
-                                                      (p?.avatarUrl ?? '')
-                                                          .trim(),
-                                                    )
-                                                  : const AssetImage(
-                                                          "assets/images/u1.png",
-                                                        )
-                                                        as ImageProvider,
-                                              fit: BoxFit.cover,
+                                          ),
+                                          child: ClipOval(
+                                            child: _buildAvatarPhoto(
+                                              p?.avatarUrl,
                                             ),
                                           ),
                                         ),
@@ -537,10 +535,17 @@ class ConfirmLogoutSheet extends StatelessWidget {
     
     Future<void> logout() async {
       final authVM = context.read<AuthVM>();
+      final userVm = context.read<UserVm>();
+      final appManagementVm = context.read<AppManagementVM>();
+      final parentLocationVm = context.read<ParentLocationVm>();
       final notiVM = context.read<NotificationVM>();
       final rootNav = Navigator.of(context, rootNavigator: true);
 
+      await parentLocationVm.stopWatchingAllChildren();
+      await parentLocationVm.stopMyLocation();
       await notiVM.clear();
+      await userVm.clear();
+      await appManagementVm.clear();
       await authVM.logout();
 
       rootNav.pushAndRemoveUntil(

@@ -81,9 +81,14 @@ class NotificationVM extends ChangeNotifier {
     notifyListeners();
 
     _unreadSub?.cancel();
-    _unreadSub = _repo.watchUnreadCount(uid).listen((count) {
+    _unreadSub = _repo.watchUnreadCount(uid).listen((unreadValue) {
       if (_uid != uid) return;
-      _unreadCount = count;
+      _unreadCount = unreadValue;
+      notifyListeners();
+    }, onError: (e) {
+      if (_uid != uid) return;
+      _error = 'Notification unread stream error: $e';
+      _unreadCount = 0;
       notifyListeners();
     });
 
@@ -96,6 +101,11 @@ class NotificationVM extends ChangeNotifier {
           _lastCreatedAt = Timestamp.fromDate(list.last.createdAt!);
         }
 
+        _emitMerged(sources, filter);
+      }, onError: (e) {
+        if (_uid != uid) return;
+        _error = 'Notification stream error ($src): $e';
+        _cache[src] = const [];
         _emitMerged(sources, filter);
       });
 

@@ -150,16 +150,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           );
 
     final avatar = (selected.avatarUrl ?? '').trim();
+    final fallbackText = _nameInitial(selected);
 
     return CircleAvatar(
       radius: 18,
-      backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-      child: avatar.isEmpty
-          ? Text(
-              _nameInitial(selected),
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            )
-          : null,
+      foregroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+      onForegroundImageError: (_, _) {},
+      child: Text(
+        fallbackText,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
     );
   }
 
@@ -239,17 +239,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           children: [
                             CircleAvatar(
                               radius: 14,
-                              backgroundImage: avatar.isNotEmpty
+                              foregroundImage: avatar.isNotEmpty
                                   ? NetworkImage(avatar)
                                   : null,
-                              child: avatar.isEmpty
-                                  ? Text(
-                                      _nameInitial(c),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    )
-                                  : null,
+                              onForegroundImageError: (_, _) {},
+                              child: Text(
+                                _nameInitial(c),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
