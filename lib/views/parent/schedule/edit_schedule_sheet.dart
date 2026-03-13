@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/parent/schedule/schedule_period_selector.dart';
@@ -32,7 +33,7 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   TimeOfDay? _endTime;
   SchedulePeriod? _period;
 
-// để tránh submit nhiều lần khi user bấm liên tục, hoặc bấm khi đang loading
+  // để tránh submit nhiều lần khi user bấm liên tục, hoặc bấm khi đang loading
   bool _submitting = false;
 
   @override
@@ -43,15 +44,15 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
     _descCtrl = TextEditingController(text: widget.schedule.description ?? '');
 
     _startTime = TimeOfDay.fromDateTime(widget.schedule.startAt);
-    _endTime   = TimeOfDay.fromDateTime(widget.schedule.endAt);
-    _period    = widget.schedule.period;
+    _endTime = TimeOfDay.fromDateTime(widget.schedule.endAt);
+    _period = widget.schedule.period;
 
-    _dateCtrl  = TextEditingController(
+    _dateCtrl = TextEditingController(
       text: DateFormat('dd/MM/yyyy').format(widget.schedule.date),
     );
 
     _startCtrl = TextEditingController();
-    _endCtrl   = TextEditingController();
+    _endCtrl = TextEditingController();
 
     _syncPeriodFromTime();
   }
@@ -69,7 +70,7 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   bool _didInitText = false;
 
   String formatTime24(TimeOfDay t) =>
-    '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   @override
   void didChangeDependencies() {
@@ -77,7 +78,7 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
     if (_didInitText) return;
 
     _startCtrl.text = _startTime == null ? '' : formatTime24(_startTime!);
-    _endCtrl.text   = _endTime == null ? '' : formatTime24(_endTime!);
+    _endCtrl.text = _endTime == null ? '' : formatTime24(_endTime!);
 
     _didInitText = true;
   }
@@ -99,14 +100,14 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   }
 
   bool get _isValid {
-  if (_titleCtrl.text.trim().isEmpty) return false;
-  if (_titleCtrl.text.length > 50) return false;
-  if (_startTime == null || _endTime == null) return false;
+    if (_titleCtrl.text.trim().isEmpty) return false;
+    if (_titleCtrl.text.length > 50) return false;
+    if (_startTime == null || _endTime == null) return false;
 
-  final start = _startTime!.hour * 60 + _startTime!.minute;
-  final end = _endTime!.hour * 60 + _endTime!.minute;
-  return end > start;
-}
+    final start = _startTime!.hour * 60 + _startTime!.minute;
+    final end = _endTime!.hour * 60 + _endTime!.minute;
+    return end > start;
+  }
 
   SchedulePeriod _inferPeriod(TimeOfDay start) {
     final h = start.hour;
@@ -124,14 +125,15 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   }
 
   Future<bool> _onBack() async {
-  if (!_hasChanged) return true;
-  if (!mounted) return true;
+    if (!_hasChanged) return true;
+    if (!mounted) return true;
 
-  return await confirmExitUnsavedChanges(context);
-}
+    return await confirmExitUnsavedChanges(context);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: _onBack,
@@ -154,7 +156,7 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
                     children: [
                       _input(
                         controller: _titleCtrl,
-                        label: 'Tên lịch trình',
+                        label: l10n.scheduleFormTitleHint,
                         maxLength: 50,
                         onChanged: (_) => setState(() {}),
                       ),
@@ -162,7 +164,7 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
                       const SizedBox(height: 16),
                       _input(
                         controller: _descCtrl,
-                        label: 'Mô tả',
+                        label: l10n.scheduleFormDescriptionHint,
                         maxLines: 3,
                         onChanged: (_) => setState(() {}),
                       ),
@@ -185,6 +187,7 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
       child: Stack(
@@ -201,8 +204,8 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
               },
             ),
           ),
-          const Text(
-            'Chỉnh sửa lịch trình',
+          Text(
+            l10n.scheduleEditHeaderTitle,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
         ],
@@ -211,149 +214,160 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   }
 
   Widget _submitButton() {
-  final vm = context.read<ScheduleViewModel>();
+    final vm = context.read<ScheduleViewModel>();
+    final l10n = AppLocalizations.of(context);
 
-  return Padding(
-    padding: const EdgeInsets.all(20),
-    child: SizedBox(
-      height: 52,
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: (_isValid && _hasChanged && !_submitting)
-          ? () async {
-              setState(() => _submitting = true);
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SizedBox(
+        height: 52,
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: (_isValid && _hasChanged && !_submitting)
+              ? () async {
+                  setState(() => _submitting = true);
 
-              try {
-                final ok = await runWithLoading<bool>(context, () async {
-                final startAt = DateTime(
-                  widget.schedule.date.year,
-                  widget.schedule.date.month,
-                  widget.schedule.date.day,
-                  _startTime!.hour,
-                  _startTime!.minute,
-                );
+                  try {
+                    final ok = await runWithLoading<bool>(context, () async {
+                      final startAt = DateTime(
+                        widget.schedule.date.year,
+                        widget.schedule.date.month,
+                        widget.schedule.date.day,
+                        _startTime!.hour,
+                        _startTime!.minute,
+                      );
 
-                final endAt = DateTime(
-                  widget.schedule.date.year,
-                  widget.schedule.date.month,
-                  widget.schedule.date.day,
-                  _endTime!.hour,
-                  _endTime!.minute,
-                );
+                      final endAt = DateTime(
+                        widget.schedule.date.year,
+                        widget.schedule.date.month,
+                        widget.schedule.date.day,
+                        _endTime!.hour,
+                        _endTime!.minute,
+                      );
 
-                final updatedSchedule = widget.schedule.copyWith(
-                  title: _titleCtrl.text.trim(),
-                  description: _descCtrl.text.trim(),
-                  startAt: startAt,
-                  endAt: endAt,
-                  period: _period ?? _inferPeriod(_startTime!),
-                  updatedAt: DateTime.now(),
-                );
+                      final updatedSchedule = widget.schedule.copyWith(
+                        title: _titleCtrl.text.trim(),
+                        description: _descCtrl.text.trim(),
+                        startAt: startAt,
+                        endAt: endAt,
+                        period: _period ?? _inferPeriod(_startTime!),
+                        updatedAt: DateTime.now(),
+                      );
 
-                await vm.updateSchedule(updatedSchedule);
-                return true;
-              });
+                      await vm.updateSchedule(updatedSchedule);
+                      return true;
+                    });
 
-              if (ok != true || !mounted) return;
+                    if (ok != true || !mounted) return;
 
-              final rootCtx = Navigator.of(context, rootNavigator: true).context;
-              await NotificationDialog.show(
-                rootCtx,
-                type: DialogType.success,
-                title: 'Hoàn thành',
-                message: 'Bạn đã sửa thành công',
-                onConfirm: () {
-                  if (mounted) Navigator.pop(context); // đóng sheet edit
-                },
-              );
-            } on ScheduleOverlapException catch (e) {
-              if (!mounted) return;
+                    final rootCtx = Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).context;
+                    await NotificationDialog.show(
+                      rootCtx,
+                      type: DialogType.success,
+                      title: l10n.updateSuccessTitle,
+                      message: l10n.scheduleEditSuccessMessage,
+                      onConfirm: () {
+                        if (mounted) Navigator.pop(context); // đóng sheet edit
+                      },
+                    );
+                  } on ScheduleOverlapException catch (e) {
+                    if (!mounted) return;
 
-              final rootCtx = Navigator.of(context, rootNavigator: true).context;
-              await NotificationDialog.show(
-                rootCtx,
-                type: DialogType.error,
-                title: 'Cảnh báo',
-                message: e.message,
-                onConfirm: null,
-              );
-            } catch (_) {
-              if (!mounted) return;
+                    final rootCtx = Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).context;
+                    await NotificationDialog.show(
+                      rootCtx,
+                      type: DialogType.error,
+                      title: l10n.scheduleDialogWarningTitle,
+                      message: e.message,
+                      onConfirm: null,
+                    );
+                  } catch (_) {
+                    if (!mounted) return;
 
-              final rootCtx = Navigator.of(context, rootNavigator: true).context;
-              await NotificationDialog.show(
-                rootCtx,
-                type: DialogType.error,
-                title: 'Thất bại',
-                message: 'Đã có lỗi xảy ra, vui lòng thử lại',
-                onConfirm: null,
-              );
-            } finally {
-              if (mounted) setState(() => _submitting = false);
-            }
-          }
-        : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3F7CFF),
-          disabledBackgroundColor: Colors.grey.shade300,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(26),
+                    final rootCtx = Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).context;
+                    await NotificationDialog.show(
+                      rootCtx,
+                      type: DialogType.error,
+                      title: l10n.updateErrorTitle,
+                      message: l10n.authGenericError,
+                      onConfirm: null,
+                    );
+                  } finally {
+                    if (mounted) setState(() => _submitting = false);
+                  }
+                }
+              : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF3F7CFF),
+            disabledBackgroundColor: Colors.grey.shade300,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(26),
+            ),
           ),
-        ),
-        child: Text(_submitting ? 'Đang lưu...' : 'Lưu lịch trình',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+          child: Text(
+            _submitting
+                ? l10n.scheduleFormSavingButton
+                : l10n.scheduleEditSubmitButton,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _input({
-  required TextEditingController controller,
-  required String label,
-  int maxLines = 1,
-  int? maxLength,
-  Function(String)? onChanged,
-}) {
-  return TextField(
-    controller: controller,
-    maxLines: maxLines,
-    maxLength: maxLength,
-    onChanged: onChanged,
-    decoration: InputDecoration(
-      labelText: label,
-      floatingLabelBehavior: FloatingLabelBehavior.auto, 
-      // auto = có text thì label nổi lên, đúng chuẩn edit
+    required TextEditingController controller,
+    required String label,
+    int maxLines = 1,
+    int? maxLength,
+    Function(String)? onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      maxLength: maxLength,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
 
-      filled: true,
-      fillColor: const Color(0xFFF5F6F8),
+        // auto = có text thì label nổi lên, đúng chuẩn edit
+        filled: true,
+        fillColor: const Color(0xFFF5F6F8),
 
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
-      ),
-
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: Color(0xFF3F7CFF),
-          width: 1.2,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
-      ),
 
-      counterText: "",
-    ),
-  );
-}
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF3F7CFF), width: 1.2),
+        ),
+
+        counterText: "",
+      ),
+    );
+  }
 
   Widget _dateField() {
+    final l10n = AppLocalizations.of(context);
     return _readonlyField(
-      label: 'Ngày',
+      label: l10n.scheduleFormDateLabel,
       controller: _dateCtrl,
     );
   }
@@ -395,110 +409,114 @@ class _EditScheduleScreenState extends State<EditScheduleScreen> {
   }
 
   bool get _isTimeInvalid {
-  if (_startTime == null || _endTime == null) return false;
+    if (_startTime == null || _endTime == null) return false;
 
-  final start = _startTime!.hour * 60 + _startTime!.minute;
-  final end = _endTime!.hour * 60 + _endTime!.minute;
+    final start = _startTime!.hour * 60 + _startTime!.minute;
+    final end = _endTime!.hour * 60 + _endTime!.minute;
 
-  return end <= start;
-}
+    return end <= start;
+  }
 
   Widget _timeRow() {
-  return Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(
-        child: _timePicker(
-          label: 'Giờ bắt đầu',
-          controller: _startCtrl,
-          time: _startTime,
-          onPick: (t) => setState(() {
-            _startTime = t;
-            _startCtrl.text = formatTime24(t);
-            _syncPeriodFromTime();
-          }),
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _timePicker(
+            label: l10n.scheduleFormStartTimeLabel,
+            controller: _startCtrl,
+            time: _startTime,
+            onPick: (t) => setState(() {
+              _startTime = t;
+              _startCtrl.text = formatTime24(t);
+              _syncPeriodFromTime();
+            }),
+          ),
         ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: _timePicker(
-          label: 'Giờ kết thúc',
-          controller: _endCtrl,
-          time: _endTime,
-          errorText: _isTimeInvalid ? 'Giờ kết thúc phải lớn hơn' : null,
-          onPick: (t) => setState(() {
-            _endTime = t;
-            _endCtrl.text = formatTime24(t);
-          }),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _timePicker(
+            label: l10n.scheduleFormEndTimeLabel,
+            controller: _endCtrl,
+            time: _endTime,
+            errorText: _isTimeInvalid ? l10n.scheduleFormEndTimeInvalid : null,
+            onPick: (t) => setState(() {
+              _endTime = t;
+              _endCtrl.text = formatTime24(t);
+            }),
+          ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   Widget _timePicker({
-  required String label,
-  required TextEditingController controller,
-  required TimeOfDay? time,
-  required ValueChanged<TimeOfDay> onPick,
-  String? errorText,
-}) {
-  return TextFormField(
-    readOnly: true,
-    controller: controller,
-    onTap: () async {
-      if (_submitting) return;
+    required String label,
+    required TextEditingController controller,
+    required TimeOfDay? time,
+    required ValueChanged<TimeOfDay> onPick,
+    String? errorText,
+  }) {
+    return TextFormField(
+      readOnly: true,
+      controller: controller,
+      onTap: () async {
+        if (_submitting) return;
 
-      final t = await AppWheelTimePicker.show(
-        context,
-        title: label,
-        initial: time,
-        primaryColor: const Color(0xFF3F7CFF),
-        minuteInterval: 1,
-      );
+        final t = await AppWheelTimePicker.show(
+          context,
+          title: label,
+          initial: time,
+          primaryColor: const Color(0xFF3F7CFF),
+          minuteInterval: 1,
+        );
 
-      if (t != null) onPick(t);
-    },
-    decoration: InputDecoration(
-      labelText: label,
-      errorText: errorText,
+        if (t != null) onPick(t);
+      },
+      decoration: InputDecoration(
+        labelText: label,
+        errorText: errorText,
 
-      // giữ layout ổn định, nhưng giảm khoảng trống
-      helperText: ' ',
-      helperStyle: const TextStyle(fontSize: 1, height: 0.1),
-      errorStyle: const TextStyle(fontSize: 12, height: 0.9),
+        // giữ layout ổn định, nhưng giảm khoảng trống
+        helperText: ' ',
+        helperStyle: const TextStyle(fontSize: 1, height: 0.1),
+        errorStyle: const TextStyle(fontSize: 12, height: 0.9),
 
-      suffixIcon: const Padding(
-        padding: EdgeInsets.only(right: 4),
-        child: Icon(Icons.access_time_rounded, size: 18, color: Colors.grey),
+        suffixIcon: const Padding(
+          padding: EdgeInsets.only(right: 4),
+          child: Icon(Icons.access_time_rounded, size: 18, color: Colors.grey),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        filled: true,
+        fillColor: const Color(0xFFF5F6F8),
+
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF3F7CFF), width: 1.2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        ),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
 
-      floatingLabelBehavior: FloatingLabelBehavior.auto,
-      filled: true,
-      fillColor: const Color(0xFFF5F6F8),
-
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFF3F7CFF), width: 1.2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.red),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
-      ),
-    ),
-  );
-}
-
-Widget _periodRow() {
+  Widget _periodRow() {
     return SchedulePeriodSelector(
       value: _period,
       onChanged: null,

@@ -2,13 +2,11 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/validators.dart';
-import 'package:kid_manager/models/notifications/dialog_type.dart';
-import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
 import 'package:kid_manager/views/terms_screen.dart';
-import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
@@ -39,35 +37,37 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _onSignUpPressed() async {
     final vm = context.read<AuthVM>();
+    final l10n = AppLocalizations.of(context);
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text.trim();
     final confirm = _confirmCtrl.text.trim();
     // Validate
     if (email.isEmpty || password.isEmpty) {
-      AlertService.showSnack('Vui lòng nhập đầy đủ thông tin', isError: true);
+      AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
     }
 
     if (!Validators.isValidEmail(email)) {
-      AlertService.showSnack('Email không hợp lệ', isError: true);
+      AlertService.showSnack(l10n.emailInvalid, isError: true);
       return;
     }
 
     if (email.isEmpty || password.isEmpty || confirm.isEmpty || !agreeClause) {
-      AlertService.showSnack('Vui lòng nhập đầy đủ thông tin', isError: true);
+      AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
     }
     if (password != confirm) {
-      AlertService.showSnack('Mật khẩu xác nhận không khớp', isError: true);
+      AlertService.showSnack(l10n.authPasswordMismatch, isError: true);
       return;
     }
 
     final uid = await vm.register(email, password);
 
     if (uid == null) {
-      AlertService.error(message: vm.error ?? 'Đăng ký thất bại');
+      AlertService.error(message: vm.error ?? l10n.authSignupFailed);
       return;
     }
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -80,6 +80,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AuthVM>();
+    final l10n = AppLocalizations.of(context);
     // if (vm.loading) LoadingOverlay();
     // Theo spec bạn đưa:
     return Stack(
@@ -103,7 +104,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           SizedBox(
                             width: 266,
                             child: Text(
-                              'ĐĂNG KÝ\nTÀI KHOẢN NGAY',
+                              l10n.authSignupTitle,
                               style: TextStyle(
                                 color: Color(0xFF1A1A1A),
                                 fontSize: 24,
@@ -117,7 +118,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           SizedBox(
                             width: 266,
                             child: Text(
-                              'Kiểm tra và quản lí con của bạn!',
+                              l10n.authSignupSubtitle,
                               style: TextStyle(
                                 color: Color(0xFF1A1A1A),
                                 fontSize: 16,
@@ -133,25 +134,25 @@ class _SignupScreenState extends State<SignupScreen> {
                     const SizedBox(height: 28),
 
                     AuthTextField(
-                      label: 'Email',
+                      label: l10n.authEmailLabel,
                       controller: _emailCtrl,
-                      hintText: 'Nhập email',
+                      hintText: l10n.authEnterEmailHint,
                       keyboardType: TextInputType.emailAddress,
                       prefixSvg: 'assets/icons/user.svg',
                     ),
                     AuthTextField(
-                      label: 'Mật khẩu',
+                      label: l10n.authPasswordLabel,
                       controller: _passwordCtrl,
-                      hintText: 'Nhập mật khẩu',
+                      hintText: l10n.authEnterPasswordHint,
                       keyboardType: TextInputType.text,
                       obscureText: true,
                       isPassword: true,
                       prefixSvg: 'assets/icons/lock.svg',
                     ),
                     AuthTextField(
-                      label: 'Nhập lại mật khẩu',
+                      label: l10n.authConfirmPasswordLabel,
                       controller: _confirmCtrl,
-                      hintText: 'Nhập mật khẩu',
+                      hintText: l10n.authConfirmPasswordLabel,
                       keyboardType: TextInputType.text,
                       obscureText: true,
                       isPassword: true,
@@ -209,8 +210,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                     // Text
                                     RichText(
                                       text: TextSpan(
-                                        text:
-                                            'Đồng ý với điều khoản, ',
+                                        text: l10n.authAgreeTermsPrefix,
                                         style: const TextStyle(
                                           color: Color(0xFF6C7278),
                                           fontSize: 15,
@@ -221,7 +221,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                         ),
                                         children: [
                                           TextSpan(
-                                            text: 'tại đây',
+                                            text: l10n.authAgreeTermsLink,
                                             style: const TextStyle(
                                               color: Colors.blue,
                                               decoration:
@@ -260,7 +260,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           AppButton(
                             width: 360,
                             height: 60,
-                            text: 'Đăng ký',
+                            text: l10n.authSignupButton,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             onPressed: _onSignUpPressed,
@@ -282,10 +282,10 @@ class _SignupScreenState extends State<SignupScreen> {
                             thickness: 0.83,
                           ),
                         ),
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
-                            'Hoặc',
+                            l10n.authOr,
                             style: TextStyle(
                               color: Color(0xFF1A1A1A),
                               fontSize: 13,
@@ -324,7 +324,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Bạn đã có tài khoản, ',
+                          l10n.authHaveAccount,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: const Color(0xFF1A1A1A),
@@ -338,7 +338,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             Navigator.pop(context);
                           },
                           child: Text(
-                            'đăng nhập',
+                            l10n.authLoginInline,
                             style: TextStyle(
                               color: const Color(0xFF3A7DFF),
                               fontSize: 15,

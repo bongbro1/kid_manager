@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/schedule_history.dart';
 import '../../repositories/schedule_repository.dart';
 import '../auth_vm.dart';
@@ -17,7 +18,7 @@ class ScheduleHistoryViewModel extends ChangeNotifier {
 
   String get scheduleOwnerUid {
     final uid = _scheduleOwnerUid;
-    if (uid == null) throw Exception('Chưa set scheduleOwnerUid');
+    if (uid == null) throw Exception('SCHEDULE_OWNER_UID_NOT_SET');
     return uid;
   }
 
@@ -28,7 +29,7 @@ class ScheduleHistoryViewModel extends ChangeNotifier {
   String get parentUid {
     final uid = _authVM.user?.uid;
     if (uid == null) {
-      throw Exception('User chưa đăng nhập');
+      throw Exception('USER_NOT_LOGGED_IN');
     }
     return uid;
   }
@@ -47,7 +48,7 @@ class ScheduleHistoryViewModel extends ChangeNotifier {
         scheduleId: scheduleId,
       );
     } catch (e) {
-      error = e.toString();
+      error = e.toString().replaceFirst('Exception: ', '').trim();
     } finally {
       isLoading = false;
       notifyListeners();
@@ -75,4 +76,4 @@ class ScheduleHistoryViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
-} 
+}

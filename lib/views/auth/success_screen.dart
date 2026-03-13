@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class SuccessScreen extends StatelessWidget {
   const SuccessScreen({super.key});
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -36,8 +38,8 @@ class SuccessScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Hoàn tất!',
+                  Text(
+                    l10n.authCompleteTitle,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Color(0xFF313131),
@@ -47,10 +49,10 @@ class SuccessScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const SizedBox(
+                  SizedBox(
                     width: 262,
                     child: Text(
-                      'Chúc mừng! Bạn đã đăng ký thành công',
+                      l10n.authRegisterCongratsMessage,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF4A4A4A),
@@ -74,8 +76,8 @@ class SuccessScreen extends StatelessWidget {
                     color: const Color(0xFF3A7DFF),
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  child: const Text(
-                    'Về trang đăng nhập',
+                  child: Text(
+                    l10n.authBackToLogin,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,

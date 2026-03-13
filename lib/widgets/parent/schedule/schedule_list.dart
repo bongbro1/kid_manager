@@ -1,225 +1,230 @@
-  import 'package:flutter/material.dart';
-  import 'package:kid_manager/utils/ui_helpers.dart';
+import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/utils/ui_helpers.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
-  import 'package:provider/provider.dart';
-  import 'package:kid_manager/core/storage_keys.dart';
-  import 'package:kid_manager/services/storage_service.dart';
-  import 'package:kid_manager/utils/confirm_delete_dialog.dart';
-  import 'package:kid_manager/utils/notify_dialog.dart';
+import 'package:provider/provider.dart';
+import 'package:kid_manager/utils/confirm_delete_dialog.dart';
+import 'package:kid_manager/utils/notify_dialog.dart';
 
-  import '../../../../../core/app_text_styles.dart';
-  import '../../../../../models/schedule.dart';
-  import '../../../views/parent/schedule/edit_schedule_sheet.dart';
-  import '../../../../../viewmodels/memory_day_vm.dart';
-  import '../../../../../models/memory_day.dart';
-  import '../../../views/parent/memory_day/memory_day_sheet.dart';
-  import '../../../views/parent/schedule/schedule_history_screen.dart';
+import '../../../../../core/app_text_styles.dart';
+import '../../../../../models/schedule.dart';
+import '../../../views/parent/schedule/edit_schedule_sheet.dart';
+import '../../../../../viewmodels/memory_day_vm.dart';
+import '../../../../../models/memory_day.dart';
+import '../../../views/parent/memory_day/memory_day_sheet.dart';
+import '../../../views/parent/schedule/schedule_history_screen.dart';
 
-  class ScheduleList extends StatelessWidget {
-    const ScheduleList({super.key});
+class ScheduleList extends StatelessWidget {
+  const ScheduleList({super.key});
 
-    @override
-    Widget build(BuildContext context) {
-      final scheduleVm = context.watch<ScheduleViewModel>();
-      final memoryVm = context.watch<MemoryDayViewModel>();
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheduleVm = context.watch<ScheduleViewModel>();
+    final memoryVm = context.watch<MemoryDayViewModel>();
 
-      final memories = memoryVm.memoriesOfSelectedDay;
-      final schedules = scheduleVm.schedules;
-      final total = memories.length + schedules.length;
+    final memories = memoryVm.memoriesOfSelectedDay;
+    final schedules = scheduleVm.schedules;
+    final total = memories.length + schedules.length;
 
-      if (scheduleVm.selectedChildId == null) {
-        return const Center(child: Text('Vui lòng chọn bé', style: AppTextStyles.body));
-      }
+    if (scheduleVm.selectedChildId == null) {
+      return Center(
+        child: Text(l10n.schedulePleaseSelectChild, style: AppTextStyles.body),
+      );
+    }
 
-      if (scheduleVm.isLoading) {
-        return const Center(child: CircularProgressIndicator());
-      }
+    if (scheduleVm.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-      if (scheduleVm.error != null) {
-        return Center(child: Text(scheduleVm.error!));
-      }
+    if (scheduleVm.error != null) {
+      return Center(child: Text(scheduleVm.error!));
+    }
 
-      if (memories.isEmpty && schedules.isEmpty) {
-        return const Center(
-          child: Text('Không có lịch trong ngày', style: AppTextStyles.body),
-        );
-      }
+    if (memories.isEmpty && schedules.isEmpty) {
+      return Center(
+        child: Text(l10n.scheduleNoEventsInDay, style: AppTextStyles.body),
+      );
+    }
 
-      return Builder(
-        builder: (screenContext) {
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            itemCount: total,
-            itemBuilder: (_, i) {
-              if (i < memories.length) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: MemoryDayItem(
-                    memory: memories[i],
-                    screenContext: screenContext,
-                  ),
-                );
-              }
-
-              final sIndex = i - memories.length;
+    return Builder(
+      builder: (screenContext) {
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          itemCount: total,
+          itemBuilder: (_, i) {
+            if (i < memories.length) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: ScheduleItem(
-                  schedule: schedules[sIndex],
+                child: MemoryDayItem(
+                  memory: memories[i],
                   screenContext: screenContext,
                 ),
               );
-            },
-          );
-        },
-      );
-    }
+            }
+
+            final sIndex = i - memories.length;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: ScheduleItem(
+                schedule: schedules[sIndex],
+                screenContext: screenContext,
+              ),
+            );
+          },
+        );
+      },
+    );
   }
+}
 
-  class ScheduleItem extends StatelessWidget {
-    final Schedule schedule;
-    final BuildContext screenContext;
+class ScheduleItem extends StatelessWidget {
+  final Schedule schedule;
+  final BuildContext screenContext;
 
-    const ScheduleItem({
-      super.key,
-      required this.schedule,
-      required this.screenContext,
-    });
+  const ScheduleItem({
+    super.key,
+    required this.schedule,
+    required this.screenContext,
+  });
 
-    @override
-    Widget build(BuildContext context) {
-      String two(int n) => n.toString().padLeft(2, '0');
+  @override
+  Widget build(BuildContext context) {
+    String two(int n) => n.toString().padLeft(2, '0');
 
-      final duration =
-          '${two(schedule.startAt.hour)}:${two(schedule.startAt.minute)}-'
-          '${two(schedule.endAt.hour)}:${two(schedule.endAt.minute)}';
+    final duration =
+        '${two(schedule.startAt.hour)}:${two(schedule.startAt.minute)}-'
+        '${two(schedule.endAt.hour)}:${two(schedule.endAt.minute)}';
 
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 30,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: _periodColor(schedule.period),
-                    shape: BoxShape.circle,
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 30,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: _periodColor(schedule.period),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 8),
-                Text(duration, style: AppTextStyles.scheduleItemTimeRange),
-                const Spacer(),
+              ),
+              const SizedBox(width: 8),
+              Text(duration, style: AppTextStyles.scheduleItemTimeRange),
+              const Spacer(),
 
-                if (schedule.editCount > 0) ...[
-                  _ActionIcon(
-                    asset: 'assets/images/icon_history.png',
-                    onTap: () => _openHistoryScreen(context),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-
+              if (schedule.editCount > 0) ...[
                 _ActionIcon(
-                  asset: 'assets/images/edit.png',
-                  width: 18,
-                  height: 18,
-                  onTap: () => _openEditSheet(context),
+                  asset: 'assets/images/icon_history.png',
+                  onTap: () => _openHistoryScreen(context),
                 ),
                 const SizedBox(width: 10),
-                _ActionIcon(
-                  asset: 'assets/images/delete.png',
-                  onTap: () => _deleteSchedule(screenContext),
-                ),
               ],
-            ),
-            const SizedBox(height: 8),
-            Text(schedule.title, style: AppTextStyles.scheduleItemTitle),
-            if ((schedule.description ?? '').isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(schedule.description!, style: AppTextStyles.scheduleItemTime),
+
+              _ActionIcon(
+                asset: 'assets/images/edit.png',
+                width: 18,
+                height: 18,
+                onTap: () => _openEditSheet(context),
+              ),
+              const SizedBox(width: 10),
+              _ActionIcon(
+                asset: 'assets/images/delete.png',
+                onTap: () => _deleteSchedule(screenContext),
+              ),
             ],
-          ],
-        ),
-      );
-    }
-
-    Future<void> _openEditSheet(BuildContext context) {
-      return showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        barrierColor: Colors.black.withValues(alpha: 0.3),
-        builder: (_) => FractionallySizedBox(
-          heightFactor: 0.75,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-            child: EditScheduleScreen(schedule: schedule),
           ),
+          const SizedBox(height: 8),
+          Text(schedule.title, style: AppTextStyles.scheduleItemTitle),
+          if ((schedule.description ?? '').isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(schedule.description!, style: AppTextStyles.scheduleItemTime),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openEditSheet(BuildContext context) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.75,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: EditScheduleScreen(schedule: schedule),
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    Future<void> _deleteSchedule(BuildContext context) async {
-      final vm = context.read<ScheduleViewModel>();
+  Future<void> _deleteSchedule(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final vm = context.read<ScheduleViewModel>();
 
-      final confirm = await confirmDelete(
+    final confirm = await confirmDelete(
+      context,
+      title: l10n.scheduleDeleteTitle,
+      message: l10n.scheduleDeleteConfirmMessage,
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await runWithLoading<void>(context, () async {
+        await vm.deleteSchedule(schedule.id);
+      });
+
+      if (!context.mounted) return;
+
+      await showSuccessDialog(
         context,
-        title: 'Xóa lịch trình',
-        message: 'Bạn có chắc muốn xóa?',
+        title: l10n.updateSuccessTitle,
+        message: l10n.scheduleDeleteSuccessMessage,
+        // Nếu bạn muốn xoá xong tự đóng sheet/detail luôn:
+        // onConfirm: () { if (context.mounted) Navigator.pop(context); },
       );
+    } catch (e) {
+      if (!context.mounted) return;
 
-      if (confirm != true) return;
-
-      try {
-        await runWithLoading<void>(context, () async {
-          await vm.deleteSchedule(schedule.id);
-        });
-
-        if (!context.mounted) return;
-
-        await showSuccessDialog(
-          context,
-          title: 'Hoàn thành',
-          message: 'Bạn đã xóa thành công',
-          // Nếu bạn muốn xoá xong tự đóng sheet/detail luôn:
-          // onConfirm: () { if (context.mounted) Navigator.pop(context); },
-        );
-      } catch (e) {
-        if (!context.mounted) return;
-
-        await showErrorDialog(
-          context,
-          title: 'Thất bại',
-          message: 'Xóa thất bại: $e',
-        );
-      }
-    }
-
-    Future<void> _openHistoryScreen(BuildContext context) {
-      return Navigator.push(
+      await showErrorDialog(
         context,
-        MaterialPageRoute(
-          builder: (_) => ScheduleHistoryScreen(schedule: schedule),
-        ),
+        title: l10n.updateErrorTitle,
+        message: l10n.scheduleDeleteFailed(e.toString()),
       );
     }
   }
 
-  class MemoryDayItem extends StatelessWidget {
+  Future<void> _openHistoryScreen(BuildContext context) {
+    return Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ScheduleHistoryScreen(schedule: schedule),
+      ),
+    );
+  }
+}
+
+class MemoryDayItem extends StatelessWidget {
   final MemoryDay memory;
   final BuildContext screenContext;
 
@@ -235,6 +240,7 @@ import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final canEdit = _canEdit(context);
 
     return Container(
@@ -280,7 +286,9 @@ import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
                         heightFactor: 0.6,
                         child: Padding(
                           padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(screenContext).viewInsets.bottom,
+                            bottom: MediaQuery.of(
+                              screenContext,
+                            ).viewInsets.bottom,
                           ),
                           child: MemoryDaySheet(memory: memory),
                         ),
@@ -302,8 +310,8 @@ import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
           ],
           const SizedBox(height: 6),
           if (memory.repeatYearly)
-            const Text(
-              'Lặp lại hàng năm',
+            Text(
+              l10n.memoryDayRepeatYearlyLabel,
               style: TextStyle(fontSize: 12, color: Color(0xFF8A6D00)),
             ),
         ],
@@ -312,12 +320,13 @@ import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
   }
 
   Future<void> _deleteMemory(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final vm = context.read<MemoryDayViewModel>();
 
     final confirm = await confirmDelete(
       context,
-      title: 'Xóa kỷ niệm',
-      message: 'Bạn có chắc muốn xóa?',
+      title: l10n.memoryDayDeleteTitle,
+      message: l10n.memoryDayDeleteConfirmMessage,
     );
 
     if (confirm != true) return;
@@ -332,44 +341,44 @@ import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 
       await showSuccessDialog(
         context,
-        title: 'Hoàn thành',
-        message: 'Bạn đã xóa thành công',
+        title: l10n.updateSuccessTitle,
+        message: l10n.memoryDayDeleteSuccessMessage,
       );
     } catch (e) {
       if (!context.mounted) return;
 
       await showErrorDialog(
         context,
-        title: 'Thất bại',
-        message: 'Xóa thất bại: $e',
+        title: l10n.updateErrorTitle,
+        message: l10n.memoryDayDeleteFailedWithError(e.toString()),
       );
     }
   }
 }
 
-  class _ActionIcon extends StatelessWidget {
-    final String asset;
-    final double width;
-    final double height;
-    final VoidCallback onTap;
+class _ActionIcon extends StatelessWidget {
+  final String asset;
+  final double width;
+  final double height;
+  final VoidCallback onTap;
 
-    const _ActionIcon({
-      required this.asset,
-      required this.onTap,
-      this.width = 22,
-      this.height = 22,
-    });
+  const _ActionIcon({
+    required this.asset,
+    required this.onTap,
+    this.width = 22,
+    this.height = 22,
+  });
 
-    @override
-    Widget build(BuildContext context) {
-      return GestureDetector(
-        onTap: onTap,
-        child: Image.asset(asset, width: width, height: height),
-      );
-    }
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Image.asset(asset, width: width, height: height),
+    );
   }
+}
 
-  Color _periodColor(SchedulePeriod p) {
+Color _periodColor(SchedulePeriod p) {
   switch (p) {
     case SchedulePeriod.morning:
       return const Color(0xFF8B5CF6); // tím

@@ -53,13 +53,13 @@ class AuthVM extends ChangeNotifier {
 
       if (userInfo == null) {
         await _authRepo.logout();
-        throw Exception("Tài khoản không tồn tại");
+        throw Exception("accountNotFound");
       }
 
       // /// ❌ chưa verify OTP
       if (userInfo.isActive != true) {
         await _authRepo.logout();
-        throw Exception("Tài khoản chưa được kích hoạt");
+        throw Exception("accountNotActivated");
       }
 
       ///  hợp lệ
@@ -68,7 +68,9 @@ class AuthVM extends ChangeNotifier {
       notifyListeners();
 
       await _authRepo.registerCurrentFcmToken(
-        platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+        platform: defaultTargetPlatform == TargetPlatform.iOS
+            ? 'ios'
+            : 'android',
       );
       return cred;
     });
@@ -89,16 +91,16 @@ class AuthVM extends ChangeNotifier {
       case OtpVerifyResult.success:
         return true;
       case OtpVerifyResult.invalid:
-        _error = "Mã không đúng";
+        _error = "invalidCode";
         return false;
       case OtpVerifyResult.expired:
-        _error = "Mã đã hết hạn";
+        _error = "codeExpired";
         return false;
       case OtpVerifyResult.tooManyAttempts:
-        _error = "Nhập sai quá nhiều lần";
+        _error = "tooManyAttempts";
         return false;
       default:
-        _error = "Có lỗi xảy ra";
+        _error = "unknownError";
         return false;
     }
   }
@@ -111,7 +113,7 @@ class AuthVM extends ChangeNotifier {
       final user = await _userRepo.getUserByEmail(email);
 
       if (user == null) {
-        throw Exception("Email chưa đăng ký");
+        throw Exception("emailNotRegistered");
       }
 
       // 2️⃣ tạo OTP
@@ -221,17 +223,17 @@ class AuthVM extends ChangeNotifier {
   String _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
-        return 'Tài khoản không tồn tại';
+        return 'accountNotFound';
       case 'wrong-password':
-        return 'Sai mật khẩu';
+        return 'wrongPassword';
       case 'email-already-in-use':
-        return 'Email đã được sử dụng';
+        return 'emailInUse';
       case 'invalid-email':
-        return 'Email không hợp lệ';
+        return 'emailInvalid';
       case 'weak-password':
-        return 'Mật khẩu quá yếu';
+        return 'weakPassword';
       default:
-        return e.message ?? 'Đăng nhập thất bại';
+        return 'loginFailed';
     }
   }
 

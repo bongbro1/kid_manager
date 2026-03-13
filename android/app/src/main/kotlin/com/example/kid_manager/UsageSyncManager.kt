@@ -106,7 +106,7 @@ class UsageSyncManager(private val context: Context) {
 
                     val deltaMs = (usageMs ?: 0) - prevUsage
 
-                val deltaMinutes = ((deltaMs ?: 0) / 60000)
+                    val deltaMinutes = ((deltaMs ?: 0) / 60000)
                                     .toInt()
                                     .coerceAtLeast(0)
 

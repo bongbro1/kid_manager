@@ -169,8 +169,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     final detail = vm.notificationDetail;
     if (detail == null) return LoadingOverlay();
 
-    final style = detail.notificationType.style;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -188,8 +186,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       ),
       body: vm.loading
           ? const Center(child: CircularProgressIndicator())
-          : detail == null
-          ? const Center(child: Text("Không có dữ liệu"))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(

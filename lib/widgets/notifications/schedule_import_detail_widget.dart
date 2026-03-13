@@ -1,45 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 
 class ScheduleImportDetailWidget extends StatelessWidget {
   final NotificationDetailModel detail;
 
-  const ScheduleImportDetailWidget({
-    super.key,
-    required this.detail,
-  });
+  const ScheduleImportDetailWidget({super.key, required this.detail});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final data = detail.data;
 
-    final childName = (data['childName'] ?? 'Bé').toString().trim();
+    final childName = (data['childName'] ?? l10n.notificationsDefaultChildName)
+        .toString()
+        .trim();
     final importCount = (data['importCount'] ?? '').toString().trim();
     final actorRole = (data['actorRole'] ?? '').toString().toLowerCase();
     final actorChildName = (data['actorChildName'] ?? '').toString().trim();
 
     final actorText = actorRole == 'parent'
-        ? 'Ba/Mẹ'
-        : (actorChildName.isEmpty ? 'Con' : actorChildName);
+        ? l10n.notificationsActorParent
+        : (actorChildName.isEmpty
+              ? l10n.notificationsActorChild
+              : actorChildName);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _infoTile(
           icon: Icons.person_outline_rounded,
-          label: 'Người thao tác',
+          label: l10n.notificationsImportOperatorLabel,
           value: actorText,
         ),
         const SizedBox(height: 14),
         _infoTile(
           icon: Icons.child_care_rounded,
-          label: 'Bé',
-          value: childName.isEmpty ? 'Bé' : childName,
+          label: l10n.notificationsChildLabel,
+          value: childName.isEmpty
+              ? l10n.notificationsDefaultChildName
+              : childName,
         ),
         const SizedBox(height: 14),
         _infoTile(
           icon: Icons.playlist_add_check_circle_rounded,
-          label: 'Số lịch đã thêm',
+          label: l10n.notificationsImportAddedCountLabel,
           value: importCount.isEmpty ? '0' : importCount,
         ),
       ],
@@ -61,11 +66,7 @@ class ScheduleImportDetailWidget extends StatelessWidget {
             color: const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: const Color(0xFF475569),
-          ),
+          child: Icon(icon, size: 18, color: const Color(0xFF475569)),
         ),
         const SizedBox(width: 12),
         Expanded(

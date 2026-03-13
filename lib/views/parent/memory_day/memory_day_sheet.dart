@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/utils/ui_helpers.dart';
@@ -44,18 +45,20 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
         curRepeat != initRepeat;
   }
 
-Future<bool> _onBack() async {
-  if (!_hasChanged) return true;
-  if (!mounted) return true;
+  Future<bool> _onBack() async {
+    if (!_hasChanged) return true;
+    if (!mounted) return true;
 
-  final ok = await Notify.confirm(
-    context,
-    title: 'Chưa lưu',
-    message: 'Bạn chưa lưu, bạn có chắc muốn thoát?',
-  );
+    final l10n = AppLocalizations.of(context);
+    final ok = await Notify.confirm(
+      context,
+      title: l10n.memoryDayUnsavedTitle,
+      message: l10n.memoryDayUnsavedExitMessage,
+    );
 
-  return ok;
-}
+    return ok;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -97,73 +100,80 @@ Future<bool> _onBack() async {
 
   @override
   Widget build(BuildContext context) {
-    final dateText = _date == null ? '' : DateFormat('dd/MM/yyyy').format(_date!);
+    final l10n = AppLocalizations.of(context);
+    final dateText = _date == null
+        ? ''
+        : DateFormat('dd/MM/yyyy').format(_date!);
 
     // ignore: deprecated_member_use
     return WillPopScope(
-    onWillPop: _onBack,
-    child: Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            _header(context),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _input(
-                      controller: _titleCtrl,
-                      label: 'Tiêu đề',
-                      maxLength: 50,
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 16),
-                    _readonlyField(
-                      label: 'Ngày',
-                      value: dateText,
-                      onTap: _pickDate,
-                    ),
-                    const SizedBox(height: 16),
-                    _input(
-                      controller: _noteCtrl,
-                      label: 'Ghi chú',
-                      maxLines: 3,
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Text(
-                          'Lặp lại hàng năm',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                        ),
-                        const Spacer(),
-                        Switch(
-                          value: _repeatYearly,
-                          onChanged: (v) => setState(() => _repeatYearly = v),
-                        ),
-                      ],
-                    ),
-                  ],
+      onWillPop: _onBack,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              _header(context),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _input(
+                        controller: _titleCtrl,
+                        label: l10n.memoryDayFormTitleLabel,
+                        maxLength: 50,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 16),
+                      _readonlyField(
+                        label: l10n.memoryDayFormDateLabel,
+                        value: dateText,
+                        onTap: _pickDate,
+                      ),
+                      const SizedBox(height: 16),
+                      _input(
+                        controller: _noteCtrl,
+                        label: l10n.memoryDayFormNoteLabel,
+                        maxLines: 3,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Text(
+                            l10n.memoryDayRepeatYearlyLabel,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          Switch(
+                            value: _repeatYearly,
+                            onChanged: (v) => setState(() => _repeatYearly = v),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _submit(context),
-          ],
+              _submit(context),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
   Widget _header(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
       child: Stack(
@@ -181,7 +191,9 @@ Future<bool> _onBack() async {
             ),
           ),
           Text(
-            _isEdit ? 'Chỉnh sửa ngày đáng nhớ' : 'Thêm ngày đáng nhớ',
+            _isEdit
+                ? l10n.memoryDayEditHeaderTitle
+                : l10n.memoryDayAddHeaderTitle,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
         ],
@@ -190,7 +202,7 @@ Future<bool> _onBack() async {
   }
 
   Widget _submit(BuildContext context) {
-    final vm = context.read<MemoryDayViewModel>();
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -199,81 +211,85 @@ Future<bool> _onBack() async {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: (_isValid && !_submitting)
-            ? () async {
-                setState(() => _submitting = true);
-                final vm = context.read<MemoryDayViewModel>();
+              ? () async {
+                  setState(() => _submitting = true);
+                  final vm = context.read<MemoryDayViewModel>();
 
-                try {
-                  await runWithLoading<void>(context, () async {
-                    final d = _normalize(_date!);
+                  try {
+                    await runWithLoading<void>(context, () async {
+                      final d = _normalize(_date!);
 
-                    if (_isEdit) {
-                      final updated = widget.memory!.copyWith(
-                        title: _titleCtrl.text.trim(),
-                        note: _noteCtrl.text.trim(),
-                        date: d,
-                        repeatYearly: _repeatYearly,
-                        updatedAt: DateTime.now(),
-                      );
-                      await vm.updateMemory(updated);
-                    } else {
-                      final created = MemoryDay(
-                        id: '',
-                        ownerParentUid: vm.ownerUid,
-                        title: _titleCtrl.text.trim(),
-                        note: _noteCtrl.text.trim(),
-                        date: d,
-                        repeatYearly: _repeatYearly,
-                        month: d.month,
-                        day: d.day,
-                        createdAt: DateTime.now(),
-                        updatedAt: DateTime.now(),
-                      );
-                      await vm.addMemory(created);
-                    }
-                  });
-
-                  if (!mounted) return;
-
-                  // ✅ success: Tiếp tục => đóng dialog + đóng sheet
-                  await Notify.show(
-                    context,
-                    type: DialogType.success,
-                    title: 'Hoàn thành',
-                    message: _isEdit
-                        ? 'Bạn đã lưu thay đổi thành công'
-                        : 'Bạn đã thêm ngày đáng nhớ thành công',
-                    onConfirm: () {
-                      // NotificationDialog đã pop dialog trước rồi mới gọi callback
-                      if (mounted && Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop(); // đóng sheet
+                      if (_isEdit) {
+                        final updated = widget.memory!.copyWith(
+                          title: _titleCtrl.text.trim(),
+                          note: _noteCtrl.text.trim(),
+                          date: d,
+                          repeatYearly: _repeatYearly,
+                          updatedAt: DateTime.now(),
+                        );
+                        await vm.updateMemory(updated);
+                      } else {
+                        final created = MemoryDay(
+                          id: '',
+                          ownerParentUid: vm.ownerUid,
+                          title: _titleCtrl.text.trim(),
+                          note: _noteCtrl.text.trim(),
+                          date: d,
+                          repeatYearly: _repeatYearly,
+                          month: d.month,
+                          day: d.day,
+                          createdAt: DateTime.now(),
+                          updatedAt: DateTime.now(),
+                        );
+                        await vm.addMemory(created);
                       }
-                    },
-                  );
-                } catch (e) {
-                  if (!mounted) return;
+                    });
 
-                  // ✅ lỗi: Tiếp tục => chỉ đóng dialog, ở lại sheet
-                  await Notify.show(
-                    context,
-                    type: DialogType.error,
-                    title: 'Thất bại',
-                    message: 'Đã có lỗi xảy ra, vui lòng thử lại',
-                  );
-                } finally {
-                  if (mounted) setState(() => _submitting = false);
+                    if (!mounted) return;
+
+                    // ✅ success: Tiếp tục => đóng dialog + đóng sheet
+                    await Notify.show(
+                      context,
+                      type: DialogType.success,
+                      title: l10n.updateSuccessTitle,
+                      message: _isEdit
+                          ? l10n.memoryDayEditSuccessMessage
+                          : l10n.memoryDayAddSuccessMessage,
+                      onConfirm: () {
+                        // NotificationDialog đã pop dialog trước rồi mới gọi callback
+                        if (mounted && Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop(); // đóng sheet
+                        }
+                      },
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+
+                    // ✅ lỗi: Tiếp tục => chỉ đóng dialog, ở lại sheet
+                    await Notify.show(
+                      context,
+                      type: DialogType.error,
+                      title: l10n.updateErrorTitle,
+                      message: l10n.memoryDaySaveFailedMessage,
+                    );
+                  } finally {
+                    if (mounted) setState(() => _submitting = false);
+                  }
                 }
-              }
-            : null,
+              : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF3F7CFF),
             disabledBackgroundColor: Colors.grey.shade300,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(26),
+            ),
           ),
           child: Text(
             _submitting
-                ? 'Đang lưu...'
-                : (_isEdit ? 'Lưu thay đổi' : 'Thêm ngày đáng nhớ'),
+                ? l10n.memoryDaySavingButton
+                : (_isEdit
+                      ? l10n.memoryDaySaveChangesButton
+                      : l10n.memoryDayAddButton),
             style: const TextStyle(
               fontFamily: 'Poppins',
               color: Colors.white,

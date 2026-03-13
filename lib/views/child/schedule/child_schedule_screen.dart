@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -18,10 +19,7 @@ import '../../../widgets/parent/schedule/schedule_menu_drawer.dart';
 class ChildScheduleScreen extends StatefulWidget {
   final DateTime? initialDate;
 
-  const ChildScheduleScreen({
-    super.key,
-    this.initialDate,
-  });
+  const ChildScheduleScreen({super.key, this.initialDate});
 
   @override
   State<ChildScheduleScreen> createState() => _ChildScheduleScreenState();
@@ -95,12 +93,14 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
       final scheduleVm = context.read<ScheduleViewModel>();
       final memoryVm = context.read<MemoryDayViewModel>();
 
-      final childUid = storage.getString(StorageKeys.uid) ?? FirebaseAuth.instance.currentUser?.uid;
+      final childUid =
+          storage.getString(StorageKeys.uid) ??
+          FirebaseAuth.instance.currentUser?.uid;
       if (childUid == null) return;
 
       // load profile đúng child hiện tại
       if (userVm.profile == null || userVm.profile!.id != childUid) {
-        await userVm.loadProfile(uid: childUid,caller: 'ChildScheduleScreen');
+        await userVm.loadProfile(uid: childUid, caller: 'ChildScheduleScreen');
       }
 
       final parentUid = userVm.profile?.parentUid;
@@ -164,6 +164,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheduleVm = context.watch<ScheduleViewModel>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -186,8 +187,8 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
-        title: const Text(
-          'Lịch trình',
+        title: Text(
+          l10n.scheduleScreenTitle,
           style: AppTextStyles.scheduleAppBarTitle,
         ),
         centerTitle: true,
@@ -197,9 +198,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
           const ScheduleCalendar(),
           const SizedBox(height: 16),
           if (scheduleVm.selectedChildId == null)
-            const Expanded(
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const Expanded(child: Center(child: CircularProgressIndicator()))
           else
             const Expanded(child: ScheduleList()),
           CreateScheduleButton(

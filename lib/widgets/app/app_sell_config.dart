@@ -7,14 +7,12 @@ import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/views/child/child_location_screen.dart';
-import 'package:kid_manager/views/notifications/notification_debug_screen.dart';
 import 'package:kid_manager/views/notifications/notification_tab.dart';
 import 'package:kid_manager/views/parent/dashboard/app_management_screen.dart';
 import 'package:kid_manager/views/parent/location/parent_location_screen.dart';
 import 'package:kid_manager/views/parent/schedule/schedule_screen.dart';
 import 'package:kid_manager/views/child/schedule/child_schedule_screen.dart';
 import 'package:kid_manager/views/personal_info_screen.dart';
-import 'package:kid_manager/widgets/app/app_mode.dart';
 import 'package:provider/provider.dart';
 
 import 'package:kid_manager/repositories/location/location_repository.dart';

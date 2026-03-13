@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 
 class MemoryDayDetailWidget extends StatelessWidget {
   final NotificationDetailModel detail;
 
-  const MemoryDayDetailWidget({
-    super.key,
-    required this.detail,
-  });
+  const MemoryDayDetailWidget({super.key, required this.detail});
 
-  String _actionText(String action) {
+  String _actionText(AppLocalizations l10n, String action) {
     switch (action) {
       case 'created':
-        return 'Đã thêm';
+        return l10n.notificationsActionCreated;
       case 'updated':
-        return 'Đã chỉnh sửa';
+        return l10n.notificationsActionUpdated;
       case 'deleted':
-        return 'Đã xóa';
+        return l10n.notificationsActionDeleted;
       default:
-        return 'Đã thay đổi';
+        return l10n.notificationsActionChanged;
     }
   }
 
@@ -50,13 +48,16 @@ class MemoryDayDetailWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final data = detail.data;
 
     final action = (data['action'] ?? '').toString();
     final memoryDayTitle = (data['memoryDayTitle'] ?? '').toString().trim();
     final date = (data['date'] ?? '').toString();
     final note = (data['note'] ?? '').toString().trim();
-    final repeatYearlyRaw = (data['repeatYearly'] ?? '').toString().toLowerCase();
+    final repeatYearlyRaw = (data['repeatYearly'] ?? '')
+        .toString()
+        .toLowerCase();
 
     final repeatYearly = repeatYearlyRaw == 'true';
     final actionColor = _actionColor(action);
@@ -65,7 +66,7 @@ class MemoryDayDetailWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _actionBadge(
-          text: _actionText(action),
+          text: _actionText(l10n, action),
           icon: _actionIcon(action),
           color: actionColor,
         ),
@@ -73,22 +74,26 @@ class MemoryDayDetailWidget extends StatelessWidget {
 
         _infoTile(
           icon: Icons.star_border_rounded,
-          label: 'Tiêu đề',
-          value: memoryDayTitle.isEmpty ? 'Không có tiêu đề' : memoryDayTitle,
+          label: l10n.memoryDayFormTitleLabel,
+          value: memoryDayTitle.isEmpty
+              ? l10n.notificationsNoTitle
+              : memoryDayTitle,
         ),
         const SizedBox(height: 14),
 
         _infoTile(
           icon: Icons.calendar_today_rounded,
-          label: 'Ngày',
+          label: l10n.memoryDayFormDateLabel,
           value: date.isEmpty ? '-' : date,
         ),
         const SizedBox(height: 14),
 
         _infoTile(
           icon: Icons.repeat_rounded,
-          label: 'Lặp lại',
-          value: repeatYearly ? 'Hằng năm' : 'Không lặp lại',
+          label: l10n.notificationsRepeatLabel,
+          value: repeatYearly
+              ? l10n.notificationsRepeatYearly
+              : l10n.notificationsRepeatNone,
         ),
 
         if (note.isNotEmpty) ...[
@@ -104,17 +109,17 @@ class MemoryDayDetailWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.notes_rounded,
                       size: 18,
                       color: Color(0xFF64748B),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
-                      'Ghi chú',
-                      style: TextStyle(
+                      l10n.memoryDayFormNoteLabel,
+                      style: const TextStyle(
                         color: Color(0xFF64748B),
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
@@ -184,11 +189,7 @@ class MemoryDayDetailWidget extends StatelessWidget {
             color: const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: const Color(0xFF475569),
-          ),
+          child: Icon(icon, size: 18, color: const Color(0xFF475569)),
         ),
         const SizedBox(width: 12),
         Expanded(

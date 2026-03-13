@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
 
@@ -11,7 +12,6 @@ class ScheduleImportVM extends ChangeNotifier {
   String? error;
 
   String? selectedChildId;
-
   ImportPreview? preview;
 
   void setChild(String? id) {
@@ -27,7 +27,7 @@ class ScheduleImportVM extends ChangeNotifier {
   }) async {
     final childId = selectedChildId;
     if (childId == null) {
-      error = 'Vui lòng chọn bé';
+      error = await service.selectChildRequiredMessage(parentUid);
       notifyListeners();
       return;
     }
@@ -44,7 +44,7 @@ class ScheduleImportVM extends ChangeNotifier {
         childId: childId,
       );
     } catch (e) {
-      error = e.toString();
+      error = _cleanErrorMessage(e);
     } finally {
       loading = false;
       notifyListeners();
@@ -59,14 +59,12 @@ class ScheduleImportVM extends ChangeNotifier {
   }
 
   void resetAllKeepChild() {
-    // giữ selectedChildId, chỉ reset phần import
     preview = null;
     error = null;
     loading = false;
     notifyListeners();
   }
 
-  /// ✅ trả về số lịch đã import thật sự
   Future<int> importNow({
     required String parentUid,
   }) async {
@@ -83,16 +81,18 @@ class ScheduleImportVM extends ChangeNotifier {
         preview: p,
       );
 
-      // sau import: reset preview để tránh bấm lại import tiếp
       preview = null;
-
       return importedCount;
     } catch (e) {
-      error = e.toString();
+      error = _cleanErrorMessage(e);
       return 0;
     } finally {
       loading = false;
       notifyListeners();
     }
+  }
+
+  String _cleanErrorMessage(Object e) {
+    return e.toString().replaceFirst('Exception: ', '').trim();
   }
 }

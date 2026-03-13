@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/utils/ui_helpers.dart';
@@ -29,7 +30,7 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final vm = context.read<MemoryDayViewModel>();
       await vm
-.loadAll(); // load tất cả memories để hiển thị list "tất cả kỷ niệm"
+          .loadAll(); // load tất cả memories để hiển thị list "tất cả kỷ niệm"
     });
   }
 
@@ -71,6 +72,7 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = context.watch<MemoryDayViewModel>();
 
     // Lấy tất cả memories để hiển thị list "tất cả kỷ niệm"
@@ -90,8 +92,8 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Ngày đáng nhớ',
+        title: Text(
+          l10n.memoryDayTitle,
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -107,7 +109,7 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
           : vm.allError != null
           ? Center(child: Text(vm.allError!))
           : all.isEmpty
-          ? const Center(child: Text('Chưa có ngày đáng nhớ'))
+          ? Center(child: Text(l10n.memoryDayEmpty))
           : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               itemCount: all.length,
@@ -123,8 +125,8 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
                     onDelete: () async {
                       final ok = await Notify.confirm(
                         context,
-                        title: 'Xóa ngày đáng nhớ',
-                        message: 'Bạn có chắc muốn xóa?',
+                        title: l10n.memoryDayDeleteTitle,
+                        message: l10n.memoryDayDeleteConfirmMessage,
                       );
 
                       if (ok != true) return;
@@ -139,8 +141,8 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
                         await Notify.show(
                           context,
                           type: DialogType.success,
-                          title: 'Hoàn thành',
-                          message: 'Bạn đã xóa thành công',
+                          title: l10n.updateSuccessTitle,
+                          message: l10n.memoryDayDeleteSuccessMessage,
                         );
                       } catch (e) {
                         if (!context.mounted) return;
@@ -148,8 +150,8 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
                         await Notify.show(
                           context,
                           type: DialogType.error,
-                          title: 'Thất bại',
-                          message: 'Xóa thất bại, vui lòng thử lại',
+                          title: l10n.updateErrorTitle,
+                          message: l10n.memoryDayDeleteFailedMessage,
                         );
                       }
                     },
@@ -176,11 +178,14 @@ class _MemoryDayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final dateText = DateFormat('dd/MM/yyyy').format(memory.date);
 
     final text = daysLeft < 0
-        ? 'Đã qua ${daysLeft.abs()} ngày'
-        : (daysLeft == 0 ? 'Hôm nay' : 'Còn $daysLeft ngày');
+        ? l10n.memoryDayDaysPassed(daysLeft.abs())
+        : (daysLeft == 0
+              ? l10n.memoryDayToday
+              : l10n.memoryDayDaysLeft(daysLeft));
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -214,8 +219,8 @@ class _MemoryDayCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   memory.repeatYearly
-                      ? 'Ngày: $dateText (lặp lại hằng năm)'
-                      : 'Ngày: $dateText',
+                      ? l10n.memoryDayDateRepeatText(dateText)
+                      : l10n.memoryDayDateText(dateText),
                   style: const TextStyle(
                     fontSize: 13,
                     color: Color(0xFF6B6B6B),
@@ -257,9 +262,9 @@ class _MemoryDayCard extends StatelessWidget {
               ),
               IconButton(
                 icon: Image.asset(
-                  'assets/images/delete.png', 
-                  width: 18, 
-                  height: 18
+                  'assets/images/delete.png',
+                  width: 18,
+                  height: 18,
                 ),
                 onPressed: onDelete,
                 visualDensity: VisualDensity.compact,

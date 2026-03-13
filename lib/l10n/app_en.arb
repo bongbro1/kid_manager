@@ -1,12 +1,766 @@
 {
   "@@locale": "en",
+  "personalInfoTitle": "Personal Information",
+  "appAppearanceTitle": "App Appearance",
+  "aboutAppTitle": "About app",
+  "addAccountTitle": "Add account",
+  "logoutTitle": "Logout",
+  "fullNameLabel": "Full name",
+  "fullNameHint": "Enter full name",
+  "phoneLabel": "Phone number",
+  "phoneHint": "+84 012345678",
+  "genderLabel": "Gender",
+  "genderHint": "Male",
+  "birthDateLabel": "Birth date",
+  "birthDateHint": "12/12/2003",
+  "addressLabel": "Address",
+  "addressHint": "Diem Thuy commune, Thai Nguyen province",
+  "locationTrackingLabel": "Location tracking",
+  "allowLocationTrackingText": "Allow others to track location",
+  "yearsOld": "%d years old",
+  "updateSuccessTitle": "Success",
+  "updateSuccessMessage": "Profile updated successfully",
+  "updateErrorTitle": "Failed",
+  "invalidBirthDate": "Invalid birth date",
+  "confirmLogoutQuestion": "Do you want to logout?",
+  "cancelButton": "Cancel",
+  "confirmButton": "Confirm",
+  "languageSetting": "Language",
+  "vietnamese": "Vietnamese",
+  "english": "English",
+  "changeLanguagePrompt": "Change language, app will restart",
+  "accountNotFound": "Account not found",
+  "accountNotActivated": "Account not activated",
+  "emailNotRegistered": "Email not registered",
+  "noLocationPermission": "No location permission",
+  "gpsError": "GPS error",
+  "currentLocationError": "Cannot get current location",
+  "invalidCode": "Invalid code",
+  "codeExpired": "Code expired",
+  "tooManyAttempts": "Too many attempts",
+  "unknownError": "An error occurred",
+  "loginFailed": "Login failed",
+  "weakPassword": "Weak password",
+  "emailInvalid": "Invalid email",
+  "emailInUse": "Email already in use",
+  "wrongPassword": "Wrong password",
+  "authStartTitle": "Get Started",
+  "authStartSubtitle": "Continue with the app now!",
+  "authContinueWithGoogle": "Continue with Google",
+  "authContinueWithFacebook": "Continue with Facebook",
+  "authContinueWithApple": "Continue with Apple",
+  "authContinueWithPhone": "Continue with phone number",
+  "authLoginButton": "Login",
+  "authSignupButton": "Sign up",
+  "authPrivacyPolicy": "Privacy Policy",
+  "authTermsOfService": "Terms of Service",
+  "authEnterAllInfo": "Please fill in all required information",
+  "authInvalidCredentials": "Incorrect account information",
+  "authUserProfileLoadFailed": "Failed to load user profile",
+  "authGenericError": "Something went wrong",
+  "authWelcomeBackTitle": "WELCOME BACK",
+  "authLoginNowSubtitle": "Login now!",
+  "authEnterEmailHint": "Enter email",
+  "authEnterPasswordHint": "Enter password",
+  "authRememberPassword": "Remember password",
+  "authForgotPassword": "Forgot password?",
+  "authOr": "Or",
+  "authNoAccount": "You don't have an account, ",
+  "authSignUpInline": "sign up",
+  "authSignupTitle": "CREATE\nACCOUNT NOW",
+  "authSignupSubtitle": "Monitor and manage your kids!",
+  "authPasswordMismatch": "Password confirmation does not match",
+  "authSignupFailed": "Sign up failed",
+  "authEmailLabel": "Email",
+  "authPasswordLabel": "Password",
+  "authConfirmPasswordLabel": "Confirm password",
+  "authAgreeTermsPrefix": "Agree to terms, ",
+  "authAgreeTermsLink": "here",
+  "authHaveAccount": "You already have an account, ",
+  "authLoginInline": "login",
+  "authForgotPasswordTitle": "FORGOT PASSWORD?",
+  "authForgotPasswordSubtitle": "Did you forget your password? Follow the steps below to recover it.",
+  "authEnterYourEmailLabel": "Enter your email",
+  "authContinueButton": "Continue",
+  "authSendOtpFailed": "Failed to send OTP",
+  "otpTitle": "ENTER OTP CODE",
+  "otpInstruction": "We have sent a verification code to your email address",
+  "otpNeed4Digits": "Please enter all 4 OTP digits",
+  "otpDigitsOnly": "OTP must contain digits only",
+  "otpIncorrect": "Incorrect OTP",
+  "otpExpired": "OTP has expired",
+  "otpTooManyAttempts": "You have entered incorrectly more than 3 times. Please wait 10 minutes.",
+  "otpRequestNotFound": "OTP request not found",
+  "otpResendIn": "Resend code in {seconds}s",
+  "@otpResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "otpResend": "Resend code",
+  "otpVerifyButton": "Verify",
+  "authRegisterSuccessMessage": "Account registered successfully",
+  "resetPasswordTitle": "RESET\nNEW PASSWORD",
+  "resetPasswordSubtitle": "Enter your new password!",
+  "resetPasswordNewLabel": "New password",
+  "resetPasswordConfirmLabel": "Confirm password",
+  "resetPasswordConfirmMismatch": "Re-entered password does not match",
+  "resetPasswordRuleTitle": "Password requirements",
+  "resetPasswordRuleMinLength": "At least 8 characters",
+  "resetPasswordRuleUppercase": "Contains uppercase letters",
+  "resetPasswordRuleLowercase": "Contains lowercase letters",
+  "resetPasswordRuleNumber": "Contains numbers",
+  "resetPasswordCompleteButton": "Complete",
+  "resetPasswordSuccessMessage": "Password reset successfully",
+  "authCompleteTitle": "Completed!",
+  "authRegisterCongratsMessage": "Congratulations! You have registered successfully",
+  "authBackToLogin": "Back to login",
+  "flashWelcomeTitle": "Welcome to the app",
+  "flashWelcomeSubtitle": "Child tracking application",
+  "flashNext": "Next",
+  "scheduleScreenTitle": "Schedule",
+  "scheduleNoChild": "No child yet",
+  "scheduleFormTitleHint": "Schedule title",
+  "scheduleFormDescriptionHint": "Description",
+  "scheduleAddHeaderTitle": "Add event",
+  "scheduleFormDateLabel": "Date",
+  "scheduleFormStartTimeLabel": "Start time",
+  "scheduleFormEndTimeLabel": "End time",
+  "scheduleFormEndTimeInvalid": "End time must be later",
+  "scheduleFormSavingButton": "Saving...",
+  "scheduleAddSubmitButton": "Create schedule",
+  "scheduleAddSuccessMessage": "Schedule created successfully",
+  "scheduleDialogWarningTitle": "Warning",
+  "scheduleEditHeaderTitle": "Edit schedule",
+  "scheduleEditSubmitButton": "Save schedule",
+  "scheduleEditSuccessMessage": "Schedule updated successfully",
+  "scheduleSelectChildLabel": "Select child",
+  "scheduleYourChild": "Your child",
+  "schedulePleaseSelectChild": "Please select a child",
+  "scheduleExportTitle": "Export Excel",
+  "scheduleExportDateRangeLabel": "Date range",
+  "scheduleExportColumnsHint": "Export file includes columns: title, description, date, start, end",
+  "scheduleExportLoadingButton": "Exporting...",
+  "scheduleExportSubmitButton": "Export file",
+  "scheduleExportInvalidDateRange": "Start date cannot be after end date",
+  "scheduleExportNoDataInRange": "No schedules in selected range",
+  "scheduleExportSaveCanceled": "File save was canceled",
+  "scheduleExportSuccessMessage": "Excel export successful ({count} schedules)",
+  "@scheduleExportSuccessMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleExportFailed": "Export failed: {error}",
+  "@scheduleExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportTitle": "Import Excel",
+  "scheduleTemplateDownloadButton": "Download template",
+  "scheduleTemplateSaveCanceled": "Template save was canceled",
+  "scheduleTemplateSavedSuccess": "Template saved successfully",
+  "scheduleTemplateDownloadFailed": "Template download failed: {error}",
+  "@scheduleTemplateDownloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportCannotReadFile": "Cannot read file, please try again",
+  "scheduleImportMissingOwner": "Cannot determine schedule owner",
+  "scheduleImportNoValidItems": "No valid schedules to import",
+  "scheduleImportSuccessMessage": "Schedules imported successfully",
+  "scheduleImportFailed": "Import failed: {error}",
+  "@scheduleImportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportAddCount": "Add {count} schedules",
+  "@scheduleImportAddCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleImportPickFileButton": "Choose Excel file",
+  "scheduleImportPickAnotherFileButton": "Choose another file",
+  "scheduleImportSelectedFile": "Selected: {fileName}",
+  "@scheduleImportSelectedFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportChangeFileButton": "Change file",
+  "scheduleImportSummaryOk": "OK: {count}",
+  "@scheduleImportSummaryOk": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleImportSummaryDuplicate": "Duplicate: {count}",
+  "@scheduleImportSummaryDuplicate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleImportSummaryError": "Error: {count}",
+  "@scheduleImportSummaryError": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleImportPreviewTitle": "Preview data",
+  "scheduleImportStatusOk": "OK",
+  "scheduleImportStatusError": "ERROR",
+  "scheduleImportStatusDuplicate": "DUPLICATE",
+  "scheduleImportRowError": "Row {row}: {error}",
+  "@scheduleImportRowError": {
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportRowTitle": "Row {row}: {title}",
+  "@scheduleImportRowTitle": {
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportDuplicateInSystem": "Duplicate with existing system data",
+  "scheduleImportDuplicateInFile": "Duplicate within file",
+  "scheduleHistoryTitle": "Edit history",
+  "scheduleHistoryEmpty": "No edit history yet",
+  "scheduleHistoryToday": "Today",
+  "scheduleHistoryYesterday": "Yesterday",
+  "scheduleHistoryRestoreDialogTitle": "Restore schedule",
+  "scheduleHistoryRestoreDialogMessage": "Are you sure you want to restore this version?",
+  "scheduleHistoryRestoreButton": "Restore",
+  "scheduleHistoryRestoringButton": "Restoring...",
+  "scheduleHistoryRestoreSuccessMessage": "Schedule restored successfully",
+  "scheduleHistoryRestoreFailed": "Restore failed: {error}",
+  "@scheduleHistoryRestoreFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleHistoryEditedAt": "Edited at {time}",
+  "@scheduleHistoryEditedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleHistoryLabelTitle": "Schedule title:",
+  "scheduleHistoryLabelDescription": "Description:",
+  "scheduleHistoryLabelDate": "Date:",
+  "scheduleHistoryLabelTime": "Time:",
+  "scheduleDrawerMenuTitle": "Menu",
+  "scheduleCreateButtonAddEvent": "+ Add event",
+  "schedulePeriodTitle": "Time",
+  "schedulePeriodMorning": "Morning",
+  "schedulePeriodAfternoon": "Afternoon",
+  "schedulePeriodEvening": "Evening",
+  "scheduleCalendarFormatMonth": "Month",
+  "scheduleCalendarFormatWeek": "Week",
+  "scheduleCalendarMonthLabel": "Month {month}",
+  "@scheduleCalendarMonthLabel": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleWeekdayMon": "Mon",
+  "scheduleWeekdayTue": "Tue",
+  "scheduleWeekdayWed": "Wed",
+  "scheduleWeekdayThu": "Thu",
+  "scheduleWeekdayFri": "Fri",
+  "scheduleWeekdaySat": "Sat",
+  "scheduleWeekdaySun": "Sun",
+  "scheduleNoEventsInDay": "No schedules for this day",
+  "scheduleDeleteTitle": "Delete schedule",
+  "scheduleDeleteConfirmMessage": "Are you sure you want to delete?",
+  "scheduleDeleteSuccessMessage": "Deleted successfully",
+  "scheduleDeleteFailed": "Delete failed: {error}",
+  "@scheduleDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayTitle": "Memorable days",
+  "memoryDayEmpty": "No memorable days yet",
+  "memoryDayDeleteTitle": "Delete memorable day",
+  "memoryDayDeleteConfirmMessage": "Are you sure you want to delete?",
+  "memoryDayDeleteSuccessMessage": "Deleted successfully",
+  "memoryDayDeleteFailedMessage": "Delete failed, please try again",
+  "memoryDayDeleteFailedWithError": "Delete failed: {error}",
+  "@memoryDayDeleteFailedWithError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayDaysPassed": "Passed {days} days",
+  "@memoryDayDaysPassed": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "memoryDayToday": "Today",
+  "memoryDayDaysLeft": "{days} days left",
+  "@memoryDayDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "memoryDayDateText": "Date: {date}",
+  "@memoryDayDateText": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayDateRepeatText": "Date: {date} (repeats yearly)",
+  "@memoryDayDateRepeatText": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayUnsavedTitle": "Unsaved changes",
+  "memoryDayUnsavedExitMessage": "You have unsaved changes. Are you sure you want to exit?",
+  "memoryDayFormTitleLabel": "Title",
+  "memoryDayFormDateLabel": "Date",
+  "memoryDayFormNoteLabel": "Note",
+  "memoryDayRepeatYearlyLabel": "Repeat yearly",
+  "memoryDayEditHeaderTitle": "Edit memorable day",
+  "memoryDayAddHeaderTitle": "Add memorable day",
+  "memoryDayEditSuccessMessage": "Changes saved successfully",
+  "memoryDayAddSuccessMessage": "Memorable day added successfully",
+  "memoryDaySaveFailedMessage": "Something went wrong, please try again",
+  "memoryDaySavingButton": "Saving...",
+  "memoryDaySaveChangesButton": "Save changes",
+  "memoryDayAddButton": "Add memorable day",
+  "notificationsEmptyTitle": "No notifications yet",
+  "notificationsEmptySubtitle": "New notifications will appear here",
+  "notificationsDefaultChildName": "Child",
+  "notificationsNoTitle": "No title",
+  "notificationsActionCreated": "Added",
+  "notificationsActionUpdated": "Updated",
+  "notificationsActionDeleted": "Deleted",
+  "notificationsActionRestored": "Restored",
+  "notificationsActionChanged": "Changed",
+  "notificationsScheduleTitleLabel": "Schedule title",
+  "notificationsChildNameLabel": "Child name",
+  "notificationsDateLabel": "Date",
+  "notificationsTimeLabel": "Time",
+  "notificationsViewScheduleButton": "View schedule",
+  "notificationsRepeatLabel": "Repeat",
+  "notificationsRepeatYearly": "Yearly",
+  "notificationsRepeatNone": "No repeat",
+  "notificationsImportOperatorLabel": "Operator",
+  "notificationsChildLabel": "Child",
+  "notificationsImportAddedCountLabel": "Schedules added",
+  "notificationsActorParent": "Parent",
+  "notificationsActorChild": "Child",
+  "notificationsBlockedAccountLabel": "Account",
+  "notificationsBlockedAppLabel": "Application",
+  "notificationsBlockedTimeLabel": "Time",
+  "notificationsBlockedAllowedWindowLabel": "Allowed time window",
+  "notificationsBlockedWarningMessage": "The app was automatically blocked by the system.",
+  "notificationsBlockedViewConfigButton": "View time configuration",
+  "notificationsRemovedDeviceOfLabel": "Device of",
+  "notificationsRemovedAppLabel": "Removed app",
+  "notificationsRemovedAtLabel": "Removed at",
+  "notificationsRemovedWarningMessage": "The app was removed from the device. Please check if this is a managed app.",
+  "notificationsRemovedViewAppsButton": "View app list",
+  "notificationsZoneDangerEnterDescription": "{childName}'s location was recorded at {zoneName}. The system detected entry into a danger zone at {time}.",
+  "@notificationsZoneDangerEnterDescription": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "zoneName": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsZoneSafeExitDescription": "{childName}'s location was recorded at {zoneName}. The system detected exit from a safe zone at {time}.",
+  "@notificationsZoneSafeExitDescription": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "zoneName": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsZoneDangerExitDescription": "{childName}'s location was recorded at {zoneName}. The system detected exit from a danger zone at {time}.",
+  "@notificationsZoneDangerExitDescription": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "zoneName": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsZoneUpdatedDescription": "{childName}'s location was updated at {zoneName}.",
+  "@notificationsZoneUpdatedDescription": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsZoneViewOnMainMapButton": "View on main map",
+  "notificationsContactNowButton": "Contact now",
+  "scheduleOverlapConflictMessage": "Conflicts with schedule \"{title}\" ({start} - {end}). Please choose another time.",
+  "@scheduleOverlapConflictMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportErrorCreateExcelFile": "Unable to create Excel file",
+  "scheduleImportTemplateSampleTitle1": "Math Study",
+  "scheduleImportTemplateSampleDescription1": "Complete exercises 1-5",
+  "scheduleImportTemplateSampleTitle2": "Play football",
+  "scheduleImportErrorCreateExcelBytes": "Unable to create Excel bytes",
+  "scheduleImportErrorMissingTitle": "Missing title",
+  "scheduleImportErrorEndAfterStart": "End time must be after start time",
+  "scheduleImportWarningDbCheckFailed": "Duplicate check against database failed due to network error: {error}",
+  "@scheduleImportWarningDbCheckFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportErrorMissingDate": "Missing date",
+  "scheduleImportErrorInvalidDate": "Invalid date: \"{raw}\"",
+  "@scheduleImportErrorInvalidDate": {
+    "placeholders": {
+      "raw": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportErrorInvalidDateSupported": "Invalid date: \"{raw}\" (supported: yyyy-MM-dd, dd/MM/yyyy, MM/dd/yyyy, ISO datetime)",
+  "@scheduleImportErrorInvalidDateSupported": {
+    "placeholders": {
+      "raw": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportErrorMissingTime": "Missing time",
+  "scheduleImportErrorInvalidTimeSupported": "Invalid time: \"{raw}\" (supported: HH:mm, HH:mm:ss, 7:00 AM/PM)",
+  "@scheduleImportErrorInvalidTimeSupported": {
+    "placeholders": {
+      "raw": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyTitleCreated": "New schedule",
+  "scheduleNotifyTitleUpdated": "Schedule updated",
+  "scheduleNotifyTitleDeleted": "Schedule deleted",
+  "scheduleNotifyTitleRestored": "Schedule restored",
+  "scheduleNotifyTitleChanged": "Schedule changed",
+  "scheduleNotifyBodyParentCreated": "Parent added schedule \"{title}\" for {childName} on {date}, {time}.",
+  "@scheduleNotifyBodyParentCreated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyParentUpdated": "Parent updated schedule \"{title}\" of {childName}.",
+  "@scheduleNotifyBodyParentUpdated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyParentDeleted": "Parent deleted schedule \"{title}\" of {childName}.",
+  "@scheduleNotifyBodyParentDeleted": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyParentRestored": "Parent restored an older version of schedule \"{title}\" of {childName}.",
+  "@scheduleNotifyBodyParentRestored": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyParentChanged": "Parent changed schedule \"{title}\" of {childName}.",
+  "@scheduleNotifyBodyParentChanged": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildCreated": "{childName} added schedule \"{title}\" on {date}, {time}.",
+  "@scheduleNotifyBodyChildCreated": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildUpdated": "{childName} updated schedule \"{title}\".",
+  "@scheduleNotifyBodyChildUpdated": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildDeleted": "{childName} deleted schedule \"{title}\".",
+  "@scheduleNotifyBodyChildDeleted": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildRestored": "{childName} restored edit history of schedule \"{title}\".",
+  "@scheduleNotifyBodyChildRestored": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildChanged": "{childName} changed schedule \"{title}\".",
+  "@scheduleNotifyBodyChildChanged": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyTitleCreated": "New memorable day",
+  "memoryDayNotifyTitleUpdated": "Memorable day updated",
+  "memoryDayNotifyTitleDeleted": "Memorable day deleted",
+  "memoryDayNotifyTitleChanged": "Memorable day changed",
+  "memoryDayNotifyBodyParentCreated": "Parent added memorable day \"{title}\".",
+  "@memoryDayNotifyBodyParentCreated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyParentUpdated": "Parent updated memorable day \"{title}\".",
+  "@memoryDayNotifyBodyParentUpdated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyParentDeleted": "Parent deleted memorable day \"{title}\".",
+  "@memoryDayNotifyBodyParentDeleted": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyParentChanged": "Parent changed memorable day \"{title}\".",
+  "@memoryDayNotifyBodyParentChanged": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyChildCreated": "{actorChildName} added memorable day \"{title}\".",
+  "@memoryDayNotifyBodyChildCreated": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyChildUpdated": "{actorChildName} updated memorable day \"{title}\".",
+  "@memoryDayNotifyBodyChildUpdated": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyChildDeleted": "{actorChildName} deleted memorable day \"{title}\".",
+  "@memoryDayNotifyBodyChildDeleted": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyChildChanged": "{actorChildName} changed memorable day \"{title}\".",
+  "@memoryDayNotifyBodyChildChanged": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportNotifyTitle": "New schedules added",
+  "scheduleImportNotifyBodyParent": "Parent added {importCount} schedules for {childName}.",
+  "@scheduleImportNotifyBodyParent": {
+    "placeholders": {
+      "importCount": {
+        "type": "int"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportNotifyBodyChild": "{actorChildName} added {importCount} schedules.",
+  "@scheduleImportNotifyBodyChild": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "importCount": {
+        "type": "int"
+      }
+    }
+  },
   "zone_default": "Zone notification",
-
   "zone_enter_danger_parent": "⚠️ Child entered a danger zone",
   "zone_exit_danger_parent": "✅ Child left a danger zone",
   "zone_enter_safe_parent": "✅ Child entered a safe zone",
   "zone_exit_safe_parent": "ℹ️ Child left a safe zone",
-
   "zone_enter_danger_child": "⚠️ You entered a danger zone",
   "zone_exit_danger_child": "✅ You left a danger zone",
   "zone_enter_safe_child": "✅ You entered a safe zone",

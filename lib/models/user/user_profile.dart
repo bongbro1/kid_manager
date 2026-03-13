@@ -13,6 +13,7 @@ class UserProfile {
   final String? parentUid;
   final String? avatarUrl;
   final String? coverUrl;
+  final String? locale;
 
   UserProfile({
     required this.id,
@@ -26,6 +27,7 @@ class UserProfile {
     this.avatarUrl,
     this.coverUrl,
     this.parentUid,
+    this.locale,
   });
 
   Map<String, dynamic> toMap() {
@@ -40,6 +42,7 @@ class UserProfile {
       "avatarUrl": avatarUrl,
       "coverUrl": coverUrl,
       "parentUid": parentUid,
+      "locale": locale,
     };
 
     data.removeWhere((key, value) => value == null);
@@ -58,6 +61,7 @@ class UserProfile {
     String? avatarUrl,
     String? coverUrl,
     String? parentUid,
+    String? locale,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -71,6 +75,7 @@ class UserProfile {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       coverUrl: coverUrl ?? this.coverUrl,
       parentUid: parentUid ?? this.parentUid,
+      locale: locale ?? this.locale ?? 'vi',
     );
   }
 
@@ -93,7 +98,7 @@ class UserProfile {
         try {
           date = DateTime.parse(value);
         } catch (_) {
-          dobStr = value;
+          dobStr = value.isNotEmpty ? value : '';
         }
       }
     }
@@ -114,6 +119,7 @@ class UserProfile {
       avatarUrl: data["avatarUrl"]?.toString(),
       coverUrl: data["coverUrl"]?.toString(),
       parentUid: data["parentUid"]?.toString(),
+      locale: data["locale"]?.toString() ?? 'vi',
     );
   }
 }

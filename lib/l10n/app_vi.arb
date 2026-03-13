@@ -1,14 +1,769 @@
-{
+﻿{
   "@@locale": "vi",
+  "personalInfoTitle": "Thông tin cá nhân",
+  "appAppearanceTitle": "Giao diện ứng dụng",
+  "aboutAppTitle": "About app",
+  "addAccountTitle": "Thêm tài khoản",
+  "logoutTitle": "Đăng xuất",
+  "fullNameLabel": "Họ và tên",
+  "fullNameHint": "Nhập họ và tên",
+  "phoneLabel": "Số điện thoại",
+  "phoneHint": "+84 012345678",
+  "genderLabel": "Giới tính",
+  "genderHint": "Nam",
+  "birthDateLabel": "Ngày sinh",
+  "birthDateHint": "12/12/2003",
+  "addressLabel": "Địa chỉ",
+  "addressHint": "Xã Điềm Thụy, Tỉnh Thái Nguyên",
+  "locationTrackingLabel": "Quyền theo dõi",
+  "allowLocationTrackingText": "Cho phép đối phương theo dõi vị trí",
+  "yearsOld": "%d tuổi",
+  "updateSuccessTitle": "Thành công",
+  "updateSuccessMessage": "Cập nhật thông tin thành công",
+  "updateErrorTitle": "Thất bại",
+  "invalidBirthDate": "Ngày sinh không hợp lệ",
+  "confirmLogoutQuestion": "Bạn muốn đăng xuất?",
+  "cancelButton": "Hủy bỏ",
+  "confirmButton": "Xác nhận",
+  "languageSetting": "Ngôn ngữ",
+  "vietnamese": "Tiếng Việt",
+  "english": "English",
+  "changeLanguagePrompt": "Thay đổi ngôn ngữ, ứng dụng sẽ khởi động lại",
+  "accountNotFound": "Tài khoản không tồn tại",
+  "accountNotActivated": "Tài khoản chưa được kích hoạt",
+  "emailNotRegistered": "Email chưa đăng ký",
+  "noLocationPermission": "Không có quyền vị trí",
+  "gpsError": "Lỗi GPS",
+  "currentLocationError": "Không lấy được vị trí hiện tại",
+  "invalidCode": "Mã không đúng",
+  "codeExpired": "Mã đã hết hạn",
+  "tooManyAttempts": "Nhập sai quá nhiều lần",
+  "unknownError": "Có lỗi xảy ra",
+  "loginFailed": "Đăng nhập thất bại",
+  "weakPassword": "Mật khẩu quá yếu",
+  "emailInvalid": "Email không hợp lệ",
+  "emailInUse": "Email đã được sử dụng",
+  "wrongPassword": "Sai mật khẩu",
+  "authStartTitle": "Bắt Đầu Ngay",
+  "authStartSubtitle": "Tiếp tục với ứng dụng ngay thôi!",
+  "authContinueWithGoogle": "Tiếp tục với Google",
+  "authContinueWithFacebook": "Tiếp tục với Facebook",
+  "authContinueWithApple": "Tiếp tục với Apple",
+  "authContinueWithPhone": "Tiếp tục với số điện thoại",
+  "authLoginButton": "Đăng nhập",
+  "authSignupButton": "Đăng ký",
+  "authPrivacyPolicy": "Chính sách bảo mật",
+  "authTermsOfService": "Điều khoản dịch vụ",
+  "authEnterAllInfo": "Vui lòng nhập đầy đủ thông tin",
+  "authInvalidCredentials": "Thông tin tài khoản không chính xác",
+  "authUserProfileLoadFailed": "Không tải được hồ sơ người dùng",
+  "authGenericError": "Có lỗi xảy ra",
+  "authWelcomeBackTitle": "CHÀO MỪNG TRỞ LẠI",
+  "authLoginNowSubtitle": "Đăng nhập ngay!",
+  "authEnterEmailHint": "Nhập email",
+  "authEnterPasswordHint": "Nhập mật khẩu",
+  "authRememberPassword": "Lưu mật khẩu",
+  "authForgotPassword": "Quên mật khẩu?",
+  "authOr": "Hoặc",
+  "authNoAccount": "Bạn chưa có tài khoản, ",
+  "authSignUpInline": "đăng ký",
+  "authSignupTitle": "ĐĂNG KÝ\nTÀI KHOẢN NGAY",
+  "authSignupSubtitle": "Kiểm tra và quản lí con của bạn!",
+  "authPasswordMismatch": "Mật khẩu xác nhận không khớp",
+  "authSignupFailed": "Đăng ký thất bại",
+  "authEmailLabel": "Email",
+  "authPasswordLabel": "Mật khẩu",
+  "authConfirmPasswordLabel": "Nhập lại mật khẩu",
+  "authAgreeTermsPrefix": "Đồng ý với điều khoản, ",
+  "authAgreeTermsLink": "tại đây",
+  "authHaveAccount": "Bạn đã có tài khoản, ",
+  "authLoginInline": "đăng nhập",
+  "authForgotPasswordTitle": "QUÊN MẬT KHẨU?",
+  "authForgotPasswordSubtitle": "Bạn đã quên mật khẩu? Vui lòng làm theo các bước sau để lấy lại mật khẩu của bạn!",
+  "authEnterYourEmailLabel": "Nhập Email của bạn",
+  "authContinueButton": "Tiếp tục",
+  "authSendOtpFailed": "Gửi OTP thất bại",
+  "otpTitle": "NHẬP MÃ OTP",
+  "otpInstruction": "Chúng tôi đã gửi mã xác minh đến địa chỉ email của bạn",
+  "otpNeed4Digits": "Vui lòng nhập đủ 4 số OTP",
+  "otpDigitsOnly": "OTP chỉ được chứa số",
+  "otpIncorrect": "OTP không đúng",
+  "otpExpired": "OTP đã hết hạn",
+  "otpTooManyAttempts": "Bạn đã nhập sai quá 3 lần. Vui lòng chờ 10 phút.",
+  "otpRequestNotFound": "Không tìm thấy yêu cầu OTP",
+  "otpResendIn": "Gửi lại mã sau {seconds}s",
+  "@otpResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "otpResend": "Gửi lại mã",
+  "otpVerifyButton": "Xác minh",
+  "authRegisterSuccessMessage": "Đăng ký tài khoản thành công",
+  "resetPasswordTitle": "ĐẶT LẠI \nMẬT KHẨU MỚI",
+  "resetPasswordSubtitle": "Điền mật khẩu mới của bạn!",
+  "resetPasswordNewLabel": "Mật khẩu mới",
+  "resetPasswordConfirmLabel": "Nhập lại mật khẩu",
+  "resetPasswordConfirmMismatch": "Mật khẩu nhập lại không khớp",
+  "resetPasswordRuleTitle": "Mật khẩu cần có",
+  "resetPasswordRuleMinLength": "Ít nhất 8 ký tự",
+  "resetPasswordRuleUppercase": "Có chữ hoa",
+  "resetPasswordRuleLowercase": "Có chữ thường",
+  "resetPasswordRuleNumber": "Có số",
+  "resetPasswordCompleteButton": "Hoàn tất",
+  "resetPasswordSuccessMessage": "Đặt lại mật khẩu thành công",
+  "authCompleteTitle": "Hoàn tất!",
+  "authRegisterCongratsMessage": "Chúc mừng! Bạn đã đăng ký thành công",
+  "authBackToLogin": "Về trang đăng nhập",
+  "flashWelcomeTitle": "Chào mừng đến với ứng dụng",
+  "flashWelcomeSubtitle": "Ứng dụng theo dõi con cái",
+  "flashNext": "Tiếp",
+  "scheduleScreenTitle": "Lịch trình",
+  "scheduleNoChild": "Chưa có bé",
+  "scheduleFormTitleHint": "Tên lịch trình",
+  "scheduleFormDescriptionHint": "Mô tả",
+  "scheduleAddHeaderTitle": "Thêm sự kiện",
+  "scheduleFormDateLabel": "Ngày",
+  "scheduleFormStartTimeLabel": "Giờ bắt đầu",
+  "scheduleFormEndTimeLabel": "Giờ kết thúc",
+  "scheduleFormEndTimeInvalid": "Giờ kết thúc phải lớn hơn",
+  "scheduleFormSavingButton": "Đang lưu...",
+  "scheduleAddSubmitButton": "Tạo lịch trình",
+  "scheduleAddSuccessMessage": "Bạn đã tạo lịch trình thành công",
+  "scheduleDialogWarningTitle": "Cảnh báo",
+  "scheduleEditHeaderTitle": "Chỉnh sửa lịch trình",
+  "scheduleEditSubmitButton": "Lưu lịch trình",
+  "scheduleEditSuccessMessage": "Bạn đã sửa thành công",
+  "scheduleSelectChildLabel": "Chọn bé",
+  "scheduleYourChild": "Bé của bạn",
+  "schedulePleaseSelectChild": "Vui lòng chọn bé",
+  "scheduleExportTitle": "Xuất file Excel",
+  "scheduleExportDateRangeLabel": "Khoảng thời gian",
+  "scheduleExportColumnsHint": "File xuất sẽ gồm các cột: title, description, date, start, end",
+  "scheduleExportLoadingButton": "Đang xuất...",
+  "scheduleExportSubmitButton": "Xuất file",
+  "scheduleExportInvalidDateRange": "Ngày bắt đầu không được lớn hơn ngày kết thúc",
+  "scheduleExportNoDataInRange": "Không có lịch trong khoảng ngày đã chọn",
+  "scheduleExportSaveCanceled": "Bạn đã huỷ lưu file",
+  "scheduleExportSuccessMessage": "Xuất file Excel thành công ({count} lịch)",
+  "@scheduleExportSuccessMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleExportFailed": "Xuất file thất bại: {error}",
+  "@scheduleExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportTitle": "Thêm file Excel",
+  "scheduleTemplateDownloadButton": "Tải file mẫu",
+  "scheduleTemplateSaveCanceled": "Bạn đã huỷ lưu file mẫu",
+  "scheduleTemplateSavedSuccess": "Đã lưu file mẫu thành công",
+  "scheduleTemplateDownloadFailed": "Tải file mẫu thất bại: {error}",
+  "@scheduleTemplateDownloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportCannotReadFile": "Không đọc được file, thử lại.",
+  "scheduleImportMissingOwner": "Không xác định được chủ sở hữu lịch",
+  "scheduleImportNoValidItems": "Không có lịch hợp lệ để import.",
+  "scheduleImportSuccessMessage": "Thêm lịch thành công",
+  "scheduleImportFailed": "Import thất bại: {error}",
+  "@scheduleImportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportAddCount": "Thêm {count} lịch",
+  "@scheduleImportAddCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleImportPickFileButton": "Chọn file Excel",
+  "scheduleImportPickAnotherFileButton": "Chọn file khác",
+  "scheduleImportSelectedFile": "Đã chọn: {fileName}",
+  "@scheduleImportSelectedFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportChangeFileButton": "Đổi file",
+  "scheduleImportSummaryOk": "OK: {count}",
+  "@scheduleImportSummaryOk": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleImportSummaryDuplicate": "Trùng: {count}",
+  "@scheduleImportSummaryDuplicate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleImportSummaryError": "Lỗi: {count}",
+  "@scheduleImportSummaryError": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleImportPreviewTitle": "Xem trước dữ liệu",
+  "scheduleImportStatusOk": "OK",
+  "scheduleImportStatusError": "LỖI",
+  "scheduleImportStatusDuplicate": "TRÙNG",
+  "scheduleImportRowError": "Dòng {row}: {error}",
+  "@scheduleImportRowError": {
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportRowTitle": "Dòng {row}: {title}",
+  "@scheduleImportRowTitle": {
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportDuplicateInSystem": "Trùng với dữ liệu đã có trên hệ thống",
+  "scheduleImportDuplicateInFile": "Trùng trong file",
+  "scheduleHistoryTitle": "Lịch sử chỉnh sửa",
+  "scheduleHistoryEmpty": "Chưa có lịch sử chỉnh sửa",
+  "scheduleHistoryToday": "Hôm nay",
+  "scheduleHistoryYesterday": "Hôm qua",
+  "scheduleHistoryRestoreDialogTitle": "Khôi phục lịch trình",
+  "scheduleHistoryRestoreDialogMessage": "Bạn có chắc muốn khôi phục phiên bản này không?",
+  "scheduleHistoryRestoreButton": "Khôi phục",
+  "scheduleHistoryRestoringButton": "Đang khôi phục...",
+  "scheduleHistoryRestoreSuccessMessage": "Bạn đã khôi phục thành công",
+  "scheduleHistoryRestoreFailed": "Khôi phục thất bại: {error}",
+  "@scheduleHistoryRestoreFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleHistoryEditedAt": "Đã sửa lúc {time}",
+  "@scheduleHistoryEditedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleHistoryLabelTitle": "Tên lịch trình:",
+  "scheduleHistoryLabelDescription": "Mô tả:",
+  "scheduleHistoryLabelDate": "Ngày:",
+  "scheduleHistoryLabelTime": "Thời gian:",
+  "scheduleDrawerMenuTitle": "Menu",
+  "scheduleCreateButtonAddEvent": "+ Thêm sự kiện",
+  "schedulePeriodTitle": "Thời gian",
+  "schedulePeriodMorning": "Sáng",
+  "schedulePeriodAfternoon": "Chiều",
+  "schedulePeriodEvening": "Tối",
+  "scheduleCalendarFormatMonth": "Tháng",
+  "scheduleCalendarFormatWeek": "Tuần",
+  "scheduleCalendarMonthLabel": "Tháng {month}",
+  "@scheduleCalendarMonthLabel": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleWeekdayMon": "T2",
+  "scheduleWeekdayTue": "T3",
+  "scheduleWeekdayWed": "T4",
+  "scheduleWeekdayThu": "T5",
+  "scheduleWeekdayFri": "T6",
+  "scheduleWeekdaySat": "T7",
+  "scheduleWeekdaySun": "CN",
+  "scheduleNoEventsInDay": "Không có lịch trong ngày",
+  "scheduleDeleteTitle": "Xóa lịch trình",
+  "scheduleDeleteConfirmMessage": "Bạn có chắc muốn xóa?",
+  "scheduleDeleteSuccessMessage": "Bạn đã xóa thành công",
+  "scheduleDeleteFailed": "Xóa thất bại: {error}",
+  "@scheduleDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayTitle": "Ngày đáng nhớ",
+  "memoryDayEmpty": "Chưa có ngày đáng nhớ",
+  "memoryDayDeleteTitle": "Xóa ngày đáng nhớ",
+  "memoryDayDeleteConfirmMessage": "Bạn có chắc muốn xóa?",
+  "memoryDayDeleteSuccessMessage": "Bạn đã xóa thành công",
+  "memoryDayDeleteFailedMessage": "Xóa thất bại, vui lòng thử lại",
+  "memoryDayDeleteFailedWithError": "Xóa thất bại: {error}",
+  "@memoryDayDeleteFailedWithError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayDaysPassed": "Đã qua {days} ngày",
+  "@memoryDayDaysPassed": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "memoryDayToday": "Hôm nay",
+  "memoryDayDaysLeft": "Còn {days} ngày",
+  "@memoryDayDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "memoryDayDateText": "Ngày: {date}",
+  "@memoryDayDateText": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayDateRepeatText": "Ngày: {date} (lặp lại hằng năm)",
+  "@memoryDayDateRepeatText": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayUnsavedTitle": "Chưa lưu",
+  "memoryDayUnsavedExitMessage": "Bạn chưa lưu, bạn có chắc muốn thoát?",
+  "memoryDayFormTitleLabel": "Tiêu đề",
+  "memoryDayFormDateLabel": "Ngày",
+  "memoryDayFormNoteLabel": "Ghi chú",
+  "memoryDayRepeatYearlyLabel": "Lặp lại hàng năm",
+  "memoryDayEditHeaderTitle": "Chỉnh sửa ngày đáng nhớ",
+  "memoryDayAddHeaderTitle": "Thêm ngày đáng nhớ",
+  "memoryDayEditSuccessMessage": "Bạn đã lưu thay đổi thành công",
+  "memoryDayAddSuccessMessage": "Bạn đã thêm ngày đáng nhớ thành công",
+  "memoryDaySaveFailedMessage": "Đã có lỗi xảy ra, vui lòng thử lại",
+  "memoryDaySavingButton": "Đang lưu...",
+  "memoryDaySaveChangesButton": "Lưu thay đổi",
+  "memoryDayAddButton": "Thêm ngày đáng nhớ",
+  "notificationsEmptyTitle": "Chưa có thông báo",
+  "notificationsEmptySubtitle": "Các thông báo mới sẽ xuất hiện tại đây",
+  "notificationsDefaultChildName": "Bé",
+  "notificationsNoTitle": "Không có tiêu đề",
+  "notificationsActionCreated": "Đã thêm",
+  "notificationsActionUpdated": "Đã chỉnh sửa",
+  "notificationsActionDeleted": "Đã xóa",
+  "notificationsActionRestored": "Đã khôi phục",
+  "notificationsActionChanged": "Đã thay đổi",
+  "notificationsScheduleTitleLabel": "Tên lịch",
+  "notificationsChildNameLabel": "Tên bé",
+  "notificationsDateLabel": "Ngày",
+  "notificationsTimeLabel": "Thời gian",
+  "notificationsViewScheduleButton": "Xem lịch",
+  "notificationsRepeatLabel": "Lặp lại",
+  "notificationsRepeatYearly": "Hằng năm",
+  "notificationsRepeatNone": "Không lặp lại",
+  "notificationsImportOperatorLabel": "Người thao tác",
+  "notificationsChildLabel": "Bé",
+  "notificationsImportAddedCountLabel": "Số lịch đã thêm",
+  "notificationsActorParent": "Ba/Mẹ",
+  "notificationsActorChild": "Con",
+  "notificationsBlockedAccountLabel": "Tài khoản",
+  "notificationsBlockedAppLabel": "Ứng dụng",
+  "notificationsBlockedTimeLabel": "Thời điểm",
+  "notificationsBlockedAllowedWindowLabel": "Khung giờ cho phép",
+  "notificationsBlockedWarningMessage": "Ứng dụng đã bị chặn tự động bởi hệ thống.",
+  "notificationsBlockedViewConfigButton": "Xem cấu hình thời gian",
+  "notificationsRemovedDeviceOfLabel": "Thiết bị của",
+  "notificationsRemovedAppLabel": "Ứng dụng đã gỡ",
+  "notificationsRemovedAtLabel": "Thời điểm gỡ",
+  "notificationsRemovedWarningMessage": "Ứng dụng đã bị gỡ khỏi thiết bị. Hãy kiểm tra nếu đây là ứng dụng bị quản lý.",
+  "notificationsRemovedViewAppsButton": "Xem danh sách ứng dụng",
+  "notificationsZoneDangerEnterDescription": "Vị trí của {childName} đã được ghi nhận tại {zoneName}. Hệ thống ghi nhận bé đã vào vùng nguy hiểm lúc {time}.",
+  "@notificationsZoneDangerEnterDescription": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "zoneName": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsZoneSafeExitDescription": "Vị trí của {childName} đã được ghi nhận tại {zoneName}. Hệ thống ghi nhận bé đã rời vùng an toàn lúc {time}.",
+  "@notificationsZoneSafeExitDescription": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "zoneName": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsZoneDangerExitDescription": "Vị trí của {childName} đã được ghi nhận tại {zoneName}. Hệ thống ghi nhận bé đã rời vùng nguy hiểm lúc {time}.",
+  "@notificationsZoneDangerExitDescription": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "zoneName": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsZoneUpdatedDescription": "Vị trí của {childName} đã được cập nhật tại {zoneName}.",
+  "@notificationsZoneUpdatedDescription": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsZoneViewOnMainMapButton": "Xem trên bản đồ chính",
+  "notificationsContactNowButton": "Liên hệ ngay",
+  "scheduleOverlapConflictMessage": "Trùng với lịch \"{title}\" ({start} - {end}). Vui lòng chọn giờ khác.",
+  "@scheduleOverlapConflictMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportErrorCreateExcelFile": "Không tạo được file Excel",
+  "scheduleImportTemplateSampleTitle1": "Học Toán",
+  "scheduleImportTemplateSampleDescription1": "Làm bài 1-5",
+  "scheduleImportTemplateSampleTitle2": "Đá bóng",
+  "scheduleImportErrorCreateExcelBytes": "Không tạo được dữ liệu Excel",
+  "scheduleImportErrorMissingTitle": "Thiếu title",
+  "scheduleImportErrorEndAfterStart": "Giờ kết thúc phải lớn hơn giờ bắt đầu",
+  "scheduleImportWarningDbCheckFailed": "Không kiểm tra trùng DB do lỗi mạng: {error}",
+  "@scheduleImportWarningDbCheckFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportErrorMissingDate": "Thiếu date",
+  "scheduleImportErrorInvalidDate": "Sai date: \"{raw}\"",
+  "@scheduleImportErrorInvalidDate": {
+    "placeholders": {
+      "raw": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportErrorInvalidDateSupported": "Sai date: \"{raw}\" (hỗ trợ: yyyy-MM-dd, dd/MM/yyyy, MM/dd/yyyy, ISO datetime)",
+  "@scheduleImportErrorInvalidDateSupported": {
+    "placeholders": {
+      "raw": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportErrorMissingTime": "Thiếu time",
+  "scheduleImportErrorInvalidTimeSupported": "Sai time: \"{raw}\" (hỗ trợ: HH:mm, HH:mm:ss, 7:00 AM/PM)",
+  "@scheduleImportErrorInvalidTimeSupported": {
+    "placeholders": {
+      "raw": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyTitleCreated": "Lịch trình mới",
+  "scheduleNotifyTitleUpdated": "Lịch trình đã thay đổi",
+  "scheduleNotifyTitleDeleted": "Lịch trình đã bị xóa",
+  "scheduleNotifyTitleRestored": "Lịch trình đã được khôi phục",
+  "scheduleNotifyTitleChanged": "Lịch trình có thay đổi",
+  "scheduleNotifyBodyParentCreated": "Cha đã thêm lịch \"{title}\" cho {childName} vào {date}, {time}.",
+  "@scheduleNotifyBodyParentCreated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyParentUpdated": "Cha đã chỉnh sửa lịch \"{title}\" của {childName}.",
+  "@scheduleNotifyBodyParentUpdated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyParentDeleted": "Cha đã xóa lịch \"{title}\" của {childName}.",
+  "@scheduleNotifyBodyParentDeleted": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyParentRestored": "Cha đã khôi phục một phiên bản cũ của lịch \"{title}\" của {childName}.",
+  "@scheduleNotifyBodyParentRestored": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyParentChanged": "Cha đã thay đổi lịch \"{title}\" của {childName}.",
+  "@scheduleNotifyBodyParentChanged": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildCreated": "{childName} đã thêm lịch \"{title}\" vào {date}, {time}.",
+  "@scheduleNotifyBodyChildCreated": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildUpdated": "{childName} đã chỉnh sửa lịch \"{title}\".",
+  "@scheduleNotifyBodyChildUpdated": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildDeleted": "{childName} đã xóa lịch \"{title}\".",
+  "@scheduleNotifyBodyChildDeleted": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildRestored": "{childName} đã khôi phục lịch sử sửa của lịch \"{title}\".",
+  "@scheduleNotifyBodyChildRestored": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleNotifyBodyChildChanged": "{childName} đã thay đổi lịch \"{title}\".",
+  "@scheduleNotifyBodyChildChanged": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyTitleCreated": "Ngày đáng nhớ mới",
+  "memoryDayNotifyTitleUpdated": "Ngày đáng nhớ đã thay đổi",
+  "memoryDayNotifyTitleDeleted": "Ngày đáng nhớ đã bị xóa",
+  "memoryDayNotifyTitleChanged": "Ngày đáng nhớ có thay đổi",
+  "memoryDayNotifyBodyParentCreated": "Cha đã thêm ngày đáng nhớ \"{title}\".",
+  "@memoryDayNotifyBodyParentCreated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyParentUpdated": "Cha đã chỉnh sửa ngày đáng nhớ \"{title}\".",
+  "@memoryDayNotifyBodyParentUpdated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyParentDeleted": "Cha đã xóa ngày đáng nhớ \"{title}\".",
+  "@memoryDayNotifyBodyParentDeleted": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyParentChanged": "Cha đã thay đổi ngày đáng nhớ \"{title}\".",
+  "@memoryDayNotifyBodyParentChanged": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyChildCreated": "{actorChildName} đã thêm ngày đáng nhớ \"{title}\".",
+  "@memoryDayNotifyBodyChildCreated": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyChildUpdated": "{actorChildName} đã chỉnh sửa ngày đáng nhớ \"{title}\".",
+  "@memoryDayNotifyBodyChildUpdated": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyChildDeleted": "{actorChildName} đã xóa ngày đáng nhớ \"{title}\".",
+  "@memoryDayNotifyBodyChildDeleted": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyChildChanged": "{actorChildName} đã thay đổi ngày đáng nhớ \"{title}\".",
+  "@memoryDayNotifyBodyChildChanged": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportNotifyTitle": "Lịch trình mới được thêm",
+  "scheduleImportNotifyBodyParent": "Cha vừa thêm {importCount} lịch cho {childName}.",
+  "@scheduleImportNotifyBodyParent": {
+    "placeholders": {
+      "importCount": {
+        "type": "int"
+      },
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleImportNotifyBodyChild": "{actorChildName} vừa thêm {importCount} lịch.",
+  "@scheduleImportNotifyBodyChild": {
+    "placeholders": {
+      "actorChildName": {
+        "type": "String"
+      },
+      "importCount": {
+        "type": "int"
+      }
+    }
+  },
   "zone_default": "Thông báo hehehe",
-
   "zone_enter_danger_parent": "⚠️ Bé vào vùng nguy hiểm",
   "zone_exit_danger_parent": "✅ Bé rời vùng nguy hiểm",
   "zone_enter_safe_parent": "✅ Bé vào vùng an toàn",
   "zone_exit_safe_parent": "ℹ️ Bé rời vùng an toàn",
-
   "zone_enter_danger_child": "⚠️ Bạn đang vào vùng nguy hiểm",
   "zone_exit_danger_child": "✅ Bạn đã ra khỏi vùng nguy hiểm",
   "zone_enter_safe_child": "✅ Bạn đang vào vùng an toàn",
   "zone_exit_safe_child": "ℹ️ Bạn đã ra khỏi vùng an toàn"
 }
+

@@ -3,12 +3,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
-import 'package:kid_manager/debug/seed_demo_history_rtdb.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
-import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
@@ -20,6 +18,7 @@ import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 
@@ -61,14 +60,15 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
     final storage = context.read<StorageService>();
+    final l10n = AppLocalizations.of(context);
 
     if (email.isEmpty || password.isEmpty) {
-      AlertService.showSnack('Vui lòng nhập đầy đủ thông tin', isError: true);
+      AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
     }
 
     if (!Validators.isValidEmail(email)) {
-      AlertService.showSnack('Email không hợp lệ', isError: true);
+      AlertService.showSnack(l10n.emailInvalid, isError: true);
       return;
     }
 
@@ -82,8 +82,8 @@ class _LoginScreenState extends State<LoginScreen> {
         NotificationDialog.show(
           context,
           type: DialogType.error,
-          title: "Thất bại",
-          message: "Thông tin tài khoản không chính xác",
+          title: l10n.updateErrorTitle,
+          message: l10n.authInvalidCredentials,
         );
         return;
       }
@@ -97,8 +97,8 @@ class _LoginScreenState extends State<LoginScreen> {
         NotificationDialog.show(
           context,
           type: DialogType.error,
-          title: "Thất bại",
-          message: "Không tải được hồ sơ người dùng",
+          title: l10n.updateErrorTitle,
+          message: l10n.authUserProfileLoadFailed,
         );
         return;
       }
@@ -107,9 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await storage.setString(StorageKeys.displayName, profile.name);
 
       final role = roleFromString(profile.role ?? 'child');
-      final parentId = role == UserRole.child
-          ? (profile.parentUid ?? '')
-          : uid;
+      final parentId = role == UserRole.child ? (profile.parentUid ?? '') : uid;
 
       await storage.setString(StorageKeys.parentId, parentId);
 
@@ -149,8 +147,8 @@ class _LoginScreenState extends State<LoginScreen> {
       NotificationDialog.show(
         context,
         type: DialogType.error,
-        title: "Thất bại",
-        message: "Có lỗi xảy ra",
+        title: l10n.updateErrorTitle,
+        message: l10n.authGenericError,
       );
     }
   }
@@ -179,6 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AuthVM>();
+    final l10n = AppLocalizations.of(context);
     // Theo spec bạn đưa:
     return Stack(
       children: [
@@ -210,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(
                           width: 266,
                           child: Text(
-                            'CHÀO MỪNG TRỞ LẠI',
+                            l10n.authWelcomeBackTitle,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Color(0xFF1A1A1A),
@@ -225,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(
                           width: 266,
                           child: Text(
-                            'Đăng nhập ngay!',
+                            l10n.authLoginNowSubtitle,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Color(0xFF1A1A1A),
@@ -242,14 +241,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     AuthTextField(
                       controller: _emailCtrl,
-                      hintText: 'Nhập email',
+                      hintText: l10n.authEnterEmailHint,
                       keyboardType: TextInputType.emailAddress,
                       prefixSvg: 'assets/icons/user.svg',
                     ),
                     const SizedBox(height: 1),
                     AuthTextField(
                       controller: _passwordCtrl,
-                      hintText: 'Nhập mật khẩu',
+                      hintText: l10n.authEnterPasswordHint,
                       keyboardType: TextInputType.text,
                       obscureText: true,
                       isPassword: true,
@@ -299,8 +298,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(width: 12),
 
                                 // Text
-                                const Text(
-                                  'Lưu mật khẩu',
+                                Text(
+                                  l10n.authRememberPassword,
                                   style: TextStyle(
                                     color: Color(0xFF6C7278),
                                     fontSize: 12,
@@ -326,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               );
                             },
                             child: Text(
-                              'Quên mật khẩu ?',
+                              l10n.authForgotPassword,
                               style: TextStyle(
                                 color: Color(0xFF3A7DFF),
                                 fontSize: 12,
@@ -351,7 +350,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           AppButton(
                             width: 360,
                             height: 60,
-                            text: 'Đăng nhập',
+                            text: l10n.authLoginButton,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             onPressed: _onLoginPressed,
@@ -373,10 +372,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             thickness: 0.83,
                           ),
                         ),
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
-                            'Hoặc',
+                            l10n.authOr,
                             style: TextStyle(
                               color: Color(0xFF1A1A1A),
                               fontSize: 13,
@@ -415,7 +414,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Bạn chưa có tài khoản, ',
+                          l10n.authNoAccount,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: const Color(0xFF1A1A1A),
@@ -434,7 +433,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             );
                           },
                           child: Text(
-                            'đăng ký',
+                            l10n.authSignUpInline,
                             style: TextStyle(
                               color: const Color(0xFF3A7DFF),
                               fontSize: 15,

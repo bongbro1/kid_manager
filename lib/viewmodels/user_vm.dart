@@ -87,30 +87,29 @@ class UserVm extends ChangeNotifier {
   void watchMe(String uid) {
     _meSub?.cancel();
 
-    _meSub = _userRepo.watchUserById(uid).listen(
+    _meSub = _userRepo
+        .watchUserById(uid)
+        .listen(
           (u) {
-        me = u;
-        notifyListeners();
-      },
-      onError: (e) {
-        _error = 'Lỗi load user: $e';
-        notifyListeners();
-      },
-    );
+            me = u;
+            notifyListeners();
+          },
+          onError: (e) {
+            _error = 'Lỗi load user: $e';
+            notifyListeners();
+          },
+        );
   }
 
   void watchChildren(String parentUid) {
     _childrenSub?.cancel();
 
-    _childrenSub = _userRepo.watchChildren(parentUid).listen(
-          (list) {
-        _children
-          ..clear()
-          ..addAll(list);
-        notifyListeners();
-      },
-      onError: (e) => _setError('Lỗi load children: $e'),
-    );
+    _childrenSub = _userRepo.watchChildren(parentUid).listen((list) {
+      _children
+        ..clear()
+        ..addAll(list);
+      notifyListeners();
+    }, onError: (e) => _setError('Lỗi load children: $e'));
   }
 
   Future<UserProfile?> loadProfile({
@@ -164,16 +163,18 @@ class UserVm extends ChangeNotifier {
     }
 
     _profileSubscription?.cancel();
-    _profileSubscription = _userRepo.listenUserProfile(resolvedUid).listen(
+    _profileSubscription = _userRepo
+        .listenUserProfile(resolvedUid)
+        .listen(
           (data) {
-        profile = data;
-        notifyListeners();
-      },
-      onError: (e) {
-        _error = e.toString();
-        notifyListeners();
-      },
-    );
+            profile = data;
+            notifyListeners();
+          },
+          onError: (e) {
+            _error = e.toString();
+            notifyListeners();
+          },
+        );
   }
 
   Future<UserRole> fetchUserRole(String uid) {
@@ -187,6 +188,7 @@ class UserVm extends ChangeNotifier {
     required String dob,
     required String address,
     required bool allowTracking,
+    String? locale,
   }) async {
     _error = null;
 
@@ -214,7 +216,13 @@ class UserVm extends ChangeNotifier {
         dob: dob.trim(),
         address: address.trim(),
         allowTracking: allowTracking,
+        locale: locale?.trim(),
       );
+      if (locale != null) {
+        final localeCode = locale.trim();
+        await _storage.setString(StorageKeys.locale, localeCode);
+        await _storage.setString('preferredLocale', localeCode);
+      }
 
       await _userRepo.updateUserProfile(newProfile);
       return true;

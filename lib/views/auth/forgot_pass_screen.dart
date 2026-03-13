@@ -4,11 +4,11 @@ import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
-import 'package:kid_manager/viewmodels/otp_vm.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/auth/auth_text_field.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -29,25 +29,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _sendOtp() async {
     final authVm = context.read<AuthVM>();
-    final otpVm = context.read<OtpVM>();
+    final l10n = AppLocalizations.of(context);
 
     final email = _emailController.text.trim();
 
     /// Validate
     if (email.isEmpty) {
-      AlertService.showSnack('Vui lòng nhập đầy đủ thông tin', isError: true);
+      AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
     }
 
     if (!Validators.isValidEmail(email)) {
-      AlertService.showSnack('Email không hợp lệ', isError: true);
+      AlertService.showSnack(l10n.emailInvalid, isError: true);
       return;
     }
 
     final uid = await authVm.forgotPassword(email);
 
     if (uid == null) {
-      AlertService.showSnack(authVm.error ?? 'Gửi OTP thất bại', isError: true);
+      AlertService.showSnack(
+        authVm.error ?? l10n.authSendOtpFailed,
+        isError: true,
+      );
       return;
     }
 
@@ -70,6 +73,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthVM>();
+    final l10n = AppLocalizations.of(context);
     return Stack(
       children: [
         Scaffold(
@@ -105,7 +109,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'QUÊN MẬT KHẨU?',
+                            l10n.authForgotPasswordTitle,
                             style: TextStyle(
                               fontSize: 24,
                               fontFamily: 'Poppins',
@@ -116,7 +120,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Bạn đã quên mật khẩu?, vui lòng làm theo các bước sau để lấy lại mật khẩu của bạn!',
+                            l10n.authForgotPasswordSubtitle,
                             style: TextStyle(
                               color: Color(0xFF4A4A4A),
                               fontSize: 15,
@@ -132,10 +136,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const SizedBox(height: 32),
 
                   // Label
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(left: 14, bottom: 8),
                     child: Text(
-                      'Nhập Email của bạn',
+                      l10n.authEnterYourEmailLabel,
                       style: TextStyle(
                         color: Color(0xFF4A4A4A),
                         fontSize: 15,
@@ -148,7 +152,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   // Email input
                   AuthTextField(
                     controller: _emailController,
-                    hintText: 'Nhập email',
+                    hintText: l10n.authEnterEmailHint,
                     keyboardType: TextInputType.emailAddress,
                     prefixSvg: 'assets/icons/user.svg',
                   ),
@@ -158,7 +162,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   // Button bottom
                   AppButton(
                     height: 60,
-                    text: 'Tiếp tục',
+                    text: l10n.authContinueButton,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     onPressed: _sendOtp,
