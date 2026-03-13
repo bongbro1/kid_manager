@@ -15,6 +15,7 @@ import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
+import 'package:kid_manager/services/location/tracking_status_service.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
 import 'package:flutter_activity_recognition/models/activity.dart';
@@ -24,11 +25,28 @@ class ChildLocationViewModel extends ChangeNotifier {
     this._locationRepository,
     this._locationService, {
     FirebaseAuth? auth,
-  }) : _auth = auth ?? FirebaseAuth.instance;
+    TrackingStatusService? trackingStatusService,
+  }) : _auth = auth ?? FirebaseAuth.instance,
+       _trackingStatusService =
+           trackingStatusService ?? TrackingStatusService();
 
   final LocationRepository _locationRepository;
   final LocationServiceInterface _locationService;
   final FirebaseAuth _auth;
+  final TrackingStatusService _trackingStatusService;
+
+  Timer? _healthTimer;
+
+  bool _locationServiceEnabled = true;
+  bool get locationServiceEnabled => _locationServiceEnabled;
+
+  bool _locationPermissionGranted = true;
+  bool get locationPermissionGranted => _locationPermissionGranted;
+
+  DateTime? _lastGoodFixAt;
+  DateTime? get lastGoodFixAt => _lastGoodFixAt;
+
+  String? _lastTrackingStatus;
   int _lastCurrentSentAtMs = 0;
   int _lastBadAccCurrentSentAtMs = 0; // ===== STATE =====
   LocationData? _currentLocation;
@@ -49,7 +67,6 @@ class ChildLocationViewModel extends ChangeNotifier {
 
   TransportMode _transport = TransportMode.unknown;
   TransportMode get transport => _transport;
-
 
   final List<LocationData> _trail = [];
   List<LocationData> get locationTrail => List.unmodifiable(_trail);
@@ -101,6 +118,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     _activitySub = null;
     _lastActivity = null;
   }
+
   bool _isJumpTooLarge(LocationData? prev, LocationData next) {
     if (prev == null) return false;
 
@@ -113,24 +131,110 @@ class ChildLocationViewModel extends ChangeNotifier {
     // > 45 m/s ~ 162 km/h, với trẻ em gần như bất thường
     return speedMps > 45;
   }
+
   Future<void> _ensureZoneMonitor() async {
     if (_zonesInited) return;
 
     final uid = _requireUid();
     final repo = ZoneRepository();
 
-    _zoneMonitor = ZoneMonitor(
-      repo: repo,
-      childUid: uid,
-    );
+    _zoneMonitor = ZoneMonitor(repo: repo, childUid: uid);
 
     await _zonesSub?.cancel();
-    _zonesSub = repo.watchZones(uid).listen(
+    _zonesSub = repo
+        .watchZones(uid)
+        .listen(
           (zones) => _zoneMonitor.updateZones(zones),
-      onError: (e) => debugPrint("🧭 zones watch error: $e"),
-    );
+          onError: (e) => debugPrint("🧭 zones watch error: $e"),
+        );
 
     _zonesInited = true;
+  }
+
+  Future<void> _reportTrackingStatusIfChanged(
+    String status, {
+    String? message,
+  }) async {
+    if (_lastTrackingStatus == status) return;
+    _lastTrackingStatus = status;
+
+    try {
+      await _trackingStatusService.reportStatus(
+        status: status,
+        message: message,
+      );
+    } catch (e) {
+      debugPrint('reportTrackingStatus error: $e');
+    }
+  }
+
+  Future<void> _startHealthMonitor() async {
+    _healthTimer?.cancel();
+
+    _healthTimer = Timer.periodic(const Duration(seconds: 20), (_) async {
+      try {
+        final serviceEnabled = await _locationService.isServiceEnabled();
+        final permissionGranted = await _locationService.hasLocationPermission(
+          requireBackground: _requireBackground,
+        );
+
+        _locationServiceEnabled = serviceEnabled;
+        _locationPermissionGranted = permissionGranted;
+
+        if (!serviceEnabled) {
+          await _reportTrackingStatusIfChanged(
+            'location_service_off',
+            message: 'Thiết bị đã tắt GPS/vị trí',
+          );
+          notifyListeners();
+          return;
+        }
+
+        if (!permissionGranted) {
+          await _reportTrackingStatusIfChanged(
+            'location_permission_denied',
+            message: 'Thiết bị đã tắt quyền vị trí',
+          );
+          notifyListeners();
+          return;
+        }
+
+        if (_requireBackground) {
+          final bgEnabled = await _locationService.isBackgroundModeEnabled();
+          if (!bgEnabled) {
+            await _reportTrackingStatusIfChanged(
+              'background_disabled',
+              message: 'Đã tắt chia sẻ vị trí nền',
+            );
+            notifyListeners();
+            return;
+          }
+        }
+
+        final last = _lastGoodFixAt;
+        if (last != null) {
+          final stale =
+              DateTime.now().difference(last) > const Duration(minutes: 2);
+          if (stale) {
+            await _reportTrackingStatusIfChanged(
+              'location_stale',
+              message: 'Không cập nhật được vị trí mới trong hơn 2 phút',
+            );
+            notifyListeners();
+            return;
+          }
+        }
+
+        await _reportTrackingStatusIfChanged(
+          'ok',
+          message: 'Định vị hoạt động bình thường',
+        );
+
+        notifyListeners();
+      } catch (e) {
+        debugPrint('health monitor error: $e');
+      }
+    });
   }
 
   /// Stop sharing (clearData=false nếu chỉ muốn tạm dừng, true nếu logout)
@@ -144,6 +248,13 @@ class ChildLocationViewModel extends ChangeNotifier {
 
     _isSharing = false;
     _restarting = false;
+    _lastTrackingStatus = null;
+
+    _isSharing = false;
+    _restarting = false;
+
+    _healthTimer?.cancel();
+    _healthTimer = null;
 
     if (clearData) {
       _currentLocation = null;
@@ -184,6 +295,7 @@ class ChildLocationViewModel extends ChangeNotifier {
 
     _isSharing = true;
     _motionState = MotionState.moving;
+    await _startHealthMonitor();
 
     notifyListeners();
 
@@ -194,23 +306,41 @@ class ChildLocationViewModel extends ChangeNotifier {
       debugPrint('📍 GPS RAW: acc=${raw.accuracy}');
 
       final result = _engine.process(raw, _lastActivity);
+      final filtered = result.filteredLocation;
+      final acc = filtered.accuracy;
+
+      if (acc <= 30) {
+        _lastGoodFixAt = DateTime.now();
+      }
+      if (_isJumpTooLarge(_currentLocation, filtered) &&
+          filtered.accuracy > 20) {
+        debugPrint('⛔ Skip jump point: acc=${filtered.accuracy}');
+        return;
+      }
+
       _transport = result.transport;
-      if (_currentLocation == null || result.filteredLocation.accuracy <= 50) {
-        _currentLocation = result.filteredLocation;
-      }      try {
+      if (_currentLocation == null || acc <= 50) {
+        _currentLocation = filtered;
+      }
+
+      try {
         if (_zonesInited) {
-          await _zoneMonitor.onLocation(result.filteredLocation);
+          debugPrint(
+            "🧭 Checking zones for location: lat=${filtered.latitude} lng=${filtered.longitude}",
+          );
+          await _zoneMonitor.onLocation(filtered);
         }
       } catch (e) {
         debugPrint("🧭 zoneMonitor error: $e");
       }
+
       _motionState = result.motion;
 
       // build payload 1 lần
       final uid = _requireUid();
       final payload = TrackingPayload(
         deviceId: uid,
-        location: result.filteredLocation,
+        location: filtered,
         motion: result.motion.name,
         transport: _transport.name,
       );
@@ -219,15 +349,9 @@ class ChildLocationViewModel extends ChangeNotifier {
       // 1) ALWAYS update CURRENT (throttle + accuracy)
       // =========================
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final acc = result.filteredLocation.accuracy;
       final rejectVeryBadAcc = acc > 100;
       final goodHistoryAcc = acc <= 30; // bạn có thể chỉnh 50/80 tuỳ
-      final filtered = result.filteredLocation;
 
-      if (_isJumpTooLarge(_currentLocation, filtered) && filtered.accuracy > 20) {
-        debugPrint('⛔ Skip jump point: acc=${filtered.accuracy}');
-        return;
-      }
       try {
         if (!rejectVeryBadAcc) {
           if (acc <= 20) {
@@ -247,10 +371,6 @@ class ChildLocationViewModel extends ChangeNotifier {
             }
           }
         }
-
-
-
-
 
         // =========================
         // 2) Append HISTORY only when policy allows
@@ -273,7 +393,8 @@ class ChildLocationViewModel extends ChangeNotifier {
 
       if (acc <= 30) {
         _appendTrail(result.filteredLocation);
-      }      notifyListeners();
+      }
+      notifyListeners();
     });
   }
 
@@ -293,7 +414,6 @@ class ChildLocationViewModel extends ChangeNotifier {
       await _restartSharing(delay: const Duration(milliseconds: 300));
     }
   }
-
 
   // SOS
 
@@ -370,7 +490,10 @@ class ChildLocationViewModel extends ChangeNotifier {
   /// Load lịch sử (dùng chung cho tab History)
   Future<List<LocationData>> loadLocationHistory(String childId) async {
     try {
-      final history = await _locationRepository.getLocationHistoryByDay(childId,DateTime.now());
+      final history = await _locationRepository.getLocationHistoryByDay(
+        childId,
+        DateTime.now(),
+      );
 
       _trail
         ..clear()
@@ -388,12 +511,16 @@ class ChildLocationViewModel extends ChangeNotifier {
     }
   }
 
-
-
-  Future<List<LocationData>> loadLocationHistoryByDay(String childId, DateTime day) async {
+  Future<List<LocationData>> loadLocationHistoryByDay(
+    String childId,
+    DateTime day,
+  ) async {
     try {
       // nếu repo interface chưa có, bạn gọi thẳng repo impl hoặc add vào interface
-      final history = await _locationRepository.getLocationHistoryByDay(childId, day);
+      final history = await _locationRepository.getLocationHistoryByDay(
+        childId,
+        day,
+      );
 
       _trail
         ..clear()
@@ -410,6 +537,7 @@ class ChildLocationViewModel extends ChangeNotifier {
       return [];
     }
   }
+
   void stopReplay() {
     if (_mode == LocationPlayMode.replay) {
       _mode = LocationPlayMode.live;
@@ -452,6 +580,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     _keepAliveTimer?.cancel();
     _activitySub?.cancel();
     _zonesSub?.cancel();
+    _healthTimer?.cancel();
     _activitySub = null;
     _lastActivity = null;
     super.dispose();

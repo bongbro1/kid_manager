@@ -81,7 +81,8 @@ class NotificationService {
   }
 
   static Future<void> handleTap(Map<String, dynamic> data) async {
-    final type = data["type"]?.toString();
+    final rawType = data["type"]?.toString();
+    final type = (rawType ?? '').toLowerCase();
     final notificationId = data['notificationId']?.toString();
     final familyId = data['familyId']?.toString();
     final messageId = data['messageId']?.toString();
@@ -89,7 +90,7 @@ class NotificationService {
     final route = data['route']?.toString();
 
     debugPrint(
-      '🔔 handleTap type=$type notificationId=$notificationId familyId=$familyId messageId=$messageId eventId=$eventId route=$route',
+      '🔔 handleTap type=$rawType normalizedType=$type notificationId=$notificationId familyId=$familyId messageId=$messageId eventId=$eventId route=$route',
     );
 
     if (type == 'test') {
@@ -134,8 +135,8 @@ class NotificationService {
     }
 
     if (type == 'zone') {
-      debugPrint('🔔 zone notification tapped');
-      // TODO: navigate zone detail if needed
+      debugPrint('🔔 zone notification tapped -> open notifications tab');
+      activeTabNotifier.value = notificationTabIndexNotifier.value;
       return;
     }
 

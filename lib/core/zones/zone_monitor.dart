@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
@@ -9,26 +10,61 @@ class ZoneMonitor {
   final ZoneRepository repo;
   final String childUid;
 
-  ZoneMonitor({
-    required this.repo,
-    required this.childUid,
-  });
+  ZoneMonitor({required this.repo, required this.childUid});
 
   List<GeoZone> _zones = [];
   final Set<String> _inside = {}; // zoneIds currently inside
 
   int _lastEventAtMs = 0;
+  int _lastZoneRefreshAtMs = 0;
+  bool _zoneRefreshInFlight = false;
+
+  static const int _zoneReloadCooldownMs = 15000;
 
   void updateZones(List<GeoZone> zones) {
     _zones = zones.where((z) => z.enabled).toList();
+
+    // Keep inside-state consistent when zones are removed/disabled.
+    final zoneIds = _zones.map((z) => z.id).toSet();
+    _inside.removeWhere((id) => !zoneIds.contains(id));
+
+    debugPrint('🧭 ZoneMonitor.updateZones enabled=${_zones.length} childUid=$childUid');
+  }
+
+  Future<void> _reloadZonesIfNeeded() async {
+    if (_zones.isNotEmpty) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (_zoneRefreshInFlight) return;
+    if (now - _lastZoneRefreshAtMs < _zoneReloadCooldownMs) return;
+
+    _zoneRefreshInFlight = true;
+    _lastZoneRefreshAtMs = now;
+
+    try {
+      final zones = await repo.getZonesOnce(childUid);
+      updateZones(zones);
+      debugPrint('🧭 ZoneMonitor.reloadZones fetched=${zones.length} childUid=$childUid');
+    } catch (e, st) {
+      debugPrint('🧭 ZoneMonitor.reloadZones error: $e');
+      debugPrint('$st');
+    } finally {
+      _zoneRefreshInFlight = false;
+    }
   }
 
   /// Call for every location update
   Future<void> onLocation(LocationData loc) async {
-    if (_zones.isEmpty) return;
+    await _reloadZonesIfNeeded();
+
+    if (_zones.isEmpty) {
+      debugPrint('🧭 ZoneMonitor.onLocation skip: no enabled zones for childUid=$childUid');
+      return;
+    }
 
     final now = DateTime.now().millisecondsSinceEpoch;
-    // anti-spam: tối thiểu 3s giữa các event
+
+    // Anti-spam: at least 3 seconds between zone events.
     if (now - _lastEventAtMs < 3000) return;
 
     for (final z in _zones) {
@@ -40,21 +76,21 @@ class ZoneMonitor {
         _inside.add(z.id);
         _lastEventAtMs = now;
 
-        //  local alarm trên máy con nếu danger
         if (z.type == ZoneType.danger) {
           await LocalAlarmService.I.showDangerEnter(zoneName: z.name);
         }
+
         await repo.pushZoneEvent(childUid, {
-          "zoneId": z.id,
-          "zoneType": z.type.name, // safe/danger
-          "action": "enter",
-          "zoneName": z.name,
-          "lat": loc.latitude,
-          "lng": loc.longitude,
-          "timestamp": loc.timestamp,
+          'zoneId': z.id,
+          'zoneType': z.type.name, // safe/danger
+          'action': 'enter',
+          'zoneName': z.name,
+          'lat': loc.latitude,
+          'lng': loc.longitude,
+          'timestamp': loc.timestamp,
         });
 
-        debugPrint("🧭 ZONE ENTER: ${z.name} (${z.type.name})");
+        debugPrint('🧭 ZONE ENTER: ${z.name} (${z.type.name}) d=${d.toStringAsFixed(1)}m');
       }
 
       if (!isIn && wasIn) {
@@ -62,16 +98,16 @@ class ZoneMonitor {
         _lastEventAtMs = now;
 
         await repo.pushZoneEvent(childUid, {
-          "zoneId": z.id,
-          "zoneType": z.type.name,
-          "action": "exit",
-          "zoneName": z.name,
-          "lat": loc.latitude,
-          "lng": loc.longitude,
-          "timestamp": loc.timestamp,
+          'zoneId': z.id,
+          'zoneType': z.type.name,
+          'action': 'exit',
+          'zoneName': z.name,
+          'lat': loc.latitude,
+          'lng': loc.longitude,
+          'timestamp': loc.timestamp,
         });
 
-        debugPrint("🧭 ZONE EXIT: ${z.name} (${z.type.name})");
+        debugPrint('🧭 ZONE EXIT: ${z.name} (${z.type.name}) d=${d.toStringAsFixed(1)}m');
       }
     }
   }
@@ -80,7 +116,8 @@ class ZoneMonitor {
     const r = 6371000.0;
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
-    final a = sin(dLat / 2) * sin(dLat / 2) +
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
         cos(_deg2rad(lat1)) *
             cos(_deg2rad(lat2)) *
             sin(dLon / 2) *

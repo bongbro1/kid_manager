@@ -1,8 +1,8 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { admin, db } from "../bootstrap";
-import { REGION } from "../config";
-import { mustString } from "../helpers";
-import { getUserFamilyAndRole, requireFamilyMember } from "../services/user";
+import { admin, db } from "../../bootstrap";
+import { REGION } from "../../config";
+import { mustString } from "../../helpers";
+import { getUserFamilyAndRole, requireFamilyMember } from "../../services/user";
 
 const ALLOWED_STATUS = new Set([
 "ok",

@@ -1,5 +1,5 @@
-import { admin, db } from "../bootstrap";
-import { t } from "../i18n";
+import { admin, db } from "../../bootstrap";
+import { t } from "../../i18n";
 
 export async function sendLocalizedNotification(opts: {
   uid: string;

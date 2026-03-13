@@ -1,10 +1,9 @@
 import { onValueCreated } from "firebase-functions/v2/database";
 import { admin, db } from "../bootstrap";
 import { randomUUID } from "crypto";
-import { sendLocalizedNotification } from "../notifications/sendLocalizedNotification";
+import { sendLocalizedNotification } from "../functions/notifications/sendLocalizedNotification";
 
 const RTDB_REGION = "us-central1";
-
 function dayInVN(ms: number) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -45,6 +44,8 @@ async function writeInbox(opts: {
     day,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
+
+  return id;
 }
 
 export const onZoneEventCreated = onValueCreated(
@@ -59,35 +60,49 @@ export const onZoneEventCreated = onValueCreated(
 
     const child = childSnap.data() as any;
     const parentUid: string | undefined = child.parentUid;
-    if (!parentUid) return;
+    if (!parentUid) {
+      console.log(`[ZONE_EVENT] child has no parentUid childUid=${childUid}`);
+      return;
+    }
 
     const childName = String(child.displayName ?? child.name ?? "Bé");
 
     const zoneId = String(ev.zoneId ?? "");
-    const zoneType = String(ev.zoneType ?? ev.type ?? "");
-    const action = String(ev.action ?? ev.eventType ?? "");
+    if (!zoneId) {
+      console.log(`[ZONE_EVENT] Missing zoneId childUid=${childUid} eventId=${eventId}`);
+      return;
+    }
+
+    const zoneType = String(ev.zoneType ?? ev.type ?? "").toLowerCase();
+    const action = String(ev.action ?? ev.eventType ?? "").toLowerCase();
     const zoneName = String(ev.zoneName ?? "Vùng");
 
     const isDanger = zoneType === "danger";
     const isEnter = action === "enter";
+    const isExit = action === "exit";
 
-    const parentKey =
-      isDanger
-        ? isEnter
-          ? "zone.enter.danger.parent"
-          : "zone.exit.danger.parent"
-        : isEnter
-          ? "zone.enter.safe.parent"
-          : "zone.exit.safe.parent";
+    if (!isEnter && !isExit) {
+      console.log(
+        `[ZONE_EVENT] Skip unknown action childUid=${childUid} eventId=${eventId} action=${action}`
+      );
+      return;
+    }
 
-    const childKey =
-      isDanger
-        ? isEnter
-          ? "zone.enter.danger.child"
-          : "zone.exit.danger.child"
-        : isEnter
-          ? "zone.enter.safe.child"
-          : "zone.exit.safe.child";
+    const parentKey = isDanger
+      ? isEnter
+        ? "zone.enter.danger.parent"
+        : "zone.exit.danger.parent"
+      : isEnter
+      ? "zone.enter.safe.parent"
+      : "zone.exit.safe.parent";
+
+    const childKey = isDanger
+      ? isEnter
+        ? "zone.enter.danger.child"
+        : "zone.exit.danger.child"
+      : isEnter
+      ? "zone.enter.safe.child"
+      : "zone.exit.safe.child";
 
     const nowMs = Date.now();
     const eventTs = Number(ev.timestamp ?? nowMs);
@@ -98,7 +113,7 @@ export const onZoneEventCreated = onValueCreated(
     let durationMin = 0;
     let enterAt: number | null = null;
 
-    if (action === "enter") {
+    if (isEnter) {
       await presenceRef.set({
         inside: true,
         zoneType,
@@ -108,7 +123,7 @@ export const onZoneEventCreated = onValueCreated(
       });
     }
 
-    if (action === "exit") {
+    if (isExit) {
       const snap = await presenceRef.get();
       const pres = snap.exists() ? snap.val() : null;
 
@@ -119,7 +134,7 @@ export const onZoneEventCreated = onValueCreated(
       await presenceRef.remove();
     }
 
-    if (action === "exit" && durationSec > 0) {
+    if (isExit && durationSec > 0) {
       const day = dayInVN(eventTs);
       const zoneStatRef = db.doc(`zoneStatsByChild/${childUid}/days/${day}/zones/${zoneId}`);
 
@@ -147,10 +162,7 @@ export const onZoneEventCreated = onValueCreated(
       });
     }
 
-    const inboxBody =
-      action === "exit" && durationMin > 0
-        ? `${zoneName} • ${durationMin} phút`
-        : zoneName;
+    const inboxBody = isExit && durationMin > 0 ? `${zoneName} • ${durationMin} phút` : zoneName;
 
     const payloadForHistory = {
       childUid: String(childUid),
@@ -167,7 +179,7 @@ export const onZoneEventCreated = onValueCreated(
       durationMin: String(durationMin),
     };
 
-    await writeInbox({
+    const parentNotificationId = await writeInbox({
       toUid: parentUid,
       senderId: "system",
       type: "ZONE",
@@ -177,7 +189,7 @@ export const onZoneEventCreated = onValueCreated(
       createdAtMs: nowMs,
     });
 
-    await writeInbox({
+    const childNotificationId = await writeInbox({
       toUid: childUid,
       senderId: "system",
       type: "ZONE",
@@ -191,7 +203,7 @@ export const onZoneEventCreated = onValueCreated(
 
     await sendLocalizedNotification({
       uid: parentUid,
-      type: "ZONE",
+      type: "zone",
       eventKey: parentKey,
       titleParams: {
         childName,
@@ -211,6 +223,7 @@ export const onZoneEventCreated = onValueCreated(
         action,
         zoneName,
         eventId: String(eventId),
+        notificationId: parentNotificationId,
         timestamp: String(eventTs),
         durationSec: String(durationSec),
         durationMin: String(durationMin),
@@ -220,7 +233,7 @@ export const onZoneEventCreated = onValueCreated(
 
     await sendLocalizedNotification({
       uid: childUid,
-      type: "ZONE",
+      type: "zone",
       eventKey: childKey,
       titleParams: {
         childName,
@@ -240,6 +253,7 @@ export const onZoneEventCreated = onValueCreated(
         action,
         zoneName,
         eventId: String(eventId),
+        notificationId: childNotificationId,
         timestamp: String(eventTs),
         durationSec: String(durationSec),
         durationMin: String(durationMin),

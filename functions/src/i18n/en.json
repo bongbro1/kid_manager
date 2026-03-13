@@ -21,5 +21,37 @@
   "zone.enter.safe.child.body": "You entered {zoneName}.",
 
   "zone.exit.safe.child.title": "ℹ️ You left a safe zone",
-  "zone.exit.safe.child.body": "You left {zoneName}{durationSuffix}."
+  "zone.exit.safe.child.body": "You left {zoneName}{durationSuffix}.",
+
+  
+  "tracking.location_service_off.parent.title": "Child turned off location",
+  "tracking.location_service_off.parent.body": "{childName} turned off GPS/location on the device.",
+
+  "tracking.location_permission_denied.parent.title": "Child turned off location permission",
+  "tracking.location_permission_denied.parent.body": "{childName} disabled the app's location permission.",
+
+  "tracking.background_disabled.parent.title": "Background location was turned off",
+  "tracking.background_disabled.parent.body": "{childName} turned off background location sharing.",
+
+  "tracking.location_stale.parent.title": "No recent location update",
+  "tracking.location_stale.parent.body": "{childName} has not updated location for more than 2 minutes.",
+
+  "tracking.ok.parent.title": "Location is active again",
+  "tracking.ok.parent.body": "{childName} has turned location back on and updates are working normally.",
+
+  "tracking.location_service_off.child.title": "Location is turned off",
+  "tracking.location_service_off.child.body": "Please turn GPS/location back on so your parent can see your current location.",
+
+  "tracking.location_permission_denied.child.title": "Location permission is off",
+  "tracking.location_permission_denied.child.body": "Please allow location permission for the app.",
+
+  "tracking.background_disabled.child.title": "Background location is off",
+  "tracking.background_disabled.child.body": "Please allow background location sharing so the app can update your location.",
+
+  "tracking.location_stale.child.title": "Location is not updating",
+  "tracking.location_stale.child.body": "Your device has not sent a location update for more than 2 minutes.",
+
+  "tracking.ok.child.title": "Location is working again",
+  "tracking.ok.child.body": "Your location is updating normally now."
 }
+

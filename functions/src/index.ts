@@ -19,4 +19,4 @@ export { sendFamilyMessage } from "./functions/family_chat";
 export { markFamilyChatRead } from "./functions/family_chat_read";
 
 export { reportTrackingStatus } from "./functions/tracking/reportTrackingStatus";
-export { notifyTrackingStatusChanged } from "./functions/tracking/notifyTrackingStatusChanged";
+export { onTrackingStatusWritten } from "./functions/tracking/onTrackingStatusWritten";

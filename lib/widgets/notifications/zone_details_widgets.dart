@@ -21,6 +21,8 @@ class ZoneDetailWidget extends StatelessWidget {
 
   String get _zoneType => (_data['zoneType'] ?? '').toString().toLowerCase();
   String get _action => (_data['action'] ?? '').toString().toLowerCase();
+  String get _eventKey =>
+      (_data['eventKey'] ?? detail.title ?? '').toString().toLowerCase();
 
   String get _childName =>
       (_data['childName'] ??
@@ -30,10 +32,33 @@ class ZoneDetailWidget extends StatelessWidget {
           'Bé')
           .toString();
 
-  bool get _isDanger => _zoneType == 'danger';
-  bool get _isEnter => _action == 'enter';
+  bool get _isDanger =>
+      _zoneType.isNotEmpty ? _zoneType == 'danger' : _eventKey.contains('.danger.');
+  bool get _isEnter =>
+      _action.isNotEmpty ? _action == 'enter' : _eventKey.contains('zone.enter.');
+  bool get _isChildAudience => _eventKey.endsWith('.child');
 
   String get _descriptionText {
+    if (_isChildAudience) {
+      if (_isDanger && _isEnter) {
+        return 'Vị trí của bạn đã được ghi nhận tại $_zoneName. '
+            'Hệ thống ghi nhận bạn đã vào vùng nguy hiểm lúc ${_clock(detail.createdAt)}.';
+      }
+      if (!_isDanger && !_isEnter) {
+        return 'Vị trí của bạn đã được ghi nhận tại $_zoneName. '
+            'Hệ thống ghi nhận bạn đã rời vùng an toàn lúc ${_clock(detail.createdAt)}.';
+      }
+      if (_isDanger && !_isEnter) {
+        return 'Vị trí của bạn đã được ghi nhận tại $_zoneName. '
+            'Hệ thống ghi nhận bạn đã rời vùng nguy hiểm lúc ${_clock(detail.createdAt)}.';
+      }
+      if (!_isDanger && _isEnter) {
+        return 'Vị trí của bạn đã được ghi nhận tại $_zoneName. '
+            'Hệ thống ghi nhận bạn đã vào vùng an toàn lúc ${_clock(detail.createdAt)}.';
+      }
+      return 'Vị trí của bạn đã được cập nhật tại $_zoneName.';
+    }
+
     if (_isDanger && _isEnter) {
       return 'Vị trí của $_childName đã được ghi nhận tại $_zoneName. '
           'Hệ thống ghi nhận bé đã vào vùng nguy hiểm lúc ${_clock(detail.createdAt)}.';
@@ -45,6 +70,10 @@ class ZoneDetailWidget extends StatelessWidget {
     if (_isDanger && !_isEnter) {
       return 'Vị trí của $_childName đã được ghi nhận tại $_zoneName. '
           'Hệ thống ghi nhận bé đã rời vùng nguy hiểm lúc ${_clock(detail.createdAt)}.';
+    }
+    if (!_isDanger && _isEnter) {
+      return 'Vị trí của $_childName đã được ghi nhận tại $_zoneName. '
+          'Hệ thống ghi nhận bé đã vào vùng an toàn lúc ${_clock(detail.createdAt)}.';
     }
     return 'Vị trí của $_childName đã được cập nhật tại $_zoneName.';
   }
