@@ -1,7 +1,6 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
@@ -23,6 +22,9 @@ class MapboxController extends ChangeNotifier {
   final Map<String, Uint8List> _avatarCache = {}; // childId -> bytes
   final Map<String, Uint8List> _avatarBytesById = {};
   final Map<String, String?> _avatarKeyById = {}; // url/data string
+  final Map<String, DateTime> _avatarRetryBlockedUntil = {};
+  final Map<String, ({Uint8List png, int w, int h, String fingerprint})>
+      _normalizedStyleImageCache = {};
 
   final Map<String, mbx.Position> _currentPositions = {};
   final Set<String> _addedStyleImages = <String>{};
@@ -39,6 +41,7 @@ class MapboxController extends ChangeNotifier {
 
   String? _bubbleCacheKey; // để tránh regenerate PNG khi text không đổi
   bool _bubbleReady = false;
+  bool _bubbleImageAdded = false;
   Future<void> _styleQueue = Future.value();
   int _mapSession = 0;
 
@@ -50,6 +53,13 @@ class MapboxController extends ChangeNotifier {
     final message = (error.message ?? '').toLowerCase();
     return code.contains('channel-error') ||
         message.contains('unable to establish connection on channel');
+  }
+
+  bool _isStyleImageMissingError(Object error) {
+    if (error is! PlatformException) return false;
+    final message = (error.message ?? '').toLowerCase();
+    return message.contains('is not present in style') ||
+        message.contains('cannot remove');
   }
 
   Future<T?> _runStyleQuery<T>({
@@ -95,6 +105,7 @@ class MapboxController extends ChangeNotifier {
     _map = map;
     _styleReady = false;
     _bubbleReady = false;
+    _bubbleImageAdded = false;
     _bubbleCacheKey = null;
   }
 
@@ -103,6 +114,7 @@ class MapboxController extends ChangeNotifier {
     _debounce?.cancel();
     _styleReady = false;
     _bubbleReady = false;
+    _bubbleImageAdded = false;
     _bubbleCacheKey = null;
     _addedStyleImages.clear();
     _styleQueue = Future.value();
@@ -120,7 +132,7 @@ class MapboxController extends ChangeNotifier {
     _lastNames     = Map.of(names);
 
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 60), () {
+    _debounce = Timer(const Duration(milliseconds: 100), () {
       updateChildren(
         positions: positions,
         headings: headings,
@@ -162,6 +174,15 @@ class MapboxController extends ChangeNotifier {
     });
     return completer.future;
   }
+
+  String _fingerprintBytes(Uint8List bytes) {
+    if (bytes.isEmpty) return '0:0:0:0';
+    final first = bytes.first;
+    final middle = bytes[bytes.length ~/ 2];
+    final last = bytes.last;
+    return '${bytes.length}:$first:$middle:$last';
+  }
+
   Uint8List? _tryDecodeDataUrl(String s) {
     const prefix = 'base64,';
     final idx = s.indexOf(prefix);
@@ -182,12 +203,29 @@ class MapboxController extends ChangeNotifier {
 
     final client = http.Client();
     try {
-      final resp = await client.get(uri).timeout(const Duration(seconds: 10));
-      if (resp.statusCode < 200 || resp.statusCode >= 300) {
-        throw Exception("HTTP ${resp.statusCode} len=${resp.bodyBytes.length}");
+      Object? lastError;
+      for (var attempt = 1; attempt <= 3; attempt++) {
+        try {
+          final resp = await client
+              .get(uri)
+              .timeout(const Duration(seconds: 15));
+          if (resp.statusCode < 200 || resp.statusCode >= 300) {
+            throw Exception(
+              "HTTP ${resp.statusCode} len=${resp.bodyBytes.length}",
+            );
+          }
+          if (resp.bodyBytes.isEmpty) {
+            throw Exception("empty bytes");
+          }
+          return resp.bodyBytes;
+        } catch (e) {
+          lastError = e;
+          if (attempt < 3) {
+            await Future.delayed(Duration(milliseconds: 400 * attempt));
+          }
+        }
       }
-      if (resp.bodyBytes.isEmpty) throw Exception("empty bytes");
-      return resp.bodyBytes;
+      throw Exception("fetch retry exhausted: $lastError");
     } finally {
       client.close();
     }
@@ -203,7 +241,11 @@ class MapboxController extends ChangeNotifier {
     const double pointerH = 16;
     const double border = 3;
 
-    final codec = await ui.instantiateImageCodec(inputBytes);
+    final codec = await ui.instantiateImageCodec(
+      inputBytes,
+      targetWidth: 192,
+      targetHeight: 192,
+    );
     final frame = await codec.getNextFrame();
     final src = frame.image;
 
@@ -314,8 +356,23 @@ class MapboxController extends ChangeNotifier {
           }
 
           try {
-            final norm = await _normalizeToPng(anyEncodedBytes);
+            final fingerprint = _fingerprintBytes(anyEncodedBytes);
+            final cachedNorm = _normalizedStyleImageCache[id];
+
+            final norm = (cachedNorm != null &&
+                    cachedNorm.fingerprint == fingerprint)
+                ? (png: cachedNorm.png, w: cachedNorm.w, h: cachedNorm.h)
+                : await _normalizeToPng(anyEncodedBytes);
             if (!_isSessionActive(session) || !identical(_map, mapNow)) return;
+
+            if (cachedNorm == null || cachedNorm.fingerprint != fingerprint) {
+              _normalizedStyleImageCache[id] = (
+                png: norm.png,
+                w: norm.w,
+                h: norm.h,
+                fingerprint: fingerprint,
+              );
+            }
 
             final added = await _runStyleWrite(
               session: session,
@@ -356,6 +413,7 @@ class MapboxController extends ChangeNotifier {
     if (map == null) return;
 
     _addedStyleImages.clear();
+    _bubbleImageAdded = false;
 
     final hasChildrenSource = await _runStyleQuery<bool>(
       session: session,
@@ -564,6 +622,7 @@ class MapboxController extends ChangeNotifier {
       _avatarCache.remove(childId);
       _avatarBytesById.remove(childId);
       _avatarKeyById.remove(childId);
+      _normalizedStyleImageCache.remove(childId);
       return;
     }
 
@@ -576,8 +635,19 @@ class MapboxController extends ChangeNotifier {
 
     final oldKey = _avatarKeyById[childId];
     final cached = _avatarBytesById[childId];
+    final now = DateTime.now();
+    final blockedUntil = _avatarRetryBlockedUntil[childId];
+    if (blockedUntil != null &&
+        now.isBefore(blockedUntil) &&
+        cached != null &&
+        oldKey == key) {
+      await _addPngStyleImageIfNeeded(childId, cached);
+      _avatarCache[childId] = cached;
+      return;
+    }
 
     if (oldKey == key && cached != null) {
+      _avatarRetryBlockedUntil.remove(childId);
       await _addPngStyleImageIfNeeded(childId, cached);
       _avatarCache[childId] = cached;
       return;
@@ -592,7 +662,6 @@ class MapboxController extends ChangeNotifier {
 
       await _addPngStyleImageIfNeeded(childId, bytes);
       _avatarCache[childId] = bytes;
-      print("Vao den day 2");
       notifyListeners();
       await _refreshGeoJsonIfPossible();
 
@@ -601,6 +670,22 @@ class MapboxController extends ChangeNotifier {
       debugPrint("✅ avatar ready child=$childId bytes=${bytes.length}");
     } catch (e) {
       debugPrint("🔴 avatar fail child=$childId key=$key err=$e");
+      _avatarRetryBlockedUntil[childId] = DateTime.now().add(
+        const Duration(seconds: 45),
+      );
+
+      if (cached != null) {
+        // Keep last good avatar to avoid flicker/default fallback storms.
+        _avatarCache[childId] = cached;
+        if (oldKey != null) {
+          _avatarKeyById[childId] = oldKey;
+        }
+        _avatarBytesById[childId] = cached;
+        await _addPngStyleImageIfNeeded(childId, cached);
+        await _refreshGeoJsonIfPossible();
+        debugPrint("avatar keep-last-success child=$childId");
+        return;
+      }
 
       _avatarCache.remove(childId);
       _avatarBytesById.remove(childId);
@@ -654,11 +739,19 @@ class MapboxController extends ChangeNotifier {
       final png = await _makeBubblePng(text: text, icon: icon);
       if (!_isSessionActive(session) || !identical(_map, map)) return;
 
-      await _runStyleWrite(
-        session: session,
-        label: "removeStyleImage:focus_bubble_img",
-        call: () => map.style.removeStyleImage(_bubbleImageId),
-      );
+      if (_bubbleImageAdded) {
+        try {
+          await _runStyleWrite(
+            session: session,
+            label: "removeStyleImage:focus_bubble_img",
+            call: () => map.style.removeStyleImage(_bubbleImageId),
+          );
+        } catch (e) {
+          if (!_isStyleImageMissingError(e)) rethrow;
+        } finally {
+          _bubbleImageAdded = false;
+        }
+      }
       if (!_isSessionActive(session) || !identical(_map, map)) return;
 
       final added = await _runStyleWrite(
@@ -675,6 +768,7 @@ class MapboxController extends ChangeNotifier {
         ),
       );
       if (!added) return;
+      _bubbleImageAdded = true;
     }
 
     final feature = {

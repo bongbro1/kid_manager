@@ -34,6 +34,11 @@ class SessionVM extends ChangeNotifier {
           : SessionStatus.authenticated;
 
       notifyListeners();
+    }, onError: (e) {
+      _user = null;
+      _authStatus = SessionStatus.unauthenticated;
+      debugPrint('[SessionVM] auth stream error: $e');
+      notifyListeners();
     });
   }
 

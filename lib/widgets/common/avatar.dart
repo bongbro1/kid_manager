@@ -17,11 +17,9 @@ class AppAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ImageProvider imageProvider =
-    user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-        ? NetworkImage(user.avatarUrl!)
-        : const AssetImage('assets/images/avatar_default.png');
-    // print("AVATAR :${imageProvider}");
+    final avatarUrl = (user.avatarUrl ?? '').trim();
+    final hasAvatar = avatarUrl.isNotEmpty;
+    
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -36,12 +34,25 @@ class AppAvatar extends StatelessWidget {
             BlendMode.multiply,
           ),
           child: ClipOval(
-            child: Image(
-              image: imageProvider,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-            ),
+            child: hasAvatar
+                ? Image.network(
+                    avatarUrl,
+                    width: size,
+                    height: size,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Image.asset(
+                      'assets/images/avatar_default.png',
+                      width: size,
+                      height: size,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : Image.asset(
+                    'assets/images/avatar_default.png',
+                    width: size,
+                    height: size,
+                    fit: BoxFit.cover,
+                  ),
           ),
         ),
 

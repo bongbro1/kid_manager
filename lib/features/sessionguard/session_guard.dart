@@ -1,3 +1,6 @@
+﻿import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/user/user_types.dart';
@@ -75,6 +78,7 @@ class _SessionGuardState extends State<SessionGuard> {
 
             final userVm = context.read<UserVm>();
             final storage = context.read<StorageService>();
+            final appManagementVm = context.read<AppManagementVM>();
 
             final profile = await userVm.loadProfile(uid: uid, caller: 'SessionGuard');
 
@@ -93,7 +97,7 @@ class _SessionGuardState extends State<SessionGuard> {
             }
 
             userVm.watchMe(uid);
-            context.read<AppManagementVM>().watchChildren(uid);
+            appManagementVm.watchChildren(uid);
           });
         }
 
@@ -161,6 +165,8 @@ class _ParentWarmupShellState extends State<_ParentWarmupShell> {
 
   late final UserVm _userVm;
   late final ParentLocationVm _locationVm;
+  Timer? _syncChildrenDebounce;
+  Set<String> _lastSyncedChildren = <String>{};
 
   @override
   void didChangeDependencies() {
@@ -194,15 +200,22 @@ class _ParentWarmupShellState extends State<_ParentWarmupShell> {
   void _syncChildrenWatch() {
     if (!mounted) return;
 
-    final ids = _userVm.childrenIds;
-    if (ids.isEmpty) return;
+    _syncChildrenDebounce?.cancel();
+    _syncChildrenDebounce = Timer(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
 
-    _locationVm.syncWatching(ids);
+      final latestIds = _userVm.childrenIds.toSet();
+      if (setEquals(latestIds, _lastSyncedChildren)) return;
+
+      _lastSyncedChildren = latestIds;
+      unawaited(_locationVm.syncWatching(latestIds.toList()));
+    });
   }
 
   @override
   void dispose() {
     _userVm.removeListener(_onUserChanged);
+    _syncChildrenDebounce?.cancel();
     super.dispose();
   }
 

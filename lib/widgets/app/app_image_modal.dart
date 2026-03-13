@@ -19,7 +19,7 @@ Future<void> showImageModal(
     barrierLabel: 'image_modal',
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 180),
-    pageBuilder: (ctx, _, __) {
+    pageBuilder: (ctx, _, _) {
       return _ImageModal(
         images: images,
         initialIndex: safeIndex,
@@ -230,7 +230,40 @@ class _ZoomableImage extends StatelessWidget {
     return InteractiveViewer(
       minScale: 1.0,
       maxScale: 4.0,
-      child: Image(image: image, fit: BoxFit.contain),
+      child: Image(
+        image: image,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => const _ImageLoadFallback(),
+      ),
+    );
+  }
+}
+
+class _ImageLoadFallback extends StatelessWidget {
+  const _ImageLoadFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black.withOpacity(0.22),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.broken_image_outlined, color: Colors.white, size: 40),
+          SizedBox(height: 10),
+          Text(
+            'Không tải được ảnh',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }

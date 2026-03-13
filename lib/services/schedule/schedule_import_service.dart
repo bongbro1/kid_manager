@@ -455,11 +455,16 @@ class ScheduleImportService {
     if (v == null) throw Exception(l10n.scheduleImportErrorMissingTime);
 
     if (v is DateTime) {
-      return TimeOfDay(hour: v.hour, minute: v.minute);
+      return _validatedTimeOfDay(
+        hour: v.hour,
+        minute: v.minute,
+        raw: v.toIso8601String(),
+        l10n: l10n,
+      );
     }
 
     if (v is num) {
-      return _excelNumberToTime(v);
+      return _excelNumberToTime(v, l10n, v.toString());
     }
 
     final raw = _cellToString(v);
@@ -474,10 +479,19 @@ class ScheduleImportService {
       final minute = int.parse(m1.group(2)!);
       final ap = m1.group(4)!;
 
+      if (hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+        throw Exception(l10n.scheduleImportErrorInvalidTimeSupported(raw));
+      }
+
       if (ap == 'pm' && hour != 12) hour += 12;
       if (ap == 'am' && hour == 12) hour = 0;
 
-      return TimeOfDay(hour: hour, minute: minute);
+      return _validatedTimeOfDay(
+        hour: hour,
+        minute: minute,
+        raw: raw,
+        l10n: l10n,
+      );
     }
 
     final hhmm = RegExp(r'^(\d{1,2}):(\d{2})(?::(\d{2}))?$');
@@ -485,21 +499,53 @@ class ScheduleImportService {
     if (m2 != null) {
       final hour = int.parse(m2.group(1)!);
       final minute = int.parse(m2.group(2)!);
-      return TimeOfDay(hour: hour, minute: minute);
+      return _validatedTimeOfDay(
+        hour: hour,
+        minute: minute,
+        raw: raw,
+        l10n: l10n,
+      );
     }
 
     final asNum = num.tryParse(s.replaceAll(',', '.'));
     if (asNum != null) {
-      return _excelNumberToTime(asNum);
+      return _excelNumberToTime(asNum, l10n, raw);
     }
 
     throw Exception(l10n.scheduleImportErrorInvalidTimeSupported(raw));
   }
 
-  TimeOfDay _excelNumberToTime(num v) {
-    final totalMinutes = (v * 24 * 60).round();
-    final hour = (totalMinutes ~/ 60) % 24;
+  TimeOfDay _excelNumberToTime(
+    num v,
+    AppLocalizations l10n,
+    String raw,
+  ) {
+    if (!v.isFinite || v < 0 || v >= 1) {
+      throw Exception(l10n.scheduleImportErrorInvalidTimeSupported(raw));
+    }
+
+    var totalMinutes = (v * 24 * 60).round();
+    if (totalMinutes >= 1440) totalMinutes = 1439;
+
+    final hour = totalMinutes ~/ 60;
     final minute = totalMinutes % 60;
+    return _validatedTimeOfDay(
+      hour: hour,
+      minute: minute,
+      raw: raw,
+      l10n: l10n,
+    );
+  }
+
+  TimeOfDay _validatedTimeOfDay({
+    required int hour,
+    required int minute,
+    required String raw,
+    required AppLocalizations l10n,
+  }) {
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+      throw Exception(l10n.scheduleImportErrorInvalidTimeSupported(raw));
+    }
     return TimeOfDay(hour: hour, minute: minute);
   }
 
