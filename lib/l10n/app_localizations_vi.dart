@@ -1096,6 +1096,218 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
+  String get parentDashboardTitle => 'Bảng điều khiển';
+
+  @override
+  String get parentDashboardTabApps => 'Ứng dụng';
+
+  @override
+  String get parentDashboardTabStatistics => 'Thống kê';
+
+  @override
+  String get parentDashboardNoDeviceTitle =>
+      'Chưa có thiết bị nào được liên kết';
+
+  @override
+  String get parentDashboardNoDeviceSubtitle =>
+      'Để theo dõi thời gian sử dụng ứng dụng, bạn cần thêm thiết bị của con vào hệ thống.';
+
+  @override
+  String get parentDashboardAddDeviceButton => 'Thêm thiết bị';
+
+  @override
+  String get parentDashboardHowItWorksButton => 'Tìm hiểu cách hoạt động';
+
+  @override
+  String get parentStatsTotalToday => 'TỔNG THỜI GIAN HÔM NAY';
+
+  @override
+  String get parentStatsTotalThisWeek => 'TỔNG THỜI GIAN TUẦN NÀY';
+
+  @override
+  String get parentStatsSelectRange => 'CHỌN KHOẢNG NGÀY';
+
+  @override
+  String get parentStatsSelectEndDate => 'CHỌN NGÀY KẾT THÚC';
+
+  @override
+  String parentStatsTotalFromRange(String startDate, String endDate) {
+    return 'TỔNG THỜI GIAN TỪ $startDate - $endDate';
+  }
+
+  @override
+  String get parentStatsSegmentDay => 'Ngày';
+
+  @override
+  String get parentStatsSegmentWeek => 'Tuần';
+
+  @override
+  String get parentStatsSegmentRange => 'Thêm';
+
+  @override
+  String get parentStatsAppDetailsTitle => 'Chi tiết ứng dụng';
+
+  @override
+  String get parentStatsCollapse => 'THU GỌN';
+
+  @override
+  String get parentStatsViewAll => 'XEM TẤT CẢ';
+
+  @override
+  String get parentUsageNoAvailableSlot => 'Không còn khoảng thời gian trống';
+
+  @override
+  String get parentUsageStartBeforeEnd =>
+      'Giờ bắt đầu phải nhỏ hơn giờ kết thúc';
+
+  @override
+  String get parentUsageOverlapTimeRange =>
+      'Khoảng thời gian bị trùng với mốc khác';
+
+  @override
+  String get parentUsageEndAfterStart =>
+      'Giờ kết thúc phải lớn hơn giờ bắt đầu';
+
+  @override
+  String get parentUsageEditTitle => 'Cài đặt thời gian sử dụng';
+
+  @override
+  String get parentUsageEnableUsage => 'Cho phép sử dụng';
+
+  @override
+  String get parentUsageSelectAllowedDays => 'Chọn ngày được phép';
+
+  @override
+  String get saveButton => 'Lưu';
+
+  @override
+  String get parentUsageDayRuleModalHint => 'Chọn quy tắc cho ngày này';
+
+  @override
+  String get parentUsageRuleFollowScheduleTitle => 'Theo lịch đã đặt';
+
+  @override
+  String get parentUsageRuleFollowScheduleSubtitle =>
+      'Áp dụng khung giờ hàng tuần';
+
+  @override
+  String get parentUsageRuleAllowAllDayTitle => 'Cho phép cả ngày';
+
+  @override
+  String get parentUsageRuleAllowAllDaySubtitle =>
+      'Có thể sử dụng bất cứ lúc nào';
+
+  @override
+  String get parentUsageRuleBlockAllDayTitle => 'Chặn cả ngày';
+
+  @override
+  String get parentUsageRuleBlockAllDaySubtitle => 'Không được sử dụng hôm nay';
+
+  @override
+  String get zonesDeleteConfirmTitle => 'Xác nhận xoá';
+
+  @override
+  String get zonesDeleteConfirmMessage =>
+      'Bạn có chắc muốn xoá địa điểm này không?';
+
+  @override
+  String get zonesDeleteButton => 'Xoá';
+
+  @override
+  String get zonesCreateSuccessTitle => 'Tạo thành công';
+
+  @override
+  String zonesCreateSuccessMessage(String name) {
+    return 'Địa điểm \"$name\" đã được tạo';
+  }
+
+  @override
+  String get zonesFailedTitle => 'Thất bại';
+
+  @override
+  String get zonesCreateFailedMessage =>
+      'Không thể tạo địa điểm, vui lòng thử lại';
+
+  @override
+  String get zonesEditSuccessTitle => 'Chỉnh sửa thành công';
+
+  @override
+  String get zonesEditSuccessMessage => 'Địa điểm đã được cập nhật';
+
+  @override
+  String get zonesEditFailedMessage =>
+      'Không thể cập nhật địa điểm, vui lòng thử lại';
+
+  @override
+  String get zonesDeleteSuccessTitle => 'Xoá thành công';
+
+  @override
+  String get zonesDeleteSuccessMessage => 'Địa điểm đã được xoá';
+
+  @override
+  String get zonesDeleteFailedMessage =>
+      'Không thể xoá địa điểm, vui lòng thử lại';
+
+  @override
+  String get zonesEmptyTitle => 'Chưa có vùng nào';
+
+  @override
+  String get zonesEmptySubtitle =>
+      'Thêm vùng để bắt đầu theo dõi vị trí của bé';
+
+  @override
+  String get zonesTypeSafe => 'An toàn';
+
+  @override
+  String get zonesTypeDanger => 'Nguy hiểm';
+
+  @override
+  String get zonesEditMenu => 'Sửa';
+
+  @override
+  String get zonesDeleteMenu => 'Xoá';
+
+  @override
+  String get zonesScreenTitle => 'Vùng của bé';
+
+  @override
+  String get zonesAddButton => 'Thêm vùng';
+
+  @override
+  String zonesErrorWithMessage(String error) {
+    return 'Lỗi: $error';
+  }
+
+  @override
+  String get zonesNewZoneDefaultName => 'Vùng mới';
+
+  @override
+  String get zonesEditTitle => 'Chỉnh sửa vùng';
+
+  @override
+  String get zonesAddAddressTitle => 'Địa chỉ của địa điểm';
+
+  @override
+  String get zonesOverlapWarningText => 'Các địa điểm không nên chồng chéo';
+
+  @override
+  String get zonesNameFieldLabel => 'Tên vùng';
+
+  @override
+  String get zonesTypeFieldLabel => 'Loại vùng';
+
+  @override
+  String get zonesRadiusLabel => 'Bán kính';
+
+  @override
+  String zonesOverlappingWith(String name) {
+    return 'Đang chồng lên: $name';
+  }
+
+  @override
+  String get zonesDefaultNameFallback => 'Vùng';
+
+  @override
   String get zone_default => 'Thông báo hehehe';
 
   @override

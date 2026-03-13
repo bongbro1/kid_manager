@@ -137,7 +137,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
               AppLabeledTextField(
                 label: "Mật khẩu",
-                hint: "Admadm123",
+                hint: "Admin123",
                 controller: _passwordCtrl,
               ),
 
@@ -145,7 +145,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
               AppLabeledTextField(
                 label: "Ngày sinh",
-                hint: "12/12/2003",
+                hint: "1/1/2000",
                 controller: _dobCtrl,
               ),
 

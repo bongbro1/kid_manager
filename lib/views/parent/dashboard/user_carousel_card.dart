@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:kid_manager/core/app_colors.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:provider/provider.dart';
@@ -56,6 +57,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AppManagementVM>();
+    final l10n = AppLocalizations.of(context);
     final users = vm.children;
     final selectedId = vm.selectedChildId;
 
@@ -148,7 +150,6 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
               ),
             ],
           ),
-
           Container(
             width: 301,
             decoration: ShapeDecoration(
@@ -161,9 +162,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
               ),
             ),
           ),
-
-          SizedBox(height: 12),
-
+          const SizedBox(height: 12),
           SizedBox(
             width: 300,
             child: Row(
@@ -172,7 +171,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                 AppButton(
                   width: 147,
                   height: 40,
-                  text: 'Ứng dụng',
+                  text: l10n.parentDashboardTabApps,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   onPressed: widget.onTapApps,
@@ -182,7 +181,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   foregroundColor: widget.currentIndex == 0
                       ? Colors.white
                       : const Color(0xFF4A4459),
-                  fontFamily: "Roboto",
+                  fontFamily: 'Roboto',
                   lineHeight: 1.43,
                   letterSpacing: 0.10,
                   padding: const EdgeInsets.symmetric(
@@ -195,11 +194,10 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                     height: 18,
                   ),
                 ),
-
                 AppButton(
                   width: 147,
                   height: 40,
-                  text: 'Thống kê',
+                  text: l10n.parentDashboardTabStatistics,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   onPressed: widget.onTapStats,
@@ -209,7 +207,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   foregroundColor: widget.currentIndex == 1
                       ? Colors.white
                       : const Color(0xFF4A4459),
-                  fontFamily: "Roboto",
+                  fontFamily: 'Roboto',
                   lineHeight: 1.43,
                   letterSpacing: 0.10,
                   padding: const EdgeInsets.symmetric(
@@ -309,14 +307,14 @@ class UserItemWidget extends StatelessWidget {
                         height: size,
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Image.asset(
-                          "assets/images/avatar_default.png",
+                          'assets/images/avatar_default.png',
                           width: size,
                           height: size,
                           fit: BoxFit.cover,
                         ),
                       )
                     : Image.asset(
-                        "assets/images/avatar_default.png",
+                        'assets/images/avatar_default.png',
                         width: size,
                         height: size,
                         fit: BoxFit.cover,
@@ -342,18 +340,15 @@ class UserItemWidget extends StatelessWidget {
             ),
           ],
         ),
-
         const SizedBox(height: 8),
-
         SizedBox(
-          height: 32, // đủ 2 dòng
+          height: 32,
           child: Text(
             name,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             softWrap: true,
-
             strutStyle: const StrutStyle(
               fontSize: 13,
               height: 1.2,

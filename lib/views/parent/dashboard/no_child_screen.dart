@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 
 class NoChildScreen extends StatelessWidget {
@@ -6,6 +7,8 @@ class NoChildScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F7),
       body: SafeArea(
@@ -15,27 +18,22 @@ class NoChildScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 32),
-
-              const Text(
-                "Chưa có thiết bị nào được liên kết",
+              Text(
+                l10n.parentDashboardNoDeviceTitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
               ),
-
               const SizedBox(height: 12),
-
-              const Text(
-                "Để theo dõi thời gian sử dụng ứng dụng, bạn cần thêm thiết bị của con vào hệ thống.",
+              Text(
+                l10n.parentDashboardNoDeviceSubtitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 15,
                   color: Colors.black54,
                   height: 1.4,
                 ),
               ),
-
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -54,20 +52,21 @@ class NoChildScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  child: const Text(
-                    "Thêm thiết bị",
-                    style: TextStyle(fontSize: 16, color: Color(0xFFFFFFFF)),
+                  child: Text(
+                    l10n.parentDashboardAddDeviceButton,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFFFFFFFF),
+                    ),
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               TextButton(
                 onPressed: () {
                   Navigator.pushNamed(context, '/how-it-works');
                 },
-                child: const Text("Tìm hiểu cách hoạt động"),
+                child: Text(l10n.parentDashboardHowItWorksButton),
               ),
             ],
           ),
