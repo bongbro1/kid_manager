@@ -100,9 +100,9 @@ class AppManagementRepository {
       // debugPrint("⚡ Server already synced");
     }
 
-    Future.microtask(() {
-      syncTodayUsage(userId: userId);
-    });
+    // Future.microtask(() {
+    //   syncTodayUsage(userId: userId);
+    // });
   }
 
   Future<void> seedApps(String userId, List<AppInfo> apps) async {
@@ -217,94 +217,112 @@ class AppManagementRepository {
     return UsageRule.fromMap(doc.data()!);
   }
 
-  Future<void> syncTodayUsage({required String userId}) async {
-    final day = DateTime.now();
-    final start = startOfDay(day);
-    final end = day;
-    final key = dayKey(day);
+  // Future<void> syncTodayUsage({required String userId}) async {
+  //   final day = DateTime.now();
+  //   final start = startOfDay(day);
+  //   final end = day;
+  //   final key = dayKey(day);
 
-    final stats = await UsageStats.queryUsageStats(start, end);
+  //   final stats = await UsageStats.queryUsageStats(start, end);
 
-    final Map<String, int> usageMsByPkg = {};
-    final Map<String, int> lastUsedByPkg = {};
+  //   final Map<String, int> usageMsByPkg = {};
+  //   final Map<String, int> lastUsedByPkg = {};
 
-    for (final s in stats) {
-      final pkg = s.packageName;
-      if (pkg == null || pkg.isEmpty) continue;
+  //   for (final s in stats) {
+  //     final pkg = s.packageName;
+  //     if (pkg == null || pkg.isEmpty) continue;
 
-      final ms = int.tryParse(s.totalTimeInForeground ?? '') ?? 0;
-      final last = int.tryParse(s.lastTimeUsed ?? '') ?? 0;
+  //     final ms = int.tryParse(s.totalTimeInForeground ?? '') ?? 0;
+  //     final last = int.tryParse(s.lastTimeUsed ?? '') ?? 0;
 
-      usageMsByPkg[pkg] = max(usageMsByPkg[pkg] ?? 0, ms);
+  //     usageMsByPkg[pkg] = max(usageMsByPkg[pkg] ?? 0, ms);
 
-      if (last > (lastUsedByPkg[pkg] ?? 0)) {
-        lastUsedByPkg[pkg] = last;
-      }
-    }
+  //     if (last > (lastUsedByPkg[pkg] ?? 0)) {
+  //       lastUsedByPkg[pkg] = last;
+  //     }
+  //   }
 
-    final appsSnap = await db
-        .collection("blocked_items")
-        .doc(userId)
-        .collection("apps")
-        .get();
+  //   final appsSnap = await db
+  //       .collection("blocked_items")
+  //       .doc(userId)
+  //       .collection("apps")
+  //       .get();
 
-    final batch = db.batch();
+  //   final batch = db.batch();
 
-    int totalMinutesToday = 0;
-    final Map<String, int> minutesByPkg = {};
+  //   int totalMinutesToday = 0;
+  //   final Map<String, int> minutesByPkg = {};
 
-    for (final doc in appsSnap.docs) {
-      final pkg = doc.id;
+  //   for (final doc in appsSnap.docs) {
+  //     final pkg = doc.id;
 
-      final usageMs = usageMsByPkg[pkg] ?? 0;
-      final lastUsedMs = lastUsedByPkg[pkg] ?? 0;
+  //     final usageMs = usageMsByPkg[pkg];
+  //     final lastUsedMs = lastUsedByPkg[pkg];
 
-      final minutes = usageMs ~/ 60000;
-      if (minutes > 0) {
-        minutesByPkg[pkg] = minutes;
-        totalMinutesToday += minutes;
-      }
+  //     if (usageMs == null && lastUsedMs == null) {
+  //       continue;
+  //     }
 
-      final dailyRef = doc.reference.collection('usage_daily').doc(key);
+  //     final minutes = (usageMs ?? 0) ~/ 60000;
 
-      /// 1️⃣ update usage_daily
-      batch.set(dailyRef, {
-        "userId": userId,
-        "package": pkg,
-        "dateKey": key,
-        "date": Timestamp.fromDate(start),
-        "usageMs": usageMs,
-        "updatedAt": FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+  //     if (minutes > 0) {
+  //       minutesByPkg[pkg] = minutes;
+  //       totalMinutesToday += minutes;
+  //     }
 
-      /// 2️⃣ app snapshot
-      batch.set(doc.reference, {
-        "todayUsageMs": usageMs,
-        "todayLastSeen": lastUsedMs > 0
-            ? Timestamp.fromMillisecondsSinceEpoch(lastUsedMs)
-            : null,
-        "lastSeen": lastUsedMs > 0
-            ? Timestamp.fromMillisecondsSinceEpoch(lastUsedMs)
-            : null,
-      }, SetOptions(merge: true));
-    }
+  //     final dailyRef = doc.reference.collection('usage_daily').doc(key);
 
-    /// 🔥 3️⃣ update usage_daily_flat
-    final flatRef = db
-        .collection("blocked_items")
-        .doc(userId)
-        .collection("usage_daily_flat")
-        .doc(key);
+  //     batch.set(dailyRef, {
+  //       "userId": userId,
+  //       "package": pkg,
+  //       "dateKey": key,
+  //       "date": Timestamp.fromDate(start),
+  //       "usageMs": usageMs ?? 0,
+  //       "updatedAt": FieldValue.serverTimestamp(),
+  //     }, SetOptions(merge: true));
 
-    batch.set(flatRef, {
-      "date": Timestamp.fromDate(start),
-      "totalMinutes": totalMinutesToday,
-      "apps": minutesByPkg,
-      "updatedAt": FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+  //     final updateData = {
+  //       "todayUsageMs": usageMs ?? 0,
+  //       "todayLastSeen": lastUsedMs != null
+  //           ? Timestamp.fromMillisecondsSinceEpoch(lastUsedMs)
+  //           : null,
+  //     };
 
-    await batch.commit();
-  }
+  //     if (lastUsedMs != null && lastUsedMs > 0) {
+  //       updateData["lastSeen"] = Timestamp.fromMillisecondsSinceEpoch(
+  //         lastUsedMs,
+  //       );
+  //     }
+
+  //     batch.set(doc.reference, updateData, SetOptions(merge: true));
+  //   }
+
+  //   /// update usage_daily_flat
+
+  //   final flatRef = db
+  //       .collection("blocked_items")
+  //       .doc(userId)
+  //       .collection("usage_daily_flat")
+  //       .doc(key);
+
+  //   batch.set(flatRef, {
+  //     "date": Timestamp.fromDate(start),
+  //     "totalMinutes": totalMinutesToday,
+  //     "apps": minutesByPkg,
+  //     "updatedAt": FieldValue.serverTimestamp(),
+  //   }, SetOptions(merge: true));
+
+  //   /// heartbeat
+
+  //   final rootRef = db.collection("blocked_items").doc(userId);
+
+  //   batch.set(rootRef, {
+  //     "lastHeartbeat": FieldValue.serverTimestamp(),
+  //     "updatedAt": FieldValue.serverTimestamp(),
+  //   }, SetOptions(merge: true));
+
+  //   await batch.commit();
+  // }
 
   Future<UsageHistoryResult> loadUsageHistory(String userId) async {
     final totalResult = <DateTime, int>{};

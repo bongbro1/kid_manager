@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/background/native_watcher_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:usage_stats/usage_stats.dart';
 
 class PermissionService {
+
   Future<bool> hasMicrophonePermission() async {
     final status = await Permission.microphone.status;
     return status.isGranted;
@@ -92,19 +94,35 @@ class PermissionService {
 
   /// Optional: kiểm tra Accessibility (nếu app bạn dùng accessibility để theo dõi)
   Future<void> openAccessibilitySettings() async {
-    if (!Platform.isAndroid) return;
+    await NativeWatcherService.openAccessibilitySettings();
+  }
 
-    const intent = AndroidIntent(
-      action: 'android.settings.ACCESSIBILITY_SETTINGS',
-    );
-    await intent.launch();
+  Future<bool> hasAccessibilityPermission() async {
+    if (!Platform.isAndroid) return false;
+
+    try {
+      final bool enabled = await NativeWatcherService.isAccessibilityEnabled();
+
+      debugPrint("♿ Accessibility enabled = $enabled");
+
+      return enabled;
+    } catch (e) {
+      debugPrint("Accessibility check error: $e");
+      return false;
+    }
   }
 
   Future<Map<String, bool>> checkAllPermissions() async {
     final mic = await hasMicrophonePermission();
     final media = await hasPhotosOrStoragePermission();
     final usage = await hasUsagePermission();
+    final accessibility = await hasAccessibilityPermission();
 
-    return {'microphone': mic, 'media': media, 'usage': usage};
+    return {
+      'microphone': mic,
+      'media': media,
+      'usage': usage,
+      'accessibility': accessibility,
+    };
   }
 }

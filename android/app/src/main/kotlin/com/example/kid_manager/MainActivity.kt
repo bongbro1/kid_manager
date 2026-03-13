@@ -7,81 +7,91 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.view.accessibility.AccessibilityManager
+
 
 class MainActivity : FlutterActivity() {
 
-    private val WATCHER_CHANNEL = "watcher"
+    private val WATCHER_CONFIG_CHANNEL = "watcher_config"
     private val NOTIFICATION_CHANNEL = "notification_intent"
+    private val ACCESSIBILITY_CHANNEL = "accessibility"
+    private val SCHEDULE_USAGE_CHANNEL = "schedule_usage_channel"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WATCHER_CHANNEL)
+        // WATCHER CHANNEL
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WATCHER_CONFIG_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    "startWatcher" -> {
+
+                    "saveWatcherConfig" -> {
+
                         val userId = call.argument<String>("userId")
                         val parentId = call.argument<String>("parentId")
                         val childName = call.argument<String>("childName")
 
                         if (userId.isNullOrBlank()) {
-                            result.error("INVALID_ARGS", "userId is required", null)
+                            result.error("INVALID_ARGS", "userId required", null)
                             return@setMethodCallHandler
                         }
 
-                        val prefs = getSharedPreferences("watcher_prefs", MODE_PRIVATE)
+                        val prefs = getSharedPreferences("watcher_rules", MODE_PRIVATE)
+
                         prefs.edit()
-                            .putString("userId", userId)
-                            .putString("parentId", parentId)
-                            .putString("childName", childName)
-                            .putBoolean("watcher_enabled", true)
+                            .putString("user_id", userId)
+                            .putString("parent_id", parentId)
+                            .putString("child_name", childName)
                             .apply()
 
-                        val intent = Intent(this, AppWatcherService::class.java).apply {
-                            putExtra("userId", userId)
-                            putExtra("parentId", parentId)
-                            putExtra("childName", childName)
-                        }
-
-                        startForegroundService(intent)
                         result.success(true)
                     }
+                    "isAccessibilityEnabled" -> {
 
-                    "stopWatcher" -> {
-                        val prefs = getSharedPreferences("watcher_prefs", MODE_PRIVATE)
-                        prefs.edit()
-                            .putBoolean("watcher_enabled", false)
-                            .remove("userId")
-                            .remove("parentId")
-                            .remove("childName")
-                            .apply()
+                        val expectedService =
+                            "$packageName/com.example.kid_manager.AppAccessibilityService"
 
-                        val intent = Intent(this, AppWatcherService::class.java)
-                        stopService(intent)
-                        result.success(true)
+                        val enabledServices = android.provider.Settings.Secure.getString(
+                            contentResolver,
+                            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+                        )
+
+                        val enabled = enabledServices?.contains(expectedService) == true
+
+                        result.success(enabled)
                     }
 
-
-                    "isWatcherRunning" -> {
-                        result.success(AppWatcherService.isRunning)
-                    }
-
-                    
                     else -> result.notImplemented()
                 }
             }
 
-        // EventChannel(flutterEngine.dartExecutor.binaryMessenger, "watcher_stream")
-        //     .setStreamHandler(object : EventChannel.StreamHandler {
-        //         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        //             ForegroundAppBridge.eventSink = events
-        //         }
+        // ACCESSIBILITY CHANNEL
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ACCESSIBILITY_CHANNEL)
+            .setMethodCallHandler { call, result ->
 
-        //         override fun onCancel(arguments: Any?) {
-        //             ForegroundAppBridge.eventSink = null
-        //         }
-        //     })
+                when (call.method) {
+
+                    "isAccessibilityEnabled" -> {
+                        result.success(isAccessibilityServiceEnabled())
+                    }
+
+                    "openAccessibilitySettings" -> {
+
+                        val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+                        startActivity(intent)
+
+                        result.success(true)
+                    }
+
+                    else -> result.notImplemented()
+                }
+            }
     }
+
+
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -100,6 +110,27 @@ class MainActivity : FlutterActivity() {
                 NOTIFICATION_CHANNEL
             ).invokeMethod("notificationTap", payload)
         }
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+
+        val manager = getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
+
+        val enabledServices =
+            manager.getEnabledAccessibilityServiceList(
+                AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+            )
+
+        for (service in enabledServices) {
+
+            if (service.resolveInfo.serviceInfo.packageName == packageName &&
+                service.resolveInfo.serviceInfo.name.contains("AppAccessibilityService")
+            ) {
+                return true
+            }
+        }
+
+        return false
     }
 
     

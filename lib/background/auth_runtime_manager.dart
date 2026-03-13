@@ -15,12 +15,14 @@ class AuthRuntimeManager {
   /// Prevent race condition
   static int _opToken = 0;
   static String? _lastAuthUid;
+
   static String? _parentId;
   static String? _displayName;
 
   static void start({required String parentId, required String displayName}) {
     _parentId = parentId;
     _displayName = displayName;
+
     _sub?.cancel();
 
     User? lastUser;
@@ -28,16 +30,17 @@ class AuthRuntimeManager {
     _sub = FirebaseAuth.instance.authStateChanges().listen((user) {
       final sameUser = lastUser?.uid == user?.uid;
 
-      // Ignore duplicate event for same uid
+      /// tránh duplicate auth event
       if (sameUser) return;
 
       lastUser = user;
+
       _handleAuthChanged(user);
     });
   }
 
   static Future<void> stop() async {
-    _opToken++; // cancel pending login flow
+    _opToken++;
     await _safeLogout(_opToken);
   }
 
@@ -46,7 +49,7 @@ class AuthRuntimeManager {
 
     final newUid = user?.uid;
 
-    // 🔒 Prevent auth refresh restart
+    /// tránh auth refresh restart
     if (newUid != null &&
         _lastAuthUid == newUid &&
         _state == _RuntimeState.running) {
@@ -65,14 +68,6 @@ class AuthRuntimeManager {
   // ================= LOGIN =================
 
   static Future<void> _safeLogin(String uid, int token) async {
-    if (_state == _RuntimeState.running && _currentUid == uid) {
-      final running = await NativeWatcherService.isWatcherRunning();
-      if (running) {
-        debugPrint("🟡 Runtime already running and watcher alive");
-        return;
-      }
-    }
-
     if (_state == _RuntimeState.starting) return;
 
     _state = _RuntimeState.starting;
@@ -83,33 +78,31 @@ class AuthRuntimeManager {
     try {
       if (token != _opToken) return;
 
+      /// init FCM
       await FcmPushReceiverService.init(uid);
 
       if (token != _opToken) return;
 
+      /// lưu config cho native accessibility
       if (_parentId != null && _displayName != null) {
-        final running = await NativeWatcherService.isWatcherRunning();
+        final ok = await NativeWatcherService.saveWatcherConfig(
+          userId: uid,
+          parentId: _parentId,
+          childName: _displayName,
+        );
 
-        if (!running) {
-          final ok = await NativeWatcherService.startWatcher(
-            userId: uid,
-            parentId: _parentId,
-            childName: _displayName,
-          );
-
-          debugPrint(
-            ok
-                ? "✅ Native watcher started"
-                : "❌ Native watcher failed to start",
-          );
-        } else {
-          debugPrint("🟡 Native watcher already running");
-        }
+        debugPrint(
+          ok
+              ? "✅ Native watcher config saved"
+              : "❌ Failed to save native watcher config",
+        );
       }
 
       if (token != _opToken) return;
 
+      debugPrint("🧠 Native usage worker started");
       _state = _RuntimeState.running;
+
       debugPrint("✅ Runtime running");
     } catch (e) {
       debugPrint("❌ Runtime start failed: $e");
@@ -120,7 +113,6 @@ class AuthRuntimeManager {
   // ================= LOGOUT =================
 
   static Future<void> _safeLogout(int token) async {
-    /// already stopped
     if (_state == _RuntimeState.stopped || _state == _RuntimeState.stopping)
       return;
 
@@ -129,14 +121,18 @@ class AuthRuntimeManager {
     debugPrint("🔴 Runtime stopping");
 
     try {
-      if (token != _opToken) return;
-
-      await NativeWatcherService.stopWatcher();
+      /// chỉ reset config native
+      await NativeWatcherService.saveWatcherConfig(
+        userId: "",
+        parentId: "",
+        childName: "",
+      );
     } catch (e) {
       debugPrint("❌ Runtime stop error: $e");
     }
 
     if (token != _opToken) return;
+
     _parentId = null;
     _currentUid = null;
     _state = _RuntimeState.stopped;
@@ -147,7 +143,9 @@ class AuthRuntimeManager {
   static Future<void> dispose() async {
     _sub?.cancel();
     _sub = null;
-    _opToken++; // cancel pending flows
+
+    _opToken++;
+
     await _safeLogout(_opToken);
   }
 }

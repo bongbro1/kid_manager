@@ -69,29 +69,19 @@ class NativeBlockedRule {
 class NativeWatcherService {
   NativeWatcherService._();
 
-  static const MethodChannel _channel = MethodChannel('watcher');
+  static const MethodChannel _channel = MethodChannel('watcher_config');
+  static const MethodChannel _chanelAccessibility = MethodChannel('accessibility');
 
-  static bool _started = false;
+  static bool _configured = false;
 
-  static Future<bool> isWatcherRunning() async {
-    try {
-      final result = await _channel.invokeMethod<bool>('isWatcherRunning');
-      return result ?? false;
-    } catch (e) {
-      debugPrint('NativeWatcherService.isWatcherRunning error: $e');
-      return false;
-    }
-  }
-
-  static Future<bool> startWatcher({
+  /// Lưu config để AccessibilityService dùng
+  static Future<bool> saveWatcherConfig({
     required String userId,
     String? parentId,
     String? childName,
   }) async {
-    if (_started) return true;
-
     try {
-      final result = await _channel.invokeMethod<bool>('startWatcher', {
+      final result = await _channel.invokeMethod<bool>('saveWatcherConfig', {
         'userId': userId,
         'parentId': parentId,
         'childName': childName,
@@ -99,37 +89,56 @@ class NativeWatcherService {
 
       final ok = result ?? false;
       if (ok) {
-        _started = true;
+        _configured = true;
       }
+
       return ok;
     } on PlatformException catch (e) {
       debugPrint(
-        'NativeWatcherService.startWatcher PlatformException: ${e.message}',
+        'NativeWatcherService.saveWatcherConfig PlatformException: ${e.message}',
       );
       return false;
     } catch (e) {
-      debugPrint('NativeWatcherService.startWatcher error: $e');
+      debugPrint('NativeWatcherService.saveWatcherConfig error: $e');
       return false;
     }
   }
 
-  static Future<bool> stopWatcher() async {
+  /// Kiểm tra Accessibility đã bật chưa
+  static Future<bool> isAccessibilityEnabled() async {
     try {
-      final result = await _channel.invokeMethod<bool>('stopWatcher');
-      _started = false;
-      return result ?? true;
-    } on PlatformException catch (e) {
-      debugPrint(
-        'NativeWatcherService.stopWatcher PlatformException: ${e.message}',
+      final result = await _chanelAccessibility.invokeMethod<bool>(
+        'isAccessibilityEnabled',
       );
-      _started = false;
-      return false;
+      return result ?? false;
     } catch (e) {
-      debugPrint('NativeWatcherService.stopWatcher error: $e');
-      _started = false;
+      debugPrint('NativeWatcherService.isAccessibilityEnabled error: $e');
       return false;
     }
   }
 
-  static bool get isStarted => _started;
+  
+  static Future<void> openAccessibilitySettings() async {
+    await _chanelAccessibility.invokeMethod("openAccessibilitySettings");
+  }
+
+  static bool get isConfigured => _configured;
 }
+
+// class NativeScheduleUsageService {
+//   NativeScheduleUsageService._();
+
+//   static const MethodChannel _channel = MethodChannel('schedule_usage_channel');
+
+//   static Future<void> startUsageWorker(String userId) async {
+//     try {
+//       await _channel.invokeMethod("startUsageWorker", {"userId": userId});
+//     } on PlatformException catch (e) {
+//       debugPrint(
+//         "NativeScheduleUsageService.startUsageWorker error: ${e.message}",
+//       );
+//     } catch (e) {
+//       debugPrint("NativeScheduleUsageService.startUsageWorker error: $e");
+//     }
+//   }
+// }

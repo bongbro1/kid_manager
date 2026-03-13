@@ -233,16 +233,6 @@ class AppManagementVM extends ChangeNotifier {
       _usageMap = result.totalUsage;
       _appUsageMap = result.perAppUsage;
 
-      // debugPrint("📊 TOTAL usage:");
-      // _usageMap.forEach((k, v) {
-      //   debugPrint("  ${k.toIso8601String()} -> $v min");
-      // });
-
-      // debugPrint("📱 PER APP usage:");
-      // _appUsageMap.forEach((app, map) {
-      //   debugPrint("  $app -> ${map.length} days");
-      // });
-
       _usageVersion++;
       notifyListeners();
     } catch (e, stack) {

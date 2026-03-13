@@ -17,6 +17,11 @@ class FirestoreRuleSyncManager(
     private var appsListener: ListenerRegistration? = null
     private val ruleListeners = mutableMapOf<String, ListenerRegistration>()
     private var currentChildId: String? = null
+    private val ruleCache = mutableMapOf<String, NativeRule>()
+
+    fun getRule(packageName: String): NativeRule? {
+        return ruleCache[packageName]
+    }
 
     fun start(childId: String) {
         if (currentChildId == childId && appsListener != null) {
@@ -79,8 +84,6 @@ class FirestoreRuleSyncManager(
     }
 
     private fun attachRuleListener(childId: String, packageName: String) {
-        // Log.d(TAG, "Attach rule listener for package=$packageName")
-
         val listener = FirebaseFirestore.getInstance()
             .collection("blocked_items")
             .document(childId)
@@ -89,31 +92,74 @@ class FirestoreRuleSyncManager(
             .collection("usage_rule")
             .document("config")
             .addSnapshotListener { snapshot, error ->
+
                 if (error != null) {
                     // Log.e(TAG, "Rule listener error for $packageName", error)
                     return@addSnapshotListener
                 }
 
                 if (snapshot == null || !snapshot.exists()) {
-                    // Log.d(TAG, "Rule missing for package=$packageName")
+                    ruleCache.remove(packageName)
                     removeRuleFromPrefs(packageName)
                     return@addSnapshotListener
                 }
 
-                val data = snapshot.data
-                if (data == null) {
-                    // Log.d(TAG, "Rule data null for package=$packageName")
-                    removeRuleFromPrefs(packageName)
-                    return@addSnapshotListener
-                }
+                val data = snapshot.data ?: return@addSnapshotListener
 
-                // Log.d(TAG, "Rule changed for $packageName -> $data")
+                val rule = parseRule(data)
+
+
+
+                ruleCache[packageName] = rule
+
+                // Log.d(TAG, "Rule cached for $packageName")
+
                 saveRuleToPrefs(packageName, data)
             }
 
         ruleListeners[packageName] = listener
     }
 
+    private fun parseRule(data: Map<String, Any>): NativeRule {
+
+        val enabled = data["enabled"] as? Boolean ?: true
+
+        val weekdays = (data["weekdays"] as? List<*>)
+            ?.mapNotNull { (it as? Number)?.toInt() }
+            ?.toSet()
+            ?: emptySet()
+
+        val windows = (data["windows"] as? List<*>)
+            ?.mapNotNull {
+
+                val map = it as? Map<*, *> ?: return@mapNotNull null
+
+                val start = (map["startMin"] as? Number)?.toInt()
+                    ?: return@mapNotNull null
+
+                val end = (map["endMin"] as? Number)?.toInt()
+                    ?: return@mapNotNull null
+
+                NativeTimeWindow(start, end)
+            }
+            ?: emptyList()
+
+        val overrides = (data["overrides"] as? Map<*, *>)
+            ?.mapNotNull { (k, v) ->
+                val key = k?.toString() ?: return@mapNotNull null
+                val value = v?.toString() ?: return@mapNotNull null
+                key to value
+            }
+            ?.toMap()
+            ?: emptyMap()
+
+        return NativeRule(
+            enabled = enabled,
+            weekdays = weekdays,
+            windows = windows,
+            overrides = overrides
+        )
+    }
     private fun saveBlockedPackageSet(packages: Set<String>) {
         val prefs = context.getSharedPreferences(RULE_PREFS, Context.MODE_PRIVATE)
         prefs.edit()

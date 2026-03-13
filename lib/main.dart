@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:kid_manager/background/background_worker.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
@@ -40,7 +39,6 @@ Future<void> main() async {
 
   await LocalAlarmService.I.init();
   await initializeDateFormatting('vi_VN', null);
-  await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
 
   final settings = await FirebaseMessaging.instance.requestPermission(
     alert: true,

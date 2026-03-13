@@ -22,7 +22,7 @@ data class BlockCheckResult(
 )
 
 class BlockRuleEvaluator(
-    private val context: Context
+    private val ruleSyncManager: FirestoreRuleSyncManager
 ) {
     companion object {
         private const val RULE_PREFS = "watcher_rules"
@@ -30,50 +30,8 @@ class BlockRuleEvaluator(
     }
 
     fun readRule(packageName: String): NativeRule? {
-        val prefs = context.getSharedPreferences(RULE_PREFS, Context.MODE_PRIVATE)
-        val blockedPackages = prefs.getStringSet(KEY_BLOCKED_PACKAGES, emptySet()) ?: emptySet()
-
-        if (!blockedPackages.contains(packageName)) return null
-
-        val enabled = prefs.getBoolean("${packageName}_enabled", true)
-
-        val weekdaysRaw = prefs.getString("${packageName}_weekdays", "") ?: ""
-        val weekdays = weekdaysRaw
-            .split(",")
-            .mapNotNull { it.trim().toIntOrNull() }
-            .toSet()
-
-        val windowsRaw = prefs.getString("${packageName}_windows", "") ?: ""
-        val windows = windowsRaw
-            .split(",")
-            .mapNotNull { item ->
-                val parts = item.split("-")
-                if (parts.size != 2) return@mapNotNull null
-                val startMin = parts[0].toIntOrNull() ?: return@mapNotNull null
-                val endMin = parts[1].toIntOrNull() ?: return@mapNotNull null
-                NativeTimeWindow(startMin, endMin)
-            }
-
-        val overridesRaw = prefs.getString("${packageName}_overrides", "") ?: ""
-        val overrides = overridesRaw
-            .split(",")
-            .mapNotNull { item ->
-                val idx = item.indexOf("=")
-                if (idx <= 0) return@mapNotNull null
-                val key = item.substring(0, idx)
-                val value = item.substring(idx + 1)
-                key to value
-            }
-            .toMap()
-
-        return NativeRule(
-            enabled = enabled,
-            weekdays = weekdays,
-            windows = windows,
-            overrides = overrides
-        )
+        return ruleSyncManager.getRule(packageName)
     }
-
     fun checkBlocked(packageName: String): BlockCheckResult {
         val rule = readRule(packageName) ?: return BlockCheckResult(isBlocked = false)
 
