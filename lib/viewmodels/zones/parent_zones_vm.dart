@@ -33,11 +33,18 @@ class ParentZonesVm extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearError() {
+    if (_error == null) return;
+    _error = null;
+    notifyListeners();
+  }
+
   Future<void> bind(String childUid) async {
     await _sub?.cancel();
     _sub = _repo.watchZones(childUid).listen((list) {
       debugPrint("zones length = ${list.length}");
       _zones = list;
+      _error = null;
       notifyListeners();
     }, onError: (e) {
       debugPrint("watchZones error: $e");
@@ -47,6 +54,7 @@ class ParentZonesVm extends ChangeNotifier {
 
   Future<void> toggleEnabled(String childUid, GeoZone zone, bool enabled) async {
     try {
+      clearError();
       final now = DateTime.now().millisecondsSinceEpoch;
       await _repo.upsertZone(
         childUid,
@@ -59,14 +67,17 @@ class ParentZonesVm extends ChangeNotifier {
 
   Future<void> delete(String childUid, String zoneId) async {
     try {
+      clearError();
       await _repo.deleteZone(childUid, zoneId);
     } catch (e) {
       _setError(e);
+      rethrow;
     }
   }
 
   Future<void> save(String childUid, GeoZone zone) async {
     _setLoading(true);
+    clearError();
     try {
       final uid = _auth.currentUser?.uid;
       print("UID PARENT ZONE : ${uid}");
@@ -90,6 +101,7 @@ class ParentZonesVm extends ChangeNotifier {
       await _repo.upsertZone(childUid, fixed);
     } catch (e) {
       _setError(e);
+      rethrow;
     } finally {
       _setLoading(false);
     }

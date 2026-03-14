@@ -10,6 +10,7 @@ import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
+import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:kid_manager/widgets/app/app_sell_config.dart';
@@ -246,6 +247,26 @@ class NotificationService {
       return;
     }
 
+    if (type == 'tracking') {
+      final currentUid = FirebaseAuth.instance.currentUser?.uid;
+      final toUid = data['toUid']?.toString();
+
+      if (currentUid == null || currentUid.isEmpty) {
+        debugPrint('[$type] skip: no current user');
+        return;
+      }
+
+      if (toUid != null && toUid.isNotEmpty && toUid != currentUid) {
+        debugPrint(
+          '[$type] skip wrong receiver: currentUid=$currentUid toUid=$toUid',
+        );
+        return;
+      }
+
+      await _showTrackingNotification(message);
+      return;
+    }
+
     if (type == 'family_chat') {
       await _showFamilyChatNotification(message);
       return;
@@ -325,6 +346,66 @@ class NotificationService {
     debugPrint(
       '🔔 show family event local notification title="$title" body="$body"',
     );
+
+    await LocalNotificationService.show(
+      title: title,
+      body: body,
+      payload: jsonEncode(message.data),
+    );
+  }
+
+  static String _normalizeTrackingKey(String rawKey) {
+    final key = rawKey.trim().toLowerCase();
+    if (key.endsWith('.title') || key.endsWith('.body')) {
+      final cut = key.lastIndexOf('.');
+      if (cut > 0) {
+        return key.substring(0, cut);
+      }
+    }
+    return key;
+  }
+
+  static Future<void> _showTrackingNotification(RemoteMessage message) async {
+    final data = message.data;
+    final lang = (data['lang']?.toString() ?? 'vi').toLowerCase();
+    final locale = Locale(lang.startsWith('en') ? 'en' : 'vi');
+    final l10n = await AppLocalizations.delegate.load(locale);
+
+    final rawTitle =
+        message.notification?.title ??
+        data['title']?.toString() ??
+        data['eventKey']?.toString() ??
+        l10n.tracking_default_title;
+
+    final eventKey = _normalizeTrackingKey(
+      (data['eventKey'] ?? rawTitle).toString(),
+    );
+
+    var title = rawTitle;
+    if (rawTitle.startsWith('tracking.')) {
+      title = trackingTitleFromKey(l10n, _normalizeTrackingKey(rawTitle));
+    } else if (eventKey.startsWith('tracking.')) {
+      title = trackingTitleFromKey(l10n, eventKey);
+    }
+
+    if (title.startsWith('tracking.')) {
+      title = l10n.tracking_default_title;
+    }
+
+    final fallbackBody = lang.startsWith('en')
+        ? 'Tracking status has changed.'
+        : 'Trang thai dinh vi da thay doi.';
+
+    var body =
+        message.notification?.body ??
+        data['body']?.toString() ??
+        data['message']?.toString() ??
+        '';
+
+    if (body.startsWith('tracking.')) {
+      body = (data['message']?.toString() ?? '').trim();
+    }
+    if (body.isEmpty) body = fallbackBody;
 
     await LocalNotificationService.show(
       title: title,

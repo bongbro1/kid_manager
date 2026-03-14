@@ -31,19 +31,41 @@ export async function sendLocalizedNotification(opts: {
   if (tokens.length === 0) return;
 
   const title = t(lang, `${opts.eventKey}.title`, opts.titleParams);
-  const body = t(lang, `${opts.eventKey}.body`, opts.bodyParams);
+  let body = t(lang, `${opts.eventKey}.body`, opts.bodyParams);
+  let safeTitle = title;
+  const titleKey = `${opts.eventKey}.title`;
+  const bodyKey = `${opts.eventKey}.body`;
+  const isTrackingEvent = opts.eventKey.startsWith("tracking.");
+
+  const fallbackMessage = (opts.data?.message ?? "").toString().trim();
+  const fallbackTitle = lang.startsWith("en")
+    ? (isTrackingEvent ? "Tracking notification" : "Notification")
+    : (isTrackingEvent ? "Thong bao dinh vi" : "Thong bao");
+  const fallbackBody = lang.startsWith("en")
+    ? (isTrackingEvent ? "Tracking status has changed." : "You have a new notification.")
+    : (isTrackingEvent ? "Trang thai dinh vi da thay doi." : "Ban co thong bao moi.");
+
+  if (safeTitle === titleKey) {
+    safeTitle = fallbackMessage || fallbackTitle;
+  }
+  if (body === bodyKey) {
+    body = fallbackMessage || fallbackBody;
+  }
 
   const resp = await admin.messaging().sendEachForMulticast({
     tokens,
     notification: {
-      title,
+      title: safeTitle,
       body,
     },
     data: {
       type: opts.type,
       eventKey: opts.eventKey,
       lang,
+      title: safeTitle,
+      body,
       ...(opts.data ?? {}),
+      toUid: opts.uid,
     },
     android: {
       priority: "high",
@@ -54,7 +76,7 @@ export async function sendLocalizedNotification(opts: {
     apns: {
       payload: {
         aps: {
-          alert: { title, body },
+          alert: { title: safeTitle, body },
           sound: "default",
         },
       },

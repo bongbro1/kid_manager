@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/phone/phone_helps.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
+import 'package:kid_manager/services/notifications/tracking_notification_style.dart';
+import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/notifications/notification_detail_body.dart';
@@ -27,7 +30,19 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       vm.loadNotificationDetailItem(widget.item);
     });
   }
+  NotificationStyle _resolveTrackingStyle(NotificationDetailModel detail) {
+    return resolveTrackingNotificationStyle(
+      title: detail.title,
+      data: detail.data,
+      fallback: detail.notificationType.style,
+    );
+  }
+
   Color _resolveTopIconColor(NotificationDetailModel detail) {
+    if (detail.notificationType == NotificationType.tracking) {
+      return _resolveTrackingStyle(detail).iconColor;
+    }
+
     if (detail.notificationType != NotificationType.zone) {
       return detail.notificationType.style.iconColor;
     }
@@ -45,6 +60,10 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
   }
 
   Color _resolveTopBgColor(NotificationDetailModel detail) {
+    if (detail.notificationType == NotificationType.tracking) {
+      return _resolveTrackingStyle(detail).bgColor;
+    }
+
     if (detail.notificationType != NotificationType.zone) {
       return detail.notificationType.style.bgColor;
     }
@@ -61,6 +80,11 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     return const Color(0xFFEFF6FF);
   }
   String _buildDisplayTitle(NotificationDetailModel detail) {
+    final rawTitle = detail.title.trim();
+    if (rawTitle.startsWith('tracking.')) {
+      return trackingTitleFromKey(AppLocalizations.of(context), rawTitle);
+    }
+
     if (detail.notificationType == NotificationType.schedule) {
       final data = detail.data;
       final action = (data['action'] ?? '').toString();
@@ -105,6 +129,10 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
   }
 
   IconData _resolveTopIcon(NotificationDetailModel detail) {
+    if (detail.notificationType == NotificationType.tracking) {
+      return _resolveTrackingStyle(detail).icon;
+    }
+
     if (detail.notificationType != NotificationType.zone) {
       return detail.notificationType.style.icon;
     }

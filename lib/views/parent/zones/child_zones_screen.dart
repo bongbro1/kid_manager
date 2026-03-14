@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
+import 'package:provider/provider.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/viewmodels/zones/parent_zones_vm.dart';
-import 'package:kid_manager/widgets/app/app_notice_card.dart';
-import 'package:provider/provider.dart';
 
 import 'edit_zone_screen.dart';
 
@@ -29,17 +29,96 @@ class _ChildZonesBody extends StatelessWidget {
 
   Future<void> _showNotice({
     required BuildContext context,
-    required AppNoticeType type,
+    required DialogType type,
     String? title,
     String? message,
   }) async {
     if (!context.mounted) return;
 
-    await showDialog(
+    final config = DialogConfig.from(type);
+    final titleText = (title ?? '').trim();
+    final messageText = (message ?? '').trim();
+
+    await showGeneralDialog(
       context: context,
+      useRootNavigator: true,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.3),
-      builder: (_) => AppNoticeCard(type: type, title: title, message: message),
+      barrierLabel: 'notice',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (Navigator.of(dialogContext, rootNavigator: true).canPop()) {
+            Navigator.of(dialogContext, rootNavigator: true).pop();
+          }
+        });
+
+        return SafeArea(
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 310,
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x22000000),
+                      blurRadius: 24,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    config.iconBuilder(),
+                    const SizedBox(height: 18),
+                    Text(
+                      titleText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    if (messageText.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        messageText,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutBack,
+        );
+
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.9, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -166,7 +245,7 @@ class _ChildZonesBody extends StatelessWidget {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.success,
+        type: DialogType.success,
         title: l10n.zonesCreateSuccessTitle,
         message: l10n.zonesCreateSuccessMessage(res.name),
       );
@@ -174,7 +253,7 @@ class _ChildZonesBody extends StatelessWidget {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.error,
+        type: DialogType.error,
         title: l10n.zonesFailedTitle,
         message: l10n.zonesCreateFailedMessage,
       );
@@ -195,16 +274,16 @@ class _ChildZonesBody extends StatelessWidget {
             EditZoneScreen(childId: childId, zone: zone, existingZones: zones),
       ),
     );
-
     if (edited == null || !context.mounted) return;
 
     try {
+      debugPrint('before save');
       await context.read<ParentZonesVm>().save(childId, edited);
 
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.success,
+        type: DialogType.success,
         title: l10n.zonesEditSuccessTitle,
         message: l10n.zonesEditSuccessMessage,
       );
@@ -212,7 +291,7 @@ class _ChildZonesBody extends StatelessWidget {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.error,
+        type: DialogType.error,
         title: l10n.zonesFailedTitle,
         message: l10n.zonesEditFailedMessage,
       );
@@ -230,7 +309,7 @@ class _ChildZonesBody extends StatelessWidget {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.success,
+        type: DialogType.success,
         title: l10n.zonesDeleteSuccessTitle,
         message: l10n.zonesDeleteSuccessMessage,
       );
@@ -238,7 +317,7 @@ class _ChildZonesBody extends StatelessWidget {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.error,
+        type: DialogType.error,
         title: l10n.zonesFailedTitle,
         message: l10n.zonesDeleteFailedMessage,
       );
@@ -401,8 +480,8 @@ class _ChildZonesBody extends StatelessWidget {
               child: PopupMenuButton<String>(
                 offset: const Offset(-20, 0),
                 itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'edit',
+                  PopupMenuItem<String>(
+                    value: "edit",
                     child: Row(
                       children: [
                         Icon(
@@ -415,8 +494,8 @@ class _ChildZonesBody extends StatelessWidget {
                       ],
                     ),
                   ),
-                  PopupMenuItem(
-                    value: 'delete',
+                  PopupMenuItem<String>(
+                    value: "delete",
                     child: Row(
                       children: [
                         Icon(
@@ -430,12 +509,18 @@ class _ChildZonesBody extends StatelessWidget {
                     ),
                   ),
                 ],
-                onSelected: (v) async {
-                  if (v == 'edit') {
-                    await _handleEditZone(context, zone, vm.zones);
-                  } else if (v == 'delete') {
-                    await _handleDeleteZone(context, zone);
-                  }
+                onSelected: (v) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+                    if (!context.mounted) return;
+                    debugPrint('selected = $v');
+                    if (v == "edit") {
+                      debugPrint('go to edit');
+                      await _handleEditZone(context, zone, vm.zones);
+                    } else if (v == "delete") {
+                      debugPrint('go to delete');
+                      await _handleDeleteZone(context, zone);
+                    }
+                  });
                 },
                 child: Icon(
                   Icons.more_vert_rounded,
@@ -514,9 +599,8 @@ class _ChildZonesBody extends StatelessWidget {
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             itemCount: zones.length,
-            separatorBuilder: (_, index) => const SizedBox(height: 12),
-            itemBuilder: (context, i) =>
-                _buildZoneCard(context, i, zones[i], vm),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (_, i) => _buildZoneCard(context, i, zones[i], vm),
           );
         },
       ),

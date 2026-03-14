@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
+import 'package:kid_manager/services/notifications/tracking_notification_style.dart';
+import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
 
 class NotificationItemView extends StatelessWidget {
@@ -28,7 +30,13 @@ class NotificationItemView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = item.notificationType.style;
+    final style = item.notificationType == NotificationType.tracking
+        ? resolveTrackingNotificationStyle(
+            title: item.title,
+            data: item.data,
+            fallback: item.notificationType.style,
+          )
+        : item.notificationType.style;
     final titleText = _displayTitle(context, item);
     return InkWell(
       onTap: onTap,
@@ -222,6 +230,10 @@ String _displayTitle(BuildContext context, AppNotification item) {
       default:
         return l10n.zone_default;
     }
+  }
+
+  if (t.startsWith('tracking.')) {
+    return trackingTitleFromKey(l10n, t);
   }
 
   // ✅ các loại khác: birthday/system/sos/... giữ nguyên title trong DB

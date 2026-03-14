@@ -26,7 +26,8 @@ String zoneTitleFromKey(AppLocalizations l10n, String key) {
 }
 
 String trackingTitleFromKey(AppLocalizations l10n, String key) {
-  switch (key) {
+  final normalized = _normalizeTrackingKey(key);
+  switch (normalized) {
     case 'tracking.location_service_off.parent':
       return l10n.tracking_location_service_off_parent_title;
     case 'tracking.location_permission_denied.parent':
@@ -50,6 +51,17 @@ String trackingTitleFromKey(AppLocalizations l10n, String key) {
       return l10n.tracking_ok_child_title;
 
     default:
-      return l10n.zone_default;
+      return l10n.tracking_default_title;
   }
+}
+
+String _normalizeTrackingKey(String rawKey) {
+  final key = rawKey.trim().toLowerCase();
+  if (key.endsWith('.title') || key.endsWith('.body')) {
+    final cut = key.lastIndexOf('.');
+    if (cut > 0) {
+      return key.substring(0, cut);
+    }
+  }
+  return key;
 }

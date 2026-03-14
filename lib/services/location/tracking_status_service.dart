@@ -4,7 +4,8 @@ class TrackingStatusService {
   final FirebaseFunctions _functions;
 
   TrackingStatusService({FirebaseFunctions? functions})
-    : _functions = functions ?? FirebaseFunctions.instance;
+    : _functions =
+          functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
   Future<void> reportStatus({required String status, String? message}) async {
     await _functions.httpsCallable('reportTrackingStatus').call({
