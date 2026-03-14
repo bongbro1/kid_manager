@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
@@ -276,6 +277,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final l10n = AppLocalizations.of(context);
     final userVm = context.watch<UserVm>();
     final me = userVm.me;
     if (me == null) {
@@ -381,7 +383,9 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                     final sosVm = context.read<SosViewModel>();
                     final myLocation = _locationVm.myLocation;
                     debugPrint('Vo denn day');
-                    final displayName = context.read<UserVm>().me?.displayName ?? 'Unknown';
+                    final displayName =
+                        context.read<UserVm>().me?.displayName ??
+                        l10n.parentLocationUnknownUser;
 
                     debugPrint('myLocation=$myLocation');
                     debugPrint('sending=${sosVm.sending}');
@@ -399,7 +403,9 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại',
+                          sosId != null
+                              ? l10n.parentLocationSosSent
+                              : l10n.parentLocationSosFailed,
                         ),
                       ),
                     );
@@ -513,6 +519,7 @@ class _MapLoadingPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -556,34 +563,34 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.2,
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Đang tải bản đồ',
-                        style: TextStyle(
+                        l10n.parentLocationMapLoadingTitle,
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF1F2937),
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Đang chuẩn bị vị trí của các bé',
-                        style: TextStyle(
+                        l10n.parentLocationMapLoadingSubtitle,
+                        style: const TextStyle(
                           fontSize: 12.5,
                           color: Color(0xFF6B7280),
                           height: 1.35,

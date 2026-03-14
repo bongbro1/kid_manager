@@ -3,7 +3,7 @@
   "personalInfoTitle": "Personal Information",
   "appAppearanceTitle": "App Appearance",
   "aboutAppTitle": "About app",
-  "addAccountTitle": "Add account",
+  "addAccountTitle": "Add child account",
   "logoutTitle": "Logout",
   "fullNameLabel": "Full name",
   "fullNameHint": "Enter full name",
@@ -29,6 +29,24 @@
   "vietnamese": "Vietnamese",
   "english": "English",
   "changeLanguagePrompt": "Change language, app will restart",
+  "appAppearanceThemeLabel": "Theme",
+  "appAppearanceSelectThemeTitle": "Select theme",
+  "appAppearanceThemeSystem": "Follow system",
+  "appAppearanceThemeLight": "Light",
+  "appAppearanceThemeDark": "Dark",
+  "addAccountSuccessMessage": "Child account created successfully",
+  "sessionExpiredLoginAgain": "Session expired. Please sign in again.",
+  "aboutAppName": "My Application",
+  "aboutAppVersionLabel": "Version: {version}",
+  "@aboutAppVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutAppDescription": "This app helps manage accounts, track activity, and personalize the user experience.",
+  "aboutAppCopyright": "© 2026 My Company",
   "accountNotFound": "Account not found",
   "accountNotActivated": "Account not activated",
   "emailNotRegistered": "Email not registered",
@@ -851,6 +869,38 @@
     }
   },
   "zonesDefaultNameFallback": "Zone",
+  "parentLocationUnknownUser": "Unknown",
+  "parentLocationSosSent": "SOS sent",
+  "parentLocationSosFailed": "Failed to send SOS",
+  "parentLocationMapLoadingTitle": "Loading map",
+  "parentLocationMapLoadingSubtitle": "Preparing the children's locations",
+  "parentChildrenListTitle": "Member list",
+  "childLocationTransportWalking": "Walking",
+  "childLocationTransportBicycle": "Cycling",
+  "childLocationTransportVehicle": "In vehicle",
+  "childLocationTransportStill": "Still",
+  "childLocationTransportUnknown": "Unknown",
+  "childLocationDetailTitle": "Location details",
+  "childLocationStatusTitle": "Status: {transport}",
+  "@childLocationStatusTitle": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationHistoryTitle": "History • {date}",
+  "@childLocationHistoryTitle": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationTooltipHideDots": "Hide points",
+  "childLocationTooltipShowDots": "Show points",
+  "childLocationHistoryButton": "History",
+  "childLocationZonesButton": "Zones",
   "zone_default": "Zone notification",
   "zone_enter_danger_parent": "⚠️ Child entered a danger zone",
   "zone_exit_danger_parent": "✅ Child left a danger zone",

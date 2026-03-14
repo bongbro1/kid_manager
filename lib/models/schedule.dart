@@ -3,44 +3,50 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum SchedulePeriod { morning, afternoon, evening }
 
 // ✅ Parse dữ liệu từ Firestore (hỗ trợ cả key EN và label VI nếu DB cũ)
-SchedulePeriod periodFromKey(String v) {
-  switch (v) {
+SchedulePeriod periodFromKey(String? v) {
+  if (v == null) return SchedulePeriod.morning;
+
+  final value = v.trim().toLowerCase();
+
+  switch (value) {
     case 'afternoon':
-    case 'Chiều':
+    case 'chiều':
       return SchedulePeriod.afternoon;
+
     case 'evening':
-    case 'Tối':
+    case 'tối':
       return SchedulePeriod.evening;
+
     case 'morning':
-    case 'Sáng':
-    default:
+    case 'sáng':
       return SchedulePeriod.morning;
+
+    default:
+      throw Exception("Invalid SchedulePeriod value: $v");
   }
 }
 
 // ✅ Lưu Firestore bằng key EN
 String periodKey(SchedulePeriod p) {
   switch (p) {
+    case SchedulePeriod.morning:
+      return 'morning';
     case SchedulePeriod.afternoon:
       return 'afternoon';
     case SchedulePeriod.evening:
       return 'evening';
-    case SchedulePeriod.morning:
-    default:
-      return 'morning';
   }
 }
 
 // ✅ Hiển thị UI bằng label VI
 String periodLabel(SchedulePeriod p) {
   switch (p) {
+    case SchedulePeriod.morning:
+      return 'Sáng';
     case SchedulePeriod.afternoon:
       return 'Chiều';
     case SchedulePeriod.evening:
       return 'Tối';
-    case SchedulePeriod.morning:
-    default:
-      return 'Sáng';
   }
 }
 

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_colors.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
-
-enum AppLanguageMode { en, vn, cn }
 
 enum AppThemeMode { system, light, dark }
 
@@ -16,41 +15,75 @@ class AppAppearanceScreen extends StatefulWidget {
 }
 
 class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
-  bool isDarkMode = false;
+  AppThemeMode _selectedTheme = AppThemeMode.system;
+
+  String _themeLabel(AppLocalizations l10n, AppThemeMode theme) {
+    switch (theme) {
+      case AppThemeMode.system:
+        return l10n.appAppearanceThemeSystem;
+      case AppThemeMode.light:
+        return l10n.appAppearanceThemeLight;
+      case AppThemeMode.dark:
+        return l10n.appAppearanceThemeDark;
+    }
+  }
+
+  Future<void> _showThemeSheet(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final result = await showModalBottomSheet<AppThemeMode>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => ChangeOptionSheet<AppThemeMode>(
+        title: l10n.appAppearanceSelectThemeTitle,
+        initialValue: _selectedTheme,
+        options: [
+          OptionItem(l10n.appAppearanceThemeSystem, AppThemeMode.system),
+          OptionItem(l10n.appAppearanceThemeLight, AppThemeMode.light),
+          OptionItem(l10n.appAppearanceThemeDark, AppThemeMode.dark),
+        ],
+        onConfirm: (theme) {
+          setState(() => _selectedTheme = theme);
+        },
+      ),
+    );
+
+    if (result != null) {
+      debugPrint('Theme selected: $result');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== HEADER =====
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: [
                   InkWell(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
+                    onTap: () => Navigator.pop(context),
                     borderRadius: BorderRadius.circular(12),
                     child: Padding(
                       padding: const EdgeInsets.all(14),
                       child: AppIcon(
-                        path: "assets/icons/back.svg",
+                        path: 'assets/icons/back.svg',
                         type: AppIconType.svg,
                         size: 16,
                       ),
                     ),
                   ),
-
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
-                        "Giao diện ứng dụng",
-                        style: TextStyle(
+                        l10n.appAppearanceTitle,
+                        style: const TextStyle(
                           color: Color(0xFF222B45),
                           fontSize: 20,
                           fontFamily: 'Poppins',
@@ -59,159 +92,54 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                       ),
                     ),
                   ),
-
-                  // Spacer để title center thật
                   const SizedBox(width: 44),
                 ],
               ),
             ),
-
             const SizedBox(height: 12),
-
-            // ===== CONTENT =====
-            Column(
-              children: [
-                InkWell(
-                  onTap: () async {
-                    final result = await showModalBottomSheet<AppThemeMode>(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      isScrollControlled: true,
-                      builder: (_) => ChangeOptionSheet<AppThemeMode>(
-                        title: 'Chọn Theme',
-                        initialValue: AppThemeMode.system,
-                        options: const [
-                          OptionItem('Theo hệ thống', AppThemeMode.system),
-                          OptionItem('Sáng', AppThemeMode.light),
-                          OptionItem('Tối', AppThemeMode.dark),
-                        ],
-                        onConfirm: (_) {}, // không cần dùng nữa
-                      ),
-                    );
-
-                    if (result != null) {
-                      debugPrint('Theme chọn: $result');
-                      // TODO: setState / Provider / save prefs
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 20,
-                    ),
-                    child: Row(
-                      children: const [
-                        Text(
-                          'Theme',
-                          style: TextStyle(
-                            color: Color(0xFF212121),
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            height: 1.38,
-                            letterSpacing: -0.41,
-                          ),
-                        ),
-
-                        Spacer(),
-
-                        Text(
-                          'Sáng',
-                          style: TextStyle(
-                            color: Color(0xFF212121),
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,
-                            height: 1.38,
-                            letterSpacing: -0.41,
-                          ),
-                        ),
-
-                        SizedBox(width: 6),
-
-                        Icon(
-                          Icons.chevron_right,
-                          size: 20,
-                          color: Color(0xFF9E9E9E),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ],
-                    ),
-                  ),
+            InkWell(
+              onTap: () => _showThemeSheet(context),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 20,
                 ),
-
-                const Divider(height: 1),
-                InkWell(
-                  onTap: () async {
-                    final result = await showModalBottomSheet<AppThemeMode>(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      isScrollControlled: true,
-                      builder: (_) => ChangeOptionSheet<AppLanguageMode>(
-                        title: 'Chọn ngôn ngữ',
-                        initialValue: AppLanguageMode.en,
-                        options: const [
-                          OptionItem('English', AppLanguageMode.en),
-                          OptionItem('Tiếng Việt', AppLanguageMode.vn),
-                          OptionItem('中文', AppLanguageMode.cn),
-                        ],
-                        onConfirm: (lang) {
-                          debugPrint('Language chọn: $lang');
-                        },
+                child: Row(
+                  children: [
+                    Text(
+                      l10n.appAppearanceThemeLabel,
+                      style: const TextStyle(
+                        color: Color(0xFF212121),
+                        fontSize: 16,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        height: 1.38,
+                        letterSpacing: -0.41,
                       ),
-                    );
-
-                    if (result != null) {
-                      debugPrint('Theme chọn: $result');
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 20,
                     ),
-                    child: Row(
-                      children: const [
-                        Text(
-                          'Ngôn ngữ',
-                          style: TextStyle(
-                            color: Color(0xFF212121),
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            height: 1.38,
-                            letterSpacing: -0.41,
-                          ),
-                        ),
-
-                        Spacer(),
-
-                        Text(
-                          'Tiếng Việt',
-                          style: TextStyle(
-                            color: Color(0xFF212121),
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,
-                            height: 1.38,
-                            letterSpacing: -0.41,
-                          ),
-                        ),
-
-                        SizedBox(width: 6),
-
-                        Icon(
-                          Icons.chevron_right,
-                          size: 20,
-                          color: Color(0xFF9E9E9E),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ],
+                    const Spacer(),
+                    Text(
+                      _themeLabel(l10n, _selectedTheme),
+                      style: const TextStyle(
+                        color: Color(0xFF212121),
+                        fontSize: 16,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                        height: 1.38,
+                        letterSpacing: -0.41,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: Color(0xFF9E9E9E),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
+            const Divider(height: 1),
           ],
         ),
       ),
@@ -235,26 +163,25 @@ class OptionRadioRow<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSelected = value == groupValue;
+    final isSelected = value == groupValue;
 
     return InkWell(
       onTap: () => onChanged(value),
-      child: Container(
+      child: SizedBox(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 0),
         child: Row(
           children: [
             Radio<T>(
               value: value,
               groupValue: groupValue,
-              onChanged: (v) {
-                if (v != null) onChanged(v);
+              onChanged: (next) {
+                if (next != null) {
+                  onChanged(next);
+                }
               },
               activeColor: const Color(0xFF3366FF),
             ),
-
             const SizedBox(width: 6),
-
             Text(
               title,
               style: TextStyle(
@@ -310,6 +237,8 @@ class _ChangeOptionSheetState<T> extends State<ChangeOptionSheet<T>> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return AppOverlaySheet(
       height: 300,
       showHandle: true,
@@ -328,27 +257,24 @@ class _ChangeOptionSheetState<T> extends State<ChangeOptionSheet<T>> {
               ),
             ),
             const SizedBox(height: 10),
-
             ...widget.options.map(
-              (e) => OptionRadioRow<T>(
-                title: e.label,
-                value: e.value,
+              (option) => OptionRadioRow<T>(
+                title: option.label,
+                value: option.value,
                 groupValue: _selected,
-                onChanged: (v) {
-                  setState(() => _selected = v);
+                onChanged: (next) {
+                  setState(() => _selected = next);
                 },
               ),
             ),
-
             const SizedBox(height: 10),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 AppButton(
                   width: 167,
                   height: 50,
-                  text: 'Hủy bỏ',
+                  text: l10n.cancelButton,
                   onPressed: () => Navigator.pop(context),
                   backgroundColor: const Color(0xFFE6F5FF),
                   foregroundColor: const Color(0xFF3A7DFF),
@@ -356,10 +282,10 @@ class _ChangeOptionSheetState<T> extends State<ChangeOptionSheet<T>> {
                 AppButton(
                   width: 167,
                   height: 50,
-                  text: 'Xác nhận',
+                  text: l10n.confirmButton,
                   onPressed: () {
                     widget.onConfirm(_selected);
-                    Navigator.pop(context);
+                    Navigator.pop(context, _selected);
                   },
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,

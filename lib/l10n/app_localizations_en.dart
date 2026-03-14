@@ -18,7 +18,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutAppTitle => 'About app';
 
   @override
-  String get addAccountTitle => 'Add account';
+  String get addAccountTitle => 'Add child account';
 
   @override
   String get logoutTitle => 'Logout';
@@ -94,6 +94,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get changeLanguagePrompt => 'Change language, app will restart';
+
+  @override
+  String get appAppearanceThemeLabel => 'Theme';
+
+  @override
+  String get appAppearanceSelectThemeTitle => 'Select theme';
+
+  @override
+  String get appAppearanceThemeSystem => 'Follow system';
+
+  @override
+  String get appAppearanceThemeLight => 'Light';
+
+  @override
+  String get appAppearanceThemeDark => 'Dark';
+
+  @override
+  String get addAccountSuccessMessage => 'Child account created successfully';
+
+  @override
+  String get sessionExpiredLoginAgain =>
+      'Session expired. Please sign in again.';
+
+  @override
+  String get aboutAppName => 'My Application';
+
+  @override
+  String aboutAppVersionLabel(String version) {
+    return 'Version: $version';
+  }
+
+  @override
+  String get aboutAppDescription =>
+      'This app helps manage accounts, track activity, and personalize the user experience.';
+
+  @override
+  String get aboutAppCopyright => '© 2026 My Company';
 
   @override
   String get accountNotFound => 'Account not found';
@@ -1304,6 +1341,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get zonesDefaultNameFallback => 'Zone';
+
+  @override
+  String get parentLocationUnknownUser => 'Unknown';
+
+  @override
+  String get parentLocationSosSent => 'SOS sent';
+
+  @override
+  String get parentLocationSosFailed => 'Failed to send SOS';
+
+  @override
+  String get parentLocationMapLoadingTitle => 'Loading map';
+
+  @override
+  String get parentLocationMapLoadingSubtitle =>
+      'Preparing the children\'s locations';
+
+  @override
+  String get parentChildrenListTitle => 'Member list';
+
+  @override
+  String get childLocationTransportWalking => 'Walking';
+
+  @override
+  String get childLocationTransportBicycle => 'Cycling';
+
+  @override
+  String get childLocationTransportVehicle => 'In vehicle';
+
+  @override
+  String get childLocationTransportStill => 'Still';
+
+  @override
+  String get childLocationTransportUnknown => 'Unknown';
+
+  @override
+  String get childLocationDetailTitle => 'Location details';
+
+  @override
+  String childLocationStatusTitle(String transport) {
+    return 'Status: $transport';
+  }
+
+  @override
+  String childLocationHistoryTitle(String date) {
+    return 'History • $date';
+  }
+
+  @override
+  String get childLocationTooltipHideDots => 'Hide points';
+
+  @override
+  String get childLocationTooltipShowDots => 'Show points';
+
+  @override
+  String get childLocationHistoryButton => 'History';
+
+  @override
+  String get childLocationZonesButton => 'Zones';
 
   @override
   String get zone_default => 'Zone notification';

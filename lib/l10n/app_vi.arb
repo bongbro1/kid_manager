@@ -2,8 +2,8 @@
   "@@locale": "vi",
   "personalInfoTitle": "Thông tin cá nhân",
   "appAppearanceTitle": "Giao diện ứng dụng",
-  "aboutAppTitle": "About app",
-  "addAccountTitle": "Thêm tài khoản",
+  "aboutAppTitle": "Về ứng dụng",
+  "addAccountTitle": "Thêm tài khoản con",
   "logoutTitle": "Đăng xuất",
   "fullNameLabel": "Họ và tên",
   "fullNameHint": "Nhập họ và tên",
@@ -29,6 +29,24 @@
   "vietnamese": "Tiếng Việt",
   "english": "English",
   "changeLanguagePrompt": "Thay đổi ngôn ngữ, ứng dụng sẽ khởi động lại",
+  "appAppearanceThemeLabel": "Chủ đề",
+  "appAppearanceSelectThemeTitle": "Chọn chủ đề",
+  "appAppearanceThemeSystem": "Theo hệ thống",
+  "appAppearanceThemeLight": "Sáng",
+  "appAppearanceThemeDark": "Tối",
+  "addAccountSuccessMessage": "Tạo tài khoản con thành công",
+  "sessionExpiredLoginAgain": "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.",
+  "aboutAppName": "My Application",
+  "aboutAppVersionLabel": "Phiên bản: {version}",
+  "@aboutAppVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutAppDescription": "Ứng dụng giúp quản lý tài khoản, theo dõi hoạt động và cá nhân hóa trải nghiệm người dùng.",
+  "aboutAppCopyright": "© 2026 My Company",
   "accountNotFound": "Tài khoản không tồn tại",
   "accountNotActivated": "Tài khoản chưa được kích hoạt",
   "emailNotRegistered": "Email chưa đăng ký",
@@ -851,6 +869,38 @@
     }
   },
   "zonesDefaultNameFallback": "Vùng",
+  "parentLocationUnknownUser": "Không rõ",
+  "parentLocationSosSent": "Đã gửi SOS",
+  "parentLocationSosFailed": "Gửi SOS thất bại",
+  "parentLocationMapLoadingTitle": "Đang tải bản đồ",
+  "parentLocationMapLoadingSubtitle": "Đang chuẩn bị vị trí của các bé",
+  "parentChildrenListTitle": "Danh sách thành viên",
+  "childLocationTransportWalking": "Đi bộ",
+  "childLocationTransportBicycle": "Xe đạp",
+  "childLocationTransportVehicle": "Đi xe",
+  "childLocationTransportStill": "Đứng yên",
+  "childLocationTransportUnknown": "Không rõ",
+  "childLocationDetailTitle": "Chi tiết vị trí",
+  "childLocationStatusTitle": "Trạng thái: {transport}",
+  "@childLocationStatusTitle": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationHistoryTitle": "Lịch sử • {date}",
+  "@childLocationHistoryTitle": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationTooltipHideDots": "Ẩn điểm",
+  "childLocationTooltipShowDots": "Hiện điểm",
+  "childLocationHistoryButton": "Lịch sử",
+  "childLocationZonesButton": "Vùng",
   "zone_default": "Thông báo hehehe",
   "zone_enter_danger_parent": "⚠️ Bé vào vùng nguy hiểm",
   "zone_exit_danger_parent": "✅ Bé rời vùng nguy hiểm",

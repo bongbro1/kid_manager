@@ -155,7 +155,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return CircleAvatar(
       radius: 18,
       foregroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-      onForegroundImageError: (_, _) {},
+      onForegroundImageError: avatar.isNotEmpty ? (_, _) {} : null,
       child: Text(
         fallbackText,
         style: const TextStyle(fontWeight: FontWeight.w600),
@@ -242,7 +242,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               foregroundImage: avatar.isNotEmpty
                                   ? NetworkImage(avatar)
                                   : null,
-                              onForegroundImageError: (_, _) {},
+                              onForegroundImageError:
+                                  avatar.isNotEmpty ? (_, _) {} : null,
                               child: Text(
                                 _nameInitial(c),
                                 style: const TextStyle(

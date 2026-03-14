@@ -1,17 +1,19 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
-import 'package:kid_manager/views/parent/zones/child_zones_screen.dart';
-import 'package:provider/provider.dart';
 
+import 'package:flutter/material.dart';
 import 'package:kid_manager/features/map_engine/map_engine.dart';
+import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
+import 'package:kid_manager/views/parent/zones/child_zones_screen.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
+import 'package:provider/provider.dart';
 
 class ChildDetailMapScreen extends StatefulWidget {
   final String childId;
+
   const ChildDetailMapScreen({super.key, required this.childId});
 
   @override
@@ -32,14 +34,15 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
 
   // ✅ chọn ngày
   late DateTime _selectedDay;
-  DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-  bool get _isToday => _dayOnly(_selectedDay) == _dayOnly(DateTime.now());
-
-  // ✅ toggle dots (mặc định ẩn)
+ // ✅ toggle dots (mặc định ẩn)
   bool _showDots = false;
 
   // ✅ preload history ngay khi vào màn (không chờ map)
   bool _historyLoaded = false;
+
+  DateTime _dayOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+  bool get _isToday => _dayOnly(_selectedDay) == _dayOnly(DateTime.now());
 
   @override
   void initState() {
@@ -61,31 +64,34 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
     super.dispose();
   }
 
-  String _transportLabel(TransportMode t) {
-    switch (t) {
+  String _transportLabel(AppLocalizations l10n, TransportMode mode) {
+    switch (mode) {
       case TransportMode.walking:
-        return "Đi bộ";
+        return l10n.childLocationTransportWalking;
       case TransportMode.bicycle:
-        return "Xe đạp";
+        return l10n.childLocationTransportBicycle;
       case TransportMode.vehicle:
-        return "Đi xe";
+        return l10n.childLocationTransportVehicle;
       case TransportMode.still:
-        return "Đứng yên";
+        return l10n.childLocationTransportStill;
       default:
-        return "Không rõ";
+        return l10n.childLocationTransportUnknown;
     }
   }
 
-  String _fmtDay(DateTime d) =>
-      "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}";
+  String _formatDay(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
 
   void _startAnimTick() {
     _animTick ??= Timer.periodic(const Duration(milliseconds: 16), (_) async {
       if (!mounted || _engine == null) return;
-      if (_mover.isAnimating) {
-        final smoothed = _mover.current();
-        await _engine!.updateChildDot(smoothed); // chỉ update dot
-      }
+      if (!_mover.isAnimating) return;
+
+      final smoothed = _mover.current();
+      await _engine!.updateChildDot(smoothed);
     });
   }
 
@@ -110,7 +116,6 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
   Future<void> _preloadToday() async {
     final vm = context.read<ParentLocationVm>();
     final today = _dayOnly(DateTime.now());
-
     final history = await vm.loadLocationHistoryByDay(widget.childId, today);
 
     if (!mounted) return;
@@ -119,7 +124,9 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
       _selectedDay = today;
       _cachedHistory = history;
       _historyLoaded = true;
-      if (_cachedHistory.isNotEmpty) _latest = _cachedHistory.last;
+      if (_cachedHistory.isNotEmpty) {
+        _latest = _cachedHistory.last;
+      }
     });
   }
 
@@ -148,6 +155,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
 
   Future<void> _loadForDay(DateTime day) async {
     if (!mounted) return;
+
     final vm = context.read<ParentLocationVm>();
     final dayOnly = _dayOnly(day);
 
@@ -163,7 +171,9 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
     setState(() {
       _selectedDay = dayOnly;
       _cachedHistory = history;
-      if (_cachedHistory.isNotEmpty) _latest = _cachedHistory.last;
+      if (_cachedHistory.isNotEmpty) {
+        _latest = _cachedHistory.last;
+      }
     });
 
     // vẽ lại map ngay
@@ -175,10 +185,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
     await _sub?.cancel();
 
     _sub = vm.watchChildLocation(widget.childId).listen((loc) async {
-      if (!mounted) return;
-
-      // chỉ realtime khi xem "hôm nay"
-      if (!_isToday) return;
+      if (!mounted || !_isToday) return;
 
       _latest = loc;
       _appendRealtime(loc);
@@ -199,7 +206,9 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
         await _engine!.updateMatchedRouteIncremental(_cachedHistory, context);
       }
 
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     });
   }
 
@@ -211,34 +220,42 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
       lastDate: DateTime.now(),
     );
     if (picked == null) return;
+
     await _loadForDay(picked);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final latest = _latest;
 
     final title = _isToday
         ? (latest == null
-        ? "Chi tiết vị trí"
-        : "Trạng thái: ${_transportLabel(latest.transport)}")
-        : "Lịch sử • ${_fmtDay(_selectedDay)}";
+              ? l10n.childLocationDetailTitle
+              : l10n.childLocationStatusTitle(
+                  _transportLabel(l10n, latest.transport),
+                ))
+        : l10n.childLocationHistoryTitle(_formatDay(_selectedDay));
 
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
         actions: [
           IconButton(
-            tooltip: _showDots ? "Ẩn điểm" : "Hiện điểm",
-            icon: Icon(_showDots ? Icons.scatter_plot : Icons.scatter_plot_outlined),
+            tooltip: _showDots
+                ? l10n.childLocationTooltipHideDots
+                : l10n.childLocationTooltipShowDots,
+            icon: Icon(
+              _showDots ? Icons.scatter_plot : Icons.scatter_plot_outlined,
+            ),
             onPressed: _toggleDots,
           ),
           TextButton.icon(
             onPressed: _pickDay,
             icon: const Icon(Icons.history),
-            label: const Text("Lịch sử"),
+            label: Text(l10n.childLocationHistoryButton),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.brown, // đổi theo theme của bạn
+              foregroundColor: Colors.brown,
             ),
           ),
           const SizedBox(width: 4),
@@ -252,7 +269,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen> {
               );
             },
             icon: const Icon(Icons.shield_outlined),
-            label: const Text("Vùng"),
+            label: Text(l10n.childLocationZonesButton),
           ),
         ],
       ),

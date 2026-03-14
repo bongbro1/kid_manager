@@ -38,6 +38,18 @@ Danh sach duoi day tong hop cac folder/file da duoc chuyen text hard-code sang `
 - `lib/views/parent/zones/child_zones_screen.dart`
 - `lib/views/parent/zones/edit_zone_screen.dart`
 
+### `lib/views/parent/location`
+- `lib/views/parent/location/parent_location_screen.dart`
+- `lib/views/parent/location/parent_children_list_screen.dart`
+
+### `lib/views/location`
+- `lib/views/location/child_detail_map_screen.dart`
+
+### `lib/views/setting_pages`
+- `lib/views/setting_pages/app_appearance_screen.dart`
+- `lib/views/setting_pages/add_account_screen.dart`
+- `lib/views/setting_pages/about_app_screen.dart`
+
 ### `lib/views/child/schedule`
 - `lib/views/child/schedule/child_schedule_screen.dart`
 

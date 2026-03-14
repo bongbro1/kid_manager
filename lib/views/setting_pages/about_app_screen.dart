@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
 
 class AboutAppScreen extends StatelessWidget {
@@ -6,8 +7,10 @@ class AboutAppScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -24,18 +27,17 @@ class AboutAppScreen extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(14),
                       child: AppIcon(
-                        path: "assets/icons/back.svg",
+                        path: 'assets/icons/back.svg',
                         type: AppIconType.svg,
                         size: 16,
                       ),
                     ),
                   ),
-
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
-                        "Về ứng dụng",
-                        style: TextStyle(
+                        l10n.aboutAppTitle,
+                        style: const TextStyle(
                           color: Color(0xFF222B45),
                           fontSize: 20,
                           fontFamily: 'Poppins',
@@ -50,7 +52,6 @@ class AboutAppScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 12),
 
             /// ===== CONTENT =====
@@ -59,52 +60,42 @@ class AboutAppScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-
-                    SizedBox(height: 16),
-
+                  children: [
+                    const SizedBox(height: 16),
                     Text(
-                      'My Application',
-                      style: TextStyle(
+                      l10n.aboutAppName,
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                    SizedBox(height: 8),
-
+                    const SizedBox(height: 8),
                     Text(
-                      'Phiên bản: 1.0.0',
-                      style: TextStyle(
+                      l10n.aboutAppVersionLabel('1.0.0'),
+                      style: const TextStyle(
                         fontSize: 16,
                         color: Color(0xFF4C4C4C),
                       ),
                     ),
-
-                    SizedBox(height: 20),
-
+                    const SizedBox(height: 20),
                     Text(
-                      'Ứng dụng giúp quản lý tài khoản, theo dõi hoạt động '
-                      'và cá nhân hóa trải nghiệm người dùng.',
-                      style: TextStyle(
+                      l10n.aboutAppDescription,
+                      style: const TextStyle(
                         fontSize: 16,
                         height: 1.4,
                       ),
                     ),
-
-                    Spacer(),
-
+                    const Spacer(),
                     Center(
                       child: Text(
-                        '© 2026 My Company',
-                        style: TextStyle(
+                        l10n.aboutAppCopyright,
+                        style: const TextStyle(
                           color: Color(0xFF9E9E9E),
                           fontSize: 14,
                         ),
                       ),
                     ),
-
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),

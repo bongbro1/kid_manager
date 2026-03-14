@@ -15,10 +15,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get appAppearanceTitle => 'Giao diện ứng dụng';
 
   @override
-  String get aboutAppTitle => 'About app';
+  String get aboutAppTitle => 'Về ứng dụng';
 
   @override
-  String get addAccountTitle => 'Thêm tài khoản';
+  String get addAccountTitle => 'Thêm tài khoản con';
 
   @override
   String get logoutTitle => 'Đăng xuất';
@@ -95,6 +95,43 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get changeLanguagePrompt =>
       'Thay đổi ngôn ngữ, ứng dụng sẽ khởi động lại';
+
+  @override
+  String get appAppearanceThemeLabel => 'Chủ đề';
+
+  @override
+  String get appAppearanceSelectThemeTitle => 'Chọn chủ đề';
+
+  @override
+  String get appAppearanceThemeSystem => 'Theo hệ thống';
+
+  @override
+  String get appAppearanceThemeLight => 'Sáng';
+
+  @override
+  String get appAppearanceThemeDark => 'Tối';
+
+  @override
+  String get addAccountSuccessMessage => 'Tạo tài khoản con thành công';
+
+  @override
+  String get sessionExpiredLoginAgain =>
+      'Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.';
+
+  @override
+  String get aboutAppName => 'My Application';
+
+  @override
+  String aboutAppVersionLabel(String version) {
+    return 'Phiên bản: $version';
+  }
+
+  @override
+  String get aboutAppDescription =>
+      'Ứng dụng giúp quản lý tài khoản, theo dõi hoạt động và cá nhân hóa trải nghiệm người dùng.';
+
+  @override
+  String get aboutAppCopyright => '© 2026 My Company';
 
   @override
   String get accountNotFound => 'Tài khoản không tồn tại';
@@ -1306,6 +1343,65 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get zonesDefaultNameFallback => 'Vùng';
+
+  @override
+  String get parentLocationUnknownUser => 'Không rõ';
+
+  @override
+  String get parentLocationSosSent => 'Đã gửi SOS';
+
+  @override
+  String get parentLocationSosFailed => 'Gửi SOS thất bại';
+
+  @override
+  String get parentLocationMapLoadingTitle => 'Đang tải bản đồ';
+
+  @override
+  String get parentLocationMapLoadingSubtitle =>
+      'Đang chuẩn bị vị trí của các bé';
+
+  @override
+  String get parentChildrenListTitle => 'Danh sách thành viên';
+
+  @override
+  String get childLocationTransportWalking => 'Đi bộ';
+
+  @override
+  String get childLocationTransportBicycle => 'Xe đạp';
+
+  @override
+  String get childLocationTransportVehicle => 'Đi xe';
+
+  @override
+  String get childLocationTransportStill => 'Đứng yên';
+
+  @override
+  String get childLocationTransportUnknown => 'Không rõ';
+
+  @override
+  String get childLocationDetailTitle => 'Chi tiết vị trí';
+
+  @override
+  String childLocationStatusTitle(String transport) {
+    return 'Trạng thái: $transport';
+  }
+
+  @override
+  String childLocationHistoryTitle(String date) {
+    return 'Lịch sử • $date';
+  }
+
+  @override
+  String get childLocationTooltipHideDots => 'Ẩn điểm';
+
+  @override
+  String get childLocationTooltipShowDots => 'Hiện điểm';
+
+  @override
+  String get childLocationHistoryButton => 'Lịch sử';
+
+  @override
+  String get childLocationZonesButton => 'Vùng';
 
   @override
   String get zone_default => 'Thông báo hehehe';

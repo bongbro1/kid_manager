@@ -119,7 +119,7 @@ abstract class AppLocalizations {
   /// No description provided for @addAccountTitle.
   ///
   /// In en, this message translates to:
-  /// **'Add account'**
+  /// **'Add child account'**
   String get addAccountTitle;
 
   /// No description provided for @logoutTitle.
@@ -271,6 +271,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Change language, app will restart'**
   String get changeLanguagePrompt;
+
+  /// No description provided for @appAppearanceThemeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get appAppearanceThemeLabel;
+
+  /// No description provided for @appAppearanceSelectThemeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select theme'**
+  String get appAppearanceSelectThemeTitle;
+
+  /// No description provided for @appAppearanceThemeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow system'**
+  String get appAppearanceThemeSystem;
+
+  /// No description provided for @appAppearanceThemeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appAppearanceThemeLight;
+
+  /// No description provided for @appAppearanceThemeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appAppearanceThemeDark;
+
+  /// No description provided for @addAccountSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Child account created successfully'**
+  String get addAccountSuccessMessage;
+
+  /// No description provided for @sessionExpiredLoginAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Session expired. Please sign in again.'**
+  String get sessionExpiredLoginAgain;
+
+  /// No description provided for @aboutAppName.
+  ///
+  /// In en, this message translates to:
+  /// **'My Application'**
+  String get aboutAppName;
+
+  /// No description provided for @aboutAppVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version: {version}'**
+  String aboutAppVersionLabel(String version);
+
+  /// No description provided for @aboutAppDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This app helps manage accounts, track activity, and personalize the user experience.'**
+  String get aboutAppDescription;
+
+  /// No description provided for @aboutAppCopyright.
+  ///
+  /// In en, this message translates to:
+  /// **'© 2026 My Company'**
+  String get aboutAppCopyright;
 
   /// No description provided for @accountNotFound.
   ///
@@ -2381,6 +2447,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Zone'**
   String get zonesDefaultNameFallback;
+
+  /// No description provided for @parentLocationUnknownUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get parentLocationUnknownUser;
+
+  /// No description provided for @parentLocationSosSent.
+  ///
+  /// In en, this message translates to:
+  /// **'SOS sent'**
+  String get parentLocationSosSent;
+
+  /// No description provided for @parentLocationSosFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send SOS'**
+  String get parentLocationSosFailed;
+
+  /// No description provided for @parentLocationMapLoadingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading map'**
+  String get parentLocationMapLoadingTitle;
+
+  /// No description provided for @parentLocationMapLoadingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the children\'s locations'**
+  String get parentLocationMapLoadingSubtitle;
+
+  /// No description provided for @parentChildrenListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member list'**
+  String get parentChildrenListTitle;
+
+  /// No description provided for @childLocationTransportWalking.
+  ///
+  /// In en, this message translates to:
+  /// **'Walking'**
+  String get childLocationTransportWalking;
+
+  /// No description provided for @childLocationTransportBicycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycling'**
+  String get childLocationTransportBicycle;
+
+  /// No description provided for @childLocationTransportVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'In vehicle'**
+  String get childLocationTransportVehicle;
+
+  /// No description provided for @childLocationTransportStill.
+  ///
+  /// In en, this message translates to:
+  /// **'Still'**
+  String get childLocationTransportStill;
+
+  /// No description provided for @childLocationTransportUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get childLocationTransportUnknown;
+
+  /// No description provided for @childLocationDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location details'**
+  String get childLocationDetailTitle;
+
+  /// No description provided for @childLocationStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Status: {transport}'**
+  String childLocationStatusTitle(String transport);
+
+  /// No description provided for @childLocationHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'History • {date}'**
+  String childLocationHistoryTitle(String date);
+
+  /// No description provided for @childLocationTooltipHideDots.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide points'**
+  String get childLocationTooltipHideDots;
+
+  /// No description provided for @childLocationTooltipShowDots.
+  ///
+  /// In en, this message translates to:
+  /// **'Show points'**
+  String get childLocationTooltipShowDots;
+
+  /// No description provided for @childLocationHistoryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get childLocationHistoryButton;
+
+  /// No description provided for @childLocationZonesButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Zones'**
+  String get childLocationZonesButton;
 
   /// No description provided for @zone_default.
   ///
