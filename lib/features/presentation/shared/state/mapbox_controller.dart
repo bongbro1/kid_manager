@@ -998,3 +998,4 @@ class MapboxController extends ChangeNotifier {
     );
   }
 }
+

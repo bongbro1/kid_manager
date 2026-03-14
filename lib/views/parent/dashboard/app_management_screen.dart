@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/views/parent/dashboard/no_child_screen.dart';
@@ -108,6 +109,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
 
   Widget _buildMain(BuildContext context, AppManagementVM app_vm) {
     final apps = context.watch<AppManagementVM>().apps;
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       color: const Color(0xFFF2F2F7),
@@ -144,7 +146,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Dashboard',
+                        l10n.parentDashboardTitle,
                         style: TextStyle(
                           color: Colors.white /* Schemes-On-Error */,
                           fontSize: 18,

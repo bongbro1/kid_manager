@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 enum ChartMode { today, week, range }
 
 class ChartPoint {
@@ -12,8 +10,13 @@ class ChartPoint {
 class UsageHistoryResult {
   final Map<DateTime, int> totalUsage;
   final Map<String, Map<DateTime, int>> perAppUsage;
+  final Map<DateTime, Map<int, int>> hourlyUsage;
 
-  UsageHistoryResult({required this.totalUsage, required this.perAppUsage});
+  UsageHistoryResult({
+    required this.totalUsage,
+    required this.perAppUsage,
+    required this.hourlyUsage,
+  });
 }
 
 class ChartBarUi {
@@ -92,6 +95,7 @@ class ChartDataHelper {
   static List<ChartPoint> generate({
     required ChartMode mode,
     required Map<DateTime, int> usageMap,
+    Map<DateTime, Map<int, int>>? hourlyMap,
     DateTime? fromDate,
     DateTime? toDate,
   }) {
@@ -99,7 +103,7 @@ class ChartDataHelper {
 
     switch (mode) {
       case ChartMode.today:
-        return _buildDay(now, usageMap);
+        return _buildDay(now, hourlyMap);
 
       case ChartMode.week:
         return _buildWeek(now, usageMap);
@@ -112,12 +116,16 @@ class ChartDataHelper {
     }
   }
 
-  static List<ChartPoint> _buildDay(DateTime now, Map<DateTime, int> usageMap) {
-    final start = DateTime(now.year, now.month, now.day);
+  static List<ChartPoint> _buildDay(
+    DateTime now,
+    Map<DateTime, Map<int, int>>? hourlyMap,
+  ) {
+    final day = normalizeDay(now);
+
+    final hours = hourlyMap?[day] ?? {};
 
     return List.generate(24, (hour) {
-      final time = start.add(Duration(hours: hour));
-      final minutes = usageMap[time] ?? 0;
+      final minutes = hours[hour] ?? 0;
 
       return ChartPoint(label: "${hour}h", minutes: minutes);
     });

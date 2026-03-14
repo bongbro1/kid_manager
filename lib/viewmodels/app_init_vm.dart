@@ -83,6 +83,11 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
+    if (_permissions['batteryOptimizationDisabled'] == false) {
+      await permissionService.openBatteryOptimizationSettings();
+      return;
+    }
+
     if (_permissions['accessibility'] == false) {
       if (!_openedAccessibilitySettings) {
         _openedAccessibilitySettings = true;

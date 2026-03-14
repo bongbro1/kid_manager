@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/widgets/app/app_notice_card.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:provider/provider.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/viewmodels/zones/parent_zones_vm.dart';
@@ -24,42 +25,113 @@ class _ChildZonesBody extends StatelessWidget {
   final String childId;
   const _ChildZonesBody({required this.childId});
 
-
   // ==================== Dialog Methods ====================
 
   Future<void> _showNotice({
     required BuildContext context,
-    required AppNoticeType type,
+    required DialogType type,
     String? title,
     String? message,
   }) async {
     if (!context.mounted) return;
 
-    await showDialog(
+    final config = DialogConfig.from(type);
+    final titleText = (title ?? '').trim();
+    final messageText = (message ?? '').trim();
+
+    await showGeneralDialog(
       context: context,
+      useRootNavigator: true,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.3),
-      builder: (_) => AppNoticeCard(
-        type: type,
-        title: title,
-        message: message,
-      ),
+      barrierLabel: 'notice',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (Navigator.of(dialogContext, rootNavigator: true).canPop()) {
+            Navigator.of(dialogContext, rootNavigator: true).pop();
+          }
+        });
+
+        return SafeArea(
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 310,
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x22000000),
+                      blurRadius: 24,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    config.iconBuilder(),
+                    const SizedBox(height: 18),
+                    Text(
+                      titleText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    if (messageText.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        messageText,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutBack,
+        );
+
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.9, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
-  Future<bool> _showDeleteConfirm(
-      BuildContext context,
-      GeoZone zone,
-      ) async {
+  Future<bool> _showDeleteConfirm(BuildContext context, GeoZone zone) async {
+    final l10n = AppLocalizations.of(context);
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black.withOpacity(0.4),
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
         contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -71,13 +143,20 @@ class _ChildZonesBody extends StatelessWidget {
                 color: Colors.red.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.delete_outline, color: Colors.red, size: 24),
+              child: const Icon(
+                Icons.delete_outline,
+                color: Colors.red,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Xác nhận xoá',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+                l10n.zonesDeleteConfirmTitle,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
               ),
             ),
           ],
@@ -87,7 +166,7 @@ class _ChildZonesBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Bạn có chắc muốn xoá địa điểm này không?',
+              l10n.zonesDeleteConfirmMessage,
               style: TextStyle(
                 fontSize: 15,
                 height: 1.5,
@@ -116,9 +195,9 @@ class _ChildZonesBody extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Huỷ',
-              style: TextStyle(color: Colors.grey),
+            child: Text(
+              l10n.cancelButton,
+              style: const TextStyle(color: Colors.grey),
             ),
           ),
           FilledButton(
@@ -130,7 +209,10 @@ class _ChildZonesBody extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Xoá', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(
+              l10n.zonesDeleteButton,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -142,17 +224,16 @@ class _ChildZonesBody extends StatelessWidget {
   // ==================== Handler Methods ====================
 
   Future<void> _handleCreateZone(
-      BuildContext context,
-      List<GeoZone> zones,
-      ) async {
+    BuildContext context,
+    List<GeoZone> zones,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+
     final res = await Navigator.push<GeoZone>(
       context,
       MaterialPageRoute(
-        builder: (_) => EditZoneScreen(
-          childId: childId,
-          zone: null,
-          existingZones: zones,
-        ),
+        builder: (_) =>
+            EditZoneScreen(childId: childId, zone: null, existingZones: zones),
       ),
     );
 
@@ -164,64 +245,61 @@ class _ChildZonesBody extends StatelessWidget {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.success,
-        title: 'Tạo thành công',
-        message: 'Địa điểm "${res.name}" đã được tạo',
+        type: DialogType.success,
+        title: l10n.zonesCreateSuccessTitle,
+        message: l10n.zonesCreateSuccessMessage(res.name),
       );
-    } catch (e) {
+    } catch (_) {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.error,
-        title: 'Thất bại',
-        message: 'Không thể tạo địa điểm, vui lòng thử lại',
+        type: DialogType.error,
+        title: l10n.zonesFailedTitle,
+        message: l10n.zonesCreateFailedMessage,
       );
     }
   }
 
   Future<void> _handleEditZone(
-      BuildContext context,
-      GeoZone zone,
-      List<GeoZone> zones,
-      ) async {
+    BuildContext context,
+    GeoZone zone,
+    List<GeoZone> zones,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+
     final edited = await Navigator.push<GeoZone>(
       context,
       MaterialPageRoute(
-        builder: (_) => EditZoneScreen(
-          childId: childId,
-          zone: zone,
-          existingZones: zones,
-        ),
+        builder: (_) =>
+            EditZoneScreen(childId: childId, zone: zone, existingZones: zones),
       ),
     );
-
     if (edited == null || !context.mounted) return;
 
     try {
+      debugPrint('before save');
       await context.read<ParentZonesVm>().save(childId, edited);
 
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.success,
-        title: 'Chỉnh sửa thành công',
-        message: 'Địa điểm đã được cập nhật',
+        type: DialogType.success,
+        title: l10n.zonesEditSuccessTitle,
+        message: l10n.zonesEditSuccessMessage,
       );
-    } catch (e) {
+    } catch (_) {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.error,
-        title: 'Thất bại',
-        message: 'Không thể cập nhật địa điểm, vui lòng thử lại',
+        type: DialogType.error,
+        title: l10n.zonesFailedTitle,
+        message: l10n.zonesEditFailedMessage,
       );
     }
   }
 
-  Future<void> _handleDeleteZone(
-      BuildContext context,
-      GeoZone zone,
-      ) async {
+  Future<void> _handleDeleteZone(BuildContext context, GeoZone zone) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await _showDeleteConfirm(context, zone);
     if (!confirmed || !context.mounted) return;
 
@@ -231,24 +309,25 @@ class _ChildZonesBody extends StatelessWidget {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.success,
-        title: 'Xoá thành công',
-        message: 'Địa điểm đã được xoá',
+        type: DialogType.success,
+        title: l10n.zonesDeleteSuccessTitle,
+        message: l10n.zonesDeleteSuccessMessage,
       );
-    } catch (e) {
+    } catch (_) {
       if (!context.mounted) return;
       await _showNotice(
         context: context,
-        type: AppNoticeType.error,
-        title: 'Thất bại',
-        message: 'Không thể xoá địa điểm, vui lòng thử lại',
+        type: DialogType.error,
+        title: l10n.zonesFailedTitle,
+        message: l10n.zonesDeleteFailedMessage,
       );
     }
   }
 
   // ==================== Build Methods ====================
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -267,7 +346,7 @@ class _ChildZonesBody extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Chưa có vùng nào',
+            l10n.zonesEmptyTitle,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -276,7 +355,7 @@ class _ChildZonesBody extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Thêm vùng để bắt đầu theo dõi\nvị trí của bé',
+            l10n.zonesEmptySubtitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -289,12 +368,17 @@ class _ChildZonesBody extends StatelessWidget {
     );
   }
 
+  String _zoneTypeLabel(AppLocalizations l10n, ZoneType type) {
+    return type == ZoneType.danger ? l10n.zonesTypeDanger : l10n.zonesTypeSafe;
+  }
+
   Widget _buildZoneCard(
-      BuildContext context,
-      int index,
-      GeoZone zone,
-      ParentZonesVm vm,
-      ) {
+    BuildContext context,
+    int index,
+    GeoZone zone,
+    ParentZonesVm vm,
+  ) {
+    final l10n = AppLocalizations.of(context);
     final isDanger = zone.type == ZoneType.danger;
     final color = isDanger ? Colors.red : Colors.green;
     final icon = isDanger ? Icons.warning_amber_rounded : Icons.home_rounded;
@@ -304,9 +388,7 @@ class _ChildZonesBody extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: zone.enabled
-              ? color.withOpacity(0.3)
-              : Colors.grey.shade200,
+          color: zone.enabled ? color.withOpacity(0.3) : Colors.grey.shade200,
           width: 1.5,
         ),
         boxShadow: [
@@ -327,14 +409,9 @@ class _ChildZonesBody extends StatelessWidget {
                 color: color.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 24,
-              ),
+              child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 14),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,7 +439,7 @@ class _ChildZonesBody extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          zone.type.label,
+                          _zoneTypeLabel(l10n, zone.type),
                           style: TextStyle(
                             color: color,
                             fontSize: 11,
@@ -390,7 +467,6 @@ class _ChildZonesBody extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-
             Transform.scale(
               scale: 0.85,
               child: Switch(
@@ -399,39 +475,52 @@ class _ChildZonesBody extends StatelessWidget {
                 activeColor: color,
               ),
             ),
-
             SizedBox(
               width: 40,
               child: PopupMenuButton<String>(
                 offset: const Offset(-20, 0),
                 itemBuilder: (_) => [
-                  PopupMenuItem(
+                  PopupMenuItem<String>(
                     value: "edit",
                     child: Row(
                       children: [
-                        Icon(Icons.edit_outlined, size: 18, color: Colors.blue.shade600),
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 18,
+                          color: Colors.blue.shade600,
+                        ),
                         const SizedBox(width: 8),
-                        const Text("Sửa"),
+                        Text(l10n.zonesEditMenu),
                       ],
                     ),
                   ),
-                  PopupMenuItem(
+                  PopupMenuItem<String>(
                     value: "delete",
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline, size: 18, color: Colors.red.shade600),
+                        Icon(
+                          Icons.delete_outline,
+                          size: 18,
+                          color: Colors.red.shade600,
+                        ),
                         const SizedBox(width: 8),
-                        const Text("Xoá"),
+                        Text(l10n.zonesDeleteMenu),
                       ],
                     ),
                   ),
                 ],
-                onSelected: (v) async {
-                  if (v == "edit") {
-                    await _handleEditZone(context, zone, vm.zones);
-                  } else if (v == "delete") {
-                    await _handleDeleteZone(context, zone);
-                  }
+                onSelected: (v) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+                    if (!context.mounted) return;
+                    debugPrint('selected = $v');
+                    if (v == "edit") {
+                      debugPrint('go to edit');
+                      await _handleEditZone(context, zone, vm.zones);
+                    } else if (v == "delete") {
+                      debugPrint('go to delete');
+                      await _handleDeleteZone(context, zone);
+                    }
+                  });
                 },
                 child: Icon(
                   Icons.more_vert_rounded,
@@ -447,14 +536,16 @@ class _ChildZonesBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
-        title: const Text(
-          "Vùng của bé",
-          style: TextStyle(
+        title: Text(
+          l10n.zonesScreenTitle,
+          style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 20,
             letterSpacing: -0.5,
@@ -463,9 +554,10 @@ class _ChildZonesBody extends StatelessWidget {
         centerTitle: false,
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _handleCreateZone(context, context.read<ParentZonesVm>().zones),
+        onPressed: () =>
+            _handleCreateZone(context, context.read<ParentZonesVm>().zones),
         icon: const Icon(Icons.add_rounded),
-        label: const Text("Thêm vùng"),
+        label: Text(l10n.zonesAddButton),
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -489,12 +581,9 @@ class _ChildZonesBody extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "Lỗi: ${vm.error}",
+                    l10n.zonesErrorWithMessage(vm.error ?? ''),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey.shade700,
-                    ),
+                    style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
                   ),
                 ],
               ),
@@ -504,14 +593,15 @@ class _ChildZonesBody extends StatelessWidget {
           final zones = vm.zones;
 
           if (zones.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(context);
           }
 
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             itemCount: zones.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, i) => _buildZoneCard(context, i, zones[i], vm),          );
+            itemBuilder: (_, i) => _buildZoneCard(context, i, zones[i], vm),
+          );
         },
       ),
     );

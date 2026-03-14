@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/widgets/common/avatar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/widgets/location/batterIcon.dart';
@@ -9,6 +10,7 @@ class ChildInfoSheet extends StatefulWidget {
   final AppUser child;
   final LocationData? latest;
   final bool isSearching;
+  final List<Schedule> daySchedules;
   final VoidCallback onOpenChat;
   final Future<void> Function(String message) onSendQuickMessage;
   final VoidCallback onToggleSearch;
@@ -18,6 +20,7 @@ class ChildInfoSheet extends StatefulWidget {
     required this.child,
     required this.latest,
     required this.isSearching,
+    required this.daySchedules,
     required this.onOpenChat,
     required this.onSendQuickMessage,
     required this.onToggleSearch,
@@ -87,6 +90,13 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
     return const Color(0xFFDC2626);
   }
 
+  String _formatScheduleTime(DateTime startAt, DateTime endAt) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    final start = '${two(startAt.hour)}h${two(startAt.minute)}p';
+    final end = '${two(endAt.hour)}h${two(endAt.minute)}p';
+    return '$start – $end';
+  }
+
   @override
   Widget build(BuildContext context) {
     final child = widget.child;
@@ -95,6 +105,9 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
     final name = child.displayName!.isNotEmpty ? child.displayName : child.email;
     final initial = name!.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
     final  double circularBorder =49;
+    final schedules = List<Schedule>.from(widget.daySchedules)
+      ..sort((a, b) => a.startAt.compareTo(b.startAt));
+    final shownSchedules = schedules.take(4).toList();
     // ✅ TODO: thay bằng dữ liệu thật từ widget.child hoặc widget.latest
     const int batteryLevel = 20; // thử thay 90, 45, 15 để thấy màu thay đổi
     const statusText = 'Đang học';
@@ -317,15 +330,27 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  const _ScheduleItemStyled(
-                                    title: 'Đang học thể dục',
-                                    time: '7h00p – 7h45p',
-                                  ),
-                                  const SizedBox(height: 10),
-                                  const _ScheduleItemStyled(
-                                    title: 'Đang học toán',
-                                    time: '8h00p – 8h45p',
-                                  ),
+                                  if (shownSchedules.isEmpty)
+                                    const Text(
+                                      'Không có lịch trong ngày',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Color(0xFF6B7280),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    )
+                                  else
+                                    ...shownSchedules.asMap().entries.map((entry) {
+                                      final i = entry.key;
+                                      final s = entry.value;
+                                      return Padding(
+                                        padding: EdgeInsets.only(bottom: i == shownSchedules.length - 1 ? 0 : 10),
+                                        child: _ScheduleItemStyled(
+                                          title: s.title,
+                                          time: _formatScheduleTime(s.startAt, s.endAt),
+                                        ),
+                                      );
+                                    }),
                                 ],
                               ),
                             ),

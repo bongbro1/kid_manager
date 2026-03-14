@@ -8,6 +8,7 @@ export const detectKidAppRemoved = onSchedule(
   region: REGION,
 },
 async () => {
+
   const now = Date.now()
 
   const timeoutMs = 30 * 60 * 1000
@@ -15,17 +16,16 @@ async () => {
   const threshold = admin.firestore.Timestamp.fromMillis(now - timeoutMs)
 
   const snap = await db
-      .collectionGroup("apps")
-      .where("packageName", "==", "com.example.kid_manager")
-      .where("kidLastSeen", "<", threshold)
-      .get()
-
+    .collectionGroup("apps")
+    .where("packageName", "==", "com.example.kid_manager")
+    .where("kidLastSeen", "<", threshold)
+    .get()
 
   for (const doc of snap.docs) {
 
-    // ✅ lấy childId đúng từ path
     const childId = doc.ref.parent.parent?.id
     const data = doc.data()
+
     if (!childId) {
       console.log("skip: childId not found in path")
       continue
@@ -53,7 +53,13 @@ async () => {
       continue
     }
 
-    // console.log(`[KID APP OFFLINE] child=${childId}`)
+    const packageName = data.packageName ?? "unknown"
+    const appName = data.appName ?? "Kid Manager"
+
+    /// format time HH:mm:ss
+    const removedAt = new Date().toLocaleTimeString("en-GB", {
+      hour12: false
+    })
 
     /// 2️⃣ create notification
     const notiRef = await db.collection("notifications").add({
@@ -73,7 +79,10 @@ async () => {
 
       data: {
         childId,
-        lastSeen: data.kidLastSeen
+        childName,
+        packageName,
+        appName,
+        removedAt
       }
 
     })
@@ -84,11 +93,5 @@ async () => {
     await doc.ref.update({
       kidAppRemovedAlertSent: true
     })
-
-    // console.log("[KID APP OFFLINE] kidAppRemovedAlertSent updated")
-
   }
-
-  // console.log("========== detectKidAppRemoved END ==========");
-
 });

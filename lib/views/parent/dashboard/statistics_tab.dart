@@ -1,6 +1,5 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/utils/statical_utils.dart';
@@ -28,40 +27,141 @@ class _StatisticsTabState extends State<StatisticsTab> {
   late List<ChartBarUi> chartBars;
   final ScrollController _chartScrollController = ScrollController();
   bool showAll = false;
-  List<AppItemModel> get sortedApps {
-    final sorted = [...widget.apps];
-    sorted.sort((a, b) {
-      final aMin = getUsageForApp(a.packageName);
-      final bMin = getUsageForApp(b.packageName);
-      return bMin.compareTo(aMin);
+  int activeIndex = 0;
+  int _lastUsageVersion = -1;
+  int? selectedBarIndex;
+  int? selectedDotIndex;
+  DateTime? fromDate;
+  DateTime? toDate;
+
+  List<_UsageAppRow> get sortedUsageApps {
+    if (activeIndex == 0) {
+      final rows = widget.apps
+          .map(
+            (app) => _UsageAppRow(
+              app: app,
+              minutes: parseUsageTimeToMinutes(app.usageTime),
+            ),
+          )
+          .toList();
+
+      rows.sort((a, b) {
+        final byUsage = b.minutes.compareTo(a.minutes);
+        if (byUsage != 0) return byUsage;
+        return a.app.name.toLowerCase().compareTo(b.app.name.toLowerCase());
+      });
+
+      return rows;
+    }
+
+    final appsByPackage = <String, AppItemModel>{
+      for (final app in widget.apps) app.packageName: app,
+    };
+    final rows = <_UsageAppRow>[];
+    final addedPackages = <String>{};
+
+    for (final entry in widget.vm.appUsageMap.entries) {
+      final pkg = entry.key;
+      final minutes = getUsageForApp(pkg);
+
+      // debugPrint("DATE: ${entry.key} VALUE: ${entry.value}");
+
+      if (minutes <= 0) continue;
+
+      final app =
+          appsByPackage[pkg] ??
+          AppItemModel(packageName: pkg, name: pkg, iconBase64: null);
+
+      rows.add(_UsageAppRow(app: app, minutes: minutes));
+      addedPackages.add(pkg);
+    }
+
+    for (final app in widget.apps) {
+      if (addedPackages.contains(app.packageName)) continue;
+
+      final minutes = getUsageForApp(app.packageName);
+      if (minutes <= 0) continue;
+
+      rows.add(_UsageAppRow(app: app, minutes: minutes));
+    }
+
+    if (rows.isEmpty) {
+      for (final app in widget.apps) {
+        rows.add(
+          _UsageAppRow(app: app, minutes: getUsageForApp(app.packageName)),
+        );
+      }
+    }
+
+    rows.sort((a, b) {
+      final byUsage = b.minutes.compareTo(a.minutes);
+      if (byUsage != 0) return byUsage;
+      return a.app.name.toLowerCase().compareTo(b.app.name.toLowerCase());
     });
-    return sorted;
+
+    return rows;
   }
 
-  List<AppItemModel> get visibleApps =>
-      showAll ? sortedApps : sortedApps.take(5).toList();
+  List<_UsageAppRow> get visibleUsageApps =>
+      showAll ? sortedUsageApps : sortedUsageApps.take(5).toList();
 
   int getUsageForApp(String package) {
-  final appMap = widget.vm.appUsageMap[package];
-  if (appMap == null) return 0;
+    Map<DateTime, int>? appMap = widget.vm.appUsageMap[package];
 
-  final now = DateTime.now();
+    if (appMap == null) {
+      final normalizedPackage = package.trim().toLowerCase();
+      for (final entry in widget.vm.appUsageMap.entries) {
+        if (entry.key.trim().toLowerCase() == normalizedPackage) {
+          appMap = entry.value;
+          break;
+        }
+      }
+    }
 
-  // ===== TODAY =====
-  if (activeIndex == 0) {
+    if (appMap == null) return 0;
+
+    final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    return appMap.entries
-        .where((e) => sameDay(e.key, today))
-        .fold(0, (sum, e) => sum + e.value);
+    // ===== TODAY =====
+    if (activeIndex == 0) {
+      return _sumUsageInDateRange(appMap, today, today);
+    }
+
+    // ===== WEEK =====
+    if (activeIndex == 1) {
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      final start = DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day,
+      );
+      // Week mode should not include future dates.
+      final endOfWeek = start.add(const Duration(days: 6));
+      final end = endOfWeek.isAfter(today) ? today : endOfWeek;
+
+      return _sumUsageInDateRange(appMap, start, end);
+    }
+
+    // ===== RANGE =====
+    if (activeIndex == 2 && fromDate != null && toDate != null) {
+      final a = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
+      final b = DateTime(toDate!.year, toDate!.month, toDate!.day);
+
+      final start = a.isBefore(b) ? a : b;
+      final end = a.isBefore(b) ? b : a;
+
+      return _sumUsageInDateRange(appMap, start, end);
+    }
+
+    return 0;
   }
 
-  // ===== WEEK =====
-  if (activeIndex == 1) {
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-    final end = start.add(const Duration(days: 6));
-
+  int _sumUsageInDateRange(
+    Map<DateTime, int> appMap,
+    DateTime start,
+    DateTime end,
+  ) {
     return appMap.entries
         .where((e) {
           final d = DateTime(e.key.year, e.key.month, e.key.day);
@@ -70,25 +170,10 @@ class _StatisticsTabState extends State<StatisticsTab> {
         .fold(0, (sum, e) => sum + e.value);
   }
 
-  // ===== RANGE =====
-  if (activeIndex == 2 && fromDate != null && toDate != null) {
-    final start = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
-    final end = DateTime(toDate!.year, toDate!.month, toDate!.day);
-
-    return appMap.entries
-        .where((e) {
-          final d = DateTime(e.key.year, e.key.month, e.key.day);
-          return !d.isBefore(start) && !d.isAfter(end);
-        })
-        .fold(0, (sum, e) => sum + e.value);
+  int get totalMinutes {
+    if (chartBars.isEmpty) return 0;
+    return chartBars.fold(0, (sum, e) => sum + e.minutes);
   }
-
-  return 0;
-}
-
-  int activeIndex = 0;
-
-  int _lastUsageVersion = -1;
 
   @override
   void initState() {
@@ -115,7 +200,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
     if (_lastUsageVersion != widget.vm.usageVersion) {
       _lastUsageVersion = widget.vm.usageVersion;
-
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _buildChart();
       });
@@ -138,10 +222,10 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
   void _buildChart() {
     final mode = _resolveMode();
-
     final points = ChartDataHelper.generate(
       mode: mode,
       usageMap: widget.vm.usageMap,
+      hourlyMap: widget.vm.hourlyUsage,
       fromDate: fromDate,
       toDate: toDate,
     );
@@ -149,45 +233,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
     chartBars = ChartUiBuilder.build(points, mode);
   }
 
-  int? selectedBarIndex;
-
-  int get totalMinutes {
-    if (chartBars.isEmpty) return 0;
-    return chartBars.fold(0, (sum, e) => sum + e.minutes);
-  }
-
-  String get totalTitle {
-    switch (activeIndex) {
-      case 0:
-        return "TỔNG THỜI GIAN HÔM NAY";
-
-      case 1:
-        return "TỔNG THỜI GIAN TUẦN NÀY";
-
-      case 2:
-        if (fromDate == null && toDate == null) {
-          return "CHỌN KHOẢNG NGÀY";
-        }
-
-        if (fromDate != null && toDate == null) {
-          return "CHỌN NGÀY KẾT THÚC";
-        }
-
-        if (fromDate != null && toDate != null) {
-          return "TỔNG THỜI GIAN TỪ "
-              "${formatDateDDMMYYYY(fromDate!)} - "
-              "${formatDateDDMMYYYY(toDate!)}";
-        }
-
-        return "CHỌN KHOẢNG NGÀY";
-
-      default:
-        return "";
-    }
-  }
-
-  DateTime? fromDate;
-  DateTime? toDate;
   void _updateRange(DateTime? a, DateTime? b) {
     // 🟡 Case: user chọn START mới
     if (a != null && b == null) {
@@ -221,16 +266,39 @@ class _StatisticsTabState extends State<StatisticsTab> {
         toDate = end;
       });
 
-      // debugPrint("📅 NORMALIZED RANGE");
-      // debugPrint("FROM: $fromDate");
-      // debugPrint("TO  : $toDate");
-
       _buildChart();
+    }
+  }
+
+  String _totalTitle(AppLocalizations l10n) {
+    switch (activeIndex) {
+      case 0:
+        return l10n.parentStatsTotalToday;
+      case 1:
+        return l10n.parentStatsTotalThisWeek;
+      case 2:
+        if (fromDate == null && toDate == null) {
+          return l10n.parentStatsSelectRange;
+        }
+        if (fromDate != null && toDate == null) {
+          return l10n.parentStatsSelectEndDate;
+        }
+        if (fromDate != null && toDate != null) {
+          return l10n.parentStatsTotalFromRange(
+            formatDateDDMMYYYY(fromDate!),
+            formatDateDDMMYYYY(toDate!),
+          );
+        }
+        return l10n.parentStatsSelectRange;
+      default:
+        return '';
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       children: [
         const SizedBox(height: 6),
@@ -253,16 +321,13 @@ class _StatisticsTabState extends State<StatisticsTab> {
           ),
           child: Row(
             children: [
-              buildSegment('Ngày', 0),
-              buildSegment('Tuần', 1),
-              buildSegment('Thêm', 2),
+              buildSegment(l10n.parentStatsSegmentDay, 0),
+              buildSegment(l10n.parentStatsSegmentWeek, 1),
+              buildSegment(l10n.parentStatsSegmentRange, 2),
             ],
           ),
         ),
-
         const SizedBox(height: 16),
-
-        /// ===== NỘI DUNG SCROLL =====
         Expanded(
           child: RefreshIndicator(
             onRefresh: widget.onRefresh,
@@ -282,7 +347,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                     },
                   ),
                 ],
-
                 const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
@@ -310,8 +374,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                totalTitle,
-                                style: TextStyle(
+                                _totalTitle(l10n),
+                                style: const TextStyle(
                                   color: Color(0xFF94A3B8),
                                   fontSize: 12,
                                   fontFamily: 'Inter',
@@ -319,10 +383,10 @@ class _StatisticsTabState extends State<StatisticsTab> {
                                   letterSpacing: 0.6,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
                                 formatMinutes(totalMinutes),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Color(0xFF1E293B),
                                   fontSize: 30,
                                   fontFamily: 'Inter',
@@ -333,99 +397,27 @@ class _StatisticsTabState extends State<StatisticsTab> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 14),
 
                       /// CHART
                       SizedBox(
                         height: 200,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final count = chartBars.length;
-
-                            double barWidth;
-
-                            if (count <= 7) {
-                              // Tuần → fit full
-                              barWidth = (constraints.maxWidth / count) - 12;
-                            } else {
-                              // Ngày + Tháng → scroll
-                              barWidth = 40;
-                            }
-
-                            return Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                /// SCROLL BARS
-                                SingleChildScrollView(
-                                  controller: _chartScrollController,
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: List.generate(chartBars.length, (
-                                      i,
-                                    ) {
-                                      final bar = chartBars[i];
-
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                        ),
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              selectedBarIndex = i;
-                                            });
-                                          },
-                                          child: BarWidget(
-                                            width: barWidth,
-                                            height: bar.uiHeight,
-                                            valueHeight: bar.valueHeight,
-                                            label: bar.label,
-                                            active: bar.isToday,
-                                            faded: bar.isFuture,
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                                ),
-
-                                /// FLOATING TOOLTIP
-                                if (selectedBarIndex != null &&
-                                    selectedBarIndex! < chartBars.length)
-                                  Positioned(
-                                    left:
-                                        selectedBarIndex! * (barWidth + 12) -
-                                        _chartScrollController.offset +
-                                        6,
-                                    bottom:
-                                        chartBars[selectedBarIndex!].uiHeight +
-                                        30,
-                                    child: TooltipWidget(
-                                      value:
-                                          chartBars[selectedBarIndex!].minutes,
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
+                        child: _resolveMode() == ChartMode.today
+                            ? _buildLineChart()
+                            : _buildBarChart(),
                       ),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Chi tiết ứng dụng',
-                        style: TextStyle(
+                        l10n.parentStatsAppDetailsTitle,
+                        style: const TextStyle(
                           color: Color(0xFF1E293B),
                           fontSize: 18,
                           fontFamily: 'Inter',
@@ -433,14 +425,15 @@ class _StatisticsTabState extends State<StatisticsTab> {
                           height: 1.56,
                         ),
                       ),
-
                       GestureDetector(
                         onTap: () {
                           setState(() => showAll = !showAll);
                         },
                         child: Text(
-                          showAll ? 'THU GỌN' : 'XEM TẤT CẢ',
-                          style: TextStyle(
+                          showAll
+                              ? l10n.parentStatsCollapse
+                              : l10n.parentStatsViewAll,
+                          style: const TextStyle(
                             color: Color(0xFF3B82F6),
                             fontSize: 12,
                             fontFamily: 'Inter',
@@ -452,19 +445,18 @@ class _StatisticsTabState extends State<StatisticsTab> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 16),
 
                 /// List apps
-                ...visibleApps.map((app) {
-                  final minutes = getUsageForApp(app.packageName);
+                ...visibleUsageApps.map((row) {
+                  final app = row.app;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: AppItem(
-                      key: ValueKey("stats_${app.packageName}"),
+                      key: ValueKey('stats_${app.packageName}'),
                       appName: app.name,
                       app: app,
-                      usageTimeText: formatMinutes(minutes),
+                      usageTimeText: formatMinutes(row.minutes),
                       iconBase64: app.iconBase64,
                       showRightIcon: false,
                     ),
@@ -475,6 +467,153 @@ class _StatisticsTabState extends State<StatisticsTab> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLineChart() {
+    final maxMinutes = chartBars.fold<int>(
+      0,
+      (m, e) => e.minutes > m ? e.minutes : m,
+    );
+
+    const stepX = 40.0;
+    final chartWidth = chartBars.length * stepX;
+
+    return SingleChildScrollView(
+      controller: _chartScrollController,
+      scrollDirection: Axis.horizontal,
+      child: SizedBox(
+        width: chartWidth,
+        height: 220,
+        child: GestureDetector(
+          onTapDown: (details) {
+            final index = (details.localPosition.dx / stepX).round();
+
+            if (index >= 0 && index < chartBars.length) {
+              setState(() {
+                selectedDotIndex = index;
+              });
+            }
+          },
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CustomPaint(
+                size: Size(chartWidth, 200),
+                painter: _LineChartPainter(
+                  bars: chartBars,
+                  maxMinutes: maxMinutes,
+                  selectedIndex: selectedDotIndex,
+                ),
+              ),
+
+              if (selectedDotIndex != null) _buildDotTooltip(stepX, chartWidth),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDotTooltip(double stepX, double chartWidth) {
+    final bar = chartBars[selectedDotIndex!];
+
+    final maxMinutes = chartBars.fold<int>(
+      0,
+      (m, e) => e.minutes > m ? e.minutes : m,
+    );
+
+    final x = selectedDotIndex! * stepX;
+
+    final normalized = maxMinutes == 0 ? 0 : bar.minutes / maxMinutes;
+    final y = 200 - (normalized * 200);
+
+    const tooltipHeight = 40;
+    const tooltipWidth = 60;
+
+    final showRight = y - tooltipHeight < 0;
+
+    final clampedLeft = (showRight ? x + 8 : x - tooltipWidth / 2)
+        .clamp(0.0, chartWidth - tooltipWidth)
+        .toDouble();
+
+    final top = (y - tooltipHeight + 20)
+        .clamp(0.0, 200 - tooltipHeight)
+        .toDouble();
+
+    return Positioned(
+      left: clampedLeft,
+      top: top,
+      child: TooltipWidget(value: bar.minutes),
+    );
+  }
+
+  Widget _buildBarChart() {
+    const chartHeight = 150.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final count = chartBars.length;
+
+        double barWidth;
+
+        if (count <= 7) {
+          barWidth = (constraints.maxWidth / count) - 12;
+        } else {
+          barWidth = 40;
+        }
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            SingleChildScrollView(
+              controller: _chartScrollController,
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(chartBars.length, (i) {
+                  final bar = chartBars[i];
+
+                  final tooltipBottom = (bar.valueHeight + 30)
+                      .clamp(0.0, chartHeight + 25)
+                      .toDouble();
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedBarIndex = i;
+                        });
+                      },
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.bottomCenter,
+                        children: [
+                          /// BAR
+                          BarWidget(
+                            width: barWidth,
+                            height: chartHeight,
+                            valueHeight: bar.valueHeight,
+                            label: bar.label,
+                            active: selectedBarIndex == i,
+                            faded: bar.isFuture,
+                          ),
+
+                          /// TOOLTIP
+                          if (selectedBarIndex == i)
+                            Positioned(
+                              bottom: tooltipBottom,
+                              child: TooltipWidget(value: bar.minutes),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -523,4 +662,89 @@ class _StatisticsTabState extends State<StatisticsTab> {
       ),
     );
   }
+}
+
+class _LineChartPainter extends CustomPainter {
+  final List<ChartBarUi> bars;
+  final int maxMinutes;
+  final int? selectedIndex;
+
+  _LineChartPainter({
+    required this.bars,
+    required this.maxMinutes,
+    this.selectedIndex,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (bars.isEmpty) return;
+
+    final linePaint = Paint()
+      ..color = Colors.blue
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+
+    final pointPaint = Paint()
+      ..color = Colors.blue
+      ..style = PaintingStyle.fill;
+
+    final selectedPaint = Paint()
+      ..color = Colors.orange
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+
+    const stepX = 40.0;
+    const topPadding = 20.0;
+    const bottomPadding = 28.0;
+
+    final chartHeight = size.height - topPadding - bottomPadding;
+
+    for (int i = 0; i < bars.length; i++) {
+      final value = bars[i].minutes.toDouble();
+
+      final normalized = maxMinutes == 0 ? 0 : value / maxMinutes;
+
+      final x = i * stepX;
+      final y = size.height - bottomPadding - (normalized * chartHeight);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+
+      final paint = i == selectedIndex ? selectedPaint : pointPaint;
+
+      canvas.drawCircle(Offset(x, y), 4, paint);
+
+      /// DRAW HOUR LABEL
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: bars[i].label, // ví dụ "0h", "1h"
+          style: const TextStyle(fontSize: 10, color: Colors.grey),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+
+      textPainter.layout();
+
+      final labelX = x - textPainter.width / 2;
+      final labelY = size.height - 16;
+
+      textPainter.paint(canvas, Offset(labelX, labelY));
+    }
+
+    canvas.drawPath(path, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class _UsageAppRow {
+  final AppItemModel app;
+  final int minutes;
+
+  _UsageAppRow({required this.app, required this.minutes});
 }

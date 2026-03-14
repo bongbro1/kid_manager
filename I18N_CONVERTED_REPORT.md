@@ -27,6 +27,17 @@ Danh sach duoi day tong hop cac folder/file da duoc chuyen text hard-code sang `
 - `lib/views/parent/memory_day/memory_day_screen.dart`
 - `lib/views/parent/memory_day/memory_day_sheet.dart`
 
+### `lib/views/parent/dashboard`
+- `lib/views/parent/dashboard/app_management_screen.dart`
+- `lib/views/parent/dashboard/no_child_screen.dart`
+- `lib/views/parent/dashboard/user_carousel_card.dart`
+- `lib/views/parent/dashboard/statistics_tab.dart`
+- `lib/views/parent/dashboard/usage_time_edit_screen.dart`
+
+### `lib/views/parent/zones`
+- `lib/views/parent/zones/child_zones_screen.dart`
+- `lib/views/parent/zones/edit_zone_screen.dart`
+
 ### `lib/views/child/schedule`
 - `lib/views/child/schedule/child_schedule_screen.dart`
 

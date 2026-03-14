@@ -1096,6 +1096,215 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
+  String get parentDashboardTitle => 'Dashboard';
+
+  @override
+  String get parentDashboardTabApps => 'Apps';
+
+  @override
+  String get parentDashboardTabStatistics => 'Statistics';
+
+  @override
+  String get parentDashboardNoDeviceTitle => 'No linked devices yet';
+
+  @override
+  String get parentDashboardNoDeviceSubtitle =>
+      'To monitor app usage time, add your child\'s device to the system.';
+
+  @override
+  String get parentDashboardAddDeviceButton => 'Add device';
+
+  @override
+  String get parentDashboardHowItWorksButton => 'Learn how it works';
+
+  @override
+  String get parentStatsTotalToday => 'TOTAL TIME TODAY';
+
+  @override
+  String get parentStatsTotalThisWeek => 'TOTAL TIME THIS WEEK';
+
+  @override
+  String get parentStatsSelectRange => 'SELECT DATE RANGE';
+
+  @override
+  String get parentStatsSelectEndDate => 'SELECT END DATE';
+
+  @override
+  String parentStatsTotalFromRange(String startDate, String endDate) {
+    return 'TOTAL TIME FROM $startDate - $endDate';
+  }
+
+  @override
+  String get parentStatsSegmentDay => 'Day';
+
+  @override
+  String get parentStatsSegmentWeek => 'Week';
+
+  @override
+  String get parentStatsSegmentRange => 'Range';
+
+  @override
+  String get parentStatsAppDetailsTitle => 'App details';
+
+  @override
+  String get parentStatsCollapse => 'COLLAPSE';
+
+  @override
+  String get parentStatsViewAll => 'VIEW ALL';
+
+  @override
+  String get parentUsageNoAvailableSlot => 'No available time slot';
+
+  @override
+  String get parentUsageStartBeforeEnd =>
+      'Start time must be earlier than end time';
+
+  @override
+  String get parentUsageOverlapTimeRange => 'Time range overlaps another slot';
+
+  @override
+  String get parentUsageEndAfterStart =>
+      'End time must be later than start time';
+
+  @override
+  String get parentUsageEditTitle => 'Usage time settings';
+
+  @override
+  String get parentUsageEnableUsage => 'Allow usage';
+
+  @override
+  String get parentUsageSelectAllowedDays => 'Select allowed days';
+
+  @override
+  String get saveButton => 'Save';
+
+  @override
+  String get parentUsageDayRuleModalHint => 'Choose the rule for this day';
+
+  @override
+  String get parentUsageRuleFollowScheduleTitle => 'Follow schedule';
+
+  @override
+  String get parentUsageRuleFollowScheduleSubtitle =>
+      'Apply weekly time windows';
+
+  @override
+  String get parentUsageRuleAllowAllDayTitle => 'Allow all day';
+
+  @override
+  String get parentUsageRuleAllowAllDaySubtitle => 'Can be used at any time';
+
+  @override
+  String get parentUsageRuleBlockAllDayTitle => 'Block all day';
+
+  @override
+  String get parentUsageRuleBlockAllDaySubtitle => 'Cannot be used today';
+
+  @override
+  String get zonesDeleteConfirmTitle => 'Confirm deletion';
+
+  @override
+  String get zonesDeleteConfirmMessage =>
+      'Are you sure you want to delete this location?';
+
+  @override
+  String get zonesDeleteButton => 'Delete';
+
+  @override
+  String get zonesCreateSuccessTitle => 'Created successfully';
+
+  @override
+  String zonesCreateSuccessMessage(String name) {
+    return 'Location \"$name\" has been created';
+  }
+
+  @override
+  String get zonesFailedTitle => 'Failed';
+
+  @override
+  String get zonesCreateFailedMessage =>
+      'Unable to create location. Please try again.';
+
+  @override
+  String get zonesEditSuccessTitle => 'Updated successfully';
+
+  @override
+  String get zonesEditSuccessMessage => 'Location has been updated';
+
+  @override
+  String get zonesEditFailedMessage =>
+      'Unable to update location. Please try again.';
+
+  @override
+  String get zonesDeleteSuccessTitle => 'Deleted successfully';
+
+  @override
+  String get zonesDeleteSuccessMessage => 'Location has been deleted';
+
+  @override
+  String get zonesDeleteFailedMessage =>
+      'Unable to delete location. Please try again.';
+
+  @override
+  String get zonesEmptyTitle => 'No zones yet';
+
+  @override
+  String get zonesEmptySubtitle =>
+      'Add zones to start tracking your child\'s location';
+
+  @override
+  String get zonesTypeSafe => 'Safe';
+
+  @override
+  String get zonesTypeDanger => 'Danger';
+
+  @override
+  String get zonesEditMenu => 'Edit';
+
+  @override
+  String get zonesDeleteMenu => 'Delete';
+
+  @override
+  String get zonesScreenTitle => 'Child zones';
+
+  @override
+  String get zonesAddButton => 'Add zone';
+
+  @override
+  String zonesErrorWithMessage(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get zonesNewZoneDefaultName => 'New zone';
+
+  @override
+  String get zonesEditTitle => 'Edit zone';
+
+  @override
+  String get zonesAddAddressTitle => 'Location address';
+
+  @override
+  String get zonesOverlapWarningText => 'Locations should not overlap';
+
+  @override
+  String get zonesNameFieldLabel => 'Zone name';
+
+  @override
+  String get zonesTypeFieldLabel => 'Zone type';
+
+  @override
+  String get zonesRadiusLabel => 'Radius';
+
+  @override
+  String zonesOverlappingWith(String name) {
+    return 'Overlapping with: $name';
+  }
+
+  @override
+  String get zonesDefaultNameFallback => 'Zone';
+
+  @override
   String get zone_default => 'Thông báo hehehe';
 
   @override

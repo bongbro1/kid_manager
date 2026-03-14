@@ -1,10 +1,10 @@
-// lib/screens/zones/edit_zone_screen.dart
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:kid_manager/helpers/zone/zone_circle.dart'; // metersPerPixelFromZoomLat
+import 'package:kid_manager/helpers/zone/zone_circle.dart';
 import 'package:kid_manager/helpers/zone/zone_overlap.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/widgets/map/marker_icon_factory.dart';
 import 'package:kid_manager/widgets/map/zone_map_renderer.dart';
@@ -15,7 +15,7 @@ import 'zone_overlay_widgets.dart';
 
 class EditZoneScreen extends StatefulWidget {
   final String childId;
-  final GeoZone? zone; // null = create, non-null = edit
+  final GeoZone? zone;
   final List<GeoZone> existingZones;
 
   const EditZoneScreen({
@@ -34,14 +34,12 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
   ZoneMapRenderer? _renderer;
 
   late ZoneType _type;
-  late double _radiusM; // radius thật lưu DB (m)
+  late double _radiusM;
   late String _name;
-
   late final TextEditingController _nameCtrl;
 
   bool _styleReady = false;
-  mbx.Position? _center; // tâm zone = camera center
-
+  mbx.Position? _center;
   double _metersPerPixel = 1;
 
   final GlobalKey _overlayKey = GlobalKey();
@@ -56,12 +54,11 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
   DateTime _lastCamTick = DateTime.fromMillisecondsSinceEpoch(0);
   bool _camSyncing = false;
   bool _didInitialFocus = false;
+  bool _didInitLocalizedName = false;
 
-  // radius thực để lưu (m)
   static const double _minRadiusM = 20;
   static const double _maxRadiusM = 5000;
 
-  // radius hiển thị trên màn hình (px). CREATE: px cố định, EDIT: px = radiusM/mpp
   static const double _minRadiusPx = 52;
   static const double _defaultRadiusPx = 58;
 
@@ -80,12 +77,25 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
 
     _type = z?.type ?? ZoneType.safe;
     _radiusM = (z?.radiusM ?? 200).clamp(_minRadiusM, _maxRadiusM);
-    _name = z?.name ?? "Vùng mới";
+    _name = z?.name ?? '';
     _nameCtrl = TextEditingController(text: _name);
 
     if (z != null) {
       _center = mbx.Position(z.lng, z.lat);
       _radiusPxFixed = (_radiusM / 1.0).clamp(_minRadiusPx, 99999);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInitLocalizedName) return;
+    _didInitLocalizedName = true;
+
+    if (!_isEditing && _nameCtrl.text.trim().isEmpty) {
+      final l10n = AppLocalizations.of(context);
+      _name = l10n.zonesNewZoneDefaultName;
+      _nameCtrl.text = _name;
     }
   }
 
@@ -99,14 +109,14 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     if (_center == null) return;
 
     final tmp = GeoZone(
-      id: widget.zone?.id ?? "_draft",
+      id: widget.zone?.id ?? '_draft',
       name: _name,
       type: _type,
       lat: _center!.lat.toDouble(),
       lng: _center!.lng.toDouble(),
       radiusM: _radiusM,
       enabled: true,
-      createdBy: widget.zone?.createdBy ?? "",
+      createdBy: widget.zone?.createdBy ?? '',
       createdAt: widget.zone?.createdAt ?? 0,
       updatedAt: 0,
     );
@@ -123,12 +133,15 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final baseColor = _type == ZoneType.danger ? Colors.red : Colors.green;
     final circleColor = _isOverlapping ? Colors.red : baseColor;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? "Chỉnh sửa vùng" : "Địa chỉ của địa điểm"),
+        title: Text(
+          _isEditing ? l10n.zonesEditTitle : l10n.zonesAddAddressTitle,
+        ),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -145,11 +158,10 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
 
           return Stack(
             children: [
-              // MAP
               Positioned.fill(
                 child: mbx.MapWidget(
-                  key: const ValueKey("edit-zone-map"),
-                  styleUri: "mapbox://styles/mapbox/satellite-streets-v12",
+                  key: const ValueKey('edit-zone-map'),
+                  styleUri: 'mapbox://styles/mapbox/satellite-streets-v12',
                   cameraOptions: mbx.CameraOptions(
                     zoom: 15.5,
                     center: mbx.Point(
@@ -183,11 +195,9 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                     final zonesForMap = widget.existingZones
                         .where((z) => z.id != widget.zone?.id)
                         .toList();
-                    await _renderer!.syncZoneCircles(
-                      zonesForMap,
-                    ); // ← đổi từ widget.existingZones
+                    await _renderer!.syncZoneCircles(zonesForMap);
                     await _renderer!.syncZoneIcons(
-                      zones: zonesForMap, // ← đổi từ widget.existingZones
+                      zones: zonesForMap,
                       safeIcon: _safeIcon!,
                       dangerIcon: _dangerIcon!,
                     );
@@ -199,7 +209,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                       _radiusM = z.radiusM.clamp(_minRadiusM, _maxRadiusM);
 
                       await _map?.flyTo(
-                        // ✅ Dùng flyTo thay setCamera
                         mbx.CameraOptions(
                           center: mbx.Point(coordinates: _center!),
                           zoom: 15.5,
@@ -207,11 +216,8 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                         mbx.MapAnimationOptions(duration: 600),
                       );
 
-                      // ✅ Delay nhỏ để camera settle rồi mới sync
                       await Future.delayed(const Duration(milliseconds: 700));
-                      await _syncFromCamera(
-                        updateRadiusFromPx: false,
-                      ); // false = giữ radiusM
+                      await _syncFromCamera(updateRadiusFromPx: false);
                     } else {
                       await _syncFromCamera(updateRadiusFromPx: !_isEditing);
                     }
@@ -220,14 +226,14 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                     if (_draggingHandle) return;
 
                     final now = DateTime.now();
-                    if (now.difference(_lastCamTick).inMilliseconds < 50)
+                    if (now.difference(_lastCamTick).inMilliseconds < 50) {
                       return;
+                    }
                     _lastCamTick = now;
 
                     if (_camSyncing) return;
                     _camSyncing = true;
                     try {
-                      // ✅ EDIT: KHÔNG update radiusM theo px khi pan/zoom
                       await _syncFromCamera(updateRadiusFromPx: !_isEditing);
                     } finally {
                       _camSyncing = false;
@@ -239,8 +245,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                   },
                 ),
               ),
-
-              // OVERLAY (circle + icon + warning)
               Positioned.fill(
                 child: IgnorePointer(
                   child: Container(
@@ -261,7 +265,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                             ),
                           ),
                         ),
-
                         Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -280,13 +283,12 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                             ],
                           ),
                         ),
-
                         if (_isOverlapping)
                           Center(
                             child: Transform.translate(
-                              offset: Offset(0, -34),
+                              offset: const Offset(0, -34),
                               child: ZoneWarningPill(
-                                text: "Các địa điểm không nên chồng chéo",
+                                text: l10n.zonesOverlapWarningText,
                               ),
                             ),
                           ),
@@ -295,8 +297,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                   ),
                 ),
               ),
-
-              // HANDLE drag radius (kéo để đổi bán kính -> radiusM)
               Positioned.fill(
                 child: Center(
                   child: Transform.translate(
@@ -316,8 +316,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                   ),
                 ),
               ),
-
-              // BOTTOM SHEET
               DraggableScrollableSheet(
                 initialChildSize: 0.26,
                 minChildSize: 0.14,
@@ -356,27 +354,25 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                   borderRadius: BorderRadius.circular(99),
                                 ),
                               ),
-
                               TextField(
-                                decoration: const InputDecoration(
-                                  labelText: "Tên vùng",
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l10n.zonesNameFieldLabel,
+                                  border: const OutlineInputBorder(),
                                 ),
                                 controller: _nameCtrl,
                                 onChanged: (v) => _name = v,
                               ),
                               const SizedBox(height: 10),
-
                               DropdownButtonFormField<ZoneType>(
                                 value: _type,
-                                items: const [
+                                items: [
                                   DropdownMenuItem(
                                     value: ZoneType.safe,
-                                    child: Text("Vùng an toàn"),
+                                    child: Text(l10n.zonesTypeSafe),
                                   ),
                                   DropdownMenuItem(
                                     value: ZoneType.danger,
-                                    child: Text("Vùng nguy hiểm"),
+                                    child: Text(l10n.zonesTypeDanger),
                                   ),
                                 ],
                                 onChanged: (v) {
@@ -384,57 +380,114 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                   setState(() => _type = v);
                                   _recalcOverlapMeters();
                                 },
-                                decoration: const InputDecoration(
-                                  labelText: "Loại vùng",
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l10n.zonesTypeFieldLabel,
+                                  border: const OutlineInputBorder(),
                                 ),
                               ),
-
                               const SizedBox(height: 10),
                               Row(
                                 children: [
-                                  const Text("Bán kính"),
+                                  Text(l10n.zonesRadiusLabel),
                                   const Spacer(),
                                   Text(
-                                    "${_radiusM.toStringAsFixed(0)} m",
+                                    '${_radiusM.toStringAsFixed(0)} m',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
                                 ],
                               ),
-
                               const SizedBox(height: 12),
-
                               SizedBox(
                                 width: double.infinity,
-                                height: 52,
+                                height: 54,
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
+                                    elevation: _isOverlapping ? 0 : 2,
                                     backgroundColor: _isOverlapping
-                                        ? Colors.grey.shade600
+                                        ? const Color(0xFF9CA3AF)
                                         : baseColor,
+                                    disabledBackgroundColor: const Color(
+                                      0xFF9CA3AF,
+                                    ),
+                                    foregroundColor: Colors.white,
+                                    disabledForegroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
-                                  onPressed: _isOverlapping
-                                      ? null
-                                      : _onSavePressed,
-                                  child: const Text(
-                                    "Tiếp tục",
-                                    style: TextStyle(
+                                  onPressed: _isOverlapping ? null : _onSavePressed,
+                                  child: Text(
+                                    l10n.authContinueButton,
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                      letterSpacing: 0.2,
                                     ),
                                   ),
                                 ),
                               ),
 
                               if (_isOverlapping && _overlapWith != null) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF2F2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFFECACA),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(
+                                        Icons.warning_amber_rounded,
+                                        color: Color(0xFFDC2626),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: RichText(
+                                          text: TextSpan(
+                                            style: const TextStyle(
+                                              fontSize: 13.5,
+                                              height: 1.45,
+                                              color: Color(0xFF991B1B),
+                                            ),
+                                            children: [
+                                              const TextSpan(
+                                                text: "Đang chồng lên: ",
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: _overlapWith!.name,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              if (_isOverlapping && _overlapWith != null) ...[
                                 const SizedBox(height: 10),
                                 Text(
-                                  "Đang chồng lên: ${_overlapWith!.name}",
+                                  l10n.zonesOverlappingWith(_overlapWith!.name),
                                   style: const TextStyle(
                                     color: Colors.red,
                                     fontWeight: FontWeight.w700,
@@ -457,6 +510,7 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
   }
 
   Future<void> _onSavePressed() async {
+    final l10n = AppLocalizations.of(context);
     await _syncFromCamera(updateRadiusFromPx: !_isEditing);
     if (_center == null) return;
 
@@ -466,13 +520,13 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
 
     final candidate = GeoZone(
       id: id,
-      name: _name.trim().isEmpty ? "Vùng" : _name.trim(),
+      name: _name.trim().isEmpty ? l10n.zonesDefaultNameFallback : _name.trim(),
       type: _type,
       lat: _center!.lat.toDouble(),
       lng: _center!.lng.toDouble(),
       radiusM: _radiusM,
       enabled: true,
-      createdBy: widget.zone?.createdBy ?? "",
+      createdBy: widget.zone?.createdBy ?? '',
       createdAt: createdAt,
       updatedAt: now,
     );
@@ -504,7 +558,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     final lat = _center!.lat.toDouble();
     _metersPerPixel = metersPerPixelFromZoomLat(zoom: zoom, lat: lat);
 
-    // CREATE: px cố định -> radiusM đổi theo zoom
     if (updateRadiusFromPx && !_isEditing) {
       _radiusM = (_radiusPxFixed * _metersPerPixel).clamp(
         _minRadiusM,
@@ -512,7 +565,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
       );
     }
 
-    // EDIT: radiusM cố định -> px đổi theo zoom (để overlay đúng vòng đang edit)
     if (_isEditing) {
       _radiusPxFixed = (_radiusM / max(0.01, _metersPerPixel)).clamp(
         _minRadiusPx,
@@ -540,7 +592,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
 
     setState(() {
       _radiusPxFixed = newPx;
-      // Kéo handle luôn đổi radiusM theo mpp hiện tại (create/edit đều vậy)
       _radiusM = (_radiusPxFixed * _metersPerPixel).clamp(
         _minRadiusM,
         _maxRadiusM,

@@ -7,7 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:usage_stats/usage_stats.dart';
 
 class PermissionService {
-
   Future<bool> hasMicrophonePermission() async {
     final status = await Permission.microphone.status;
     return status.isGranted;
@@ -112,10 +111,31 @@ class PermissionService {
     }
   }
 
+  Future<void> openBatteryOptimizationSettings() async {
+    await NativeWatcherService.requestIgnoreBatteryOptimizations();
+  }
+
+  Future<bool> hasBatteryOptimizationDisabled() async {
+    if (!Platform.isAndroid) return false;
+
+    try {
+      final bool disabled =
+          await NativeWatcherService.isIgnoringBatteryOptimizations();
+
+      debugPrint("🔋 Battery optimization disabled = $disabled");
+
+      return disabled;
+    } catch (e) {
+      debugPrint("Battery optimization check error: $e");
+      return false;
+    }
+  }
+
   Future<Map<String, bool>> checkAllPermissions() async {
     final mic = await hasMicrophonePermission();
     final media = await hasPhotosOrStoragePermission();
     final usage = await hasUsagePermission();
+    final battery = await hasBatteryOptimizationDisabled();
     final accessibility = await hasAccessibilityPermission();
 
     return {
@@ -123,6 +143,7 @@ class PermissionService {
       'media': media,
       'usage': usage,
       'accessibility': accessibility,
+      'batteryOptimizationDisabled': battery,
     };
   }
 }

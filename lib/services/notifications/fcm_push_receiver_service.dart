@@ -10,6 +10,37 @@ class FcmPushReceiverService {
   static final _messaging = FirebaseMessaging.instance;
   static final _db = FirebaseFirestore.instance;
 
+  static Future<void> _cleanupTokenFromOtherUsers(
+    String uid,
+    String token,
+  ) async {
+    try {
+      final dupSnap = await _db
+          .collectionGroup('fcmTokens')
+          .where('token', isEqualTo: token)
+          .get();
+
+      if (dupSnap.docs.isEmpty) return;
+
+      final batch = _db.batch();
+      var deleted = 0;
+
+      for (final doc in dupSnap.docs) {
+        final ownerUid = doc.reference.parent.parent?.id;
+        if (ownerUid == null || ownerUid == uid) continue;
+        batch.delete(doc.reference);
+        deleted++;
+      }
+
+      if (deleted > 0) {
+        await batch.commit();
+        debugPrint('FCM token cleanup: removed $deleted stale owner docs');
+      }
+    } catch (e) {
+      debugPrint('FCM token cleanup error: $e');
+    }
+  }
+
   /// ===============================
   /// INIT (gọi sau khi login thành công)
   /// ===============================
@@ -66,6 +97,8 @@ class FcmPushReceiverService {
           "platform": platform,
           "updatedAt": FieldValue.serverTimestamp(),
         });
+
+    await _cleanupTokenFromOtherUsers(uid, token);
   }
 
   static Future<void> removeToken(String uid) async {

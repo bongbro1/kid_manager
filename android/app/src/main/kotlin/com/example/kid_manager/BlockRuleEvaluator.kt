@@ -1,6 +1,6 @@
 package com.example.kid_manager
 
-import android.content.Context
+import android.util.Log
 
 data class NativeTimeWindow(
     val startMin: Int,
@@ -25,17 +25,21 @@ class BlockRuleEvaluator(
     private val ruleSyncManager: FirestoreRuleSyncManager
 ) {
     companion object {
-        private const val RULE_PREFS = "watcher_rules"
-        private const val KEY_BLOCKED_PACKAGES = "blocked_packages"
+        private const val TAG = "BlockRuleEvaluator"
     }
 
     fun readRule(packageName: String): NativeRule? {
         return ruleSyncManager.getRule(packageName)
     }
     fun checkBlocked(packageName: String): BlockCheckResult {
-        val rule = readRule(packageName) ?: return BlockCheckResult(isBlocked = false)
+        val rule = readRule(packageName)
+        if (rule == null) {
+            Log.d(TAG, "No rule for package=$packageName -> allow")
+            return BlockCheckResult(isBlocked = false)
+        }
 
         if (!rule.enabled) {
+            Log.d(TAG, "Blocked package=$packageName reason=rule_disabled")
             return BlockCheckResult(isBlocked = true, reason = "rule_disabled")
         }
 
@@ -46,19 +50,26 @@ class BlockRuleEvaluator(
         val override = rule.overrides[today]
 
         if (override == "allowFullDay") {
+            Log.d(TAG, "Allow package=$packageName reason=override_allow today=$today")
             return BlockCheckResult(isBlocked = false)
         }
 
         if (override == "blockFullDay") {
+            Log.d(TAG, "Blocked package=$packageName reason=override_block today=$today")
             return BlockCheckResult(isBlocked = true, reason = "override_block")
         }
 
         if (!rule.weekdays.contains(weekday)) {
+            Log.d(TAG, "Blocked package=$packageName reason=invalid_weekday weekday=$weekday")
             return BlockCheckResult(isBlocked = true, reason = "invalid_weekday")
         }
 
         for (w in rule.windows) {
             if (nowMin >= w.startMin && nowMin <= w.endMin) {
+                Log.d(
+                    TAG,
+                    "Allow package=$packageName inWindow=${formatMinutes(w.startMin)}-${formatMinutes(w.endMin)} nowMin=$nowMin"
+                )
                 return BlockCheckResult(
                     isBlocked = false,
                     allowedFrom = formatMinutes(w.startMin),
@@ -68,6 +79,7 @@ class BlockRuleEvaluator(
         }
 
         val first = rule.windows.firstOrNull()
+        Log.d(TAG, "Blocked package=$packageName reason=outside_window nowMin=$nowMin")
         return BlockCheckResult(
             isBlocked = true,
             reason = "outside_window",

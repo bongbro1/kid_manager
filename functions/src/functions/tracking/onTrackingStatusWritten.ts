@@ -4,6 +4,9 @@ import { REGION } from "../../config";
 import { randomUUID } from "crypto";
 import { sendLocalizedNotification } from "../notifications/sendLocalizedNotification";
 
+const FLAP_STATUSES = new Set(["location_stale", "ok"]);
+const FLAP_COOLDOWN_MS = 5 * 60 * 1000;
+
 function dayInVN(ms: number) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -55,6 +58,35 @@ async function getParentUids(familyId: string, childUid: string): Promise<string
     .map((x) => x.uid);
 }
 
+function toMillis(value: unknown): number | null {
+  if (value instanceof admin.firestore.Timestamp) {
+    return value.toMillis();
+  }
+
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.trunc(value);
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.trunc(parsed);
+    }
+  }
+
+  if (typeof value === "object" && value !== null) {
+    const maybe = value as { seconds?: unknown; _seconds?: unknown };
+    const seconds =
+      (typeof maybe.seconds === "number" ? maybe.seconds : null) ??
+      (typeof maybe._seconds === "number" ? maybe._seconds : null);
+    if (seconds != null && Number.isFinite(seconds) && seconds > 0) {
+      return Math.trunc(seconds * 1000);
+    }
+  }
+
+  return null;
+}
+
 export const onTrackingStatusWritten = onDocumentWritten(
   {
     region: REGION,
@@ -82,10 +114,21 @@ const beforeData = before?.exists ? before.data() : null;
     const childName = String(afterData.childName || "Con");
     const message = String(afterData.message || "");
 
-    const parentEventKey = `tracking.${newStatus}.parent`;
-    const childEventKey = `tracking.${newStatus}.child`;
-
     const nowMs = Date.now();
+    const lastNotifiedAtMs = toMillis(afterData.lastNotifiedAt ?? afterData.lastNotifiedAtMs);
+
+    if (
+      FLAP_STATUSES.has(newStatus) &&
+      lastNotifiedAtMs != null &&
+      nowMs - lastNotifiedAtMs < FLAP_COOLDOWN_MS
+    ) {
+      console.log(
+        `[TRACKING] Skip cooldown status=${newStatus} childUid=${childUid}`
+      );
+      return;
+    }
+
+    const parentEventKey = `tracking.${newStatus}.parent`;
 
     const payloadForHistory = {
       childUid,
@@ -99,13 +142,18 @@ const beforeData = before?.exists ? before.data() : null;
     const parentUids = await getParentUids(familyId, childUid);
 
     for (const parentUid of parentUids) {
+      const payloadForParent = {
+        ...payloadForHistory,
+        toUid: parentUid,
+      };
+
       await writeInbox({
         toUid: parentUid,
         senderId: "system",
         type: "TRACKING",
         eventKey: parentEventKey,
         body: message,
-        data: payloadForHistory,
+        data: payloadForParent,
         createdAtMs: nowMs,
       });
 
@@ -115,43 +163,18 @@ const beforeData = before?.exists ? before.data() : null;
         eventKey: parentEventKey,
         titleParams: { childName },
         bodyParams: { childName },
-        data: {
-          childUid,
-          childName,
-          familyId,
-          status: newStatus,
-          message,
-          timestamp: String(nowMs),
-        },
+        data: payloadForParent,
         channelId: "tracking_alerts",
       });
     }
 
-    await writeInbox({
-      toUid: childUid,
-      senderId: "system",
-      type: "TRACKING",
-      eventKey: childEventKey,
-      body: message,
-      data: payloadForHistory,
-      createdAtMs: nowMs,
-    });
-
-    await sendLocalizedNotification({
-      uid: childUid,
-      type: "TRACKING",
-      eventKey: childEventKey,
-      titleParams: { childName },
-      bodyParams: { childName },
-      data: {
-        childUid,
-        childName,
-        familyId,
-        status: newStatus,
-        message,
-        timestamp: String(nowMs),
+    await after.ref.set(
+      {
+        lastNotifiedStatus: newStatus,
+        lastNotifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastNotifiedAtMs: nowMs,
       },
-      channelId: "tracking_alerts",
-    });
+      { merge: true }
+    );
   }
 );

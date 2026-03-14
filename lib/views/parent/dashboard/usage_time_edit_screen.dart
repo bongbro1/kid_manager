@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/utils/time_window_utils.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
@@ -22,7 +23,6 @@ class UsageTimeEditScreen extends StatefulWidget {
 
 class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   late UsageRule rule;
-  final labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   Map<String, DayOverride> overrides = {};
 
   bool unlimited = false;
@@ -64,6 +64,18 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   late DateTime _headerMonth;
   DateTime? _selectedDate;
   DateTime _d(DateTime x) => DateTime(x.year, x.month, x.day);
+
+  List<String> _weekdayLabels(AppLocalizations l10n) {
+    return [
+      l10n.scheduleWeekdayMon,
+      l10n.scheduleWeekdayTue,
+      l10n.scheduleWeekdayWed,
+      l10n.scheduleWeekdayThu,
+      l10n.scheduleWeekdayFri,
+      l10n.scheduleWeekdaySat,
+      l10n.scheduleWeekdaySun,
+    ];
+  }
 
   final Map<DateTime, DotType> _dotsByDay = {};
 
@@ -121,10 +133,11 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   }
 
   void addWindow() {
+    final l10n = AppLocalizations.of(context);
     final slot = TimeWindowUtils.findAvailableSlot(rule.windows);
 
     if (slot == null) {
-      _showInvalidRangeSnack("Không còn khoảng thời gian trống");
+      _showInvalidRangeSnack(l10n.parentUsageNoAvailableSlot);
       return;
     }
 
@@ -144,6 +157,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   }
 
   Future<void> pickStart(int i) async {
+    final l10n = AppLocalizations.of(context);
     final w = rule.windows[i];
 
     final picked = await showTimePicker(
@@ -156,14 +170,14 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
     final newStart = picked.hour * 60 + picked.minute;
 
     if (newStart >= w.endMin) {
-      _showInvalidRangeSnack("Giờ bắt đầu phải nhỏ hơn giờ kết thúc");
+      _showInvalidRangeSnack(l10n.parentUsageStartBeforeEnd);
       return;
     }
 
     final newWindow = TimeWindow(startMin: newStart, endMin: w.endMin);
 
     if (_isOverlapping(newWindow, i)) {
-      _showInvalidRangeSnack("Khoảng thời gian bị trùng với mốc khác");
+      _showInvalidRangeSnack(l10n.parentUsageOverlapTimeRange);
       return;
     }
 
@@ -175,6 +189,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   }
 
   Future<void> pickEnd(int i) async {
+    final l10n = AppLocalizations.of(context);
     final w = rule.windows[i];
 
     final picked = await showTimePicker(
@@ -187,14 +202,14 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
     final newEnd = picked.hour * 60 + picked.minute;
 
     if (newEnd <= w.startMin) {
-      _showInvalidRangeSnack("Giờ kết thúc phải lớn hơn giờ bắt đầu");
+      _showInvalidRangeSnack(l10n.parentUsageEndAfterStart);
       return;
     }
 
     final newWindow = TimeWindow(startMin: w.startMin, endMin: newEnd);
 
     if (_isOverlapping(newWindow, i)) {
-      _showInvalidRangeSnack("Khoảng thời gian bị trùng với mốc khác");
+      _showInvalidRangeSnack(l10n.parentUsageOverlapTimeRange);
       return;
     }
 
@@ -228,9 +243,10 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AppManagementVM>();
+    final l10n = AppLocalizations.of(context);
 
     if (vm.loading) {
-      return LoadingOverlay();
+      return const LoadingOverlay();
     }
 
     return AppOverlaySheet(
@@ -244,17 +260,16 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
               children: [
                 const SizedBox(height: 6),
                 Text(
-                  'Cài đặt thời gian sử dụng',
+                  l10n.parentUsageEditTitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: const Color(0xFF222B45),
+                  style: const TextStyle(
+                    color: Color(0xFF222B45),
                     fontSize: 20,
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w600,
                     height: 1.10,
                   ),
                 ),
-
                 const SizedBox(height: 18),
                 Container(
                   width: 350,
@@ -268,10 +283,9 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 8),
                 SizedBox(
-                  height: 540, // 👈 ép vùng scroll
+                  height: 540,
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
                     child: Column(
@@ -279,9 +293,9 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                       children: [
                         Row(
                           children: [
-                            const Text(
-                              'Cho phép sử dụng',
-                              style: TextStyle(
+                            Text(
+                              l10n.parentUsageEnableUsage,
+                              style: const TextStyle(
                                 color: Color(0xFF222B45),
                                 fontSize: 16,
                                 fontFamily: 'Poppins',
@@ -293,22 +307,15 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                             Switch(
                               value: rule.enabled,
                               onChanged: (v) {
-                                setState(
-                                  () => rule = rule.copyWith(enabled: v),
-                                );
+                                setState(() => rule = rule.copyWith(enabled: v));
                               },
-
                               activeColor: Colors.white,
                               activeTrackColor: const Color(0xFF2F6BFF),
                               inactiveThumbColor: const Color(0xFF8F9BB3),
                               inactiveTrackColor: const Color(0xFFE4E9F2),
-
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              overlayColor: MaterialStateProperty.all(
-                                Colors.transparent,
-                              ), // ✅ bỏ loang
-                              splashRadius: 0, // ✅ bỏ splash
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              overlayColor: MaterialStateProperty.all(Colors.transparent),
+                              splashRadius: 0,
                             ),
                           ],
                         ),
@@ -329,8 +336,6 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                                 ),
                               );
                             }),
-
-                            /// ADD BUTTON
                             if (rule.enabled)
                               InkWell(
                                 onTap: addWindow,
@@ -350,13 +355,12 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                               ),
                           ],
                         ),
-
                         const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
                           child: Text(
-                            'Chọn ngày được phép',
-                            style: TextStyle(
+                            l10n.parentUsageSelectAllowedDays,
+                            style: const TextStyle(
                               color: Color(0xFF222B45),
                               fontSize: 16,
                               fontFamily: 'Poppins',
@@ -366,10 +370,9 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-
                         Row(
                           children: List.generate(7, (index) {
-                            final day = index + 1; // 1 = Monday
+                            final day = index + 1;
                             final selected = rule.weekdays.contains(day);
 
                             return Expanded(
@@ -388,15 +391,13 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                                         });
 
                                         debugPrint(
-                                          "📅 Weekdays changed → ${rule.weekdays}",
+                                          "📓 Weekdays changed → ${rule.weekdays}",
                                         );
                                       }
                                     : null,
                                 child: Container(
                                   height: 36,
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 3,
-                                  ),
+                                  margin: const EdgeInsets.symmetric(horizontal: 3),
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: selected
@@ -408,7 +409,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                                     ),
                                   ),
                                   child: Text(
-                                    labels[index],
+                                    _weekdayLabels(l10n)[index],
                                     style: TextStyle(
                                       color: selected
                                           ? Colors.white
@@ -422,14 +423,13 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                             );
                           }),
                         ),
-
                         const SizedBox(height: 27),
                         buildCalendar(
+                          l10n: l10n,
                           month: _gridMonth,
                           headerMonth: _headerMonth,
                           selected: _selectedDate,
                           dotsByDay: _dotsByDay,
-
                           onMonthChanged: (m) => setState(() {
                             _gridMonth = DateTime(m.year, m.month, 1);
                             _headerMonth = _gridMonth;
@@ -470,7 +470,6 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 14),
                 Center(
                   child: Container(
@@ -482,16 +481,15 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
                       child: AppButton(
-                        text: "Hủy",
+                        text: l10n.cancelButton,
                         width: 172,
                         height: 50,
-                        backgroundColor: Color(0xFF3A7DFF),
+                        backgroundColor: const Color(0xFF3A7DFF),
                         fontSize: 16,
                         lineHeight: 1.38,
                         fontWeight: FontWeight.w700,
@@ -501,10 +499,10 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: AppButton(
-                        text: "Lưu",
+                        text: l10n.saveButton,
                         width: 172,
                         height: 50,
-                        backgroundColor: Color(0xFF3A7DFF),
+                        backgroundColor: const Color(0xFF3A7DFF),
                         fontSize: 16,
                         lineHeight: 1.38,
                         fontWeight: FontWeight.w700,
@@ -587,6 +585,8 @@ Future<DayOverrideOption?> showDayOverrideModal({
   required DateTime date,
   required DayOverrideOption current,
 }) {
+  final l10n = AppLocalizations.of(context);
+
   return showModalBottomSheet<DayOverrideOption>(
     context: context,
     backgroundColor: Colors.transparent,
@@ -605,7 +605,6 @@ Future<DayOverrideOption?> showDayOverrideModal({
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                /// Handle bar
                 Container(
                   width: 40,
                   height: 4,
@@ -615,7 +614,6 @@ Future<DayOverrideOption?> showDayOverrideModal({
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-
                 Column(
                   children: [
                     const SizedBox(height: 6),
@@ -629,7 +627,7 @@ Future<DayOverrideOption?> showDayOverrideModal({
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Chọn quy tắc cho ngày này",
+                      l10n.parentUsageDayRuleModalHint,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.grey.shade600,
@@ -638,14 +636,11 @@ Future<DayOverrideOption?> showDayOverrideModal({
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 20),
-
-                /// Options
                 _overrideCard(
                   icon: Icons.schedule,
-                  title: "Theo lịch đã đặt",
-                  subtitle: "Áp dụng khung giờ hàng tuần",
+                  title: l10n.parentUsageRuleFollowScheduleTitle,
+                  subtitle: l10n.parentUsageRuleFollowScheduleSubtitle,
                   color: Colors.grey,
                   value: DayOverrideOption.followSchedule,
                   group: selected,
@@ -653,13 +648,11 @@ Future<DayOverrideOption?> showDayOverrideModal({
                     selected = DayOverrideOption.followSchedule;
                   }),
                 ),
-
                 const SizedBox(height: 12),
-
                 _overrideCard(
                   icon: Icons.check_circle,
-                  title: "Cho phép cả ngày",
-                  subtitle: "Có thể sử dụng bất cứ lúc nào",
+                  title: l10n.parentUsageRuleAllowAllDayTitle,
+                  subtitle: l10n.parentUsageRuleAllowAllDaySubtitle,
                   color: Colors.green,
                   value: DayOverrideOption.allowFullDay,
                   group: selected,
@@ -667,13 +660,11 @@ Future<DayOverrideOption?> showDayOverrideModal({
                     selected = DayOverrideOption.allowFullDay;
                   }),
                 ),
-
                 const SizedBox(height: 12),
-
                 _overrideCard(
                   icon: Icons.block,
-                  title: "Chặn cả ngày",
-                  subtitle: "Không được sử dụng hôm nay",
+                  title: l10n.parentUsageRuleBlockAllDayTitle,
+                  subtitle: l10n.parentUsageRuleBlockAllDaySubtitle,
                   color: Colors.red,
                   value: DayOverrideOption.blockFullDay,
                   group: selected,
@@ -681,9 +672,7 @@ Future<DayOverrideOption?> showDayOverrideModal({
                     selected = DayOverrideOption.blockFullDay;
                   }),
                 ),
-
                 const SizedBox(height: 24),
-
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -697,7 +686,7 @@ Future<DayOverrideOption?> showDayOverrideModal({
                       debugPrint("🟢 Save tapped with: $selected");
                       Navigator.of(context).pop(selected);
                     },
-                    child: const Text("Lưu"),
+                    child: Text(l10n.saveButton),
                   ),
                 ),
               ],
@@ -765,25 +754,12 @@ Widget _overrideCard({
   );
 }
 
-Widget _optionTile({
-  required String title,
-  required DayOverrideOption value,
-  required DayOverrideOption group,
-  required ValueChanged<DayOverrideOption> onChanged,
-}) {
-  return RadioListTile<DayOverrideOption>(
-    title: Text(title),
-    value: value,
-    groupValue: group,
-    onChanged: (v) => onChanged(v!),
-  );
-}
-
 String _formatDate(DateTime d) {
   return "${d.day}/${d.month}/${d.year}";
 }
 
 Widget buildCalendar({
+  required AppLocalizations l10n,
   required DateTime month,
   required DateTime headerMonth,
   required DateTime? selected,
@@ -792,25 +768,28 @@ Widget buildCalendar({
   required Map<DateTime, DotType> dotsByDay,
 }) {
   final firstDayOfMonth = DateTime(month.year, month.month, 1);
-  final lastDayOfMonth = DateTime(month.year, month.month + 1, 0);
 
-  // Thứ 2 = 1 ... CN = 7, mình muốn grid bắt đầu từ T2
-  final int leading = (firstDayOfMonth.weekday - DateTime.monday) % 7; // 0..6
-  final totalDays = lastDayOfMonth.day;
+  final int leading = (firstDayOfMonth.weekday - DateTime.monday) % 7;
   final totalCells = 35;
 
   DateTime norm(DateTime d) => DateTime(d.year, d.month, d.day);
   final sel = selected == null ? null : norm(selected);
 
-  String monthTitle(int m) => 'Tháng $m';
-  const weekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  final weekdays = [
+    l10n.scheduleWeekdayMon,
+    l10n.scheduleWeekdayTue,
+    l10n.scheduleWeekdayWed,
+    l10n.scheduleWeekdayThu,
+    l10n.scheduleWeekdayFri,
+    l10n.scheduleWeekdaySat,
+    l10n.scheduleWeekdaySun,
+  ];
 
   DateTime _d(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // Header: arrows + month/year
       Row(
         children: [
           _monthNavButton(
@@ -822,21 +801,20 @@ Widget buildCalendar({
             child: Column(
               children: [
                 Text(
-                  monthTitle(headerMonth.month),
-                  style: TextStyle(
-                    color: const Color(0xFF222B45),
+                  l10n.scheduleCalendarMonthLabel(headerMonth.month),
+                  style: const TextStyle(
+                    color: Color(0xFF222B45),
                     fontSize: 20,
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w400,
                     height: 0.80,
                   ),
                 ),
-
                 const SizedBox(height: 6),
                 Text(
                   '${headerMonth.year}',
-                  style: TextStyle(
-                    color: const Color(0xFF8F9BB3),
+                  style: const TextStyle(
+                    color: Color(0xFF8F9BB3),
                     fontSize: 13,
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w400,
@@ -853,8 +831,6 @@ Widget buildCalendar({
           ),
         ],
       ),
-
-      // Weekday row
       GridView.count(
         padding: EdgeInsets.zero,
         shrinkWrap: true,
@@ -862,7 +838,7 @@ Widget buildCalendar({
         crossAxisCount: 7,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
-        childAspectRatio: 30 / 29, // giống cell của bạn
+        childAspectRatio: 30 / 29,
         children: weekdays
             .map(
               (w) => Center(
@@ -970,7 +946,7 @@ Widget _dayCell({
           ),
         ),
         const SizedBox(height: 4),
-        if (dot != null)
+        if (dot != DotType.none)
           Opacity(
             opacity: inMonth ? 1 : 0.5,
             child: Row(
