@@ -74,11 +74,12 @@ class BlockedAppDetailWidget extends StatelessWidget {
             l10n.notificationsBlockedTimeLabel,
             blockedAt,
           ),
-          _buildInfoRow(
-            Icons.schedule,
-            l10n.notificationsBlockedAllowedWindowLabel,
-            "$allowedFrom - $allowedTo",
-          ),
+          if(allowedFrom != "")
+            _buildInfoRow(
+              Icons.schedule,
+              l10n.notificationsBlockedAllowedWindowLabel,
+              "$allowedFrom - $allowedTo",
+            ),
         ],
       ),
     );

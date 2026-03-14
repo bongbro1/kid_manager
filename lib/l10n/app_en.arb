@@ -764,5 +764,19 @@
   "zone_enter_danger_child": "⚠️ You entered a danger zone",
   "zone_exit_danger_child": "✅ You left a danger zone",
   "zone_enter_safe_child": "✅ You entered a safe zone",
-  "zone_exit_safe_child": "ℹ️ You left a safe zone"
+  "zone_exit_safe_child": "ℹ️ You left a safe zone",
+  
+  "tracking_location_service_off_parent_title": "Child turned off location",
+  "tracking_location_permission_denied_parent_title": "Child turned off location permission",
+  "tracking_background_disabled_parent_title": "Background location was turned off",
+  "tracking_location_stale_parent_title": "No recent location update",
+  "tracking_ok_parent_title": "Location is active again",
+
+  "tracking_location_service_off_child_title": "Location is turned off",
+  "tracking_location_permission_denied_child_title": "Location permission is off",
+  "tracking_background_disabled_child_title": "Background location is off",
+  "tracking_location_stale_child_title": "Location is not updating",
+  "tracking_ok_child_title": "Location is working again",
+
+  "tracking_default_title": "Tracking notification"
 }

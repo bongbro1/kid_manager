@@ -68,7 +68,10 @@ class AppAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
 
-        // Log.d(TAG, "Accessibility service connected")
+
+        val userId = getUserId()
+
+        Log.d(TAG, "Accessibility connected with userId = $userId")
 
         try {
             com.google.firebase.FirebaseApp.initializeApp(this)
@@ -111,25 +114,26 @@ class AppAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
-        ensureRuleSync()
+        try {
 
-        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+            ensureRuleSync()
 
-        val packageName = event.packageName?.toString() ?: return
+            if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
-        // tránh spam event
-        if (packageName == lastForegroundPackage) return
-        lastForegroundPackage = packageName
+            val packageName = event.packageName?.toString() ?: return
 
-        // Log.d(TAG, "User opened app: $packageName")
+            if (packageName == lastForegroundPackage) return
+            lastForegroundPackage = packageName
 
-        onAppChanged(packageName)
+            onAppChanged(packageName)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Accessibility error", e)
+        }
     }
 
     private fun onAppChanged(packageName: String) {
-
         val result = blockRuleEvaluator.checkBlocked(packageName)
-
         if (!result.isBlocked) return
 
         if (!shouldNotify(packageName)) return
@@ -239,7 +243,7 @@ class AppAccessibilityService : AccessibilityService() {
 
     private fun getUserId(): String? {
 
-        val prefs = getSharedPreferences("watcher_rules", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(RULE_PREFS, Context.MODE_PRIVATE)
 
         return prefs.getString("user_id", null)
     }
@@ -249,6 +253,7 @@ class AppAccessibilityService : AccessibilityService() {
 
         ruleSyncManager.stop()
         handler.removeCallbacks(usageRunnable)
+        handler.removeCallbacks(appsRunnable)
 
         Log.d(TAG, "Accessibility service destroyed")
     }

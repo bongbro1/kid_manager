@@ -33,6 +33,9 @@ class AppManagementVM extends ChangeNotifier {
   Map<String, Map<DateTime, int>> _appUsageMap = {};
   Map<String, Map<DateTime, int>> get appUsageMap => _appUsageMap;
 
+  Map<DateTime, Map<int, int>> _hourlyUsage = {};
+  Map<DateTime, Map<int, int>> get hourlyUsage => _hourlyUsage;
+
   List<ChildItem> children = [];
 
   String? _selectedChildId;
@@ -225,13 +228,14 @@ class AppManagementVM extends ChangeNotifier {
   }
 
   Future<void> loadUsageHistory(String selectedChildId) async {
-    debugPrint("📥 loadUsageHistory START for child = $selectedChildId");
-
     try {
       final result = await _repo.loadUsageHistory(selectedChildId);
 
       _usageMap = result.totalUsage;
       _appUsageMap = result.perAppUsage;
+
+      /// NEW
+      _hourlyUsage = result.hourlyUsage;
 
       _usageVersion++;
       notifyListeners();
@@ -239,8 +243,6 @@ class AppManagementVM extends ChangeNotifier {
       debugPrint("❌ loadUsageHistory ERROR: $e");
       debugPrint("STACK: $stack");
     }
-
-    debugPrint("📤 loadUsageHistory END");
   }
 
   @override

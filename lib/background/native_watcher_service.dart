@@ -70,13 +70,18 @@ class NativeWatcherService {
   NativeWatcherService._();
 
   static const MethodChannel _channel = MethodChannel('watcher_config');
-  static const MethodChannel _chanelAccessibility = MethodChannel('accessibility');
+  static const MethodChannel _chanelAccessibility = MethodChannel(
+    'accessibility',
+  );
+  static const MethodChannel _batteryChannel = MethodChannel(
+    'battery_optimization',
+  );
 
   static bool _configured = false;
 
   /// Lưu config để AccessibilityService dùng
   static Future<bool> saveWatcherConfig({
-    required String userId,
+    String? userId,
     String? parentId,
     String? childName,
   }) async {
@@ -117,9 +122,30 @@ class NativeWatcherService {
     }
   }
 
-  
   static Future<void> openAccessibilitySettings() async {
     await _chanelAccessibility.invokeMethod("openAccessibilitySettings");
+  }
+
+  /// kiểm tra đã tắt tối ưu pin chưa
+  static Future<bool> isIgnoringBatteryOptimizations() async {
+    try {
+      final result = await _batteryChannel.invokeMethod<bool>(
+        'isIgnoringBatteryOptimizations',
+      );
+      return result ?? false;
+    } catch (e) {
+      debugPrint('Battery optimization check error: $e');
+      return false;
+    }
+  }
+
+  /// mở màn hình xin quyền
+  static Future<void> requestIgnoreBatteryOptimizations() async {
+    try {
+      await _batteryChannel.invokeMethod('requestIgnoreBatteryOptimizations');
+    } catch (e) {
+      debugPrint('Battery optimization request error: $e');
+    }
   }
 
   static bool get isConfigured => _configured;

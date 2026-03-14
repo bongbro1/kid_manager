@@ -113,15 +113,7 @@ class AuthRuntimeManager {
   // ================= LOGOUT =================
 
   static Future<void> _safeLogout(int token) async {
-    if (_state == _RuntimeState.stopped || _state == _RuntimeState.stopping)
-      return;
-
-    _state = _RuntimeState.stopping;
-
-    debugPrint("🔴 Runtime stopping");
-
     try {
-      /// chỉ reset config native
       await NativeWatcherService.saveWatcherConfig(
         userId: "",
         parentId: "",
@@ -131,6 +123,12 @@ class AuthRuntimeManager {
       debugPrint("❌ Runtime stop error: $e");
     }
 
+    if (_state == _RuntimeState.stopped || _state == _RuntimeState.stopping)
+      return;
+
+    _state = _RuntimeState.stopping;
+
+    debugPrint("🔴 Runtime stopping");
     if (token != _opToken) return;
 
     _parentId = null;

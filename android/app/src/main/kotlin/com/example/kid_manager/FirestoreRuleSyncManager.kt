@@ -32,7 +32,7 @@ class FirestoreRuleSyncManager(
         stop()
         currentChildId = childId
 
-        // Log.d(TAG, "Start syncing Firestore rules for childId=$childId")
+        Log.d(TAG, "Start syncing Firestore rules for childId=$childId")
 
         appsListener = FirebaseFirestore.getInstance()
             .collection("blocked_items")
@@ -113,6 +113,7 @@ class FirestoreRuleSyncManager(
                 ruleCache[packageName] = rule
 
                 // Log.d(TAG, "Rule cached for $packageName")
+                Log.d(TAG, "🔥 Parsed rule for $packageName = $rule")
 
                 saveRuleToPrefs(packageName, data)
             }
@@ -201,7 +202,7 @@ class FirestoreRuleSyncManager(
 
         editor.apply()
 
-        // Log.d(TAG, "Saved rule for package=$packageName")
+        Log.d(TAG, "Saved rule for package=$packageName")
     }
 
     private fun removeRuleFromPrefs(packageName: String) {
