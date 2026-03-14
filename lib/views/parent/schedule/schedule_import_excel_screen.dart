@@ -689,13 +689,24 @@ class _PrimaryButton extends StatelessWidget {
             color: AppColors.primary,
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Text(text, style: AppTextStyles.scheduleCreateButton),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    text,
+                    style: AppTextStyles.scheduleCreateButton,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -727,19 +738,27 @@ class _PrimaryOutlineButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppColors.primary),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: AppColors.primary, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                text,
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: AppColors.primary, size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    text,
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -900,14 +919,14 @@ class _PreviewRow extends StatelessWidget {
           Expanded(
             child: r.error != null
                 ? Text(
-                    l10n.scheduleImportRowError(r.rowIndex - 1, r.error ?? ''),
+                    l10n.scheduleImportRowError(r.rowIndex, r.error ?? ''),
                     style: AppTextStyles.body,
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l10n.scheduleImportRowTitle(r.rowIndex - 1, s!.title),
+                        l10n.scheduleImportRowTitle(r.rowIndex, s!.title),
                         style: AppTextStyles.scheduleItemTitle,
                       ),
                       const SizedBox(height: 4),

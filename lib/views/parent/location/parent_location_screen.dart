@@ -1,5 +1,4 @@
-import 'dart:async';
-import 'dart:typed_data';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -211,7 +210,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
       final loc = entry.value;
       positions[child.uid] = mbx.Position(loc.longitude, loc.latitude);
-      headings[child.uid] = loc.heading ?? 0;
+      headings[child.uid] = loc.heading;
       names[child.uid] = child.displayName ?? "";
     }
 
@@ -220,6 +219,19 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
       headings: headings,
       names: names,
     );
+  }
+
+  Future<void> _warmupAvatars(Uint8List defaultBytes) async {
+    final children = List.of(_userVm.children);
+    for (final child in children) {
+      if (!mounted) return;
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+      await _controller.setAvatarSmart(
+        childId: child.uid,
+        photoUrlOrData: child.avatarUrl,
+        defaultBytes: defaultBytes,
+      );
+    }
   }
 
   void _openChildInfo(String childId) {
@@ -251,11 +263,11 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
             throw StateError('Missing user or family');
           }
 
-          _chatRepo
-              .sendTextMessage(
-            text: msg,
-          )
-              .catchError((_) {});
+          unawaited(() async {
+            try {
+              await _chatRepo.sendTextMessage(text: msg);
+            } catch (_) {}
+          }());
         },
       ),
     );
@@ -315,18 +327,9 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                                   .asUint8List();
 
                       await _controller.setDefaultAvatar(defaultBytes);
-                      await _syncToMap();
-                      await _focusFirstChildOnce();
-
-                      for (final c in _userVm.children) {
-                        unawaited(
-                          _controller.setAvatarSmart(
-                            childId: c.uid,
-                            photoUrlOrData: c.avatarUrl,
-                            defaultBytes: defaultBytes,
-                          ),
-                        );
-                      }
+                      unawaited(_syncToMap());
+                      unawaited(_focusFirstChildOnce());
+                      unawaited(_warmupAvatars(defaultBytes));
                     } catch (e, st) {
                       debugPrint("🔥 Setup Error: $e");
                       debugPrint("$st");

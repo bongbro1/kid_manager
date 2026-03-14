@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/utils/statical_utils.dart';
@@ -26,6 +27,12 @@ class _StatisticsTabState extends State<StatisticsTab> {
   late List<ChartBarUi> chartBars;
   final ScrollController _chartScrollController = ScrollController();
   bool showAll = false;
+  int activeIndex = 0;
+  int _lastUsageVersion = -1;
+  int? selectedBarIndex;
+  int? selectedDotIndex;
+  DateTime? fromDate;
+  DateTime? toDate;
 
   List<_UsageAppRow> get sortedUsageApps {
     if (activeIndex == 0) {
@@ -163,9 +170,10 @@ class _StatisticsTabState extends State<StatisticsTab> {
         .fold(0, (sum, e) => sum + e.value);
   }
 
-  int activeIndex = 0;
-
-  int _lastUsageVersion = -1;
+  int get totalMinutes {
+    if (chartBars.isEmpty) return 0;
+    return chartBars.fold(0, (sum, e) => sum + e.minutes);
+  }
 
   @override
   void initState() {
@@ -192,7 +200,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
     if (_lastUsageVersion != widget.vm.usageVersion) {
       _lastUsageVersion = widget.vm.usageVersion;
-
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _buildChart();
       });
@@ -215,7 +222,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
   void _buildChart() {
     final mode = _resolveMode();
-
     final points = ChartDataHelper.generate(
       mode: mode,
       usageMap: widget.vm.usageMap,
@@ -227,46 +233,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
     chartBars = ChartUiBuilder.build(points, mode);
   }
 
-  int? selectedBarIndex;
-  int? selectedDotIndex;
-
-  int get totalMinutes {
-    if (chartBars.isEmpty) return 0;
-    return chartBars.fold(0, (sum, e) => sum + e.minutes);
-  }
-
-  String get totalTitle {
-    switch (activeIndex) {
-      case 0:
-        return "TỔNG THỜI GIAN HÔM NAY";
-
-      case 1:
-        return "TỔNG THỜI GIAN TUẦN NÀY";
-
-      case 2:
-        if (fromDate == null && toDate == null) {
-          return "CHỌN KHOẢNG NGÀY";
-        }
-
-        if (fromDate != null && toDate == null) {
-          return "CHỌN NGÀY KẾT THÚC";
-        }
-
-        if (fromDate != null && toDate != null) {
-          return "TỔNG THỜI GIAN TỪ "
-              "${formatDateDDMMYYYY(fromDate!)} - "
-              "${formatDateDDMMYYYY(toDate!)}";
-        }
-
-        return "CHỌN KHOẢNG NGÀY";
-
-      default:
-        return "";
-    }
-  }
-
-  DateTime? fromDate;
-  DateTime? toDate;
   void _updateRange(DateTime? a, DateTime? b) {
     // 🟡 Case: user chọn START mới
     if (a != null && b == null) {
@@ -300,16 +266,39 @@ class _StatisticsTabState extends State<StatisticsTab> {
         toDate = end;
       });
 
-      // debugPrint("📅 NORMALIZED RANGE");
-      // debugPrint("FROM: $fromDate");
-      // debugPrint("TO  : $toDate");
-
       _buildChart();
+    }
+  }
+
+  String _totalTitle(AppLocalizations l10n) {
+    switch (activeIndex) {
+      case 0:
+        return l10n.parentStatsTotalToday;
+      case 1:
+        return l10n.parentStatsTotalThisWeek;
+      case 2:
+        if (fromDate == null && toDate == null) {
+          return l10n.parentStatsSelectRange;
+        }
+        if (fromDate != null && toDate == null) {
+          return l10n.parentStatsSelectEndDate;
+        }
+        if (fromDate != null && toDate != null) {
+          return l10n.parentStatsTotalFromRange(
+            formatDateDDMMYYYY(fromDate!),
+            formatDateDDMMYYYY(toDate!),
+          );
+        }
+        return l10n.parentStatsSelectRange;
+      default:
+        return '';
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       children: [
         const SizedBox(height: 6),
@@ -332,16 +321,13 @@ class _StatisticsTabState extends State<StatisticsTab> {
           ),
           child: Row(
             children: [
-              buildSegment('Ngày', 0),
-              buildSegment('Tuần', 1),
-              buildSegment('Thêm', 2),
+              buildSegment(l10n.parentStatsSegmentDay, 0),
+              buildSegment(l10n.parentStatsSegmentWeek, 1),
+              buildSegment(l10n.parentStatsSegmentRange, 2),
             ],
           ),
         ),
-
         const SizedBox(height: 16),
-
-        /// ===== NỘI DUNG SCROLL =====
         Expanded(
           child: RefreshIndicator(
             onRefresh: widget.onRefresh,
@@ -361,7 +347,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                     },
                   ),
                 ],
-
                 const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
@@ -389,8 +374,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                totalTitle,
-                                style: TextStyle(
+                                _totalTitle(l10n),
+                                style: const TextStyle(
                                   color: Color(0xFF94A3B8),
                                   fontSize: 12,
                                   fontFamily: 'Inter',
@@ -398,10 +383,10 @@ class _StatisticsTabState extends State<StatisticsTab> {
                                   letterSpacing: 0.6,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
                                 formatMinutes(totalMinutes),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Color(0xFF1E293B),
                                   fontSize: 30,
                                   fontFamily: 'Inter',
@@ -412,7 +397,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 14),
 
                       /// CHART
@@ -425,17 +409,15 @@ class _StatisticsTabState extends State<StatisticsTab> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Chi tiết ứng dụng',
-                        style: TextStyle(
+                        l10n.parentStatsAppDetailsTitle,
+                        style: const TextStyle(
                           color: Color(0xFF1E293B),
                           fontSize: 18,
                           fontFamily: 'Inter',
@@ -443,14 +425,15 @@ class _StatisticsTabState extends State<StatisticsTab> {
                           height: 1.56,
                         ),
                       ),
-
                       GestureDetector(
                         onTap: () {
                           setState(() => showAll = !showAll);
                         },
                         child: Text(
-                          showAll ? 'THU GỌN' : 'XEM TẤT CẢ',
-                          style: TextStyle(
+                          showAll
+                              ? l10n.parentStatsCollapse
+                              : l10n.parentStatsViewAll,
+                          style: const TextStyle(
                             color: Color(0xFF3B82F6),
                             fontSize: 12,
                             fontFamily: 'Inter',
@@ -462,7 +445,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 16),
 
                 /// List apps
@@ -471,7 +453,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: AppItem(
-                      key: ValueKey("stats_${app.packageName}"),
+                      key: ValueKey('stats_${app.packageName}'),
                       appName: app.name,
                       app: app,
                       usageTimeText: formatMinutes(row.minutes),

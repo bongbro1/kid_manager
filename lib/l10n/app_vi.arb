@@ -756,6 +756,101 @@
       }
     }
   },
+  "parentDashboardTitle": "Bảng điều khiển",
+  "parentDashboardTabApps": "Ứng dụng",
+  "parentDashboardTabStatistics": "Thống kê",
+  "parentDashboardNoDeviceTitle": "Chưa có thiết bị nào được liên kết",
+  "parentDashboardNoDeviceSubtitle": "Để theo dõi thời gian sử dụng ứng dụng, bạn cần thêm thiết bị của con vào hệ thống.",
+  "parentDashboardAddDeviceButton": "Thêm thiết bị",
+  "parentDashboardHowItWorksButton": "Tìm hiểu cách hoạt động",
+  "parentStatsTotalToday": "TỔNG THỜI GIAN HÔM NAY",
+  "parentStatsTotalThisWeek": "TỔNG THỜI GIAN TUẦN NÀY",
+  "parentStatsSelectRange": "CHỌN KHOẢNG NGÀY",
+  "parentStatsSelectEndDate": "CHỌN NGÀY KẾT THÚC",
+  "parentStatsTotalFromRange": "TỔNG THỜI GIAN TỪ {startDate} - {endDate}",
+  "@parentStatsTotalFromRange": {
+    "placeholders": {
+      "startDate": {
+        "type": "String"
+      },
+      "endDate": {
+        "type": "String"
+      }
+    }
+  },
+  "parentStatsSegmentDay": "Ngày",
+  "parentStatsSegmentWeek": "Tuần",
+  "parentStatsSegmentRange": "Thêm",
+  "parentStatsAppDetailsTitle": "Chi tiết ứng dụng",
+  "parentStatsCollapse": "THU GỌN",
+  "parentStatsViewAll": "XEM TẤT CẢ",
+  "parentUsageNoAvailableSlot": "Không còn khoảng thời gian trống",
+  "parentUsageStartBeforeEnd": "Giờ bắt đầu phải nhỏ hơn giờ kết thúc",
+  "parentUsageOverlapTimeRange": "Khoảng thời gian bị trùng với mốc khác",
+  "parentUsageEndAfterStart": "Giờ kết thúc phải lớn hơn giờ bắt đầu",
+  "parentUsageEditTitle": "Cài đặt thời gian sử dụng",
+  "parentUsageEnableUsage": "Cho phép sử dụng",
+  "parentUsageSelectAllowedDays": "Chọn ngày được phép",
+  "saveButton": "Lưu",
+  "parentUsageDayRuleModalHint": "Chọn quy tắc cho ngày này",
+  "parentUsageRuleFollowScheduleTitle": "Theo lịch đã đặt",
+  "parentUsageRuleFollowScheduleSubtitle": "Áp dụng khung giờ hàng tuần",
+  "parentUsageRuleAllowAllDayTitle": "Cho phép cả ngày",
+  "parentUsageRuleAllowAllDaySubtitle": "Có thể sử dụng bất cứ lúc nào",
+  "parentUsageRuleBlockAllDayTitle": "Chặn cả ngày",
+  "parentUsageRuleBlockAllDaySubtitle": "Không được sử dụng hôm nay",
+  "zonesDeleteConfirmTitle": "Xác nhận xoá",
+  "zonesDeleteConfirmMessage": "Bạn có chắc muốn xoá địa điểm này không?",
+  "zonesDeleteButton": "Xoá",
+  "zonesCreateSuccessTitle": "Tạo thành công",
+  "zonesCreateSuccessMessage": "Địa điểm \"{name}\" đã được tạo",
+  "@zonesCreateSuccessMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "zonesFailedTitle": "Thất bại",
+  "zonesCreateFailedMessage": "Không thể tạo địa điểm, vui lòng thử lại",
+  "zonesEditSuccessTitle": "Chỉnh sửa thành công",
+  "zonesEditSuccessMessage": "Địa điểm đã được cập nhật",
+  "zonesEditFailedMessage": "Không thể cập nhật địa điểm, vui lòng thử lại",
+  "zonesDeleteSuccessTitle": "Xoá thành công",
+  "zonesDeleteSuccessMessage": "Địa điểm đã được xoá",
+  "zonesDeleteFailedMessage": "Không thể xoá địa điểm, vui lòng thử lại",
+  "zonesEmptyTitle": "Chưa có vùng nào",
+  "zonesEmptySubtitle": "Thêm vùng để bắt đầu theo dõi vị trí của bé",
+  "zonesTypeSafe": "An toàn",
+  "zonesTypeDanger": "Nguy hiểm",
+  "zonesEditMenu": "Sửa",
+  "zonesDeleteMenu": "Xoá",
+  "zonesScreenTitle": "Vùng của bé",
+  "zonesAddButton": "Thêm vùng",
+  "zonesErrorWithMessage": "Lỗi: {error}",
+  "@zonesErrorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "zonesNewZoneDefaultName": "Vùng mới",
+  "zonesEditTitle": "Chỉnh sửa vùng",
+  "zonesAddAddressTitle": "Địa chỉ của địa điểm",
+  "zonesOverlapWarningText": "Các địa điểm không nên chồng chéo",
+  "zonesNameFieldLabel": "Tên vùng",
+  "zonesTypeFieldLabel": "Loại vùng",
+  "zonesRadiusLabel": "Bán kính",
+  "zonesOverlappingWith": "Đang chồng lên: {name}",
+  "@zonesOverlappingWith": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "zonesDefaultNameFallback": "Vùng",
   "zone_default": "Thông báo hehehe",
   "zone_enter_danger_parent": "⚠️ Bé vào vùng nguy hiểm",
   "zone_exit_danger_parent": "✅ Bé rời vùng nguy hiểm",

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/models/location/location_data.dart';
@@ -113,16 +113,13 @@ class ParentLocationVm extends ChangeNotifier {
       _locationRepo.watchChildLocation(childId);
 
   Future<void> syncWatching(List<String> newChildIds) async {
-    debugPrint("SYNC WATCH CALLED");
     final newSet = newChildIds.toSet();
-    debugPrint("newChildIds ${newSet.length}");
     if (setEquals(newSet, _watchingIds)) return;
 
-    debugPrint("🔄 SYNC WATCHING: $newSet");
-
-    _status = LocationSharingStatus.sharing;
-    notifyListeners();
-
+    if (kDebugMode) {
+      debugPrint('SYNC WATCH CALLED size=${newSet.length}');
+      debugPrint('SYNC WATCHING: $newSet');
+    }
     // ==============================
     // 1️⃣ Unwatch child bị xoá
     // ==============================
@@ -133,7 +130,7 @@ class ParentLocationVm extends ChangeNotifier {
       _subs.remove(id);
       _childrenLocations.remove(id);
       _childrenTrails.remove(id);
-      debugPrint("🛑 Unwatched $id");
+      if (kDebugMode) debugPrint('🛑 Unwatched $id');
     }
 
     // ==============================
@@ -143,7 +140,7 @@ class ParentLocationVm extends ChangeNotifier {
 
     for (final id in added) {
       _subscribeChild(id);
-      debugPrint("👀 Watching $id");
+      if (kDebugMode) debugPrint('👀 Watching $id');
     }
 
     _watchingIds

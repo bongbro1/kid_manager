@@ -6,7 +6,6 @@ import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
-import 'package:kid_manager/services/rule_runtime_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
 
@@ -243,6 +242,22 @@ class AppManagementVM extends ChangeNotifier {
       debugPrint("❌ loadUsageHistory ERROR: $e");
       debugPrint("STACK: $stack");
     }
+  }
+
+  Future<void> clear() async {
+    await _childrenSub?.cancel();
+    _childrenSub = null;
+
+    _loading = false;
+    _error = null;
+    _apps = [];
+    _usageMap = {};
+    _appUsageMap = {};
+    children = [];
+    _selectedChildId = null;
+    _usageVersion = 0;
+
+    notifyListeners();
   }
 
   @override

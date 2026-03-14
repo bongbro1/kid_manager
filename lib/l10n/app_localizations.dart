@@ -1998,6 +1998,390 @@ abstract class AppLocalizations {
   /// **'{actorChildName} added {importCount} schedules.'**
   String scheduleImportNotifyBodyChild(String actorChildName, int importCount);
 
+  /// No description provided for @parentDashboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get parentDashboardTitle;
+
+  /// No description provided for @parentDashboardTabApps.
+  ///
+  /// In en, this message translates to:
+  /// **'Apps'**
+  String get parentDashboardTabApps;
+
+  /// No description provided for @parentDashboardTabStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get parentDashboardTabStatistics;
+
+  /// No description provided for @parentDashboardNoDeviceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No linked devices yet'**
+  String get parentDashboardNoDeviceTitle;
+
+  /// No description provided for @parentDashboardNoDeviceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To monitor app usage time, add your child\'s device to the system.'**
+  String get parentDashboardNoDeviceSubtitle;
+
+  /// No description provided for @parentDashboardAddDeviceButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add device'**
+  String get parentDashboardAddDeviceButton;
+
+  /// No description provided for @parentDashboardHowItWorksButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn how it works'**
+  String get parentDashboardHowItWorksButton;
+
+  /// No description provided for @parentStatsTotalToday.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL TIME TODAY'**
+  String get parentStatsTotalToday;
+
+  /// No description provided for @parentStatsTotalThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL TIME THIS WEEK'**
+  String get parentStatsTotalThisWeek;
+
+  /// No description provided for @parentStatsSelectRange.
+  ///
+  /// In en, this message translates to:
+  /// **'SELECT DATE RANGE'**
+  String get parentStatsSelectRange;
+
+  /// No description provided for @parentStatsSelectEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'SELECT END DATE'**
+  String get parentStatsSelectEndDate;
+
+  /// No description provided for @parentStatsTotalFromRange.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL TIME FROM {startDate} - {endDate}'**
+  String parentStatsTotalFromRange(String startDate, String endDate);
+
+  /// No description provided for @parentStatsSegmentDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get parentStatsSegmentDay;
+
+  /// No description provided for @parentStatsSegmentWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get parentStatsSegmentWeek;
+
+  /// No description provided for @parentStatsSegmentRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Range'**
+  String get parentStatsSegmentRange;
+
+  /// No description provided for @parentStatsAppDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App details'**
+  String get parentStatsAppDetailsTitle;
+
+  /// No description provided for @parentStatsCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLAPSE'**
+  String get parentStatsCollapse;
+
+  /// No description provided for @parentStatsViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'VIEW ALL'**
+  String get parentStatsViewAll;
+
+  /// No description provided for @parentUsageNoAvailableSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'No available time slot'**
+  String get parentUsageNoAvailableSlot;
+
+  /// No description provided for @parentUsageStartBeforeEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Start time must be earlier than end time'**
+  String get parentUsageStartBeforeEnd;
+
+  /// No description provided for @parentUsageOverlapTimeRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Time range overlaps another slot'**
+  String get parentUsageOverlapTimeRange;
+
+  /// No description provided for @parentUsageEndAfterStart.
+  ///
+  /// In en, this message translates to:
+  /// **'End time must be later than start time'**
+  String get parentUsageEndAfterStart;
+
+  /// No description provided for @parentUsageEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage time settings'**
+  String get parentUsageEditTitle;
+
+  /// No description provided for @parentUsageEnableUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow usage'**
+  String get parentUsageEnableUsage;
+
+  /// No description provided for @parentUsageSelectAllowedDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Select allowed days'**
+  String get parentUsageSelectAllowedDays;
+
+  /// No description provided for @saveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveButton;
+
+  /// No description provided for @parentUsageDayRuleModalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the rule for this day'**
+  String get parentUsageDayRuleModalHint;
+
+  /// No description provided for @parentUsageRuleFollowScheduleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow schedule'**
+  String get parentUsageRuleFollowScheduleTitle;
+
+  /// No description provided for @parentUsageRuleFollowScheduleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply weekly time windows'**
+  String get parentUsageRuleFollowScheduleSubtitle;
+
+  /// No description provided for @parentUsageRuleAllowAllDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow all day'**
+  String get parentUsageRuleAllowAllDayTitle;
+
+  /// No description provided for @parentUsageRuleAllowAllDaySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Can be used at any time'**
+  String get parentUsageRuleAllowAllDaySubtitle;
+
+  /// No description provided for @parentUsageRuleBlockAllDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Block all day'**
+  String get parentUsageRuleBlockAllDayTitle;
+
+  /// No description provided for @parentUsageRuleBlockAllDaySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot be used today'**
+  String get parentUsageRuleBlockAllDaySubtitle;
+
+  /// No description provided for @zonesDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm deletion'**
+  String get zonesDeleteConfirmTitle;
+
+  /// No description provided for @zonesDeleteConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this location?'**
+  String get zonesDeleteConfirmMessage;
+
+  /// No description provided for @zonesDeleteButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get zonesDeleteButton;
+
+  /// No description provided for @zonesCreateSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Created successfully'**
+  String get zonesCreateSuccessTitle;
+
+  /// No description provided for @zonesCreateSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Location \"{name}\" has been created'**
+  String zonesCreateSuccessMessage(String name);
+
+  /// No description provided for @zonesFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get zonesFailedTitle;
+
+  /// No description provided for @zonesCreateFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to create location. Please try again.'**
+  String get zonesCreateFailedMessage;
+
+  /// No description provided for @zonesEditSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated successfully'**
+  String get zonesEditSuccessTitle;
+
+  /// No description provided for @zonesEditSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Location has been updated'**
+  String get zonesEditSuccessMessage;
+
+  /// No description provided for @zonesEditFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to update location. Please try again.'**
+  String get zonesEditFailedMessage;
+
+  /// No description provided for @zonesDeleteSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted successfully'**
+  String get zonesDeleteSuccessTitle;
+
+  /// No description provided for @zonesDeleteSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Location has been deleted'**
+  String get zonesDeleteSuccessMessage;
+
+  /// No description provided for @zonesDeleteFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to delete location. Please try again.'**
+  String get zonesDeleteFailedMessage;
+
+  /// No description provided for @zonesEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No zones yet'**
+  String get zonesEmptyTitle;
+
+  /// No description provided for @zonesEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add zones to start tracking your child\'s location'**
+  String get zonesEmptySubtitle;
+
+  /// No description provided for @zonesTypeSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe'**
+  String get zonesTypeSafe;
+
+  /// No description provided for @zonesTypeDanger.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger'**
+  String get zonesTypeDanger;
+
+  /// No description provided for @zonesEditMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get zonesEditMenu;
+
+  /// No description provided for @zonesDeleteMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get zonesDeleteMenu;
+
+  /// No description provided for @zonesScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Child zones'**
+  String get zonesScreenTitle;
+
+  /// No description provided for @zonesAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add zone'**
+  String get zonesAddButton;
+
+  /// No description provided for @zonesErrorWithMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String zonesErrorWithMessage(String error);
+
+  /// No description provided for @zonesNewZoneDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'New zone'**
+  String get zonesNewZoneDefaultName;
+
+  /// No description provided for @zonesEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit zone'**
+  String get zonesEditTitle;
+
+  /// No description provided for @zonesAddAddressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location address'**
+  String get zonesAddAddressTitle;
+
+  /// No description provided for @zonesOverlapWarningText.
+  ///
+  /// In en, this message translates to:
+  /// **'Locations should not overlap'**
+  String get zonesOverlapWarningText;
+
+  /// No description provided for @zonesNameFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Zone name'**
+  String get zonesNameFieldLabel;
+
+  /// No description provided for @zonesTypeFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Zone type'**
+  String get zonesTypeFieldLabel;
+
+  /// No description provided for @zonesRadiusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Radius'**
+  String get zonesRadiusLabel;
+
+  /// No description provided for @zonesOverlappingWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlapping with: {name}'**
+  String zonesOverlappingWith(String name);
+
+  /// No description provided for @zonesDefaultNameFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Zone'**
+  String get zonesDefaultNameFallback;
+
   /// No description provided for @zone_default.
   ///
   /// In en, this message translates to:

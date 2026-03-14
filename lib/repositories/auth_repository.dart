@@ -1,11 +1,12 @@
-import 'package:cloud_functions/cloud_functions.dart';
+﻿import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/background/native_watcher_service.dart';
 import 'package:kid_manager/models/app_user.dart';
-import '../services/firebase_auth_service.dart';
+import 'package:kid_manager/services/firebase_auth_service.dart';
+
 import 'user_repository.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthRepository {
   final FirebaseAuthService _authService;
@@ -17,13 +18,18 @@ class AuthRepository {
   Stream<User?> authStateChanges() => _authService.authStateChanges();
 
   User? currentUser() => _authService.currentUser;
+
   Stream<AppUser?> watchSessionUser() {
     return authStateChanges().asyncMap((fbUser) async {
       if (fbUser == null) return null;
 
-      // Lấy AppUser từ Firestore
-      final appUser = await _users.getUserById(fbUser.uid);
-      return appUser;
+      try {
+        return await _users.getUserById(fbUser.uid);
+      } catch (e, st) {
+        debugPrint('[AuthRepository] watchSessionUser error: $e');
+        debugPrintStack(stackTrace: st);
+        return null;
+      }
     });
   }
 

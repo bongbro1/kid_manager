@@ -1,8 +1,7 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
@@ -48,7 +47,7 @@ class AuthVM extends ChangeNotifier {
 
       final uid = user.uid;
 
-      /// 🔎 đọc user document
+      /// ðŸ”Ž Ä‘á»c user document
       final userInfo = await _userRepo.getUserById(uid);
 
       if (userInfo == null) {
@@ -56,13 +55,13 @@ class AuthVM extends ChangeNotifier {
         throw Exception("accountNotFound");
       }
 
-      // /// ❌ chưa verify OTP
+      // /// âŒ chÆ°a verify OTP
       if (userInfo.isActive != true) {
         await _authRepo.logout();
         throw Exception("accountNotActivated");
       }
 
-      ///  hợp lệ
+      ///  há»£p lá»‡
       _user = user;
       debugPrint("User : $_user");
       notifyListeners();
@@ -109,14 +108,14 @@ class AuthVM extends ChangeNotifier {
 
   Future<String?> forgotPassword(String email) async {
     return await _runAuthAction<String>(() async {
-      // 1️⃣ tìm user theo email
+      // 1ï¸âƒ£ tÃ¬m user theo email
       final user = await _userRepo.getUserByEmail(email);
 
       if (user == null) {
         throw Exception("emailNotRegistered");
       }
 
-      // 2️⃣ tạo OTP
+      // 2ï¸âƒ£ táº¡o OTP
       await _otpRepo.createOtp(
         uid: user.id,
         email: email,
@@ -138,7 +137,7 @@ class AuthVM extends ChangeNotifier {
 
   Future<String?> register(String email, String password) async {
     return await _runAuthAction<String>(() async {
-      // 1️⃣ tạo account
+      // 1ï¸âƒ£ táº¡o account
       final cred = await _authRepo.register(email: email, password: password);
 
       final user = cred.user;
@@ -146,13 +145,13 @@ class AuthVM extends ChangeNotifier {
 
       final uid = user.uid;
 
-      // 2️⃣ tạo user doc
+      // 2ï¸âƒ£ táº¡o user doc
       await _userRepo.createParentIfMissing(
         uid: uid,
         email: user.email ?? email,
       );
 
-      // 3️⃣ tạo OTP
+      // 3ï¸âƒ£ táº¡o OTP
       await _otpRepo.createOtp(
         uid: uid,
         email: email,
@@ -178,9 +177,10 @@ class AuthVM extends ChangeNotifier {
 
       await _authRepo.logout();
       await _storage.clearAuthData();
+      _user = null;
     } catch (e) {
       _error = e.toString();
-      debugPrint("❌ Logout error: $e");
+      debugPrint("âŒ Logout error: $e");
     } finally {
       _loading = false;
       notifyListeners();
@@ -202,13 +202,13 @@ class AuthVM extends ChangeNotifier {
     } on Exception catch (e) {
       debugPrint("AUTH ERROR (Exception): $e");
 
-      // lấy message thật
+      // láº¥y message tháº­t
       _error = e.toString().replaceFirst("Exception: ", "");
       return null;
     } catch (e) {
       debugPrint("AUTH ERROR (Unknown): $e");
 
-      _error = 'Có lỗi xảy ra. Vui lòng thử lại.';
+      _error = 'CÃ³ lá»—i xáº£y ra. Vui lÃ²ng thá»­ láº¡i.';
       return null;
     } finally {
       _setLoading(false);
@@ -243,3 +243,5 @@ class AuthVM extends ChangeNotifier {
     super.dispose();
   }
 }
+
+

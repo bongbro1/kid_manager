@@ -756,6 +756,101 @@
       }
     }
   },
+  "parentDashboardTitle": "Dashboard",
+  "parentDashboardTabApps": "Apps",
+  "parentDashboardTabStatistics": "Statistics",
+  "parentDashboardNoDeviceTitle": "No linked devices yet",
+  "parentDashboardNoDeviceSubtitle": "To monitor app usage time, add your child's device to the system.",
+  "parentDashboardAddDeviceButton": "Add device",
+  "parentDashboardHowItWorksButton": "Learn how it works",
+  "parentStatsTotalToday": "TOTAL TIME TODAY",
+  "parentStatsTotalThisWeek": "TOTAL TIME THIS WEEK",
+  "parentStatsSelectRange": "SELECT DATE RANGE",
+  "parentStatsSelectEndDate": "SELECT END DATE",
+  "parentStatsTotalFromRange": "TOTAL TIME FROM {startDate} - {endDate}",
+  "@parentStatsTotalFromRange": {
+    "placeholders": {
+      "startDate": {
+        "type": "String"
+      },
+      "endDate": {
+        "type": "String"
+      }
+    }
+  },
+  "parentStatsSegmentDay": "Day",
+  "parentStatsSegmentWeek": "Week",
+  "parentStatsSegmentRange": "Range",
+  "parentStatsAppDetailsTitle": "App details",
+  "parentStatsCollapse": "COLLAPSE",
+  "parentStatsViewAll": "VIEW ALL",
+  "parentUsageNoAvailableSlot": "No available time slot",
+  "parentUsageStartBeforeEnd": "Start time must be earlier than end time",
+  "parentUsageOverlapTimeRange": "Time range overlaps another slot",
+  "parentUsageEndAfterStart": "End time must be later than start time",
+  "parentUsageEditTitle": "Usage time settings",
+  "parentUsageEnableUsage": "Allow usage",
+  "parentUsageSelectAllowedDays": "Select allowed days",
+  "saveButton": "Save",
+  "parentUsageDayRuleModalHint": "Choose the rule for this day",
+  "parentUsageRuleFollowScheduleTitle": "Follow schedule",
+  "parentUsageRuleFollowScheduleSubtitle": "Apply weekly time windows",
+  "parentUsageRuleAllowAllDayTitle": "Allow all day",
+  "parentUsageRuleAllowAllDaySubtitle": "Can be used at any time",
+  "parentUsageRuleBlockAllDayTitle": "Block all day",
+  "parentUsageRuleBlockAllDaySubtitle": "Cannot be used today",
+  "zonesDeleteConfirmTitle": "Confirm deletion",
+  "zonesDeleteConfirmMessage": "Are you sure you want to delete this location?",
+  "zonesDeleteButton": "Delete",
+  "zonesCreateSuccessTitle": "Created successfully",
+  "zonesCreateSuccessMessage": "Location \"{name}\" has been created",
+  "@zonesCreateSuccessMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "zonesFailedTitle": "Failed",
+  "zonesCreateFailedMessage": "Unable to create location. Please try again.",
+  "zonesEditSuccessTitle": "Updated successfully",
+  "zonesEditSuccessMessage": "Location has been updated",
+  "zonesEditFailedMessage": "Unable to update location. Please try again.",
+  "zonesDeleteSuccessTitle": "Deleted successfully",
+  "zonesDeleteSuccessMessage": "Location has been deleted",
+  "zonesDeleteFailedMessage": "Unable to delete location. Please try again.",
+  "zonesEmptyTitle": "No zones yet",
+  "zonesEmptySubtitle": "Add zones to start tracking your child's location",
+  "zonesTypeSafe": "Safe",
+  "zonesTypeDanger": "Danger",
+  "zonesEditMenu": "Edit",
+  "zonesDeleteMenu": "Delete",
+  "zonesScreenTitle": "Child zones",
+  "zonesAddButton": "Add zone",
+  "zonesErrorWithMessage": "Error: {error}",
+  "@zonesErrorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "zonesNewZoneDefaultName": "New zone",
+  "zonesEditTitle": "Edit zone",
+  "zonesAddAddressTitle": "Location address",
+  "zonesOverlapWarningText": "Locations should not overlap",
+  "zonesNameFieldLabel": "Zone name",
+  "zonesTypeFieldLabel": "Zone type",
+  "zonesRadiusLabel": "Radius",
+  "zonesOverlappingWith": "Overlapping with: {name}",
+  "@zonesOverlappingWith": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "zonesDefaultNameFallback": "Zone",
   "zone_default": "Zone notification",
   "zone_enter_danger_parent": "⚠️ Child entered a danger zone",
   "zone_exit_danger_parent": "✅ Child left a danger zone",
