@@ -5,6 +5,7 @@ import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/utils/date_utils.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
@@ -111,6 +112,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     if (!mounted) return;
 
     if (ok) {
+      await context.read<BirthdayViewModel>().refreshFamilyBirthdays(
+        forceSync: true,
+      );
+
+      if (!mounted) return;
+
       NotificationDialog.show(
         context,
         type: DialogType.success,
@@ -532,7 +539,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    
+
     Future<void> logout() async {
       final authVM = context.read<AuthVM>();
       final userVm = context.read<UserVm>();

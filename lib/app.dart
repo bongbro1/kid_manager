@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
+import 'package:kid_manager/repositories/birthday_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/location/location_repository_impl.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
@@ -23,6 +24,7 @@ import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/services/usage_sync_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/locale_vm.dart';
@@ -102,6 +104,7 @@ class _MyAppState extends State<MyApp> {
     );
 
     final memoryRepo = MemoryDayRepository(FirebaseFirestore.instance);
+    final birthdayRepo = BirthdayRepository(FirebaseFirestore.instance);
 
     return MultiProvider(
       providers: [
@@ -116,6 +119,7 @@ class _MyAppState extends State<MyApp> {
         Provider.value(value: otpRepo),
         Provider.value(value: termsRepo),
         Provider.value(value: subscriptionRepo),
+        Provider.value(value: birthdayRepo),
 
         ChangeNotifierProvider(
           create: (context) => AuthVM(
@@ -185,6 +189,8 @@ class _MyAppState extends State<MyApp> {
             context.read<ScheduleNotificationService>(),
           ),
         ),
+
+        ChangeNotifierProvider(create: (_) => BirthdayViewModel(birthdayRepo)),
 
         ChangeNotifierProvider(
           create: (context) => ScheduleHistoryViewModel(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/utils/schedule_utils.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
@@ -25,6 +26,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
     required DateTime day,
     required bool isSelected,
     required bool hasMemory,
+    required bool hasBirthday,
     required TextStyle textStyle,
   }) {
     return Stack(
@@ -52,8 +54,23 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                 )
               : Text('${day.day}', style: textStyle),
         ),
-
-        // ✅ chấm vàng góc phải
+        // ✅ chấm đỏ góc trái nếu có sinh nhật
+        if (hasBirthday)
+          const Positioned(
+            top: 6,
+            left: 10,
+            child: SizedBox(
+              width: 6,
+              height: 6,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Color(0xFFEC4899),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+        // ✅ chấm vàng góc phải nếu có memory
         if (hasMemory)
           const Positioned(
             top: 6,
@@ -78,6 +95,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
     final l10n = AppLocalizations.of(context);
     final scheduleVm = context.watch<ScheduleViewModel>();
     final memoryVm = context.watch<MemoryDayViewModel>();
+    final birthdayVm = context.watch<BirthdayViewModel>();
 
     return Container(
       decoration: const BoxDecoration(
@@ -100,6 +118,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
             onDaySelected: (selectedDay, _) {
               scheduleVm.setDate(selectedDay);
               memoryVm.setDate(selectedDay);
+              birthdayVm.setDate(selectedDay);
             },
             calendarFormat: _calendarFormat,
             onFormatChanged: (format) =>
@@ -136,6 +155,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   day: day,
                   isSelected: true,
                   hasMemory: memoryVm.hasMemory(day),
+                  hasBirthday: birthdayVm.hasBirthday(day),
                   textStyle: AppTextStyles.scheduleDayNumber,
                 );
               },
@@ -146,7 +166,21 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   day: day,
                   isSelected: false,
                   hasMemory: memoryVm.hasMemory(day),
+                  hasBirthday: birthdayVm.hasBirthday(day),
                   textStyle: AppTextStyles.scheduleDayNumber,
+                );
+              },
+              outsideBuilder: (context, day, focusedDay) {
+                return _buildDayCell(
+                  day: day,
+                  isSelected: false,
+                  hasMemory: memoryVm.hasMemory(day),
+                  hasBirthday: birthdayVm.hasBirthday(day),
+                  textStyle: const TextStyle(
+                    color: Color(0xFFBCC1CD),
+                    fontFamily: 'Poppins',
+                    fontSize: 15,
+                  ),
                 );
               },
 
@@ -269,6 +303,7 @@ class _CalendarHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final scheduleVm = context.watch<ScheduleViewModel>();
     final memoryVm = context.watch<MemoryDayViewModel>();
+    final birthdayVm = context.watch<BirthdayViewModel>();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -283,6 +318,7 @@ class _CalendarHeader extends StatelessWidget {
               );
               scheduleVm.changeMonth(newMonth);
               memoryVm.changeMonth(newMonth);
+              birthdayVm.changeMonth(newMonth);
             },
             icon: const Icon(Icons.chevron_left, color: AppColors.darkText),
           ),
@@ -306,6 +342,7 @@ class _CalendarHeader extends StatelessWidget {
               );
               scheduleVm.changeMonth(newMonth);
               memoryVm.changeMonth(newMonth);
+              birthdayVm.changeMonth(newMonth);
             },
             icon: const Icon(Icons.chevron_right, color: AppColors.darkText),
           ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/birthday_event.dart';
 import 'package:kid_manager/utils/ui_helpers.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/utils/confirm_delete_dialog.dart';
@@ -8,6 +10,7 @@ import 'package:kid_manager/utils/notify_dialog.dart';
 
 import '../../../../../core/app_text_styles.dart';
 import '../../../../../models/schedule.dart';
+import '../../../../../utils/date_utils.dart';
 import '../../../views/parent/schedule/edit_schedule_sheet.dart';
 import '../../../../../viewmodels/memory_day_vm.dart';
 import '../../../../../models/memory_day.dart';
@@ -22,18 +25,14 @@ class ScheduleList extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final scheduleVm = context.watch<ScheduleViewModel>();
     final memoryVm = context.watch<MemoryDayViewModel>();
+    final birthdayVm = context.watch<BirthdayViewModel>();
 
+    final birthdays = birthdayVm.birthdaysOfSelectedDay;
     final memories = memoryVm.memoriesOfSelectedDay;
     final schedules = scheduleVm.schedules;
-    final total = memories.length + schedules.length;
+    final total = birthdays.length + memories.length + schedules.length;
 
-    if (scheduleVm.selectedChildId == null) {
-      return Center(
-        child: Text(l10n.schedulePleaseSelectChild, style: AppTextStyles.body),
-      );
-    }
-
-    if (scheduleVm.isLoading) {
+    if (scheduleVm.isLoading || memoryVm.isLoading || birthdayVm.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -41,7 +40,13 @@ class ScheduleList extends StatelessWidget {
       return Center(child: Text(scheduleVm.error!));
     }
 
-    if (memories.isEmpty && schedules.isEmpty) {
+    if (total == 0 && scheduleVm.selectedChildId == null) {
+      return Center(
+        child: Text(l10n.schedulePleaseSelectChild, style: AppTextStyles.body),
+      );
+    }
+
+    if (total == 0) {
       return Center(
         child: Text(l10n.scheduleNoEventsInDay, style: AppTextStyles.body),
       );
@@ -53,17 +58,28 @@ class ScheduleList extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           itemCount: total,
           itemBuilder: (_, i) {
-            if (i < memories.length) {
+            if (i < birthdays.length) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: BirthdayItem(
+                  birthday: birthdays[i],
+                  selectedDate: scheduleVm.selectedDate,
+                ),
+              );
+            }
+
+            if (i < birthdays.length + memories.length) {
+              final memoryIndex = i - birthdays.length;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: MemoryDayItem(
-                  memory: memories[i],
+                  memory: memories[memoryIndex],
                   screenContext: screenContext,
                 ),
               );
             }
 
-            final sIndex = i - memories.length;
+            final sIndex = i - birthdays.length - memories.length;
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: ScheduleItem(
@@ -74,6 +90,77 @@ class ScheduleList extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class BirthdayItem extends StatelessWidget {
+  const BirthdayItem({
+    super.key,
+    required this.birthday,
+    required this.selectedDate,
+  });
+
+  final BirthdayEvent birthday;
+  final DateTime selectedDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final age = birthday.ageOn(selectedDate);
+    final avatar = birthday.avatarUrl.trim();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDF2F8),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            foregroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+            onForegroundImageError: avatar.isNotEmpty ? (_, _) {} : null,
+            backgroundColor: const Color(0xFFFBCFE8),
+            child: avatar.isEmpty
+                ? const Icon(Icons.cake_rounded, color: Color(0xFFBE185D))
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  birthday.displayName,
+                  style: AppTextStyles.scheduleItemTitle,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${l10n.birthDateLabel}: ${formatDateDDMMYYYY(birthday.birthDate)}',
+                  style: AppTextStyles.scheduleItemTime,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.yearsOld.replaceFirst('%d', age.toString()),
+                  style: AppTextStyles.scheduleItemTime.copyWith(
+                    color: const Color(0xFFBE185D),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -188,6 +275,7 @@ class ScheduleItem extends StatelessWidget {
     );
 
     if (confirm != true) return;
+    if (!context.mounted) return;
 
     try {
       await runWithLoading<void>(context, () async {
@@ -330,6 +418,7 @@ class MemoryDayItem extends StatelessWidget {
     );
 
     if (confirm != true) return;
+    if (!context.mounted) return;
 
     try {
       await runWithLoading<void>(context, () async {
