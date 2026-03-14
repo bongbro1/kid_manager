@@ -2051,6 +2051,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ℹ️ You left a safe zone'**
   String get zone_exit_safe_child;
+
+  /// No description provided for @tracking_location_service_off_parent_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Child turned off location'**
+  String get tracking_location_service_off_parent_title;
+
+  /// No description provided for @tracking_location_permission_denied_parent_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Child turned off location permission'**
+  String get tracking_location_permission_denied_parent_title;
+
+  /// No description provided for @tracking_background_disabled_parent_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Background location was turned off'**
+  String get tracking_background_disabled_parent_title;
+
+  /// No description provided for @tracking_location_stale_parent_title.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent location update'**
+  String get tracking_location_stale_parent_title;
+
+  /// No description provided for @tracking_ok_parent_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is active again'**
+  String get tracking_ok_parent_title;
+
+  /// No description provided for @tracking_location_service_off_child_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is turned off'**
+  String get tracking_location_service_off_child_title;
+
+  /// No description provided for @tracking_location_permission_denied_child_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is off'**
+  String get tracking_location_permission_denied_child_title;
+
+  /// No description provided for @tracking_background_disabled_child_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Background location is off'**
+  String get tracking_background_disabled_child_title;
+
+  /// No description provided for @tracking_location_stale_child_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is not updating'**
+  String get tracking_location_stale_child_title;
+
+  /// No description provided for @tracking_ok_child_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is working again'**
+  String get tracking_ok_child_title;
+
+  /// No description provided for @tracking_default_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracking notification'**
+  String get tracking_default_title;
 }
 
 class _AppLocalizationsDelegate

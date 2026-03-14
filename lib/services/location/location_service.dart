@@ -1,26 +1,42 @@
 import 'dart:async';
+
+import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:location/location.dart' as loc;
 
 abstract class LocationServiceInterface {
-  /// Bảo đảm GPS bật + quyền foreground/background (tuỳ requireBackground)
+  /// Ensure GPS + foreground/background permission depending on requireBackground.
   Future<bool> ensureServiceAndPermission({required bool requireBackground});
 
-  /// Stream vị trí liên tục
+  /// Continuous location stream.
   Stream<LocationData> getLocationStream();
 
-  /// GPS service đang bật hay không
+  /// Whether location service (GPS) is enabled.
   Future<bool> isServiceEnabled();
 
-  /// App còn quyền vị trí hay không
+  /// Foreground location permission + precise location requirement.
   Future<bool> hasLocationPermission({required bool requireBackground});
 
-  /// Background mode còn bật hay không
+  /// Whether precise location is granted.
+  Future<bool> hasPreciseLocationPermission();
+
+  /// Whether native background mode is enabled.
   Future<bool> isBackgroundModeEnabled();
 }
 
 class LocationServiceImpl implements LocationServiceInterface {
   final loc.Location _location = loc.Location();
+
+  Future<bool> _isPreciseGranted() async {
+    try {
+      final status = await geo.Geolocator.getLocationAccuracy();
+      return status == geo.LocationAccuracyStatus.precise;
+    } catch (_) {
+      // Some platforms/devices do not expose this API reliably.
+      return true;
+    }
+  }
 
   @override
   Future<bool> ensureServiceAndPermission({
@@ -40,26 +56,39 @@ class LocationServiceImpl implements LocationServiceInterface {
     final fgGranted =
         permission == loc.PermissionStatus.granted ||
         permission == loc.PermissionStatus.grantedLimited;
-
     if (!fgGranted) return false;
 
-    if (requireBackground) {
-      final bgOk = await _location.enableBackgroundMode(enable: true);
-      if (!bgOk) return false;
+    final preciseGranted = await _isPreciseGranted();
+    if (!preciseGranted) {
+      await geo.Geolocator.openAppSettings();
+      return false;
+    }
 
-      await _location.changeNotificationOptions(
-        title: "Đang chia sẻ vị trí",
-        subtitle: "Ứng dụng chạy nền để bảo vệ con",
-        onTapBringToFront: true,
-      );
-    } else {
-      await _location.enableBackgroundMode(enable: false);
+    if (requireBackground) {
+      try {
+        final bgOk = await _location.enableBackgroundMode(enable: true);
+        if (!bgOk) return false;
+
+        await _location.changeNotificationOptions(
+          title: "Dang chia se vi tri",
+          subtitle: "Ung dung chay nen de bao ve con",
+          onTapBringToFront: true,
+        );
+      } on PlatformException catch (e) {
+        if (e.code == 'PERMISSION_DENIED') {
+          return false;
+        }
+        return false;
+      } catch (_) {
+        return false;
+      }
     }
 
     await _location.changeSettings(
       accuracy: loc.LocationAccuracy.high,
-      distanceFilter: 5,
-      interval: 3000,
+      // Keep receiving updates even when standing still.
+      distanceFilter: 0,
+      interval: 10000,
     );
 
     return true;
@@ -87,16 +116,17 @@ class LocationServiceImpl implements LocationServiceInterface {
   @override
   Future<bool> hasLocationPermission({required bool requireBackground}) async {
     final permission = await _location.hasPermission();
-
     final fgGranted =
         permission == loc.PermissionStatus.granted ||
         permission == loc.PermissionStatus.grantedLimited;
-
     if (!fgGranted) return false;
 
-    if (!requireBackground) return true;
+    return _isPreciseGranted();
+  }
 
-    return _location.isBackgroundModeEnabled();
+  @override
+  Future<bool> hasPreciseLocationPermission() async {
+    return _isPreciseGranted();
   }
 
   @override

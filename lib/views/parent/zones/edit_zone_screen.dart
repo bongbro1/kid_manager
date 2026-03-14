@@ -408,12 +408,18 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
 
                               SizedBox(
                                 width: double.infinity,
-                                height: 52,
+                                height: 54,
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
+                                    elevation: _isOverlapping ? 0 : 2,
                                     backgroundColor: _isOverlapping
-                                        ? Colors.grey.shade600
+                                        ? const Color(0xFF9CA3AF)
                                         : baseColor,
+                                    disabledBackgroundColor: const Color(
+                                      0xFF9CA3AF,
+                                    ),
+                                    foregroundColor: Colors.white,
+                                    disabledForegroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
                                     ),
@@ -421,16 +427,74 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                   onPressed: _isOverlapping
                                       ? null
                                       : _onSavePressed,
-                                  child: const Text(
-                                    "Tiếp tục",
-                                    style: TextStyle(
+                                  child: Text(
+                                    _isOverlapping
+                                        ? "Không thể tiếp tục"
+                                        : "Tiếp tục",
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                      letterSpacing: 0.2,
                                     ),
                                   ),
                                 ),
                               ),
 
+                              if (_isOverlapping && _overlapWith != null) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF2F2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFFECACA),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(
+                                        Icons.warning_amber_rounded,
+                                        color: Color(0xFFDC2626),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: RichText(
+                                          text: TextSpan(
+                                            style: const TextStyle(
+                                              fontSize: 13.5,
+                                              height: 1.45,
+                                              color: Color(0xFF991B1B),
+                                            ),
+                                            children: [
+                                              const TextSpan(
+                                                text: "Đang chồng lên: ",
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: _overlapWith!.name,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                               if (_isOverlapping && _overlapWith != null) ...[
                                 const SizedBox(height: 10),
                                 Text(

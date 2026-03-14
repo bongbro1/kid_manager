@@ -46,6 +46,7 @@ if (!req.auth?.uid) {
       status,
       message,
       prevStatus,
+      source: "app",
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true }

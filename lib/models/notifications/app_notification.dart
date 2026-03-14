@@ -17,6 +17,7 @@ enum NotificationType {
   battery,
   birthday,
   zone, // ✅ thêm
+  tracking,
   subscription,
   system,
 }
@@ -54,6 +55,8 @@ extension NotificationTypeX on NotificationType {
         return "birthday";
       case NotificationType.zone:
         return "zone";
+      case NotificationType.tracking:
+        return "tracking";
       case NotificationType.subscription:
         return "subscription";
       case NotificationType.system:
@@ -72,6 +75,7 @@ extension NotificationTypeX on NotificationType {
       case NotificationType.heartbeatLost:
       case NotificationType.battery:
       case NotificationType.zone:
+      case NotificationType.tracking:
         return NotificationFilter.alert;
 
       case NotificationType.schedule:
@@ -85,7 +89,6 @@ extension NotificationTypeX on NotificationType {
         return NotificationFilter.system;
     }
   }
-
   /// Convert từ Firestore string → enum
   static NotificationType fromString(String value) {
     final v = value.toString().trim().toLowerCase();
@@ -203,6 +206,14 @@ extension NotificationTypeX on NotificationType {
           iconColor: Color(0xFF2563EB),
         );
 
+      case NotificationType.tracking:
+        return const NotificationStyle(
+          icon: Icons.warning_amber_rounded,
+          bgColor: Color(0xFFFFF7ED),
+          borderColor: Color(0xFFFED7AA),
+          iconColor: Color(0xFFEA580C),
+        );
+
       case NotificationType.subscription:
         return const NotificationStyle(
           icon: Icons.settings_rounded,
@@ -250,7 +261,6 @@ class AppNotification {
 
   final DateTime? createdAt;
   final Map<String, dynamic> data;
-
   /// runtime: doc ở global hay userInbox
   final NotificationStore store;
 
@@ -277,6 +287,12 @@ class AppNotification {
     final rawTitle = (map['title'] ?? '').toString();
     final rawEventKey = (map['eventKey'] ?? map['data']?['eventKey'] ?? '')
         .toString();
+    final dataMap = Map<String, dynamic>.from(map['data'] ?? {});
+
+    final rawBody = (map['body'] ?? '').toString();
+    final resolvedBody = rawBody.startsWith('tracking.')
+        ? (dataMap['message']?.toString() ?? rawBody)
+        : rawBody;
 
     return AppNotification(
       id: id,
@@ -285,11 +301,11 @@ class AppNotification {
       familyId: map['familyId']?.toString(),
       type: (map['type'] ?? '').toString(),
       title: rawTitle.trim().isNotEmpty ? rawTitle : rawEventKey,
-      body: (map['body'] ?? '').toString(),
+      body: resolvedBody,
       isRead: (map['isRead'] ?? false) == true,
       status: (map['status'] ?? 'pending').toString(),
       createdAt: _readDate(map['createdAt']),
-      data: Map<String, dynamic>.from(map['data'] ?? {}),
+      data: dataMap,
       store: store,
     );
   }
