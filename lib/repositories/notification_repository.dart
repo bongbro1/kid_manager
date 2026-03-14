@@ -239,7 +239,10 @@ class NotificationRepository {
     final map = doc.data()!;
     final type = (map['type'] ?? '').toString();
     final data = Map<String, dynamic>.from(map['data'] ?? {});
-    final content = (map['body'] ?? '').toString();
+    final rawContent = (map['body'] ?? '').toString();
+    final content = rawContent.startsWith('tracking.')
+        ? (data['message']?.toString() ?? rawContent)
+        : rawContent;
 
     return NotificationDetailModel(
       id: doc.id,
@@ -307,7 +310,10 @@ class NotificationRepository {
     final type = map['type'] ?? '';
     final data = Map<String, dynamic>.from(map['data'] ?? {});
 
-    String content = map['body'] ?? '';
+    final rawContent = (map['body'] ?? '').toString();
+    String content = rawContent.startsWith('tracking.')
+        ? (data['message']?.toString() ?? rawContent)
+        : rawContent;
 
     if (type == NotificationType.blockedApp.value) {
       final appName = data["appName"] ?? "";

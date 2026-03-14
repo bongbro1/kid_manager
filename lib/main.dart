@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:kid_manager/background/background_worker.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';

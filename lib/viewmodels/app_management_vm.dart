@@ -32,6 +32,9 @@ class AppManagementVM extends ChangeNotifier {
   Map<String, Map<DateTime, int>> _appUsageMap = {};
   Map<String, Map<DateTime, int>> get appUsageMap => _appUsageMap;
 
+  Map<DateTime, Map<int, int>> _hourlyUsage = {};
+  Map<DateTime, Map<int, int>> get hourlyUsage => _hourlyUsage;
+
   List<ChildItem> children = [];
 
   String? _selectedChildId;
@@ -224,23 +227,14 @@ class AppManagementVM extends ChangeNotifier {
   }
 
   Future<void> loadUsageHistory(String selectedChildId) async {
-    debugPrint("📥 loadUsageHistory START for child = $selectedChildId");
-
     try {
       final result = await _repo.loadUsageHistory(selectedChildId);
 
       _usageMap = result.totalUsage;
       _appUsageMap = result.perAppUsage;
 
-      // debugPrint("📊 TOTAL usage:");
-      // _usageMap.forEach((k, v) {
-      //   debugPrint("  ${k.toIso8601String()} -> $v min");
-      // });
-
-      // debugPrint("📱 PER APP usage:");
-      // _appUsageMap.forEach((app, map) {
-      //   debugPrint("  $app -> ${map.length} days");
-      // });
+      /// NEW
+      _hourlyUsage = result.hourlyUsage;
 
       _usageVersion++;
       notifyListeners();
@@ -248,8 +242,22 @@ class AppManagementVM extends ChangeNotifier {
       debugPrint("❌ loadUsageHistory ERROR: $e");
       debugPrint("STACK: $stack");
     }
+  }
 
-    debugPrint("📤 loadUsageHistory END");
+  Future<void> clear() async {
+    await _childrenSub?.cancel();
+    _childrenSub = null;
+
+    _loading = false;
+    _error = null;
+    _apps = [];
+    _usageMap = {};
+    _appUsageMap = {};
+    children = [];
+    _selectedChildId = null;
+    _usageVersion = 0;
+
+    notifyListeners();
   }
 
   Future<void> clear() async {

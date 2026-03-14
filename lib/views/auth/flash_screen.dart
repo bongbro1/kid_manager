@@ -31,10 +31,7 @@ class _FlashScreenState extends State<FlashScreen> {
 
   Future<void> _init() async {
     final appVM = context.read<AppManagementVM>();
-    try {
-      await appVM.loadAndSeedApp();
-    } catch (_) {}
-
+    appVM.loadAndSeedApp();
     if (!mounted) return;
     setState(() => _showPermissionFlow = true);
   }

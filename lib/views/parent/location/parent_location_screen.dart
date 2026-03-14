@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
+import 'package:kid_manager/models/schedule.dart';
+import 'package:kid_manager/services/schedule/schedule_service.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
@@ -28,7 +30,8 @@ class ParentAllChildrenMapScreen extends StatefulWidget {
       _ParentAllChildrenMapScreenState();
 }
 
-class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen> with AutomaticKeepAliveClientMixin {
+class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
+    with AutomaticKeepAliveClientMixin {
   mbx.MapboxMap? _map;
 
   String? _focusedChildId;
@@ -48,6 +51,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   Timer? _syncDebounce;
   Uint8List? _defaultAvatarBytes;
   final FamilyChatRepository _chatRepo = FamilyChatRepository();
+  final ScheduleService _scheduleService = ScheduleService();
 
   @override
   bool get wantKeepAlive => true;
@@ -111,11 +115,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
     _didInitialFocus = true;
 
-    await _focusChild(
-      childId: firstChildId,
-      openSheet: false,
-      animate: false,
-    );
+    await _focusChild(childId: firstChildId, openSheet: false, animate: false);
   }
 
   Future<void> _focusChild({
@@ -222,39 +222,50 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     );
   }
 
-  Future<void> _warmupAvatars(Uint8List defaultBytes) async {
-    final children = List.of(_userVm.children);
-    for (final child in children) {
-      if (!mounted) return;
-      await Future<void>.delayed(const Duration(milliseconds: 16));
-      await _controller.setAvatarSmart(
-        childId: child.uid,
-        photoUrlOrData: child.avatarUrl,
-        defaultBytes: defaultBytes,
+  Future<List<Schedule>> _loadChildSchedulesByDate({
+    required String childId,
+    required DateTime date,
+  }) async {
+    final parentUid = (_userVm.me?.uid ?? '').trim();
+    if (parentUid.isEmpty) return <Schedule>[];
+
+    try {
+      return await _scheduleService.fetchByChildAndDate(
+        parentUid: parentUid,
+        childId: childId,
+        date: date,
       );
+    } catch (e, st) {
+      debugPrint('load child schedules error: $e');
+      debugPrint('$st');
+      return <Schedule>[];
     }
   }
 
-  void _openChildInfo(String childId) {
+  void _openChildInfo(String childId) async {
     final child = _userVm.children.firstWhere((c) => c.uid == childId);
     final latest = _locationVm.childrenLocations[child.uid];
+    final schedules = await _loadChildSchedulesByDate(
+      childId: child.uid,
+      date: DateTime.now(),
+    );
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => ChildInfoSheet(
+      builder: (sheetContext) => ChildInfoSheet(
         child: child,
         latest: latest,
         isSearching: false,
+        daySchedules: schedules,
         onToggleSearch: () {},
         onOpenChat: () {
-          Navigator.pop(context);
+          Navigator.of(sheetContext).pop();
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => const FamilyGroupChatScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const FamilyGroupChatScreen()),
           );
         },
         onSendQuickMessage: (msg) async {
@@ -264,11 +275,12 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
             throw StateError('Missing user or family');
           }
 
-          unawaited(() async {
-            try {
-              await _chatRepo.sendTextMessage(text: msg);
-            } catch (_) {}
-          }());
+          try {
+            await _chatRepo.sendTextMessage(text: msg);
+          } catch (e, st) {
+            debugPrint('sendTextMessage error: $e');
+            debugPrint('$st');
+          }
         },
       ),
     );
@@ -292,87 +304,94 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     final children = List.of(userVm.children);
 
     return Scaffold(
-        body: Stack(
-          children: [
-            Positioned.fill(
-              child: _MapLoadingPlaceholder(),
-            ),
-            Positioned.fill(
-              child: AnimatedOpacity(
-                opacity: _isMapVisualReady ? 1 : 0,
-                duration: const Duration(milliseconds: 250),
-                child: AppMapView(
-                  onMapCreated: (map) {
-                    _map = map;
-                    _controller.attach(map);
+      body: Stack(
+        children: [
+          Positioned.fill(child: _MapLoadingPlaceholder()),
+          Positioned.fill(
+            child: AnimatedOpacity(
+              opacity: _isMapVisualReady ? 1 : 0,
+              duration: const Duration(milliseconds: 250),
+              child: AppMapView(
+                onMapCreated: (map) {
+                  _map = map;
+                  _controller.attach(map);
 
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!mounted) return;
-                      _onSosFocus();
-                    });
-                  },
-                  onStyleLoaded: (map) async {
-                    _map = map;
-
-                    await _controller.onStyleLoaded();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (!mounted) return;
+                    _onSosFocus();
+                  });
+                },
+                onStyleLoaded: (map) async {
+                  _map = map;
 
-                    if (!_isMapVisualReady) {
-                      setState(() => _isMapVisualReady = true);
+                  await _controller.onStyleLoaded();
+                  if (!mounted) return;
+
+                  if (!_isMapVisualReady) {
+                    setState(() => _isMapVisualReady = true);
+                  }
+
+                  try {
+                    final defaultBytes =
+                        _defaultAvatarBytes ??
+                        (await rootBundle.load(
+                          "assets/images/avatar_default.png",
+                        )).buffer.asUint8List();
+
+                    await _controller.setDefaultAvatar(defaultBytes);
+                    await _syncToMap();
+                    await _focusFirstChildOnce();
+
+                    for (final c in _userVm.children) {
+                      unawaited(
+                        _controller.setAvatarSmart(
+                          childId: c.uid,
+                          photoUrlOrData: c.avatarUrl,
+                          defaultBytes: defaultBytes,
+                        ),
+                      );
                     }
+                  } catch (e, st) {
+                    debugPrint("🔥 Setup Error: $e");
+                    debugPrint("$st");
+                  }
+                },
+                onTapListener: (tapContext) async {
+                  if (_map == null) return;
 
-                    try {
-                      final defaultBytes =
-                          _defaultAvatarBytes ??
-                              (await rootBundle.load("assets/images/avatar_default.png"))
-                                  .buffer
-                                  .asUint8List();
+                  final features = await _map!.queryRenderedFeatures(
+                    mbx.RenderedQueryGeometry.fromScreenCoordinate(
+                      tapContext.touchPosition,
+                    ),
+                    mbx.RenderedQueryOptions(
+                      layerIds: ["children-layer"],
+                      filter: null,
+                    ),
+                  );
 
-                      await _controller.setDefaultAvatar(defaultBytes);
-                      unawaited(_syncToMap());
-                      unawaited(_focusFirstChildOnce());
-                      unawaited(_warmupAvatars(defaultBytes));
-                    } catch (e, st) {
-                      debugPrint("🔥 Setup Error: $e");
-                      debugPrint("$st");
-                    }
-                  },
-                  onTapListener: (tapContext) async {
-                    if (_map == null) return;
+                  if (features.isEmpty) return;
 
-                    final features = await _map!.queryRenderedFeatures(
-                      mbx.RenderedQueryGeometry.fromScreenCoordinate(
-                        tapContext.touchPosition,
-                      ),
-                      mbx.RenderedQueryOptions(
-                        layerIds: ["children-layer"],
-                        filter: null,
-                      ),
-                    );
+                  final queried = features.first?.queriedFeature;
+                  if (queried == null) return;
 
-                    if (features.isEmpty) return;
+                  final rawFeature = queried.feature as Map<String?, Object?>?;
+                  if (rawFeature == null) return;
 
-                    final queried = features.first?.queriedFeature;
-                    if (queried == null) return;
+                  final props = rawFeature["properties"] as Map?;
+                  if (props == null) return;
 
-                    final rawFeature = queried.feature as Map<String?, Object?>?;
-                    if (rawFeature == null) return;
+                  final childId = props["id"]?.toString();
+                  if (childId == null) return;
 
-                    final props = rawFeature["properties"] as Map?;
-                    if (props == null) return;
-
-                    final childId = props["id"]?.toString();
-                    if (childId == null) return;
-
-                    await _focusChild(
-                      childId: childId,
-                      openSheet: true,
-                      animate: true,
-                    );
-                  },
-                ),
+                  await _focusChild(
+                    childId: childId,
+                    openSheet: true,
+                    animate: true,
+                  );
+                },
               ),
             ),
+          ),
 
             Positioned(
               left: 12,
@@ -387,17 +406,17 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                         context.read<UserVm>().me?.displayName ??
                         l10n.parentLocationUnknownUser;
 
-                    debugPrint('myLocation=$myLocation');
-                    debugPrint('sending=${sosVm.sending}');
-                    if (myLocation == null) return;
-                    if (sosVm.sending) return;
+                  debugPrint('myLocation=$myLocation');
+                  debugPrint('sending=${sosVm.sending}');
+                  if (myLocation == null) return;
+                  if (sosVm.sending) return;
 
-                    final sosId = await sosVm.triggerSos(
-                      lat: myLocation.latitude,
-                      lng: myLocation.longitude,
-                      acc: myLocation.accuracy,
-                      createdByName: displayName,
-                    );
+                  final sosId = await sosVm.triggerSos(
+                    lat: myLocation.latitude,
+                    lng: myLocation.longitude,
+                    acc: myLocation.accuracy,
+                    createdByName: displayName,
+                  );
 
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -414,47 +433,48 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
               ),
             ),
 
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 16,
-              child: SafeArea(
-                child: MapBottomControls(
-                  children: children,
-                  onMyLocation: () async {
-                    await _syncToMap();
-                  },
-                  onTapChild: (child) async {
-                    await _syncToMap();
-                    await _focusChild(
-                      childId: child.uid,
-                      openSheet: true,
-                      animate: true,
-                    );
-                  },
-                  onMore: () async {
-                    final selectedChild = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ParentChildrenListScreen(),
-                      ),
-                    );
-                    if (selectedChild == null) return;
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 16,
+            child: SafeArea(
+              child: MapBottomControls(
+                children: children,
+                onMyLocation: () async {
+                  await _syncToMap();
+                },
+                onTapChild: (child) async {
+                  await _syncToMap();
+                  await _focusChild(
+                    childId: child.uid,
+                    openSheet: true,
+                    animate: true,
+                  );
+                },
+                onMore: () async {
+                  final selectedChild = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ParentChildrenListScreen(),
+                    ),
+                  );
 
-                    await _syncToMap();
-                    await _focusChild(
-                      childId: selectedChild.uid,
-                      openSheet: true,
-                      animate: true,
-                    );
-                  },
-                ),
+                  if (!mounted) return;
+                  if (selectedChild == null) return;
+
+                  await _syncToMap();
+                  await _focusChild(
+                    childId: selectedChild.uid,
+                    openSheet: true,
+                    animate: true,
+                  );
+                },
               ),
             ),
-          ],
-        )
+          ),
+        ],
+      ),
     );
-
   }
 
   @override
@@ -474,6 +494,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     super.dispose();
   }
 }
+
 class _MapLoadingPlaceholder extends StatelessWidget {
   const _MapLoadingPlaceholder();
 
@@ -523,10 +544,7 @@ class _MapLoadingPlaceholder extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset(
-          'assets/images/map_placeholder.webp',
-          fit: BoxFit.cover,
-        ),
+        Image.asset('assets/images/map_placeholder.webp', fit: BoxFit.cover),
 
         DecoratedBox(
           decoration: BoxDecoration(
@@ -569,9 +587,7 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                 const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.2,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2.2),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

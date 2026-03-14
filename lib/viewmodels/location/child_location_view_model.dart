@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:kid_manager/api/sos_api.dart';
 import 'package:kid_manager/core/location/motion_detector.dart';
 import 'package:kid_manager/core/location/send_policy.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
@@ -11,13 +9,13 @@ import 'package:kid_manager/core/location/tracking_state.dart';
 import 'package:kid_manager/core/zones/zone_monitor.dart';
 import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
 import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
-import 'package:kid_manager/helpers/location/transport_mode_detector.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
+import 'package:kid_manager/services/location/tracking_status_service.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
 import 'package:flutter_activity_recognition/models/activity.dart';
@@ -27,13 +25,33 @@ class ChildLocationViewModel extends ChangeNotifier {
     this._locationRepository,
     this._locationService, {
     FirebaseAuth? auth,
-  }) : _auth = auth ?? FirebaseAuth.instance;
+    TrackingStatusService? trackingStatusService,
+  }) : _auth = auth ?? FirebaseAuth.instance,
+       _trackingStatusService =
+           trackingStatusService ?? TrackingStatusService();
 
   final LocationRepository _locationRepository;
   final LocationServiceInterface _locationService;
   final FirebaseAuth _auth;
+  final TrackingStatusService _trackingStatusService;
+
+  Timer? _healthTimer;
+
+  bool _locationServiceEnabled = true;
+  bool get locationServiceEnabled => _locationServiceEnabled;
+
+  bool _locationPermissionGranted = true;
+  bool get locationPermissionGranted => _locationPermissionGranted;
+
+  DateTime? _lastGoodFixAt;
+  DateTime? get lastGoodFixAt => _lastGoodFixAt;
+
+  String? _lastTrackingStatus;
+  int _lastStatusHeartbeatAtMs = 0;
   int _lastCurrentSentAtMs = 0;
-  int _lastBadAccCurrentSentAtMs = 0; // ===== STATE =====
+  int _lastBadAccCurrentSentAtMs = 0;
+  bool _sentInitialCurrent = false;
+  // ===== STATE =====
   LocationData? _currentLocation;
   LocationData? get currentLocation => _currentLocation;
 
@@ -53,7 +71,6 @@ class ChildLocationViewModel extends ChangeNotifier {
   TransportMode _transport = TransportMode.unknown;
   TransportMode get transport => _transport;
 
-
   final List<LocationData> _trail = [];
   List<LocationData> get locationTrail => List.unmodifiable(_trail);
   bool _isSharing = false;
@@ -72,14 +89,13 @@ class ChildLocationViewModel extends ChangeNotifier {
   );
 
   StreamSubscription<LocationData>? _gpsSub;
-  Timer? _keepAliveTimer;
 
   bool _restarting = false;
 
   String _requireUid() {
     final uid = _auth.currentUser?.uid;
     if (uid == null || uid.isEmpty) {
-      throw Exception("Chưa đăng nhập -> không thể chia sẻ vị trí");
+      throw Exception("Chua dang nhap -> khong the chia se vi tri");
     }
     return uid;
   }
@@ -94,7 +110,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  //  dùng khi LOGOUT (clear sạch state)
+  // used on LOGOUT (clear state)
   Future<void> stopSharingOnLogout() async {
     await stopSharing(clearData: true);
     await _activitySub?.cancel();
@@ -105,37 +121,142 @@ class ChildLocationViewModel extends ChangeNotifier {
     _lastActivity = null;
   }
 
+  bool _isJumpTooLarge(LocationData? prev, LocationData next) {
+    if (prev == null) return false;
+
+    final dtSec = (next.timestamp - prev.timestamp) / 1000.0;
+    if (dtSec <= 0) return true;
+
+    final distanceMeters = prev.distanceTo(next) * 1000.0;
+    final speedMps = distanceMeters / dtSec;
+
+    // > 45 m/s ~ 162 km/h, unusually high for a child.
+    return speedMps > 45;
+  }
+
   Future<void> _ensureZoneMonitor() async {
     if (_zonesInited) return;
 
     final uid = _requireUid();
     final repo = ZoneRepository();
 
-    _zoneMonitor = ZoneMonitor(
-      repo: repo,
-      childUid: uid,
-    );
+    _zoneMonitor = ZoneMonitor(repo: repo, childUid: uid);
 
     await _zonesSub?.cancel();
-    _zonesSub = repo.watchZones(uid).listen(
+    _zonesSub = repo
+        .watchZones(uid)
+        .listen(
           (zones) => _zoneMonitor.updateZones(zones),
-      onError: (e) => debugPrint("🧭 zones watch error: $e"),
-    );
+          onError: (e) => debugPrint("zones watch error: $e"),
+        );
 
     _zonesInited = true;
   }
 
-  /// Stop sharing (clearData=false nếu chỉ muốn tạm dừng, true nếu logout)
+  Future<void> _reportTrackingStatusIfChanged(
+    String status, {
+    String? message,
+    bool force = false,
+  }) async {
+    if (!force && _lastTrackingStatus == status) return;
+    _lastTrackingStatus = status;
+
+    try {
+      await _trackingStatusService.reportStatus(
+        status: status,
+        message: message,
+      );
+    } catch (e) {
+      debugPrint('reportTrackingStatus error: $e');
+    }
+  }
+
+  Future<void> _startHealthMonitor() async {
+    _healthTimer?.cancel();
+
+    _healthTimer = Timer.periodic(const Duration(seconds: 20), (_) async {
+      try {
+        final serviceEnabled = await _locationService.isServiceEnabled();
+        final permissionGranted = await _locationService.hasLocationPermission(
+          requireBackground: _requireBackground,
+        );
+        final preciseGranted = await _locationService
+            .hasPreciseLocationPermission();
+
+        _locationServiceEnabled = serviceEnabled;
+        _locationPermissionGranted = permissionGranted && preciseGranted;
+
+        if (!serviceEnabled) {
+          await _reportTrackingStatusIfChanged(
+            'location_service_off',
+            message: 'Thiết bị đã tắt GPS/vị trí',
+          );
+          notifyListeners();
+          return;
+        }
+
+        if (!permissionGranted || !preciseGranted) {
+          await _reportTrackingStatusIfChanged(
+            'location_permission_denied',
+            message: preciseGranted
+                ? 'Thiet bi da tat quyen vi tri'
+                : 'Thiet bi chua cap vi tri chinh xac (Precise location)',
+          );
+          notifyListeners();
+          return;
+        }
+
+        if (_requireBackground) {
+          final bgEnabled = await _locationService.isBackgroundModeEnabled();
+          if (!bgEnabled) {
+            await _reportTrackingStatusIfChanged(
+              'background_disabled',
+              message: 'Da tat chia se vi tri nen',
+            );
+            notifyListeners();
+            return;
+          }
+        }
+
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final shouldHeartbeatOk =
+            _lastTrackingStatus != 'ok' ||
+            nowMs - _lastStatusHeartbeatAtMs >= 60000;
+        if (shouldHeartbeatOk) {
+          _lastStatusHeartbeatAtMs = nowMs;
+          await _reportTrackingStatusIfChanged(
+            'ok',
+            message: 'Dinh vi hoat dong binh thuong',
+            force: true,
+          );
+        }
+
+        notifyListeners();
+      } catch (e) {
+        debugPrint('health monitor error: $e');
+      }
+    });
+  }
+
+  /// Stop sharing (clearData=false if paused, true on logout)
   Future<void> stopSharing({bool clearData = false}) async {
     await _gpsSub?.cancel();
     _gpsSub = null;
     _engine.reset();
 
-    _keepAliveTimer?.cancel();
-    _keepAliveTimer = null;
+    _isSharing = false;
+    _restarting = false;
+    _lastTrackingStatus = null;
+    _lastStatusHeartbeatAtMs = 0;
+    _lastCurrentSentAtMs = 0;
+    _lastBadAccCurrentSentAtMs = 0;
+    _sentInitialCurrent = false;
 
     _isSharing = false;
     _restarting = false;
+
+    _healthTimer?.cancel();
+    _healthTimer = null;
 
     if (clearData) {
       _currentLocation = null;
@@ -147,8 +268,8 @@ class ChildLocationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  ///  Start sharing (mặc định foreground để chắc chắn hiện permission popup)
-  Future<void> startLocationSharing({bool background = false}) async {
+  /// Start sharing with background mode by default so tracking keeps running.
+  Future<void> startLocationSharing({bool background = true}) async {
     if (_isSharing) return;
 
     try {
@@ -164,18 +285,78 @@ class ChildLocationViewModel extends ChangeNotifier {
     _requireBackground = background;
     notifyListeners();
 
-    final ok = await _locationService.ensureServiceAndPermission(
-      requireBackground: _requireBackground,
-    );
+    var ok = false;
+    try {
+      ok = await _locationService.ensureServiceAndPermission(
+        requireBackground: _requireBackground,
+      );
+    } catch (e, st) {
+      debugPrint('ensureServiceAndPermission error: $e');
+      debugPrint('$st');
+      ok = false;
+    }
+
+    // Background permission is often denied on first run.
+    // Fall back to foreground tracking so location can still be sent.
+    if (!ok && _requireBackground) {
+      bool fgOk = false;
+      try {
+        fgOk = await _locationService.ensureServiceAndPermission(
+          requireBackground: false,
+        );
+      } catch (e, st) {
+        debugPrint('ensureServiceAndPermission fallback error: $e');
+        debugPrint('$st');
+        fgOk = false;
+      }
+      if (fgOk) {
+        debugPrint(
+          'Background location unavailable, fallback to foreground tracking',
+        );
+        _requireBackground = false;
+        ok = true;
+      }
+    }
 
     if (!ok) {
+      final serviceEnabled = await _locationService.isServiceEnabled();
+      _locationServiceEnabled = serviceEnabled;
+      if (!serviceEnabled) {
+        await _reportTrackingStatusIfChanged(
+          'location_service_off',
+          message: 'Thiet bi da tat GPS/vi tri',
+        );
+        _error = 'Vui long bat GPS/vi tri tren thiet bi.';
+      } else {
+        final preciseGranted = await _locationService
+            .hasPreciseLocationPermission();
+        if (!preciseGranted) {
+          await _reportTrackingStatusIfChanged(
+            'location_permission_denied',
+            message: 'Thiet bi chua cap vi tri chinh xac (Precise location)',
+          );
+          _error = 'Vui long bat vi tri chinh xac (Precise location).';
+        } else if (_requireBackground) {
+          final bgEnabled = await _locationService.isBackgroundModeEnabled();
+          if (!bgEnabled) {
+            await _reportTrackingStatusIfChanged(
+              'background_disabled',
+              message: 'Da tat chia se vi tri nen',
+            );
+            _error = 'Vui long bat chia se vi tri nen (Allow all the time).';
+          }
+        }
+      }
+      _locationPermissionGranted = false;
       _isSharing = false;
       notifyListeners();
       return;
     }
 
+    _sentInitialCurrent = false;
     _isSharing = true;
     _motionState = MotionState.moving;
+    await _startHealthMonitor();
 
     notifyListeners();
 
@@ -183,62 +364,107 @@ class ChildLocationViewModel extends ChangeNotifier {
     await _startActivityRecognition();
     await _ensureZoneMonitor();
     _gpsSub = _locationService.getLocationStream().listen((raw) async {
-      debugPrint('📍 GPS RAW: acc=${raw.accuracy}');
+      debugPrint('GPS RAW: acc=${raw.accuracy}');
 
       final result = _engine.process(raw, _lastActivity);
+      final filtered = result.filteredLocation;
+      final acc = filtered.accuracy;
+
+      if (acc <= 30) {
+        _lastGoodFixAt = DateTime.now();
+      }
+      final shouldGuardJump = _sentInitialCurrent && _currentLocation != null;
+      if (shouldGuardJump &&
+          _isJumpTooLarge(_currentLocation, filtered) &&
+          filtered.accuracy > 20) {
+        debugPrint('Skip jump point: acc=${filtered.accuracy}');
+        return;
+      }
+
       _transport = result.transport;
-      _currentLocation = result.filteredLocation;
+      if (_currentLocation == null || acc <= 50) {
+        _currentLocation = filtered;
+      }
+
       try {
         if (_zonesInited) {
-          await _zoneMonitor.onLocation(result.filteredLocation);
+          debugPrint(
+            "Checking zones for location: lat=${filtered.latitude} lng=${filtered.longitude}",
+          );
+          await _zoneMonitor.onLocation(filtered);
         }
       } catch (e) {
-        debugPrint("🧭 zoneMonitor error: $e");
+        debugPrint("zoneMonitor error: $e");
       }
+
       _motionState = result.motion;
 
-      // build payload 1 lần
+      // build payload once
       final uid = _requireUid();
       final payload = TrackingPayload(
         deviceId: uid,
-        location: result.filteredLocation,
+        location: filtered,
         motion: result.motion.name,
         transport: _transport.name,
       );
 
       // =========================
-      // 1) ALWAYS update CURRENT (throttle + accuracy)
+      // 1) Update CURRENT when moving, and allow one initial current fix.
       // =========================
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final acc = result.filteredLocation.accuracy;
-
-      final goodAcc = acc <= 80; // bạn có thể chỉnh 50/80 tuỳ
+      final rejectVeryBadAcc = acc > 100;
+      final isMoving = result.motion == MotionState.moving;
+      final goodHistoryAcc = acc <= 30; // adjust threshold as needed
+      final shouldSendInitialCurrent =
+          !_sentInitialCurrent && !rejectVeryBadAcc;
 
       try {
-        if (goodAcc) {
-          // update current mỗi 3s
-          if (nowMs - _lastCurrentSentAtMs >= 3000) {
-            _lastCurrentSentAtMs = nowMs;
-            await _locationRepository.updateMyCurrent(payload);
-          }
-        } else {
-          // accuracy xấu: update current thưa 30s (keep-alive)
-          if (nowMs - _lastBadAccCurrentSentAtMs >= 30000) {
-            _lastBadAccCurrentSentAtMs = nowMs;
-            await _locationRepository.updateMyCurrent(payload);
+        bool sentCurrentToServer = false;
+
+        if ((isMoving || shouldSendInitialCurrent) && !rejectVeryBadAcc) {
+          if (acc <= 20) {
+            if (nowMs - _lastCurrentSentAtMs >= 3000) {
+              _lastCurrentSentAtMs = nowMs;
+              await _locationRepository.updateMyCurrent(payload);
+              sentCurrentToServer = true;
+            }
+          } else if (acc <= 50) {
+            if (nowMs - _lastCurrentSentAtMs >= 8000) {
+              _lastCurrentSentAtMs = nowMs;
+              await _locationRepository.updateMyCurrent(payload);
+              sentCurrentToServer = true;
+            }
+          } else {
+            if (nowMs - _lastBadAccCurrentSentAtMs >= 30000) {
+              _lastBadAccCurrentSentAtMs = nowMs;
+              await _locationRepository.updateMyCurrent(payload);
+              sentCurrentToServer = true;
+            }
           }
         }
 
+        if (sentCurrentToServer) {
+          _sentInitialCurrent = true;
+        }
+
         // =========================
-        // 2) Append HISTORY only when policy allows
+        // 2) Append HISTORY only when policy allows and moving
         // =========================
-        if (result.shouldSend) {
+        if (isMoving && result.shouldSend && goodHistoryAcc) {
           await _locationRepository.appendMyHistory(payload);
-          debugPrint("📤 HISTORY PUSH = ${payload.toJson()}");
+        }
+
+        // Keep status reporting separate from health monitor.
+        // Only report "ok" when current was sent successfully.
+        if (sentCurrentToServer) {
+          await _reportTrackingStatusIfChanged(
+            'ok',
+            message: 'Dinh vi hoat dong binh thuong',
+          );
         }
 
         debugPrint(
-          '✅ OK → lat=${result.filteredLocation.latitude}, '
+          'OK -> lat=${result.filteredLocation.latitude}, '
           'lng=${result.filteredLocation.longitude}, '
           'motion=${result.motion}, '
           'transport=${_transport.name}, '
@@ -249,12 +475,14 @@ class ChildLocationViewModel extends ChangeNotifier {
         _setError(e);
       }
 
-      _appendTrail(result.filteredLocation);
+      if (acc <= 30) {
+        _appendTrail(result.filteredLocation);
+      }
       notifyListeners();
     });
   }
 
-  ///  Android 11+: bật background permission (thường sẽ mở Settings)
+  /// Android 11+: request background permission (usually opens Settings)
   Future<void> enableBackgroundSharing() async {
     _requireBackground = true;
     notifyListeners();
@@ -265,12 +493,11 @@ class ChildLocationViewModel extends ChangeNotifier {
 
     if (!ok) return;
 
-    // Nếu đã share rồi thì restart 1 lần để chắc stream chạy theo permission mới
+    // If already sharing, restart once to bind new permission state.
     if (_isSharing) {
       await _restartSharing(delay: const Duration(milliseconds: 300));
     }
   }
-
 
   // SOS
 
@@ -280,7 +507,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     if (_restarting) return;
     _restarting = true;
 
-    // nếu user logout giữa chừng
+    // If user logs out during restart flow, abort.
     if (_auth.currentUser?.uid == null) {
       _restarting = false;
       return;
@@ -289,13 +516,15 @@ class ChildLocationViewModel extends ChangeNotifier {
     try {
       await _gpsSub?.cancel();
       _gpsSub = null;
+      _engine.reset();
+      _sentInitialCurrent = false;
 
       _isSharing = false;
       notifyListeners();
 
       await Future.delayed(delay);
 
-      // start lại với mode hiện tại
+      // Start again with current mode.
       await startLocationSharing(background: _requireBackground);
     } finally {
       _restarting = false;
@@ -321,7 +550,7 @@ class ChildLocationViewModel extends ChangeNotifier {
       activity,
     ) {
       _lastActivity = activity;
-      // không notify liên tục cũng được, bạn có thể chỉ dùng nội bộ
+      // Activity stream is used internally; no continuous UI notify needed.
       debugPrint(" activity=${activity.type} conf=${activity.confidence}");
     }, onError: (e) => debugPrint("Activity stream error: $e"));
   }
@@ -344,10 +573,13 @@ class ChildLocationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Load lịch sử (dùng chung cho tab History)
+  /// Load history (used by History tab)
   Future<List<LocationData>> loadLocationHistory(String childId) async {
     try {
-      final history = await _locationRepository.getLocationHistoryByDay(childId,DateTime.now());
+      final history = await _locationRepository.getLocationHistoryByDay(
+        childId,
+        DateTime.now(),
+      );
 
       _trail
         ..clear()
@@ -365,12 +597,16 @@ class ChildLocationViewModel extends ChangeNotifier {
     }
   }
 
-
-
-  Future<List<LocationData>> loadLocationHistoryByDay(String childId, DateTime day) async {
+  Future<List<LocationData>> loadLocationHistoryByDay(
+    String childId,
+    DateTime day,
+  ) async {
     try {
-      // nếu repo interface chưa có, bạn gọi thẳng repo impl hoặc add vào interface
-      final history = await _locationRepository.getLocationHistoryByDay(childId, day);
+      // If repo interface does not include this, call impl directly.
+      final history = await _locationRepository.getLocationHistoryByDay(
+        childId,
+        day,
+      );
 
       _trail
         ..clear()
@@ -387,6 +623,7 @@ class ChildLocationViewModel extends ChangeNotifier {
       return [];
     }
   }
+
   void stopReplay() {
     if (_mode == LocationPlayMode.replay) {
       _mode = LocationPlayMode.live;
@@ -426,9 +663,9 @@ class ChildLocationViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _gpsSub?.cancel();
-    _keepAliveTimer?.cancel();
     _activitySub?.cancel();
     _zonesSub?.cancel();
+    _healthTimer?.cancel();
     _activitySub = null;
     _lastActivity = null;
     super.dispose();

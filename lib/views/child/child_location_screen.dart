@@ -31,7 +31,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChildLocationViewModel>().startLocationSharing();
+      context.read<ChildLocationViewModel>().startLocationSharing(
+        background: true,
+      );
     });
   }
 

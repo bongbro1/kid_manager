@@ -1,45 +1,144 @@
 package com.example.kid_manager
 
+import androidx.core.content.ContextCompat
 import android.content.Intent
+import android.content.Context
+import android.os.Bundle
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.EventChannel
-import android.os.Bundle
+import io.flutter.plugin.common.MethodChannel
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.view.accessibility.AccessibilityManager
+import android.os.PowerManager
+import android.provider.Settings
+import android.net.Uri
+import android.os.Build
 
 
 class MainActivity : FlutterActivity() {
 
+    private val WATCHER_CONFIG_CHANNEL = "watcher_config"
+    private val NOTIFICATION_CHANNEL = "notification_intent"
+    private val ACCESSIBILITY_CHANNEL = "accessibility"
+    private val SCHEDULE_USAGE_CHANNEL = "schedule_usage_channel"
+    private val BATTERY_CHANNEL = "battery_optimization"
+
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "watcher")
+        // WATCHER CHANNEL
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WATCHER_CONFIG_CHANNEL)
             .setMethodCallHandler { call, result ->
+                when (call.method) {
 
-                if (call.method == "startWatcher") {
+                    "saveWatcherConfig" -> {
 
-                    val intent = Intent(this, AppWatcherService::class.java)
-                    startForegroundService(intent)
+                        val userId = call.argument<String>("userId")
+                        val parentId = call.argument<String>("parentId")
+                        val childName = call.argument<String>("childName")
 
-                    result.success(true)
+                        val prefs = getSharedPreferences("watcher_rules", MODE_PRIVATE)
+
+                        if (userId.isNullOrBlank()) {
+
+                            prefs.edit()
+                                .remove("user_id")
+                                .remove("parent_id")
+                                .remove("child_name")
+                                .apply()
+
+                            result.success(true)
+                            return@setMethodCallHandler
+                        }
+
+                        prefs.edit()
+                            .putString("user_id", userId)
+                            .putString("parent_id", parentId)
+                            .putString("child_name", childName)
+                            .apply()
+
+                        result.success(true)
+                    }
+                    "isAccessibilityEnabled" -> {
+
+                        val expectedService =
+                            "$packageName/com.example.kid_manager.AppAccessibilityService"
+
+                        val enabledServices = android.provider.Settings.Secure.getString(
+                            contentResolver,
+                            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+                        )
+
+                        val enabled = enabledServices?.contains(expectedService) == true
+
+                        result.success(enabled)
+                    }
+
+                    else -> result.notImplemented()
                 }
             }
 
-        EventChannel(flutterEngine.dartExecutor.binaryMessenger, "watcher_stream")
-            .setStreamHandler(object : EventChannel.StreamHandler {
+        // ACCESSIBILITY CHANNEL
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ACCESSIBILITY_CHANNEL)
+            .setMethodCallHandler { call, result ->
 
-                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-                    ForegroundAppBridge.eventSink = events
-                }
+                when (call.method) {
 
-                override fun onCancel(arguments: Any?) {
-                    ForegroundAppBridge.eventSink = null
+                    "isAccessibilityEnabled" -> {
+                        result.success(isAccessibilityServiceEnabled())
+                    }
+
+                    "openAccessibilitySettings" -> {
+
+                        val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+                        startActivity(intent)
+
+                        result.success(true)
+                    }
+
+                    else -> result.notImplemented()
                 }
-            })
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BATTERY_CHANNEL)
+            .setMethodCallHandler { call, result ->
+
+                when (call.method) {
+
+                    "isIgnoringBatteryOptimizations" -> {
+
+                        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                        val ignoring = pm.isIgnoringBatteryOptimizations(packageName)
+
+                        result.success(ignoring)
+                    }
+
+                    "requestIgnoreBatteryOptimizations" -> {
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+                            val intent = Intent(
+                                Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                                Uri.parse("package:$packageName")
+                            )
+
+                            startActivity(intent)
+                        }
+
+                        result.success(true)
+                    }
+
+                    else -> result.notImplemented()
+                }
+            }
     }
 
-    private val CHANNEL = "notification_intent"
+
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -55,8 +154,31 @@ class MainActivity : FlutterActivity() {
         if (payload != null) {
             MethodChannel(
                 flutterEngine?.dartExecutor?.binaryMessenger!!,
-                CHANNEL
+                NOTIFICATION_CHANNEL
             ).invokeMethod("notificationTap", payload)
         }
     }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+
+        val manager = getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
+
+        val enabledServices =
+            manager.getEnabledAccessibilityServiceList(
+                AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+            )
+
+        for (service in enabledServices) {
+
+            if (service.resolveInfo.serviceInfo.packageName == packageName &&
+                service.resolveInfo.serviceInfo.name.contains("AppAccessibilityService")
+            ) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    
 }

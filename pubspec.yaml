@@ -111,6 +111,7 @@ flutter:
     - assets/sounds/
     - assets/templates/schedule_template.xlsx
     - assets/zones/i18n/
+    - assets/map/
     - .env
   fonts:
     - family: Poppins

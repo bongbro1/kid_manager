@@ -146,7 +146,9 @@ class _SessionGuardState extends State<SessionGuard> {
               );
             }
 
-            return const AppShell(mode: AppMode.child);
+            return _ChildWarmupShell(
+              locationService: context.read<LocationServiceInterface>(),
+            );
         }
       },
     );
@@ -222,5 +224,47 @@ class _ParentWarmupShellState extends State<_ParentWarmupShell> {
   @override
   Widget build(BuildContext context) {
     return const AppShell(mode: AppMode.parent);
+  }
+}
+
+class _ChildWarmupShell extends StatefulWidget {
+  const _ChildWarmupShell({required this.locationService});
+
+  final LocationServiceInterface locationService;
+
+  @override
+  State<_ChildWarmupShell> createState() => _ChildWarmupShellState();
+}
+
+class _ChildWarmupShellState extends State<_ChildWarmupShell> {
+  bool _ready = false;
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        // Pre-check foreground location flow before opening child location tab.
+        await widget.locationService.ensureServiceAndPermission(
+          requireBackground: false,
+        );
+      } catch (e, st) {
+        debugPrint('child warmup location precheck failed: $e');
+        debugPrint('$st');
+      }
+
+      if (!mounted) return;
+      setState(() => _ready = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) return const FlashScreen();
+    return const AppShell(mode: AppMode.child);
   }
 }

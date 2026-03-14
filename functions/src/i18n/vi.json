@@ -1,0 +1,56 @@
+{
+  "zone.enter.danger.parent.title": "⚠️ Bé vào vùng nguy hiểm",
+  "zone.enter.danger.parent.body": "{childName} đã vào {zoneName}.",
+
+  "zone.exit.danger.parent.title": "✅ Bé rời vùng nguy hiểm",
+  "zone.exit.danger.parent.body": "{childName} đã rời {zoneName}{durationSuffix}.",
+
+  "zone.enter.safe.parent.title": "✅ Bé vào vùng an toàn",
+  "zone.enter.safe.parent.body": "{childName} đã vào {zoneName}.",
+
+  "zone.exit.safe.parent.title": "ℹ️ Bé rời vùng an toàn",
+  "zone.exit.safe.parent.body": "{childName} đã rời {zoneName}{durationSuffix}.",
+
+  "zone.enter.danger.child.title": "⚠️ Bạn đang vào vùng nguy hiểm",
+  "zone.enter.danger.child.body": "Bạn đã vào {zoneName}.",
+
+  "zone.exit.danger.child.title": "✅ Bạn đã ra khỏi vùng nguy hiểm",
+  "zone.exit.danger.child.body": "Bạn đã rời {zoneName}{durationSuffix}.",
+
+  "zone.enter.safe.child.title": "✅ Bạn đang vào vùng an toàn",
+  "zone.enter.safe.child.body": "Bạn đã vào {zoneName}.",
+
+  "zone.exit.safe.child.title": "ℹ️ Bạn đã ra khỏi vùng an toàn",
+  "zone.exit.safe.child.body": "Bạn đã rời {zoneName}{durationSuffix}.",
+  
+  "tracking.location_service_off.parent.title": "Con đã tắt định vị",
+  "tracking.location_service_off.parent.body": "{childName} vừa tắt GPS/vị trí trên thiết bị.",
+
+  "tracking.location_permission_denied.parent.title": "Con đã tắt quyền vị trí",
+  "tracking.location_permission_denied.parent.body": "{childName} đã tắt quyền truy cập vị trí của ứng dụng.",
+
+  "tracking.background_disabled.parent.title": "Định vị nền đã bị tắt",
+  "tracking.background_disabled.parent.body": "{childName} đã tắt chia sẻ vị trí nền.",
+
+  "tracking.location_stale.parent.title": "Không nhận được vị trí mới",
+  "tracking.location_stale.parent.body": "{childName} chưa cập nhật vị trí trong hơn 2 phút.",
+
+  "tracking.ok.parent.title": "Định vị đã hoạt động lại",
+  "tracking.ok.parent.body": "{childName} đã bật lại định vị và vị trí đang cập nhật bình thường.",
+
+  "tracking.location_service_off.child.title": "Định vị đang tắt",
+  "tracking.location_service_off.child.body": "Hãy bật lại GPS/vị trí để cha mẹ có thể thấy vị trí hiện tại của bạn.",
+
+  "tracking.location_permission_denied.child.title": "Quyền vị trí đang tắt",
+  "tracking.location_permission_denied.child.body": "Hãy cấp quyền vị trí cho ứng dụng.",
+
+  "tracking.background_disabled.child.title": "Định vị nền đang tắt",
+  "tracking.background_disabled.child.body": "Hãy bật chia sẻ vị trí nền để ứng dụng có thể cập nhật vị trí của bạn.",
+
+  "tracking.location_stale.child.title": "Vị trí chưa được cập nhật",
+  "tracking.location_stale.child.body": "Thiết bị của bạn chưa gửi vị trí mới trong hơn 2 phút.",
+
+  "tracking.ok.child.title": "Định vị đã hoạt động lại",
+  "tracking.ok.child.body": "Vị trí của bạn hiện đang được cập nhật bình thường."
+
+}

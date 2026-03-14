@@ -2,7 +2,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:kid_manager/background/foreground_watcher.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/services/firebase_auth_service.dart';
 
@@ -54,8 +53,6 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    RealtimeAppMonitor.stop();
-
     try {
       final token = await FirebaseMessaging.instance.getToken();
 

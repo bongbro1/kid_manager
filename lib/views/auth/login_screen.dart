@@ -78,9 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final cred = await authVM.login(email, password);
-      debugPrint("[CRED] = $cred");
-      if (!mounted) return;
-
       if (cred == null) {
         NotificationDialog.show(
           context,
@@ -92,16 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final uid = cred.user!.uid;
-      debugPrint('[LoginScreen] uid=$uid');
 
       await storage.setString(StorageKeys.uid, uid);
-      debugPrint(
-        '[LoginScreen] saved uid=${storage.getString(StorageKeys.uid)}',
-      );
 
-      final profile = await userVM.loadProfile(uid: uid, caller: 'LoginScreen');
-      debugPrint("[LoginScreen] Profile : $profile");
-      if (!mounted) return;
+      final profile = await userVM.loadProfile(uid: uid,caller: 'LoginScreen');
       if (profile == null) {
         NotificationDialog.show(
           context,

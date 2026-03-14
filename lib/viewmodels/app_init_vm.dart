@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/background/auth_runtime_manager.dart';
-import 'package:kid_manager/background/background_worker.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:workmanager/workmanager.dart';
 
 class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
   final StorageService storage;
@@ -13,182 +10,108 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
   bool _ready = false;
   bool get ready => _ready;
 
-  String? _uid;
-  String? get uid => _uid;
-  bool _workersStarted = false;
-  bool _isRequestingPermission = false;
-  bool _waitingForUsageFromSettings = false;
-  bool _checkingUsage = false;
+  bool _checkingPermissions = false;
 
   Map<String, bool> _permissions = {};
   Map<String, bool> get permissions => _permissions;
+  bool _openedAccessibilitySettings = false;
 
   AppInitVM(this.storage, this.permissionService) {
     WidgetsBinding.instance.addObserver(this);
   }
+
+  /// 🚀 App start
   Future<void> init() async {
-    if (_checkingUsage) return;
-    _checkingUsage = true;
-    debugPrint("🚀 AppInitVM.init called");
+    debugPrint("🚀 AppInitVM init");
 
-    // STEP 1: check trước
-    await checkPermissions();
+    /// Render UI ngay
+    _setReady(true);
 
-    if (!hasAllPermissions) {
-      await requestMissingPermissions();
-      await checkPermissions();
-      if (!hasAllPermissions) {
-        _checkingUsage = false;
-        return;
-      }
-    }
-
-    debugPrint("✅ All permissions OK");
-
-    final uid = storage.getString(StorageKeys.uid);
-    final role = storage.getString(StorageKeys.role);
-
-    if (uid == null || role == null) {
-      _setReady(false);
-      _checkingUsage = false;
-      return;
-    }
-
-    _startWorkers(uid, role);
-
-    _checkingUsage = false;
-  }
-
-  void _startWorkers(String uid, String role) {
-    if (_workersStarted) return;
-
+    /// Init background async
     Future.microtask(() async {
-      await startBackgroundAppSync(uid, role);
-      await startHeartbeatWorker(uid, role);
-      _workersStarted = true;
+      await _initBackground();
     });
   }
 
-  Future<void> startBackgroundAppSync(String userId, String role) async {
-    await Workmanager().registerOneOffTask(
-      "syncAppsImmediate",
-      syncAppsTask,
-      inputData: {"userId": userId, "role": role},
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
+  /// Init background logic
+  Future<void> _initBackground() async {
+    await checkPermissions();
 
-    await Workmanager().registerPeriodicTask(
-      "syncAppsUnique",
-      syncAppsTask,
-      frequency: const Duration(minutes: 15),
-      inputData: {"userId": userId, "role": role},
-      existingWorkPolicy: ExistingWorkPolicy.keep,
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
+    if (!hasAllPermissions) {
+      debugPrint("❌ Missing permissions");
+      await requestMissingPermissions();
+
+      await checkPermissions();
+      if (!hasAllPermissions) return;
+    }
   }
 
-  Future<void> startHeartbeatWorker(String userId, String role) async {
-    await Workmanager().registerOneOffTask(
-      "heartbeatImmediate",
-      deviceHeartbeatTask,
-      inputData: {
-        "userId": userId,
-        "role": role,
-        "packageName": "com.example.kid_manager",
-      },
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
+  /// Permission check (song song)
+  Future<void> checkPermissions() async {
+    if (_checkingPermissions) return;
+    _checkingPermissions = true;
 
-    await Workmanager().registerPeriodicTask(
-      "heartbeatUnique",
-      deviceHeartbeatTask,
-      frequency: const Duration(minutes: 15),
-      inputData: {
-        "userId": userId,
-        "role": role,
-        "packageName": "com.example.kid_manager",
-      },
-      constraints: Constraints(networkType: NetworkType.connected),
-      existingWorkPolicy: ExistingWorkPolicy.keep,
-    );
+    final results = await permissionService.checkAllPermissions();
+
+    _permissions = results;
+
+    debugPrint("📋 Permissions = $_permissions");
+
+    notifyListeners();
+    _checkingPermissions = false;
   }
 
-  /// 👉 Mở settings, KHÔNG check ở đây
-  Future<void> openUsageSettings() async {
-    if (_waitingForUsageFromSettings) return;
+  bool get hasAllPermissions => !_permissions.values.contains(false);
 
-    _waitingForUsageFromSettings = true;
+  List<String> get missingPermissions =>
+      _permissions.entries.where((e) => !e.value).map((e) => e.key).toList();
 
-    await permissionService.openUsageAccessSettings();
+  /// Request missing permissions
+  Future<void> requestMissingPermissions() async {
+    if (_permissions['microphone'] == false) {
+      await permissionService.requestMicrophonePermission();
+      await checkPermissions();
+    }
+
+    if (_permissions['media'] == false) {
+      await permissionService.requestPhotosOrStoragePermission();
+      await checkPermissions();
+    }
+
+    if (_permissions['usage'] == false) {
+      await permissionService.openUsageAccessSettings();
+      return;
+    }
+
+    if (_permissions['batteryOptimizationDisabled'] == false) {
+      await permissionService.openBatteryOptimizationSettings();
+      return;
+    }
+
+    if (_permissions['accessibility'] == false) {
+      if (!_openedAccessibilitySettings) {
+        _openedAccessibilitySettings = true;
+
+        await permissionService.openAccessibilitySettings();
+      }
+
+      return;
+    }
   }
 
-  /// 👉 Khi app quay lại foreground
+  /// Khi quay lại từ Settings
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _waitingForUsageFromSettings) {
-      _waitingForUsageFromSettings = false;
+    if (state == AppLifecycleState.resumed && !_checkingPermissions) {
+      Future.delayed(const Duration(milliseconds: 500), () async {
+        await _initBackground();
+      });
     }
   }
 
   void _setReady(bool value) {
     if (_ready == value) return;
     _ready = value;
-    notifyListeners();
-  }
-
-  bool get hasAllPermissions => !_permissions.values.contains(false);
-
-  List<String> get missingPermissions {
-    return _permissions.entries
-        .where((e) => !e.value)
-        .map((e) => e.key)
-        .toList();
-  }
-
-  Future<void> requestMissingPermissions() async {
-    if (_isRequestingPermission) {
-      return;
-    }
-
-    _isRequestingPermission = true;
-
-    try {
-      if (_permissions['microphone'] == false) {
-        await permissionService.requestMicrophonePermission();
-      }
-
-      if (_permissions['media'] == false) {
-        await permissionService.requestPhotosOrStoragePermission();
-      }
-
-      if (_permissions['usage'] == false) {
-        _waitingForUsageFromSettings = true;
-        await permissionService.openUsageAccessSettings();
-        return;
-      }
-
-      if (_permissions['accessibility'] == false) {
-        await permissionService.openAccessibilitySettings();
-      }
-      await checkPermissions();
-    } finally {
-      _isRequestingPermission = false;
-    }
-  }
-
-  Future<void> checkPermissions() async {
-    final mic = await permissionService.hasMicrophonePermission();
-    final media = await permissionService.hasPhotosOrStoragePermission();
-    final usage = await permissionService.hasUsagePermission();
-
-    _permissions = {
-      'microphone': mic,
-      'media': media,
-      'usage': usage,
-      'accessibility': true,
-    };
-
-    debugPrint("📋 Updated permissions = $_permissions");
     notifyListeners();
   }
 
