@@ -260,22 +260,6 @@ class AppManagementVM extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> clear() async {
-    await _childrenSub?.cancel();
-    _childrenSub = null;
-
-    _loading = false;
-    _error = null;
-    _apps = [];
-    _usageMap = {};
-    _appUsageMap = {};
-    children = [];
-    _selectedChildId = null;
-    _usageVersion = 0;
-
-    notifyListeners();
-  }
-
   @override
   void dispose() {
     _childrenSub?.cancel();

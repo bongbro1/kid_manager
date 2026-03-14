@@ -226,7 +226,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                   )
                 else
                   _tagChip(
-                    _transportLabel(point.transport),
+                    _transportLabel(AppLocalizations.of(context), point.transport),
                     displayColor.withOpacity(0.12),
                     displayColor,
                   ),
@@ -847,7 +847,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
             ),
           ),
           Text(
-            _isToday ? "Hôm nay" : _fmtDay(_selectedDay),
+            _isToday ? "Hôm nay" : _formatDay(_selectedDay),
             style: TextStyle(
               fontSize: 12,
               color: Colors.white.withOpacity(0.75),
@@ -860,7 +860,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
         // Chọn ngày
         _AppBarChip(
           icon: Icons.calendar_today_rounded,
-          label: _isToday ? "Hôm nay" : _fmtDay(_selectedDay),
+          label: _isToday ? "Hôm nay" : _formatDay(_selectedDay),
           onTap: _pickDay,
         ),
         const SizedBox(width: 8),
@@ -900,7 +900,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   Widget _buildBottomCard(LocationData latest, ColorScheme cs) {
     final color = _transportColor(latest.transport);
     final icon = _transportIcon(latest.transport);
-    final label = _transportLabel(latest.transport);
+    final label = _transportLabel(AppLocalizations.of(context), latest.transport);
     final time = _fmtTime(latest.dateOnly);
     final pointCount = _cachedHistory.length;
 
