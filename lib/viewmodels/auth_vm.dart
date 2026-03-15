@@ -66,11 +66,6 @@ class AuthVM extends ChangeNotifier {
       debugPrint("User : $_user");
       notifyListeners();
 
-      await _authRepo.registerCurrentFcmToken(
-        platform: defaultTargetPlatform == TargetPlatform.iOS
-            ? 'ios'
-            : 'android',
-      );
       return cred;
     });
   }
@@ -169,13 +164,8 @@ class AuthVM extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-
-      if (user != null) {
-        await FcmPushReceiverService.removeToken(user.uid);
-      }
-
       await _authRepo.logout();
+      await FcmPushReceiverService.onSignedOut();
       await _storage.clearAuthData();
       _user = null;
     } catch (e) {

@@ -10,5 +10,10 @@ abstract class LocationRepository {
 
   // parent read via functions
   Stream<LocationData> watchChildLocation(String childId);
-  Future<List<LocationData>> getLocationHistoryByDay(String childId, DateTime day);
+  Future<List<LocationData>> getLocationHistoryByDay(
+    String childId,
+    DateTime day, {
+    int? fromTs,
+    int? toTs,
+  });
 }

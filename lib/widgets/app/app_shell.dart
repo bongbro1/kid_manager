@@ -52,6 +52,7 @@ class _AppShellState extends State<AppShell> {
     notificationTabIndexNotifier.value = _config.tabs.indexWhere(
       (t) => t.isNotificationTab,
     );
+    mapTabIndexNotifier.value = _config.tabs.indexWhere((t) => t.isMapTab);
 
     activeTabNotifier.addListener(_syncTabFromNotifier);
   }

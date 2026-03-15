@@ -116,6 +116,7 @@ extension NotificationTypeX on NotificationType {
 
     // map uppercase "ZONE"
     if (value.toString().trim() == "ZONE") return NotificationType.zone;
+    if (v == "tracking_status") return NotificationType.tracking;
 
     return NotificationType.values.firstWhere(
       (e) => e.name.toLowerCase() == v,
@@ -284,15 +285,26 @@ class AppNotification {
     Map<String, dynamic> map, {
     required NotificationStore store,
   }) {
-    final rawTitle = (map['title'] ?? '').toString();
-    final rawEventKey = (map['eventKey'] ?? map['data']?['eventKey'] ?? '')
-        .toString();
     final dataMap = Map<String, dynamic>.from(map['data'] ?? {});
+    final rawTitle = (map['title'] ?? '').toString();
+    final rawEventKey = (map['eventKey'] ?? dataMap['eventKey'] ?? '').toString();
+    final normalizedEventKey = _normalizeLocalizedKey(
+      rawEventKey.trim().isNotEmpty ? rawEventKey : rawTitle,
+    );
+    final resolvedTitle = _looksLikeLocalizedKey(rawTitle)
+        ? normalizedEventKey
+        : rawTitle;
 
     final rawBody = (map['body'] ?? '').toString();
-    final resolvedBody = rawBody.startsWith('tracking.')
+    final resolvedBody = _looksLikeLocalizedKey(rawBody)
+        ? (dataMap['message']?.toString() ?? '')
+        : rawBody.startsWith('tracking.')
         ? (dataMap['message']?.toString() ?? rawBody)
         : rawBody;
+
+    if (normalizedEventKey.isNotEmpty && (dataMap['eventKey'] == null || '${dataMap['eventKey']}'.trim().isEmpty)) {
+      dataMap['eventKey'] = normalizedEventKey;
+    }
 
     return AppNotification(
       id: id,
@@ -300,7 +312,7 @@ class AppNotification {
       receiverId: (map['receiverId'] ?? '').toString(),
       familyId: map['familyId']?.toString(),
       type: (map['type'] ?? '').toString(),
-      title: rawTitle.trim().isNotEmpty ? rawTitle : rawEventKey,
+      title: resolvedTitle.trim().isNotEmpty ? resolvedTitle : normalizedEventKey,
       body: resolvedBody,
       isRead: (map['isRead'] ?? false) == true,
       status: (map['status'] ?? 'pending').toString(),
@@ -338,4 +350,20 @@ class AppNotification {
     if (notificationType != NotificationType.blockedApp) return null;
     return BlockedAppData.fromMap(data);
   }
+}
+
+bool _looksLikeLocalizedKey(String value) {
+  final normalized = value.trim().toLowerCase();
+  return RegExp(r'^[a-z0-9_.-]+\.(title|body)$').hasMatch(normalized);
+}
+
+String _normalizeLocalizedKey(String rawKey) {
+  final key = rawKey.trim().toLowerCase();
+  if (key.endsWith('.title') || key.endsWith('.body')) {
+    final cut = key.lastIndexOf('.');
+    if (cut > 0) {
+      return key.substring(0, cut);
+    }
+  }
+  return key;
 }

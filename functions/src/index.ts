@@ -18,7 +18,6 @@ export * from "./functions/subscription_triggers";
 export * from "./functions/detect_offline_child";
 export { sendFamilyMessage } from "./functions/family_chat";
 export { markFamilyChatRead } from "./functions/family_chat_read";
-
 export { reportTrackingStatus } from "./functions/tracking/reportTrackingStatus";
 export { onTrackingStatusWritten } from "./functions/tracking/onTrackingStatusWritten";
 export { checkTrackingHeartbeat } from "./functions/tracking/checkTrackingHeartbeat";

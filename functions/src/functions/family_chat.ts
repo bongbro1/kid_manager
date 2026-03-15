@@ -2,6 +2,11 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { admin, db } from "../bootstrap";
 import { REGION } from "../config";
 import { mustString } from "../helpers";
+import {
+  deleteInstallationsByIds,
+  groupInstallationsByToken,
+  listInstallationsByFamilyId,
+} from "../services/fcmInstallations";
 import { getUserFamilyAndRole, requireFamilyMember } from "../services/user";
 
 const MAX_TEXT_LENGTH = 1000;
@@ -9,7 +14,7 @@ const MULTICAST_LIMIT = 500;
 const TOKEN_MIN_LENGTH = 20;
 
 type FamilyTokenRecord = {
-  docId: string;
+  installationId: string;
   uid: string;
   token: string;
 };
@@ -32,23 +37,12 @@ function shouldDeleteInvalidToken(code: string): boolean {
 }
 
 async function cleanupInvalidFamilyTokens(
-  familyId: string,
   invalidTokens: FamilyTokenRecord[]
 ) {
   if (!invalidTokens.length) return;
-
-  // One invalid token deletes 2 docs (family + user), so keep chunks <= 250 tokens.
-  const chunks = splitIntoChunks(invalidTokens, 200);
-  for (const chunk of chunks) {
-    const batch = db.batch();
-
-    for (const tokenRecord of chunk) {
-      batch.delete(db.doc(`families/${familyId}/fcmTokens/${tokenRecord.docId}`));
-      batch.delete(db.doc(`users/${tokenRecord.uid}/fcmTokens/${tokenRecord.docId}`));
-    }
-
-    await batch.commit();
-  }
+  await deleteInstallationsByIds(
+    invalidTokens.map((tokenRecord) => tokenRecord.installationId)
+  );
 }
 
 async function sendFamilyChatPush(params: {
@@ -62,46 +56,30 @@ async function sendFamilyChatPush(params: {
   if (!params.recipientUids.length) return;
 
   const recipientUidSet = new Set(params.recipientUids);
-  const familyTokenSnap = await db
-    .collection(`families/${params.familyId}/fcmTokens`)
-    .get();
-
-  if (familyTokenSnap.empty) return;
+  const familyInstallations = await listInstallationsByFamilyId(params.familyId);
+  if (!familyInstallations.length) return;
 
   const tokenRecords: FamilyTokenRecord[] = [];
 
-  for (const tokenDoc of familyTokenSnap.docs) {
-    const data = tokenDoc.data() ?? {};
-    const token = typeof data.token === "string" ? data.token.trim() : "";
-    const tokenUid = typeof data.uid === "string" ? data.uid : "";
-
-    if (token.length < TOKEN_MIN_LENGTH) continue;
-    if (!tokenUid || !recipientUidSet.has(tokenUid)) continue;
+  for (const installation of familyInstallations) {
+    if (installation.token.length < TOKEN_MIN_LENGTH) continue;
+    if (!recipientUidSet.has(installation.uid)) continue;
 
     tokenRecords.push({
-      docId: tokenDoc.id,
-      uid: tokenUid,
-      token,
+      installationId: installation.installationId,
+      uid: installation.uid,
+      token: installation.token,
     });
   }
 
   if (!tokenRecords.length) return;
-
-  // Deduplicate repeated tokens to avoid duplicate push sends.
-  const seenTokens = new Set<string>();
-  const uniqueTokenRecords: FamilyTokenRecord[] = [];
-  for (const tokenRecord of tokenRecords) {
-    if (seenTokens.has(tokenRecord.token)) continue;
-    seenTokens.add(tokenRecord.token);
-    uniqueTokenRecords.push(tokenRecord);
-  }
-
-  const tokenChunks = splitIntoChunks(uniqueTokenRecords, MULTICAST_LIMIT);
+  const tokenGroups = groupInstallationsByToken(tokenRecords);
+  const tokenChunks = splitIntoChunks(tokenGroups, MULTICAST_LIMIT);
 
   const sendResponses = await Promise.all(
     tokenChunks.map((chunk) =>
       admin.messaging().sendEachForMulticast({
-        tokens: chunk.map((record) => record.token),
+        tokens: chunk.map((group) => group.token),
         notification: {
           title: params.senderName,
           body: params.text,
@@ -146,14 +124,14 @@ async function sendFamilyChatPush(params: {
       const code = sendResult.error?.code ?? "";
       if (!shouldDeleteInvalidToken(code)) return;
 
-      const tokenRecord = chunk[tokenIndex];
-      if (tokenRecord) {
-        invalidTokens.push(tokenRecord);
+      const tokenGroup = chunk[tokenIndex];
+      if (tokenGroup) {
+        invalidTokens.push(...tokenGroup.records);
       }
     });
   });
 
-  await cleanupInvalidFamilyTokens(params.familyId, invalidTokens);
+  await cleanupInvalidFamilyTokens(invalidTokens);
 }
 
 export const sendFamilyMessage = onCall({ region: REGION }, async (req) => {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/enums/enums.dart';
+import 'package:kid_manager/widgets/map/map_ornaments.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class AppMapView extends StatefulWidget {
@@ -60,7 +61,7 @@ class _AppMapViewState extends State<AppMapView> {
             pixelRatio: MediaQuery.of(context).devicePixelRatio,
           ),
 
-          onMapCreated: (map) async {
+          onMapCreated: (map) {
             _map = map;
             widget.onMapCreated(map);
           },
@@ -69,6 +70,8 @@ class _AppMapViewState extends State<AppMapView> {
           onStyleLoadedListener: (_) async {
             final map = _map;
             if (map == null) return;
+
+            await hideMapOrnaments(map);
 
             // ✅ restore camera sau khi style load xong
             if (_pendingCameraRestore != null) {

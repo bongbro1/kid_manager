@@ -37,7 +37,7 @@ class MainActivity : FlutterActivity() {
                     "saveWatcherConfig" -> {
 
                         val userId = call.argument<String>("userId")
-                        val parentId = call.argument<String>("parentId")
+                        val parentId = call.argument<String>("parentId")?.trim()
                         val childName = call.argument<String>("childName")
 
                         val prefs = getSharedPreferences("watcher_rules", MODE_PRIVATE)
@@ -54,12 +54,17 @@ class MainActivity : FlutterActivity() {
                             return@setMethodCallHandler
                         }
 
+                        if (parentId.isNullOrBlank()) {
+                            Log.w("MainActivity", "saveWatcherConfig with blank parentId for userId=$userId")
+                        }
+
                         prefs.edit()
                             .putString("user_id", userId)
                             .putString("parent_id", parentId)
                             .putString("child_name", childName)
                             .apply()
 
+                        Log.d("MainActivity", "watcher_rules saved userId=$userId parentId=$parentId childName=$childName")
                         result.success(true)
                     }
                     "isAccessibilityEnabled" -> {

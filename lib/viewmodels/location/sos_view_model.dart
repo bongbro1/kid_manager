@@ -35,8 +35,6 @@ class SosViewModel extends ChangeNotifier {
         ? createdByName.trim()
         : (u.email ?? 'Unknown');
 
-    final idToken = await u.getIdToken();
-
     if (_sending) return null;
 
     _sending = true;

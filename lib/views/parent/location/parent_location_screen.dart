@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kid_manager/core/location/map_focus_bus.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/models/schedule.dart';
@@ -58,6 +59,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   void initState() {
     super.initState();
     sosFocusNotifier.addListener(_onSosFocus);
+    mapFocusNotifier.addListener(_onMapFocus);
 
     Future.microtask(() async {
       final d = await rootBundle.load("assets/images/avatar_default.png");
@@ -85,6 +87,44 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     sosFocusNotifier.value = null;
   }
 
+  Future<void> _onMapFocus() async {
+    final focus = mapFocusNotifier.value;
+    if (!mounted || !_inited || focus == null) return;
+    if (_map == null) return;
+
+    final childUid = (focus.childUid ?? '').trim();
+    final position = focus.hasPosition && focus.lat != null && focus.lng != null
+        ? mbx.Position(focus.lng!, focus.lat!)
+        : null;
+
+    if (childUid.isNotEmpty) {
+      final canOpenSheet =
+          focus.openSheet && _userVm.children.any((child) => child.uid == childUid);
+      await _focusChild(
+        childId: childUid,
+        openSheet: canOpenSheet,
+        animate: false,
+        focusPosition: position,
+      );
+      mapFocusNotifier.value = null;
+      return;
+    }
+
+    if (position != null) {
+      await _controller.clearFocusBubble();
+      await _map!.easeTo(
+        mbx.CameraOptions(
+          center: mbx.Point(coordinates: position),
+          zoom: 16.5,
+          pitch: 0,
+          bearing: 0,
+        ),
+        mbx.MapAnimationOptions(duration: 700),
+      );
+      mapFocusNotifier.value = null;
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -101,6 +141,8 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     _controller.addListener(_handleMapOrDataChange);
     _locationVm.addListener(_handleMapOrDataChange);
     _userVm.addListener(_handleUserChange);
+
+    unawaited(_onMapFocus());
   }
 
   Future<void> _focusFirstChildOnce() async {
@@ -121,6 +163,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     required String childId,
     bool openSheet = false,
     bool animate = false,
+    mbx.Position? focusPosition,
   }) async {
     if (!mounted || _map == null) return;
 
@@ -133,7 +176,22 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
       _zoneVm.focus(viewerUid: myUid, childId: childId);
     }
 
-    if (animate) {
+    if (focusPosition != null) {
+      final camera = mbx.CameraOptions(
+        center: mbx.Point(coordinates: focusPosition),
+        zoom: 16.5,
+        pitch: 0,
+        bearing: 0,
+      );
+      if (animate) {
+        await _map!.easeTo(
+          camera,
+          mbx.MapAnimationOptions(duration: 700),
+        );
+      } else {
+        await _map!.setCamera(camera);
+      }
+    } else if (animate) {
       final duration = await _controller.zoomToChild(childId);
       await Future.delayed(Duration(milliseconds: duration));
     } else {
@@ -330,6 +388,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (!mounted) return;
                     _onSosFocus();
+                    _onMapFocus();
                   });
                 },
                 onStyleLoaded: (map) async {
@@ -496,6 +555,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
     _controller.clearFocusBubble();
     sosFocusNotifier.removeListener(_onSosFocus);
+    mapFocusNotifier.removeListener(_onMapFocus);
     _zoneVm.removeListener(_onZoneBubbleChanged);
 
     _controller.detach();

@@ -152,14 +152,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final avatar = (selected.avatarUrl ?? '').trim();
     final fallbackText = _nameInitial(selected);
 
-    return CircleAvatar(
+    return _buildAvatar(
       radius: 18,
-      foregroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-      onForegroundImageError: (_, _) {},
-      child: Text(
-        fallbackText,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
+      avatar: avatar,
+      fallbackText: fallbackText,
     );
   }
 
@@ -167,6 +163,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final name = (user.displayName ?? user.email ?? '').trim();
     if (name.isEmpty) return 'B';
     return name[0].toUpperCase();
+  }
+
+  CircleAvatar _buildAvatar({
+    required double radius,
+    required String avatar,
+    required String fallbackText,
+  }) {
+    final image = avatar.isNotEmpty ? NetworkImage(avatar) : null;
+
+    return CircleAvatar(
+      radius: radius,
+      foregroundImage: image,
+      onForegroundImageError: image == null ? null : (_, _) {},
+      child: Text(
+        fallbackText,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+    );
   }
 
   @override
@@ -237,18 +251,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         value: c.uid,
                         child: Row(
                           children: [
-                            CircleAvatar(
+                            _buildAvatar(
                               radius: 14,
-                              foregroundImage: avatar.isNotEmpty
-                                  ? NetworkImage(avatar)
-                                  : null,
-                              onForegroundImageError: (_, _) {},
-                              child: Text(
-                                _nameInitial(c),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                              avatar: avatar,
+                              fallbackText: _nameInitial(c),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
