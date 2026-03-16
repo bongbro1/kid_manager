@@ -1,5 +1,24 @@
 import { admin, db } from "../../bootstrap";
 import { t } from "../../i18n";
+import {
+  deleteInstallationsByIds,
+  groupInstallationsByToken,
+  listInstallationsByUid,
+} from "../../services/fcmInstallations";
+
+function normalizeEventKey(raw: string): string {
+  const key = (raw || "").trim();
+  if (key.endsWith(".title") || key.endsWith(".body")) {
+    const cut = key.lastIndexOf(".");
+    if (cut > 0) return key.substring(0, cut);
+  }
+  return key;
+}
+
+function looksLikeLocalizedKey(value: string): boolean {
+  const v = (value || "").trim();
+  return /^[a-z0-9_.-]+\.(title|body)$/i.test(v);
+}
 
 export async function sendLocalizedNotification(opts: {
   uid: string;
@@ -14,61 +33,57 @@ export async function sendLocalizedNotification(opts: {
   const user = userSnap.exists ? (userSnap.data() as any) : {};
   const lang = (user.lang ?? user.locale ?? "vi").toString().toLowerCase();
 
-  const tokensSnap = await db.collection(`users/${opts.uid}/fcmTokens`).get();
-  if (tokensSnap.empty) return;
+  const installationGroups = groupInstallationsByToken(
+    await listInstallationsByUid(opts.uid)
+  );
+  if (!installationGroups.length) return;
+  const tokens = installationGroups.map((group) => group.token);
 
-  const tokens: string[] = [];
-  const tokenDocIds: string[] = [];
+  const normalizedEventKey = normalizeEventKey(opts.eventKey);
 
-  tokensSnap.forEach((doc) => {
-    const token = (doc.data() as any)?.token?.toString();
-    if (token && token.length >= 20) {
-      tokens.push(token);
-      tokenDocIds.push(doc.id);
-    }
-  });
+  const titleKey = `${normalizedEventKey}.title`;
+  const bodyKey = `${normalizedEventKey}.body`;
 
-  if (tokens.length === 0) return;
-
-  const title = t(lang, `${opts.eventKey}.title`, opts.titleParams);
-  let body = t(lang, `${opts.eventKey}.body`, opts.bodyParams);
+  const title = t(lang, titleKey, opts.titleParams);
+  let body = t(lang, bodyKey, opts.bodyParams);
   let safeTitle = title;
-  const titleKey = `${opts.eventKey}.title`;
-  const bodyKey = `${opts.eventKey}.body`;
-  const isTrackingEvent = opts.eventKey.startsWith("tracking.");
+  const isTrackingEvent = normalizedEventKey.startsWith("tracking.");
 
-  const fallbackMessage = (opts.data?.message ?? "").toString().trim();
+  const rawFallbackMessage = (opts.data?.message ?? "").toString().trim();
+  const fallbackMessage = looksLikeLocalizedKey(rawFallbackMessage)
+    ? ""
+    : rawFallbackMessage;
   const fallbackTitle = lang.startsWith("en")
     ? (isTrackingEvent ? "Tracking notification" : "Notification")
-    : (isTrackingEvent ? "Thong bao dinh vi" : "Thong bao");
+    : (isTrackingEvent ? "Thông báo định vị" : "Thông báo");
   const fallbackBody = lang.startsWith("en")
     ? (isTrackingEvent ? "Tracking status has changed." : "You have a new notification.")
-    : (isTrackingEvent ? "Trang thai dinh vi da thay doi." : "Ban co thong bao moi.");
+    : (isTrackingEvent ? "Trạng thái định vị đã thay đổi." : "Bạn có thông báo mới.");
 
-  if (safeTitle === titleKey) {
+  if (safeTitle === titleKey || looksLikeLocalizedKey(safeTitle)) {
     safeTitle = fallbackMessage || fallbackTitle;
   }
-  if (body === bodyKey) {
+  if (body === bodyKey || looksLikeLocalizedKey(body)) {
     body = fallbackMessage || fallbackBody;
   }
 
-  const resp = await admin.messaging().sendEachForMulticast({
+  const payload = {
     tokens,
     notification: {
       title: safeTitle,
       body,
     },
     data: {
+      ...(opts.data ?? {}),
       type: opts.type,
-      eventKey: opts.eventKey,
+      eventKey: normalizedEventKey,
       lang,
       title: safeTitle,
       body,
-      ...(opts.data ?? {}),
       toUid: opts.uid,
     },
     android: {
-      priority: "high",
+      priority: "high" as const,
       notification: {
         channelId: opts.channelId ?? "general_alerts",
       },
@@ -82,9 +97,26 @@ export async function sendLocalizedNotification(opts: {
       },
       headers: { "apns-priority": "10" },
     },
+  };
+
+  console.log("[sendLocalizedNotification] payload", {
+    uid: opts.uid,
+    type: opts.type,
+    eventKey: normalizedEventKey,
+    titleKey,
+    bodyKey,
+    safeTitle,
+    safeBody: body,
+    rawDataTitle: opts.data?.title,
+    rawDataBody: opts.data?.body,
+    rawMessage: opts.data?.message,
+    tokenCount: tokens.length,
+    payloadData: payload.data,
   });
 
-  const batch = db.batch();
+  const resp = await admin.messaging().sendEachForMulticast(payload);
+
+  const invalidInstallationIds: string[] = [];
 
   resp.responses.forEach((r, idx) => {
     if (r.success) return;
@@ -95,9 +127,13 @@ export async function sendLocalizedNotification(opts: {
       code.includes("messaging/invalid-registration-token");
 
     if (shouldDelete) {
-      batch.delete(db.doc(`users/${opts.uid}/fcmTokens/${tokenDocIds[idx]}`));
+      const group = installationGroups[idx];
+      if (!group) return;
+      invalidInstallationIds.push(
+        ...group.records.map((installation) => installation.installationId)
+      );
     }
   });
 
-  await batch.commit();
+  await deleteInstallationsByIds(invalidInstallationIds);
 }

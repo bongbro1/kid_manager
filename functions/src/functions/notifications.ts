@@ -2,6 +2,26 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { admin, db } from "../bootstrap";
 import { REGION } from "../config";
 import { convertDataToString } from "../helpers";
+import { t } from "../i18n";
+import {
+  deleteInstallationsByIds,
+  groupInstallationsByToken,
+  listInstallationsByUid,
+} from "../services/fcmInstallations";
+
+function normalizeEventKey(raw: string): string {
+  const key = (raw || "").trim();
+  if (key.endsWith(".title") || key.endsWith(".body")) {
+    const cut = key.lastIndexOf(".");
+    if (cut > 0) return key.substring(0, cut);
+  }
+  return key;
+}
+
+function looksLikeLocalizedKey(value: string): boolean {
+  const v = (value || "").trim();
+  return /^[a-z0-9_.-]+\.(title|body)$/i.test(v);
+}
 
 export const onNotificationCreated = onDocumentCreated(
   {
@@ -17,56 +37,119 @@ export const onNotificationCreated = onDocumentCreated(
     const data = snap.data() as any;
 
     const toUid: string | undefined = data.receiverId;
-
     if (!toUid) {
       console.log("[NOTI] Missing receiverId -> skip");
       return;
     }
 
-    console.log(
-      `[NOTI] Triggered id=${notificationId} toUid=${toUid}`
+    console.log(`[NOTI] Triggered id=${notificationId} toUid=${toUid}`);
+
+    const installationGroups = groupInstallationsByToken(
+      await listInstallationsByUid(toUid)
     );
-
-    const tokenSnap = await db
-      .collection(`users/${toUid}/fcmTokens`)
-      .get();
-
-    if (tokenSnap.empty) {
+    if (!installationGroups.length) {
       console.log("[NOTI] No tokens -> skip");
       return;
     }
+    const tokens = installationGroups.map((group) => group.token);
 
-    const tokens: string[] = [];
+    const userSnap = await db.doc(`users/${toUid}`).get();
+    const user = userSnap.exists ? (userSnap.data() as any) : {};
+    const lang = (user.lang ?? user.locale ?? "vi").toString().toLowerCase();
 
-    tokenSnap.forEach((doc) => {
-      const t = (doc.data() as any)?.token;
-      if (t) tokens.push(t);
-    });
+    const payloadData = convertDataToString(data.data ?? {});
 
-    if (!tokens.length) {
-      console.log("[NOTI] No usable tokens");
-      return;
+    const rawTitle = String(data.title ?? "");
+    const rawBody = String(data.body ?? "");
+
+    let eventKey = normalizeEventKey(String(data.eventKey ?? payloadData.eventKey ?? ""));
+    if (!eventKey) {
+      if (rawTitle.endsWith(".title")) eventKey = normalizeEventKey(rawTitle);
+      else if (rawBody.endsWith(".body")) eventKey = normalizeEventKey(rawBody);
     }
 
-    await admin.messaging().sendEachForMulticast({
+    let safeTitle =
+      rawTitle || (lang.startsWith("en") ? "Notification" : "Thong bao");
+    let safeBody =
+      rawBody ||
+      (lang.startsWith("en")
+        ? "You have a new notification."
+        : "Bạn có thông báo mới");
+
+    if (eventKey) {
+      const localizedTitle = t(lang, `${eventKey}.title`, payloadData);
+      const localizedBody = t(lang, `${eventKey}.body`, payloadData);
+
+      if (!looksLikeLocalizedKey(localizedTitle)) {
+        safeTitle = localizedTitle;
+      }
+      if (!looksLikeLocalizedKey(localizedBody)) {
+        safeBody = localizedBody;
+      }
+    }
+
+    if (looksLikeLocalizedKey(safeTitle)) {
+      safeTitle = lang.startsWith("en") ? "Notification" : "Thong bao";
+    }
+    if (looksLikeLocalizedKey(safeBody)) {
+      safeBody = lang.startsWith("en")
+        ? "You have a new notification."
+        : "Bạn có thông báo mới.";
+    }
+
+    const resp = await admin.messaging().sendEachForMulticast({
       tokens,
+      notification: {
+        title: safeTitle,
+        body: safeBody,
+      },
       data: {
-        title: String(data.title ?? "Thông báo"),
-        body: String(data.body ?? "Bạn có thông báo mới"),
+        ...payloadData,
+        title: safeTitle,
+        body: safeBody,
         type: String(data.type ?? "GENERIC"),
         notificationId,
-        ...convertDataToString(data.data),
+        eventKey,
       },
       android: {
         priority: "high",
       },
+      apns: {
+        payload: {
+          aps: {
+            alert: {
+              title: safeTitle,
+              body: safeBody,
+            },
+            sound: "default",
+          },
+        },
+        headers: { "apns-priority": "10" },
+      },
     });
 
-    console.log(
-      `[NOTI] Sent to ${tokens.length} devices`
-    );
+    console.log(`[NOTI] Sent to ${tokens.length} devices`);
 
-    // Optional: update status
+    const invalidInstallationIds: string[] = [];
+
+    resp.responses.forEach((result, index) => {
+      if (result.success) return;
+
+      const code = result.error?.code ?? "";
+      const shouldDelete =
+        code.includes("messaging/registration-token-not-registered") ||
+        code.includes("messaging/invalid-registration-token");
+      if (!shouldDelete) return;
+
+      const group = installationGroups[index];
+      if (!group) return;
+      invalidInstallationIds.push(
+        ...group.records.map((installation) => installation.installationId)
+      );
+    });
+
+    await deleteInstallationsByIds(invalidInstallationIds);
+
     await snap.ref.update({ status: "sent" });
   }
 );

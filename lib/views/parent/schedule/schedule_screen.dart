@@ -169,6 +169,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return name[0].toUpperCase();
   }
 
+  CircleAvatar _buildAvatar({
+    required double radius,
+    required String avatar,
+    required String fallbackText,
+  }) {
+    final image = avatar.isNotEmpty ? NetworkImage(avatar) : null;
+
+    return CircleAvatar(
+      radius: radius,
+      foregroundImage: image,
+      onForegroundImageError: image == null ? null : (_, _) {},
+      child: Text(
+        fallbackText,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheduleVm = context.watch<ScheduleViewModel>();

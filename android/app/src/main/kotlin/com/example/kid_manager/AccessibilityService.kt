@@ -195,8 +195,8 @@ class AppAccessibilityService : AccessibilityService() {
 
         val prefs = getSharedPreferences(RULE_PREFS, Context.MODE_PRIVATE)
 
-        val parentId = prefs.getString("parent_id", null) ?: run {
-            // Log.e(TAG, "Missing parent_id in prefs")
+        val parentId = prefs.getString("parent_id", null)?.trim()?.takeIf { it.isNotEmpty() } ?: run {
+            Log.w(TAG, "skip blockedApp notification because parent_id is missing")
             return
         }
 
@@ -230,10 +230,10 @@ class AppAccessibilityService : AccessibilityService() {
             .collection("notifications")
             .add(payload)
             .addOnSuccessListener { ref ->
-                // Log.d(TAG, "Notification created: ${ref.id}")
+                Log.d(TAG, "blockedApp notification created id=${ref.id} parentId=$parentId package=$packageName")
             }
             .addOnFailureListener { e ->
-                // Log.e(TAG, "Failed to create notification", e)
+                Log.e(TAG, "failed to create blockedApp notification parentId=$parentId package=$packageName", e)
             }
     }
 

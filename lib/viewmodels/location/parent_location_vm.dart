@@ -177,12 +177,17 @@ class ParentLocationVm extends ChangeNotifier {
 
   Future<List<LocationData>> loadLocationHistoryByDay(
     String childUid,
-    DateTime day,
+    DateTime day, {
+    int? fromTs,
+    int? toTs,
+  }
   ) async {
     try {
       final history = await _locationRepo.getLocationHistoryByDay(
         childUid,
         day,
+        fromTs: fromTs,
+        toTs: toTs,
       );
       final valid = history.where(_isValidLocation).toList();
 

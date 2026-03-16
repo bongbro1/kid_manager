@@ -7,10 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:usage_stats/usage_stats.dart';
 
 class PermissionService {
-  Future<bool> hasMicrophonePermission() async {
-    final status = await Permission.microphone.status;
-    return status.isGranted;
-  }
 
   Future<bool> hasPhotosOrStoragePermission() async {
     if (Platform.isIOS) {
@@ -27,16 +23,6 @@ class PermissionService {
       final status = await Permission.storage.status;
       return status.isGranted;
     }
-  }
-
-  Future<bool> requestMicrophonePermission() async {
-    debugPrint("🎤 requestMicrophonePermission()");
-
-    final status = await Permission.microphone.request();
-
-    debugPrint("🎤 request result = $status");
-
-    return status.isGranted;
   }
 
   Future<bool> requestPhotosOrStoragePermission() async {
@@ -132,14 +118,12 @@ class PermissionService {
   }
 
   Future<Map<String, bool>> checkAllPermissions() async {
-    final mic = await hasMicrophonePermission();
     final media = await hasPhotosOrStoragePermission();
     final usage = await hasUsagePermission();
     final battery = await hasBatteryOptimizationDisabled();
     final accessibility = await hasAccessibilityPermission();
 
     return {
-      'microphone': mic,
       'media': media,
       'usage': usage,
       'accessibility': accessibility,
