@@ -7,6 +7,7 @@ import 'package:kid_manager/helpers/zone/zone_overlap.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/widgets/map/marker_icon_factory.dart';
+import 'package:kid_manager/widgets/map/map_ornaments.dart';
 import 'package:kid_manager/widgets/map/zone_map_renderer.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
 
@@ -173,6 +174,7 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                   ),
                   onMapCreated: (map) async {
                     _map = map;
+                    await hideMapOrnaments(map);
                     _renderer = ZoneMapRenderer(map);
                   },
                   onStyleLoadedListener: (_) async {

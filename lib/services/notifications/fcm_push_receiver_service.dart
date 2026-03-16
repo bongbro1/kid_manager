@@ -1,123 +1,74 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:crypto/crypto.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:kid_manager/services/notifications/fcm_installation_service.dart';
 
 class FcmPushReceiverService {
-  static final _messaging = FirebaseMessaging.instance;
-  static final _db = FirebaseFirestore.instance;
+  static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static StreamSubscription<String>? _tokenRefreshSub;
+  static String? _currentUid;
+  static bool _listenersAttached = false;
 
-  static Future<void> _cleanupTokenFromOtherUsers(
-    String uid,
-    String token,
-  ) async {
-    try {
-      final dupSnap = await _db
-          .collectionGroup('fcmTokens')
-          .where('token', isEqualTo: token)
-          .get();
-
-      if (dupSnap.docs.isEmpty) return;
-
-      final batch = _db.batch();
-      var deleted = 0;
-
-      for (final doc in dupSnap.docs) {
-        final ownerUid = doc.reference.parent.parent?.id;
-        if (ownerUid == null || ownerUid == uid) continue;
-        batch.delete(doc.reference);
-        deleted++;
-      }
-
-      if (deleted > 0) {
-        await batch.commit();
-        debugPrint('FCM token cleanup: removed $deleted stale owner docs');
-      }
-    } catch (e) {
-      debugPrint('FCM token cleanup error: $e');
-    }
-  }
-
-  /// ===============================
-  /// INIT (gọi sau khi login thành công)
-  /// ===============================
   static Future<void> init(String uid) async {
-    await _saveToken(uid);
+    final normalizedUid = uid.trim();
+    if (normalizedUid.isEmpty) return;
 
-    /// token refresh
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-      await _saveToken(uid, token: newToken);
-    });
+    final shouldSyncCurrentToken = _currentUid != normalizedUid;
+    _currentUid = normalizedUid;
 
-    /// foreground message
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint("📩 Foreground message: ${message.data}");
-    });
-
-    /// click notification
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint("👉 User clicked notification: ${message.data}");
-    });
-  }
-
-  /// ===============================
-  /// SAVE TOKEN
-  /// ===============================
-  static Future<void> _saveToken(String uid, {String? token}) async {
-    token ??= await _messaging.getToken();
-    if (token == null) return;
-    String platform;
-
-    if (Platform.isAndroid) {
-      platform = "android";
-    } else if (Platform.isIOS) {
-      platform = "ios";
-    } else {
-      platform = "unknown";
+    if (!_listenersAttached) {
+      _listenersAttached = true;
+      _tokenRefreshSub = _messaging.onTokenRefresh.listen((newToken) async {
+        final activeUid = _currentUid;
+        if (activeUid == null || activeUid.isEmpty) return;
+        await _registerToken(activeUid, token: newToken);
+      });
     }
 
-    final tokenId = sha256.convert(utf8.encode(token)).toString();
-
-    // 🔥 Lấy familyId từ user doc
-    final userSnap = await _db.collection('users').doc(uid).get();
-
-    final familyId = userSnap.data()?['familyId'];
-
-    await _db
-        .collection('users')
-        .doc(uid)
-        .collection('fcmTokens')
-        .doc(tokenId)
-        .set({
-          "token": token,
-          "familyId": familyId,
-          "platform": platform,
-          "updatedAt": FieldValue.serverTimestamp(),
-        });
-
-    await _cleanupTokenFromOtherUsers(uid, token);
+    if (shouldSyncCurrentToken) {
+      await _registerToken(normalizedUid);
+    }
   }
 
-  static Future<void> removeToken(String uid) async {
+  static Future<void> onSignedOut() async {
+    _currentUid = null;
+  }
+
+  static Future<void> dispose() async {
+    _currentUid = null;
+    await _tokenRefreshSub?.cancel();
+    _tokenRefreshSub = null;
+    _listenersAttached = false;
+  }
+
+  static Future<void> _registerToken(String uid, {String? token}) async {
+    token ??= await _messaging.getToken();
+    if (token == null || token.isEmpty) return;
+    final installationId = await FcmInstallationService.getInstallationId();
+    if (_currentUid != uid) return;
+
     try {
-      final token = await _messaging.getToken();
-      if (token == null) return;
+      await FirebaseFunctions.instanceFor(region: 'asia-southeast1')
+          .httpsCallable('registerFcmToken')
+          .call({
+        'installationId': installationId,
+        'token': token,
+        'platform': Platform.isIOS ? 'ios' : 'android',
+      });
 
-      final tokenId = sha256.convert(utf8.encode(token)).toString();
-
-      await _db
-          .collection('users')
-          .doc(uid)
-          .collection('fcmTokens')
-          .doc(tokenId)
-          .delete();
-
-      await _messaging.deleteToken();
-    } catch (e) {
-      debugPrint("❌ Remove FCM token error: $e");
+      debugPrint('[FcmPushReceiverService] registerFcmToken success uid=$uid');
+    } on FirebaseFunctionsException catch (e, st) {
+      debugPrint(
+        '[FcmPushReceiverService] registerFcmToken fail '
+        'code=${e.code} message=${e.message} details=${e.details}',
+      );
+      debugPrintStack(stackTrace: st);
+    } catch (e, st) {
+      debugPrint('[FcmPushReceiverService] registerFcmToken error: $e');
+      debugPrintStack(stackTrace: st);
     }
   }
 }

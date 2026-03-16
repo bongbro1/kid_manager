@@ -27,6 +27,7 @@ class AppShellConfig {
   static AppShellConfig parent() => AppShellConfig([
     BottomTabConfig(
       iconAsset: 'assets/icons/location.svg',
+      isMapTab: true,
       root: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => MapboxController()),
@@ -79,6 +80,7 @@ class AppShellConfig {
   static AppShellConfig child() => AppShellConfig([
     BottomTabConfig(
       iconAsset: 'assets/icons/location.svg',
+      isMapTab: true,
       root: MultiProvider(
         providers: [
           ChangeNotifierProvider(

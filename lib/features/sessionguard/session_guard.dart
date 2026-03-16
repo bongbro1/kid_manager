@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/background/auth_runtime_manager.dart';
+import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
 import 'package:kid_manager/services/notifications/sos_notification_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
@@ -84,16 +86,40 @@ class _SessionGuardState extends State<SessionGuard> {
 
             await storage.setString(StorageKeys.uid, uid);
 
+            final resolvedRole = roleFromString(
+              profile?.role ?? session.user?.role.name ?? 'child',
+            );
+            final resolvedDisplayName =
+                (profile?.name ?? session.user?.displayName ?? '').trim();
+            final resolvedParentId = resolvedRole == UserRole.child
+                ? (profile?.parentUid ?? session.user?.parentUid ?? '').trim()
+                : uid;
+
             if (profile != null) {
               await storage.setString(StorageKeys.role, profile.role ?? '');
               await storage.setString(StorageKeys.displayName, profile.name);
+            }
 
-              final role = roleFromString(profile.role ?? 'child');
-              final parentId = role == UserRole.child
-                  ? (profile.parentUid ?? '')
-                  : uid;
+            await storage.setString(
+              StorageKeys.parentId,
+              resolvedParentId,
+            );
 
-              await storage.setString(StorageKeys.parentId, parentId);
+            if (resolvedRole == UserRole.child) {
+              if (resolvedParentId.isNotEmpty && resolvedDisplayName.isNotEmpty) {
+                AuthRuntimeManager.start(
+                  parentId: resolvedParentId,
+                  displayName: resolvedDisplayName,
+                );
+              } else {
+                debugPrint(
+                  '[SessionGuard] skip native watcher config '
+                  'uid=$uid parentId="$resolvedParentId" '
+                  'displayName="$resolvedDisplayName"',
+                );
+              }
+            } else {
+              await AuthRuntimeManager.stop();
             }
 
             userVm.watchMe(uid);
@@ -125,6 +151,8 @@ class _SessionGuardState extends State<SessionGuard> {
               _pushInitedForUid = uid;
 
               WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (!mounted) return;
+                await FcmPushReceiverService.init(uid);
                 if (!mounted) return;
                 await SosNotificationService.instance.init(
                   onTapSos: (data) {},

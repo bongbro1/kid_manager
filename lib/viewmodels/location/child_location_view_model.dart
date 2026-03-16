@@ -599,13 +599,18 @@ class ChildLocationViewModel extends ChangeNotifier {
 
   Future<List<LocationData>> loadLocationHistoryByDay(
     String childId,
-    DateTime day,
+    DateTime day, {
+    int? fromTs,
+    int? toTs,
+  }
   ) async {
     try {
       // If repo interface does not include this, call impl directly.
       final history = await _locationRepository.getLocationHistoryByDay(
         childId,
         day,
+        fromTs: fromTs,
+        toTs: toTs,
       );
 
       _trail

@@ -1,9 +1,10 @@
-﻿import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/services/firebase_auth_service.dart';
+import 'package:kid_manager/services/notifications/fcm_installation_service.dart';
 
 import 'user_repository.dart';
 
@@ -13,7 +14,6 @@ class AuthRepository {
 
   AuthRepository(this._authService, this._users);
 
-  // ===== Auth state =====
   Stream<User?> authStateChanges() => _authService.authStateChanges();
 
   User? currentUser() => _authService.currentUser;
@@ -39,7 +39,6 @@ class AuthRepository {
     return _authService.resetPassword(uid: uid, newPassword: newPassword);
   }
 
-  // ===== Actions =====
   Future<UserCredential> login(String email, String password) {
     return _authService.signIn(email.trim(), password);
   }
@@ -54,43 +53,31 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      final token = await FirebaseMessaging.instance.getToken();
+      final installationId = await FcmInstallationService.getInstallationId();
 
-      if (token != null && token.isNotEmpty) {
-        await FirebaseFunctions.instanceFor(region: 'asia-southeast1')
-            .httpsCallable('unregisterFcmToken')
-            .call({
-          'token': token,
-        });
-      }
+      await FirebaseFunctions.instanceFor(region: 'asia-southeast1')
+          .httpsCallable('unregisterFcmToken')
+          .call({
+        'installationId': installationId,
+      });
+    } on FirebaseFunctionsException catch (e, st) {
+      debugPrint(
+        '[AuthRepository] unregisterFcmToken fail '
+        'code=${e.code} message=${e.message} details=${e.details}',
+      );
+      debugPrintStack(stackTrace: st);
     } catch (e, st) {
       debugPrint('[AuthRepository] unregisterFcmToken error: $e');
       debugPrintStack(stackTrace: st);
     }
 
-    await _authService.signOut();
-  }
-
-  Future<void> registerCurrentFcmToken({
-    required String platform,
-  }) async {
     try {
-      final token = await FirebaseMessaging.instance.getToken();
-      debugPrint('[AuthRepository] registerCurrentFcmToken token=$token');
-
-      if (token == null || token.isEmpty) return;
-
-      await FirebaseFunctions.instanceFor(region: 'asia-southeast1')
-          .httpsCallable('registerFcmToken')
-          .call({
-        'token': token,
-        'platform': platform,
-      });
-
-      debugPrint('[AuthRepository] registerFcmToken success');
+      await FirebaseMessaging.instance.deleteToken();
     } catch (e, st) {
-      debugPrint('[AuthRepository] registerFcmToken error: $e');
+      debugPrint('[AuthRepository] deleteToken error: $e');
       debugPrintStack(stackTrace: st);
     }
+
+    await _authService.signOut();
   }
 }

@@ -155,7 +155,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return CircleAvatar(
       radius: 18,
       foregroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-      onForegroundImageError: (_, _) {},
+      onForegroundImageError: avatar.isNotEmpty ? (_, _) {} : null,
       child: Text(
         fallbackText,
         style: const TextStyle(fontWeight: FontWeight.w600),
@@ -167,6 +167,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final name = (user.displayName ?? user.email ?? '').trim();
     if (name.isEmpty) return 'B';
     return name[0].toUpperCase();
+  }
+
+  CircleAvatar _buildAvatar({
+    required double radius,
+    required String avatar,
+    required String fallbackText,
+  }) {
+    final image = avatar.isNotEmpty ? NetworkImage(avatar) : null;
+
+    return CircleAvatar(
+      radius: radius,
+      foregroundImage: image,
+      onForegroundImageError: image == null ? null : (_, _) {},
+      child: Text(
+        fallbackText,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+    );
   }
 
   @override
@@ -242,7 +260,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               foregroundImage: avatar.isNotEmpty
                                   ? NetworkImage(avatar)
                                   : null,
-                              onForegroundImageError: (_, _) {},
+                              onForegroundImageError: avatar.isNotEmpty ? (_, _) {} : null,
                               child: Text(
                                 _nameInitial(c),
                                 style: const TextStyle(

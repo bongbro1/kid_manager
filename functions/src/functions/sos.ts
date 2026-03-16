@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { OAuth2Client } from "google-auth-library";
 import { admin, db } from "../bootstrap";
 import {
 REGION,
@@ -20,85 +21,341 @@ import { getUserFamilyAndRole, requireFamilyMember } from "../services/user";
 import { sendSosPush } from "../services/sosPush";
 import { enqueueSosReminder } from "../services/tasks";
 
-// WORKER
-export const sosReminderWorker = onRequest({ region: REGION }, async (req, res) => {
-try {
-if (req.method !== "POST") {
-      return void res.status(405).send("Method not allowed");
+const TASK_CALLER_SA = (process.env.SOS_TASK_CALLER_SA ?? "").trim();
+const WORKER_AUDIENCE = (process.env.SOS_REMINDER_WORKER_URL ?? "").trim();
+const REMINDER_LEASE_MS = 120_000;
+const WORKER_MIN_INTERVAL_MS = 5_000;
+const ALLOWED_OIDC_ISSUERS = new Set([
+  "accounts.google.com",
+  "https://accounts.google.com",
+]);
+const oidcClient = new OAuth2Client();
+
+const sosReminderWorkerOptions = TASK_CALLER_SA
+  ? { region: REGION, invoker: [TASK_CALLER_SA] }
+  : { region: REGION, invoker: "private" as const };
+
+function parseFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return null;
+}
+
+async function verifyReminderWorkerRequest(req: any): Promise<{
+  ok: boolean;
+  status: number;
+  message: string;
+}> {
+  if (!TASK_CALLER_SA || !WORKER_AUDIENCE) {
+    console.error("[SOS] Worker auth is not configured");
+    return {
+      ok: false,
+      status: 500,
+      message: "Worker auth misconfigured",
+    };
+  }
+
+  const authHeader = String(req.header("authorization") ?? "").trim();
+  if (!authHeader.startsWith("Bearer ")) {
+    return { ok: false, status: 401, message: "Missing bearer token" };
+  }
+
+  const idToken = authHeader.slice("Bearer ".length).trim();
+  if (!idToken) {
+    return { ok: false, status: 401, message: "Missing bearer token" };
+  }
+
+  try {
+    const ticket = await oidcClient.verifyIdToken({
+      idToken,
+      audience: WORKER_AUDIENCE,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload) {
+      return { ok: false, status: 401, message: "Invalid bearer token" };
     }
 
-    const { familyId, sosId, createdAtMs, attempt } = req.body ?? {};
-    if (!familyId || !sosId || !createdAtMs || !attempt) {
-      return void res.status(400).send("Missing params");
+    const issuer = String(payload.iss ?? "");
+    if (!ALLOWED_OIDC_ISSUERS.has(issuer)) {
+      return { ok: false, status: 403, message: "Invalid token issuer" };
     }
 
-    const ageSec = (Date.now() - Number(createdAtMs)) / 1000;
-    if (ageSec > REMIND_MAX_SECONDS) {
-      return void res.status(200).send("Expired reminder window");
+    const email = String(payload.email ?? "").trim().toLowerCase();
+    const expectedEmail = TASK_CALLER_SA.toLowerCase();
+    const emailVerified =
+      payload.email_verified === undefined || payload.email_verified === true;
+
+    if (!emailVerified || email !== expectedEmail) {
+      return { ok: false, status: 403, message: "Invalid task caller" };
     }
 
-    const sosRef = db.doc(`families/${familyId}/sos/${sosId}`);
-    const snap = await sosRef.get();
+    return { ok: true, status: 200, message: "OK" };
+  } catch (err: any) {
+    console.error("[SOS] verifyReminderWorkerRequest error:", err?.stack ?? err);
+    return { ok: false, status: 401, message: "Invalid bearer token" };
+  }
+}
+
+async function claimReminderAttempt(params: {
+  familyId: string;
+  sosId: string;
+  attempt: number;
+  taskName: string;
+}) {
+  const { familyId, sosId, attempt, taskName } = params;
+  const sosRef = db.doc(`families/${familyId}/sos/${sosId}`);
+  const nowMs = Date.now();
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(sosRef);
     if (!snap.exists) {
-      return void res.status(200).send("SOS not found");
+      return { action: "skip" as const, reason: "SOS not found", sosRef, sos: null };
     }
 
     const sos = snap.data() as any;
     if (sos.status !== "active") {
-      return void res.status(200).send("SOS not active, stop");
+      return { action: "skip" as const, reason: "SOS not active, stop", sosRef, sos };
     }
 
-    const currentAttempt = Number(attempt);
-    const loc = sos.location ?? {};
-    const childUid = sos.createdBy ?? "";
-    const createdByName = sos.createdByName ?? "";
+    const reminder = sos.reminder ?? {};
+    const lastAttempt = Number(reminder.lastAttempt ?? 0);
+    if (lastAttempt >= attempt) {
+      return {
+        action: "skip" as const,
+        reason: `Attempt ${attempt} already processed`,
+        sosRef,
+        sos,
+      };
+    }
 
-    const pushRes = await sendSosPush({
-      familyId: String(familyId),
-      sosId: String(sosId),
-      childUid: String(childUid),
-      lat: loc.lat != null ? Number(loc.lat) : null,
-      lng: loc.lng != null ? Number(loc.lng) : null,
-      createdByName: String(createdByName),
-      attempt: currentAttempt,
-    });
+    const lastSentAt = reminder.lastSentAt as admin.firestore.Timestamp | undefined;
+    if (lastSentAt) {
+      const deltaMs = nowMs - lastSentAt.toMillis();
+      if (deltaMs < WORKER_MIN_INTERVAL_MS) {
+        return {
+          action: "skip" as const,
+          reason: "Reminder rate limited",
+          sosRef,
+          sos,
+        };
+      }
+    }
 
-    await sosRef.set(
+    const leaseAttempt = Number(reminder.workerLeaseAttempt ?? 0);
+    const leaseAt = reminder.workerLeaseAt as admin.firestore.Timestamp | undefined;
+    if (leaseAttempt === attempt && leaseAt) {
+      const leaseAgeMs = nowMs - leaseAt.toMillis();
+      if (leaseAgeMs < REMINDER_LEASE_MS) {
+        return {
+          action: "skip" as const,
+          reason: `Attempt ${attempt} already claimed`,
+          sosRef,
+          sos,
+        };
+      }
+    }
+
+    tx.set(
+      sosRef,
       {
         reminder: {
-          lastAttempt: currentAttempt,
-          lastSentAt: admin.firestore.FieldValue.serverTimestamp(),
-          lastSuccess: pushRes.success,
-        },
-      },
-      { merge: true }
-    );
-
-    const nextAttempt = currentAttempt + 1;
-    const enqueueRes = await enqueueSosReminder({
-      familyId: String(familyId),
-      sosId: String(sosId),
-      createdAtMs: Number(createdAtMs),
-      attempt: nextAttempt,
-    });
-
-    await sosRef.set(
-      {
-        reminder: {
-          nextAttempt:
-            enqueueRes && "attempt" in enqueueRes ? nextAttempt : null,
+          workerLeaseAttempt: attempt,
+          workerLeaseTaskName: taskName || null,
+          workerLeaseAt: admin.firestore.FieldValue.serverTimestamp(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
       },
       { merge: true }
     );
 
-    return void res.status(200).send("OK");
-  } catch (e: any) {
-    console.error("sosReminderWorker error:", e?.stack ?? e);
-    return void res.status(500).send("ERR");
+    return { action: "process" as const, reason: "claimed", sosRef, sos };
+  });
+}
+
+async function ensureNextReminder(params: {
+  familyId: string;
+  sosId: string;
+  createdAtMs: number;
+  currentAttempt: number;
+  sosRef: FirebaseFirestore.DocumentReference;
+  sos: any;
+}) {
+  const { familyId, sosId, createdAtMs, currentAttempt, sosRef, sos } = params;
+  const reminder = sos?.reminder ?? {};
+  const lastAttempt = Number(reminder.lastAttempt ?? 0);
+  const nextAttemptStored = Number(reminder.nextAttempt ?? 0);
+  const nextAttempt = currentAttempt + 1;
+
+  if (lastAttempt !== currentAttempt || nextAttemptStored >= nextAttempt) {
+    return false;
   }
-});
+
+  const enqueueRes = await enqueueSosReminder({
+    familyId,
+    sosId,
+    createdAtMs,
+    attempt: nextAttempt,
+  });
+
+  await sosRef.set(
+    {
+      reminder: {
+        nextAttempt:
+          enqueueRes && enqueueRes.enqueued ? nextAttempt : null,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+    },
+    { merge: true }
+  );
+
+  return enqueueRes?.enqueued === true;
+}
+
+// WORKER
+export const sosReminderWorker = onRequest(
+  sosReminderWorkerOptions,
+  async (req, res) => {
+    let claimedSosRef: FirebaseFirestore.DocumentReference | null = null;
+
+    try {
+      if (req.method !== "POST") {
+        return void res.status(405).send("Method not allowed");
+      }
+
+      const auth = await verifyReminderWorkerRequest(req);
+      if (!auth.ok) {
+        return void res.status(auth.status).send(auth.message);
+      }
+
+      const rawBody = req.body ?? {};
+      const familyId =
+        typeof rawBody.familyId === "string" ? rawBody.familyId.trim() : "";
+      const sosId = typeof rawBody.sosId === "string" ? rawBody.sosId.trim() : "";
+      const createdAtMs = parseFiniteNumber(rawBody.createdAtMs);
+      const currentAttempt = parseFiniteNumber(rawBody.attempt);
+
+      if (
+        !familyId ||
+        !sosId ||
+        createdAtMs == null ||
+        currentAttempt == null ||
+        !Number.isInteger(currentAttempt) ||
+        currentAttempt <= 0
+      ) {
+        return void res.status(400).send("Missing params");
+      }
+
+      const ageSec = (Date.now() - createdAtMs) / 1000;
+      if (ageSec > REMIND_MAX_SECONDS) {
+        return void res.status(200).send("Expired reminder window");
+      }
+
+      const taskName = String(req.header("X-CloudTasks-TaskName") ?? "").trim();
+      const claim = await claimReminderAttempt({
+        familyId,
+        sosId,
+        attempt: currentAttempt,
+        taskName,
+      });
+
+      if (claim.action !== "process") {
+        if (claim.sosRef && claim.sos) {
+          await ensureNextReminder({
+            familyId,
+            sosId,
+            createdAtMs,
+            currentAttempt,
+            sosRef: claim.sosRef,
+            sos: claim.sos,
+          });
+        }
+        return void res.status(200).send(claim.reason);
+      }
+
+      claimedSosRef = claim.sosRef;
+      const sos = claim.sos ?? {};
+      const loc = sos.location ?? {};
+      const childUid = sos.createdBy ?? "";
+      const createdByName = sos.createdByName ?? "";
+
+      const pushRes = await sendSosPush({
+        familyId,
+        sosId,
+        childUid: String(childUid),
+        lat: loc.lat != null ? Number(loc.lat) : null,
+        lng: loc.lng != null ? Number(loc.lng) : null,
+        createdByName: String(createdByName),
+        attempt: currentAttempt,
+      });
+
+      await claimedSosRef.set(
+        {
+          reminder: {
+            lastAttempt: currentAttempt,
+            lastSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastSuccess: pushRes.success,
+            lastTaskName: taskName || null,
+            workerLeaseAttempt: admin.firestore.FieldValue.delete(),
+            workerLeaseTaskName: admin.firestore.FieldValue.delete(),
+            workerLeaseAt: admin.firestore.FieldValue.delete(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+        },
+        { merge: true }
+      );
+
+      const nextAttempt = currentAttempt + 1;
+      const enqueueRes = await enqueueSosReminder({
+        familyId,
+        sosId,
+        createdAtMs,
+        attempt: nextAttempt,
+      });
+
+      await claimedSosRef.set(
+        {
+          reminder: {
+            nextAttempt:
+              enqueueRes && enqueueRes.enqueued ? nextAttempt : null,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+        },
+        { merge: true }
+      );
+
+      return void res.status(200).send("OK");
+    } catch (e: any) {
+      if (claimedSosRef) {
+        try {
+          await claimedSosRef.set(
+            {
+              reminder: {
+                workerLeaseAttempt: admin.firestore.FieldValue.delete(),
+                workerLeaseTaskName: admin.firestore.FieldValue.delete(),
+                workerLeaseAt: admin.firestore.FieldValue.delete(),
+                lastError: String(e?.message ?? e),
+                lastErrorAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              },
+            },
+            { merge: true }
+          );
+        } catch {}
+      }
+
+      console.error("sosReminderWorker error:", e?.stack ?? e);
+      return void res.status(500).send("ERR");
+    }
+  }
+);
 
 // CREATE SOS
 export const createSos = onCall({ region: REGION }, async (req) => {
@@ -210,40 +467,11 @@ export const createSos = onCall({ region: REGION }, async (req) => {
     return { sosId: eventId, created: true, dayKey, limited: false };
   });
 
-  if (result.created) {
-    const pushRes = await sendSosPush({
-      familyId,
-      sosId: eventId,
-      childUid: uid,
-      lat,
-      lng,
-      createdByName,
-      attempt: 0,
-    });
-
-    await sosRef.update({
-      "fanout.sentAt": admin.firestore.FieldValue.serverTimestamp(),
-      "fanout.attemptedRecipients": pushRes.attemptedRecipients,
-      "fanout.success": pushRes.success,
-      "fanout.invalidTokensRemoved": pushRes.invalidTokensRemoved,
-      "reminder.initialPushSent": true,
-      "reminder.lastAttempt": 0,
-      "reminder.lastSentAt": admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    await enqueueSosReminder({
-      familyId,
-      sosId: eventId,
-      createdAtMs: Date.now(),
-      attempt: 1,
-    });
-  }
-
   return {
     ok: true,
     ...result,
     familyId,
-    debugVersion: "createSos-v2026-03-09-01",
+    debugVersion: "createSos-v2026-03-14-01",
     createdByNameEcho: createdByName,
     createdByNameRawEcho: req.data?.createdByName ?? null,
     keysEcho: Object.keys(req.data ?? {}),
@@ -370,6 +598,16 @@ export const onSosCreated = onDocumentCreated(
         createdAtMs: Date.now(),
         attempt: 1,
       });
+
+      await sosRef.set(
+        {
+          reminder: {
+            nextAttempt: 1,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+        },
+        { merge: true }
+      );
     } catch (err: any) {
       console.error(`[SOS] ERROR familyId=${familyId} sosId=${sosId} claimId=${claimId}`);
       console.error(err?.stack ?? err);

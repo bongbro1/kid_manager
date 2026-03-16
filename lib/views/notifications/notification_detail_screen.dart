@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/core/location/map_focus_bus.dart';
 import 'package:kid_manager/helpers/phone/phone_helps.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
@@ -151,7 +153,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
 
 
   void _handleZoneViewMap(NotificationDetailModel detail) {
-    // TODO: mở bản đồ chính / focus child / focus zone
+    _openZoneOnMainMap(detail);
   }
 
   Future<void> _handleZonePhone(NotificationDetailModel detail) async {
@@ -174,6 +176,34 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       childId: childId,
       childName: childName,
     );
+  }
+
+  void _openZoneOnMainMap(NotificationDetailModel detail) {
+    final childUid = (detail.data['childUid'] ?? '').toString().trim();
+    final lat = _readDouble(detail.data['lat'] ?? detail.data['latitude']);
+    final lng = _readDouble(detail.data['lng'] ?? detail.data['longitude']);
+    final zoneId = (detail.data['zoneId'] ?? '').toString().trim();
+    final zoneName = (detail.data['zoneName'] ?? '').toString().trim();
+
+    if (childUid.isEmpty && (lat == null || lng == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Khong tim thay vi tri de mo ban do'),
+        ),
+      );
+      return;
+    }
+
+    mapFocusNotifier.value = MapFocusRequest(
+      childUid: childUid.isEmpty ? null : childUid,
+      lat: lat,
+      lng: lng,
+      zoneId: zoneId.isEmpty ? null : zoneId,
+      zoneName: zoneName.isEmpty ? null : zoneName,
+      openSheet: false,
+    );
+
+    activeTabNotifier.value = mapTabIndexNotifier.value;
   }
 
 
@@ -322,7 +352,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
 
                         NotificationDetailBody(detail: detail,
                           onZoneViewMap: detail.notificationType == NotificationType.zone
-                              ? () => _handleZoneViewMap(detail)
+                              ? () => _openZoneOnMainMap(detail)
                               : null,
                           onZonePhone: detail.notificationType == NotificationType.zone
                               ? () => _handleZonePhone(detail)
@@ -336,4 +366,10 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
             ),
     );
   }
+}
+
+double? _readDouble(dynamic value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value.trim());
+  return null;
 }
