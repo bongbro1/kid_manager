@@ -68,11 +68,6 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Request missing permissions
   Future<void> requestMissingPermissions() async {
-    if (_permissions['microphone'] == false) {
-      await permissionService.requestMicrophonePermission();
-      await checkPermissions();
-    }
-
     if (_permissions['media'] == false) {
       await permissionService.requestPhotosOrStoragePermission();
       await checkPermissions();

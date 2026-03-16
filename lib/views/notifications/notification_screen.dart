@@ -5,6 +5,7 @@ import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:kid_manager/views/notifications/notification_item_view.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:kid_manager/widgets/notifications/birthday_notification_experience.dart';
 import 'package:kid_manager/widgets/notifications/notification_empty_view.dart';
 import 'package:provider/provider.dart';
 
@@ -86,12 +87,32 @@ class _NotificationScreenState extends State<NotificationScreen>
     context.read<NotificationVM>().setSearch(keyword);
   }
 
+  Future<void> _handleNotificationTap(AppNotification item) async {
+    final vm = context.read<NotificationVM>();
+
+    if (item.notificationType == NotificationType.birthday) {
+      if (!item.isRead) {
+        await vm.markAsRead(item);
+      }
+      if (!mounted) return;
+      await showBirthdayNotificationSheet(context, item: item);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => NotificationDetailScreen(item: item)),
+    );
+  }
+
   bool _isSameDay(DateTime? a, DateTime? b) {
     if (a == null || b == null) return false;
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  List<AppNotification> _buildVisibleNotifications(List<AppNotification> items) {
+  List<AppNotification> _buildVisibleNotifications(
+    List<AppNotification> items,
+  ) {
     return items.where((n) {
       if (n.type == 'family_chat') return false;
 
@@ -122,98 +143,87 @@ class _NotificationScreenState extends State<NotificationScreen>
                 activeFilter: vm.activeFilter,
                 onFilterChanged: _onFilterChanged,
               ),
-              const Divider(
-                height: 2,
-                thickness: 2,
-                color: Color(0xFFF1F5F9),
-              ),
+              const Divider(height: 2, thickness: 2, color: Color(0xFFF1F5F9)),
               Expanded(
                 child: vm.loading
                     ? const Center(child: CircularProgressIndicator())
                     : vm.error != null
                     ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      vm.error!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                )
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            vm.error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      )
                     : RefreshIndicator(
-                  onRefresh: () async {
-                    await vm.refresh();
-                  },
-                  child: notifications.isEmpty
-                      ? const NotificationEmptyView()
-                      : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(
-                      16,
-                      0,
-                      16,
-                      16,
-                    ),
-                    itemCount:
-                    notifications.length + (vm.hasMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index >= notifications.length) {
-                        if (!vm.loadingMore) {
-                          return const SizedBox.shrink();
-                        }
-
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-
-                      final item = notifications[index];
-
-                      final showDateHeader =
-                          index == 0 ||
-                              !_isSameDay(
-                                item.createdAt,
-                                notifications[index - 1].createdAt,
-                              );
-
-                      return Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                        children: [
-                          if (showDateHeader) ...[
-                            const SizedBox(height: 16),
-                            _buildDateHeader(item.createdAt!),
-                            const SizedBox(height: 12),
-                          ],
-                          NotificationItemView(
-                            key: ValueKey(item.id),
-                            item: item,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      NotificationDetailScreen(
-                                        item: item,
-                                      ),
+                        onRefresh: () async {
+                          await vm.refresh();
+                        },
+                        child: notifications.isEmpty
+                            ? const NotificationEmptyView()
+                            : ListView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  16,
                                 ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      );
-                    },
-                  ),
-                ),
+                                itemCount:
+                                    notifications.length + (vm.hasMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index >= notifications.length) {
+                                    if (!vm.loadingMore) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    return const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 24,
+                                      ),
+                                      child: Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  }
+
+                                  final item = notifications[index];
+
+                                  final showDateHeader =
+                                      index == 0 ||
+                                      !_isSameDay(
+                                        item.createdAt,
+                                        notifications[index - 1].createdAt,
+                                      );
+
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (showDateHeader) ...[
+                                        const SizedBox(height: 16),
+                                        _buildDateHeader(item.createdAt!),
+                                        const SizedBox(height: 12),
+                                      ],
+                                      NotificationItemView(
+                                        key: ValueKey(item.id),
+                                        item: item,
+                                        onTap: () async =>
+                                            _handleNotificationTap(item),
+                                      ),
+                                      const SizedBox(height: 12),
+                                    ],
+                                  );
+                                },
+                              ),
+                      ),
               ),
             ],
           ),
@@ -257,7 +267,6 @@ class _NotificationHeader extends StatefulWidget {
   final Function(NotificationFilter) onFilterChanged;
 
   const _NotificationHeader({
-    super.key,
     required this.searchKeyword,
     required this.onSearch,
     required this.activeFilter,
@@ -361,12 +370,13 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         transitionBuilder: (child, animation) {
-          final slide = Tween<Offset>(
-            begin: const Offset(0.0, -0.2),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-          );
+          final slide =
+              Tween<Offset>(
+                begin: const Offset(0.0, -0.2),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              );
 
           return FadeTransition(
             opacity: animation,
@@ -401,9 +411,7 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
             ),
             _CircleIconButton(
               icon: Icons.search,
-              color: widget.searchKeyword.isEmpty
-                  ? Colors.black
-                  : Colors.blue,
+              color: widget.searchKeyword.isEmpty ? Colors.black : Colors.blue,
               onTap: () {
                 setState(() {
                   _isSearching = true;
@@ -528,9 +536,7 @@ class _CircleIconButton extends StatelessWidget {
         child: SizedBox(
           width: 44,
           height: 44,
-          child: Center(
-            child: Icon(icon, size: 24, color: color),
-          ),
+          child: Center(child: Icon(icon, size: 24, color: color)),
         ),
       ),
     );

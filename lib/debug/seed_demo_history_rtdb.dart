@@ -1,6 +1,8 @@
 import 'package:firebase_database/firebase_database.dart';
 
 class SeedDemoHistoryRtdb {
+  static const Duration _trackingTzOffset = Duration(hours: 7);
+
   // ====== CHỈNH DEVICE ID Ở ĐÂY ======
   static const String deviceId = "uzwA0A9JEGXS3Ce4nZYxghP8q2y1";
 
@@ -30,7 +32,8 @@ class SeedDemoHistoryRtdb {
   };
 
   static String _dayKeyFromTs(int ts) {
-    final d = DateTime.fromMillisecondsSinceEpoch(ts);
+    final d = DateTime.fromMillisecondsSinceEpoch(ts, isUtc: true)
+        .add(_trackingTzOffset);
     return "${d.year.toString().padLeft(4, '0')}-"
         "${d.month.toString().padLeft(2, '0')}-"
         "${d.day.toString().padLeft(2, '0')}";

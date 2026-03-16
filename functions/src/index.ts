@@ -7,6 +7,7 @@ setGlobalOptions({ region: REGION });
 // $env:FUNCTIONS_DISCOVERY_TIMEOUT=30
 export * from "./functions/mirror";
 export * from "./functions/family_members";
+export * from "./functions/birthday_notifications";
 export * from "./functions/tokens";
 export * from "./functions/sos";
 export * from "./functions/locations";
@@ -19,7 +20,6 @@ export * from "./functions/subscription_triggers";
 export * from "./functions/detect_offline_child";
 export { sendFamilyMessage } from "./functions/family_chat";
 export { markFamilyChatRead } from "./functions/family_chat_read";
-
 export { reportTrackingStatus } from "./functions/tracking/reportTrackingStatus";
 export { onTrackingStatusWritten } from "./functions/tracking/onTrackingStatusWritten";
 export { checkTrackingHeartbeat } from "./functions/tracking/checkTrackingHeartbeat";

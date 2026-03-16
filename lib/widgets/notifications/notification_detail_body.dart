@@ -24,10 +24,6 @@ class NotificationDetailBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = detail.type.toString().trim().toLowerCase();
 
-    if (type.toUpperCase() == 'ZONE' || type.toLowerCase() == 'zone') {
-      return ZoneDetailWidget(detail: detail);
-    }
-
     if (type == 'zone') {
       return ZoneDetailWidget(
         detail: detail,

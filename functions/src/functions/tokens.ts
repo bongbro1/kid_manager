@@ -1,51 +1,93 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { admin, db } from "../bootstrap";
+import { admin } from "../bootstrap";
 import { REGION } from "../config";
-import { mustString, mustPlatform, sha256Hex } from "../helpers";
-import { getUserFamilyAndRole, requireFamilyMember } from "../services/user";
+import { mustPlatform, mustString } from "../helpers";
+import { getFcmInstallationRef } from "../services/fcmInstallations";
+import { db } from "../bootstrap";
+import { requireFamilyMember } from "../services/user";
 
 export const registerFcmToken = onCall({ region: REGION }, async (req) => {
-if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+  if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
 
   const uid = req.auth.uid;
+  const installationId = mustString(
+    req.data?.installationId,
+    "installationId"
+  ).trim();
   const token = mustString(req.data?.token, "token");
   const platform = mustPlatform(req.data?.platform);
 
-  if (token.length < 20) throw new HttpsError("invalid-argument", "token too short");
+  if (installationId.length < 8) {
+    throw new HttpsError("invalid-argument", "installationId too short");
+  }
+  if (token.length < 20) {
+    throw new HttpsError("invalid-argument", "token too short");
+  }
 
-  const { familyId } = await getUserFamilyAndRole(uid);
-  await requireFamilyMember(familyId, uid);
+  const userSnap = await db.doc(`users/${uid}`).get();
+  if (!userSnap.exists) {
+    throw new HttpsError("failed-precondition", "User profile not found");
+  }
 
-  const tokenHash = sha256Hex(token);
+  const userData = userSnap.data() ?? {};
+  const rawFamilyId =
+    typeof userData.familyId === "string" ? userData.familyId.trim() : "";
+  let familyId: string | null = rawFamilyId || null;
+
+  if (familyId) {
+    const familySnap = await db.doc(`families/${familyId}`).get();
+    if (!familySnap.exists) {
+      console.warn("[registerFcmToken] skip family binding because family is missing", {
+        uid,
+        familyId,
+      });
+      familyId = null;
+    } else {
+      await requireFamilyMember(familyId, uid);
+    }
+  }
+
   const now = admin.firestore.FieldValue.serverTimestamp();
+  await getFcmInstallationRef(installationId).set({
+    installationId,
+    token,
+    uid,
+    familyId,
+    platform,
+    updatedAt: now,
+    lastSeenAt: now,
+  });
 
-  const userTokenRef = db.doc(`users/${uid}/fcmTokens/${tokenHash}`);
-  const familyTokenRef = db.doc(`families/${familyId}/fcmTokens/${tokenHash}`);
-
-  const batch = db.batch();
-  batch.set(userTokenRef, { token, platform, familyId, updatedAt: now }, { merge: true });
-  batch.set(familyTokenRef, { token, platform, uid, updatedAt: now }, { merge: true });
-  await batch.commit();
-
-  return { ok: true, tokenHash, familyId };
+  return { ok: true, installationId, familyId };
 });
 
 export const unregisterFcmToken = onCall({ region: REGION }, async (req) => {
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
 
   const uid = req.auth.uid;
-  const token = mustString(req.data?.token, "token");
-  const tokenHash = sha256Hex(token);
+  const installationId = mustString(
+    req.data?.installationId,
+    "installationId"
+  ).trim();
 
-  const { familyId } = await getUserFamilyAndRole(uid);
+  if (installationId.length < 8) {
+    throw new HttpsError("invalid-argument", "installationId too short");
+  }
 
-  const userTokenRef = db.doc(`users/${uid}/fcmTokens/${tokenHash}`);
-  const familyTokenRef = db.doc(`families/${familyId}/fcmTokens/${tokenHash}`);
+  const installationRef = getFcmInstallationRef(installationId);
+  const installationSnap = await installationRef.get();
 
-  const batch = db.batch();
-  batch.delete(userTokenRef);
-  batch.delete(familyTokenRef);
-  await batch.commit();
+  if (installationSnap.exists) {
+    const ownerUid = installationSnap.get("uid");
+    if (typeof ownerUid === "string" && ownerUid.trim() && ownerUid !== uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "installation does not belong to current user"
+      );
+    }
+  }
 
-  return { ok: true };
+  await installationRef.delete();
+
+  return { ok: true, installationId, deletedCount: installationSnap.exists ? 1 : 0 };
 });

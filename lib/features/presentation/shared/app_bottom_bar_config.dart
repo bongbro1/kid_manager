@@ -14,6 +14,7 @@ class BottomTabConfig {
   final Widget root;
   final bool showBadge;
   final bool isNotificationTab;
+  final bool isMapTab;
 
   final Stream<int> Function(BuildContext context)? badgeCountStreamBuilder;
   const BottomTabConfig({
@@ -22,6 +23,7 @@ class BottomTabConfig {
     this.badgeCountStreamBuilder,
     this.showBadge = false,
     this.isNotificationTab = false,
+    this.isMapTab = false,
   });
 
 

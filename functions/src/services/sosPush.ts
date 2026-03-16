@@ -1,5 +1,10 @@
-import { admin, db } from "../bootstrap";
+﻿import { admin } from "../bootstrap";
 import { chunk, isInvalidTokenErrorCode } from "../helpers";
+import {
+  deleteInstallationsByIds,
+  groupInstallationsByToken,
+  listInstallationsByFamilyId,
+} from "./fcmInstallations";
 
 export async function sendSosPush(params: {
   familyId: string;
@@ -20,33 +25,20 @@ export async function sendSosPush(params: {
     attempt = 0,
   } = params;
 
-  const tokenSnap = await db.collection(`families/${familyId}/fcmTokens`).get();
+  const tokenGroups = groupInstallationsByToken(
+    (await listInstallationsByFamilyId(familyId)).filter(
+      (installation) => installation.uid !== childUid
+    )
+  ).map((group) => ({
+    token: group.token,
+    records: group.records.map((installation) => ({
+      installationId: installation.installationId,
+      uid: installation.uid,
+      platform: installation.platform ?? undefined,
+    })),
+  }));
 
-  const tokens: Array<{
-    token: string;
-    tokenHash: string;
-    uid: string;
-    platform?: string;
-  }> = [];
-
-  tokenSnap.forEach((doc) => {
-    const data = doc.data() as any;
-    const token: string | undefined = data.token;
-    const uid: string | undefined = data.uid;
-    if (!token || !uid) return;
-
-    // Không gửi lại cho chính người tạo SOS
-    if (uid === childUid) return;
-
-    tokens.push({
-      token,
-      tokenHash: doc.id,
-      uid,
-      platform: data.platform,
-    });
-  });
-
-  if (!tokens.length) {
+  if (!tokenGroups.length) {
     return {
       attemptedRecipients: 0,
       success: 0,
@@ -55,12 +47,12 @@ export async function sendSosPush(params: {
   }
 
   const title =
-    attempt > 0 ? "🚨 NHẮC LẠI SOS KHẨN CẤP" : "🚨 SOS KHẨN CẤP";
+    attempt > 0 ? "ðŸš¨ NHáº®C Láº I SOS KHáº¨N Cáº¤P" : "ðŸš¨ SOS KHáº¨N Cáº¤P";
 
   const body =
     attempt > 0
-      ? `${createdByName || "Một thành viên"} vẫn chưa được xác nhận an toàn. Chạm để xem vị trí.`
-      : `${createdByName || "Một thành viên"} đang cầu cứu. Chạm để xem vị trí.`;
+      ? `${createdByName || "Má»™t thÃ nh viÃªn"} váº«n chÆ°a Ä‘Æ°á»£c xÃ¡c nháº­n an toÃ n. Cháº¡m Ä‘á»ƒ xem vá»‹ trÃ­.`
+      : `${createdByName || "Má»™t thÃ nh viÃªn"} Ä‘ang cáº§u cá»©u. Cháº¡m Ä‘á»ƒ xem vá»‹ trÃ­.`;
 
   const baseMessage: Omit<admin.messaging.MulticastMessage, "tokens"> = {
     notification: {
@@ -101,7 +93,7 @@ export async function sendSosPush(params: {
     },
   };
 
-  const tokenChunks = chunk(tokens, 500);
+  const tokenChunks = chunk(tokenGroups, 500);
   let success = 0;
   let invalidRemoved = 0;
   let totalAttempt = 0;
@@ -116,8 +108,7 @@ export async function sendSosPush(params: {
 
     success += resp.successCount;
 
-    const batch = db.batch();
-    let hasDeletes = false;
+    const invalidInstallationIds: string[] = [];
 
     resp.responses.forEach((r, i) => {
       if (r.success) return;
@@ -125,16 +116,15 @@ export async function sendSosPush(params: {
       const code: string | undefined = (r.error as any)?.code;
       if (isInvalidTokenErrorCode(code)) {
         const meta = c[i];
-        invalidRemoved++;
-        batch.delete(db.doc(`families/${familyId}/fcmTokens/${meta.tokenHash}`));
-        batch.delete(db.doc(`users/${meta.uid}/fcmTokens/${meta.tokenHash}`));
-        hasDeletes = true;
+        if (!meta) return;
+        invalidRemoved += meta.records.length;
+        invalidInstallationIds.push(
+          ...meta.records.map((record) => record.installationId)
+        );
       }
     });
 
-    if (hasDeletes) {
-      await batch.commit();
-    }
+    await deleteInstallationsByIds(invalidInstallationIds);
   }
 
   return {

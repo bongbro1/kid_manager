@@ -1,19 +1,17 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:kid_manager/features/map_engine/map_engine.dart';
 import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
-import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/views/parent/zones/child_zones_screen.dart';
+import 'package:provider/provider.dart';
+
+import 'package:kid_manager/features/map_engine/map_engine.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
-import 'package:kid_manager/views/parent/zones/child_zones_screen.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
-import 'package:provider/provider.dart';
 
 class ChildDetailMapScreen extends StatefulWidget {
   final String childId;
-
   const ChildDetailMapScreen({super.key, required this.childId});
 
   @override
@@ -22,6 +20,8 @@ class ChildDetailMapScreen extends StatefulWidget {
 
 class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
     with SingleTickerProviderStateMixin {
+  static const Duration _trackingTzOffset = Duration(hours: 7);
+
   MapEngine? _engine;
   StreamSubscription<LocationData>? _sub;
 
@@ -34,15 +34,17 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   DateTime _lastMapMatchAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   late DateTime _selectedDay;
- // ✅ toggle dots (mặc định ẩn)
+  int _rangeStartMinute = 0;
+  int _rangeEndMinute = (24 * 60) - 1;
+  DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+  bool get _isToday => _dayOnly(_selectedDay) == _dayOnly(DateTime.now());
+  bool get _isFullDayRange =>
+      _rangeStartMinute == 0 && _rangeEndMinute == (24 * 60) - 1;
+
   bool _showDots = false;
   bool _historyLoaded = false;
 
-  DateTime _dayOnly(DateTime date) => DateTime(date.year, date.month, date.day);
-
-  bool get _isToday => _dayOnly(_selectedDay) == _dayOnly(DateTime.now());
-
-  // ── animation controller cho bottom card ──────────────────────────────────
+  // -- animation controller cho bottom card ----------------------------------
   late final AnimationController _cardAnim;
   late final Animation<Offset> _cardSlide;
   late final Animation<double> _cardFade;
@@ -78,7 +80,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
     super.dispose();
   }
 
-  // ── helpers ───────────────────────────────────────────────────────────────
+  // -- helpers ---------------------------------------------------------------
   Widget _buildSelectedPointCard(LocationData point) {
     final baseColor = _transportColor(point.transport);
     final icon = _transportIcon(point.transport);
@@ -197,13 +199,13 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               children: [
                 if (isStart)
                   _tagChip(
-                    'Bắt đầu',
+                    'B?t d?u',
                     const Color(0xFFDDF5E3),
                     const Color(0xFF188038),
                   ),
                 if (isEnd)
                   _tagChip(
-                    'Kết thúc',
+                    'K?t thúc',
                     const Color(0xFFFDE2E1),
                     const Color(0xFFC5221F),
                   ),
@@ -214,19 +216,19 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                 ),
                 if (gpsVeryBad)
                   _tagChip(
-                    'GPS rất yếu',
+                    'GPS r?t y?u',
                     const Color(0xFFFCE8E6),
                     const Color(0xFFC5221F),
                   )
                 else if (gpsLost)
                   _tagChip(
-                    'Mất GPS',
+                    'M?t GPS',
                     const Color(0xFFFCE8E6),
                     const Color(0xFFC5221F),
                   )
                 else
                   _tagChip(
-                    _transportLabel(AppLocalizations.of(context), point.transport),
+                    _transportLabel(point.transport),
                     displayColor.withOpacity(0.12),
                     displayColor,
                   ),
@@ -239,17 +241,17 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               children: [
                 Expanded(
                   child: _infoTile(
-                    label: 'Ở đây được',
+                    label: '? dây du?c',
                     value: gpsLost
-                        ? 'Không xác định ổn định'
+                        ? 'Không xác d?nh ?n d?nh'
                         : _formatDuration(stopDuration),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _infoTile(
-                    label: 'Tốc độ',
-                    value: gpsLost ? 'Không ổn định' : _speedLabel(point),
+                    label: 'T?c d?',
+                    value: gpsLost ? 'Không ?n d?nh' : _speedLabel(point),
                   ),
                 ),
               ],
@@ -261,15 +263,15 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               children: [
                 Expanded(
                   child: _infoTile(
-                    label: 'Sai số GPS',
+                    label: 'Sai s? GPS',
                     value: _accuracyLabel(point),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _infoTile(
-                    label: 'GPS giả lập',
-                    value: point.isMock ? 'Có dấu hiệu' : 'Không',
+                    label: 'GPS gi? l?p',
+                    value: point.isMock ? 'Có d?u hi?u' : 'Không',
                   ),
                 ),
               ],
@@ -283,7 +285,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               dense: true,
               visualDensity: VisualDensity.compact,
               title: Text(
-                'Xem chi tiết kỹ thuật',
+                'Xem chi ti?t k? thu?t',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -291,14 +293,14 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                 ),
               ),
               children: [
-                _detailRow('Thời gian đầy đủ', point.fullLabel),
-                _detailRow('Hướng di chuyển', '${point.heading.toStringAsFixed(0)}°'),
+                _detailRow('Th?i gian d?y d?', point.fullLabel),
+                _detailRow('Hu?ng di chuy?n', '${point.heading.toStringAsFixed(0)}°'),
                 _detailRow(
-                  'Tọa độ',
+                  'T?a d?',
                   '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
                 ),
                 _detailRow(
-                  'Độ chính xác',
+                  'Ð? chính xác',
                   '${point.accuracy.toStringAsFixed(0)} m',
                 ),
               ],
@@ -358,6 +360,45 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
       ),
     );
   }
+
+  String get _rangeLabel => _isFullDayRange
+      ? 'Ca ngay'
+      : '${_minuteLabel(_rangeStartMinute)} - ${_minuteLabel(_rangeEndMinute)}';
+
+  DateTime _trackingDateTimeForMinute(DateTime day, int minuteOfDay) {
+    final dayStartUtc = DateTime.utc(day.year, day.month, day.day)
+        .subtract(_trackingTzOffset);
+    return dayStartUtc.add(Duration(minutes: minuteOfDay));
+  }
+
+  int _fromTsForDay(DateTime day) =>
+      _trackingDateTimeForMinute(day, _rangeStartMinute)
+          .millisecondsSinceEpoch;
+
+  int _toTsForDay(DateTime day) =>
+      _trackingDateTimeForMinute(day, _rangeEndMinute)
+          .add(const Duration(seconds: 59, milliseconds: 999))
+          .millisecondsSinceEpoch;
+
+  int get _selectedFromTs => _fromTsForDay(_selectedDay);
+
+  int get _selectedToTs => _toTsForDay(_selectedDay);
+
+  bool get _rangeIncludesNow {
+    if (!_isToday) return false;
+    final nowTs = DateTime.now().millisecondsSinceEpoch;
+    return nowTs >= _selectedFromTs && nowTs <= _selectedToTs;
+  }
+
+  bool _isTsInSelectedRange(int timestamp) =>
+      timestamp >= _selectedFromTs && timestamp <= _selectedToTs;
+
+  String _minuteLabel(int minuteOfDay) {
+    final hour = minuteOfDay ~/ 60;
+    final minute = minuteOfDay % 60;
+    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  }
+
   Duration _computeStopDuration(LocationData point) {
     if (_cachedHistory.isEmpty) return Duration.zero;
 
@@ -408,7 +449,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
     final seconds = d.inSeconds % 60;
 
     if (hours > 0) {
-      return '${hours} giờ ${minutes} phút';
+      return '${hours} gi? ${minutes} phút';
     }
     if (minutes > 0) {
       return '${minutes} phút';
@@ -485,35 +526,35 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
 
     if (gpsVeryBad) {
       return (
-      'Mất GPS định vị',
-      'Tín hiệu GPS rất yếu, vị trí có thể không chính xác',
+      'M?t GPS d?nh v?',
+      'Tín hi?u GPS r?t y?u, v? trí có th? không chính xác',
       );
     }
 
     if (gpsLost) {
       return (
-      'Mất GPS định vị',
-      'Sai số lớn hơn ${point.accuracy.toStringAsFixed(0)} m',
+      'M?t GPS d?nh v?',
+      'Sai s? l?n hon ${point.accuracy.toStringAsFixed(0)} m',
       );
     }
 
     if (isStoppedLongEnough) {
       if (isEnd && _isToday) {
         return (
-        'Đang đứng yên',
-        'Dừng tại đây ${_formatDuration(stopDuration)}',
+        'Ðang d?ng yên',
+        'D?ng t?i dây ${_formatDuration(stopDuration)}',
         );
       }
       return (
-      'Đứng yên tại đây',
-      'Dừng khoảng ${_formatDuration(stopDuration)}',
+      'Ð?ng yên t?i dây',
+      'D?ng kho?ng ${_formatDuration(stopDuration)}',
       );
     }
 
     if (isStart) {
       return (
       _transportHeadline(point.transport),
-      'Điểm bắt đầu hành trình',
+      'Ði?m b?t d?u hành trình',
       );
     }
 
@@ -521,45 +562,45 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
       return (
       _transportHeadline(point.transport),
       _isToday
-          ? 'Cập nhật lúc ${point.timeLabel}'
-          : 'Điểm kết thúc hành trình',
+          ? 'C?p nh?t lúc ${point.timeLabel}'
+          : 'Ði?m k?t thúc hành trình',
       );
     }
 
     return (
     _transportHeadline(point.transport),
-    'Đi qua điểm này lúc ${point.timeLabel}',
+    'Ði qua di?m này lúc ${point.timeLabel}',
     );
   }
 
   String _transportHeadline(TransportMode t) {
     switch (t) {
       case TransportMode.walking:
-        return 'Đang đi bộ';
+        return 'Ðang di b?';
       case TransportMode.bicycle:
-        return 'Đang đi xe đạp';
+        return 'Ðang di xe d?p';
       case TransportMode.vehicle:
-        return 'Đang đi xe';
+        return 'Ðang di xe';
       case TransportMode.still:
-        return 'Đang đứng yên';
+        return 'Ðang d?ng yên';
       default:
-        return 'Không rõ trạng thái';
+        return 'Không rõ tr?ng thái';
     }
   }
 
   String _speedLabel(LocationData point) {
     final kmh = point.speedKmh;
-    if (kmh <= 1) return 'Gần như không di chuyển';
+    if (kmh <= 1) return 'G?n nhu không di chuy?n';
     return '${kmh.toStringAsFixed(1)} km/h';
   }
 
   String _accuracyLabel(LocationData point) {
     final acc = point.accuracy.toStringAsFixed(0);
 
-    if (point.accuracy > 80) return 'Mất GPS nghiêm trọng';
-    if (point.accuracy > 30) return 'Mất GPS định vị';
+    if (point.accuracy > 80) return 'M?t GPS nghiêm tr?ng';
+    if (point.accuracy > 30) return 'M?t GPS d?nh v?';
     if (point.accuracy <= 15) return 'Khá chính xác (${acc} m)';
-    return 'Chính xác vừa (${acc} m)';
+    return 'Chính xác v?a (${acc} m)';
   }
   Color _transportColor(TransportMode t) {
     switch (t) {
@@ -576,31 +617,28 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
     }
   }
 
-  String _transportLabel(AppLocalizations l10n, TransportMode mode) {
-    switch (mode) {
+  String _transportLabel(TransportMode t) {
+    switch (t) {
       case TransportMode.walking:
-        return l10n.childLocationTransportWalking;
+        return "Ði b?";
       case TransportMode.bicycle:
-        return l10n.childLocationTransportBicycle;
+        return "Xe d?p";
       case TransportMode.vehicle:
-        return l10n.childLocationTransportVehicle;
+        return "Ðang di xe";
       case TransportMode.still:
-        return l10n.childLocationTransportStill;
+        return "Ð?ng yên";
       default:
-        return l10n.childLocationTransportUnknown;
+        return "Không rõ";
     }
   }
 
-  String _formatDay(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
-  }
+  String _fmtDay(DateTime d) =>
+      "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}";
 
   String _fmtTime(DateTime d) =>
       "${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}";
 
-  // ── core logic (unchanged) ────────────────────────────────────────────────
+  // -- core logic (unchanged) ------------------------------------------------
 
   void _startAnimTick() {
     _animTick ??= Timer.periodic(const Duration(milliseconds: 16), (_) async {
@@ -613,6 +651,9 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   }
 
   void _appendRealtime(LocationData loc) {
+    if (!_isTsInSelectedRange(loc.timestamp)) {
+      return;
+    }
     if (_cachedHistory.isEmpty ||
         _cachedHistory.last.timestamp != loc.timestamp) {
       _cachedHistory = [..._cachedHistory, loc];
@@ -627,8 +668,12 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   Future<void> _preloadToday() async {
     final vm = context.read<ParentLocationVm>();
     final today = _dayOnly(DateTime.now());
-    final history = await vm.loadLocationHistoryByDay(widget.childId, today);
-
+    final history = await vm.loadLocationHistoryByDay(
+      widget.childId,
+      today,
+      fromTs: _fromTsForDay(today),
+      toTs: _toTsForDay(today),
+    );
     if (!mounted) return;
     setState(() {
       _selectedDay = today;
@@ -644,33 +689,51 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   Future<void> _renderOnMap() async {
     final engine = _engine;
     if (!mounted || engine == null) return;
+    engine.resetForNewHistory();
     if (_cachedHistory.isEmpty) {
       await engine.setHistoryDotsVisible(_showDots);
+      if (_isToday && _rangeIncludesNow) {
+        await _startRealtime();
+      } else {
+        await _sub?.cancel();
+        _sub = null;
+      }
       return;
     }
-    engine.resetForNewHistory();
     await engine.loadHistory(_cachedHistory, context);
     await engine.setHistoryDotsVisible(_showDots);
     _lastMapMatchAt = DateTime.now();
-    if (_isToday) await _startRealtime();
+    if (_isToday && _rangeIncludesNow) {
+      await _startRealtime();
+    } else {
+      await _sub?.cancel();
+      _sub = null;
+    }
   }
 
   Future<void> _loadForDay(DateTime day) async {
     if (!mounted) return;
-
     final vm = context.read<ParentLocationVm>();
     final dayOnly = _dayOnly(day);
+    setState(() {
+      _historyLoaded = false;
+    });
     if (dayOnly != _dayOnly(DateTime.now())) {
       await _sub?.cancel();
       _sub = null;
     }
-    final history =
-    await vm.loadLocationHistoryByDay(widget.childId, dayOnly);
+    final history = await vm.loadLocationHistoryByDay(
+      widget.childId,
+      dayOnly,
+      fromTs: _fromTsForDay(dayOnly),
+      toTs: _toTsForDay(dayOnly),
+    );
     if (!mounted) return;
     setState(() {
       _selectedDay = dayOnly;
       _cachedHistory = history;
       _selectedPoint = null;
+      _historyLoaded = true;
       if (_cachedHistory.isNotEmpty) {
         _latest = _cachedHistory.last;
       } else {
@@ -685,6 +748,11 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
     await _sub?.cancel();
     _sub = vm.watchChildLocation(widget.childId).listen((loc) async {
       if (!mounted || !_isToday) return;
+      if (!_isTsInSelectedRange(loc.timestamp)) {
+        await _sub?.cancel();
+        _sub = null;
+        return;
+      }
       _latest = loc;
       _appendRealtime(loc);
       _mover.push(loc);
@@ -700,11 +768,204 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
         _lastMapMatchAt = now;
         await _engine!.updateMatchedRouteIncremental(_cachedHistory, context);
       }
-
-      if (mounted) {
-        setState(() {});
-      }
+      if (mounted) setState(() {});
     });
+  }
+
+  Future<void> _applyTimeWindow(int startMinute, int endMinute) async {
+    final normalizedStart = startMinute.clamp(0, (24 * 60) - 1).toInt();
+    final normalizedEnd = endMinute.clamp(normalizedStart, (24 * 60) - 1).toInt();
+
+    setState(() {
+      _rangeStartMinute = normalizedStart;
+      _rangeEndMinute = normalizedEnd;
+      _historyLoaded = false;
+      _selectedPoint = null;
+    });
+
+    await _loadForDay(_selectedDay);
+    if (!mounted) return;
+    setState(() {
+      _historyLoaded = true;
+    });
+  }
+
+  Future<void> _pickTimeWindow() async {
+    final selection = await showModalBottomSheet<_TimeWindowSelection>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (context) {
+        var draftStart = _rangeStartMinute.toDouble();
+        var draftEnd = _rangeEndMinute.toDouble();
+
+        void applyPreset(StateSetter setSheetState, int start, int end) {
+          setSheetState(() {
+            draftStart = start.toDouble();
+            draftEnd = end.toDouble();
+          });
+        }
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final startLabel = _minuteLabel(draftStart.round());
+            final endLabel = _minuteLabel(draftEnd.round());
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Chon khung gio',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Chi tai va hien thi lich su trong khoang gio dang chon.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.35,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _RangePresetChip(
+                          label: 'Ca ngay',
+                          selected: draftStart.round() == 0 &&
+                              draftEnd.round() == (24 * 60) - 1,
+                          onTap: () => applyPreset(
+                            setSheetState,
+                            0,
+                            (24 * 60) - 1,
+                          ),
+                        ),
+                        _RangePresetChip(
+                          label: 'Sang',
+                          selected: draftStart.round() == 6 * 60 &&
+                              draftEnd.round() == (11 * 60) + 59,
+                          onTap: () => applyPreset(
+                            setSheetState,
+                            6 * 60,
+                            (11 * 60) + 59,
+                          ),
+                        ),
+                        _RangePresetChip(
+                          label: 'Chieu',
+                          selected: draftStart.round() == 12 * 60 &&
+                              draftEnd.round() == (17 * 60) + 59,
+                          onTap: () => applyPreset(
+                            setSheetState,
+                            12 * 60,
+                            (17 * 60) + 59,
+                          ),
+                        ),
+                        _RangePresetChip(
+                          label: 'Toi',
+                          selected: draftStart.round() == 18 * 60 &&
+                              draftEnd.round() == (23 * 60) + 59,
+                          onTap: () => applyPreset(
+                            setSheetState,
+                            18 * 60,
+                            (23 * 60) + 59,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F9FA),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE8EAED)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _SummaryChip(
+                              label: 'Bat dau',
+                              value: startLabel,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _SummaryChip(
+                              label: 'Ket thuc',
+                              value: endLabel,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    RangeSlider(
+                      values: RangeValues(draftStart, draftEnd),
+                      min: 0,
+                      max: ((24 * 60) - 1).toDouble(),
+                      divisions: (24 * 4) - 1,
+                      labels: RangeLabels(startLabel, endLabel),
+                      onChanged: (values) {
+                        setSheetState(() {
+                          draftStart = values.start.roundToDouble();
+                          draftEnd = values.end.roundToDouble();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                            ),
+                            child: const Text('Huy'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(
+                              _TimeWindowSelection(
+                                startMinute: draftStart.round(),
+                                endMinute: draftEnd.round(),
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                            ),
+                            child: const Text('Ap dung'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (selection == null) return;
+    await _applyTimeWindow(selection.startMinute, selection.endMinute);
   }
 
   Future<void> _pickDay() async {
@@ -724,32 +985,22 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
       ),
     );
     if (picked == null) return;
-
     await _loadForDay(picked);
   }
 
-  // ── UI ────────────────────────────────────────────────────────────────────
+  // -- UI --------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
     final latest = _latest;
-
-    final title = _isToday
-        ? (latest == null
-              ? l10n.childLocationDetailTitle
-              : l10n.childLocationStatusTitle(
-                  _transportLabel(l10n, latest.transport),
-                ))
-        : l10n.childLocationHistoryTitle(_formatDay(_selectedDay));
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: _buildAppBar(cs),
       body: Stack(
         children: [
-          // ── Map fullscreen ──────────────────────────────────────────────
+          // -- Map fullscreen ----------------------------------------------
           AppMapView(
             onMapCreated: (_) {},
             onTapListener: (gesture) {
@@ -773,6 +1024,13 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               await _renderOnMap();
             },
           ),
+          if (_selectedPoint == null && _historyLoaded && _cachedHistory.isEmpty)
+            Positioned(
+              left: 12,
+              right: 68,
+              top: kToolbarHeight + MediaQuery.of(context).padding.top + 12,
+              child: _buildEmptyStateCard(),
+            ),
           if (_selectedPoint != null)
             Positioned(
               left: 12,
@@ -780,14 +1038,14 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               bottom: latest != null ? 108 : 16,
               child: _buildSelectedPointCard(_selectedPoint!),
             ),
-          // ── Floating action row (dots + zones) ──────────────────────────
+          // -- Floating action row (dots + zones) --------------------------
           Positioned(
             top: kToolbarHeight + MediaQuery.of(context).padding.top + 12,
             right: 12,
             child: _buildFabColumn(cs),
           ),
 
-          // ── Bottom status card ──────────────────────────────────────────
+          // -- Bottom status card ------------------------------------------
           if (latest != null)
             Positioned(
               left: 0,
@@ -802,7 +1060,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               ),
             ),
 
-          // ── Loading shimmer ─────────────────────────────────────────────
+          // -- Loading shimmer ---------------------------------------------
           if (!_historyLoaded)
             Positioned.fill(
               child: Container(
@@ -839,7 +1097,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _isToday ? "Vị trí hiện tại" : "Lịch sử",
+            _isToday ? 'Hanh trinh hien tai' : 'Lich su di chuyen',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -847,7 +1105,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
             ),
           ),
           Text(
-            _isToday ? "Hôm nay" : _formatDay(_selectedDay),
+            '${_fmtDay(_selectedDay)} - $_rangeLabel',
             style: TextStyle(
               fontSize: 12,
               color: Colors.white.withOpacity(0.75),
@@ -857,11 +1115,16 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
         ],
       ),
       actions: [
-        // Chọn ngày
         _AppBarChip(
           icon: Icons.calendar_today_rounded,
-          label: _isToday ? "Hôm nay" : _formatDay(_selectedDay),
+          label: _isToday ? 'Hom nay' : _fmtDay(_selectedDay),
           onTap: _pickDay,
+        ),
+        const SizedBox(width: 8),
+        _AppBarChip(
+          icon: Icons.schedule_rounded,
+          label: _rangeLabel,
+          onTap: _pickTimeWindow,
         ),
         const SizedBox(width: 8),
       ],
@@ -874,7 +1137,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
       children: [
         // Toggle dots
         _MapFab(
-          tooltip: _showDots ? "Ẩn điểm dừng" : "Hiện điểm dừng",
+          tooltip: _showDots ? "?n di?m d?ng" : "Hi?n di?m d?ng",
           icon: _showDots
               ? Icons.scatter_plot_rounded
               : Icons.scatter_plot_outlined,
@@ -883,7 +1146,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
         ),
         // Vùng an toàn
         _MapFab(
-          tooltip: "Quản lý vùng",
+          tooltip: "Qu?n lý vùng",
           icon: Icons.shield_outlined,
           active: false,
           onTap: () => Navigator.push(
@@ -897,11 +1160,62 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
     );
   }
 
+  Widget _buildEmptyStateCard() {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.96),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Chua co du lieu trong khung nay',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Thu doi khung gio khac hoac chon ngay khac de xem lai hanh trinh.',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.3,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _SummaryChip(label: 'Ngay', value: _fmtDay(_selectedDay)),
+                _SummaryChip(label: 'Khung gio', value: _rangeLabel),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomCard(LocationData latest, ColorScheme cs) {
     final color = _transportColor(latest.transport);
     final icon = _transportIcon(latest.transport);
-    final label = _transportLabel(AppLocalizations.of(context), latest.transport);
-    final time = _fmtTime(latest.dateOnly);
+    final label = _transportLabel(latest.transport);
+    final time = _fmtTime(latest.dateTime);
     final pointCount = _cachedHistory.length;
 
     return Container(
@@ -953,7 +1267,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        _isToday ? "Trực tiếp" : "Lịch sử",
+                        _isToday ? "Tr?c ti?p" : "L?ch s?",
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -1000,7 +1314,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "$pointCount điểm",
+                  "$pointCount di?m",
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade500,
@@ -1015,7 +1329,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   }
 }
 
-// ── Small reusable widgets ────────────────────────────────────────────────────
+// -- Small reusable widgets ----------------------------------------------------
 
 class _AppBarChip extends StatelessWidget {
   final IconData icon;
@@ -1100,6 +1414,100 @@ class _MapFab extends StatelessWidget {
             color: active ? Colors.white : Colors.black87,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _TimeWindowSelection {
+  final int startMinute;
+  final int endMinute;
+
+  const _TimeWindowSelection({
+    required this.startMinute,
+    required this.endMinute,
+  });
+}
+
+class _RangePresetChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RangePresetChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? primary.withOpacity(0.14) : const Color(0xFFF1F3F4),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected ? primary : const Color(0xFFE0E3E7),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: selected ? primary : Colors.black87,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _SummaryChip({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE8EAED)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+            ),
+          ),
+        ],
       ),
     );
   }

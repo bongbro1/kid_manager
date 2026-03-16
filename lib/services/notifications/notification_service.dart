@@ -242,12 +242,17 @@ class NotificationService {
       return;
     }
 
+    if (type == 'sos') {
+      debugPrint('[sos] skip duplicate local notification in NotificationService');
+      return;
+    }
+
     if (type == 'zone') {
       await _showZoneNotification(message);
       return;
     }
 
-    if (type == 'tracking') {
+    if (type == 'tracking' || type == 'tracking_status') {
       final currentUid = FirebaseAuth.instance.currentUser?.uid;
       final toUid = data['toUid']?.toString();
 

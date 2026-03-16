@@ -28,6 +28,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   bool _ringing = false;
   bool _resolving = false;
   String? _ignoredSosId;
+  int _permissionRetryCount = 0;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       _sub = q.snapshots().listen(
             (qs) {
           if (!mounted) return;
+          _permissionRetryCount = 0;
 
           if (qs.docs.isEmpty) {
             _clearOverlayAndStopAlarm();
@@ -95,6 +97,10 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
           if (error is FirebaseException) {
             debugPrint('FirebaseException code=${error.code}');
             debugPrint('message=${error.message}');
+
+            if (error.code == 'permission-denied') {
+              _schedulePermissionRetry();
+            }
           }
 
           _clearOverlayAndStopAlarm();
@@ -105,6 +111,17 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       debugPrint('IncomingSosOverlay subscribe() threw: $e');
       debugPrint('stack: $st');
     }
+  }
+
+  void _schedulePermissionRetry() {
+    if (_permissionRetryCount >= 3) return;
+    _permissionRetryCount += 1;
+    final delay = Duration(milliseconds: 700 * _permissionRetryCount);
+
+    Future.delayed(delay, () {
+      if (!mounted) return;
+      _subscribe();
+    });
   }
 
   void _clearOverlayAndStopAlarm() {
@@ -200,6 +217,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       _ringing = false;
       _resolving = false;
       _ignoredSosId = null;
+      _permissionRetryCount = 0;
       _subscribe();
     }
   }

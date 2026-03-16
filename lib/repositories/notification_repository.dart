@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
@@ -6,18 +9,59 @@ import 'package:kid_manager/models/notifications/notification_source.dart';
 
 class NotificationRepository {
   final FirebaseFirestore _fs;
+  final FirebaseFunctions _functions;
   NotificationRepository({FirebaseFirestore? fs})
-    : _fs = fs ?? FirebaseFirestore.instance;
+    : _fs = fs ?? FirebaseFirestore.instance,
+      _functions = FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
   final int _maxCountInPage = 20;
+  static const int _maxBatchDeleteSize = 450;
 
   Stream<int> watchUnreadCount(String uid) {
-    return _fs
+    final globalStream = _fs
         .collection('notifications')
         .where('receiverId', isEqualTo: uid)
         .where('isRead', isEqualTo: false)
         .snapshots()
         .map((snap) => snap.size);
+
+    final inboxStream = _fs
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .map((snap) => snap.size);
+
+    return Stream<int>.multi((controller) {
+      var globalUnread = 0;
+      var inboxUnread = 0;
+
+      void emit() {
+        controller.add(globalUnread + inboxUnread);
+      }
+
+      final globalSub = globalStream.listen(
+        (value) {
+          globalUnread = value;
+          emit();
+        },
+        onError: controller.addError,
+      );
+
+      final inboxSub = inboxStream.listen(
+        (value) {
+          inboxUnread = value;
+          emit();
+        },
+        onError: controller.addError,
+      );
+
+      controller.onCancel = () async {
+        await globalSub.cancel();
+        await inboxSub.cancel();
+      };
+    });
   }
 
   Stream<List<AppNotification>> streamUserInbox(String uid) {
@@ -45,7 +89,7 @@ class NotificationRepository {
     required String uid,
     required String familyId,
   }) async {
-    final snap = await FirebaseFirestore.instance
+    final snap = await _fs
         .collection('users')
         .doc(uid)
         .collection('notifications')
@@ -55,11 +99,18 @@ class NotificationRepository {
 
     if (snap.docs.isEmpty) return;
 
-    final batch = FirebaseFirestore.instance.batch();
-    for (final doc in snap.docs) {
-      batch.delete(doc.reference);
+    for (var i = 0; i < snap.docs.length; i += _maxBatchDeleteSize) {
+      final batch = _fs.batch();
+      final end = (i + _maxBatchDeleteSize < snap.docs.length)
+          ? i + _maxBatchDeleteSize
+          : snap.docs.length;
+
+      for (final doc in snap.docs.sublist(i, end)) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
     }
-    await batch.commit();
   }
 
   // new query
@@ -289,14 +340,7 @@ class NotificationRepository {
     required String familyId,
     required String uid,
   }) async {
-    await FirebaseFirestore.instance
-        .doc('families/$familyId/chatStates/$uid')
-        .set({
-      'uid': uid,
-      'unreadCount': 0,
-      'lastReadAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    await _functions.httpsCallable('markFamilyChatRead').call();
   }
 
   Future<NotificationDetailModel?> getNotificationDetail(String id) async {
