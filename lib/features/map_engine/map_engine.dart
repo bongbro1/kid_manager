@@ -3,7 +3,9 @@ import 'package:kid_manager/features/map_engine/child_blue_dot_renderer.dart';
 import 'package:kid_manager/features/map_engine/controllers/camera_controller.dart';
 import 'package:kid_manager/features/map_engine/controllers/interaction_controller.dart';
 import 'package:kid_manager/features/map_engine/history_renderer.dart';
+import 'package:kid_manager/features/map_engine/network_gap_renderer.dart';
 import 'package:kid_manager/features/map_engine/route_renderer.dart';
+import 'package:kid_manager/features/map_engine/services/history_gap_detector.dart';
 import 'package:kid_manager/features/map_engine/services/map_matching_service.dart';
 import 'package:kid_manager/features/map_engine/services/segmented_map_matcher.dart';
 import 'package:kid_manager/features/map_engine/start_end/start_end_marker_renderer.dart';
@@ -22,6 +24,7 @@ class MapEngine {
 
   late RouteRenderer route;
   late HistoryRenderer history;
+  late NetworkGapRenderer networkGaps;
   late CameraController camera;
 
   List<List<double>> _matchedRoute = [];
@@ -38,7 +41,9 @@ class MapEngine {
   ChildBlueDotRenderer? childDot;
   late StartEndMarkerRenderer startEndMarkers;
   final _segMatcher = SegmentedMapMatcher(MapMatchingService());
+  final _gapDetector = HistoryGapDetector();
   InteractionController? interaction;
+  List<LocationData> _gapMarkers = const [];
 
   MapEngine(
       this.map, {
@@ -51,6 +56,7 @@ class MapEngine {
       }) {
     route = RouteRenderer(map);
     history = HistoryRenderer(map);
+    networkGaps = NetworkGapRenderer(map);
     camera = CameraController(map);
     startEndMarkers = StartEndMarkerRenderer(map);
 
@@ -62,6 +68,7 @@ class MapEngine {
   Future<void> init() async {
     if (enableRoute) await route.init();
     if (enableHistory) await history.init(visible: showHistoryDots); // ✅
+    await networkGaps.init();
     await startEndMarkers.init();
 
     if (enableChildDot) await childDot!.init();
@@ -88,6 +95,18 @@ class MapEngine {
       await history.setVisible(v);
     }
   }
+
+  Future<void> _renderNetworkGaps(List<LocationData> historyPoints) async {
+    final gaps = _gapDetector.detect(historyPoints);
+    _gapMarkers = gaps.map((gap) => gap.marker).toList(growable: false);
+    await networkGaps.render(gaps);
+  }
+
+  List<LocationData> _interactivePoints(List<LocationData> basePoints) {
+    if (_gapMarkers.isEmpty) return basePoints;
+    return [...basePoints, ..._gapMarkers];
+  }
+
   void resetRouteCache() {
     _matchedRoute = [];
     _straightSegs = [];
@@ -124,20 +143,30 @@ class MapEngine {
     if (!enableHistory && !enableRoute) return;
 
     if (data.isEmpty) {
+      interaction = null;
       if (enableHistory) await history.render(const []);
       if (enableRoute) {
         await route.renderRoad([]);
         await route.renderStraightSegments([]);
       }
+      await networkGaps.clear();
       await startEndMarkers.clear();
       return;
     }
 
     final sorted = [...data]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    await _renderNetworkGaps(sorted);
 
     if (sorted.length < 2) {
       if (enableHistory) await history.render(sorted);
       await startEndMarkers.renderSinglePoint(sorted.last);
+
+      if (enableInteraction) {
+        interaction = InteractionController(
+          _interactivePoints(sorted),
+          onPointSelected: onHistoryPointSelected,
+        );
+      }
 
       _lastMatchedTs = sorted.last.timestamp;
       _anchor = <double>[sorted.last.longitude, sorted.last.latitude];
@@ -182,7 +211,7 @@ class MapEngine {
 
     if (enableInteraction) {
       interaction = InteractionController(
-        pointsToShow,
+        _interactivePoints(sorted),
         onPointSelected: onHistoryPointSelected,
       );
     }
@@ -208,11 +237,18 @@ class MapEngine {
     if (data.length < 2) return;
 
     final sorted = [...data]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    await _renderNetworkGaps(sorted);
 
     final latestTs = sorted.last.timestamp;
     if (latestTs <= _lastMatchedTs) {
       // vẫn update points để user thấy realtime
       if (enableHistory) await history.render(sorted);
+      if (enableInteraction) {
+        interaction = InteractionController(
+          _interactivePoints(sorted),
+          onPointSelected: onHistoryPointSelected,
+        );
+      }
       await startEndMarkers.updateEndMarker(sorted.last);
 
       return;
@@ -287,7 +323,7 @@ class MapEngine {
 
       if (enableInteraction) {
         interaction = InteractionController(
-          sorted,
+          _interactivePoints(sorted),
           onPointSelected: onHistoryPointSelected,
         );
       }
@@ -343,7 +379,7 @@ class MapEngine {
 
     if (enableInteraction) {
       interaction = InteractionController(
-        matched.snappedPoints,
+        _interactivePoints(sorted),
         onPointSelected: onHistoryPointSelected,
       );
     }
@@ -368,12 +404,13 @@ class MapEngine {
     if (!enableHistory) return;
     if (data.isEmpty) return;
 
+    await _renderNetworkGaps(data);
     await history.render(data);
     await startEndMarkers.updateEndMarker(data.last);
 
     if (enableInteraction) {
       interaction = InteractionController(
-        data,
+        _interactivePoints(data),
         onPointSelected: onHistoryPointSelected,
       );
     }
@@ -387,6 +424,8 @@ class MapEngine {
     _didInitialFit = false;
     interaction =null;
     interaction = null;
+    _gapMarkers = const [];
+    await networkGaps.clear();
     await startEndMarkers.clear();
   }
 }

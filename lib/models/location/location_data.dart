@@ -11,6 +11,10 @@ class LocationData {
   final bool isMock;     // fake GPS detect
   final int timestamp;   // ms since epoch (int gốc – không đổi)
   final TransportMode transport;
+  final bool isNetworkGap;
+  final int? gapDurationMs;
+  final int? gapStartTimestamp;
+  final int? gapEndTimestamp;
 
   LocationData({
     required this.latitude,
@@ -21,6 +25,10 @@ class LocationData {
     this.heading = 0,
     this.isMock = false,
     this.transport = TransportMode.unknown,
+    this.isNetworkGap = false,
+    this.gapDurationMs,
+    this.gapStartTimestamp,
+    this.gapEndTimestamp,
   });
 
   // ── Factory từ DateTime ───────────────────────────────────────────────────
@@ -35,6 +43,10 @@ class LocationData {
     double heading = 0,
     bool isMock = false,
     TransportMode transport = TransportMode.unknown,
+    bool isNetworkGap = false,
+    int? gapDurationMs,
+    int? gapStartTimestamp,
+    int? gapEndTimestamp,
   }) {
     return LocationData(
       latitude: latitude,
@@ -45,6 +57,10 @@ class LocationData {
       heading: heading,
       isMock: isMock,
       transport: transport,
+      isNetworkGap: isNetworkGap,
+      gapDurationMs: gapDurationMs,
+      gapStartTimestamp: gapStartTimestamp,
+      gapEndTimestamp: gapEndTimestamp,
     );
   }
 
@@ -62,6 +78,10 @@ class LocationData {
     int? timestamp,
     DateTime? dateTime, // ← tiện hơn khi có sẵn DateTime
     TransportMode? transport,
+    bool? isNetworkGap,
+    int? gapDurationMs,
+    int? gapStartTimestamp,
+    int? gapEndTimestamp,
   }) {
     final int resolvedTs = dateTime?.millisecondsSinceEpoch
         ?? timestamp
@@ -76,6 +96,10 @@ class LocationData {
       isMock: isMock ?? this.isMock,
       timestamp: resolvedTs,
       transport: transport ?? this.transport,
+      isNetworkGap: isNetworkGap ?? this.isNetworkGap,
+      gapDurationMs: gapDurationMs ?? this.gapDurationMs,
+      gapStartTimestamp: gapStartTimestamp ?? this.gapStartTimestamp,
+      gapEndTimestamp: gapEndTimestamp ?? this.gapEndTimestamp,
     );
   }
 
@@ -91,6 +115,10 @@ class LocationData {
     'timestamp': timestamp,                              // int → server
     'sentAt': DateTime.now().millisecondsSinceEpoch,
     'transport': transport.name,
+    if (isNetworkGap) 'isNetworkGap': true,
+    if (gapDurationMs != null) 'gapDurationMs': gapDurationMs,
+    if (gapStartTimestamp != null) 'gapStartTimestamp': gapStartTimestamp,
+    if (gapEndTimestamp != null) 'gapEndTimestamp': gapEndTimestamp,
   };
 
   factory LocationData.fromJson(Map<String, dynamic> json) {
@@ -122,6 +150,15 @@ class LocationData {
       isMock: toBool(json['isMock']),
       timestamp: toInt(json['timestamp']),
       transport: parseTransport(json['transport']),
+      isNetworkGap: toBool(json['isNetworkGap']),
+      gapDurationMs:
+          json['gapDurationMs'] == null ? null : toInt(json['gapDurationMs']),
+      gapStartTimestamp: json['gapStartTimestamp'] == null
+          ? null
+          : toInt(json['gapStartTimestamp']),
+      gapEndTimestamp: json['gapEndTimestamp'] == null
+          ? null
+          : toInt(json['gapEndTimestamp']),
     );
   }
 
@@ -171,6 +208,17 @@ class LocationData {
 
   /// "dd/MM/yyyy HH:mm"
   String get fullLabel => '$dateLabel  $timeLabel';
+
+  Duration? get networkGapDuration =>
+      gapDurationMs == null ? null : Duration(milliseconds: gapDurationMs!);
+
+  DateTime? get gapStartDateTime => gapStartTimestamp == null
+      ? null
+      : DateTime.fromMillisecondsSinceEpoch(gapStartTimestamp!);
+
+  DateTime? get gapEndDateTime => gapEndTimestamp == null
+      ? null
+      : DateTime.fromMillisecondsSinceEpoch(gapEndTimestamp!);
 
   // ── Tính toán ─────────────────────────────────────────────────────────────
 

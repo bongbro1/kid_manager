@@ -36,6 +36,8 @@ class LocationRepositoryImpl implements LocationRepository {
   static const int _historyChunkLimit = 250;
 
   String? _cachedParentUid;
+  String? _cachedParentUidForUid;
+  String? _metaEnsuredForUid;
 
   FirebaseFunctions get _functions =>
       FirebaseFunctions.instanceFor(region: 'asia-southeast1');
@@ -90,12 +92,12 @@ class LocationRepositoryImpl implements LocationRepository {
   }
 
   Future<String> _getParentUid() async {
-    if (_cachedParentUid != null) {
+    final uid = _requireUid();
+    if (_cachedParentUid != null && _cachedParentUidForUid == uid) {
       _log('getParentUid -> cache hit parentUid=$_cachedParentUid');
       return _cachedParentUid!;
     }
 
-    final uid = _requireUid();
     _log('getParentUid -> fetch Firestore users/$uid');
 
     try {
@@ -110,6 +112,7 @@ class LocationRepositoryImpl implements LocationRepository {
       }
 
       _cachedParentUid = parentUid.toString();
+      _cachedParentUidForUid = uid;
       return _cachedParentUid!;
     } catch (e, st) {
       _logErr('getParentUid failed', e, st);
@@ -118,15 +121,20 @@ class LocationRepositoryImpl implements LocationRepository {
   }
 
   Future<void> _ensureMeta(String uid) async {
+    if (_metaEnsuredForUid == uid) {
+      return;
+    }
+
     try {
       final parentUid = await _getParentUid();
       final metaRef = _database.ref('locations/$uid/meta');
 
-      _log('ensureMeta -> set locations/$uid/meta {parentUid:$parentUid}');
-      await metaRef.set({
+      _log('ensureMeta -> update locations/$uid/meta {parentUid:$parentUid}');
+      await metaRef.update({
         'parentUid': parentUid,
         'updatedAt': ServerValue.timestamp,
       });
+      _metaEnsuredForUid = uid;
       _log('ensureMeta -> OK');
     } catch (e, st) {
       _logErr('ensureMeta failed', e, st);
