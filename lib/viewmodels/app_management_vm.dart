@@ -4,6 +4,7 @@ import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/child_item.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
@@ -64,7 +65,11 @@ class AppManagementVM extends ChangeNotifier {
         .watchChildrenByParentUid(parentUid)
         .listen(
           (list) async {
-            children = list.map(ChildItem.fromUser).toList();
+            // 🔹 filter bỏ guardian
+            final filtered = list.where((u) => roleToString(u.role) != roleToString(UserRole.guardian)).toList();
+
+            children = filtered.map(ChildItem.fromUser).toList();
+
             await autoSelectFirstChild();
 
             _loading = false;

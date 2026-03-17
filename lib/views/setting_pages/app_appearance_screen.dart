@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/core/app_colors.dart';
-import 'package:kid_manager/widgets/app/app_button.dart';
-import 'package:kid_manager/widgets/app/app_icon.dart';
-import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
+import 'package:kid_manager/app.dart';
+import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/views/setting_pages/change_password_screen.dart';
+import 'package:provider/provider.dart';
 
 enum AppLanguageMode { en, vn, cn }
-
-enum AppThemeMode { system, light, dark }
 
 class AppAppearanceScreen extends StatefulWidget {
   const AppAppearanceScreen({super.key});
@@ -17,357 +16,470 @@ class AppAppearanceScreen extends StatefulWidget {
 
 class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
   bool isDarkMode = false;
+  bool notificationOn = true;
+  void _openThemeSelector() async {
+    final result = await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return const ThemeSelectorSheet();
+      },
+    );
+
+    if (result != null) {
+      final storage = context.read<StorageService>();
+
+      final color = result["color"] as Color;
+      final isDark = result["isDark"] as bool;
+
+      await storage.setInt(StorageKeys.themeColor, color.value);
+      await storage.setBool(StorageKeys.isDarkMode, isDark);
+
+      /// đợi animation sheet đóng xong
+      await Future.delayed(const Duration(milliseconds: 220));
+
+      MyApp.of(context).updateTheme(color, isDark);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: scheme.background,
+
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: scheme.surface,
+        centerTitle: true,
+        title: Text(
+          "Giao diện ứng dụng",
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        iconTheme: IconThemeData(color: scheme.onSurface),
+      ),
+
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ===== HEADER =====
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  InkWell(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: AppIcon(
-                        path: "assets/icons/back.svg",
-                        type: AppIconType.svg,
-                        size: 16,
-                      ),
-                    ),
-                  ),
-
-                  const Expanded(
-                    child: Center(
-                      child: Text(
-                        "Giao diện ứng dụng",
-                        style: TextStyle(
-                          color: Color(0xFF222B45),
-                          fontSize: 20,
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Spacer để title center thật
-                  const SizedBox(width: 44),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ===== CONTENT =====
-            Column(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 24, bottom: 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InkWell(
-                  onTap: () async {
-                    final result = await showModalBottomSheet<AppThemeMode>(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      isScrollControlled: true,
-                      builder: (_) => ChangeOptionSheet<AppThemeMode>(
-                        title: 'Chọn Theme',
-                        initialValue: AppThemeMode.system,
-                        options: const [
-                          OptionItem('Theo hệ thống', AppThemeMode.system),
-                          OptionItem('Sáng', AppThemeMode.light),
-                          OptionItem('Tối', AppThemeMode.dark),
-                        ],
-                        onConfirm: (_) {}, // không cần dùng nữa
-                      ),
-                    );
-
-                    if (result != null) {
-                      debugPrint('Theme chọn: $result');
-                      // TODO: setState / Provider / save prefs
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 20,
-                    ),
-                    child: Row(
-                      children: const [
-                        Text(
-                          'Theme',
-                          style: TextStyle(
-                            color: Color(0xFF212121),
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            height: 1.38,
-                            letterSpacing: -0.41,
-                          ),
-                        ),
-
-                        Spacer(),
-
-                        Text(
-                          'Sáng',
-                          style: TextStyle(
-                            color: Color(0xFF212121),
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,
-                            height: 1.38,
-                            letterSpacing: -0.41,
-                          ),
-                        ),
-
-                        SizedBox(width: 6),
-
-                        Icon(
-                          Icons.chevron_right,
-                          size: 20,
-                          color: Color(0xFF9E9E9E),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ],
+                /// ===== ỨNG DỤNG =====
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    "ỨNG DỤNG",
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: scheme.onSurface.withOpacity(.6),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.7,
+                      fontFamily: "Poppins",
                     ),
                   ),
                 ),
 
-                const Divider(height: 1),
-                InkWell(
-                  onTap: () async {
-                    final result = await showModalBottomSheet<AppThemeMode>(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      isScrollControlled: true,
-                      builder: (_) => ChangeOptionSheet<AppLanguageMode>(
-                        title: 'Chọn ngôn ngữ',
-                        initialValue: AppLanguageMode.en,
-                        options: const [
-                          OptionItem('English', AppLanguageMode.en),
-                          OptionItem('Tiếng Việt', AppLanguageMode.vn),
-                          OptionItem('中文', AppLanguageMode.cn),
-                        ],
-                        onConfirm: (lang) {
-                          debugPrint('Language chọn: $lang');
-                        },
+                const SizedBox(height: 12),
+
+                _settingItem(
+                  icon: Icons.dark_mode_outlined,
+                  title: "Giao diện",
+                  subtitle: "Thay đổi giao diện sáng/tối",
+                  onTap: _openThemeSelector,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isDark ? "Tối" : "Sáng",
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right,
+                        color: scheme.onSurface.withOpacity(.7),
+                      ),
+                    ],
+                  ),
+                ),
+
+                _settingItem(
+                  icon: Icons.language,
+                  title: "Ngôn ngữ",
+                  subtitle: "Chọn ngôn ngữ hiển thị",
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Tiếng Việt",
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right,
+                        color: scheme.onSurface.withOpacity(.7),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                /// ===== BẢO MẬT =====
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    "BẢO MẬT",
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: scheme.onSurface.withOpacity(.6),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.7,
+                      fontFamily: "Poppins",
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                _settingItem(
+                  icon: Icons.lock_outline,
+                  title: "Đổi mật khẩu",
+                  subtitle: "Cập nhật mật khẩu mới",
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: scheme.onSurface.withOpacity(.7),
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChangePasswordScreen(),
                       ),
                     );
-
-                    if (result != null) {
-                      debugPrint('Theme chọn: $result');
-                    }
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 20,
-                    ),
-                    child: Row(
-                      children: const [
-                        Text(
-                          'Ngôn ngữ',
-                          style: TextStyle(
-                            color: Color(0xFF212121),
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            height: 1.38,
-                            letterSpacing: -0.41,
-                          ),
-                        ),
+                ),
 
-                        Spacer(),
-
-                        Text(
-                          'Tiếng Việt',
-                          style: TextStyle(
-                            color: Color(0xFF212121),
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,
-                            height: 1.38,
-                            letterSpacing: -0.41,
-                          ),
-                        ),
-
-                        SizedBox(width: 6),
-
-                        Icon(
-                          Icons.chevron_right,
-                          size: 20,
-                          color: Color(0xFF9E9E9E),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ],
-                    ),
+                _settingItem(
+                  icon: Icons.notifications_none,
+                  title: "Thông báo",
+                  subtitle: "Quản lý các loại thông báo",
+                  trailing: Switch(
+                    value: notificationOn,
+                    activeColor: scheme.primary,
+                    onChanged: (v) {
+                      setState(() {
+                        notificationOn = v;
+                      });
+                    },
                   ),
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
-}
 
-class OptionRadioRow<T> extends StatelessWidget {
-  final String title;
-  final T value;
-  final T groupValue;
-  final ValueChanged<T> onChanged;
-
-  const OptionRadioRow({
-    super.key,
-    required this.title,
-    required this.value,
-    required this.groupValue,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isSelected = value == groupValue;
-
-    return InkWell(
-      onTap: () => onChanged(value),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 0),
-        child: Row(
-          children: [
-            Radio<T>(
-              value: value,
-              groupValue: groupValue,
-              onChanged: (v) {
-                if (v != null) onChanged(v);
-              },
-              activeColor: const Color(0xFF3366FF),
-            ),
-
-            const SizedBox(width: 6),
-
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected
-                    ? const Color(0xFF212121)
-                    : const Color(0xFF4C4C4C),
-                fontSize: 16,
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w500,
-                height: 1,
+  /// ===== Setting Item Widget =====
+  Widget _settingItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+    VoidCallback? onTap,
+  }) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        focusColor: Colors.transparent,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              /// icon
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: theme.colorScheme.primary),
               ),
-            ),
-          ],
+
+              const SizedBox(width: 16),
+
+              /// text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: "Poppins",
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFB6C4D7),
+                        fontFamily: "Public Sans",
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              /// right widget
+              trailing,
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class OptionItem<T> {
-  final String label;
-  final T value;
-
-  const OptionItem(this.label, this.value);
-}
-
-class ChangeOptionSheet<T> extends StatefulWidget {
-  final String title;
-  final T initialValue;
-  final List<OptionItem<T>> options;
-  final ValueChanged<T> onConfirm;
-
-  const ChangeOptionSheet({
-    super.key,
-    required this.title,
-    required this.initialValue,
-    required this.options,
-    required this.onConfirm,
-  });
+class ThemeSelectorSheet extends StatefulWidget {
+  const ThemeSelectorSheet({super.key});
 
   @override
-  State<ChangeOptionSheet<T>> createState() => _ChangeOptionSheetState<T>();
+  State<ThemeSelectorSheet> createState() => _ThemeSelectorSheetState();
 }
 
-class _ChangeOptionSheetState<T> extends State<ChangeOptionSheet<T>> {
-  late T _selected;
+class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
+  final List<Color> colors = const [
+    Color(0xFFFF9EB7),
+    Color(0xFFFCB022),
+    Color(0xFF12B669),
+    Color(0xFF2E90FA),
+  ];
+
+  int selectedColor = 0;
+  bool isDark = false;
 
   @override
   void initState() {
     super.initState();
-    _selected = widget.initialValue;
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final storage = context.read<StorageService>();
+
+    final savedColorValue =
+        storage.getInt(StorageKeys.themeColor) ?? colors[0].value;
+
+    final savedDark = storage.getBool(StorageKeys.isDarkMode) ?? false;
+
+    final index = colors.indexWhere((c) => c.value == savedColorValue);
+
+    setState(() {
+      selectedColor = index != -1 ? index : 0;
+      isDark = savedDark;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppOverlaySheet(
-      height: 300,
-      showHandle: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 6),
-            Text(
-              widget.title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 10),
+    final theme = Theme.of(context);
 
-            ...widget.options.map(
-              (e) => OptionRadioRow<T>(
-                title: e.label,
-                value: e.value,
-                groupValue: _selected,
-                onChanged: (v) {
-                  setState(() => _selected = v);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          /// drag indicator
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.outline.withOpacity(.3),
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          /// title
+          Text(
+            "Tùy chỉnh giao diện",
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontFamily: "Poppins",
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            "Chọn màu chủ đạo và chế độ sáng/tối",
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(.6),
+              fontFamily: "Public Sans",
+            ),
+          ),
+
+          const SizedBox(height: 22),
+
+          /// COLOR THEMES
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: colors.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
+              childAspectRatio: 1,
+            ),
+            itemBuilder: (context, index) {
+              final color = colors[index];
+              final selected = selectedColor == index;
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedColor = index;
+                  });
                 },
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                AppButton(
-                  width: 167,
-                  height: 50,
-                  text: 'Hủy bỏ',
-                  onPressed: () => Navigator.pop(context),
-                  backgroundColor: const Color(0xFFE6F5FF),
-                  foregroundColor: const Color(0xFF3A7DFF),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      if (selected)
+                        BoxShadow(
+                          color: color.withOpacity(.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                    ],
+                  ),
+                  child: selected
+                      ? Icon(Icons.check, color: theme.colorScheme.surface)
+                      : null,
                 ),
-                AppButton(
-                  width: 167,
-                  height: 50,
-                  text: 'Xác nhận',
-                  onPressed: () {
-                    widget.onConfirm(_selected);
-                    Navigator.pop(context);
+              );
+            },
+          ),
+
+          const SizedBox(height: 26),
+
+          /// LIGHT / DARK MODE
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Color.alphaBlend(
+                colors[selectedColor].withOpacity(.08),
+                theme.colorScheme.surface,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isDark ? Icons.dark_mode : Icons.light_mode,
+                  color: colors[selectedColor],
+                ),
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Text(
+                    "Chế độ tối",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+
+                Switch(
+                  value: isDark,
+                  activeColor: colors[selectedColor], // thumb khi bật
+
+                  activeTrackColor: colors[selectedColor].withOpacity(.45),
+
+                  inactiveThumbColor: theme.colorScheme.onSurface.withOpacity(
+                    .7,
+                  ),
+
+                  inactiveTrackColor: theme.colorScheme.surfaceContainerHighest,
+
+                  onChanged: (v) {
+                    setState(() {
+                      isDark = v;
+                    });
                   },
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+
+          const SizedBox(height: 24),
+
+          /// APPLY BUTTON
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors[selectedColor],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              onPressed: () {
+                final color = colors[selectedColor];
+
+                Navigator.pop(context, {"color": color, "isDark": isDark});
+              },
+              child: const Text(
+                "Áp dụng giao diện",
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

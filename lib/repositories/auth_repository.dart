@@ -2,7 +2,10 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:kid_manager/models/app_user.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/firebase_auth_service.dart';
 import 'package:kid_manager/services/notifications/fcm_installation_service.dart';
 
@@ -23,13 +26,29 @@ class AuthRepository {
       if (fbUser == null) return null;
 
       try {
-        return await _users.getUserById(fbUser.uid);
+        final user = await _users.getUserById(fbUser.uid);
+
+        /// 🔹 nếu Firestore chưa có user
+        if (user == null) {
+          debugPrint(
+            '[AuthRepository] Firestore user missing → fallback Firebase',
+          );
+          return AppUser.fromFirebase(fbUser);
+        }
+
+        return user;
       } catch (e, st) {
         debugPrint('[AuthRepository] watchSessionUser error: $e');
         debugPrintStack(stackTrace: st);
-        return null;
+
+        /// 🔹 fallback để SessionVM vẫn authenticated
+        return AppUser.fromFirebase(fbUser);
       }
     });
+  }
+
+  Future<AppUser?> getUser(String uid) async {
+    return await _users.getUserById(uid);
   }
 
   Future<void> resetPassword({
@@ -51,15 +70,23 @@ class AuthRepository {
     return cred;
   }
 
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) {
+    return _authService.changePassword(
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+    );
+  }
+
   Future<void> logout() async {
     try {
       final installationId = await FcmInstallationService.getInstallationId();
 
       await FirebaseFunctions.instanceFor(region: 'asia-southeast1')
           .httpsCallable('unregisterFcmToken')
-          .call({
-        'installationId': installationId,
-      });
+          .call({'installationId': installationId});
     } on FirebaseFunctionsException catch (e, st) {
       debugPrint(
         '[AuthRepository] unregisterFcmToken fail '
@@ -79,5 +106,123 @@ class AuthRepository {
     }
 
     await _authService.signOut();
+  }
+
+  // auth socials
+  Future<AppUser?> signInWithGoogle() async {
+    try {
+      print("[AUTH_GOOGLE] 🔵 Google sign-in started");
+
+      final googleSignIn = GoogleSignIn();
+
+      final googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        print("[AUTH_GOOGLE] 🟡 User cancelled login");
+        return null;
+      }
+
+      print("[AUTH_GOOGLE] 🟢 Google user: ${googleUser.email}");
+
+      final googleAuth = await googleUser.authentication;
+
+      print("[AUTH_GOOGLE] AccessToken: ${googleAuth.accessToken != null}");
+      print("[AUTH_GOOGLE] IdToken: ${googleAuth.idToken != null}");
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      print("[AUTH_GOOGLE] 🔵 Signing into Firebase");
+
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
+
+      final firebaseUser = userCredential.user;
+
+      if (firebaseUser == null) {
+        print("[AUTH_GOOGLE] 🔴 Firebase user null");
+        return null;
+      }
+
+      print("[AUTH_GOOGLE] 🟢 Firebase login success: ${firebaseUser.uid}");
+
+      return AppUser.fromFirebase(firebaseUser);
+    } catch (e, stack) {
+      print("[AUTH_GOOGLE] 🔴 ERROR: $e");
+      print(stack);
+      rethrow;
+    }
+  }
+
+  Future<AppUser?> signInWithFacebook() async {
+    final result = await FacebookAuth.instance.login();
+
+    if (result.status != LoginStatus.success) return null;
+
+    final credential = FacebookAuthProvider.credential(
+      result.accessToken!.token,
+    );
+
+    final userCredential = await FirebaseAuth.instance.signInWithCredential(
+      credential,
+    );
+
+    final user = userCredential.user;
+    if (user == null) return null;
+
+    return AppUser.fromFirebase(user);
+  }
+
+  String? _verificationId;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<void> sendOtpSms(
+    String phone,
+    Function(String verificationId) codeSent,
+  ) async {
+    await _auth.verifyPhoneNumber(
+      phoneNumber: phone,
+
+      verificationCompleted: (credential) async {
+        await _auth.signInWithCredential(credential);
+      },
+
+      verificationFailed: (FirebaseAuthException e) {
+        debugPrint("FirebaseAuthException: ${e.code} - ${e.message}");
+        throw Exception(e.message);
+      },
+
+      codeSent: (verificationId, resendToken) {
+        _verificationId = verificationId;
+        codeSent(verificationId);
+      },
+
+      codeAutoRetrievalTimeout: (verificationId) {
+        _verificationId = verificationId;
+      },
+    );
+  }
+
+  /// verify OTP
+  Future<AppUser?> verifyOtpSms(String smsCode) async {
+    if (_verificationId == null) {
+      throw Exception("VerificationId null");
+    }
+
+    final credential = PhoneAuthProvider.credential(
+      verificationId: _verificationId!,
+      smsCode: smsCode,
+    );
+
+    final userCredential = await _auth.signInWithCredential(credential);
+
+    final firebaseUser = userCredential.user;
+
+    if (firebaseUser == null) return null;
+
+    return AppUser.fromFirebase(firebaseUser);
   }
 }

@@ -13,6 +13,7 @@ import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
+import 'package:kid_manager/views/setting_pages/member_management_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
@@ -169,7 +170,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       return const LoadingOverlay();
     }
 
-    final isChild = p?.role.toString() == "child";
+    final isParent = p?.role.toString() == roleToString(UserRole.parent);
+    final isChild = p?.role.toString() == roleToString(UserRole.child);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
@@ -407,6 +409,102 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   debugPrint("changed: $allowLocationTracking");
                                 },
                               ),
+
+                            if (isParent) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFFE5E5E5), // màu viền
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      height: 40,
+                                      width: 40,
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2E90FA),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.manage_accounts,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 12),
+
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Quản lý tài khoản',
+                                            style: TextStyle(
+                                              color: Color(0xFF3E3E3E),
+                                              fontSize: 16,
+                                              fontFamily: 'Public Sans',
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          SizedBox(height: 2),
+                                          Text(
+                                            'Quản lý tài khoản của thành viên',
+                                            style: TextStyle(
+                                              color: Color(0xFF3E3E3E),
+                                              fontSize: 12,
+                                              fontFamily: 'Public Sans',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(8),
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const MemberManagementScreen(),
+                                          ),
+                                        );
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF2E90FA),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Chi tiết',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontFamily: 'Poppins',
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -485,22 +583,6 @@ class MoreActionSheet extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
-
-            if (isParent) ...[
-              SettingItem(
-                title: AppLocalizations.of(context).addAccountTitle,
-                iconPath: "assets/icons/account.png",
-                iconType: AppIconType.png,
-                iconSize: 18,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddAccountScreen()),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
             SettingItem(
               title: AppLocalizations.of(context).logoutTitle,
               iconPath: "assets/icons/log_out.png",
@@ -532,7 +614,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    
+
     Future<void> logout() async {
       final authVM = context.read<AuthVM>();
       final userVm = context.read<UserVm>();

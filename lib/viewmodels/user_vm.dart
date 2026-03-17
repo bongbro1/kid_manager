@@ -31,9 +31,13 @@ class UserVm extends ChangeNotifier {
   StreamSubscription<AppUser?>? _meSub;
   StreamSubscription<UserProfile?>? _profileSubscription;
   StreamSubscription<List<AppUser>>? _childrenSub;
+  StreamSubscription<List<AppUser>>? _familySub;
 
   final List<AppUser> _children = [];
   List<AppUser> get children => _children;
+
+  final List<AppUser> _familyMembers = [];
+  List<AppUser> get familyMembers => _familyMembers;
   List<String> get childrenIds => _children.map((c) => c.uid).toList();
 
   void _setError(String msg) {
@@ -110,6 +114,35 @@ class UserVm extends ChangeNotifier {
         ..addAll(list);
       notifyListeners();
     }, onError: (e) => _setError('Lỗi load children: $e'));
+  }
+
+  void watchFamilyMembers(String familyId) {
+    _familySub?.cancel();
+
+    final myUid = _storage.getString(StorageKeys.uid);
+
+    _familySub = _userRepo.watchFamilyMembers(familyId).listen((list) {
+      _familyMembers
+        ..clear()
+        ..addAll(list.where((u) => u.uid != myUid));
+
+      notifyListeners();
+    }, onError: (e) => _setError('Lỗi load members: $e'));
+  }
+
+  Future<void> watchFamilyMembersByParent(String parentUid) async {
+    try {
+      final familyId = await _userRepo.getFamilyId(parentUid);
+
+      if (familyId == null || familyId.isEmpty) {
+        _setError('Không tìm thấy familyId');
+        return;
+      }
+
+      watchFamilyMembers(familyId);
+    } catch (e) {
+      _setError('Lỗi load family: $e');
+    }
   }
 
   Future<UserProfile?> loadProfile({
@@ -277,6 +310,47 @@ class UserVm extends ChangeNotifier {
       _error = e.toString();
       debugPrint("Update photo error: $e");
       return false;
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> addChildAccount({
+    required String name,
+    required String email,
+    required String password,
+    required DateTime dob,
+    String role = 'child',
+    required String locale,
+    required String timezone,
+  }) async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final parentUid = _storage.getString(StorageKeys.uid);
+
+      if (parentUid == null) {
+        throw Exception('Phiên đăng nhập đã hết. Vui lòng đăng nhập lại');
+      }
+
+      await _userRepo.createChildAccount(
+        parentUid: parentUid,
+        email: email,
+        password: password,
+        displayName: name,
+        dob: dob,
+        role: role,
+        locale: locale,
+        timezone: timezone,
+      );
+
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      rethrow;
     } finally {
       _loading = false;
       notifyListeners();

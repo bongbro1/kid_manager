@@ -27,19 +27,24 @@ class SessionVM extends ChangeNotifier {
   StreamSubscription<AppUser?>? _sub;
 
   void _bootstrap() {
-    _sub = _repo.watchSessionUser().listen((user) {
-      _user = user;
-      _authStatus = user == null
-          ? SessionStatus.unauthenticated
-          : SessionStatus.authenticated;
+    _sub = _repo.watchSessionUser().listen(
+      (user) {
+        debugPrint("[SESSION_VM] user=${user?.uid}");
+        debugPrint("[SESSION_VM] status=$_authStatus");
+        _user = user;
+        _authStatus = user == null
+            ? SessionStatus.unauthenticated
+            : SessionStatus.authenticated;
 
-      notifyListeners();
-    }, onError: (e) {
-      _user = null;
-      _authStatus = SessionStatus.unauthenticated;
-      debugPrint('[SessionVM] auth stream error: $e');
-      notifyListeners();
-    });
+        notifyListeners();
+      },
+      onError: (e) {
+        _user = null;
+        _authStatus = SessionStatus.unauthenticated;
+        debugPrint('[SessionVM] auth stream error: $e');
+        notifyListeners();
+      },
+    );
   }
 
   void finishSplash() {

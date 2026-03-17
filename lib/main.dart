@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
@@ -25,9 +26,7 @@ String _maskToken(String? token) {
   return '${token.substring(0, 4)}...${token.substring(token.length - 4)}';
 }
 
-Future<void> _activateFirebaseAppCheck({
-  required bool background,
-}) async {
+Future<void> _activateFirebaseAppCheck({required bool background}) async {
   try {
     await FirebaseAppCheck.instance.activate(
       androidProvider: kDebugMode
@@ -54,11 +53,14 @@ Future<void> _activateFirebaseAppCheck({
       'Add debug secret from Android logcat to Firebase Console allowlist.',
     );
     unawaited(
-      FirebaseAppCheck.instance.getToken(false).then((token) {
-        debugPrint('AppCheck token=${_maskToken(token)}');
-      }).catchError((error) {
-        debugPrint('AppCheck token not ready yet: $error');
-      }),
+      FirebaseAppCheck.instance
+          .getToken(false)
+          .then((token) {
+            debugPrint('AppCheck token=${_maskToken(token)}');
+          })
+          .catchError((error) {
+            debugPrint('AppCheck token not ready yet: $error');
+          }),
     );
   }
 }
@@ -134,11 +136,15 @@ Future<void> main() async {
   MapboxOptions.setAccessToken(accessToken);
 
   final storageService = await StorageService.create();
+  final isDark = storageService.getBool(StorageKeys.isDarkMode) ?? false;
+
+  final colorValue =
+      storageService.getInt(StorageKeys.themeColor) ?? 0xFF2E90FA;
 
   runApp(
     MultiProvider(
       providers: [Provider<StorageService>.value(value: storageService)],
-      child: const MyApp(),
+      child: MyApp(isDark: isDark, primaryColor: Color(colorValue)),
     ),
   );
 

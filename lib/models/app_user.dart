@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/models/user/user_subscription.dart';
@@ -7,10 +8,7 @@ class ChildUser {
   final String id;
   final String displayName;
 
-  ChildUser({
-    required this.id,
-    required this.displayName,
-  });
+  ChildUser({required this.id, required this.displayName});
 }
 
 class AppUser {
@@ -133,6 +131,20 @@ class AppUser {
       parentUid: parentUid,
       isActive: isActive ?? this.isActive,
       subscription: subscription ?? this.subscription,
+    );
+  }
+
+  factory AppUser.fromFirebase(User user) {
+    return AppUser(
+      uid: user.uid,
+      role: UserRole.parent,
+      email: user.email,
+      displayName: user.displayName,
+      avatarUrl: user.photoURL,
+      phone: user.phoneNumber,
+      createdAt: DateTime.now(),
+      lastActiveAt: DateTime.now(),
+      isActive: true,
     );
   }
 }

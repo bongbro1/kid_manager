@@ -177,12 +177,28 @@ class UserRepository {
         .map((qs) => qs.docs.map(AppUser.fromDoc).toList());
   }
 
+  Stream<List<AppUser>> watchFamilyMembers(String familyId) {
+    return _users
+        .where('familyId', isEqualTo: familyId)
+        .snapshots()
+        .map((qs) => qs.docs.map(AppUser.fromDoc).toList());
+  }
+
+  Future<String?> getFamilyId(String uid) async {
+    final snap = await userRef(uid).get();
+
+    if (!snap.exists) return null;
+
+    return snap.data()?['familyId'] as String?;
+  }
+
   Future<String> createChildAccount({
     required String parentUid,
     required String email,
     required String password,
     required String displayName,
     required DateTime? dob,
+    String role = 'child',
     required String locale,
     required String timezone,
   }) async {
@@ -210,7 +226,7 @@ class UserRepository {
         userRef(childUid),
         {
           'uid': childUid,
-          'role': 'child',
+          'role': role,
           'displayName': displayName,
           'email': email.trim(),
           'parentUid': parentUid,

@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
-
 class AppLabeledTextField extends StatelessWidget {
   final String label;
   final String hint;
   final double? width;
   final TextEditingController controller;
+
+  final bool obscureText;
+  final bool readOnly;
+
+  final Widget? prefixIcon;
+  final Widget? suffixIcon;
+
+  final VoidCallback? onTap;
+  final TextInputType? keyboardType;
 
   const AppLabeledTextField({
     super.key,
@@ -12,48 +20,70 @@ class AppLabeledTextField extends StatelessWidget {
     required this.hint,
     required this.controller,
     this.width,
+    this.obscureText = false,
+    this.readOnly = false,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.onTap,
+    this.keyboardType,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return SizedBox(
-      width: width,
+      width: width ?? double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 14,
-              fontFamily: 'Inter',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onSurface,
               fontWeight: FontWeight.w500,
             ),
           ),
+
           const SizedBox(height: 8),
+
           SizedBox(
             height: 55,
             child: TextField(
               controller: controller,
-              style: const TextStyle(color: Color(0xFF4A4A4A), fontSize: 14),
+              obscureText: obscureText,
+              readOnly: readOnly,
+              onTap: onTap,
+              keyboardType: keyboardType,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface,
+              ),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(
-                  color: Color(0xFF8F9BB3),
-                  fontSize: 14,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
+
+                prefixIcon: prefixIcon,
+                suffixIcon: suffixIcon,
+
                 filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                fillColor: scheme.surface,
+
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFFEEEFF1)),
+                  borderSide: BorderSide(color: scheme.outlineVariant),
                 ),
+
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFFEEEFF1)),
+                  borderSide: BorderSide(
+                    color: scheme.primary,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -65,8 +95,8 @@ class AppLabeledTextField extends StatelessWidget {
 }
 
 class AppLabeledCheckbox extends StatelessWidget {
-  final String label; // tiêu đề giống input (ở trên)
-  final String text; // nội dung cạnh checkbox
+  final String label;
+  final String text;
   final bool value;
   final ValueChanged<bool> onChanged;
   final double? width;
@@ -82,56 +112,53 @@ class AppLabeledCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return SizedBox(
       width: width,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 14,
-              fontFamily: 'Inter',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onSurface,
               fontWeight: FontWeight.w500,
             ),
           ),
+
           const SizedBox(height: 8),
-          // "box" đồng bộ với input
+
           InkWell(
             onTap: () => onChanged(!value),
             splashColor: Colors.transparent,
             highlightColor: Colors.transparent,
-            hoverColor: Colors.transparent,
-            focusColor: Colors.transparent,
             child: Row(
               children: [
-                Transform.translate(
-                  offset: const Offset(0, 0),
-                  child: Checkbox(
-                    value: value,
-                    onChanged: null,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: const VisualDensity(
-                      horizontal: -4,
-                      vertical: -4,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    side: const BorderSide(color: Color(0xFF4A4A4A)),
+                Checkbox(
+                  value: value,
+                  onChanged: (_) => onChanged(!value),
+                  materialTapTargetSize:
+                      MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: const VisualDensity(
+                    horizontal: -4,
+                    vertical: -4,
                   ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  side: BorderSide(color: scheme.outline),
+                  activeColor: scheme.primary,
                 ),
+
                 const SizedBox(width: 6),
+
                 Expanded(
                   child: Text(
                     text,
-                    style: const TextStyle(
-                      color: Color(0xFF4A4A4A),
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w400,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurface,
                     ),
                   ),
                 ),

@@ -86,6 +86,10 @@ dependencies:
 #  Phone
   flutter_native_contact_picker: ^0.0.10
   url_launcher: ^6.3.0
+
+  # Auth socials
+  google_sign_in: ^6.2.1
+  flutter_facebook_auth: ^6.0.4
   
 
 dev_dependencies:

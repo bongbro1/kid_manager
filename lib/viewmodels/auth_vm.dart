@@ -2,8 +2,10 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
@@ -28,6 +30,8 @@ class AuthVM extends ChangeNotifier {
 
   String? _error;
   String? get error => _error;
+
+  AppUser? currentUser;
 
   StreamSubscription<User?>? _sub;
 
@@ -121,6 +125,35 @@ class AuthVM extends ChangeNotifier {
     });
   }
 
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    await _runAuthAction(() async {
+      /// validate password rule
+      final passError = Validators.validatePassword(newPassword);
+      if (passError != null) {
+        throw Exception(passError);
+      }
+
+      /// validate confirm password
+      final confirmError = Validators.validateConfirmPassword(
+        newPassword,
+        confirmPassword,
+      );
+      if (confirmError != null) {
+        throw Exception(confirmError);
+      }
+
+      /// gọi repo
+      await _authRepo.changePassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+    });
+  }
+
   Future<void> resetPassword({
     required String uid,
     required String newPassword,
@@ -210,6 +243,11 @@ class AuthVM extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setError(String? message) {
+    _error = message;
+    notifyListeners();
+  }
+
   String _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
@@ -227,11 +265,126 @@ class AuthVM extends ChangeNotifier {
     }
   }
 
+  // login social
+
+  Future<void> loginWithGoogle() async {
+    try {
+      _setError(null);
+      _setLoading(true);
+
+      final user = await _authRepo.signInWithGoogle();
+
+      await _handleUser(user);
+    } catch (e) {
+      _setError(e.toString());
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> loginWithFacebook() async {
+    try {
+      _setError(null);
+      _setLoading(true);
+
+      final user = await _authRepo.signInWithFacebook();
+      await _handleUser(user);
+    } catch (e) {
+      _setError(e.toString());
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> loginWithApple() async {
+    // try {
+    //   _setError(null);
+    //   _setLoading(true);
+
+    //   final user = await _authRepo.signInWithApple();
+    //   await _handleUser(user);
+    // } catch (e) {
+    //   _setError(e.toString());
+    // } finally {
+    //   _setLoading(false);
+    // }
+  }
+
+  Future<void> loginWithPhone() async {
+    // try {
+    //   _setError(null);
+    //   _setLoading(true);
+
+    //   await _authRepo.signInWithPhone();
+    // } catch (e) {
+    //   _setError(e.toString());
+    // } finally {
+    //   _setLoading(false);
+    // }
+  }
+
+  Future<void> sendOtpSms(String phone) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      await _authRepo.sendOtpSms(phone, (verificationId) {
+        print("[AUTH_PHONE] OTP sent: $verificationId");
+      });
+    } catch (e) {
+      _setError(e.toString());
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> verifyOtpSmS(String code) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      final user = await _authRepo.verifyOtpSms(code);
+
+      await _handleUser(user);
+    } catch (e) {
+      _setError(e.toString());
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> _handleUser(AppUser? user) async {
+    if (user == null) {
+      _setError("Login cancelled");
+      return;
+    }
+    try {
+      final existingUser = await _authRepo.getUser(user.uid);
+
+      if (existingUser == null) {
+        await _userRepo.createParentIfMissing(
+          uid: user.uid,
+          email: user.email ?? '',
+          displayName: user.displayName,
+          locale: user.locale ?? 'vi',
+          timezone: user.timezone ?? 'Asia/Ho_Chi_Minh',
+        );
+        currentUser = await _authRepo.getUser(user.uid);
+      } else {
+        currentUser = existingUser;
+      }
+
+      notifyListeners();
+    } catch (e) {
+      _setError(e.toString());
+    }
+  }
+
   @override
   void dispose() {
     _sub?.cancel();
     super.dispose();
   }
 }
-
-

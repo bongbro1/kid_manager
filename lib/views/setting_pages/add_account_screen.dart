@@ -1,17 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/alert_service.dart';
-
-import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
-import 'package:kid_manager/repositories/user_repository.dart';
-import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/views/personal_info_screen.dart';
-import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
+import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:provider/provider.dart';
 
 class AddAccountScreen extends StatefulWidget {
@@ -25,19 +20,24 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  final _dobCtrl = TextEditingController(); // ngày sinh (readonly)
-  final locale = WidgetsBinding.instance.platformDispatcher.locale;
-  late final String languageCode = locale.languageCode; // vi
-  late final String? countryCode = locale.countryCode; // VN
+  final _dobCtrl = TextEditingController();
 
-  late final String localeString = countryCode == null
-      ? languageCode
-      : '${languageCode}_$countryCode';
+  String role = "child";
+  bool hidePassword = true;
 
-  // timezone chuẩn (Asia/Ho_Chi_Minh)
+  final String localeString =
+      WidgetsBinding.instance.platformDispatcher.locale.countryCode == null
+      ? WidgetsBinding.instance.platformDispatcher.locale.languageCode
+      : '${WidgetsBinding.instance.platformDispatcher.locale.languageCode}_${WidgetsBinding.instance.platformDispatcher.locale.countryCode}';
+
   final String timezone = DateTime.now().timeZoneName.isNotEmpty
       ? DateTime.now().timeZoneName
       : 'Asia/Ho_Chi_Minh';
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -48,46 +48,106 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     super.dispose();
   }
 
-  void _onAddAccount() async {
-    final dob = parseDateFromText(_dobCtrl.text);
+  // -------------------------
+  // DATE PICKER
+  // -------------------------
+
+  Future<void> pickDate() async {
+    final now = DateTime.now();
+    DateTime initial = DateTime(now.year - 10, now.month, now.day);
+
+    final parsed = _parseDate(_dobCtrl.text);
+    if (parsed != null) {
+      initial = parsed;
+    }
+
+    final date = await showModalBottomSheet<DateTime>(
+      context: context,
+      builder: (_) => _WheelDatePicker(initialDate: initial),
+    );
+
+    if (date != null) {
+      _dobCtrl.text = "${date.day}/${date.month}/${date.year}";
+    }
+  }
+
+  DateTime? _parseDate(String text) {
+    try {
+      if (text.isEmpty) return null;
+
+      final parts = text.split("/");
+      if (parts.length != 3) return null;
+
+      final day = int.tryParse(parts[0]);
+      final month = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[2]);
+
+      if (day == null || month == null || year == null) return null;
+
+      return DateTime(year, month, day);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // -------------------------
+  // ROLE CHIP
+  // -------------------------
+
+  Widget roleChip(String value, String label) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: role == value,
+      onSelected: (_) {
+        setState(() {
+          role = value;
+        });
+      },
+    );
+  }
+
+  // -------------------------
+  // ADD ACCOUNT
+  // -------------------------
+
+  Future<void> _onAddAccount() async {
+    final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    final dob = _parseDate(_dobCtrl.text);
+
+    if (name.isEmpty) {
+      AlertService.showSnack('Vui lòng nhập tên', isError: true);
+      return;
+    }
+
+    if (!Validators.isValidEmail(email)) {
+      AlertService.showSnack('Email không hợp lệ', isError: true);
+      return;
+    }
+
+    if (password.length < 6) {
+      AlertService.showSnack('Mật khẩu phải ít nhất 6 ký tự', isError: true);
+      return;
+    }
 
     if (dob == null) {
-      debugPrint('ChildADD: Ngày sinh không hợp lệ');
       AlertService.showSnack('Ngày sinh không hợp lệ', isError: true);
       return;
     }
 
-    // if (!Validators.isValidEmail(email)) {
-    //   AlertService.showSnack('Email không hợp lệ', isError: true);
-    //   return;
-    // }
-
-    final userRepo = context.read<UserRepository>();
-    final storage = context.read<StorageService>();
-
-    final parentUid = storage.getString(StorageKeys.uid);
-    if (parentUid == null) {
-      debugPrint('ChildADD: Chưa đăng nhập phụ huynh');
-      AlertService.showSnack(
-        'Phiên đăng nhập đã hết. Vui lòng đăng nhập lại',
-        isError: true,
-      );
-      return;
-    }
+    final vm = context.read<UserVm>();
 
     try {
-      final childId = await userRepo.createChildAccount(
-        parentUid: parentUid,
+      await vm.addChildAccount(
+        name: name,
         email: email,
-        password: _passwordCtrl.text,
-        displayName: _nameCtrl.text.trim(),
+        password: password,
         dob: dob,
+        role: role,
         locale: localeString,
         timezone: timezone,
       );
-
-      debugPrint('ChildADD: Tạo tài khoản cho con thành công: $childId');
 
       if (!mounted) return;
 
@@ -108,60 +168,316 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Thêm tài khoản con')),
-      backgroundColor: const Color(0xFFFFFFFF),
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(17),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AppLabeledTextField(
-                label: "Họ và tên",
-                hint: "Nguyen Van A",
-                controller: _nameCtrl,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final vm = context.watch<UserVm>();
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: scheme.background,
+
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: scheme.surface,
+            centerTitle: true,
+            title: Text(
+              "Tạo tài khoản",
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurface,
               ),
+            ),
+            iconTheme: IconThemeData(color: scheme.onSurface),
+          ),
 
-              const SizedBox(height: 16),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                /// FORM CARD
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: 20,
+                        color: Colors.black.withOpacity(.05),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      AppLabeledTextField(
+                        label: "Tên",
+                        hint: "Nguyen Van A",
+                        controller: _nameCtrl,
+                      ),
 
-              AppLabeledTextField(
-                label: "Email",
-                hint: "nva@gmail.com",
-                controller: _emailCtrl,
-              ),
+                      const SizedBox(height: 16),
 
-              const SizedBox(height: 16),
+                      AppLabeledTextField(
+                        label: "Email",
+                        hint: "example@gmail.com",
+                        controller: _emailCtrl,
+                      ),
 
-              AppLabeledTextField(
-                label: "Mật khẩu",
-                hint: "Admin123",
-                controller: _passwordCtrl,
-              ),
+                      const SizedBox(height: 16),
 
-              const SizedBox(height: 16),
+                      AppLabeledTextField(
+                        label: "Mật khẩu",
+                        hint: "••••••••",
+                        controller: _passwordCtrl,
+                        obscureText: hidePassword,
+                        suffixIcon: IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            hidePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            size: 18,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              hidePassword = !hidePassword;
+                            });
+                          },
+                        ),
+                      ),
 
-              AppLabeledTextField(
-                label: "Ngày sinh",
-                hint: "1/1/2000",
-                controller: _dobCtrl,
-              ),
+                      const SizedBox(height: 16),
 
-              const SizedBox(height: 24),
+                      AppLabeledTextField(
+                        label: "Ngày sinh",
+                        hint: "dd/mm/yyyy",
+                        controller: _dobCtrl,
+                        readOnly: true,
+                        onTap: pickDate,
+                        suffixIcon: const Icon(Icons.calendar_today, size: 18),
+                      ),
 
-              AppButton(
-                text: "Thêm tài khoản",
-                height: 50,
-                onPressed: _onAddAccount,
-              ),
+                      const SizedBox(height: 20),
 
-              // đệm dưới để không bị bàn phím che
-              const SizedBox(height: 20),
-            ],
+                      /// ROLE
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Quyền truy cập",
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      Wrap(
+                        spacing: 10,
+                        children: [
+                          roleChip("child", "Con"),
+                          roleChip("guardian", "Phụ huynh"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                /// BUTTON
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _onAddAccount,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: scheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      "Tạo tài khoản",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: scheme.onPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+        if (vm.loading) LoadingOverlay(),
+      ],
+    );
+  }
+}
+
+class _WheelDatePicker extends StatefulWidget {
+  final DateTime initialDate;
+
+  const _WheelDatePicker({required this.initialDate});
+
+  @override
+  State<_WheelDatePicker> createState() => _WheelDatePickerState();
+}
+
+class _WheelDatePickerState extends State<_WheelDatePicker> {
+  late int day;
+  late int month;
+  late int year;
+
+  @override
+  void initState() {
+    super.initState();
+
+    day = widget.initialDate.day;
+    month = widget.initialDate.month;
+    year = widget.initialDate.year;
+  }
+
+  List<int> years = List.generate(60, (i) => 1970 + i);
+
+  int daysInMonth(int year, int month) {
+    final date = DateTime(year, month + 1, 0);
+    return date.day;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final maxDay = daysInMonth(year, month);
+
+    return Container(
+      height: 320,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          /// handle
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: scheme.outlineVariant,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+
+          Text(
+            "Chọn ngày sinh",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          Expanded(
+            child: Row(
+              children: [
+                /// DAY
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    scrollController: FixedExtentScrollController(
+                      initialItem: day - 1,
+                    ),
+                    onSelectedItemChanged: (i) {
+                      setState(() {
+                        day = i + 1;
+                      });
+                    },
+                    children: List.generate(
+                      maxDay,
+                      (i) => Center(child: Text("${i + 1}")),
+                    ),
+                  ),
+                ),
+
+                /// MONTH
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    scrollController: FixedExtentScrollController(
+                      initialItem: month - 1,
+                    ),
+                    onSelectedItemChanged: (i) {
+                      setState(() {
+                        month = i + 1;
+
+                        if (day > daysInMonth(year, month)) {
+                          day = daysInMonth(year, month);
+                        }
+                      });
+                    },
+                    children: List.generate(
+                      12,
+                      (i) => Center(child: Text("${i + 1}")),
+                    ),
+                  ),
+                ),
+
+                /// YEAR
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    scrollController: FixedExtentScrollController(
+                      initialItem: years.indexOf(year),
+                    ),
+                    onSelectedItemChanged: (i) {
+                      setState(() {
+                        year = years[i];
+
+                        if (day > daysInMonth(year, month)) {
+                          day = daysInMonth(year, month);
+                        }
+                      });
+                    },
+                    children: years
+                        .map((y) => Center(child: Text("$y")))
+                        .toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: FilledButton(
+              onPressed: () {
+                Navigator.pop(context, DateTime(year, month, day));
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                "Chọn",
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: scheme.onPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

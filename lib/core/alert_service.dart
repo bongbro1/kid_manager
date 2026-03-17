@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_navigator.dart';
 
 class AlertService {
   AlertService._();
-
-  static final navigatorKey = GlobalKey<NavigatorState>();
-
-  static BuildContext? get _ctx => navigatorKey.currentContext;
 
   /// Snackbar nhanh (info / error)
   static void showSnack(
@@ -13,19 +10,18 @@ class AlertService {
     bool isError = false,
     Duration duration = const Duration(seconds: 3),
   }) {
-    final ctx = _ctx;
-    if (ctx == null) return;
+    final messenger = AppNavigator.messengerKey.currentState;
 
-    final messenger = ScaffoldMessenger.of(ctx);
+    if (messenger == null) return;
+
     messenger.clearSnackBars();
+
     messenger.showSnackBar(
       SnackBar(
         content: Text(message),
         duration: duration,
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isError
-            ? Theme.of(ctx).colorScheme.error
-            : Theme.of(ctx).colorScheme.inverseSurface,
+        backgroundColor: isError ? Colors.red : null,
       ),
     );
   }
@@ -37,7 +33,8 @@ class AlertService {
     String okText = 'OK',
     String cancelText = 'Huỷ',
   }) async {
-    final ctx = _ctx;
+    final ctx = AppNavigator.navigatorKey.currentContext;
+
     if (ctx == null) return false;
 
     final res = await showDialog<bool>(
@@ -68,7 +65,8 @@ class AlertService {
     required String message,
     String okText = 'Đóng',
   }) async {
-    final ctx = _ctx;
+    final ctx = AppNavigator.navigatorKey.currentContext;
+
     if (ctx == null) return;
 
     await showDialog<void>(

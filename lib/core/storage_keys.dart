@@ -7,6 +7,10 @@ class StorageKeys {
   static const isLoggedIn = 'is_logged_in';
   static const locale = 'locale';
   static const login_preference = 'login_preference';
+
+  static const themeColor = 'theme_color';
+  static const isDarkMode = 'is_dark_mode';
+
   static String appRemovedNotified(String childId, String packageName) {
     return "removed_notified_${childId}_$packageName";
   }

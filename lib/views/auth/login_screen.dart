@@ -12,6 +12,7 @@ import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/views/auth/dialog/phone_auth_dialog.dart';
 import 'package:kid_manager/views/auth/forgot_pass_screen.dart';
 import 'package:kid_manager/views/auth/signup_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -92,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await storage.setString(StorageKeys.uid, uid);
 
-      final profile = await userVM.loadProfile(uid: uid,caller: 'LoginScreen');
+      final profile = await userVM.loadProfile(uid: uid, caller: 'LoginScreen');
       if (profile == null) {
         NotificationDialog.show(
           context,
@@ -173,6 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('❌ Failed to load login session: $e');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -397,15 +399,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     Row(
                       children: [
-                        Expanded(child: _socialBtn('assets/icons/google.svg')),
-                        const SizedBox(width: 12),
                         Expanded(
-                          child: _socialBtn('assets/icons/facebook.svg'),
+                          child: _socialBtn(
+                            'assets/icons/google.svg',
+                            () => vm.loginWithGoogle(),
+                          ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(child: _socialBtn('assets/icons/apple.svg')),
+                        Expanded(
+                          child: _socialBtn(
+                            'assets/icons/facebook.svg',
+                            () => vm.loginWithFacebook(),
+                          ),
+                        ),
                         const SizedBox(width: 12),
-                        Expanded(child: _socialBtn('assets/icons/mobile.svg')),
+                        Expanded(
+                          child: _socialBtn(
+                            'assets/icons/apple.svg',
+                            () => vm.loginWithApple(),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _socialBtn(
+                            'assets/icons/mobile.svg',
+                            () => PhoneAuthDialog.showPhoneDialog(context),
+                          ),
+                        ),
                       ],
                     ),
 
@@ -456,25 +476,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _socialBtn(String iconPath) {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFEFF0F6)),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Center(
-        child: SvgPicture.asset(
-          iconPath,
-          width: 18,
-          height: 18,
-          placeholderBuilder: (_) => const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+  Widget _socialBtn(String iconPath, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFEFF0F6)),
+          borderRadius: BorderRadius.circular(10),
         ),
+        child: Center(child: SvgPicture.asset(iconPath, width: 18, height: 18)),
       ),
     );
   }

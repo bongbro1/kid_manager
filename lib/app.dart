@@ -55,7 +55,13 @@ import 'package:kid_manager/viewmodels/schedule/schedule_import_vm.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final bool isDark;
+  final Color primaryColor;
+
+  const MyApp({super.key, required this.isDark, required this.primaryColor});
+
+  static _MyAppState of(BuildContext context) =>
+      context.findAncestorStateOfType<_MyAppState>()!;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -64,10 +70,24 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   late final SosViewModel _sosVm;
 
+  late bool _isDark;
+  late Color _primaryColor;
+
   @override
   void initState() {
     super.initState();
+
     _sosVm = SosViewModel();
+
+    _isDark = widget.isDark;
+    _primaryColor = widget.primaryColor;
+  }
+
+  void updateTheme(Color color, bool dark) {
+    setState(() {
+      _primaryColor = color;
+      _isDark = dark;
+    });
   }
 
   @override
@@ -246,6 +266,7 @@ class _MyAppState extends State<MyApp> {
           final locale = context.watch<LocaleVm>().locale;
           return MaterialApp(
             navigatorKey: AppNavigator.navigatorKey,
+            scaffoldMessengerKey: AppNavigator.messengerKey,
             debugShowCheckedModeBanner: false,
             title: AppConstants.appName,
             locale: locale,
@@ -257,8 +278,11 @@ class _MyAppState extends State<MyApp> {
             ],
             supportedLocales: const [Locale('en'), Locale('vi')],
             navigatorObservers: [routeObserver],
-            theme: AppTheme.light(),
-            themeMode: ThemeMode.system,
+            themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
+
+            theme: AppTheme.light(seedColor: _primaryColor),
+
+            darkTheme: AppTheme.dark(seedColor: _primaryColor),
             home: const SessionGuard(),
           );
         },
