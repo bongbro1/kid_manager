@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +10,10 @@ import 'package:kid_manager/services/notifications/sos_notification_service.dart
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
+import 'package:kid_manager/viewmodels/memory_day_vm.dart';
+import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/flash_screen.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
@@ -37,6 +41,7 @@ class _SessionGuardState extends State<SessionGuard> {
   bool _initCalled = false;
 
   String? _pushInitedForUid;
+  bool _sessionCleanupInFlight = false;
 
   @override
   void initState() {
@@ -56,23 +61,40 @@ class _SessionGuardState extends State<SessionGuard> {
         final status = session.status;
         final uid = session.user?.uid;
         final isParent = session.isParent;
+        final prevStatus = _lastStatus;
+        final prevUid = _lastUid;
+
+        final shouldClearSessionState =
+            status == SessionStatus.unauthenticated &&
+            (prevStatus != SessionStatus.unauthenticated || prevUid != null);
 
         final shouldTriggerMeWatch =
             status == SessionStatus.authenticated &&
-                uid != null &&
-                (_lastStatus != status || _lastUid != uid);
+            uid != null &&
+            (_lastStatus != status || _lastUid != uid);
 
         final shouldTriggerChildrenWatch =
             status == SessionStatus.authenticated &&
-                isParent == true &&
-                uid != null &&
-                (_lastStatus != status ||
-                    _lastUid != uid ||
-                    _lastIsParent != isParent);
+            isParent == true &&
+            uid != null &&
+            (_lastStatus != status ||
+                _lastUid != uid ||
+                _lastIsParent != isParent);
 
         _lastStatus = status;
         _lastUid = uid;
         _lastIsParent = isParent;
+
+        if (shouldClearSessionState && !_sessionCleanupInFlight) {
+          _sessionCleanupInFlight = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            try {
+              await _clearSessionScopedState();
+            } finally {
+              _sessionCleanupInFlight = false;
+            }
+          });
+        }
 
         if (shouldTriggerMeWatch) {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -82,7 +104,10 @@ class _SessionGuardState extends State<SessionGuard> {
             final storage = context.read<StorageService>();
             final appManagementVm = context.read<AppManagementVM>();
 
-            final profile = await userVm.loadProfile(uid: uid, caller: 'SessionGuard');
+            final profile = await userVm.loadProfile(
+              uid: uid,
+              caller: 'SessionGuard',
+            );
 
             await storage.setString(StorageKeys.uid, uid);
 
@@ -100,13 +125,11 @@ class _SessionGuardState extends State<SessionGuard> {
               await storage.setString(StorageKeys.displayName, profile.name);
             }
 
-            await storage.setString(
-              StorageKeys.parentId,
-              resolvedParentId,
-            );
+            await storage.setString(StorageKeys.parentId, resolvedParentId);
 
             if (resolvedRole == UserRole.child) {
-              if (resolvedParentId.isNotEmpty && resolvedDisplayName.isNotEmpty) {
+              if (resolvedParentId.isNotEmpty &&
+                  resolvedDisplayName.isNotEmpty) {
                 AuthRuntimeManager.start(
                   parentId: resolvedParentId,
                   displayName: resolvedDisplayName,
@@ -154,9 +177,7 @@ class _SessionGuardState extends State<SessionGuard> {
                 if (!mounted) return;
                 await FcmPushReceiverService.init(uid);
                 if (!mounted) return;
-                await SosNotificationService.instance.init(
-                  onTapSos: (data) {},
-                );
+                await SosNotificationService.instance.init(onTapSos: (data) {});
               });
             }
 
@@ -180,6 +201,28 @@ class _SessionGuardState extends State<SessionGuard> {
         }
       },
     );
+  }
+
+  Future<void> _clearSessionScopedState() async {
+    if (!mounted) return;
+
+    final notificationVm = context.read<NotificationVM>();
+    final userVm = context.read<UserVm>();
+    final appManagementVm = context.read<AppManagementVM>();
+    final parentLocationVm = context.read<ParentLocationVm>();
+    final scheduleVm = context.read<ScheduleViewModel>();
+    final memoryVm = context.read<MemoryDayViewModel>();
+    final birthdayVm = context.read<BirthdayViewModel>();
+
+    await notificationVm.clear();
+    await userVm.clear();
+    await appManagementVm.clear();
+    await parentLocationVm.stopWatchingAllChildren();
+    await parentLocationVm.stopMyLocation();
+    scheduleVm.resetForNewSession();
+    memoryVm.resetForNewSession();
+    birthdayVm.resetForNewSession();
+    _pushInitedForUid = null;
   }
 }
 

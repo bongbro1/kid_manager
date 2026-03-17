@@ -12,13 +12,14 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_text_styles.dart';
-import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_import_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
+import 'package:kid_manager/views/parent/schedule/schedule_session_resolver.dart';
+import 'package:kid_manager/widgets/parent/schedule/schedule_transfer_widgets.dart';
 
 class ScheduleImportExcelScreen extends StatefulWidget {
   final String? initialChildId;
@@ -39,80 +40,97 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   Uint8List? _pickedBytes;
   String? _pickedName;
 
-  bool _didInit = false;
   bool _needReload = false;
+  bool _resolvingDefaultChild = false;
 
-  String? _currentUid;
-  String? _role;
-  String? _ownerParentUid;
-  String? _lockedChildName;
+  late final UserVm _userVm;
+  late final ScheduleSessionResolver _sessionResolver;
+  ScheduleSessionState? _session;
 
-  bool get _isChildMode => widget.lockChildSelection || _role == 'child';
+  bool get _isChildMode => _session?.isChildMode ?? widget.lockChildSelection;
+  String? get _ownerParentUid => _session?.ownerParentUid;
+  String? get _lockedChildName => _session?.lockedChildName;
+  String? get _currentUid => _session?.currentUid;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_didInit) return;
-    _didInit = true;
+  void initState() {
+    super.initState();
+    _userVm = context.read<UserVm>();
+    _sessionResolver = ScheduleSessionResolver(
+      storage: context.read<StorageService>(),
+      userVm: _userVm,
+    );
+    _userVm.addListener(_handleUserVmChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       await _initSession();
     });
   }
 
+  @override
+  void dispose() {
+    _userVm.removeListener(_handleUserVmChanged);
+    super.dispose();
+  }
+
+  void _handleUserVmChanged() {
+    if (!mounted || _session == null) return;
+    _ensureSelectedChild();
+  }
+
   Future<void> _initSession() async {
     final l10n = AppLocalizations.of(context);
-    final storage = context.read<StorageService>();
-    final userVm = context.read<UserVm>();
     final importVm = context.read<ScheduleImportVM>();
     final scheduleVm = context.read<ScheduleViewModel>();
 
-    final currentUid = storage.getString(StorageKeys.uid);
-    final role = storage.getString(StorageKeys.role);
+    final resolved = await _sessionResolver.resolve(
+      initialChildId: widget.initialChildId,
+      lockChildSelection: widget.lockChildSelection,
+      watchChildrenForParent: true,
+    );
+    if (resolved == null) return;
 
-    if (currentUid == null) return;
+    _session =
+        resolved.isChildMode && (resolved.lockedChildName ?? '').trim().isEmpty
+        ? resolved.copyWith(lockedChildName: l10n.scheduleYourChild)
+        : resolved;
+    scheduleVm.setScheduleOwnerUid(_session!.ownerParentUid);
 
-    _currentUid = currentUid;
-    _role = role;
-
-    if (_isChildMode) {
-      if (userVm.profile == null || userVm.profile!.id != currentUid) {
-        await userVm.loadProfile();
-      }
-
-      final ownerParentUid = userVm.profile?.parentUid;
-      if (ownerParentUid == null || ownerParentUid.isEmpty) return;
-
-      _ownerParentUid = ownerParentUid;
-      scheduleVm.setScheduleOwnerUid(ownerParentUid);
-
-      final childId = widget.initialChildId ?? currentUid;
-      if (importVm.selectedChildId != childId) {
-        importVm.setChild(childId);
-      }
-
-      final name = (userVm.profile?.name ?? '').trim();
-      _lockedChildName = name.isEmpty ? l10n.scheduleYourChild : name;
-    } else {
-      _ownerParentUid = currentUid;
-      scheduleVm.setScheduleOwnerUid(currentUid);
-
-      userVm.watchChildren(currentUid);
-
-      final children = userVm.children;
-      final initialChildId = widget.initialChildId;
-
-      if (importVm.selectedChildId == null) {
-        if (initialChildId != null && initialChildId.isNotEmpty) {
-          importVm.setChild(initialChildId);
-        } else if (children.isNotEmpty) {
-          importVm.setChild(children.first.uid);
-        }
-      }
+    final selectedChildId = _session?.selectedChildId;
+    if (selectedChildId != null &&
+        importVm.selectedChildId != selectedChildId) {
+      importVm.setChild(selectedChildId);
     }
 
     if (mounted) {
       setState(() {});
+    }
+
+    _ensureSelectedChild();
+  }
+
+  void _ensureSelectedChild() {
+    if (_resolvingDefaultChild) return;
+    if (_session == null || _isChildMode) return;
+
+    final importVm = context.read<ScheduleImportVM>();
+    final children = context.read<UserVm>().children;
+
+    if (importVm.selectedChildId != null || children.isEmpty) return;
+
+    final fallbackChildId = ScheduleSessionResolver.resolveDefaultChildId(
+      initialChildId: widget.initialChildId,
+      children: children,
+    );
+
+    if (fallbackChildId == null || fallbackChildId.isEmpty) return;
+
+    _resolvingDefaultChild = true;
+    try {
+      importVm.setChild(fallbackChildId);
+    } finally {
+      _resolvingDefaultChild = false;
     }
   }
 
@@ -246,85 +264,6 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     }
   }
 
-  Future<void> _showSuccessDialog(BuildContext context) async {
-    final l10n = AppLocalizations.of(context);
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogCtx) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 86,
-                  height: 86,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE8F0FF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.check,
-                      size: 42,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.updateSuccessTitle,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.darkText,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.scheduleImportSuccessMessage,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.secondaryText,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF3F4F6),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: () => Navigator.of(dialogCtx).pop(),
-                    child: Text(
-                      l10n.authContinueButton,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.darkText,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _importNow() async {
     final l10n = AppLocalizations.of(context);
     final ownerParentUid = _ownerParentUid;
@@ -336,6 +275,9 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     }
 
     final vm = context.read<ScheduleImportVM>();
+    final scheduleVm = context.read<ScheduleViewModel>();
+    final userVm = context.read<UserVm>();
+    final notificationService = context.read<ScheduleNotificationService>();
 
     final imported = await vm.importNow(parentUid: ownerParentUid);
 
@@ -356,14 +298,13 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     }
 
     try {
-      await context.read<ScheduleViewModel>().loadMonth();
+      await scheduleVm.loadMonth();
     } catch (e) {
       debugPrint('[SCHEDULE_IMPORT] cannot reload ScheduleViewModel here: $e');
     }
 
     final actorUid = _currentUid;
     final childId = vm.selectedChildId;
-    final userVm = context.read<UserVm>();
     final childName = _resolveSelectedChildName(userVm, childId);
 
     if (actorUid != null &&
@@ -371,15 +312,13 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
         childId != null &&
         childId.isNotEmpty) {
       try {
-        await context
-            .read<ScheduleNotificationService>()
-            .notifyScheduleImported(
-              actorUid: actorUid,
-              ownerParentUid: ownerParentUid,
-              childId: childId,
-              importCount: imported,
-              childName: childName,
-            );
+        await notificationService.notifyScheduleImported(
+          actorUid: actorUid,
+          ownerParentUid: ownerParentUid,
+          childId: childId,
+          importCount: imported,
+          childName: childName,
+        );
       } catch (e) {
         debugPrint('[SCHEDULE_IMPORT_NOTIFY] failed: $e');
       }
@@ -387,7 +326,13 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
 
     _needReload = true;
 
-    await _showSuccessDialog(context);
+    if (!mounted) return;
+    await showScheduleTransferSuccessDialog(
+      context,
+      title: l10n.updateSuccessTitle,
+      message: l10n.scheduleImportSuccessMessage,
+      confirmText: l10n.authContinueButton,
+    );
     if (!mounted) return;
 
     _resetPickedFile();
@@ -396,22 +341,10 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final userVm = context.watch<UserVm>();
     final importVm = context.watch<ScheduleImportVM>();
-    final children = userVm.children;
-
-    if (!_isChildMode) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        if (importVm.selectedChildId == null && children.isNotEmpty) {
-          importVm.setChild(
-            widget.initialChildId != null && widget.initialChildId!.isNotEmpty
-                ? widget.initialChildId
-                : children.first.uid,
-          );
-        }
-      });
-    }
+    final children = context.select<UserVm, List<AppUser>>(
+      (vm) => List<AppUser>.unmodifiable(vm.children),
+    );
 
     final hasPreview = !importVm.loading && importVm.preview != null;
     final canImport = hasPreview && importVm.preview!.okCount > 0;
@@ -442,7 +375,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                 child: Container(
                   color: AppColors.background,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: _PrimaryButton(
+                  child: ScheduleTransferPrimaryButton(
                     text: l10n.scheduleImportAddCount(
                       importVm.preview!.okCount,
                     ),
@@ -457,7 +390,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
               children: [
-                _SectionCard(
+                ScheduleTransferSectionCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -467,10 +400,10 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                       ),
                       const SizedBox(height: 10),
                       _isChildMode
-                          ? _LockedChildBox(
+                          ? ScheduleTransferLockedChildBox(
                               label: _lockedChildName ?? l10n.scheduleYourChild,
                             )
-                          : _ChildDropdown(
+                          : ScheduleTransferChildDropdown(
                               children: children,
                               selectedId: importVm.selectedChildId,
                               onChanged: (id) {
@@ -485,7 +418,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: _PrimaryOutlineButton(
+                            child: ScheduleTransferOutlineButton(
                               text: l10n.scheduleTemplateDownloadButton,
                               icon: Icons.download,
                               onTap: importVm.loading
@@ -495,7 +428,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _PrimaryButton(
+                            child: ScheduleTransferPrimaryButton(
                               text: _pickedName == null
                                   ? l10n.scheduleImportPickFileButton
                                   : l10n.scheduleImportPickAnotherFileButton,
@@ -540,7 +473,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                   )
                 else if (importVm.error != null)
                   Expanded(
-                    child: _SectionCard(
+                    child: ScheduleTransferSectionCard(
                       child: Text(
                         importVm.error!,
                         style: const TextStyle(color: AppColors.error),
@@ -562,210 +495,6 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   }
 }
 
-class _LockedChildBox extends StatelessWidget {
-  final String label;
-
-  const _LockedChildBox({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.primarySoft,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lock_outline, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: AppTextStyles.body,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final Widget child;
-  const _SectionCard({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
-
-class _ChildDropdown extends StatelessWidget {
-  final List<AppUser> children;
-  final String? selectedId;
-  final ValueChanged<String?> onChanged;
-
-  const _ChildDropdown({
-    required this.children,
-    required this.selectedId,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    if (children.isEmpty) {
-      return Text(l10n.scheduleNoChild, style: AppTextStyles.body);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.primarySoft,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: selectedId ?? children.first.uid,
-          items: children
-              .map(
-                (c) => DropdownMenuItem(
-                  value: c.uid,
-                  child: Text(
-                    (c.displayName ?? c.email ?? c.uid),
-                    style: AppTextStyles.body,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              )
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  final String text;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _PrimaryButton({
-    required this.text,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Opacity(
-        opacity: onTap == null ? 0.5 : 1,
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    text,
-                    style: AppTextStyles.scheduleCreateButton,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PrimaryOutlineButton extends StatelessWidget {
-  final String text;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _PrimaryOutlineButton({
-    required this.text,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Opacity(
-        opacity: onTap == null ? 0.5 : 1,
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.primary),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: AppColors.primary, size: 18),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    text,
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _PreviewSummary extends StatelessWidget {
   final ImportPreview preview;
   const _PreviewSummary({required this.preview});
@@ -773,7 +502,7 @@ class _PreviewSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return _SectionCard(
+    return ScheduleTransferSectionCard(
       child: Row(
         children: [
           _Chip(
@@ -832,7 +561,7 @@ class _PreviewList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return _SectionCard(
+    return ScheduleTransferSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -861,7 +590,7 @@ class _PreviewList extends StatelessWidget {
               itemBuilder: (context, index) {
                 return _PreviewRow(r: preview.rows[index]);
               },
-              separatorBuilder: (_, __) => const SizedBox(height: 0),
+              separatorBuilder: (_, _) => const SizedBox(height: 0),
             ),
           ),
         ],

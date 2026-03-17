@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../models/memory_day.dart';
 import '../repositories/memory_day_repository.dart';
@@ -40,15 +42,17 @@ class MemoryDayViewModel extends ChangeNotifier {
   bool isAllLoading = false;
   String? allError;
 
-  DateTime _normalize(DateTime d) =>
-      DateTime(d.year, d.month, d.day);
+  DateTime _normalize(DateTime d) => DateTime(d.year, d.month, d.day);
 
   // ==========================
   // RESET KHI ĐỔI SESSION
   // ==========================
-  void resetForNewSession() {
+  void resetForNewSession({bool clearOwnerUid = true}) {
     _monthToken++;
     _allToken++;
+    if (clearOwnerUid) {
+      _ownerUid = null;
+    }
 
     monthMemories = {};
     memoriesOfSelectedDay = [];
@@ -62,17 +66,17 @@ class MemoryDayViewModel extends ChangeNotifier {
   }
 
   void setOwnerUid(String uid) {
-    if (_ownerUid == uid) return;
-    _ownerUid = uid;
-    resetForNewSession();
+    final normalized = uid.trim();
+    if (normalized.isEmpty || _ownerUid == normalized) return;
+    _ownerUid = normalized;
+    resetForNewSession(clearOwnerUid: false);
   }
 
   void bindCalendarState({
     required DateTime focusedMonth,
     required DateTime selectedDate,
   }) {
-    this.focusedMonth =
-        DateTime(focusedMonth.year, focusedMonth.month, 1);
+    this.focusedMonth = DateTime(focusedMonth.year, focusedMonth.month, 1);
     this.selectedDate = _normalize(selectedDate);
   }
 
@@ -94,8 +98,10 @@ class MemoryDayViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final list =
-          await _repo.getByMonth(ownerParentUid: uid, month: focusedMonth);
+      final list = await _repo.getByMonth(
+        ownerParentUid: uid,
+        month: focusedMonth,
+      );
 
       if (token != _monthToken) return;
 
@@ -105,8 +111,7 @@ class MemoryDayViewModel extends ChangeNotifier {
       }).toList();
 
       monthMemories = _groupByDay(filtered);
-      memoriesOfSelectedDay =
-          monthMemories[_normalize(selectedDate)] ?? [];
+      memoriesOfSelectedDay = monthMemories[_normalize(selectedDate)] ?? [];
     } catch (e) {
       if (token != _monthToken) return;
       error = e.toString();
@@ -118,8 +123,7 @@ class MemoryDayViewModel extends ChangeNotifier {
     }
   }
 
-  Map<DateTime, List<MemoryDay>> _groupByDay(
-      List<MemoryDay> list) {
+  Map<DateTime, List<MemoryDay>> _groupByDay(List<MemoryDay> list) {
     final map = <DateTime, List<MemoryDay>>{};
     for (final m in list) {
       final key = DateTime(
@@ -135,16 +139,13 @@ class MemoryDayViewModel extends ChangeNotifier {
 
   void setDate(DateTime date) {
     selectedDate = _normalize(date);
-    memoriesOfSelectedDay =
-        monthMemories[selectedDate] ?? [];
+    memoriesOfSelectedDay = monthMemories[selectedDate] ?? [];
     notifyListeners();
   }
 
   Future<void> changeMonth(DateTime newMonth) async {
-    focusedMonth =
-        DateTime(newMonth.year, newMonth.month, 1);
-    selectedDate =
-        DateTime(newMonth.year, newMonth.month, 1);
+    focusedMonth = DateTime(newMonth.year, newMonth.month, 1);
+    selectedDate = DateTime(newMonth.year, newMonth.month, 1);
     await loadMonth();
   }
 
@@ -157,7 +158,7 @@ class MemoryDayViewModel extends ChangeNotifier {
 
     final actorUid = _actorUid;
     if (actorUid != null && actorUid.isNotEmpty) {
-        try {
+      try {
         await _notify.notifyMemoryDayCreated(
           actorUid: actorUid,
           ownerParentUid: ownerUid,
@@ -188,28 +189,31 @@ class MemoryDayViewModel extends ChangeNotifier {
   }
 
   Future<void> deleteMemory(String id) async {
-    final existing = await _repo.getById(
-      ownerParentUid: ownerUid,
-      id: id,
-    );
-        debugPrint(
+    final existing = _findMemoryById(id) ??
+        await _repo.getById(ownerParentUid: ownerUid, id: id);
+    debugPrint(
       '[MEMORY_DAY_VM] deleteMemory id=$id existing=${existing?.title} ownerUid=$ownerUid actorUid=$_actorUid',
     );
 
-    await _repo.delete(ownerUid, id);
-    await Future.wait([loadMonth(), loadAll()]);
+    try {
+      _removeMemoryLocally(id);
+      await _repo.delete(ownerUid, id);
 
-    final actorUid = _actorUid;
-    if (existing != null && actorUid != null && actorUid.isNotEmpty) {
-      try {
-        await _notify.notifyMemoryDayDeleted(
-          actorUid: actorUid,
-          ownerParentUid: ownerUid,
-          memoryDay: existing,
+      final actorUid = _actorUid;
+      if (existing != null && actorUid != null && actorUid.isNotEmpty) {
+        unawaited(
+          _notify.notifyMemoryDayDeleted(
+            actorUid: actorUid,
+            ownerParentUid: ownerUid,
+            memoryDay: existing,
+          ).catchError((Object e) {
+            debugPrint('[MEMORY_DAY_VM] notify deleted failed: $e');
+          }),
         );
-      } catch (e) {
-        debugPrint('[MEMORY_DAY_VM] notify deleted failed: $e');
       }
+    } catch (e) {
+      await Future.wait([loadMonth(), loadAll()]);
+      rethrow;
     }
   }
 
@@ -227,8 +231,7 @@ class MemoryDayViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final list =
-          await _repo.getAll(ownerParentUid: uid);
+      final list = await _repo.getAll(ownerParentUid: uid);
 
       if (token != _allToken) return;
 
@@ -246,12 +249,10 @@ class MemoryDayViewModel extends ChangeNotifier {
 
   int daysUntilNextOccurrence(MemoryDay m) {
     final now = _normalize(DateTime.now());
-    DateTime next =
-        DateTime(now.year, m.month, m.day);
+    DateTime next = DateTime(now.year, m.month, m.day);
 
     if (next.isBefore(now)) {
-      next =
-          DateTime(now.year + 1, m.month, m.day);
+      next = DateTime(now.year + 1, m.month, m.day);
     }
 
     if (!m.repeatYearly) {
@@ -259,5 +260,34 @@ class MemoryDayViewModel extends ChangeNotifier {
     }
 
     return next.difference(now).inDays;
+  }
+
+  MemoryDay? _findMemoryById(String id) {
+    for (final memory in memoriesOfSelectedDay) {
+      if (memory.id == id) return memory;
+    }
+
+    for (final memory in allMemories) {
+      if (memory.id == id) return memory;
+    }
+
+    for (final entry in monthMemories.entries) {
+      for (final memory in entry.value) {
+        if (memory.id == id) return memory;
+      }
+    }
+
+    return null;
+  }
+
+  void _removeMemoryLocally(String id) {
+    memoriesOfSelectedDay.removeWhere((memory) => memory.id == id);
+    allMemories.removeWhere((memory) => memory.id == id);
+
+    for (final entry in monthMemories.entries) {
+      entry.value.removeWhere((memory) => memory.id == id);
+    }
+
+    notifyListeners();
   }
 }

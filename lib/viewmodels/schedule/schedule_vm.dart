@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
@@ -50,8 +52,16 @@ class ScheduleViewModel extends ChangeNotifier {
     return uid;
   }
 
+  bool get hasBoundScheduleOwner =>
+      _scheduleOwnerUid != null && _scheduleOwnerUid!.trim().isNotEmpty;
+
   void setScheduleOwnerUid(String uid) {
-    _scheduleOwnerUid = uid;
+    final normalized = uid.trim();
+    if (normalized.isEmpty) {
+      _scheduleOwnerUid = null;
+      return;
+    }
+    _scheduleOwnerUid = normalized;
   }
 
   Future<void> setChild(String id) async {
@@ -60,6 +70,11 @@ class ScheduleViewModel extends ChangeNotifier {
     final now = DateTime.now();
     selectedDate = _normalize(now);
     focusedMonth = DateTime(now.year, now.month, 1);
+
+    if (!hasBoundScheduleOwner) {
+      notifyListeners();
+      return;
+    }
 
     await loadMonth();
   }
@@ -88,7 +103,7 @@ class ScheduleViewModel extends ChangeNotifier {
   // ======================
 
   Future<void> loadMonth() async {
-    if (selectedChildId == null) return;
+    if (selectedChildId == null || !hasBoundScheduleOwner) return;
 
     final token = ++_loadToken;
 
@@ -191,10 +206,8 @@ class ScheduleViewModel extends ChangeNotifier {
       await _repo.deleteSchedule(scheduleOwnerUid, id);
 
       if (deletedSchedule != null) {
-        await _safeNotifyDeleted(deletedSchedule);
+        unawaited(_safeNotifyDeleted(deletedSchedule));
       }
-
-      await loadMonth();
     } catch (e) {
       await loadMonth();
       rethrow;
@@ -237,6 +250,7 @@ class ScheduleViewModel extends ChangeNotifier {
   // khi logout hoặc chuyển sang bé khác, reset hết state để tránh hiển thị nhầm
   void resetForNewSession() {
     _loadToken++;
+    _scheduleOwnerUid = null;
     monthSchedules = {};
     schedules = [];
     error = null;

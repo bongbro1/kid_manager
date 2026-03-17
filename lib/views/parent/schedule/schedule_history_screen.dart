@@ -114,6 +114,9 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
 
     final historyVm = context.read<ScheduleHistoryViewModel>();
     final scheduleVm = context.read<ScheduleViewModel>();
+    final pageNavigator = Navigator.of(context);
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+    final rootContext = rootNavigator.context;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -158,25 +161,25 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
       );
 
       if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop(); // đóng loading
+      rootNavigator.pop();
 
-      final rootCtx = Navigator.of(context, rootNavigator: true).context;
+      if (!rootContext.mounted) return;
       await NotificationDialog.show(
-        rootCtx,
+        rootContext,
         type: DialogType.success,
         title: l10n.updateSuccessTitle,
         message: l10n.scheduleHistoryRestoreSuccessMessage,
         onConfirm: () {
-          if (mounted) Navigator.pop(context, true);
+          if (pageNavigator.mounted) pageNavigator.pop(true);
         },
       );
     } catch (e) {
       if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop(); // đóng loading
+      rootNavigator.pop();
 
-      final rootCtx = Navigator.of(context, rootNavigator: true).context;
+      if (!rootContext.mounted) return;
       await NotificationDialog.show(
-        rootCtx,
+        rootContext,
         type: DialogType.error,
         title: l10n.updateErrorTitle,
         message: l10n.scheduleHistoryRestoreFailed(e.toString()),
