@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/phone/phone_helps.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/user/app_user_extensions.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -13,12 +14,13 @@ class ParentChildrenListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = context.watch<UserVm>();
     final children = vm.children;
     final locationVm = context.watch<ParentLocationVm>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Danh sách thành viên')),
+      appBar: AppBar(title: Text(l10n.parentChildrenListTitle)),
       backgroundColor: const Color(0xFFF6F7FB),
       body: ListView.builder(
         padding: const EdgeInsets.only(top: 8, bottom: 12),

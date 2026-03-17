@@ -12,10 +12,8 @@ import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:provider/provider.dart';
-import 'firebase_options.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:provider/provider.dart';
 
 import 'app.dart';
 import 'firebase_options.dart';

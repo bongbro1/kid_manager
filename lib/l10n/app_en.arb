@@ -3,7 +3,7 @@
   "personalInfoTitle": "Personal Information",
   "appAppearanceTitle": "App Appearance",
   "aboutAppTitle": "About app",
-  "addAccountTitle": "Add account",
+  "addAccountTitle": "Add child account",
   "logoutTitle": "Logout",
   "fullNameLabel": "Full name",
   "fullNameHint": "Enter full name",
@@ -29,6 +29,24 @@
   "vietnamese": "Vietnamese",
   "english": "English",
   "changeLanguagePrompt": "Change language, app will restart",
+  "appAppearanceThemeLabel": "Theme",
+  "appAppearanceSelectThemeTitle": "Select theme",
+  "appAppearanceThemeSystem": "Follow system",
+  "appAppearanceThemeLight": "Light",
+  "appAppearanceThemeDark": "Dark",
+  "addAccountSuccessMessage": "Child account created successfully",
+  "sessionExpiredLoginAgain": "Session expired. Please sign in again.",
+  "aboutAppName": "My Application",
+  "aboutAppVersionLabel": "Version: {version}",
+  "@aboutAppVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutAppDescription": "This app helps manage accounts, track activity, and personalize the user experience.",
+  "aboutAppCopyright": "© 2026 My Company",
   "accountNotFound": "Account not found",
   "accountNotActivated": "Account not activated",
   "emailNotRegistered": "Email not registered",
@@ -241,6 +259,215 @@
         "type": "int"
       },
       "error": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayMemberFallback": "Member",
+  "birthdayWishSelfWithAge": "Happy birthday to me. Welcome {age} with joy, peace, and beautiful moments.",
+  "@birthdayWishSelfWithAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayWishSelfDefault": "Happy birthday to me. Wishing myself a joyful and memorable day.",
+  "birthdayWishOtherWithAge": "Happy birthday, {name}. Wishing you a healthy, joyful, and lucky year at {age}.",
+  "@birthdayWishOtherWithAge": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayWishOtherDefault": "Happy birthday, {name}. Wishing you joy, good health, and lots of happy moments.",
+  "@birthdayWishOtherDefault": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayViewWishButton": "View wish",
+  "birthdaySendWishButton": "Send wishes",
+  "birthdayCongratsYouTitle": "Happy birthday to you",
+  "birthdayCongratsTitle": "Happy birthday",
+  "birthdayTodayIsYourDay": "Today is your day",
+  "birthdayTurnsAge": "Turning {age}",
+  "@birthdayTurnsAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdaySuggestionTitle": "Suggested wish",
+  "birthdayYouEnteringAge": "Today you turn {age}. Wishing you a gentle, joyful, and memorable day.",
+  "@birthdayYouEnteringAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayYouSpecialDay": "Today is your special day. Wishing you lots of joy and positive energy.",
+  "birthdayTodayIsBirthdayWithAge": "Today is {name}'s birthday, turning {age}.",
+  "@birthdayTodayIsBirthdayWithAge": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayTodayIsBirthday": "Today is {name}'s birthday.",
+  "@birthdayTodayIsBirthday": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayCopiedFallback": "Family chat was not found. The birthday wish for {name} has been copied.",
+  "@birthdayCopiedFallback": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayCloseButton": "Close",
+  "birthdayAwesomeButton": "Awesome",
+  "familyChatLoadingTitle": "Loading chat",
+  "familyChatTitle": "Family group chat",
+  "familyChatTitleLarge": "Family Group Chat",
+  "familyChatSendFailed": "Send failed: {error}",
+  "@familyChatSendFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "familyChatYou": "You",
+  "familyChatMemberFallback": "Member",
+  "familyChatLoadingMembers": "Loading members...",
+  "familyChatNoMembersFound": "No members found",
+  "familyChatOneMember": "1 member",
+  "familyChatManyMembers": "{count} members",
+  "@familyChatManyMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "familyChatCannotLoadMessages": "Cannot load messages",
+  "familyChatNoMessagesYet": "No messages yet. Start the conversation.",
+  "familyChatStatusFailed": "failed",
+  "familyChatStatusSending": "sending...",
+  "familyChatTypeMessageHint": "Type a message...",
+  "familyChatMemberCountOverflow": "{names} +{extra}",
+  "@familyChatMemberCountOverflow": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "extra": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationScreenTitle": "Notifications",
+  "notificationDateToday": "TODAY",
+  "notificationDateYesterday": "YESTERDAY",
+  "notificationFilterTitle": "Filter notifications",
+  "notificationFilterAll": "All",
+  "notificationFilterActivity": "Activity",
+  "notificationFilterAlert": "Alerts",
+  "notificationFilterReminder": "Reminders",
+  "notificationFilterSystem": "System notifications",
+  "notificationSearchHint": "Search notifications",
+  "notificationJustNow": "Just now",
+  "notificationMinutesAgo": "{minutes}m ago",
+  "@notificationMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationHoursAgo": "{hours}h ago",
+  "@notificationHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationDetailTitle": "Notification details",
+  "notificationDetailSectionTitle": "DETAILS",
+  "notificationChildFallback": "Child",
+  "notificationChildInfoNotFound": "Child information could not be found",
+  "notificationMapLocationNotFound": "Location could not be found to open the map",
+  "notificationScheduleCreatedTitle": "New schedule for {childName}",
+  "@notificationScheduleCreatedTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationScheduleUpdatedTitle": "{childName}'s schedule has changed",
+  "@notificationScheduleUpdatedTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationScheduleDeletedTitle": "{childName}'s schedule was deleted",
+  "@notificationScheduleDeletedTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationScheduleRestoredTitle": "{childName}'s schedule was restored",
+  "@notificationScheduleRestoredTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationZoneEnteredDangerTitle": "{childName} entered a danger zone",
+  "@notificationZoneEnteredDangerTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationZoneExitedSafeTitle": "{childName} left a safe zone",
+  "@notificationZoneExitedSafeTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationZoneExitedDangerTitle": "{childName} left a danger zone",
+  "@notificationZoneExitedDangerTitle": {
+    "placeholders": {
+      "childName": {
         "type": "String"
       }
     }
@@ -851,6 +1078,38 @@
     }
   },
   "zonesDefaultNameFallback": "Zone",
+  "parentLocationUnknownUser": "Unknown",
+  "parentLocationSosSent": "SOS sent",
+  "parentLocationSosFailed": "Failed to send SOS",
+  "parentLocationMapLoadingTitle": "Loading map",
+  "parentLocationMapLoadingSubtitle": "Preparing the children's locations",
+  "parentChildrenListTitle": "Member list",
+  "childLocationTransportWalking": "Walking",
+  "childLocationTransportBicycle": "Cycling",
+  "childLocationTransportVehicle": "In vehicle",
+  "childLocationTransportStill": "Still",
+  "childLocationTransportUnknown": "Unknown",
+  "childLocationDetailTitle": "Location details",
+  "childLocationStatusTitle": "Status: {transport}",
+  "@childLocationStatusTitle": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationHistoryTitle": "History • {date}",
+  "@childLocationHistoryTitle": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationTooltipHideDots": "Hide points",
+  "childLocationTooltipShowDots": "Show points",
+  "childLocationHistoryButton": "History",
+  "childLocationZonesButton": "Zones",
   "zone_default": "Zone notification",
   "zone_enter_danger_parent": "⚠️ Child entered a danger zone",
   "zone_exit_danger_parent": "✅ Child left a danger zone",

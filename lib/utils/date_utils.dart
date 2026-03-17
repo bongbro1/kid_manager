@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// Parse "Xh Ym" -> total minutes
 int parseUsageTimeToMinutes(String? text) {
   if (text == null || text.isEmpty) return 0;
@@ -19,28 +21,9 @@ String formatUsageMinutes(int minutes) {
 }
 
 int calculateAgeFromDateString(String dobString) {
-  try {
-    final parts = dobString.split('/');
-    if (parts.length != 3) return 0;
-
-    final day = int.parse(parts[0]);
-    final month = int.parse(parts[1]);
-    final year = int.parse(parts[2]);
-
-    final birthDate = DateTime(year, month, day);
-    final today = DateTime.now();
-
-    int age = today.year - birthDate.year;
-
-    if (today.month < birthDate.month ||
-        (today.month == birthDate.month && today.day < birthDate.day)) {
-      age--;
-    }
-
-    return age;
-  } catch (_) {
-    return 0;
-  }
+  final birthDate = parseFlexibleBirthDate(dobString);
+  if (birthDate == null) return 0;
+  return calculateAgeOnDate(birthDate, DateTime.now());
 }
 
 // convert text to datetime
@@ -73,6 +56,110 @@ DateTime? parseDateFromText(String text) {
   } catch (_) {
     return null;
   }
+}
+
+DateTime? parseFlexibleBirthDate(dynamic rawDob) {
+  if (rawDob == null) return null;
+
+  DateTime? parsed;
+
+  if (rawDob is Timestamp) {
+    parsed = rawDob.toDate();
+  } else if (rawDob is DateTime) {
+    parsed = rawDob;
+  } else if (rawDob is int) {
+    parsed = DateTime.fromMillisecondsSinceEpoch(rawDob);
+  } else if (rawDob is String) {
+    final value = rawDob.trim();
+    if (value.isEmpty) return null;
+
+    parsed = parseDateFromText(value);
+    parsed ??= _parseIsoDateOnly(value);
+    parsed ??= DateTime.tryParse(value);
+  }
+
+  if (parsed == null) return null;
+  return DateTime(parsed.year, parsed.month, parsed.day);
+}
+
+Map<String, dynamic> buildBirthdayStorageFields(DateTime? birthDate) {
+  if (birthDate == null) return const <String, dynamic>{};
+
+  final normalized = DateTime(birthDate.year, birthDate.month, birthDate.day);
+  final timestampDate = DateTime.utc(
+    normalized.year,
+    normalized.month,
+    normalized.day,
+    12,
+  );
+
+  return <String, dynamic>{
+    'dob': Timestamp.fromDate(timestampDate),
+    'dobIso': _formatIsoDateOnly(normalized),
+    'birthMonth': normalized.month,
+    'birthDay': normalized.day,
+  };
+}
+
+DateTime? _parseIsoDateOnly(String value) {
+  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value);
+  if (match == null) return null;
+
+  final year = int.parse(match.group(1)!);
+  final month = int.parse(match.group(2)!);
+  final day = int.parse(match.group(3)!);
+  final parsed = DateTime(year, month, day);
+
+  if (parsed.year != year || parsed.month != month || parsed.day != day) {
+    return null;
+  }
+
+  return parsed;
+}
+
+String _formatIsoDateOnly(DateTime date) {
+  final year = date.year.toString().padLeft(4, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
+}
+
+bool isLeapYear(int year) {
+  if (year % 400 == 0) return true;
+  if (year % 100 == 0) return false;
+  return year % 4 == 0;
+}
+
+DateTime resolveBirthdayOccurrence(DateTime birthDate, int year) {
+  final normalized = DateTime(birthDate.year, birthDate.month, birthDate.day);
+
+  if (normalized.month == DateTime.february &&
+      normalized.day == 29 &&
+      !isLeapYear(year)) {
+    return DateTime(year, DateTime.february, 28);
+  }
+
+  return DateTime(year, normalized.month, normalized.day);
+}
+
+int calculateAgeOnDate(DateTime birthDate, DateTime atDate) {
+  final normalizedBirth = DateTime(
+    birthDate.year,
+    birthDate.month,
+    birthDate.day,
+  );
+  final normalizedAtDate = DateTime(atDate.year, atDate.month, atDate.day);
+  final birthdayInYear = resolveBirthdayOccurrence(
+    normalizedBirth,
+    normalizedAtDate.year,
+  );
+
+  var age = normalizedAtDate.year - normalizedBirth.year;
+  if (normalizedAtDate.isBefore(birthdayInYear)) {
+    age--;
+  }
+
+  return age < 0 ? 0 : age;
 }
 
 bool isChildAgeValid(DateTime dob) {
@@ -122,6 +209,7 @@ String formatMinutes(int minutes) {
   if (m == 0) return "${h}h";
   return "${h}h ${m}m";
 }
+
 String formatMinutes2(int minutes) {
   final h = minutes ~/ 60;
   final m = minutes % 60;

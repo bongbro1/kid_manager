@@ -2,8 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/validators.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -111,10 +113,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   // -------------------------
 
   Future<void> _onAddAccount() async {
+    final l10n = AppLocalizations.of(context);
     final name = _nameCtrl.text.trim();
+    final dob = parseDateFromText(_dobCtrl.text);
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
-    final dob = _parseDate(_dobCtrl.text);
 
     if (name.isEmpty) {
       AlertService.showSnack('Vui lòng nhập tên', isError: true);
@@ -132,7 +135,8 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     }
 
     if (dob == null) {
-      AlertService.showSnack('Ngày sinh không hợp lệ', isError: true);
+      debugPrint('ChildADD: invalid birth date');
+      AlertService.showSnack(l10n.invalidBirthDate, isError: true);
       return;
     }
 
@@ -151,23 +155,24 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
       if (!mounted) return;
 
-      NotificationDialog.show(
+      await NotificationDialog.show(
         context,
         type: DialogType.success,
-        title: "Thành công",
-        message: "Tạo tài khoản thành công",
+        title: l10n.updateSuccessTitle,
+        message: l10n.addAccountSuccessMessage,
       );
 
-      Navigator.pop(context);
-    } catch (e) {
       if (!mounted) return;
-
-      AlertService.showSnack(e.toString(), isError: true);
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      AlertService.showSnack(error.toString(), isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final vm = context.watch<UserVm>();
@@ -181,7 +186,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             backgroundColor: scheme.surface,
             centerTitle: true,
             title: Text(
-              "Tạo tài khoản",
+              l10n.addAccountTitle,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: scheme.onSurface,
@@ -210,24 +215,24 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                   child: Column(
                     children: [
                       AppLabeledTextField(
-                        label: "Tên",
-                        hint: "Nguyen Van A",
+                        label: l10n.fullNameLabel,
+                        hint: l10n.fullNameHint,
                         controller: _nameCtrl,
                       ),
 
                       const SizedBox(height: 16),
 
                       AppLabeledTextField(
-                        label: "Email",
-                        hint: "example@gmail.com",
+                        label: l10n.authEmailLabel,
+                hint: l10n.authEnterEmailHint,
                         controller: _emailCtrl,
                       ),
 
                       const SizedBox(height: 16),
 
                       AppLabeledTextField(
-                        label: "Mật khẩu",
-                        hint: "••••••••",
+                        label: l10n.authPasswordLabel,
+                hint: l10n.authEnterPasswordHint,
                         controller: _passwordCtrl,
                         obscureText: hidePassword,
                         suffixIcon: IconButton(
@@ -250,8 +255,8 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                       const SizedBox(height: 16),
 
                       AppLabeledTextField(
-                        label: "Ngày sinh",
-                        hint: "dd/mm/yyyy",
+                        label: l10n.birthDateLabel,
+                hint: l10n.birthDateHint,
                         controller: _dobCtrl,
                         readOnly: true,
                         onTap: pickDate,
@@ -297,7 +302,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                       ),
                     ),
                     child: Text(
-                      "Tạo tài khoản",
+                      l10n.addAccountTitle,
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: scheme.onPrimary,
                         fontWeight: FontWeight.w600,

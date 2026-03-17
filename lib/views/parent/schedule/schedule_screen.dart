@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:provider/provider.dart';
 import 'package:kid_manager/models/app_user.dart';
@@ -34,6 +35,7 @@ class ScheduleScreen extends StatefulWidget {
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
   String? _lastParentUid;
+  String? _lastFamilyId;
   bool _binding = false;
   bool _appliedNotificationTarget = false;
 
@@ -76,6 +78,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     final scheduleVm = context.read<ScheduleViewModel>();
     final memoryVm = context.read<MemoryDayViewModel>();
+    final birthdayVm = context.read<BirthdayViewModel>();
 
     await scheduleVm.openFromNotification(
       ownerParentUid: widget.initialOwnerParentUid!,
@@ -87,7 +90,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       focusedMonth: scheduleVm.focusedMonth,
       selectedDate: scheduleVm.selectedDate,
     );
-    await memoryVm.loadMonth();
+    birthdayVm.bindCalendarState(
+      focusedMonth: scheduleVm.focusedMonth,
+      selectedDate: scheduleVm.selectedDate,
+    );
+    await Future.wait([memoryVm.loadMonth(), birthdayVm.loadMonth()]);
   }
 
   Future<void> _bindParentSessionIfNeeded() async {
@@ -99,25 +106,31 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final userVm = context.read<UserVm>();
       final scheduleVm = context.read<ScheduleViewModel>();
       final memoryVm = context.read<MemoryDayViewModel>();
+      final birthdayVm = context.read<BirthdayViewModel>();
 
       final parentUid = storage.getString(StorageKeys.uid);
       final role = storage.getString(StorageKeys.role);
+      final familyId = userVm.familyId;
 
       // Chỉ bind ở màn parent
       if (parentUid == null || role != 'parent') return;
+      if (familyId == null || familyId.isEmpty) return;
 
-      final changed = _lastParentUid != parentUid;
+      final changed = _lastParentUid != parentUid || _lastFamilyId != familyId;
 
       if (changed) {
         _lastParentUid = parentUid;
+        _lastFamilyId = familyId;
 
         // ✅ RESET state cũ
         scheduleVm.resetForNewSession();
         memoryVm.resetForNewSession();
+        birthdayVm.resetForNewSession();
 
         // Bind owner
         scheduleVm.setScheduleOwnerUid(parentUid);
         memoryVm.setOwnerUid(parentUid);
+        birthdayVm.setFamilyId(familyId);
 
         // Load children list
         userVm.watchChildren(parentUid);
@@ -127,9 +140,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           focusedMonth: scheduleVm.focusedMonth,
           selectedDate: scheduleVm.selectedDate,
         );
+        birthdayVm.bindCalendarState(
+          focusedMonth: scheduleVm.focusedMonth,
+          selectedDate: scheduleVm.selectedDate,
+        );
 
         // Load memory month hiện tại
-        await memoryVm.loadMonth();
+        await Future.wait([memoryVm.loadMonth(), birthdayVm.loadMonth()]);
         await _applyNotificationTargetIfNeeded();
       }
     } finally {
@@ -209,7 +226,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         scheduleVm.setChild(
           children.first.uid,
         ); // setChild sẽ reset về today + loadMonth
-        _syncMemoryWithSchedule();
+        _syncCalendarCompanions();
       });
     }
 
@@ -246,7 +263,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 : PopupMenuButton<String>(
                     onSelected: (childUid) {
                       scheduleVm.setChild(childUid);
-                      _syncMemoryWithSchedule();
+                      _syncCalendarCompanions();
                     },
                     itemBuilder: (_) => children.map((c) {
                       final avatar = (c.avatarUrl ?? '').trim();
@@ -260,7 +277,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               foregroundImage: avatar.isNotEmpty
                                   ? NetworkImage(avatar)
                                   : null,
-                              onForegroundImageError: avatar.isNotEmpty ? (_, _) {} : null,
+                              onForegroundImageError: avatar.isNotEmpty
+                                  ? (_, _) {}
+                                  : null,
                               child: Text(
                                 _nameInitial(c),
                                 style: const TextStyle(
@@ -325,7 +344,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     // nếu bạn muốn đồng bộ memory day dot theo month schedule (tuỳ app),
     // thì gọi sync luôn (an toàn)
-    await _syncMemoryWithSchedule();
+    await _syncCalendarCompanions();
 
     debugPrint('[SCHEDULE_IMPORT] reload done');
   }
@@ -345,14 +364,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   //   return name[0].toUpperCase();
   // }
 
-  Future<void> _syncMemoryWithSchedule() async {
+  Future<void> _syncCalendarCompanions() async {
     final scheduleVm = context.read<ScheduleViewModel>();
     final memoryVm = context.read<MemoryDayViewModel>();
+    final birthdayVm = context.read<BirthdayViewModel>();
 
     memoryVm.bindCalendarState(
       focusedMonth: scheduleVm.focusedMonth,
       selectedDate: scheduleVm.selectedDate,
     );
-    await memoryVm.loadMonth();
+    birthdayVm.bindCalendarState(
+      focusedMonth: scheduleVm.focusedMonth,
+      selectedDate: scheduleVm.selectedDate,
+    );
+    await Future.wait([memoryVm.loadMonth(), birthdayVm.loadMonth()]);
   }
 }

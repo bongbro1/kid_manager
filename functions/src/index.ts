@@ -6,6 +6,8 @@ setGlobalOptions({ region: REGION });
 //MAIL_FROM=Kid Manager <no-reply@homiesmart.io.vn>
 // $env:FUNCTIONS_DISCOVERY_TIMEOUT=30
 export * from "./functions/mirror";
+export * from "./functions/family_members";
+export * from "./functions/birthday_notifications";
 export * from "./functions/tokens";
 export * from "./functions/sos";
 export * from "./functions/locations";

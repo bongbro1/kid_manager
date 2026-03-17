@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +30,7 @@ class ChildScheduleScreen extends StatefulWidget {
 class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
   String? _lastChildUid;
   String? _lastOwnerUid;
+  String? _lastFamilyId;
   bool _binding = false;
   bool _appliedNotificationTarget = false;
 
@@ -69,6 +72,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
 
     final scheduleVm = context.read<ScheduleViewModel>();
     final memoryVm = context.read<MemoryDayViewModel>();
+    final birthdayVm = context.read<BirthdayViewModel>();
 
     await scheduleVm.openFromNotification(
       ownerParentUid: parentUid,
@@ -80,7 +84,11 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
       focusedMonth: scheduleVm.focusedMonth,
       selectedDate: scheduleVm.selectedDate,
     );
-    await memoryVm.loadMonth();
+    birthdayVm.bindCalendarState(
+      focusedMonth: scheduleVm.focusedMonth,
+      selectedDate: scheduleVm.selectedDate,
+    );
+    await Future.wait([memoryVm.loadMonth(), birthdayVm.loadMonth()]);
   }
 
   Future<void> _bindSessionIfNeeded() async {
@@ -89,9 +97,11 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
 
     try {
       final storage = context.read<StorageService>();
+      final userRepo = context.read<UserRepository>();
       final userVm = context.read<UserVm>();
       final scheduleVm = context.read<ScheduleViewModel>();
       final memoryVm = context.read<MemoryDayViewModel>();
+      final birthdayVm = context.read<BirthdayViewModel>();
 
       final childUid =
           storage.getString(StorageKeys.uid) ??
@@ -105,13 +115,19 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
 
       final parentUid = userVm.profile?.parentUid;
       if (parentUid == null || parentUid.isEmpty) return;
+      final familyId =
+          userVm.familyId ?? (await userRepo.getUserById(childUid))?.familyId;
+      if (familyId == null || familyId.isEmpty) return;
 
       final changed =
-          (_lastChildUid != childUid) || (_lastOwnerUid != parentUid);
+          (_lastChildUid != childUid) ||
+          (_lastOwnerUid != parentUid) ||
+          (_lastFamilyId != familyId);
 
       if (changed) {
         _lastChildUid = childUid;
         _lastOwnerUid = parentUid;
+        _lastFamilyId = familyId;
 
         // ======================
         // RESET SCHEDULE (giữ nguyên logic của bạn)
@@ -125,13 +141,19 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         // ======================
         memoryVm.resetForNewSession();
         memoryVm.setOwnerUid(parentUid);
+        birthdayVm.resetForNewSession();
+        birthdayVm.setFamilyId(familyId);
 
         memoryVm.bindCalendarState(
           focusedMonth: scheduleVm.focusedMonth,
           selectedDate: scheduleVm.selectedDate,
         );
+        birthdayVm.bindCalendarState(
+          focusedMonth: scheduleVm.focusedMonth,
+          selectedDate: scheduleVm.selectedDate,
+        );
 
-        await memoryVm.loadMonth();
+        await Future.wait([memoryVm.loadMonth(), birthdayVm.loadMonth()]);
         await _applyNotificationTargetIfNeeded(
           parentUid: parentUid,
           childUid: childUid,
@@ -145,6 +167,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
   Future<void> _reloadSchedulesAfterImport() async {
     final scheduleVm = context.read<ScheduleViewModel>();
     final memoryVm = context.read<MemoryDayViewModel>();
+    final birthdayVm = context.read<BirthdayViewModel>();
 
     if (scheduleVm.selectedChildId == null) {
       debugPrint('[CHILD_SCHEDULE_IMPORT] selectedChildId=null -> skip reload');
@@ -157,7 +180,11 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
       focusedMonth: scheduleVm.focusedMonth,
       selectedDate: scheduleVm.selectedDate,
     );
-    await memoryVm.loadMonth();
+    birthdayVm.bindCalendarState(
+      focusedMonth: scheduleVm.focusedMonth,
+      selectedDate: scheduleVm.selectedDate,
+    );
+    await Future.wait([memoryVm.loadMonth(), birthdayVm.loadMonth()]);
 
     debugPrint('[CHILD_SCHEDULE_IMPORT] reload done');
   }

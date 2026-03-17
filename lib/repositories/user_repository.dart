@@ -5,6 +5,7 @@ import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
+import 'package:kid_manager/utils/date_utils.dart';
 import '../models/app_user.dart';
 
 class UserItem {
@@ -23,6 +24,7 @@ class UserItem {
 
 class UserRepository {
   final FirebaseFirestore _db;
+  // ignore: unused_field
   final FirebaseAuth? _auth;
   final SecondaryAuthService? _secondaryAuth;
   UserRepository(this._db, this._auth, this._secondaryAuth);
@@ -36,6 +38,24 @@ class UserRepository {
 
   DocumentReference<Map<String, dynamic>> userRef(String uid) =>
       _users.doc(uid);
+
+  Map<String, dynamic> _familyMemberPublicFields({
+    required String uid,
+    required String role,
+    String? familyId,
+    String? displayName,
+    String? avatarUrl,
+    DateTime? dob,
+  }) {
+    return <String, dynamic>{
+      'uid': uid,
+      'role': role,
+      if (familyId != null && familyId.isNotEmpty) 'familyId': familyId,
+      if (displayName != null) 'displayName': displayName,
+      if (avatarUrl != null) 'avatarUrl': avatarUrl,
+      ...buildBirthdayStorageFields(dob),
+    };
+  }
 
   // ===== READ =====
 
@@ -95,8 +115,16 @@ class UserRepository {
       });
 
       batch.set(familyRef.collection('members').doc(uid), {
-        'uid': uid,
-        'role': 'parent',
+        ..._familyMemberPublicFields(
+          uid: uid,
+          role: 'parent',
+          familyId: familyId,
+          displayName: data?['displayName']?.toString(),
+          avatarUrl: data?['avatarUrl']?.toString(),
+          dob:
+              parseFlexibleBirthDate(data?['dobIso']) ??
+              parseFlexibleBirthDate(data?['dob']),
+        ),
         'joinedAt': FieldValue.serverTimestamp(),
       });
 
@@ -136,8 +164,13 @@ class UserRepository {
 
     // 3️⃣ Thêm parent vào members
     batch.set(familyRef.collection('members').doc(uid), {
-      'uid': uid,
-      'role': 'parent',
+      ..._familyMemberPublicFields(
+        uid: uid,
+        role: 'parent',
+        familyId: familyId,
+        displayName: displayName,
+        avatarUrl: '',
+      ),
       'joinedAt': FieldValue.serverTimestamp(),
     });
 
@@ -233,7 +266,7 @@ class UserRepository {
           'familyId': familyId,
           'locale': locale,
           'timezone': timezone,
-          'dob': dob != null ? Timestamp.fromDate(dob) : null,
+          ...buildBirthdayStorageFields(dob),
           'createdAt': FieldValue.serverTimestamp(),
           'lastActiveAt': FieldValue.serverTimestamp(),
           'avatarUrl': '',
@@ -248,9 +281,14 @@ class UserRepository {
             .collection('members')
             .doc(childUid),
         {
-          'uid': childUid,
-          'role': 'child',
-          'familyId': familyId,
+          ..._familyMemberPublicFields(
+            uid: childUid,
+            role: 'child',
+            familyId: familyId,
+            displayName: displayName,
+            avatarUrl: '',
+            dob: dob,
+          ),
           'joinedAt': FieldValue.serverTimestamp(),
         },
       );
@@ -293,7 +331,7 @@ class UserRepository {
     }
     /// 🔥 Logic error
     on StateError catch (e) {
-      throw e.message ?? "Dữ liệu không hợp lệ";
+      throw e.message;
     }
     /// 🔥 Unknown
     catch (e) {

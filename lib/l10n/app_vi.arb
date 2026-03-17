@@ -2,8 +2,8 @@
   "@@locale": "vi",
   "personalInfoTitle": "Thông tin cá nhân",
   "appAppearanceTitle": "Giao diện ứng dụng",
-  "aboutAppTitle": "About app",
-  "addAccountTitle": "Thêm tài khoản",
+  "aboutAppTitle": "Về ứng dụng",
+  "addAccountTitle": "Thêm tài khoản con",
   "logoutTitle": "Đăng xuất",
   "fullNameLabel": "Họ và tên",
   "fullNameHint": "Nhập họ và tên",
@@ -29,6 +29,24 @@
   "vietnamese": "Tiếng Việt",
   "english": "English",
   "changeLanguagePrompt": "Thay đổi ngôn ngữ, ứng dụng sẽ khởi động lại",
+  "appAppearanceThemeLabel": "Chủ đề",
+  "appAppearanceSelectThemeTitle": "Chọn chủ đề",
+  "appAppearanceThemeSystem": "Theo hệ thống",
+  "appAppearanceThemeLight": "Sáng",
+  "appAppearanceThemeDark": "Tối",
+  "addAccountSuccessMessage": "Tạo tài khoản con thành công",
+  "sessionExpiredLoginAgain": "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.",
+  "aboutAppName": "My Application",
+  "aboutAppVersionLabel": "Phiên bản: {version}",
+  "@aboutAppVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutAppDescription": "Ứng dụng giúp quản lý tài khoản, theo dõi hoạt động và cá nhân hóa trải nghiệm người dùng.",
+  "aboutAppCopyright": "© 2026 My Company",
   "accountNotFound": "Tài khoản không tồn tại",
   "accountNotActivated": "Tài khoản chưa được kích hoạt",
   "emailNotRegistered": "Email chưa đăng ký",
@@ -241,6 +259,215 @@
         "type": "int"
       },
       "error": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayMemberFallback": "Thành viên",
+  "birthdayWishSelfWithAge": "Chúc mừng sinh nhật tôi. Chào tuổi {age} thật rực rỡ, bình an và nhiều niềm vui.",
+  "@birthdayWishSelfWithAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayWishSelfDefault": "Chúc mừng sinh nhật tôi. Chúc mình có một ngày thật vui và đáng nhớ.",
+  "birthdayWishOtherWithAge": "Chúc mừng sinh nhật {name}. Chúc bạn bước sang tuổi {age} luôn mạnh khỏe, vui vẻ và gặp nhiều điều may mắn.",
+  "@birthdayWishOtherWithAge": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayWishOtherDefault": "Chúc mừng sinh nhật {name}. Chúc bạn luôn vui vẻ, mạnh khỏe và có thật nhiều niềm vui.",
+  "@birthdayWishOtherDefault": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayViewWishButton": "Xem lời chúc",
+  "birthdaySendWishButton": "Gửi lời chúc",
+  "birthdayCongratsYouTitle": "Chúc mừng sinh nhật bạn",
+  "birthdayCongratsTitle": "Chúc mừng sinh nhật",
+  "birthdayTodayIsYourDay": "Hôm nay là ngày của bạn",
+  "birthdayTurnsAge": "Tròn {age} tuổi",
+  "@birthdayTurnsAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdaySuggestionTitle": "Lời chúc gợi ý",
+  "birthdayYouEnteringAge": "Hôm nay bạn bước sang tuổi {age}. Chúc bạn có một ngày thật tươi vui, nhẹ nhàng và đáng nhớ.",
+  "@birthdayYouEnteringAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayYouSpecialDay": "Hôm nay là ngày đặc biệt của bạn. Chúc bạn có thật nhiều niềm vui và năng lượng tích cực.",
+  "birthdayTodayIsBirthdayWithAge": "Hôm nay là sinh nhật của {name}, tròn {age} tuổi.",
+  "@birthdayTodayIsBirthdayWithAge": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayTodayIsBirthday": "Hôm nay là sinh nhật của {name}.",
+  "@birthdayTodayIsBirthday": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayCopiedFallback": "Không tìm thấy chat gia đình. Đã sao chép lời chúc cho {name}.",
+  "@birthdayCopiedFallback": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayCloseButton": "Đóng",
+  "birthdayAwesomeButton": "Tuyệt vời",
+  "familyChatLoadingTitle": "Đang tải cuộc trò chuyện",
+  "familyChatTitle": "Trò chuyện gia đình",
+  "familyChatTitleLarge": "Trò chuyện gia đình",
+  "familyChatSendFailed": "Gửi tin nhắn thất bại: {error}",
+  "@familyChatSendFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "familyChatYou": "Bạn",
+  "familyChatMemberFallback": "Thành viên",
+  "familyChatLoadingMembers": "Đang tải thành viên...",
+  "familyChatNoMembersFound": "Không tìm thấy thành viên",
+  "familyChatOneMember": "1 thành viên",
+  "familyChatManyMembers": "{count} thành viên",
+  "@familyChatManyMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "familyChatCannotLoadMessages": "Không thể tải tin nhắn",
+  "familyChatNoMessagesYet": "Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện.",
+  "familyChatStatusFailed": "thất bại",
+  "familyChatStatusSending": "đang gửi...",
+  "familyChatTypeMessageHint": "Nhập tin nhắn...",
+  "familyChatMemberCountOverflow": "{names} +{extra}",
+  "@familyChatMemberCountOverflow": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "extra": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationScreenTitle": "Thông báo",
+  "notificationDateToday": "HÔM NAY",
+  "notificationDateYesterday": "HÔM QUA",
+  "notificationFilterTitle": "Lọc thông báo",
+  "notificationFilterAll": "Tất cả",
+  "notificationFilterActivity": "Hoạt động",
+  "notificationFilterAlert": "Cảnh báo",
+  "notificationFilterReminder": "Nhắc nhở",
+  "notificationFilterSystem": "Thông báo hệ thống",
+  "notificationSearchHint": "Tìm thông báo",
+  "notificationJustNow": "Vừa xong",
+  "notificationMinutesAgo": "{minutes}p trước",
+  "@notificationMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationHoursAgo": "{hours}h trước",
+  "@notificationHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationDetailTitle": "Chi tiết thông báo",
+  "notificationDetailSectionTitle": "CHI TIẾT",
+  "notificationChildFallback": "Bé",
+  "notificationChildInfoNotFound": "Không tìm thấy thông tin của bé",
+  "notificationMapLocationNotFound": "Không tìm thấy vị trí để mở bản đồ",
+  "notificationScheduleCreatedTitle": "Lịch trình mới của {childName}",
+  "@notificationScheduleCreatedTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationScheduleUpdatedTitle": "Lịch trình của {childName} đã thay đổi",
+  "@notificationScheduleUpdatedTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationScheduleDeletedTitle": "Lịch trình của {childName} đã bị xóa",
+  "@notificationScheduleDeletedTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationScheduleRestoredTitle": "Lịch trình của {childName} đã được khôi phục",
+  "@notificationScheduleRestoredTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationZoneEnteredDangerTitle": "{childName} đã vào vùng nguy hiểm",
+  "@notificationZoneEnteredDangerTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationZoneExitedSafeTitle": "{childName} đã rời vùng an toàn",
+  "@notificationZoneExitedSafeTitle": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationZoneExitedDangerTitle": "{childName} đã rời vùng nguy hiểm",
+  "@notificationZoneExitedDangerTitle": {
+    "placeholders": {
+      "childName": {
         "type": "String"
       }
     }
@@ -756,6 +983,133 @@
       }
     }
   },
+  "parentDashboardTitle": "Bảng điều khiển",
+  "parentDashboardTabApps": "Ứng dụng",
+  "parentDashboardTabStatistics": "Thống kê",
+  "parentDashboardNoDeviceTitle": "Chưa có thiết bị nào được liên kết",
+  "parentDashboardNoDeviceSubtitle": "Để theo dõi thời gian sử dụng ứng dụng, bạn cần thêm thiết bị của con vào hệ thống.",
+  "parentDashboardAddDeviceButton": "Thêm thiết bị",
+  "parentDashboardHowItWorksButton": "Tìm hiểu cách hoạt động",
+  "parentStatsTotalToday": "TỔNG THỜI GIAN HÔM NAY",
+  "parentStatsTotalThisWeek": "TỔNG THỜI GIAN TUẦN NÀY",
+  "parentStatsSelectRange": "CHỌN KHOẢNG NGÀY",
+  "parentStatsSelectEndDate": "CHỌN NGÀY KẾT THÚC",
+  "parentStatsTotalFromRange": "TỔNG THỜI GIAN TỪ {startDate} - {endDate}",
+  "@parentStatsTotalFromRange": {
+    "placeholders": {
+      "startDate": {
+        "type": "String"
+      },
+      "endDate": {
+        "type": "String"
+      }
+    }
+  },
+  "parentStatsSegmentDay": "Ngày",
+  "parentStatsSegmentWeek": "Tuần",
+  "parentStatsSegmentRange": "Thêm",
+  "parentStatsAppDetailsTitle": "Chi tiết ứng dụng",
+  "parentStatsCollapse": "THU GỌN",
+  "parentStatsViewAll": "XEM TẤT CẢ",
+  "parentUsageNoAvailableSlot": "Không còn khoảng thời gian trống",
+  "parentUsageStartBeforeEnd": "Giờ bắt đầu phải nhỏ hơn giờ kết thúc",
+  "parentUsageOverlapTimeRange": "Khoảng thời gian bị trùng với mốc khác",
+  "parentUsageEndAfterStart": "Giờ kết thúc phải lớn hơn giờ bắt đầu",
+  "parentUsageEditTitle": "Cài đặt thời gian sử dụng",
+  "parentUsageEnableUsage": "Cho phép sử dụng",
+  "parentUsageSelectAllowedDays": "Chọn ngày được phép",
+  "saveButton": "Lưu",
+  "parentUsageDayRuleModalHint": "Chọn quy tắc cho ngày này",
+  "parentUsageRuleFollowScheduleTitle": "Theo lịch đã đặt",
+  "parentUsageRuleFollowScheduleSubtitle": "Áp dụng khung giờ hàng tuần",
+  "parentUsageRuleAllowAllDayTitle": "Cho phép cả ngày",
+  "parentUsageRuleAllowAllDaySubtitle": "Có thể sử dụng bất cứ lúc nào",
+  "parentUsageRuleBlockAllDayTitle": "Chặn cả ngày",
+  "parentUsageRuleBlockAllDaySubtitle": "Không được sử dụng hôm nay",
+  "zonesDeleteConfirmTitle": "Xác nhận xoá",
+  "zonesDeleteConfirmMessage": "Bạn có chắc muốn xoá địa điểm này không?",
+  "zonesDeleteButton": "Xoá",
+  "zonesCreateSuccessTitle": "Tạo thành công",
+  "zonesCreateSuccessMessage": "Địa điểm \"{name}\" đã được tạo",
+  "@zonesCreateSuccessMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "zonesFailedTitle": "Thất bại",
+  "zonesCreateFailedMessage": "Không thể tạo địa điểm, vui lòng thử lại",
+  "zonesEditSuccessTitle": "Chỉnh sửa thành công",
+  "zonesEditSuccessMessage": "Địa điểm đã được cập nhật",
+  "zonesEditFailedMessage": "Không thể cập nhật địa điểm, vui lòng thử lại",
+  "zonesDeleteSuccessTitle": "Xoá thành công",
+  "zonesDeleteSuccessMessage": "Địa điểm đã được xoá",
+  "zonesDeleteFailedMessage": "Không thể xoá địa điểm, vui lòng thử lại",
+  "zonesEmptyTitle": "Chưa có vùng nào",
+  "zonesEmptySubtitle": "Thêm vùng để bắt đầu theo dõi vị trí của bé",
+  "zonesTypeSafe": "An toàn",
+  "zonesTypeDanger": "Nguy hiểm",
+  "zonesEditMenu": "Sửa",
+  "zonesDeleteMenu": "Xoá",
+  "zonesScreenTitle": "Vùng của bé",
+  "zonesAddButton": "Thêm vùng",
+  "zonesErrorWithMessage": "Lỗi: {error}",
+  "@zonesErrorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "zonesNewZoneDefaultName": "Vùng mới",
+  "zonesEditTitle": "Chỉnh sửa vùng",
+  "zonesAddAddressTitle": "Địa chỉ của địa điểm",
+  "zonesOverlapWarningText": "Các địa điểm không nên chồng chéo",
+  "zonesNameFieldLabel": "Tên vùng",
+  "zonesTypeFieldLabel": "Loại vùng",
+  "zonesRadiusLabel": "Bán kính",
+  "zonesOverlappingWith": "Đang chồng lên: {name}",
+  "@zonesOverlappingWith": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "zonesDefaultNameFallback": "Vùng",
+  "parentLocationUnknownUser": "Không rõ",
+  "parentLocationSosSent": "Đã gửi SOS",
+  "parentLocationSosFailed": "Gửi SOS thất bại",
+  "parentLocationMapLoadingTitle": "Đang tải bản đồ",
+  "parentLocationMapLoadingSubtitle": "Đang chuẩn bị vị trí của các bé",
+  "parentChildrenListTitle": "Danh sách thành viên",
+  "childLocationTransportWalking": "Đi bộ",
+  "childLocationTransportBicycle": "Xe đạp",
+  "childLocationTransportVehicle": "Đi xe",
+  "childLocationTransportStill": "Đứng yên",
+  "childLocationTransportUnknown": "Không rõ",
+  "childLocationDetailTitle": "Chi tiết vị trí",
+  "childLocationStatusTitle": "Trạng thái: {transport}",
+  "@childLocationStatusTitle": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationHistoryTitle": "Lịch sử • {date}",
+  "@childLocationHistoryTitle": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationTooltipHideDots": "Ẩn điểm",
+  "childLocationTooltipShowDots": "Hiện điểm",
+  "childLocationHistoryButton": "Lịch sử",
+  "childLocationZonesButton": "Vùng",
   "zone_default": "Thông báo hehehe",
   "zone_enter_danger_parent": "⚠️ Bé vào vùng nguy hiểm",
   "zone_exit_danger_parent": "✅ Bé rời vùng nguy hiểm",

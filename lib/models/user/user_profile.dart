@@ -1,5 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
+import 'package:kid_manager/utils/date_utils.dart';
 
 class UserProfile {
   final String id;
@@ -31,11 +30,15 @@ class UserProfile {
   });
 
   Map<String, dynamic> toMap() {
+    final parsedDob = parseFlexibleBirthDate(dob);
     final data = {
       "displayName": name,
       "phone": phone,
       "gender": gender,
-      "dob": dob,
+      if (parsedDob != null)
+        ...buildBirthdayStorageFields(parsedDob)
+      else
+        "dob": dob,
       "address": address,
       "allowTracking": allowTracking,
       "role": role,
@@ -80,32 +83,14 @@ class UserProfile {
   }
 
   factory UserProfile.fromMap(String id, Map<String, dynamic> data) {
-    String dobStr = '';
-    final rawDob = data['dob'];
-
-    DateTime? date;
-
-    if (rawDob is Timestamp) {
-      date = rawDob.toDate();
-    } else if (rawDob is int) {
-      date = DateTime.fromMillisecondsSinceEpoch(rawDob);
-    } else if (rawDob is String) {
-      final value = rawDob.trim();
-
-      try {
-        date = DateFormat('dd/MM/yyyy').parseStrict(value);
-      } catch (_) {
-        try {
-          date = DateTime.parse(value);
-        } catch (_) {
-          dobStr = value.isNotEmpty ? value : '';
-        }
-      }
-    }
-
-    if (date != null) {
-      dobStr = DateFormat('dd/MM/yyyy').format(date);
-    }
+    final date =
+        parseFlexibleBirthDate(data['dob']) ??
+        parseFlexibleBirthDate(data['dobIso']);
+    final dobStr = date != null
+        ? formatDateDDMMYYYY(date)
+        : (data['dobIso']?.toString().trim() ??
+              data['dob']?.toString().trim() ??
+              '');
 
     return UserProfile(
       id: id,
