@@ -13,9 +13,9 @@ import 'package:kid_manager/widgets/notifications/notification_detail_body.dart'
 import 'package:provider/provider.dart';
 
 class NotificationDetailScreen extends StatefulWidget {
-  final AppNotification item;
-
   const NotificationDetailScreen({super.key, required this.item});
+
+  final AppNotification item;
 
   @override
   State<NotificationDetailScreen> createState() =>
@@ -32,6 +32,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       vm.loadNotificationDetailItem(widget.item);
     });
   }
+
   NotificationStyle _resolveTrackingStyle(NotificationDetailModel detail) {
     return resolveTrackingNotificationStyle(
       title: detail.title,
@@ -81,26 +82,30 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     if (isDanger && !isEnter) return const Color(0xFFF0FFF4);
     return const Color(0xFFEFF6FF);
   }
+
   String _buildDisplayTitle(NotificationDetailModel detail) {
+    final l10n = AppLocalizations.of(context);
     final rawTitle = detail.title.trim();
+
     if (rawTitle.startsWith('tracking.')) {
-      return trackingTitleFromKey(AppLocalizations.of(context), rawTitle);
+      return trackingTitleFromKey(l10n, rawTitle);
     }
 
     if (detail.notificationType == NotificationType.schedule) {
       final data = detail.data;
       final action = (data['action'] ?? '').toString();
-      final childName = (data['childName'] ?? 'Bé').toString();
+      final childName = (data['childName'] ?? l10n.notificationChildFallback)
+          .toString();
 
       switch (action) {
         case 'created':
-          return 'Lịch trình mới của $childName';
+          return l10n.notificationScheduleCreatedTitle(childName);
         case 'updated':
-          return 'Lịch trình của $childName đã thay đổi';
+          return l10n.notificationScheduleUpdatedTitle(childName);
         case 'deleted':
-          return 'Lịch trình của $childName đã bị xóa';
+          return l10n.notificationScheduleDeletedTitle(childName);
         case 'restored':
-          return 'Lịch trình của $childName đã được khôi phục';
+          return l10n.notificationScheduleRestoredTitle(childName);
         default:
           return detail.title;
       }
@@ -110,21 +115,21 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     final zoneType = (data['zoneType'] ?? '').toString().toLowerCase();
     final action = (data['action'] ?? '').toString().toLowerCase();
     final childName =
-    (data['childName'] ??
-        data['displayName'] ??
-        data['name'] ??
-        data['fullName'] ??
-        'Bé')
-        .toString();
+        (data['childName'] ??
+                data['displayName'] ??
+                data['name'] ??
+                data['fullName'] ??
+                l10n.notificationChildFallback)
+            .toString();
 
     if (zoneType == 'danger' && action == 'enter') {
-      return '$childName đã vào vùng nguy hiểm';
+      return l10n.notificationZoneEnteredDangerTitle(childName);
     }
     if (zoneType == 'safe' && action == 'exit') {
-      return '$childName đã rời vùng an toàn';
+      return l10n.notificationZoneExitedSafeTitle(childName);
     }
     if (zoneType == 'danger' && action == 'exit') {
-      return '$childName đã rời vùng nguy hiểm';
+      return l10n.notificationZoneExitedDangerTitle(childName);
     }
 
     return detail.title;
@@ -151,22 +156,19 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     return Icons.location_on_outlined;
   }
 
-
-  void _handleZoneViewMap(NotificationDetailModel detail) {
-    _openZoneOnMainMap(detail);
-  }
-
   Future<void> _handleZonePhone(NotificationDetailModel detail) async {
+    final l10n = AppLocalizations.of(context);
     final childId = (detail.data['childUid'] ?? '').toString().trim();
-    final childName = (detail.data['childName'] ??
-        detail.data['displayName'] ??
-        detail.data['name'] ??
-        'Bé')
-        .toString();
+    final childName =
+        (detail.data['childName'] ??
+                detail.data['displayName'] ??
+                detail.data['name'] ??
+                l10n.notificationChildFallback)
+            .toString();
 
     if (childId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không tìm thấy thông tin của bé')),
+        SnackBar(content: Text(l10n.notificationChildInfoNotFound)),
       );
       return;
     }
@@ -179,6 +181,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
   }
 
   void _openZoneOnMainMap(NotificationDetailModel detail) {
+    final l10n = AppLocalizations.of(context);
     final childUid = (detail.data['childUid'] ?? '').toString().trim();
     final lat = _readDouble(detail.data['lat'] ?? detail.data['latitude']);
     final lng = _readDouble(detail.data['lng'] ?? detail.data['longitude']);
@@ -187,9 +190,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
 
     if (childUid.isEmpty && (lat == null || lng == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Khong tim thay vi tri de mo ban do'),
-        ),
+        SnackBar(content: Text(l10n.notificationMapLocationNotFound)),
       );
       return;
     }
@@ -206,23 +207,9 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     activeTabNotifier.value = mapTabIndexNotifier.value;
   }
 
-
-  String _formatTimeAgo(DateTime? time) {
-    if (time == null) return "";
-
-    final diff = DateTime.now().difference(time);
-
-    if (diff.inMinutes < 60) {
-      return "${diff.inMinutes} phút trước";
-    } else if (diff.inHours < 24) {
-      return "${diff.inHours} giờ trước";
-    } else {
-      return "${diff.inDays} ngày trước";
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = context.watch<NotificationVM>();
     final detail = vm.notificationDetail;
     if (detail == null) return LoadingOverlay();
@@ -233,9 +220,9 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
         centerTitle: true,
-        title: const Text(
-          "Chi tiết thông báo",
-          style: TextStyle(
+        title: Text(
+          l10n.notificationDetailTitle,
+          style: const TextStyle(
             color: Color(0xFF0F172A),
             fontWeight: FontWeight.w700,
           ),
@@ -248,14 +235,12 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  /// ===== HEADER BLOCK =====
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: const BoxDecoration(color: Colors.white),
                     child: Column(
                       children: [
-                        /// ICON
                         Container(
                           width: 80,
                           height: 80,
@@ -269,10 +254,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                             color: _resolveTopIconColor(detail),
                           ),
                         ),
-
                         const SizedBox(height: 20),
-
-                        /// TITLE
                         Text(
                           _buildDisplayTitle(detail),
                           textAlign: TextAlign.center,
@@ -283,10 +265,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                             height: 1.3,
                           ),
                         ),
-
                         const SizedBox(height: 12),
-
-                        /// TIME
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -308,10 +287,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
-                  /// ===== DETAIL CARD =====
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -337,9 +313,9 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(left: 3),
-                          child: const Text(
-                            "CHI TIẾT",
-                            style: TextStyle(
+                          child: Text(
+                            l10n.notificationDetailSectionTitle,
+                            style: const TextStyle(
                               color: Color(0xFF94A3B8),
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -347,14 +323,15 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 12),
-
-                        NotificationDetailBody(detail: detail,
-                          onZoneViewMap: detail.notificationType == NotificationType.zone
+                        NotificationDetailBody(
+                          detail: detail,
+                          onZoneViewMap:
+                              detail.notificationType == NotificationType.zone
                               ? () => _openZoneOnMainMap(detail)
                               : null,
-                          onZonePhone: detail.notificationType == NotificationType.zone
+                          onZonePhone:
+                              detail.notificationType == NotificationType.zone
                               ? () => _handleZonePhone(detail)
                               : null,
                         ),

@@ -11,20 +11,23 @@ class NotificationItemView extends StatelessWidget {
   final AppNotification item;
   final VoidCallback? onTap;
 
-  String _timeAgo(DateTime? date) {
+  String _timeAgo(BuildContext context, DateTime? date) {
     if (date == null) return '';
+    final l10n = AppLocalizations.of(context);
 
     final now = DateTime.now();
     final diff = now.difference(date);
 
-    if (diff.inMinutes < 1) return 'Vừa xong';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}p trước';
-    if (diff.inHours < 24) return '${diff.inHours}h trước';
+    if (diff.inMinutes < 1) return l10n.notificationJustNow;
+    if (diff.inMinutes < 60) {
+      return l10n.notificationMinutesAgo(diff.inMinutes);
+    }
+    if (diff.inHours < 24) {
+      return l10n.notificationHoursAgo(diff.inHours);
+    }
 
-    // >= 1 ngày → hiển thị giờ phút
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
-
     return '$hour:$minute';
   }
 
@@ -108,7 +111,7 @@ class NotificationItemView extends StatelessWidget {
                             child: Align(
                               alignment: Alignment.topRight,
                               child: Text(
-                                _timeAgo(item.createdAt),
+                                _timeAgo(context, item.createdAt),
                                 textAlign: TextAlign.right,
                                 style: const TextStyle(
                                   color: Color(0xFF0D59F2),

@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
+import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 
-String birthdayNameFromNotification(AppNotification item) {
+String birthdayNameFromNotification(
+  AppLocalizations l10n,
+  AppNotification item,
+) {
   final data = item.data;
   final candidates = [
     data['birthdayName'],
@@ -16,7 +22,7 @@ String birthdayNameFromNotification(AppNotification item) {
     if (value.isNotEmpty) return value;
   }
 
-  return 'Thành viên';
+  return l10n.birthdayMemberFallback;
 }
 
 int? birthdayAgeTurningFromNotification(AppNotification item) {
@@ -30,19 +36,19 @@ bool isBirthdaySelfNotification(AppNotification item) {
   return raw == 'true' || raw == '1';
 }
 
-String buildBirthdayWishText(AppNotification item) {
-  final name = birthdayNameFromNotification(item);
+String buildBirthdayWishText(AppLocalizations l10n, AppNotification item) {
+  final name = birthdayNameFromNotification(l10n, item);
   final ageTurning = birthdayAgeTurningFromNotification(item);
 
   if (isBirthdaySelfNotification(item)) {
     return ageTurning != null && ageTurning > 0
-        ? 'Chúc mừng sinh nhật tôi. Chào tuổi $ageTurning thật rực rỡ, bình an và nhiều niềm vui.'
-        : 'Chúc mừng sinh nhật tôi. Chúc mình có một ngày thật vui và đáng nhớ.';
+        ? l10n.birthdayWishSelfWithAge(ageTurning)
+        : l10n.birthdayWishSelfDefault;
   }
 
   return ageTurning != null && ageTurning > 0
-      ? 'Chúc mừng sinh nhật $name. Chúc bạn bước sang tuổi $ageTurning luôn mạnh khỏe, vui vẻ và gặp nhiều điều may mắn.'
-      : 'Chúc mừng sinh nhật $name. Chúc bạn luôn vui vẻ, mạnh khỏe và có thật nhiều niềm vui.';
+      ? l10n.birthdayWishOtherWithAge(name, ageTurning)
+      : l10n.birthdayWishOtherDefault(name);
 }
 
 Future<void> showBirthdayNotificationSheet(
@@ -70,10 +76,13 @@ class BirthdayNotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = birthdayNameFromNotification(item);
+    final l10n = AppLocalizations.of(context);
+    final name = birthdayNameFromNotification(l10n, item);
     final ageTurning = birthdayAgeTurningFromNotification(item);
     final isSelf = isBirthdaySelfNotification(item);
-    final ctaLabel = isSelf ? 'Xem lời chúc' : 'Gửi lời chúc';
+    final ctaLabel = isSelf
+        ? l10n.birthdayViewWishButton
+        : l10n.birthdaySendWishButton;
 
     return Material(
       color: Colors.transparent,
@@ -140,8 +149,8 @@ class BirthdayNotificationCard extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   isSelf
-                                      ? 'Chúc mừng sinh nhật bạn'
-                                      : 'Chúc mừng sinh nhật',
+                                      ? l10n.birthdayCongratsYouTitle
+                                      : l10n.birthdayCongratsTitle,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -165,13 +174,13 @@ class BirthdayNotificationCard extends StatelessWidget {
                                     ? Icons.favorite_rounded
                                     : Icons.cake_outlined,
                                 label: isSelf
-                                    ? 'Hôm nay là ngày của bạn'
+                                    ? l10n.birthdayTodayIsYourDay
                                     : name,
                               ),
                               if (ageTurning != null && ageTurning > 0)
                                 _BirthdayInfoChip(
                                   icon: Icons.stars_rounded,
-                                  label: 'Tròn $ageTurning tuổi',
+                                  label: l10n.birthdayTurnsAge(ageTurning),
                                 ),
                             ],
                           ),
@@ -204,24 +213,24 @@ class BirthdayNotificationCard extends StatelessWidget {
                                     onTap: onTap,
                                     borderRadius: BorderRadius.circular(999),
                                     child: Padding(
-                                      padding: EdgeInsets.symmetric(
+                                      padding: const EdgeInsets.symmetric(
                                         horizontal: 14,
                                         vertical: 9,
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(
+                                          const Icon(
                                             Icons.celebration_rounded,
                                             color: Colors.white,
                                             size: 16,
                                           ),
-                                          SizedBox(width: 6),
+                                          const SizedBox(width: 6),
                                           Flexible(
                                             child: Text(
                                               ctaLabel,
                                               overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w700,
@@ -255,12 +264,36 @@ class BirthdayCelebrationSheet extends StatelessWidget {
 
   final AppNotification item;
 
+  Future<void> _openFamilyChat(
+    BuildContext context, {
+    required String familyId,
+    required String wishText,
+  }) async {
+    Navigator.of(context).pop();
+
+    final navigator = AppNavigator.navigatorKey.currentState;
+    if (navigator == null) return;
+
+    await navigator.push(
+      MaterialPageRoute(
+        builder: (_) => FamilyGroupChatScreen(
+          initialFamilyId: familyId,
+          initialComposerText: wishText,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final name = birthdayNameFromNotification(item);
+    final l10n = AppLocalizations.of(context);
+    final name = birthdayNameFromNotification(l10n, item);
     final ageTurning = birthdayAgeTurningFromNotification(item);
     final isSelf = isBirthdaySelfNotification(item);
-    final wishText = buildBirthdayWishText(item);
+    final wishText = buildBirthdayWishText(l10n, item);
+    final familyId = (item.familyId?.trim().isNotEmpty ?? false)
+        ? item.familyId!.trim()
+        : (item.data['familyId']?.toString().trim() ?? '');
 
     return Container(
       decoration: const BoxDecoration(color: Colors.transparent),
@@ -297,7 +330,9 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                   const _CelebrationHero(),
                   const SizedBox(height: 22),
                   Text(
-                    isSelf ? 'Chúc mừng sinh nhật bạn' : 'Chúc mừng sinh nhật',
+                    isSelf
+                        ? l10n.birthdayCongratsYouTitle
+                        : l10n.birthdayCongratsTitle,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Color(0xFF111827),
@@ -309,11 +344,14 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                   Text(
                     isSelf
                         ? (ageTurning != null && ageTurning > 0
-                              ? 'Hôm nay bạn bước sang tuổi $ageTurning. Chúc bạn có một ngày thật tươi vui, nhẹ nhàng và đáng nhớ.'
-                              : 'Hôm nay là ngày đặc biệt của bạn. Chúc bạn có thật nhiều niềm vui và năng lượng tích cực.')
+                              ? l10n.birthdayYouEnteringAge(ageTurning)
+                              : l10n.birthdayYouSpecialDay)
                         : (ageTurning != null && ageTurning > 0
-                              ? 'Hôm nay là sinh nhật của $name, tròn $ageTurning tuổi.'
-                              : 'Hôm nay là sinh nhật của $name.'),
+                              ? l10n.birthdayTodayIsBirthdayWithAge(
+                                  name,
+                                  ageTurning,
+                                )
+                              : l10n.birthdayTodayIsBirthday(name)),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Color(0xFF4B5563),
@@ -334,16 +372,16 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: const [
-                            Icon(
+                          children: [
+                            const Icon(
                               Icons.auto_awesome_rounded,
                               size: 16,
                               color: Color(0xFFEC4899),
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
-                              'Lời chúc gợi ý',
-                              style: TextStyle(
+                              l10n.birthdaySuggestionTitle,
+                              style: const TextStyle(
                                 color: Color(0xFF374151),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -378,6 +416,15 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                           ),
                         ),
                         onPressed: () async {
+                          if (familyId.isNotEmpty) {
+                            await _openFamilyChat(
+                              context,
+                              familyId: familyId,
+                              wishText: wishText,
+                            );
+                            return;
+                          }
+
                           await Clipboard.setData(
                             ClipboardData(text: wishText),
                           );
@@ -385,15 +432,13 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(
-                                'Đã sao chép lời chúc cho $name. Bạn có thể gửi trong chat gia đình.',
-                              ),
+                              content: Text(l10n.birthdayCopiedFallback(name)),
                             ),
                           );
                         },
-                        child: const Text(
-                          'Gửi lời chúc',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.birthdaySendWishButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -414,7 +459,9 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                       ),
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text(
-                        isSelf ? 'Tuyệt vời' : 'Đóng',
+                        isSelf
+                            ? l10n.birthdayAwesomeButton
+                            : l10n.birthdayCloseButton,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,

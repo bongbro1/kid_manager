@@ -1154,6 +1154,366 @@ abstract class AppLocalizations {
   /// **'Row {row}: {error}'**
   String scheduleImportRowError(int row, String error);
 
+  /// No description provided for @birthdayMemberFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get birthdayMemberFallback;
+
+  /// No description provided for @birthdayWishSelfWithAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Happy birthday to me. Welcome {age} with joy, peace, and beautiful moments.'**
+  String birthdayWishSelfWithAge(int age);
+
+  /// No description provided for @birthdayWishSelfDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Happy birthday to me. Wishing myself a joyful and memorable day.'**
+  String get birthdayWishSelfDefault;
+
+  /// No description provided for @birthdayWishOtherWithAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Happy birthday, {name}. Wishing you a healthy, joyful, and lucky year at {age}.'**
+  String birthdayWishOtherWithAge(String name, int age);
+
+  /// No description provided for @birthdayWishOtherDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Happy birthday, {name}. Wishing you joy, good health, and lots of happy moments.'**
+  String birthdayWishOtherDefault(String name);
+
+  /// No description provided for @birthdayViewWishButton.
+  ///
+  /// In en, this message translates to:
+  /// **'View wish'**
+  String get birthdayViewWishButton;
+
+  /// No description provided for @birthdaySendWishButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send wishes'**
+  String get birthdaySendWishButton;
+
+  /// No description provided for @birthdayCongratsYouTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Happy birthday to you'**
+  String get birthdayCongratsYouTitle;
+
+  /// No description provided for @birthdayCongratsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Happy birthday'**
+  String get birthdayCongratsTitle;
+
+  /// No description provided for @birthdayTodayIsYourDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Today is your day'**
+  String get birthdayTodayIsYourDay;
+
+  /// No description provided for @birthdayTurnsAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Turning {age}'**
+  String birthdayTurnsAge(int age);
+
+  /// No description provided for @birthdaySuggestionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested wish'**
+  String get birthdaySuggestionTitle;
+
+  /// No description provided for @birthdayYouEnteringAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Today you turn {age}. Wishing you a gentle, joyful, and memorable day.'**
+  String birthdayYouEnteringAge(int age);
+
+  /// No description provided for @birthdayYouSpecialDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Today is your special day. Wishing you lots of joy and positive energy.'**
+  String get birthdayYouSpecialDay;
+
+  /// No description provided for @birthdayTodayIsBirthdayWithAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Today is {name}\'s birthday, turning {age}.'**
+  String birthdayTodayIsBirthdayWithAge(String name, int age);
+
+  /// No description provided for @birthdayTodayIsBirthday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today is {name}\'s birthday.'**
+  String birthdayTodayIsBirthday(String name);
+
+  /// No description provided for @birthdayCopiedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Family chat was not found. The birthday wish for {name} has been copied.'**
+  String birthdayCopiedFallback(String name);
+
+  /// No description provided for @birthdayCloseButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get birthdayCloseButton;
+
+  /// No description provided for @birthdayAwesomeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Awesome'**
+  String get birthdayAwesomeButton;
+
+  /// No description provided for @familyChatLoadingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading chat'**
+  String get familyChatLoadingTitle;
+
+  /// No description provided for @familyChatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Family group chat'**
+  String get familyChatTitle;
+
+  /// No description provided for @familyChatTitleLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Family Group Chat'**
+  String get familyChatTitleLarge;
+
+  /// No description provided for @familyChatSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Send failed: {error}'**
+  String familyChatSendFailed(String error);
+
+  /// No description provided for @familyChatYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get familyChatYou;
+
+  /// No description provided for @familyChatMemberFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get familyChatMemberFallback;
+
+  /// No description provided for @familyChatLoadingMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading members...'**
+  String get familyChatLoadingMembers;
+
+  /// No description provided for @familyChatNoMembersFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No members found'**
+  String get familyChatNoMembersFound;
+
+  /// No description provided for @familyChatOneMember.
+  ///
+  /// In en, this message translates to:
+  /// **'1 member'**
+  String get familyChatOneMember;
+
+  /// No description provided for @familyChatManyMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} members'**
+  String familyChatManyMembers(int count);
+
+  /// No description provided for @familyChatCannotLoadMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot load messages'**
+  String get familyChatCannotLoadMessages;
+
+  /// No description provided for @familyChatNoMessagesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet. Start the conversation.'**
+  String get familyChatNoMessagesYet;
+
+  /// No description provided for @familyChatStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'failed'**
+  String get familyChatStatusFailed;
+
+  /// No description provided for @familyChatStatusSending.
+  ///
+  /// In en, this message translates to:
+  /// **'sending...'**
+  String get familyChatStatusSending;
+
+  /// No description provided for @familyChatTypeMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a message...'**
+  String get familyChatTypeMessageHint;
+
+  /// No description provided for @familyChatMemberCountOverflow.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} +{extra}'**
+  String familyChatMemberCountOverflow(String names, int extra);
+
+  /// No description provided for @notificationScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationScreenTitle;
+
+  /// No description provided for @notificationDateToday.
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY'**
+  String get notificationDateToday;
+
+  /// No description provided for @notificationDateYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'YESTERDAY'**
+  String get notificationDateYesterday;
+
+  /// No description provided for @notificationFilterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter notifications'**
+  String get notificationFilterTitle;
+
+  /// No description provided for @notificationFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get notificationFilterAll;
+
+  /// No description provided for @notificationFilterActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get notificationFilterActivity;
+
+  /// No description provided for @notificationFilterAlert.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts'**
+  String get notificationFilterAlert;
+
+  /// No description provided for @notificationFilterReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get notificationFilterReminder;
+
+  /// No description provided for @notificationFilterSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System notifications'**
+  String get notificationFilterSystem;
+
+  /// No description provided for @notificationSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search notifications'**
+  String get notificationSearchHint;
+
+  /// No description provided for @notificationJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get notificationJustNow;
+
+  /// No description provided for @notificationMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m ago'**
+  String notificationMinutesAgo(int minutes);
+
+  /// No description provided for @notificationHoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h ago'**
+  String notificationHoursAgo(int hours);
+
+  /// No description provided for @notificationDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification details'**
+  String get notificationDetailTitle;
+
+  /// No description provided for @notificationDetailSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'DETAILS'**
+  String get notificationDetailSectionTitle;
+
+  /// No description provided for @notificationChildFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Child'**
+  String get notificationChildFallback;
+
+  /// No description provided for @notificationChildInfoNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Child information could not be found'**
+  String get notificationChildInfoNotFound;
+
+  /// No description provided for @notificationMapLocationNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Location could not be found to open the map'**
+  String get notificationMapLocationNotFound;
+
+  /// No description provided for @notificationScheduleCreatedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New schedule for {childName}'**
+  String notificationScheduleCreatedTitle(String childName);
+
+  /// No description provided for @notificationScheduleUpdatedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName}\'s schedule has changed'**
+  String notificationScheduleUpdatedTitle(String childName);
+
+  /// No description provided for @notificationScheduleDeletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName}\'s schedule was deleted'**
+  String notificationScheduleDeletedTitle(String childName);
+
+  /// No description provided for @notificationScheduleRestoredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName}\'s schedule was restored'**
+  String notificationScheduleRestoredTitle(String childName);
+
+  /// No description provided for @notificationZoneEnteredDangerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName} entered a danger zone'**
+  String notificationZoneEnteredDangerTitle(String childName);
+
+  /// No description provided for @notificationZoneExitedSafeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName} left a safe zone'**
+  String notificationZoneExitedSafeTitle(String childName);
+
+  /// No description provided for @notificationZoneExitedDangerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName} left a danger zone'**
+  String notificationZoneExitedDangerTitle(String childName);
+
   /// No description provided for @scheduleImportRowTitle.
   ///
   /// In en, this message translates to:

@@ -57,33 +57,23 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
         // ✅ chấm đỏ góc trái nếu có sinh nhật
         if (hasBirthday)
           const Positioned(
-            top: 6,
-            left: 10,
-            child: SizedBox(
-              width: 6,
-              height: 6,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Color(0xFFEC4899),
-                  shape: BoxShape.circle,
-                ),
-              ),
+            top: 3,
+            left: 7,
+            child: _CalendarCornerBadge(
+              icon: Icons.cake_rounded,
+              iconColor: Color(0xFFDB2777),
+              backgroundColor: Color(0xFFFFE5F2),
             ),
           ),
         // ✅ chấm vàng góc phải nếu có memory
         if (hasMemory)
           const Positioned(
-            top: 6,
-            right: 10,
-            child: SizedBox(
-              width: 6,
-              height: 6,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Color(0xFFF4B400),
-                  shape: BoxShape.circle,
-                ),
-              ),
+            top: 3,
+            right: 7,
+            child: _CalendarCornerBadge(
+              icon: Icons.star_rounded,
+              iconColor: Color(0xFFE59A00),
+              backgroundColor: Color(0xFFFFF5CF),
             ),
           ),
       ],
@@ -292,6 +282,39 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
       default:
         return 'en_US';
     }
+  }
+}
+
+class _CalendarCornerBadge extends StatelessWidget {
+  const _CalendarCornerBadge({
+    required this.icon,
+    required this.iconColor,
+    required this.backgroundColor,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withValues(alpha: 0.22),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Icon(icon, size: 8.5, color: iconColor),
+    );
   }
 }
 

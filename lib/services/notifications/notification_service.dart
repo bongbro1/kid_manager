@@ -7,13 +7,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
-import 'package:kid_manager/widgets/app/app_sell_config.dart';
+import 'package:kid_manager/widgets/notifications/birthday_notification_experience.dart';
 
 // TODO: import đúng màn hình này nếu project đang dùng
 // import 'package:kid_manager/views/family/family_group_chat_screen.dart';
@@ -158,6 +159,24 @@ class NotificationService {
       return;
     }
 
+    if (item.notificationType == NotificationType.birthday) {
+      await _markNotificationAsRead(item);
+      activeTabNotifier.value = notificationTabIndexNotifier.value;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final sheetNavigator =
+            NotificationTabNavigator.key.currentState ??
+            AppNavigator.navigatorKey.currentState;
+        if (sheetNavigator == null) {
+          debugPrint('birthday tap: no context to open sheet');
+          return;
+        }
+
+        showBirthdayNotificationSheet(sheetNavigator.context, item: item);
+      });
+      return;
+    }
+
     if (type != "sos") {
       activeTabNotifier.value = notificationTabIndexNotifier.value;
       Future.microtask(() {
@@ -172,6 +191,21 @@ class NotificationService {
       });
 
       return;
+    }
+  }
+
+  static Future<void> _markNotificationAsRead(AppNotification item) async {
+    if (item.isRead) return;
+
+    try {
+      if (item.store == NotificationStore.userInbox) {
+        await _repo.markAsReadInbox(item.receiverId, item.id);
+      } else {
+        await _repo.markAsReadGlobal(item.id);
+      }
+    } catch (e, st) {
+      debugPrint('mark notification as read failed: $e');
+      debugPrintStack(stackTrace: st);
     }
   }
 

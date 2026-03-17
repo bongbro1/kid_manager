@@ -572,6 +572,230 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
+  String get birthdayMemberFallback => 'Thành viên';
+
+  @override
+  String birthdayWishSelfWithAge(int age) {
+    return 'Chúc mừng sinh nhật tôi. Chào tuổi $age thật rực rỡ, bình an và nhiều niềm vui.';
+  }
+
+  @override
+  String get birthdayWishSelfDefault =>
+      'Chúc mừng sinh nhật tôi. Chúc mình có một ngày thật vui và đáng nhớ.';
+
+  @override
+  String birthdayWishOtherWithAge(String name, int age) {
+    return 'Chúc mừng sinh nhật $name. Chúc bạn bước sang tuổi $age luôn mạnh khỏe, vui vẻ và gặp nhiều điều may mắn.';
+  }
+
+  @override
+  String birthdayWishOtherDefault(String name) {
+    return 'Chúc mừng sinh nhật $name. Chúc bạn luôn vui vẻ, mạnh khỏe và có thật nhiều niềm vui.';
+  }
+
+  @override
+  String get birthdayViewWishButton => 'Xem lời chúc';
+
+  @override
+  String get birthdaySendWishButton => 'Gửi lời chúc';
+
+  @override
+  String get birthdayCongratsYouTitle => 'Chúc mừng sinh nhật bạn';
+
+  @override
+  String get birthdayCongratsTitle => 'Chúc mừng sinh nhật';
+
+  @override
+  String get birthdayTodayIsYourDay => 'Hôm nay là ngày của bạn';
+
+  @override
+  String birthdayTurnsAge(int age) {
+    return 'Tròn $age tuổi';
+  }
+
+  @override
+  String get birthdaySuggestionTitle => 'Lời chúc gợi ý';
+
+  @override
+  String birthdayYouEnteringAge(int age) {
+    return 'Hôm nay bạn bước sang tuổi $age. Chúc bạn có một ngày thật tươi vui, nhẹ nhàng và đáng nhớ.';
+  }
+
+  @override
+  String get birthdayYouSpecialDay =>
+      'Hôm nay là ngày đặc biệt của bạn. Chúc bạn có thật nhiều niềm vui và năng lượng tích cực.';
+
+  @override
+  String birthdayTodayIsBirthdayWithAge(String name, int age) {
+    return 'Hôm nay là sinh nhật của $name, tròn $age tuổi.';
+  }
+
+  @override
+  String birthdayTodayIsBirthday(String name) {
+    return 'Hôm nay là sinh nhật của $name.';
+  }
+
+  @override
+  String birthdayCopiedFallback(String name) {
+    return 'Không tìm thấy chat gia đình. Đã sao chép lời chúc cho $name.';
+  }
+
+  @override
+  String get birthdayCloseButton => 'Đóng';
+
+  @override
+  String get birthdayAwesomeButton => 'Tuyệt vời';
+
+  @override
+  String get familyChatLoadingTitle => 'Đang tải cuộc trò chuyện';
+
+  @override
+  String get familyChatTitle => 'Trò chuyện gia đình';
+
+  @override
+  String get familyChatTitleLarge => 'Trò chuyện gia đình';
+
+  @override
+  String familyChatSendFailed(String error) {
+    return 'Gửi tin nhắn thất bại: $error';
+  }
+
+  @override
+  String get familyChatYou => 'Bạn';
+
+  @override
+  String get familyChatMemberFallback => 'Thành viên';
+
+  @override
+  String get familyChatLoadingMembers => 'Đang tải thành viên...';
+
+  @override
+  String get familyChatNoMembersFound => 'Không tìm thấy thành viên';
+
+  @override
+  String get familyChatOneMember => '1 thành viên';
+
+  @override
+  String familyChatManyMembers(int count) {
+    return '$count thành viên';
+  }
+
+  @override
+  String get familyChatCannotLoadMessages => 'Không thể tải tin nhắn';
+
+  @override
+  String get familyChatNoMessagesYet =>
+      'Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện.';
+
+  @override
+  String get familyChatStatusFailed => 'thất bại';
+
+  @override
+  String get familyChatStatusSending => 'đang gửi...';
+
+  @override
+  String get familyChatTypeMessageHint => 'Nhập tin nhắn...';
+
+  @override
+  String familyChatMemberCountOverflow(String names, int extra) {
+    return '$names +$extra';
+  }
+
+  @override
+  String get notificationScreenTitle => 'Thông báo';
+
+  @override
+  String get notificationDateToday => 'HÔM NAY';
+
+  @override
+  String get notificationDateYesterday => 'HÔM QUA';
+
+  @override
+  String get notificationFilterTitle => 'Lọc thông báo';
+
+  @override
+  String get notificationFilterAll => 'Tất cả';
+
+  @override
+  String get notificationFilterActivity => 'Hoạt động';
+
+  @override
+  String get notificationFilterAlert => 'Cảnh báo';
+
+  @override
+  String get notificationFilterReminder => 'Nhắc nhở';
+
+  @override
+  String get notificationFilterSystem => 'Thông báo hệ thống';
+
+  @override
+  String get notificationSearchHint => 'Tìm thông báo';
+
+  @override
+  String get notificationJustNow => 'Vừa xong';
+
+  @override
+  String notificationMinutesAgo(int minutes) {
+    return '${minutes}p trước';
+  }
+
+  @override
+  String notificationHoursAgo(int hours) {
+    return '${hours}h trước';
+  }
+
+  @override
+  String get notificationDetailTitle => 'Chi tiết thông báo';
+
+  @override
+  String get notificationDetailSectionTitle => 'CHI TIẾT';
+
+  @override
+  String get notificationChildFallback => 'Bé';
+
+  @override
+  String get notificationChildInfoNotFound => 'Không tìm thấy thông tin của bé';
+
+  @override
+  String get notificationMapLocationNotFound =>
+      'Không tìm thấy vị trí để mở bản đồ';
+
+  @override
+  String notificationScheduleCreatedTitle(String childName) {
+    return 'Lịch trình mới của $childName';
+  }
+
+  @override
+  String notificationScheduleUpdatedTitle(String childName) {
+    return 'Lịch trình của $childName đã thay đổi';
+  }
+
+  @override
+  String notificationScheduleDeletedTitle(String childName) {
+    return 'Lịch trình của $childName đã bị xóa';
+  }
+
+  @override
+  String notificationScheduleRestoredTitle(String childName) {
+    return 'Lịch trình của $childName đã được khôi phục';
+  }
+
+  @override
+  String notificationZoneEnteredDangerTitle(String childName) {
+    return '$childName đã vào vùng nguy hiểm';
+  }
+
+  @override
+  String notificationZoneExitedSafeTitle(String childName) {
+    return '$childName đã rời vùng an toàn';
+  }
+
+  @override
+  String notificationZoneExitedDangerTitle(String childName) {
+    return '$childName đã rời vùng nguy hiểm';
+  }
+
+  @override
   String scheduleImportRowTitle(int row, String title) {
     return 'Dòng $row: $title';
   }

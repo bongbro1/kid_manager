@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
 import 'package:kid_manager/models/chat/family_chat_message.dart';
@@ -35,11 +36,13 @@ class LocalPendingChatMessage {
 class FamilyGroupChatScreen extends StatefulWidget {
   final String? initialFamilyId;
   final String? initialMessageId;
+  final String? initialComposerText;
 
   const FamilyGroupChatScreen({
     super.key,
     this.initialFamilyId,
     this.initialMessageId,
+    this.initialComposerText,
   });
 
   @override
@@ -53,6 +56,7 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
   final List<LocalPendingChatMessage> _pendingMessages = [];
 
   bool _clearedChatNotification = false;
+  bool _appliedInitialComposerText = false;
   String? _activeFamilyId;
   Stream<List<FamilyChatMember>>? _membersStream;
   Stream<List<FamilyChatMessage>>? _messagesStream;
@@ -66,6 +70,20 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
   void _resetLocalState() {
     _textController.clear();
     _pendingMessages.clear();
+    _appliedInitialComposerText = false;
+  }
+
+  void _applyInitialComposerTextIfNeeded() {
+    if (_appliedInitialComposerText) return;
+
+    final text = widget.initialComposerText?.trim() ?? '';
+    if (text.isEmpty) return;
+
+    _textController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    _appliedInitialComposerText = true;
   }
 
   void _ensureChatStreams(String familyId) {
@@ -97,13 +115,12 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
         familyId: familyId,
       );
 
-      await _notificationRepo.markFamilyChatRead(
-        familyId: familyId,
-        uid: uid,
-      );
+      await _notificationRepo.markFamilyChatRead(familyId: familyId, uid: uid);
 
       _clearedChatNotification = true;
-      debugPrint('[FamilyGroupChatScreen] cleared chat notifications for familyId=$familyId');
+      debugPrint(
+        '[FamilyGroupChatScreen] cleared chat notifications for familyId=$familyId',
+      );
     } catch (e, st) {
       debugPrint('[FamilyGroupChatScreen] clear chat notifications error: $e');
       debugPrintStack(stackTrace: st);
@@ -126,27 +143,36 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
       _pendingMessages.insert(0, pending);
     });
 
-    _repo.sendTextMessage(text: text).then((_) {
-      if (!mounted) return;
-      setState(() {
-        _pendingMessages.removeWhere((m) => m.localId == pending.localId);
-      });
-    }).catchError((e) {
-      if (!mounted) return;
+    _repo
+        .sendTextMessage(text: text)
+        .then((_) {
+          if (!mounted) return;
+          setState(() {
+            _pendingMessages.removeWhere((m) => m.localId == pending.localId);
+          });
+        })
+        .catchError((e) {
+          if (!mounted) return;
 
-      setState(() {
-        final index =
-            _pendingMessages.indexWhere((m) => m.localId == pending.localId);
-        if (index != -1) {
-          _pendingMessages[index] =
-              _pendingMessages[index].copyWith(failed: true);
-        }
-      });
+          setState(() {
+            final index = _pendingMessages.indexWhere(
+              (m) => m.localId == pending.localId,
+            );
+            if (index != -1) {
+              _pendingMessages[index] = _pendingMessages[index].copyWith(
+                failed: true,
+              );
+            }
+          });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Send failed: $e')),
-      );
-    });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).familyChatSendFailed('$e'),
+              ),
+            ),
+          );
+        });
   }
 
   @override
@@ -163,13 +189,14 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF0F172A),
           elevation: 0.5,
-          title: const Text('Family group chat'),
+          title: Text(AppLocalizations.of(context).familyChatLoadingTitle),
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     _ensureChatStreams(familyId);
+    _applyInitialComposerTextIfNeeded();
 
     final membersStream = _membersStream!;
     final messagesStream = _messagesStream!;
@@ -180,7 +207,7 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
         final members = membersSnapshot.data ?? const <FamilyChatMember>[];
         final isMembersLoading =
             membersSnapshot.connectionState == ConnectionState.waiting &&
-                members.isEmpty;
+            members.isEmpty;
 
         final memberNamesByUid = <String, String>{
           for (final member in members) member.uid: member.displayName,
@@ -214,10 +241,7 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
                   memberNamesByUid: memberNamesByUid,
                 ),
               ),
-              _Composer(
-                controller: _textController,
-                onSend: _sendMessage,
-              ),
+              _Composer(controller: _textController, onSend: _sendMessage),
             ],
           ),
         );
@@ -237,17 +261,19 @@ class _ChatHeader extends StatelessWidget {
   final String myUid;
   final bool isLoading;
 
-  String _safeDisplayName(FamilyChatMember member) {
-    if (member.uid == myUid) return 'You';
+  String _safeDisplayName(FamilyChatMember member, AppLocalizations l10n) {
+    if (member.uid == myUid) return l10n.familyChatYou;
     final text = member.displayName.trim();
-    return text.isEmpty ? 'Member' : text;
+    return text.isEmpty ? l10n.familyChatMemberFallback : text;
   }
 
-  String _memberSummary() {
-    if (isLoading) return 'Loading members...';
-    if (members.isEmpty) return 'No members found';
+  String _memberSummary(AppLocalizations l10n) {
+    if (isLoading) return l10n.familyChatLoadingMembers;
+    if (members.isEmpty) return l10n.familyChatNoMembersFound;
 
-    final names = members.map(_safeDisplayName).toList(growable: false);
+    final names = members
+        .map((member) => _safeDisplayName(member, l10n))
+        .toList(growable: false);
 
     const maxVisible = 3;
     if (names.length <= maxVisible) {
@@ -255,18 +281,22 @@ class _ChatHeader extends StatelessWidget {
     }
 
     final visible = names.take(maxVisible).join(', ');
-    return '$visible +${names.length - maxVisible}';
+    return l10n.familyChatMemberCountOverflow(
+      visible,
+      names.length - maxVisible,
+    );
   }
 
-  String _memberCountLabel() {
+  String _memberCountLabel(AppLocalizations l10n) {
     if (members.isEmpty) return '';
-    if (members.length == 1) return '1 member';
-    return '${members.length} members';
+    if (members.length == 1) return l10n.familyChatOneMember;
+    return l10n.familyChatManyMembers(members.length);
   }
 
   @override
   Widget build(BuildContext context) {
-    final countLabel = _memberCountLabel();
+    final l10n = AppLocalizations.of(context);
+    final countLabel = _memberCountLabel(l10n);
 
     return Row(
       children: [
@@ -289,8 +319,8 @@ class _ChatHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Family Group Chat',
+              Text(
+                l10n.familyChatTitleLarge,
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -299,7 +329,7 @@ class _ChatHeader extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                _memberSummary(),
+                _memberSummary(l10n),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -344,9 +374,9 @@ class _MembersBar extends StatelessWidget {
   final String myUid;
   final bool isLoading;
 
-  String _safeDisplayName(String rawName) {
+  String _safeDisplayName(String rawName, AppLocalizations l10n) {
     final text = rawName.trim();
-    return text.isEmpty ? 'Member' : text;
+    return text.isEmpty ? l10n.familyChatMemberFallback : text;
   }
 
   String _initialOf(String rawName) {
@@ -357,6 +387,8 @@ class _MembersBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     if (isLoading && members.isEmpty) {
       return const SizedBox(
         height: 52,
@@ -382,7 +414,7 @@ class _MembersBar extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: members.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, index) {
           final member = members[index];
           final isMe = member.uid == myUid;
@@ -414,7 +446,9 @@ class _MembersBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isMe ? 'You' : _safeDisplayName(member.displayName),
+                  isMe
+                      ? l10n.familyChatYou
+                      : _safeDisplayName(member.displayName, l10n),
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
                     fontWeight: FontWeight.w600,
@@ -443,7 +477,7 @@ class _MessagesView extends StatelessWidget {
   final List<LocalPendingChatMessage> pendingMessages;
   final Map<String, String> memberNamesByUid;
 
-  String _resolveSenderName(FamilyChatMessage message) {
+  String _resolveSenderName(FamilyChatMessage message, AppLocalizations l10n) {
     final currentName = memberNamesByUid[message.senderUid]?.trim();
     if (currentName != null && currentName.isNotEmpty) {
       return currentName;
@@ -454,19 +488,21 @@ class _MessagesView extends StatelessWidget {
       return fallback;
     }
 
-    return 'Member';
+    return l10n.familyChatMemberFallback;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return StreamBuilder<List<FamilyChatMessage>>(
       stream: messagesStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Center(
+          return Center(
             child: Text(
-              'Cannot load messages',
-              style: TextStyle(color: Color(0xFFDC2626)),
+              l10n.familyChatCannotLoadMessages,
+              style: const TextStyle(color: Color(0xFFDC2626)),
             ),
           );
         }
@@ -475,10 +511,10 @@ class _MessagesView extends StatelessWidget {
         final hasAny = messages.isNotEmpty || pendingMessages.isNotEmpty;
 
         if (!hasAny) {
-          return const Center(
+          return Center(
             child: Text(
-              'No messages yet. Start the conversation.',
-              style: TextStyle(color: Color(0xFF64748B)),
+              l10n.familyChatNoMessagesYet,
+              style: const TextStyle(color: Color(0xFF64748B)),
             ),
           );
         }
@@ -516,7 +552,7 @@ class _MessagesView extends StatelessWidget {
                 child: _MessageBubble(
                   message: message,
                   isMine: isMine,
-                  displaySenderName: _resolveSenderName(message),
+                  displaySenderName: _resolveSenderName(message, l10n),
                 ),
               ),
             );
@@ -528,18 +564,20 @@ class _MessagesView extends StatelessWidget {
 }
 
 class _LocalPendingBubble extends StatelessWidget {
-  const _LocalPendingBubble({
-    required this.message,
-  });
+  const _LocalPendingBubble({required this.message});
 
   final LocalPendingChatMessage message;
 
   @override
   Widget build(BuildContext context) {
-    final statusText = message.failed ? 'failed' : 'sending...';
+    final l10n = AppLocalizations.of(context);
+    final statusText = message.failed
+        ? l10n.familyChatStatusFailed
+        : l10n.familyChatStatusSending;
 
-    final statusColor =
-    message.failed ? const Color(0xFFDC2626) : const Color(0xFF64748B);
+    final statusColor = message.failed
+        ? const Color(0xFFDC2626)
+        : const Color(0xFF64748B);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
@@ -569,10 +607,7 @@ class _LocalPendingBubble extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               statusText,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: statusColor, fontSize: 11),
             ),
           ],
         ),
@@ -622,8 +657,9 @@ class _MessageBubble extends StatelessWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment:
-          isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             if (!isMine) ...[
               Text(
@@ -647,10 +683,7 @@ class _MessageBubble extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               createdAtText,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 11,
-              ),
+              style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
             ),
           ],
         ),
@@ -660,25 +693,22 @@ class _MessageBubble extends StatelessWidget {
 }
 
 class _Composer extends StatelessWidget {
-  const _Composer({
-    required this.controller,
-    required this.onSend,
-  });
+  const _Composer({required this.controller, required this.onSend});
 
   final TextEditingController controller;
   final VoidCallback onSend;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return SafeArea(
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Color(0xFFE2E8F0)),
-          ),
+          border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
         ),
         child: Row(
           children: [
@@ -691,7 +721,7 @@ class _Composer extends StatelessWidget {
                 minLines: 1,
                 maxLines: 5,
                 decoration: InputDecoration(
-                  hintText: 'Type a message...',
+                  hintText: l10n.familyChatTypeMessageHint,
                   hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
@@ -735,4 +765,3 @@ class _Composer extends StatelessWidget {
     );
   }
 }
-

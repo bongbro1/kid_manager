@@ -571,6 +571,231 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get birthdayMemberFallback => 'Member';
+
+  @override
+  String birthdayWishSelfWithAge(int age) {
+    return 'Happy birthday to me. Welcome $age with joy, peace, and beautiful moments.';
+  }
+
+  @override
+  String get birthdayWishSelfDefault =>
+      'Happy birthday to me. Wishing myself a joyful and memorable day.';
+
+  @override
+  String birthdayWishOtherWithAge(String name, int age) {
+    return 'Happy birthday, $name. Wishing you a healthy, joyful, and lucky year at $age.';
+  }
+
+  @override
+  String birthdayWishOtherDefault(String name) {
+    return 'Happy birthday, $name. Wishing you joy, good health, and lots of happy moments.';
+  }
+
+  @override
+  String get birthdayViewWishButton => 'View wish';
+
+  @override
+  String get birthdaySendWishButton => 'Send wishes';
+
+  @override
+  String get birthdayCongratsYouTitle => 'Happy birthday to you';
+
+  @override
+  String get birthdayCongratsTitle => 'Happy birthday';
+
+  @override
+  String get birthdayTodayIsYourDay => 'Today is your day';
+
+  @override
+  String birthdayTurnsAge(int age) {
+    return 'Turning $age';
+  }
+
+  @override
+  String get birthdaySuggestionTitle => 'Suggested wish';
+
+  @override
+  String birthdayYouEnteringAge(int age) {
+    return 'Today you turn $age. Wishing you a gentle, joyful, and memorable day.';
+  }
+
+  @override
+  String get birthdayYouSpecialDay =>
+      'Today is your special day. Wishing you lots of joy and positive energy.';
+
+  @override
+  String birthdayTodayIsBirthdayWithAge(String name, int age) {
+    return 'Today is $name\'s birthday, turning $age.';
+  }
+
+  @override
+  String birthdayTodayIsBirthday(String name) {
+    return 'Today is $name\'s birthday.';
+  }
+
+  @override
+  String birthdayCopiedFallback(String name) {
+    return 'Family chat was not found. The birthday wish for $name has been copied.';
+  }
+
+  @override
+  String get birthdayCloseButton => 'Close';
+
+  @override
+  String get birthdayAwesomeButton => 'Awesome';
+
+  @override
+  String get familyChatLoadingTitle => 'Loading chat';
+
+  @override
+  String get familyChatTitle => 'Family group chat';
+
+  @override
+  String get familyChatTitleLarge => 'Family Group Chat';
+
+  @override
+  String familyChatSendFailed(String error) {
+    return 'Send failed: $error';
+  }
+
+  @override
+  String get familyChatYou => 'You';
+
+  @override
+  String get familyChatMemberFallback => 'Member';
+
+  @override
+  String get familyChatLoadingMembers => 'Loading members...';
+
+  @override
+  String get familyChatNoMembersFound => 'No members found';
+
+  @override
+  String get familyChatOneMember => '1 member';
+
+  @override
+  String familyChatManyMembers(int count) {
+    return '$count members';
+  }
+
+  @override
+  String get familyChatCannotLoadMessages => 'Cannot load messages';
+
+  @override
+  String get familyChatNoMessagesYet =>
+      'No messages yet. Start the conversation.';
+
+  @override
+  String get familyChatStatusFailed => 'failed';
+
+  @override
+  String get familyChatStatusSending => 'sending...';
+
+  @override
+  String get familyChatTypeMessageHint => 'Type a message...';
+
+  @override
+  String familyChatMemberCountOverflow(String names, int extra) {
+    return '$names +$extra';
+  }
+
+  @override
+  String get notificationScreenTitle => 'Notifications';
+
+  @override
+  String get notificationDateToday => 'TODAY';
+
+  @override
+  String get notificationDateYesterday => 'YESTERDAY';
+
+  @override
+  String get notificationFilterTitle => 'Filter notifications';
+
+  @override
+  String get notificationFilterAll => 'All';
+
+  @override
+  String get notificationFilterActivity => 'Activity';
+
+  @override
+  String get notificationFilterAlert => 'Alerts';
+
+  @override
+  String get notificationFilterReminder => 'Reminders';
+
+  @override
+  String get notificationFilterSystem => 'System notifications';
+
+  @override
+  String get notificationSearchHint => 'Search notifications';
+
+  @override
+  String get notificationJustNow => 'Just now';
+
+  @override
+  String notificationMinutesAgo(int minutes) {
+    return '${minutes}m ago';
+  }
+
+  @override
+  String notificationHoursAgo(int hours) {
+    return '${hours}h ago';
+  }
+
+  @override
+  String get notificationDetailTitle => 'Notification details';
+
+  @override
+  String get notificationDetailSectionTitle => 'DETAILS';
+
+  @override
+  String get notificationChildFallback => 'Child';
+
+  @override
+  String get notificationChildInfoNotFound =>
+      'Child information could not be found';
+
+  @override
+  String get notificationMapLocationNotFound =>
+      'Location could not be found to open the map';
+
+  @override
+  String notificationScheduleCreatedTitle(String childName) {
+    return 'New schedule for $childName';
+  }
+
+  @override
+  String notificationScheduleUpdatedTitle(String childName) {
+    return '$childName\'s schedule has changed';
+  }
+
+  @override
+  String notificationScheduleDeletedTitle(String childName) {
+    return '$childName\'s schedule was deleted';
+  }
+
+  @override
+  String notificationScheduleRestoredTitle(String childName) {
+    return '$childName\'s schedule was restored';
+  }
+
+  @override
+  String notificationZoneEnteredDangerTitle(String childName) {
+    return '$childName entered a danger zone';
+  }
+
+  @override
+  String notificationZoneExitedSafeTitle(String childName) {
+    return '$childName left a safe zone';
+  }
+
+  @override
+  String notificationZoneExitedDangerTitle(String childName) {
+    return '$childName left a danger zone';
+  }
+
+  @override
   String scheduleImportRowTitle(int row, String title) {
     return 'Row $row: $title';
   }

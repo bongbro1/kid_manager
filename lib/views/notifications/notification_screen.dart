@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
@@ -10,9 +11,6 @@ import 'package:kid_manager/widgets/notifications/notification_empty_view.dart';
 import 'package:provider/provider.dart';
 
 class NotificationScreen extends StatefulWidget {
-  final List<NotificationSource> sources;
-  final bool systemOnly;
-
   const NotificationScreen({
     super.key,
     this.sources = const [
@@ -21,6 +19,9 @@ class NotificationScreen extends StatefulWidget {
     ],
     this.systemOnly = false,
   });
+
+  final List<NotificationSource> sources;
+  final bool systemOnly;
 
   @override
   State<NotificationScreen> createState() => _NotificationScreenState();
@@ -99,7 +100,8 @@ class _NotificationScreenState extends State<NotificationScreen>
       return;
     }
 
-    Navigator.push(
+    if (!mounted) return;
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => NotificationDetailScreen(item: item)),
     );
@@ -195,7 +197,6 @@ class _NotificationScreenState extends State<NotificationScreen>
                                   }
 
                                   final item = notifications[index];
-
                                   final showDateHeader =
                                       index == 0 ||
                                       !_isSameDay(
@@ -233,14 +234,15 @@ class _NotificationScreenState extends State<NotificationScreen>
   }
 
   Widget _buildDateHeader(DateTime date) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final yesterday = now.subtract(const Duration(days: 1));
 
     String text;
     if (_isSameDay(date, now)) {
-      text = 'HÔM NAY';
+      text = l10n.notificationDateToday;
     } else if (_isSameDay(date, yesterday)) {
-      text = 'HÔM QUA';
+      text = l10n.notificationDateYesterday;
     } else {
       text = '${date.day}/${date.month}/${date.year}';
     }
@@ -261,17 +263,17 @@ class _NotificationScreenState extends State<NotificationScreen>
 }
 
 class _NotificationHeader extends StatefulWidget {
-  final String searchKeyword;
-  final ValueChanged<String> onSearch;
-  final NotificationFilter activeFilter;
-  final Function(NotificationFilter) onFilterChanged;
-
   const _NotificationHeader({
     required this.searchKeyword,
     required this.onSearch,
     required this.activeFilter,
     required this.onFilterChanged,
   });
+
+  final String searchKeyword;
+  final ValueChanged<String> onSearch;
+  final NotificationFilter activeFilter;
+  final Function(NotificationFilter) onFilterChanged;
 
   @override
   State<_NotificationHeader> createState() => _NotificationHeaderState();
@@ -282,14 +284,6 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
   bool _isFocused = false;
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
-
-  final filters = const [
-    (NotificationFilter.all, 'Tất cả', Icons.notifications),
-    (NotificationFilter.activity, 'Hoạt động', Icons.school),
-    (NotificationFilter.alert, 'Cảnh báo', Icons.warning),
-    (NotificationFilter.reminder, 'Nhắc nhở', Icons.event),
-    (NotificationFilter.system, 'Thông báo hệ thống', Icons.campaign),
-  ];
 
   void _onSearch(String keyword) {
     widget.onSearch(keyword.trim());
@@ -319,6 +313,27 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
   }
 
   void _showFilter() {
+    final l10n = AppLocalizations.of(context);
+    final filters = [
+      (NotificationFilter.all, l10n.notificationFilterAll, Icons.notifications),
+      (
+        NotificationFilter.activity,
+        l10n.notificationFilterActivity,
+        Icons.school,
+      ),
+      (NotificationFilter.alert, l10n.notificationFilterAlert, Icons.warning),
+      (
+        NotificationFilter.reminder,
+        l10n.notificationFilterReminder,
+        Icons.event,
+      ),
+      (
+        NotificationFilter.system,
+        l10n.notificationFilterSystem,
+        Icons.campaign,
+      ),
+    ];
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -330,9 +345,12 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 12),
-              const Text(
-                'Lọc thông báo',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                l10n.notificationFilterTitle,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Column(
@@ -389,14 +407,16 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
   }
 
   Widget _buildNormalHeader() {
+    final l10n = AppLocalizations.of(context);
+
     return Stack(
       key: const ValueKey('normal'),
       alignment: Alignment.center,
       children: [
-        const Center(
+        Center(
           child: Text(
-            'Thông báo',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            l10n.notificationScreenTitle,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
         ),
         Row(
@@ -429,6 +449,8 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
   }
 
   Widget _buildSearchBox() {
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       key: const ValueKey('search'),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -467,9 +489,9 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
                           color: Color(0xFF111827),
                         ),
                         onChanged: _onSearch,
-                        decoration: const InputDecoration(
-                          hintText: 'Tìm thông báo',
-                          hintStyle: TextStyle(
+                        decoration: InputDecoration(
+                          hintText: l10n.notificationSearchHint,
+                          hintStyle: const TextStyle(
                             color: Color(0xFF9CA3AF),
                             fontWeight: FontWeight.w400,
                           ),
@@ -516,15 +538,15 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
 }
 
 class _CircleIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color color;
-
   const _CircleIconButton({
     required this.icon,
     required this.onTap,
     this.color = Colors.black,
   });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
