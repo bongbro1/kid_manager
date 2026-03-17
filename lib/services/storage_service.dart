@@ -16,11 +16,9 @@ class StorageService {
   Future<bool> setString(String key, String value) =>
       _prefs.setString(key, value);
 
-  Future<bool> setInt(String key, int value) =>
-      _prefs.setInt(key, value);
+  Future<bool> setInt(String key, int value) => _prefs.setInt(key, value);
 
-  Future<bool> setBool(String key, bool value) =>
-      _prefs.setBool(key, value);
+  Future<bool> setBool(String key, bool value) => _prefs.setBool(key, value);
 
   Future<bool> setDouble(String key, double value) =>
       _prefs.setDouble(key, value);
@@ -37,8 +35,7 @@ class StorageService {
 
   double? getDouble(String key) => _prefs.getDouble(key);
 
-  List<String>? getStringList(String key) =>
-      _prefs.getStringList(key);
+  List<String>? getStringList(String key) => _prefs.getStringList(key);
 
   // ===== UTILS =====
   bool contains(String key) => _prefs.containsKey(key);
@@ -52,6 +49,8 @@ class StorageService {
       StorageKeys.uid,
       StorageKeys.role,
       StorageKeys.email,
+      StorageKeys.parentId,
+      StorageKeys.displayName,
       StorageKeys.isLoggedIn,
     ];
 
@@ -62,7 +61,6 @@ class StorageService {
     }
   }
 }
-
 
 // cách dùng
 

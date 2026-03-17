@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/birthday_event.dart';
+import 'package:kid_manager/models/memory_day.dart';
+import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/utils/schedule_utils.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +24,46 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
   CalendarFormat _calendarFormat = CalendarFormat.week;
 
   static const _selectedCircleSize = 32.0;
+
+  static DateTime _normalizeDay(DateTime day) =>
+      DateTime(day.year, day.month, day.day);
+
+  bool _hasEntriesForDay<T>(Map<DateTime, List<T>> source, DateTime day) {
+    return source[_normalizeDay(day)]?.isNotEmpty == true;
+  }
+
+  void _selectDay(DateTime selectedDay) {
+    final normalized = DateTime(
+      selectedDay.year,
+      selectedDay.month,
+      selectedDay.day,
+    );
+    final scheduleVm = context.read<ScheduleViewModel>();
+
+    if (isSameDay(normalized, scheduleVm.selectedDate)) return;
+
+    scheduleVm.setDate(normalized);
+    context.read<MemoryDayViewModel>().setDate(normalized);
+    context.read<BirthdayViewModel>().setDate(normalized);
+  }
+
+  Future<void> _changeVisibleMonth(DateTime focusedDay) async {
+    final visibleMonth = DateTime(focusedDay.year, focusedDay.month, 1);
+    final scheduleVm = context.read<ScheduleViewModel>();
+    final currentMonth = DateTime(
+      scheduleVm.focusedMonth.year,
+      scheduleVm.focusedMonth.month,
+      1,
+    );
+
+    if (visibleMonth == currentMonth) return;
+
+    await Future.wait([
+      scheduleVm.changeMonth(visibleMonth),
+      context.read<MemoryDayViewModel>().changeMonth(visibleMonth),
+      context.read<BirthdayViewModel>().changeMonth(visibleMonth),
+    ]);
+  }
 
   Widget _buildDayCell({
     required DateTime day,
@@ -83,9 +126,26 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheduleVm = context.watch<ScheduleViewModel>();
-    final memoryVm = context.watch<MemoryDayViewModel>();
-    final birthdayVm = context.watch<BirthdayViewModel>();
+    final selectedDate = context.select<ScheduleViewModel, DateTime>(
+      (vm) => vm.selectedDate,
+    );
+    final focusedMonth = context.select<ScheduleViewModel, DateTime>(
+      (vm) => vm.focusedMonth,
+    );
+    final monthSchedules = context
+        .select<ScheduleViewModel, Map<DateTime, List<Schedule>>>(
+          (vm) => Map<DateTime, List<Schedule>>.unmodifiable(vm.monthSchedules),
+        );
+    final monthMemories = context
+        .select<MemoryDayViewModel, Map<DateTime, List<MemoryDay>>>(
+          (vm) => Map<DateTime, List<MemoryDay>>.unmodifiable(vm.monthMemories),
+        );
+    final monthBirthdays = context
+        .select<BirthdayViewModel, Map<DateTime, List<BirthdayEvent>>>(
+          (vm) => Map<DateTime, List<BirthdayEvent>>.unmodifiable(
+            vm.monthBirthdays,
+          ),
+        );
 
     return Container(
       decoration: const BoxDecoration(
@@ -97,19 +157,27 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
       ),
       child: Column(
         children: [
-          const _CalendarHeader(),
+          _CalendarHeader(
+            focusedMonth: focusedMonth,
+            onPreviousMonth: () {
+              _changeVisibleMonth(
+                DateTime(focusedMonth.year, focusedMonth.month - 1),
+              );
+            },
+            onNextMonth: () {
+              _changeVisibleMonth(
+                DateTime(focusedMonth.year, focusedMonth.month + 1),
+              );
+            },
+          ),
           TableCalendar(
             locale: _tableCalendarLocale(context),
             firstDay: DateTime.utc(2000, 1, 1),
             lastDay: DateTime.utc(2050, 12, 31),
-            focusedDay: scheduleVm.selectedDate,
-            selectedDayPredicate: (day) =>
-                isSameDay(day, scheduleVm.selectedDate),
-            onDaySelected: (selectedDay, _) {
-              scheduleVm.setDate(selectedDay);
-              memoryVm.setDate(selectedDay);
-              birthdayVm.setDate(selectedDay);
-            },
+            focusedDay: selectedDate,
+            selectedDayPredicate: (day) => isSameDay(day, selectedDate),
+            onDaySelected: (selectedDay, _) => _selectDay(selectedDay),
+            onPageChanged: (focusedDay) => _changeVisibleMonth(focusedDay),
             calendarFormat: _calendarFormat,
             onFormatChanged: (format) =>
                 setState(() => _calendarFormat = format),
@@ -144,8 +212,8 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                 return _buildDayCell(
                   day: day,
                   isSelected: true,
-                  hasMemory: memoryVm.hasMemory(day),
-                  hasBirthday: birthdayVm.hasBirthday(day),
+                  hasMemory: _hasEntriesForDay(monthMemories, day),
+                  hasBirthday: _hasEntriesForDay(monthBirthdays, day),
                   textStyle: AppTextStyles.scheduleDayNumber,
                 );
               },
@@ -155,8 +223,8 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                 return _buildDayCell(
                   day: day,
                   isSelected: false,
-                  hasMemory: memoryVm.hasMemory(day),
-                  hasBirthday: birthdayVm.hasBirthday(day),
+                  hasMemory: _hasEntriesForDay(monthMemories, day),
+                  hasBirthday: _hasEntriesForDay(monthBirthdays, day),
                   textStyle: AppTextStyles.scheduleDayNumber,
                 );
               },
@@ -164,8 +232,8 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                 return _buildDayCell(
                   day: day,
                   isSelected: false,
-                  hasMemory: memoryVm.hasMemory(day),
-                  hasBirthday: birthdayVm.hasBirthday(day),
+                  hasMemory: _hasEntriesForDay(monthMemories, day),
+                  hasBirthday: _hasEntriesForDay(monthBirthdays, day),
                   textStyle: const TextStyle(
                     color: Color(0xFFBCC1CD),
                     fontFamily: 'Poppins',
@@ -185,7 +253,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
 
               markerBuilder: (_, date, _) {
                 final key = DateTime(date.year, date.month, date.day);
-                final daySchedules = scheduleVm.monthSchedules[key] ?? const [];
+                final daySchedules = monthSchedules[key] ?? const [];
 
                 if (daySchedules.isEmpty) {
                   return const SizedBox.shrink();
@@ -319,14 +387,19 @@ class _CalendarCornerBadge extends StatelessWidget {
 }
 
 class _CalendarHeader extends StatelessWidget {
-  const _CalendarHeader();
+  const _CalendarHeader({
+    required this.focusedMonth,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
+  });
+
+  final DateTime focusedMonth;
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheduleVm = context.watch<ScheduleViewModel>();
-    final memoryVm = context.watch<MemoryDayViewModel>();
-    final birthdayVm = context.watch<BirthdayViewModel>();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -334,39 +407,20 @@ class _CalendarHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            onPressed: () {
-              final newMonth = DateTime(
-                scheduleVm.selectedDate.year,
-                scheduleVm.selectedDate.month - 1,
-              );
-              scheduleVm.changeMonth(newMonth);
-              memoryVm.changeMonth(newMonth);
-              birthdayVm.changeMonth(newMonth);
-            },
+            onPressed: onPreviousMonth,
             icon: const Icon(Icons.chevron_left, color: AppColors.darkText),
           ),
           Column(
             children: [
               Text(
-                l10n.scheduleCalendarMonthLabel(scheduleVm.selectedDate.month),
+                l10n.scheduleCalendarMonthLabel(focusedMonth.month),
                 style: AppTextStyles.scheduleMonthYear,
               ),
-              Text(
-                '${scheduleVm.selectedDate.year}',
-                style: AppTextStyles.scheduleYear,
-              ),
+              Text('${focusedMonth.year}', style: AppTextStyles.scheduleYear),
             ],
           ),
           IconButton(
-            onPressed: () {
-              final newMonth = DateTime(
-                scheduleVm.selectedDate.year,
-                scheduleVm.selectedDate.month + 1,
-              );
-              scheduleVm.changeMonth(newMonth);
-              memoryVm.changeMonth(newMonth);
-              birthdayVm.changeMonth(newMonth);
-            },
+            onPressed: onNextMonth,
             icon: const Icon(Icons.chevron_right, color: AppColors.darkText),
           ),
         ],

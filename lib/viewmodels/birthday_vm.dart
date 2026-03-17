@@ -24,8 +24,11 @@ class BirthdayViewModel extends ChangeNotifier {
   DateTime _normalize(DateTime date) =>
       DateTime(date.year, date.month, date.day);
 
-  void resetForNewSession() {
+  void resetForNewSession({bool clearFamilyId = true}) {
     _monthToken++;
+    if (clearFamilyId) {
+      _familyId = null;
+    }
     _allBirthdays = const <BirthdayEvent>[];
     _hasLoadedFamilyData = false;
     monthBirthdays = {};
@@ -37,9 +40,10 @@ class BirthdayViewModel extends ChangeNotifier {
   }
 
   void setFamilyId(String familyId) {
-    if (_familyId == familyId) return;
-    _familyId = familyId;
-    resetForNewSession();
+    final normalized = familyId.trim();
+    if (normalized.isEmpty || _familyId == normalized) return;
+    _familyId = normalized;
+    resetForNewSession(clearFamilyId: false);
   }
 
   void bindCalendarState({
