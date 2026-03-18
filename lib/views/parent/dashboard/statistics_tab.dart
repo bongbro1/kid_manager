@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
@@ -33,6 +35,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
   int? selectedDotIndex;
   DateTime? fromDate;
   DateTime? toDate;
+  late List<double> randomHeights;
 
   List<_UsageAppRow> get sortedUsageApps {
     if (activeIndex == 0) {
@@ -231,6 +234,15 @@ class _StatisticsTabState extends State<StatisticsTab> {
     );
 
     chartBars = ChartUiBuilder.build(points, mode);
+
+    final random = Random();
+
+    randomHeights = chartBars.map((bar) {
+      if (bar.minutes == 0) {
+        return 40 + random.nextDouble() * (150 - 40);
+      }
+      return 0.0;
+    }).toList();
   }
 
   void _updateRange(DateTime? a, DateTime? b) {
@@ -549,7 +561,12 @@ class _StatisticsTabState extends State<StatisticsTab> {
   }
 
   Widget _buildBarChart() {
-    const chartHeight = 150.0;
+    const maxChartHeight = 150.0;
+
+    final maxMinutes = chartBars.isEmpty
+        ? 0
+        : chartBars.map((e) => e.minutes).reduce((a, b) => a > b ? a : b);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = chartBars.length;
@@ -562,56 +579,67 @@ class _StatisticsTabState extends State<StatisticsTab> {
           barWidth = 40;
         }
 
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            SingleChildScrollView(
-              controller: _chartScrollController,
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: List.generate(chartBars.length, (i) {
-                  final bar = chartBars[i];
+        return SingleChildScrollView(
+          controller: _chartScrollController,
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(chartBars.length, (i) {
+              final bar = chartBars[i];
 
-                  final tooltipBottom = (bar.valueHeight + 30)
-                      .clamp(0.0, chartHeight + 25)
-                      .toDouble();
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedBarIndex = i;
-                        });
-                      },
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          /// BAR
-                          BarWidget(
-                            width: barWidth,
-                            height: chartHeight,
-                            valueHeight: bar.valueHeight,
-                            label: bar.label,
-                            active: selectedBarIndex == i,
-                            faded: bar.isFuture,
-                          ),
+              /// chiều cao cột xám
+              double greyHeight;
 
-                          /// TOOLTIP
-                          if (selectedBarIndex == i)
-                            Positioned(
-                              bottom: tooltipBottom,
-                              child: TooltipWidget(value: bar.minutes),
-                            ),
-                        ],
+              if (bar.minutes == 0) {
+                greyHeight = randomHeights[i];
+              } else {
+                greyHeight = (bar.minutes / maxMinutes) * maxChartHeight;
+              }
+
+              greyHeight = greyHeight.clamp(40, maxChartHeight);
+
+              /// chiều cao thanh xanh
+              double blueHeight = bar.minutes == 0 ? 4 : greyHeight * 0.7;
+
+              final tooltipBottom = (blueHeight + 30).clamp(
+                0.0,
+                maxChartHeight + 25,
+              );
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedBarIndex = i;
+                    });
+                  },
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      /// BAR
+                      BarWidget(
+                        width: barWidth,
+                        greyHeight: greyHeight,
+                        blueHeight: blueHeight,
+                        label: bar.label,
+                        active: selectedBarIndex == i,
+                        faded: bar.isFuture,
                       ),
-                    ),
-                  );
-                }),
-              ),
-            ),
-          ],
+
+                      /// TOOLTIP
+                      if (selectedBarIndex == i)
+                        Positioned(
+                          bottom: tooltipBottom.toDouble(),
+                          child: TooltipWidget(value: bar.minutes),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
         );
       },
     );

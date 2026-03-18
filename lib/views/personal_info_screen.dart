@@ -24,7 +24,7 @@ import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/common/smart_network_image.dart';
 import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
-import 'package:kid_manager/views/language_selector_sheet.dart';
+import 'package:kid_manager/views/setting_pages/widgets/language_selector_sheet.dart';
 import 'package:provider/provider.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -571,21 +571,6 @@ class MoreActionSheet extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AboutAppScreen()),
-                );
-              },
-            ),
-            const SizedBox(height: 10),
-            SettingItem(
-              title: AppLocalizations.of(context).languageSetting,
-              iconPath: "assets/icons/menu.svg",
-              iconType: AppIconType.svg,
-              iconSize: 20,
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  backgroundColor: Colors.transparent,
-                  isScrollControlled: true,
-                  builder: (_) => const LanguageSelectorSheet(),
                 );
               },
             ),

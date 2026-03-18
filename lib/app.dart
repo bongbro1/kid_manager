@@ -74,6 +74,7 @@ class _MyAppState extends State<MyApp> {
 
   late bool _isDark;
   late Color _primaryColor;
+  late Locale locale;
 
   @override
   void initState() {
@@ -89,6 +90,12 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _primaryColor = color;
       _isDark = dark;
+    });
+  }
+
+  void updateLanguage(String lang) {
+    setState(() {
+      locale = Locale(lang);
     });
   }
 
@@ -282,7 +289,18 @@ class _MyAppState extends State<MyApp> {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            supportedLocales: const [Locale('en'), Locale('vi')],
+            supportedLocales: const [
+              Locale('vi'),
+              Locale('en'),
+              Locale('ja'),
+              Locale('ko'),
+              Locale('zh'),
+              Locale('fr'),
+              Locale('de'),
+              Locale('es'),
+              Locale('th'),
+              Locale('id'),
+            ],
             navigatorObservers: [routeObserver],
             themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
 

@@ -111,30 +111,19 @@ class AuthRepository {
   // auth socials
   Future<AppUser?> signInWithGoogle() async {
     try {
-      print("[AUTH_GOOGLE] 🔵 Google sign-in started");
-
       final googleSignIn = GoogleSignIn();
 
       final googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
-        print("[AUTH_GOOGLE] 🟡 User cancelled login");
         return null;
       }
-
-      print("[AUTH_GOOGLE] 🟢 Google user: ${googleUser.email}");
-
       final googleAuth = await googleUser.authentication;
-
-      print("[AUTH_GOOGLE] AccessToken: ${googleAuth.accessToken != null}");
-      print("[AUTH_GOOGLE] IdToken: ${googleAuth.idToken != null}");
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-
-      print("[AUTH_GOOGLE] 🔵 Signing into Firebase");
 
       final userCredential = await FirebaseAuth.instance.signInWithCredential(
         credential,
@@ -143,16 +132,11 @@ class AuthRepository {
       final firebaseUser = userCredential.user;
 
       if (firebaseUser == null) {
-        print("[AUTH_GOOGLE] 🔴 Firebase user null");
         return null;
       }
 
-      print("[AUTH_GOOGLE] 🟢 Firebase login success: ${firebaseUser.uid}");
-
       return AppUser.fromFirebase(firebaseUser);
-    } catch (e, stack) {
-      print("[AUTH_GOOGLE] 🔴 ERROR: $e");
-      print(stack);
+    } catch (e) {
       rethrow;
     }
   }
