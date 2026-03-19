@@ -31,9 +31,21 @@ int? birthdayAgeTurningFromNotification(AppNotification item) {
   return int.tryParse(raw?.toString() ?? '');
 }
 
+int? birthdayDaysUntilFromNotification(AppNotification item) {
+  final raw = item.data['daysUntil'];
+  if (raw is num) return raw.toInt();
+  return int.tryParse(raw?.toString() ?? '');
+}
+
 bool isBirthdaySelfNotification(AppNotification item) {
   final raw = item.data['isSelf']?.toString().trim().toLowerCase();
   return raw == 'true' || raw == '1';
+}
+
+bool isBirthdayCountdownNotification(AppNotification item) {
+  final phase = item.data['birthdayPhase']?.toString().trim().toLowerCase();
+  return phase == 'countdown' &&
+      (birthdayDaysUntilFromNotification(item) ?? 0) > 0;
 }
 
 String buildBirthdayWishText(AppLocalizations l10n, AppNotification item) {
@@ -51,6 +63,33 @@ String buildBirthdayWishText(AppLocalizations l10n, AppNotification item) {
       : l10n.birthdayWishOtherDefault(name);
 }
 
+String buildBirthdayCountdownBodyText(
+  AppLocalizations l10n,
+  AppNotification item,
+) {
+  final daysUntil = birthdayDaysUntilFromNotification(item) ?? 0;
+  if (isBirthdaySelfNotification(item)) {
+    return l10n.birthdayCountdownSelfBody(daysUntil);
+  }
+
+  final name = birthdayNameFromNotification(l10n, item);
+  return l10n.birthdayCountdownOtherBody(name, daysUntil);
+}
+
+String buildBirthdaySuggestionText(
+  AppLocalizations l10n,
+  AppNotification item,
+) {
+  if (isBirthdayCountdownNotification(item)) {
+    final name = birthdayNameFromNotification(l10n, item);
+    return isBirthdaySelfNotification(item)
+        ? l10n.birthdayCountdownSuggestionSelf
+        : l10n.birthdayCountdownSuggestionOther(name);
+  }
+
+  return buildBirthdayWishText(l10n, item);
+}
+
 Future<void> showBirthdayNotificationSheet(
   BuildContext context, {
   required AppNotification item,
@@ -64,8 +103,30 @@ Future<void> showBirthdayNotificationSheet(
   );
 }
 
+/// Main router widget - selects the right card based on birthday phase
 class BirthdayNotificationCard extends StatelessWidget {
   const BirthdayNotificationCard({
+    super.key,
+    required this.item,
+    required this.onTap,
+  });
+
+  final AppNotification item;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // Route to appropriate card based on phase
+    if (item.birthdayPhase == BirthdayPhase.countdown) {
+      return ReminderBirthdayCard(item: item, onTap: onTap);
+    }
+    return FestiveBirthdayCard(item: item, onTap: onTap);
+  }
+}
+
+/// Festive card for birthday TODAY (original design)
+class FestiveBirthdayCard extends StatelessWidget {
+  const FestiveBirthdayCard({
     super.key,
     required this.item,
     required this.onTap,
@@ -79,10 +140,24 @@ class BirthdayNotificationCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final name = birthdayNameFromNotification(l10n, item);
     final ageTurning = birthdayAgeTurningFromNotification(item);
+    final daysUntil = birthdayDaysUntilFromNotification(item);
     final isSelf = isBirthdaySelfNotification(item);
-    final ctaLabel = isSelf
-        ? l10n.birthdayViewWishButton
-        : l10n.birthdaySendWishButton;
+    final isCountdown = isBirthdayCountdownNotification(item);
+    final ctaLabel = isCountdown
+        ? l10n.birthdayCountdownPlanButton
+        : (isSelf ? l10n.birthdayViewWishButton : l10n.birthdaySendWishButton);
+    final titleText = isCountdown
+        ? (isSelf
+              ? l10n.birthdayCountdownSelfTitle
+              : l10n.birthdayCountdownTitle)
+        : (isSelf ? l10n.birthdayCongratsYouTitle : l10n.birthdayCongratsTitle);
+    final secondaryChipLabel = isCountdown
+        ? ((daysUntil ?? 0) == 1
+              ? l10n.birthdayCountdownTomorrowChip
+              : l10n.birthdayCountdownDaysChip(daysUntil ?? 0))
+        : (ageTurning != null && ageTurning > 0
+              ? l10n.birthdayTurnsAge(ageTurning)
+              : '');
 
     return Material(
       color: Colors.transparent,
@@ -148,9 +223,7 @@ class BirthdayNotificationCard extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  isSelf
-                                      ? l10n.birthdayCongratsYouTitle
-                                      : l10n.birthdayCongratsTitle,
+                                  titleText,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -173,14 +246,18 @@ class BirthdayNotificationCard extends StatelessWidget {
                                 icon: isSelf
                                     ? Icons.favorite_rounded
                                     : Icons.cake_outlined,
-                                label: isSelf
-                                    ? l10n.birthdayTodayIsYourDay
-                                    : name,
+                                label: isCountdown
+                                    ? name
+                                    : (isSelf
+                                          ? l10n.birthdayTodayIsYourDay
+                                          : name),
                               ),
-                              if (ageTurning != null && ageTurning > 0)
+                              if (secondaryChipLabel.isNotEmpty)
                                 _BirthdayInfoChip(
-                                  icon: Icons.stars_rounded,
-                                  label: l10n.birthdayTurnsAge(ageTurning),
+                                  icon: isCountdown
+                                      ? Icons.schedule_rounded
+                                      : Icons.stars_rounded,
+                                  label: secondaryChipLabel,
                                 ),
                             ],
                           ),
@@ -259,6 +336,190 @@ class BirthdayNotificationCard extends StatelessWidget {
   }
 }
 
+/// Reminder card for birthday COUNTDOWN (festive design with peach colors)
+class ReminderBirthdayCard extends StatelessWidget {
+  const ReminderBirthdayCard({
+    super.key,
+    required this.item,
+    required this.onTap,
+  });
+
+  final AppNotification item;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final name = birthdayNameFromNotification(l10n, item);
+    final ageTurning = birthdayAgeTurningFromNotification(item);
+    final daysUntil = birthdayDaysUntilFromNotification(item);
+    final titleText = isBirthdaySelfNotification(item)
+        ? l10n.birthdayCountdownSelfTitle
+        : l10n.birthdayCountdownTitle;
+    final countdownLabel = l10n.birthdayCountdownDaysChip(daysUntil ?? 0);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFF4E6), Color(0xFFFFF8ED)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFFFDDB3)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14FB923C),
+                blurRadius: 24,
+                offset: Offset(0, 14),
+              ),
+              BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              const Positioned(
+                top: -10,
+                right: 34,
+                child: _SoftBubble(size: 56, color: Color(0x33FFFFFF)),
+              ),
+              const Positioned(
+                bottom: 12,
+                right: 12,
+                child: _SoftBubble(size: 72, color: Color(0x1AF59E0B)),
+              ),
+              const Positioned(
+                top: 18,
+                left: 84,
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Color(0x66F59E0B),
+                  size: 16,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _CountdownPulseBadge(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  titleText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF1F2937),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.2,
+                                  ),
+                                ),
+                              ),
+                              if (!item.isRead) const _UnreadDot(),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              _WarmReminderChip(
+                                icon: Icons.person_outline_rounded,
+                                label: name,
+                              ),
+                              if (ageTurning != null && ageTurning > 0)
+                                _WarmReminderChip(
+                                  icon: Icons.stars_rounded,
+                                  label: l10n.birthdayTurnsAge(ageTurning),
+                                ),
+                              _WarmReminderChip(
+                                icon: Icons.schedule_rounded,
+                                label: countdownLabel,
+                                isHighlight: true,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: OutlinedButton(
+                                  onPressed: onTap,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF2563EB),
+                                    backgroundColor: Colors.transparent,
+                                    visualDensity: VisualDensity.compact,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    minimumSize: const Size(0, 34),
+                                    side: const BorderSide(
+                                      color: Color(0xFF3B82F6),
+                                      width: 1.5,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 7,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.edit_calendar_rounded,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          l10n.birthdayCountdownPlanButton,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class BirthdayCelebrationSheet extends StatelessWidget {
   const BirthdayCelebrationSheet({super.key, required this.item});
 
@@ -290,10 +551,33 @@ class BirthdayCelebrationSheet extends StatelessWidget {
     final name = birthdayNameFromNotification(l10n, item);
     final ageTurning = birthdayAgeTurningFromNotification(item);
     final isSelf = isBirthdaySelfNotification(item);
+    final isCountdown = isBirthdayCountdownNotification(item);
     final wishText = buildBirthdayWishText(l10n, item);
+    final suggestionText = buildBirthdaySuggestionText(l10n, item);
     final familyId = (item.familyId?.trim().isNotEmpty ?? false)
         ? item.familyId!.trim()
         : (item.data['familyId']?.toString().trim() ?? '');
+    final headerTitle = isCountdown
+        ? (isSelf
+              ? l10n.birthdayCountdownSelfTitle
+              : l10n.birthdayCountdownTitle)
+        : (isSelf ? l10n.birthdayCongratsYouTitle : l10n.birthdayCongratsTitle);
+    final bodyText = isCountdown
+        ? buildBirthdayCountdownBodyText(l10n, item)
+        : (isSelf
+              ? (ageTurning != null && ageTurning > 0
+                    ? l10n.birthdayYouEnteringAge(ageTurning)
+                    : l10n.birthdayYouSpecialDay)
+              : (ageTurning != null && ageTurning > 0
+                    ? l10n.birthdayTodayIsBirthdayWithAge(name, ageTurning)
+                    : l10n.birthdayTodayIsBirthday(name)));
+    final suggestionTitle = isCountdown
+        ? l10n.birthdayCountdownSuggestionTitle
+        : l10n.birthdaySuggestionTitle;
+    final primaryButtonLabel = isCountdown
+        ? l10n.birthdayCountdownPlanButton
+        : l10n.birthdaySendWishButton;
+    final showPrimaryAction = isCountdown || !isSelf;
 
     return Container(
       decoration: const BoxDecoration(color: Colors.transparent),
@@ -330,9 +614,7 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                   const _CelebrationHero(),
                   const SizedBox(height: 22),
                   Text(
-                    isSelf
-                        ? l10n.birthdayCongratsYouTitle
-                        : l10n.birthdayCongratsTitle,
+                    headerTitle,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Color(0xFF111827),
@@ -342,16 +624,7 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    isSelf
-                        ? (ageTurning != null && ageTurning > 0
-                              ? l10n.birthdayYouEnteringAge(ageTurning)
-                              : l10n.birthdayYouSpecialDay)
-                        : (ageTurning != null && ageTurning > 0
-                              ? l10n.birthdayTodayIsBirthdayWithAge(
-                                  name,
-                                  ageTurning,
-                                )
-                              : l10n.birthdayTodayIsBirthday(name)),
+                    bodyText,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Color(0xFF4B5563),
@@ -380,7 +653,7 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              l10n.birthdaySuggestionTitle,
+                              suggestionTitle,
                               style: const TextStyle(
                                 color: Color(0xFF374151),
                                 fontSize: 13,
@@ -391,7 +664,7 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          wishText,
+                          suggestionText,
                           style: const TextStyle(
                             color: Color(0xFF111827),
                             fontSize: 14,
@@ -402,7 +675,7 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  if (!isSelf)
+                  if (showPrimaryAction)
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -437,7 +710,7 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                           );
                         },
                         child: Text(
-                          l10n.birthdaySendWishButton,
+                          primaryButtonLabel,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -445,7 +718,7 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (!isSelf) const SizedBox(height: 12),
+                  if (showPrimaryAction) const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
@@ -459,9 +732,11 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                       ),
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text(
-                        isSelf
-                            ? l10n.birthdayAwesomeButton
-                            : l10n.birthdayCloseButton,
+                        isCountdown
+                            ? l10n.birthdayCloseButton
+                            : (isSelf
+                                  ? l10n.birthdayAwesomeButton
+                                  : l10n.birthdayCloseButton),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -506,6 +781,40 @@ class _BirthdayPulseBadge extends StatelessWidget {
         child: const Icon(
           Icons.cake_rounded,
           color: Color(0xFFDB2777),
+          size: 28,
+        ),
+      ),
+    );
+  }
+}
+
+class _CountdownPulseBadge extends StatelessWidget {
+  const _CountdownPulseBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.92, end: 1),
+      duration: const Duration(milliseconds: 700),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        return Transform.scale(scale: value, child: child);
+      },
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFE4CC), Color(0xFFFFF3CD)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFFFDDB3)),
+        ),
+        child: const Icon(
+          Icons.card_giftcard_rounded,
+          color: Color(0xFFEA580C),
           size: 28,
         ),
       ),
@@ -592,6 +901,61 @@ class _BirthdayInfoChip extends StatelessWidget {
             style: const TextStyle(
               color: Color(0xFF6B7280),
               fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Warm chip for countdown card (warm birthday-themed style)
+class _WarmReminderChip extends StatelessWidget {
+  const _WarmReminderChip({
+    required this.icon,
+    required this.label,
+    this.isHighlight = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isHighlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: isHighlight
+            ? const Color(0xFFFFE4CC)
+            : Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isHighlight
+              ? const Color(0xFFFF9E5C)
+              : const Color(0xFFFFDDB3),
+          width: isHighlight ? 1.5 : 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 13,
+            color: isHighlight
+                ? const Color(0xFFEA580C)
+                : const Color(0xFF92400E),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: isHighlight
+                  ? const Color(0xFF9A3412)
+                  : const Color(0xFF6B7280),
+              fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
           ),

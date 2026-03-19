@@ -334,6 +334,56 @@
       }
     }
   },
+  "birthdayCountdownTitle": "✨ Upcoming birthday",
+  "birthdayCountdownSelfTitle": "✨ Your birthday is coming",
+  "birthdayCountdownTomorrowChip": "Tomorrow",
+  "birthdayCountdownDaysChip": "{days} days left",
+  "@birthdayCountdownDaysChip": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayCountdownOtherBody": "{name}'s birthday is in {days} days.",
+  "@birthdayCountdownOtherBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayCountdownOtherBodyTomorrow": "Tomorrow is {name}'s birthday.",
+  "@birthdayCountdownOtherBodyTomorrow": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayCountdownSelfBody": "Your birthday is in {days} days.",
+  "@birthdayCountdownSelfBody": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayCountdownSelfBodyTomorrow": "Tomorrow is your birthday.",
+  "birthdayCountdownSuggestionTitle": "Preparation ideas",
+  "birthdayCountdownSuggestionOther": "You can prepare a wish, a gift, or a little surprise for {name} starting now.",
+  "@birthdayCountdownSuggestionOther": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayCountdownSuggestionSelf": "You can prepare a wish, a small gift, or a little surprise for yourself starting now.",
+  "birthdayCountdownPlanButton": "Prepare wish",
   "birthdayCopiedFallback": "Family chat was not found. The birthday wish for {name} has been copied.",
   "@birthdayCopiedFallback": {
     "placeholders": {

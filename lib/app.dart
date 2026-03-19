@@ -196,16 +196,12 @@ class _MyAppState extends State<MyApp> {
             scheduleRepo,
             context.read<AuthVM>(),
             context.read<ScheduleNotificationService>(),
-            context.read<UserRepository>(),
           ),
         ),
 
         ChangeNotifierProvider(
           create: (context) => ScheduleImportVM(
-            ScheduleImportService(
-              context.read<ScheduleRepository>(),
-              context.read<UserRepository>(),
-            ),
+            ScheduleImportService(context.read<ScheduleRepository>()),
           ),
         ),
 

@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
-import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
-import 'package:kid_manager/utils/app_localizations_loader.dart';
 
 import '../../models/schedule.dart';
 import '../../repositories/schedule_repository.dart';
@@ -15,13 +13,11 @@ class ScheduleViewModel extends ChangeNotifier {
   final ScheduleRepository _repo;
   final AuthVM _authVM;
   final ScheduleNotificationService _scheduleNotificationService;
-  final UserRepository _userRepo;
 
   ScheduleViewModel(
     this._repo,
     this._authVM,
     this._scheduleNotificationService,
-    this._userRepo,
   );
 
   int _loadToken = 0;
@@ -134,7 +130,7 @@ class ScheduleViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> addSchedule(Schedule s) async {
+  Future<void> addSchedule(Schedule s, {required AppLocalizations l10n}) async {
     final overlapped = await _findOverlapOnDay(
       childId: s.childId,
       day: s.date,
@@ -143,7 +139,6 @@ class ScheduleViewModel extends ChangeNotifier {
     );
 
     if (overlapped != null) {
-      final l10n = await _loadActorL10n();
       throw ScheduleOverlapException(
         l10n.scheduleOverlapConflictMessage(
           overlapped.title,
@@ -167,7 +162,10 @@ class ScheduleViewModel extends ChangeNotifier {
     return '$h:$m';
   }
 
-  Future<void> updateSchedule(Schedule s) async {
+  Future<void> updateSchedule(
+    Schedule s, {
+    required AppLocalizations l10n,
+  }) async {
     final overlapped = await _findOverlapOnDay(
       childId: s.childId,
       day: s.date,
@@ -177,7 +175,6 @@ class ScheduleViewModel extends ChangeNotifier {
     );
 
     if (overlapped != null) {
-      final l10n = await _loadActorL10n();
       throw ScheduleOverlapException(
         l10n.scheduleOverlapConflictMessage(
           overlapped.title,
@@ -374,13 +371,6 @@ class ScheduleViewModel extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
-  }
-
-  Future<AppLocalizations> _loadActorL10n() {
-    return AppLocalizationsLoader.loadForUser(
-      userRepository: _userRepo,
-      uid: _authVM.user?.uid,
-    );
   }
 
   String _cleanErrorMessage(Object e) {

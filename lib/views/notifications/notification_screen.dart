@@ -457,6 +457,7 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
             style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: colorScheme.onSurface,
+              fontSize: 20
             ),
           ),
         ),

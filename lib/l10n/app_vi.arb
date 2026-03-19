@@ -334,6 +334,56 @@
       }
     }
   },
+  "birthdayCountdownTitle": "✨ Sắp tới sinh nhật",
+  "birthdayCountdownSelfTitle": "✨ Sắp tới sinh nhật của bạn",
+  "birthdayCountdownTomorrowChip": "Ngày mai",
+  "birthdayCountdownDaysChip": "Còn {days} ngày",
+  "@birthdayCountdownDaysChip": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayCountdownOtherBody": "Chỉ còn {days} ngày nữa là đến sinh nhật của {name}.",
+  "@birthdayCountdownOtherBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayCountdownOtherBodyTomorrow": "Ngày mai là sinh nhật của {name}.",
+  "@birthdayCountdownOtherBodyTomorrow": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayCountdownSelfBody": "Chỉ còn {days} ngày nữa là đến sinh nhật của bạn.",
+  "@birthdayCountdownSelfBody": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayCountdownSelfBodyTomorrow": "Ngày mai là sinh nhật của bạn.",
+  "birthdayCountdownSuggestionTitle": "Gợi ý chuẩn bị",
+  "birthdayCountdownSuggestionOther": "Bạn có thể chuẩn bị lời chúc, quà tặng hoặc một điều bất ngờ cho {name} ngay từ bây giờ.",
+  "@birthdayCountdownSuggestionOther": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayCountdownSuggestionSelf": "Bạn có thể chuẩn bị lời chúc, món quà nhỏ hoặc một điều bất ngờ cho chính mình ngay từ bây giờ.",
+  "birthdayCountdownPlanButton": "Chuẩn bị lời chúc",
   "birthdayCopiedFallback": "Không tìm thấy chat gia đình. Đã sao chép lời chúc cho {name}.",
   "@birthdayCopiedFallback": {
     "placeholders": {

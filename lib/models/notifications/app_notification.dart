@@ -5,6 +5,12 @@ import 'package:kid_manager/models/notifications/blocked_app_data.dart';
 /// Doc đang nằm ở đâu (runtime only)
 enum NotificationStore { global, userInbox ,chatInbox}
 
+/// Birthday notification phase
+enum BirthdayPhase {
+  today,     // Sinh nhật hôm nay
+  countdown, // Đếm ngược (7-1 ngày trước)
+}
+
 enum NotificationType {
   appRemoved,
   blockedApp,
@@ -345,6 +351,20 @@ class AppNotification {
   String? get packageName => data['packageName']?.toString();
 
   NotificationType get notificationType => NotificationTypeX.fromString(type);
+
+  /// Birthday phase (today or countdown)
+  BirthdayPhase get birthdayPhase {
+    if (notificationType != NotificationType.birthday) {
+      return BirthdayPhase.today; // fallback
+    }
+
+    final phase = data['birthdayPhase']?.toString().trim().toLowerCase();
+    if (phase == 'countdown') return BirthdayPhase.countdown;
+
+    // Fallback: check daysUntil
+    final daysUntil = int.tryParse(data['daysUntil']?.toString() ?? '0') ?? 0;
+    return daysUntil > 0 ? BirthdayPhase.countdown : BirthdayPhase.today;
+  }
 
   BlockedAppData? get blockedAppData {
     if (notificationType != NotificationType.blockedApp) return null;

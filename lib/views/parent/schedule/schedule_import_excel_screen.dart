@@ -46,10 +46,15 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   late final UserVm _userVm;
   late final ScheduleSessionResolver _sessionResolver;
   ScheduleSessionState? _session;
+  Locale? _lastLocale;
 
   bool get _isChildMode => _session?.isChildMode ?? widget.lockChildSelection;
   String? get _ownerParentUid => _session?.ownerParentUid;
-  String? get _lockedChildName => _session?.lockedChildName;
+  String? get _lockedChildName {
+    final name = (_session?.lockedChildName ?? '').trim();
+    return name.isEmpty ? null : name;
+  }
+
   String? get _currentUid => _session?.currentUid;
 
   @override
@@ -69,6 +74,24 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final locale = Localizations.localeOf(context);
+    final previousLocale = _lastLocale;
+    _lastLocale = locale;
+
+    if (previousLocale == null ||
+        previousLocale.languageCode == locale.languageCode) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshPreviewForCurrentLocale();
+    });
+  }
+
+  @override
   void dispose() {
     _userVm.removeListener(_handleUserVmChanged);
     super.dispose();
@@ -80,7 +103,6 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
   }
 
   Future<void> _initSession() async {
-    final l10n = AppLocalizations.of(context);
     final importVm = context.read<ScheduleImportVM>();
     final scheduleVm = context.read<ScheduleViewModel>();
 
@@ -91,10 +113,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     );
     if (resolved == null) return;
 
-    _session =
-        resolved.isChildMode && (resolved.lockedChildName ?? '').trim().isEmpty
-        ? resolved.copyWith(lockedChildName: l10n.scheduleYourChild)
-        : resolved;
+    _session = resolved;
     scheduleVm.setScheduleOwnerUid(_session!.ownerParentUid);
 
     final selectedChildId = _session?.selectedChildId;
@@ -159,6 +178,19 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     context.read<ScheduleImportVM>().resetAllKeepChild();
   }
 
+  Future<void> _refreshPreviewForCurrentLocale() async {
+    final bytes = _pickedBytes;
+    final ownerParentUid = _ownerParentUid;
+    if (bytes == null || ownerParentUid == null || !mounted) return;
+
+    final importVm = context.read<ScheduleImportVM>();
+    await importVm.previewFile(
+      bytes: bytes,
+      parentUid: ownerParentUid,
+      l10n: AppLocalizations.of(context),
+    );
+  }
+
   Future<void> _pickExcel() async {
     final l10n = AppLocalizations.of(context);
     context.read<ScheduleImportVM>().resetAllKeepChild();
@@ -197,6 +229,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     await context.read<ScheduleImportVM>().previewFile(
       bytes: _pickedBytes!,
       parentUid: ownerParentUid,
+      l10n: l10n,
     );
   }
 

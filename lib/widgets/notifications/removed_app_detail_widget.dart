@@ -48,7 +48,7 @@ class RemovedAppDetailWidget extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 6, 18, 6),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -142,21 +142,21 @@ class RemovedAppDetailWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer,
+        color: colorScheme.error,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
           Icon(
             Icons.warning_amber_rounded,
-            color: colorScheme.onErrorContainer,
+            color: colorScheme.onError,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               l10n.notificationsRemovedWarningMessage,
               style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onErrorContainer,
+                color: colorScheme.onError,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -174,8 +174,8 @@ class RemovedAppDetailWidget extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.error,
-          foregroundColor: colorScheme.onError,
+          backgroundColor: colorScheme.errorContainer,
+          foregroundColor: colorScheme.onErrorContainer,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -188,7 +188,7 @@ class RemovedAppDetailWidget extends StatelessWidget {
           l10n.notificationsRemovedViewAppsButton,
           style: textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onError,
+            color: colorScheme.onErrorContainer,
           ),
         ),
       ),

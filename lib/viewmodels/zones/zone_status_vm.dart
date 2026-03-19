@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
@@ -15,14 +16,34 @@ class ZoneBubbleState {
 class ZoneStatusVm extends ChangeNotifier {
   final FirebaseDatabase _rtdb;
   final FirebaseFirestore _fs;
+  final FirebaseAuth _auth;
 
-  ZoneStatusVm({FirebaseDatabase? rtdb, FirebaseFirestore? fs})
-      : _rtdb = rtdb ?? FirebaseDatabase.instance,
-        _fs = fs ?? FirebaseFirestore.instance;
+  ZoneStatusVm({
+    FirebaseDatabase? rtdb,
+    FirebaseFirestore? fs,
+    FirebaseAuth? auth,
+  })  : _rtdb = rtdb ?? FirebaseDatabase.instance,
+        _fs = fs ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance {
+    _authSub = _auth.authStateChanges().listen((user) {
+      if (user == null) {
+        _cancelFocusStreams();
+        _activePresence = null;
+        _lastEvent = null;
+        _setBubble(null);
+        return;
+      }
+
+      if (_viewerUid == null || _childId == null) return;
+      _restartFocusStreams();
+      _recompute();
+    });
+  }
 
   String? _childId;
   String? _viewerUid; // parentUid (để query inbox của cha)
 
+  StreamSubscription<User?>? _authSub;
   StreamSubscription<DatabaseEvent>? _presenceSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _lastEventSub;
   Timer? _tick;
@@ -41,8 +62,7 @@ class ZoneStatusVm extends ChangeNotifier {
     _viewerUid = viewerUid;
     _childId = childId;
 
-    _presenceSub?.cancel();
-    _lastEventSub?.cancel();
+    _cancelFocusStreams();
     _activePresence = null;
     _lastEvent = null;
 
@@ -51,8 +71,7 @@ class ZoneStatusVm extends ChangeNotifier {
       _recompute();
     });
 
-    _listenPresence(childId);
-    _listenLastZoneEvent(viewerUid, childId);
+    _restartFocusStreams();
 
     _recompute();
   }
@@ -60,12 +79,47 @@ class ZoneStatusVm extends ChangeNotifier {
   void clearFocus() {
     _viewerUid = null;
     _childId = null;
-    _presenceSub?.cancel();
-    _lastEventSub?.cancel();
+    _cancelFocusStreams();
     _activePresence = null;
     _lastEvent = null;
     _bubble = null;
     notifyListeners();
+  }
+
+  void _cancelFocusStreams() {
+    _presenceSub?.cancel();
+    _presenceSub = null;
+    _lastEventSub?.cancel();
+    _lastEventSub = null;
+  }
+
+  void _restartFocusStreams() {
+    _cancelFocusStreams();
+
+    final viewerUid = _viewerUid;
+    final childId = _childId;
+    final authUid = _auth.currentUser?.uid;
+
+    if (viewerUid == null || childId == null) return;
+
+    if (authUid == null || authUid.isEmpty) {
+      debugPrint(
+        '[ZoneStatusVm] Skip listeners until FirebaseAuth is ready '
+        'viewer=$viewerUid child=$childId',
+      );
+      return;
+    }
+
+    if (authUid != viewerUid) {
+      debugPrint(
+        '[ZoneStatusVm] Skip listeners because auth uid mismatch '
+        'authUid=$authUid viewer=$viewerUid child=$childId',
+      );
+      return;
+    }
+
+    _listenPresence(childId);
+    _listenLastZoneEvent(viewerUid, childId);
   }
 
   void _listenPresence(String childId) {
@@ -94,6 +148,13 @@ class ZoneStatusVm extends ChangeNotifier {
       }
 
       _activePresence = bestDanger ?? bestSafe;
+      _recompute();
+    }, onError: (Object e, StackTrace st) {
+      debugPrint(
+        '[ZoneStatusVm] zonePresence listen error child=$childId error=$e',
+      );
+      debugPrint('$st');
+      _activePresence = null;
       _recompute();
     });
   }
@@ -195,8 +256,8 @@ class ZoneStatusVm extends ChangeNotifier {
 
   @override
   void dispose() {
-    _presenceSub?.cancel();
-    _lastEventSub?.cancel();
+    _authSub?.cancel();
+    _cancelFocusStreams();
     _tick?.cancel();
     super.dispose();
   }

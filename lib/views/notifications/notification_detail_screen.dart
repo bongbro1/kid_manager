@@ -10,6 +10,7 @@ import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/notifications/notification_detail_body.dart';
+import 'package:kid_manager/widgets/notifications/notification_text_resolver.dart';
 import 'package:provider/provider.dart';
 
 class NotificationDetailScreen extends StatefulWidget {
@@ -91,23 +92,17 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       return trackingTitleFromKey(l10n, rawTitle);
     }
 
-    if (detail.notificationType == NotificationType.schedule) {
-      final data = detail.data;
-      final action = (data['action'] ?? '').toString();
-      final childName = (data['childName'] ?? l10n.notificationChildFallback)
-          .toString();
-
-      switch (action) {
-        case 'created':
-          return l10n.notificationScheduleCreatedTitle(childName);
-        case 'updated':
-          return l10n.notificationScheduleUpdatedTitle(childName);
-        case 'deleted':
-          return l10n.notificationScheduleDeletedTitle(childName);
-        case 'restored':
-          return l10n.notificationScheduleRestoredTitle(childName);
-        default:
-          return detail.title;
+    if (detail.notificationType == NotificationType.schedule ||
+        detail.notificationType == NotificationType.memoryDay ||
+        detail.notificationType == NotificationType.importExcel) {
+      final resolved = resolveNotificationTitle(
+        l10n: l10n,
+        type: detail.notificationType,
+        data: detail.data,
+        fallbackTitle: detail.title,
+      );
+      if (resolved.isNotEmpty) {
+        return resolved;
       }
     }
 
@@ -229,7 +224,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
           style: textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.w700,
-            fontSize: 18,
+            fontSize: 20,
             height: 1.56,
           ),
         ),
@@ -274,6 +269,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                             height: 1.3,
+                            fontSize: 20
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -289,7 +285,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              detail.timeDisplay,
+                              detail.formatTimeDisplay(l10n),
                               style: textTheme.bodyMedium?.copyWith(
                                 color: theme.brightness == Brightness.dark
                                     ? colorScheme.onSurface.withOpacity(0.8)

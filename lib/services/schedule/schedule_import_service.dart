@@ -3,8 +3,6 @@ import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
-import 'package:kid_manager/repositories/user_repository.dart';
-import 'package:kid_manager/utils/app_localizations_loader.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:kid_manager/models/schedule.dart';
@@ -44,14 +42,8 @@ class ImportPreview {
 
 class ScheduleImportService {
   final ScheduleRepository repo;
-  final UserRepository _userRepo;
 
-  ScheduleImportService(this.repo, this._userRepo);
-
-  Future<String> selectChildRequiredMessage(String parentUid) async {
-    final l10n = await _loadL10nForParent(parentUid);
-    return l10n.schedulePleaseSelectChild;
-  }
+  ScheduleImportService(this.repo);
 
   Future<File> generateTemplateExcel({String? localeCode}) async {
     const tag = '[SCHEDULE_TEMPLATE]';
@@ -141,9 +133,9 @@ class ScheduleImportService {
     required List<int> bytes,
     required String parentUid,
     required String childId,
+    required AppLocalizations l10n,
   }) async {
     const tag = '[SCHEDULE_IMPORT]';
-    final l10n = await _loadL10nForParent(parentUid);
 
     final excel = Excel.decodeBytes(bytes);
     final sheets = _pickSheetsToImport(excel);
@@ -235,12 +227,10 @@ class ScheduleImportService {
             updatedAt: DateTime.now(),
           );
 
-          minStart =
-              (minStart == null || startAt.isBefore(minStart))
+          minStart = (minStart == null || startAt.isBefore(minStart))
               ? startAt
               : minStart;
-          maxStart =
-              (maxStart == null || startAt.isAfter(maxStart))
+          maxStart = (maxStart == null || startAt.isAfter(maxStart))
               ? startAt
               : maxStart;
 
@@ -343,7 +333,9 @@ class ScheduleImportService {
     required ImportPreview preview,
   }) async {
     final items = preview.rows
-        .where((r) => r.error == null && !r.isDuplicateInFile && !r.isDuplicateInDb)
+        .where(
+          (r) => r.error == null && !r.isDuplicateInFile && !r.isDuplicateInDb,
+        )
         .map((r) => r.schedule!)
         .toList();
 
@@ -387,7 +379,8 @@ class ScheduleImportService {
 
     var s = raw.trim();
 
-    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    if ((s.startsWith('"') && s.endsWith('"')) ||
+        (s.startsWith("'") && s.endsWith("'"))) {
       s = s.substring(1, s.length - 1).trim();
     }
     if (s.startsWith("'")) s = s.substring(1).trim();
@@ -515,11 +508,7 @@ class ScheduleImportService {
     throw Exception(l10n.scheduleImportErrorInvalidTimeSupported(raw));
   }
 
-  TimeOfDay _excelNumberToTime(
-    num v,
-    AppLocalizations l10n,
-    String raw,
-  ) {
+  TimeOfDay _excelNumberToTime(num v, AppLocalizations l10n, String raw) {
     if (!v.isFinite || v < 0 || v >= 1) {
       throw Exception(l10n.scheduleImportErrorInvalidTimeSupported(raw));
     }
@@ -577,13 +566,6 @@ class ScheduleImportService {
 
   String _errorMessage(Object e) {
     return e.toString().replaceFirst('Exception: ', '').trim();
-  }
-
-  Future<AppLocalizations> _loadL10nForParent(String parentUid) {
-    return AppLocalizationsLoader.loadForUser(
-      userRepository: _userRepo,
-      uid: parentUid,
-    );
   }
 
   Future<AppLocalizations> _loadL10nForLanguageCode(String? localeCode) {

@@ -4,6 +4,7 @@ import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/services/notifications/tracking_notification_style.dart';
 import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/widgets/notifications/birthday_notification_experience.dart';
+import 'package:kid_manager/widgets/notifications/notification_text_resolver.dart';
 
 class NotificationItemView extends StatelessWidget {
   const NotificationItemView({super.key, required this.item, this.onTap});
@@ -50,6 +51,7 @@ class NotificationItemView extends StatelessWidget {
         : item.notificationType.style;
 
     final titleText = _displayTitle(context, item);
+    final bodyText = _displayBody(context, item);
 
     return InkWell(
       onTap: onTap,
@@ -138,7 +140,7 @@ class NotificationItemView extends StatelessWidget {
 
                       /// MESSAGE
                       Text(
-                        item.body,
+                        bodyText,
                         style: textTheme.bodyMedium?.copyWith(
                           color: theme.brightness == Brightness.dark
                               ? colorScheme.onSurface.withOpacity(0.9)
@@ -180,6 +182,20 @@ class NotificationItemView extends StatelessWidget {
 
 String _displayTitle(BuildContext context, AppNotification item) {
   final l10n = AppLocalizations.of(context);
+  if (item.notificationType == NotificationType.schedule ||
+      item.notificationType == NotificationType.memoryDay ||
+      item.notificationType == NotificationType.importExcel) {
+    final resolved = resolveNotificationTitle(
+      l10n: l10n,
+      type: item.notificationType,
+      data: item.data,
+      fallbackTitle: item.title,
+    );
+    if (resolved.isNotEmpty) {
+      return resolved;
+    }
+  }
+
   final t = item.title.trim();
 
   if (t.startsWith('zone.')) {
@@ -210,4 +226,24 @@ String _displayTitle(BuildContext context, AppNotification item) {
   }
 
   return t.isEmpty ? l10n.zone_default : t;
+}
+
+String _displayBody(BuildContext context, AppNotification item) {
+  final l10n = AppLocalizations.of(context);
+
+  if (item.notificationType == NotificationType.schedule ||
+      item.notificationType == NotificationType.memoryDay ||
+      item.notificationType == NotificationType.importExcel) {
+    final resolved = resolveNotificationBody(
+      l10n: l10n,
+      type: item.notificationType,
+      data: item.data,
+      fallbackBody: item.body,
+    );
+    if (resolved.isNotEmpty) {
+      return resolved;
+    }
+  }
+
+  return item.body;
 }

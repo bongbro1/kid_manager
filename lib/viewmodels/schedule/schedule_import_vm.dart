@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
 
 class ScheduleImportVM extends ChangeNotifier {
@@ -24,10 +25,11 @@ class ScheduleImportVM extends ChangeNotifier {
   Future<void> previewFile({
     required Uint8List bytes,
     required String parentUid,
+    required AppLocalizations l10n,
   }) async {
     final childId = selectedChildId;
     if (childId == null) {
-      error = await service.selectChildRequiredMessage(parentUid);
+      error = l10n.schedulePleaseSelectChild;
       notifyListeners();
       return;
     }
@@ -42,6 +44,7 @@ class ScheduleImportVM extends ChangeNotifier {
         bytes: bytes,
         parentUid: parentUid,
         childId: childId,
+        l10n: l10n,
       );
     } catch (e) {
       error = _cleanErrorMessage(e);
@@ -65,9 +68,7 @@ class ScheduleImportVM extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<int> importNow({
-    required String parentUid,
-  }) async {
+  Future<int> importNow({required String parentUid}) async {
     final p = preview;
     if (p == null) return 0;
 

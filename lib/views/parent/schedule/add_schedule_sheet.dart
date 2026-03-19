@@ -46,7 +46,7 @@ class AddScheduleScreen extends StatelessWidget {
           updatedAt: now,
         );
 
-        await vm.addSchedule(schedule);
+        await vm.addSchedule(schedule, l10n: l10n);
       },
     );
   }
