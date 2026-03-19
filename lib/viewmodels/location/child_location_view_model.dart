@@ -18,8 +18,6 @@ import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
-import 'package:flutter_activity_recognition/models/activity.dart';
-
 class ChildLocationViewModel extends ChangeNotifier {
   ChildLocationViewModel(
     this._locationRepository,
@@ -49,7 +47,8 @@ class ChildLocationViewModel extends ChangeNotifier {
   String? _lastTrackingStatus;
   int _lastStatusHeartbeatAtMs = 0;
   int _lastCurrentSentAtMs = 0;
-  int _lastBadAccCurrentSentAtMs = 0;
+  int _lastCurrentFailureAtMs = 0;
+  int _lastHistoryFailureAtMs = 0;
   bool _sentInitialCurrent = false;
   // ===== STATE =====
   LocationData? _currentLocation;
@@ -238,6 +237,43 @@ class ChildLocationViewModel extends ChangeNotifier {
     });
   }
 
+  bool _canAttemptSend({
+    required int nowMs,
+    required int lastSuccessAtMs,
+    required int lastFailureAtMs,
+    required Duration minSuccessInterval,
+    Duration failureBackoff = const Duration(seconds: 5),
+  }) {
+    final nextAfterSuccess =
+        lastSuccessAtMs + minSuccessInterval.inMilliseconds;
+    final nextAfterFailure = lastFailureAtMs + failureBackoff.inMilliseconds;
+    return nowMs >= nextAfterSuccess && nowMs >= nextAfterFailure;
+  }
+
+  Duration? _currentSendInterval({
+    required MotionState motion,
+    required double accuracy,
+    required bool shouldSendInitialCurrent,
+  }) {
+    if (accuracy > 100) return null;
+    if (shouldSendInitialCurrent) return Duration.zero;
+
+    switch (motion) {
+      case MotionState.moving:
+        if (accuracy <= 20) return const Duration(seconds: 3);
+        if (accuracy <= 50) return const Duration(seconds: 8);
+        return const Duration(seconds: 30);
+      case MotionState.idle:
+        if (accuracy <= 20) return const Duration(seconds: 15);
+        if (accuracy <= 50) return const Duration(seconds: 25);
+        return const Duration(seconds: 45);
+      case MotionState.stationary:
+        if (accuracy <= 20) return const Duration(seconds: 30);
+        if (accuracy <= 50) return const Duration(seconds: 45);
+        return const Duration(minutes: 1);
+    }
+  }
+
   /// Stop sharing (clearData=false if paused, true on logout)
   Future<void> stopSharing({bool clearData = false}) async {
     await _gpsSub?.cancel();
@@ -249,7 +285,8 @@ class ChildLocationViewModel extends ChangeNotifier {
     _lastTrackingStatus = null;
     _lastStatusHeartbeatAtMs = 0;
     _lastCurrentSentAtMs = 0;
-    _lastBadAccCurrentSentAtMs = 0;
+    _lastCurrentFailureAtMs = 0;
+    _lastHistoryFailureAtMs = 0;
     _sentInitialCurrent = false;
 
     _isSharing = false;
@@ -366,7 +403,11 @@ class ChildLocationViewModel extends ChangeNotifier {
     _gpsSub = _locationService.getLocationStream().listen((raw) async {
       debugPrint('GPS RAW: acc=${raw.accuracy}');
 
-      final result = _engine.process(raw, _lastActivity);
+      final result = _engine.process(
+        raw,
+        _lastActivity,
+        previousReference: _currentLocation,
+      );
       final filtered = result.filteredLocation;
       final acc = filtered.accuracy;
 
@@ -409,7 +450,7 @@ class ChildLocationViewModel extends ChangeNotifier {
       );
 
       // =========================
-      // 1) Update CURRENT when moving, and allow one initial current fix.
+      // 1) Update CURRENT with keep-alive even when child is idle/stationary.
       // =========================
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final rejectVeryBadAcc = acc > 100;
@@ -418,61 +459,73 @@ class ChildLocationViewModel extends ChangeNotifier {
       final shouldSendInitialCurrent =
           !_sentInitialCurrent && !rejectVeryBadAcc;
 
-      try {
-        bool sentCurrentToServer = false;
+      var sentCurrentToServer = false;
+      var sentHistoryToServer = false;
+      Object? locationError;
 
-        if ((isMoving || shouldSendInitialCurrent) && !rejectVeryBadAcc) {
-          if (acc <= 20) {
-            if (nowMs - _lastCurrentSentAtMs >= 3000) {
-              _lastCurrentSentAtMs = nowMs;
-              await _locationRepository.updateMyCurrent(payload);
-              sentCurrentToServer = true;
-            }
-          } else if (acc <= 50) {
-            if (nowMs - _lastCurrentSentAtMs >= 8000) {
-              _lastCurrentSentAtMs = nowMs;
-              await _locationRepository.updateMyCurrent(payload);
-              sentCurrentToServer = true;
-            }
-          } else {
-            if (nowMs - _lastBadAccCurrentSentAtMs >= 30000) {
-              _lastBadAccCurrentSentAtMs = nowMs;
-              await _locationRepository.updateMyCurrent(payload);
-              sentCurrentToServer = true;
-            }
-          }
-        }
+      final currentInterval = _currentSendInterval(
+        motion: result.motion,
+        accuracy: acc,
+        shouldSendInitialCurrent: shouldSendInitialCurrent,
+      );
 
-        if (sentCurrentToServer) {
+      if (currentInterval != null &&
+          _canAttemptSend(
+            nowMs: nowMs,
+            lastSuccessAtMs: _lastCurrentSentAtMs,
+            lastFailureAtMs: _lastCurrentFailureAtMs,
+            minSuccessInterval: currentInterval,
+          )) {
+        try {
+          await _locationRepository.updateMyCurrent(payload);
+          _lastCurrentSentAtMs = nowMs;
+          _lastCurrentFailureAtMs = 0;
           _sentInitialCurrent = true;
+          sentCurrentToServer = true;
+        } catch (e) {
+          _lastCurrentFailureAtMs = nowMs;
+          locationError = e;
+          debugPrint('ERROR CURRENT LOCATION: $e');
         }
+      }
 
-        // =========================
-        // 2) Append HISTORY only when policy allows and moving
-        // =========================
-        if (isMoving && result.shouldSend && goodHistoryAcc) {
+      // =========================
+      // 2) Append HISTORY only when policy allows and moving
+      // =========================
+      if (isMoving &&
+          result.shouldSend &&
+          goodHistoryAcc &&
+          _canAttemptSend(
+            nowMs: nowMs,
+            lastSuccessAtMs: 0,
+            lastFailureAtMs: _lastHistoryFailureAtMs,
+            minSuccessInterval: Duration.zero,
+          )) {
+        try {
           await _locationRepository.appendMyHistory(payload);
+          _lastHistoryFailureAtMs = 0;
+          _engine.acknowledgeHistorySent(filtered, result.motion);
+          sentHistoryToServer = true;
+        } catch (e) {
+          _lastHistoryFailureAtMs = nowMs;
+          locationError ??= e;
+          debugPrint('ERROR HISTORY LOCATION: $e');
         }
+      }
 
-        // Keep status reporting separate from health monitor.
-        // Only report "ok" when current was sent successfully.
-        if (sentCurrentToServer) {
-          await _reportTrackingStatusIfChanged(
-            'ok',
-            message: 'Dinh vi hoat dong binh thuong',
-          );
-        }
-
-        debugPrint(
-          'OK -> lat=${result.filteredLocation.latitude}, '
-          'lng=${result.filteredLocation.longitude}, '
-          'motion=${result.motion}, '
-          'transport=${_transport.name}, '
-          'acc=${acc.toStringAsFixed(1)}',
+      // Keep status reporting separate from health monitor.
+      // Only report "ok" when current was sent successfully.
+      if (sentCurrentToServer) {
+        await _reportTrackingStatusIfChanged(
+          'ok',
+          message: 'Dinh vi hoat dong binh thuong',
         );
-      } catch (e) {
-        debugPrint("ERROR LOCATIONS: $e");
-        _setError(e);
+      }
+
+      if (locationError != null) {
+        _setError(locationError);
+      } else if (_error != null) {
+        _error = null;
       }
 
       if (acc <= 30) {
@@ -517,6 +570,9 @@ class ChildLocationViewModel extends ChangeNotifier {
       await _gpsSub?.cancel();
       _gpsSub = null;
       _engine.reset();
+      _lastCurrentSentAtMs = 0;
+      _lastCurrentFailureAtMs = 0;
+      _lastHistoryFailureAtMs = 0;
       _sentInitialCurrent = false;
 
       _isSharing = false;
@@ -551,7 +607,6 @@ class ChildLocationViewModel extends ChangeNotifier {
     ) {
       _lastActivity = activity;
       // Activity stream is used internally; no continuous UI notify needed.
-      debugPrint(" activity=${activity.type} conf=${activity.confidence}");
     }, onError: (e) => debugPrint("Activity stream error: $e"));
   }
 
@@ -602,8 +657,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     DateTime day, {
     int? fromTs,
     int? toTs,
-  }
-  ) async {
+  }) async {
     try {
       // If repo interface does not include this, call impl directly.
       final history = await _locationRepository.getLocationHistoryByDay(

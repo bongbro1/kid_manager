@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/core/location/map_focus_bus.dart';
+import 'package:kid_manager/features/safe_route/presentation/pages/tracking_page.dart';
 import 'package:kid_manager/helpers/phone/phone_helps.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
@@ -8,6 +9,7 @@ import 'package:kid_manager/models/notifications/notification_detail_model.dart'
 import 'package:kid_manager/services/notifications/tracking_notification_style.dart';
 import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/notifications/notification_detail_body.dart';
 import 'package:kid_manager/widgets/notifications/notification_text_resolver.dart';
@@ -149,6 +151,63 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     if (isDanger && isEnter) return Icons.warning_amber_rounded;
     if (isDanger && !isEnter) return Icons.verified_rounded;
     return Icons.location_on_outlined;
+  }
+
+
+  void _handleZoneViewMap(NotificationDetailModel detail) {
+    _openZoneOnMainMap(detail);
+  }
+
+  Future<void> _handleOpenSafeRouteTracking(NotificationDetailModel detail) async {
+    final childId = (detail.data['childUid'] ?? detail.data['childId'] ?? '')
+        .toString()
+        .trim();
+
+    if (childId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy thông tin hành trình của bé'),
+        ),
+      );
+      return;
+    }
+
+    final childAvatarUrl = _resolveChildAvatarUrl(detail, childId);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TrackingPage(
+          childId: childId,
+          childAvatarUrl: childAvatarUrl,
+        ),
+      ),
+    );
+  }
+
+  String? _resolveChildAvatarUrl(
+    NotificationDetailModel detail,
+    String childId,
+  ) {
+    final fromPayload =
+        (detail.data['childAvatarUrl'] ?? detail.data['avatarUrl'] ?? '')
+            .toString()
+            .trim();
+    if (fromPayload.isNotEmpty) {
+      return fromPayload;
+    }
+
+    try {
+      final userVm = context.read<UserVm>();
+      for (final child in userVm.children) {
+        if (child.uid == childId) {
+          final avatarUrl = child.avatarUrl?.trim() ?? '';
+          return avatarUrl.isEmpty ? null : avatarUrl;
+        }
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   Future<void> _handleZonePhone(NotificationDetailModel detail) async {
@@ -349,6 +408,10 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                               detail.notificationType == NotificationType.zone
                               ? () => _handleZonePhone(detail)
                               : null,
+                          onOpenSafeRouteTracking:
+                              detail.notificationType == NotificationType.tracking
+                                  ? () => _handleOpenSafeRouteTracking(detail)
+                                  : null,
                         ),
                       ],
                     ),

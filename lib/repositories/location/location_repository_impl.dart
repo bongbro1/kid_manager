@@ -25,17 +25,17 @@ class LocationRepositoryImpl implements LocationRepository {
   final FirebaseDatabase _database;
   final FirebaseAuth _auth;
 
-  LocationRepositoryImpl({
-    FirebaseDatabase? database,
-    FirebaseAuth? auth,
-  })  : _database = database ?? FirebaseDatabase.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+  LocationRepositoryImpl({FirebaseDatabase? database, FirebaseAuth? auth})
+    : _database = database ?? FirebaseDatabase.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   static const Duration _trackingTzOffset = Duration(hours: 7);
   static const Duration _currentPollingInterval = Duration(seconds: 2);
   static const int _historyChunkLimit = 250;
 
   String? _cachedParentUid;
+  String? _cachedParentUidForUid;
+  String? _metaEnsuredForUid;
 
   FirebaseFunctions get _functions =>
       FirebaseFunctions.instanceFor(region: 'asia-southeast1');
@@ -46,8 +46,10 @@ class LocationRepositoryImpl implements LocationRepository {
       "${day.toString().padLeft(2, '0')}";
 
   String _trackingDayKeyFromTimestamp(int ts) {
-    final d = DateTime.fromMillisecondsSinceEpoch(ts, isUtc: true)
-        .add(_trackingTzOffset);
+    final d = DateTime.fromMillisecondsSinceEpoch(
+      ts,
+      isUtc: true,
+    ).add(_trackingTzOffset);
     return _formatDayKeyParts(d.year, d.month, d.day);
   }
 
@@ -90,17 +92,19 @@ class LocationRepositoryImpl implements LocationRepository {
   }
 
   Future<String> _getParentUid() async {
-    if (_cachedParentUid != null) {
+    final uid = _requireUid();
+    if (_cachedParentUid != null && _cachedParentUidForUid == uid) {
       _log('getParentUid -> cache hit parentUid=$_cachedParentUid');
       return _cachedParentUid!;
     }
 
-    final uid = _requireUid();
     _log('getParentUid -> fetch Firestore users/$uid');
 
     try {
-      final snap =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
 
       final parentUid = snap.data()?['parentUid'];
       _log('getParentUid -> Firestore parentUid=$parentUid');
@@ -110,6 +114,7 @@ class LocationRepositoryImpl implements LocationRepository {
       }
 
       _cachedParentUid = parentUid.toString();
+      _cachedParentUidForUid = uid;
       return _cachedParentUid!;
     } catch (e, st) {
       _logErr('getParentUid failed', e, st);
@@ -118,15 +123,20 @@ class LocationRepositoryImpl implements LocationRepository {
   }
 
   Future<void> _ensureMeta(String uid) async {
+    if (_metaEnsuredForUid == uid) {
+      return;
+    }
+
     try {
       final parentUid = await _getParentUid();
       final metaRef = _database.ref('locations/$uid/meta');
 
-      _log('ensureMeta -> set locations/$uid/meta {parentUid:$parentUid}');
-      await metaRef.set({
+      _log('ensureMeta -> update locations/$uid/meta {parentUid:$parentUid}');
+      await metaRef.update({
         'parentUid': parentUid,
         'updatedAt': ServerValue.timestamp,
       });
+      _metaEnsuredForUid = uid;
       _log('ensureMeta -> OK');
     } catch (e, st) {
       _logErr('ensureMeta failed', e, st);
@@ -139,10 +149,6 @@ class LocationRepositoryImpl implements LocationRepository {
     final uid = _requireUid();
     final newTs = payload.location.timestamp;
 
-    _log(
-      'updateMyCurrent -> uid=$uid newTs=$newTs payload=${_safePayloadJson(payload)}',
-    );
-
     try {
       await _ensureMeta(uid);
 
@@ -151,8 +157,9 @@ class LocationRepositoryImpl implements LocationRepository {
       final result = await ref.runTransaction((current) {
         if (current is Map) {
           final oldTsRaw = current['timestamp'];
-          final oldTs =
-              (oldTsRaw is num) ? oldTsRaw.toInt() : int.tryParse('$oldTsRaw') ?? 0;
+          final oldTs = (oldTsRaw is num)
+              ? oldTsRaw.toInt()
+              : int.tryParse('$oldTsRaw') ?? 0;
 
           if (oldTs >= newTs) {
             return Transaction.abort();
@@ -188,7 +195,6 @@ class LocationRepositoryImpl implements LocationRepository {
     final ts = payload.location.timestamp;
     final day = _dayKeyFromTs(ts);
     final tsKey = ts.toString();
-
     _log(
       'appendMyHistory -> uid=$uid day=$day tsKey=$tsKey payload=${_safePayloadJson(payload)}',
     );
@@ -198,7 +204,9 @@ class LocationRepositoryImpl implements LocationRepository {
           .ref('locations/$uid/historyByDay/$day/$tsKey')
           .set(_flattenPayload(payload, includeSentAt: true));
 
-      _log('appendMyHistory -> OK wrote locations/$uid/historyByDay/$day/$tsKey');
+      _log(
+        'appendMyHistory -> OK wrote locations/$uid/historyByDay/$day/$tsKey',
+      );
     } catch (e, st) {
       _logErr('appendMyHistory failed', e, st);
       rethrow;
@@ -312,11 +320,13 @@ class LocationRepositoryImpl implements LocationRepository {
       return list;
     }
 
-    return list.where((item) {
-      if (fromTs != null && item.timestamp < fromTs) return false;
-      if (toTs != null && item.timestamp > toTs) return false;
-      return true;
-    }).toList(growable: false);
+    return list
+        .where((item) {
+          if (fromTs != null && item.timestamp < fromTs) return false;
+          if (toTs != null && item.timestamp > toTs) return false;
+          return true;
+        })
+        .toList(growable: false);
   }
 
   @override
@@ -339,9 +349,9 @@ class LocationRepositoryImpl implements LocationRepository {
 
     Future<void> pollOnce() async {
       try {
-        final res = await _functions.httpsCallable('getChildLocationCurrent').call({
-          "childUid": childId,
-        });
+        final res = await _functions
+            .httpsCallable('getChildLocationCurrent')
+            .call({"childUid": childId});
         final data = Map<String, dynamic>.from(res.data);
         emitCurrent(data["current"]);
       } catch (e) {
@@ -359,15 +369,18 @@ class LocationRepositoryImpl implements LocationRepository {
       });
     }
 
-    rtdbSub = _database.ref('locations/$childId/current').onValue.listen(
-      (event) => emitCurrent(event.snapshot.value),
-      onError: (Object e, StackTrace st) {
-        debugPrint("watchChildLocation(rtdb) error: $e");
-        unawaited(rtdbSub?.cancel());
-        rtdbSub = null;
-        startFallbackPolling();
-      },
-    );
+    rtdbSub = _database
+        .ref('locations/$childId/current')
+        .onValue
+        .listen(
+          (event) => emitCurrent(event.snapshot.value),
+          onError: (Object e, StackTrace st) {
+            debugPrint("watchChildLocation(rtdb) error: $e");
+            unawaited(rtdbSub?.cancel());
+            rtdbSub = null;
+            startFallbackPolling();
+          },
+        );
 
     ctrl.onCancel = () {
       pollTimer?.cancel();

@@ -8,6 +8,8 @@ class NotificationDialog extends StatelessWidget {
   final DialogType type;
   final String title;
   final String message;
+  final String? confirmText;
+  final String? cancelText;
   final VoidCallback? onConfirm;
   final VoidCallback? onCancel;
 
@@ -16,6 +18,8 @@ class NotificationDialog extends StatelessWidget {
     required this.type,
     required this.title,
     required this.message,
+    this.confirmText,
+    this.cancelText,
     this.onConfirm,
     this.onCancel,
   });
@@ -25,6 +29,8 @@ class NotificationDialog extends StatelessWidget {
     required DialogType type,
     required String title,
     required String message,
+    String? confirmText,
+    String? cancelText,
     VoidCallback? onConfirm,
     VoidCallback? onCancel,
   }) {
@@ -36,6 +42,8 @@ class NotificationDialog extends StatelessWidget {
           type: type,
           title: title,
           message: message,
+          confirmText: confirmText,
+          cancelText: cancelText,
           onConfirm: onConfirm,
           onCancel: onCancel,
         ),
@@ -87,6 +95,8 @@ class NotificationDialog extends StatelessWidget {
           _ActionSection(
             type: type,
             primaryColor: config.primary,
+            confirmText: confirmText,
+            cancelText: cancelText,
             onConfirm: onConfirm,
             onCancel: onCancel,
           ),
@@ -109,12 +119,16 @@ class _IconSection extends StatelessWidget {
 class _ActionSection extends StatelessWidget {
   final DialogType type;
   final Color primaryColor;
+  final String? confirmText;
+  final String? cancelText;
   final VoidCallback? onConfirm;
   final VoidCallback? onCancel;
 
   const _ActionSection({
     required this.type,
     required this.primaryColor,
+    this.confirmText,
+    this.cancelText,
     this.onConfirm,
     this.onCancel,
   });
@@ -160,7 +174,7 @@ class _ActionSection extends StatelessWidget {
               ),
               onPressed: () => _close(context, onConfirm),
               child: Text(
-                "Xác nhận",
+                confirmText ?? "Xác nhận",
                 style: textTheme.labelLarge?.copyWith(
                   color: isDark ? colorScheme.onPrimary : Colors.white,
                   fontSize: 16,
@@ -194,7 +208,7 @@ class _ActionSection extends StatelessWidget {
               ),
               onPressed: () => _close(context, onCancel),
               child: Text(
-                "Hủy",
+                cancelText ?? "Hủy",
                 style: textTheme.labelLarge?.copyWith(
                   color: isDark ? colorScheme.primary : const Color(0xFF111827),
                   fontSize: 16,
@@ -228,7 +242,7 @@ class _ActionSection extends StatelessWidget {
         ),
         onPressed: () => _close(context, onConfirm),
         child: Text(
-          "Tiếp tục",
+          confirmText ?? "Tiếp tục",
           style: textTheme.labelLarge?.copyWith(
             color: isDark ? colorScheme.onPrimary : const Color(0xFF0F172A),
             fontSize: 16,
