@@ -19,60 +19,62 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 70,
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(items.length, (index) {
-          final item = items[index];
-          final isActive = index == currentIndex;
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final scheme = Theme.of(context).colorScheme;
 
-          return InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => onTap(index),
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Center(
-                child: _buildTabIcon(
-                  context,
-                  item,
-                  isActive: isActive,
+    return Container(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: bottomInset > 0 ? bottomInset : 20,
+      ),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(top: BorderSide(color: scheme.outline)),
+      ),
+      child: SizedBox( 
+        height: 50,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(items.length, (index) {
+            final item = items[index];
+            final isActive = index == currentIndex;
+
+            return InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => onTap(index),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: _buildTabIcon(context, item, isActive: isActive),
                 ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
     );
   }
 
   Widget _buildTabIcon(
-      BuildContext context,
-      BottomNavItem item, {
-        required bool isActive,
-      }) {
+    BuildContext context,
+    BottomNavItem item, {
+    required bool isActive,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
     final icon = SvgPicture.asset(
       item.iconAsset,
       width: 24,
       height: 24,
       colorFilter: ColorFilter.mode(
-        isActive ? const Color(0xFF3A7DFF) : const Color(0xFF9E9E9E),
+        isActive ? scheme.primary : scheme.onSurface.withOpacity(0.6),
         BlendMode.srcIn,
       ),
     );
 
     if (!item.showBadge) {
-      return SizedBox(
-        width: 24,
-        height: 24,
-        child: icon,
-      );
+      return SizedBox(width: 24, height: 24, child: icon);
     }
 
     if (item.badgeCountStreamBuilder != null) {
@@ -89,11 +91,7 @@ class AppBottomNav extends StatelessWidget {
               children: [
                 icon,
                 if (count > 0)
-                  Positioned(
-                    right: -6,
-                    top: -6,
-                    child: _Badge(count: count),
-                  ),
+                  Positioned(right: -6, top: -6, child: _Badge(count: count)),
               ],
             );
           },
@@ -132,20 +130,15 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(4),
-      decoration: const BoxDecoration(
-        color: Colors.red,
-        shape: BoxShape.circle,
-      ),
-      constraints: const BoxConstraints(
-        minWidth: 18,
-        minHeight: 18,
-      ),
+      decoration: BoxDecoration(color: scheme.error, shape: BoxShape.circle),
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
       child: Text(
         count > 99 ? '99+' : count.toString(),
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: scheme.onError,
           fontSize: 10,
           fontWeight: FontWeight.w600,
         ),

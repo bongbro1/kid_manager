@@ -244,48 +244,47 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   Widget build(BuildContext context) {
     final vm = context.watch<AppManagementVM>();
     final l10n = AppLocalizations.of(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
-    if (vm.loading) {
-      return const LoadingOverlay();
-    }
-
-    return AppOverlaySheet(
-      height: 640,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
+    return Stack(
+      children: [
+        AppOverlaySheet(
+          height: screenHeight * 0.85,
+          showHandle: true,
+          onClose: onCancel,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 6),
+
                 Text(
                   l10n.parentUsageEditTitle,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF222B45),
-                    fontSize: 20,
-                    fontFamily: 'Poppins',
+                  style: textTheme.titleLarge?.copyWith(
+                    color: scheme.onSurface,
                     fontWeight: FontWeight.w600,
                     height: 1.10,
+                    fontFamily: 'Poppins',
                   ),
                 ),
+
                 const SizedBox(height: 18),
+
                 Container(
-                  width: 350,
-                  decoration: ShapeDecoration(
-                    shape: RoundedRectangleBorder(
-                      side: BorderSide(
-                        width: 1,
-                        strokeAlign: BorderSide.strokeAlignCenter,
-                        color: const Color(0xFFEDEDED),
-                      ),
-                    ),
-                  ),
+                  width: double.infinity,
+                  height: 1,
+                  color: theme.dividerTheme.color ?? scheme.outline,
                 ),
+
                 const SizedBox(height: 8),
-                SizedBox(
-                  height: 540,
+
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: screenHeight * 0.5),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
                     child: Column(
@@ -295,31 +294,45 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                           children: [
                             Text(
                               l10n.parentUsageEnableUsage,
-                              style: const TextStyle(
-                                color: Color(0xFF222B45),
-                                fontSize: 16,
-                                fontFamily: 'Poppins',
+                              style: textTheme.titleMedium?.copyWith(
+                                color: scheme.onSurface,
                                 fontWeight: FontWeight.w500,
                                 height: 1.38,
+                                fontFamily: 'Poppins',
                               ),
                             ),
+
                             const Spacer(),
+
                             Switch(
                               value: rule.enabled,
                               onChanged: (v) {
-                                setState(() => rule = rule.copyWith(enabled: v));
+                                setState(() {
+                                  rule = rule.copyWith(enabled: v);
+                                });
                               },
-                              activeColor: Colors.white,
-                              activeTrackColor: const Color(0xFF2F6BFF),
-                              inactiveThumbColor: const Color(0xFF8F9BB3),
-                              inactiveTrackColor: const Color(0xFFE4E9F2),
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              overlayColor: MaterialStateProperty.all(Colors.transparent),
+
+                              /// 👇 màu theo theme
+                              activeColor: scheme.onPrimary, // thumb khi ON
+                              activeTrackColor: scheme.primary, // track khi ON
+
+                              inactiveThumbColor: scheme.outline, // thumb OFF
+                              inactiveTrackColor: scheme.outline.withOpacity(
+                                0.3,
+                              ), // track OFF
+
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              overlayColor: MaterialStatePropertyAll(
+                                Colors.transparent,
+                              ),
                               splashRadius: 0,
                             ),
                           ],
                         ),
+
                         const SizedBox(height: 8),
+
                         Column(
                           children: [
                             ...List.generate(rule.windows.length, (i) {
@@ -347,7 +360,6 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: const Color(0xFFE4E9F2),
-                                      style: BorderStyle.solid,
                                     ),
                                   ),
                                   child: const Icon(Icons.add),
@@ -355,21 +367,24 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                               ),
                           ],
                         ),
+
                         const SizedBox(height: 20),
+
                         SizedBox(
                           width: double.infinity,
                           child: Text(
                             l10n.parentUsageSelectAllowedDays,
-                            style: const TextStyle(
-                              color: Color(0xFF222B45),
-                              fontSize: 16,
+                            style: textTheme.titleMedium?.copyWith(
+                              color: scheme.onSurface,
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w500,
                               height: 1.19,
                             ),
                           ),
                         ),
+
                         const SizedBox(height: 16),
+
                         Row(
                           children: List.generate(7, (index) {
                             final day = index + 1;
@@ -395,27 +410,37 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                                         );
                                       }
                                     : null,
-                                child: Container(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
                                   height: 36,
-                                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 3,
+                                  ),
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color: selected
-                                        ? const Color(0xFF2F6BFF)
-                                        : Colors.white,
+                                    color: !rule.enabled
+                                        ? scheme.surface
+                                        : selected
+                                        ? scheme.primary
+                                        : scheme.surface,
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: const Color(0xFFEDF1F7),
+                                      color: selected
+                                          ? scheme.primary
+                                          : scheme.outline.withOpacity(0.35),
                                     ),
                                   ),
                                   child: Text(
                                     _weekdayLabels(l10n)[index],
-                                    style: TextStyle(
-                                      color: selected
-                                          ? Colors.white
-                                          : const Color(0xFF8F9BB3),
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: !rule.enabled
+                                          ? scheme.onSurface.withOpacity(0.35)
+                                          : selected
+                                          ? scheme.onPrimary
+                                          : scheme.onSurface.withOpacity(0.65),
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13,
+                                      fontFamily: 'Poppins',
                                     ),
                                   ),
                                 ),
@@ -423,8 +448,11 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                             );
                           }),
                         ),
+
                         const SizedBox(height: 27),
+
                         buildCalendar(
+                          context: context,
                           l10n: l10n,
                           month: _gridMonth,
                           headerMonth: _headerMonth,
@@ -443,6 +471,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                                 1,
                               );
                             });
+
                             final key = toKey(cellDate);
                             final current = overrides[key];
 
@@ -466,43 +495,52 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                             });
                           },
                         ),
+
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
+
+                const SizedBox(height: 16),
+
                 Center(
                   child: Container(
                     width: 30,
                     height: 3,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6E6E6),
+                      color: scheme.outline,
                       borderRadius: BorderRadius.circular(100),
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 20),
+
                 Row(
                   children: [
                     Expanded(
                       child: AppButton(
                         text: l10n.cancelButton,
-                        width: 172,
                         height: 50,
-                        backgroundColor: const Color(0xFF3A7DFF),
+                        backgroundColor: scheme.primaryContainer, // 👈 nền nhẹ
+                        foregroundColor: scheme.primary, // 👈 chữ primary
                         fontSize: 16,
                         lineHeight: 1.38,
                         fontWeight: FontWeight.w700,
                         onPressed: onCancel,
                       ),
                     ),
+
                     const SizedBox(width: 12),
+
                     Expanded(
                       child: AppButton(
                         text: l10n.saveButton,
-                        width: 172,
                         height: 50,
-                        backgroundColor: const Color(0xFF3A7DFF),
+                        backgroundColor: scheme.primary, // 👈 nút chính
+                        foregroundColor:
+                            scheme.onPrimary, // 👈 chữ trên nền primary
                         fontSize: 16,
                         lineHeight: 1.38,
                         fontWeight: FontWeight.w700,
@@ -513,9 +551,11 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                 ),
               ],
             ),
-          ],
+          ),
         ),
-      ),
+
+        if (vm.loading) const LoadingOverlay(),
+      ],
     );
   }
 
@@ -579,13 +619,15 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
     );
   }
 }
-
 Future<DayOverrideOption?> showDayOverrideModal({
   required BuildContext context,
   required DateTime date,
   required DayOverrideOption current,
 }) {
   final l10n = AppLocalizations.of(context);
+  final theme = Theme.of(context);
+  final scheme = theme.colorScheme;
+  final textTheme = theme.textTheme;
 
   return showModalBottomSheet<DayOverrideOption>(
     context: context,
@@ -598,9 +640,11 @@ Future<DayOverrideOption?> showDayOverrideModal({
         builder: (context, setState) {
           return Container(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -610,7 +654,7 @@ Future<DayOverrideOption?> showDayOverrideModal({
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: scheme.outline.withOpacity(0.35),
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -618,20 +662,23 @@ Future<DayOverrideOption?> showDayOverrideModal({
                   children: [
                     const SizedBox(height: 6),
                     Text(
-                      _formatDate(date),
+                      l10n.parentUsageDayRuleModalHint,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurface.withOpacity(0.65),
+                        fontSize: 13,
+                        fontFamily: 'Poppins',
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      l10n.parentUsageDayRuleModalHint,
+                      _formatDate(date),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13,
+                      style: textTheme.titleMedium?.copyWith(
+                        color: scheme.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Poppins',
                       ),
                     ),
                   ],
@@ -641,7 +688,7 @@ Future<DayOverrideOption?> showDayOverrideModal({
                   icon: Icons.schedule,
                   title: l10n.parentUsageRuleFollowScheduleTitle,
                   subtitle: l10n.parentUsageRuleFollowScheduleSubtitle,
-                  color: Colors.grey,
+                  color: scheme.onSurface.withOpacity(0.6),
                   value: DayOverrideOption.followSchedule,
                   group: selected,
                   onTap: () => setState(() {
@@ -665,7 +712,7 @@ Future<DayOverrideOption?> showDayOverrideModal({
                   icon: Icons.block,
                   title: l10n.parentUsageRuleBlockAllDayTitle,
                   subtitle: l10n.parentUsageRuleBlockAllDaySubtitle,
-                  color: Colors.red,
+                  color: scheme.error,
                   value: DayOverrideOption.blockFullDay,
                   group: selected,
                   onTap: () => setState(() {
@@ -677,6 +724,8 @@ Future<DayOverrideOption?> showDayOverrideModal({
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: scheme.primary,
+                      foregroundColor: scheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -686,7 +735,14 @@ Future<DayOverrideOption?> showDayOverrideModal({
                       debugPrint("🟢 Save tapped with: $selected");
                       Navigator.of(context).pop(selected);
                     },
-                    child: Text(l10n.saveButton),
+                    child: Text(
+                      l10n.saveButton,
+                      style: textTheme.labelLarge?.copyWith(
+                        color: scheme.onPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -759,6 +815,7 @@ String _formatDate(DateTime d) {
 }
 
 Widget buildCalendar({
+  required BuildContext context,
   required AppLocalizations l10n,
   required DateTime month,
   required DateTime headerMonth,
@@ -767,6 +824,9 @@ Widget buildCalendar({
   required void Function(DateTime day) onDayTap,
   required Map<DateTime, DotType> dotsByDay,
 }) {
+  final theme = Theme.of(context);
+  final scheme = theme.colorScheme;
+  final textTheme = theme.textTheme;
   final firstDayOfMonth = DateTime(month.year, month.month, 1);
 
   final int leading = (firstDayOfMonth.weekday - DateTime.monday) % 7;
@@ -793,6 +853,7 @@ Widget buildCalendar({
       Row(
         children: [
           _monthNavButton(
+            context: context,
             icon: Icons.chevron_left,
             onTap: () =>
                 onMonthChanged(DateTime(month.year, month.month - 1, 1)),
@@ -802,8 +863,8 @@ Widget buildCalendar({
               children: [
                 Text(
                   l10n.scheduleCalendarMonthLabel(headerMonth.month),
-                  style: const TextStyle(
-                    color: Color(0xFF222B45),
+                  style: textTheme.titleLarge?.copyWith(
+                    color: scheme.onSurface,
                     fontSize: 20,
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w400,
@@ -813,8 +874,8 @@ Widget buildCalendar({
                 const SizedBox(height: 6),
                 Text(
                   '${headerMonth.year}',
-                  style: const TextStyle(
-                    color: Color(0xFF8F9BB3),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurface.withOpacity(0.6),
                     fontSize: 13,
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w400,
@@ -825,6 +886,7 @@ Widget buildCalendar({
             ),
           ),
           _monthNavButton(
+            context: context,
             icon: Icons.chevron_right,
             onTap: () =>
                 onMonthChanged(DateTime(month.year, month.month + 1, 1)),
@@ -844,8 +906,8 @@ Widget buildCalendar({
               (w) => Center(
                 child: Text(
                   w,
-                  style: const TextStyle(
-                    color: Color(0xFF8F9BB3),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurface.withOpacity(0.6),
                     fontSize: 13,
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w400,
@@ -857,7 +919,6 @@ Widget buildCalendar({
             .toList(),
       ),
 
-      // Grid days
       GridView.builder(
         padding: EdgeInsets.zero,
         shrinkWrap: true,
@@ -866,10 +927,10 @@ Widget buildCalendar({
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 7,
           crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
           childAspectRatio: 1.1,
         ),
         itemBuilder: (context, i) {
-          // ngày đầu của grid = firstDayOfMonth lùi lại "leading" ngày
           final cellDate = firstDayOfMonth.subtract(
             Duration(days: leading - i),
           );
@@ -879,6 +940,7 @@ Widget buildCalendar({
           final dotType = dotsByDay[_d(cellDate)] ?? DotType.none;
 
           return _dayCell(
+            context: context,
             label: '${cellDate.day}',
             inMonth: inMonth,
             selected: isSelected,
@@ -891,7 +953,12 @@ Widget buildCalendar({
   );
 }
 
-Widget _monthNavButton({required IconData icon, required VoidCallback onTap}) {
+Widget _monthNavButton({
+  required BuildContext context,
+  required IconData icon,
+  required VoidCallback onTap,
+}) {
+  final scheme = Theme.of(context).colorScheme;
   return InkWell(
     borderRadius: BorderRadius.circular(10),
     onTap: onTap,
@@ -899,26 +966,31 @@ Widget _monthNavButton({required IconData icon, required VoidCallback onTap}) {
       width: 34,
       height: 34,
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFEDF1F7)),
+        border: Border.all(color: scheme.outline.withOpacity(0.35)),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icon, color: const Color(0xFF4A4A4A)),
+      child: Icon(icon, color: scheme.onSurface),
     ),
   );
 }
-
 Widget _dayCell({
+  required BuildContext context,
   required String label,
   required bool inMonth,
   required bool selected,
   required DotType dot,
   VoidCallback? onTap,
 }) {
-  final bg = selected ? const Color(0xFF2F6BFF) : Colors.transparent;
+  final scheme = Theme.of(context).colorScheme;
+  final textTheme = Theme.of(context).textTheme;
+
+  final bg = selected ? scheme.primary : Colors.transparent;
 
   final textColor = selected
-      ? Colors.white
-      : (inMonth ? const Color(0xFF1F2A4A) : const Color(0xFF8F9BB3));
+      ? scheme.onPrimary
+      : (inMonth
+          ? scheme.onSurface
+          : scheme.onSurface.withOpacity(0.5));
 
   return InkWell(
     onTap: onTap,
@@ -936,7 +1008,7 @@ Widget _dayCell({
           child: Center(
             child: Text(
               label,
-              style: TextStyle(
+              style: textTheme.bodyMedium?.copyWith(
                 color: textColor,
                 fontWeight: FontWeight.w400,
                 fontSize: 15,
@@ -956,7 +1028,10 @@ Widget _dayCell({
                   width: 4,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: dotColorMap[dot],
+                    color: dotColorMap[dot] ??
+                        (dot == DotType.block
+                            ? scheme.error
+                            : scheme.primary),
                     shape: BoxShape.circle,
                   ),
                 ),

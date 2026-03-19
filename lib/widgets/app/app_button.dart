@@ -48,13 +48,18 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final bgColor = backgroundColor ?? theme.colorScheme.primary;
-    final fgColor = foregroundColor ?? theme.colorScheme.onPrimary;
+    final bgColor = backgroundColor ??
+        (outlined ? Colors.transparent : theme.colorScheme.primary);
+
+    final fgColor = foregroundColor ??
+        (outlined
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onPrimary);
 
     final bool isDisabled = loading || onPressed == null;
 
     final textStyle = theme.textTheme.labelLarge?.copyWith(
-      color: outlined ? bgColor : fgColor,
+      color: fgColor,
       fontSize: fontSize,
       fontWeight: fontWeight,
       fontFamily: fontFamily ?? "Poppins",
@@ -68,32 +73,25 @@ class AppButton extends StatelessWidget {
             height: 18,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: outlined ? bgColor : fgColor,
+              color: fgColor,
             ),
           )
         : IconTheme(
-            data: IconThemeData(color: outlined ? bgColor : fgColor, size: 18),
+            data: IconThemeData(
+              color: fgColor,
+              size: 18,
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (icon != null) ...[
-                  TweenAnimationBuilder<Color?>(
-                    duration: const Duration(milliseconds: 200),
-                    tween: ColorTween(
-                      begin: outlined ? bgColor : fgColor,
-                      end: outlined ? bgColor : fgColor,
+                  ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      fgColor,
+                      BlendMode.srcIn,
                     ),
-                    builder: (context, color, child) {
-                      return ColorFiltered(
-                        colorFilter: ColorFilter.mode(
-                          color ?? fgColor,
-                          BlendMode.srcIn,
-                        ),
-                        child: child,
-                      );
-                    },
-                    child: icon,
+                    child: icon!,
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -113,20 +111,24 @@ class AppButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: outlined ? Colors.transparent : bgColor,
         borderRadius: BorderRadius.circular(30),
-        border: outlined ? Border.all(color: bgColor) : null,
+        border: outlined ? Border.all(color: fgColor) : null,
       ),
       child: ElevatedButton(
         onPressed: isDisabled ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           foregroundColor: fgColor,
+          disabledBackgroundColor: Colors.transparent,
+          disabledForegroundColor: fgColor.withOpacity(0.7),
           shadowColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           splashFactory: NoSplash.splashFactory,
-          padding:
-              padding ??
+          padding: padding ??
               const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
         ),
         child: child,
       ),
@@ -145,7 +147,10 @@ class AppButton extends StatelessWidget {
         child: button,
       );
     } else if (fullWidth) {
-      button = SizedBox(width: double.infinity, child: button);
+      button = SizedBox(
+        width: double.infinity,
+        child: button,
+      );
     }
 
     return button;

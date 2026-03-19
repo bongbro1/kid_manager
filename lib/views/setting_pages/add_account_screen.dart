@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/utils/date_utils.dart';
+import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -65,7 +67,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
     final date = await showModalBottomSheet<DateTime>(
       context: context,
-      builder: (_) => _WheelDatePicker(initialDate: initial),
+      builder: (_) => WheelDatePicker(initialDate: initial),
     );
 
     if (date != null) {
@@ -115,9 +117,9 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   Future<void> _onAddAccount() async {
     final l10n = AppLocalizations.of(context);
     final name = _nameCtrl.text.trim();
-    final dob = parseDateFromText(_dobCtrl.text);
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
+    final dobText = _dobCtrl.text;
 
     if (name.isEmpty) {
       AlertService.showSnack('Vui lòng nhập tên', isError: true);
@@ -134,9 +136,12 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       return;
     }
 
-    if (dob == null) {
-      debugPrint('ChildADD: invalid birth date');
-      AlertService.showSnack(l10n.invalidBirthDate, isError: true);
+    // ✅ Parse DOB
+    DateTime dob;
+    try {
+      dob = DateFormat('dd/MM/yyyy').parseStrict(dobText);
+    } catch (_) {
+      AlertService.showSnack('Ngày sinh không hợp lệ', isError: true);
       return;
     }
 
@@ -224,7 +229,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
                       AppLabeledTextField(
                         label: l10n.authEmailLabel,
-                hint: l10n.authEnterEmailHint,
+                        hint: l10n.authEnterEmailHint,
                         controller: _emailCtrl,
                       ),
 
@@ -232,7 +237,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
                       AppLabeledTextField(
                         label: l10n.authPasswordLabel,
-                hint: l10n.authEnterPasswordHint,
+                        hint: l10n.authEnterPasswordHint,
                         controller: _passwordCtrl,
                         obscureText: hidePassword,
                         suffixIcon: IconButton(
@@ -256,7 +261,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
                       AppLabeledTextField(
                         label: l10n.birthDateLabel,
-                hint: l10n.birthDateHint,
+                        hint: l10n.birthDateHint,
                         controller: _dobCtrl,
                         readOnly: true,
                         onTap: pickDate,
@@ -316,174 +321,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         ),
         if (vm.loading) LoadingOverlay(),
       ],
-    );
-  }
-}
-
-class _WheelDatePicker extends StatefulWidget {
-  final DateTime initialDate;
-
-  const _WheelDatePicker({required this.initialDate});
-
-  @override
-  State<_WheelDatePicker> createState() => _WheelDatePickerState();
-}
-
-class _WheelDatePickerState extends State<_WheelDatePicker> {
-  late int day;
-  late int month;
-  late int year;
-
-  @override
-  void initState() {
-    super.initState();
-
-    day = widget.initialDate.day;
-    month = widget.initialDate.month;
-    year = widget.initialDate.year;
-  }
-
-  List<int> years = List.generate(60, (i) => 1970 + i);
-
-  int daysInMonth(int year, int month) {
-    final date = DateTime(year, month + 1, 0);
-    return date.day;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final maxDay = daysInMonth(year, month);
-
-    return Container(
-      height: 320,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          /// handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: scheme.outlineVariant,
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-
-          Text(
-            "Chọn ngày sinh",
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          Expanded(
-            child: Row(
-              children: [
-                /// DAY
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    scrollController: FixedExtentScrollController(
-                      initialItem: day - 1,
-                    ),
-                    onSelectedItemChanged: (i) {
-                      setState(() {
-                        day = i + 1;
-                      });
-                    },
-                    children: List.generate(
-                      maxDay,
-                      (i) => Center(child: Text("${i + 1}")),
-                    ),
-                  ),
-                ),
-
-                /// MONTH
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    scrollController: FixedExtentScrollController(
-                      initialItem: month - 1,
-                    ),
-                    onSelectedItemChanged: (i) {
-                      setState(() {
-                        month = i + 1;
-
-                        if (day > daysInMonth(year, month)) {
-                          day = daysInMonth(year, month);
-                        }
-                      });
-                    },
-                    children: List.generate(
-                      12,
-                      (i) => Center(child: Text("${i + 1}")),
-                    ),
-                  ),
-                ),
-
-                /// YEAR
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    scrollController: FixedExtentScrollController(
-                      initialItem: years.indexOf(year),
-                    ),
-                    onSelectedItemChanged: (i) {
-                      setState(() {
-                        year = years[i];
-
-                        if (day > daysInMonth(year, month)) {
-                          day = daysInMonth(year, month);
-                        }
-                      });
-                    },
-                    children: years
-                        .map((y) => Center(child: Text("$y")))
-                        .toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: FilledButton(
-              onPressed: () {
-                Navigator.pop(context, DateTime(year, month, day));
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: scheme.primary,
-                foregroundColor: scheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                "Chọn",
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: scheme.onPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

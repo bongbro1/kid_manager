@@ -40,6 +40,9 @@ class UserVm extends ChangeNotifier {
   List<AppUser> get familyMembers => _familyMembers;
   List<String> get childrenIds => _children.map((c) => c.uid).toList();
 
+  String? _currentWatchedUid;
+  String? _currentProfileUid;
+
   void _setError(String msg) {
     _error = msg;
     notifyListeners();
@@ -47,7 +50,7 @@ class UserVm extends ChangeNotifier {
 
   Future<void> setCurrentUser(String uid) async {
     if (uid.isEmpty) return;
-
+    if (_currentWatchedUid == uid && _currentProfileUid == uid) return;
     _error = null;
     watchMe(uid);
     listenProfile(uid: uid);
@@ -89,8 +92,10 @@ class UserVm extends ChangeNotifier {
   List<UserItem> users = [];
 
   void watchMe(String uid) {
-    _meSub?.cancel();
+    if (_currentWatchedUid == uid && _meSub != null) return;
+    _currentWatchedUid = uid;
 
+    _meSub?.cancel();
     _meSub = _userRepo
         .watchUserById(uid)
         .listen(
@@ -170,9 +175,12 @@ class UserVm extends ChangeNotifier {
 
       profile = await _userRepo.getUserProfile(resolvedUid);
 
-      // Quan trọng: bind luôn AppUser realtime cho phiên hiện tại
-      watchMe(resolvedUid);
-      listenProfile(uid: resolvedUid);
+      if (_currentWatchedUid != resolvedUid) {
+        watchMe(resolvedUid);
+      }
+      if (_currentProfileUid != resolvedUid) {
+        listenProfile(uid: resolvedUid);
+      }
 
       return profile;
     } catch (e) {
@@ -194,6 +202,10 @@ class UserVm extends ChangeNotifier {
       notifyListeners();
       return;
     }
+
+    if (_currentProfileUid == resolvedUid && _profileSubscription != null)
+      return;
+    _currentProfileUid = resolvedUid;
 
     _profileSubscription?.cancel();
     _profileSubscription = _userRepo

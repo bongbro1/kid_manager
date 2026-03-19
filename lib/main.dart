@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kid_manager/core/storage_keys.dart';
@@ -138,6 +139,17 @@ Future<void> main() async {
 
   final colorValue =
       storageService.getInt(StorageKeys.themeColor) ?? 0xFF2E90FA;
+
+
+  // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+  // SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+  //   statusBarColor: Colors.transparent,
+  //   systemNavigationBarColor: Colors.transparent,
+  //   statusBarIconBrightness: Brightness.dark,
+  //   statusBarBrightness: Brightness.light,
+  // ));
+
 
   runApp(
     MultiProvider(

@@ -107,12 +107,15 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     );
   }
 
-  Widget _buildMain(BuildContext context, AppManagementVM app_vm) {
+  Widget _buildMain(BuildContext context, AppManagementVM appVm) {
     final apps = context.watch<AppManagementVM>().apps;
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Container(
-      color: const Color(0xFFF2F2F7),
+      color: scheme.background,
       child: SafeArea(
         top: false,
         child: Stack(
@@ -120,9 +123,9 @@ class _AppManagementScreenState extends State<AppManagementScreen>
           children: [
             Container(
               height: 290,
-              decoration: const BoxDecoration(
-                color: Color(0xFF3A7DFF),
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                color: scheme.primary,
+                borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(24),
                   bottomRight: Radius.circular(24),
                 ),
@@ -136,31 +139,30 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                 Padding(
                   padding: const EdgeInsets.only(left: 26),
                   child: Row(
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SvgPicture.asset(
                         'assets/icons/icon_setting.svg',
                         width: 24,
                         height: 24,
+                        colorFilter: const ColorFilter.mode(
+                          Colors.white,
+                          BlendMode.srcIn,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         l10n.parentDashboardTitle,
-                        style: TextStyle(
-                          color: Colors.white /* Schemes-On-Error */,
-                          fontSize: 18,
-                          fontFamily: 'Roboto',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
                           fontWeight: FontWeight.w500,
                           height: 1.33,
-                          letterSpacing: 0.50,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // ⭐ quan trọng: cho phần content chiếm phần còn lại
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.only(left: 18, right: 18),
@@ -176,12 +178,14 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                         ),
 
                         const SizedBox(height: 24),
+
                         Expanded(
                           child: TabBarView(
                             controller: _tabController,
                             children: [
-                              // TAB 1
                               RefreshIndicator(
+                                color: scheme.primary,
+                                backgroundColor: scheme.surface,
                                 onRefresh: _reloadApps,
                                 child: ListView.builder(
                                   padding: const EdgeInsets.only(
@@ -212,9 +216,8 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                                 ),
                               ),
 
-                              // TAB 2
                               StatisticsTab(
-                                vm: app_vm,
+                                vm: appVm,
                                 apps: apps,
                                 onRefresh: _reloadApps,
                               ),
