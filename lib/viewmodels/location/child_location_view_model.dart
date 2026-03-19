@@ -18,8 +18,6 @@ import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
-import 'package:flutter_activity_recognition/models/activity.dart';
-
 class ChildLocationViewModel extends ChangeNotifier {
   ChildLocationViewModel(
     this._locationRepository,
@@ -246,7 +244,8 @@ class ChildLocationViewModel extends ChangeNotifier {
     required Duration minSuccessInterval,
     Duration failureBackoff = const Duration(seconds: 5),
   }) {
-    final nextAfterSuccess = lastSuccessAtMs + minSuccessInterval.inMilliseconds;
+    final nextAfterSuccess =
+        lastSuccessAtMs + minSuccessInterval.inMilliseconds;
     final nextAfterFailure = lastFailureAtMs + failureBackoff.inMilliseconds;
     return nowMs >= nextAfterSuccess && nowMs >= nextAfterFailure;
   }
@@ -529,17 +528,6 @@ class ChildLocationViewModel extends ChangeNotifier {
         _error = null;
       }
 
-      final logPrefix = locationError == null ? 'OK' : 'PARTIAL';
-      debugPrint(
-        '$logPrefix -> lat=${result.filteredLocation.latitude}, '
-        'lng=${result.filteredLocation.longitude}, '
-        'motion=${result.motion}, '
-        'transport=${_transport.name}, '
-        'acc=${acc.toStringAsFixed(1)}, '
-        'currentSent=$sentCurrentToServer, '
-        'historySent=$sentHistoryToServer',
-      );
-
       if (acc <= 30) {
         _appendTrail(result.filteredLocation);
       }
@@ -619,7 +607,6 @@ class ChildLocationViewModel extends ChangeNotifier {
     ) {
       _lastActivity = activity;
       // Activity stream is used internally; no continuous UI notify needed.
-      debugPrint(" activity=${activity.type} conf=${activity.confidence}");
     }, onError: (e) => debugPrint("Activity stream error: $e"));
   }
 
@@ -670,8 +657,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     DateTime day, {
     int? fromTs,
     int? toTs,
-  }
-  ) async {
+  }) async {
     try {
       // If repo interface does not include this, call impl directly.
       final history = await _locationRepository.getLocationHistoryByDay(

@@ -36,6 +36,7 @@ class ParentChildrenListScreen extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (_) => ChildDetailMapScreen(
                     childId: child.uid,
+                    childAvatarUrl: child.avatarUrl,
                   ),
                 ),
               );

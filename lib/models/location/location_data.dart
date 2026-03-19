@@ -1,15 +1,16 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:kid_manager/models/location/transport_mode.dart';
 
 class LocationData {
   final double latitude;
   final double longitude;
-  final double accuracy; // meters
-  final double speed;    // m/s
-  final double heading;  // degrees
-  final bool isMock;     // fake GPS detect
-  final int timestamp;   // ms since epoch (int gốc – không đổi)
+  final double accuracy;
+  final double speed; // m/s
+  final double heading; // degrees
+  final bool isMock;
+  final int timestamp; // ms since epoch
+  final String motion;
   final TransportMode transport;
   final bool isNetworkGap;
   final int? gapDurationMs;
@@ -24,6 +25,7 @@ class LocationData {
     this.speed = 0,
     this.heading = 0,
     this.isMock = false,
+    this.motion = '',
     this.transport = TransportMode.unknown,
     this.isNetworkGap = false,
     this.gapDurationMs,
@@ -31,9 +33,6 @@ class LocationData {
     this.gapEndTimestamp,
   });
 
-  // ── Factory từ DateTime ───────────────────────────────────────────────────
-
-  /// Tạo LocationData với DateTime thay vì int ms.
   factory LocationData.fromDateTime({
     required double latitude,
     required double longitude,
@@ -42,6 +41,7 @@ class LocationData {
     double speed = 0,
     double heading = 0,
     bool isMock = false,
+    String motion = '',
     TransportMode transport = TransportMode.unknown,
     bool isNetworkGap = false,
     int? gapDurationMs,
@@ -56,6 +56,7 @@ class LocationData {
       speed: speed,
       heading: heading,
       isMock: isMock,
+      motion: motion,
       transport: transport,
       isNetworkGap: isNetworkGap,
       gapDurationMs: gapDurationMs,
@@ -64,10 +65,6 @@ class LocationData {
     );
   }
 
-  // ── copyWith ──────────────────────────────────────────────────────────────
-
-  /// Hỗ trợ cả [timestamp] (int) lẫn [dateTime] (DateTime).
-  /// Nếu truyền cả hai thì [dateTime] ưu tiên hơn.
   LocationData copyWith({
     double? latitude,
     double? longitude,
@@ -76,16 +73,15 @@ class LocationData {
     double? heading,
     bool? isMock,
     int? timestamp,
-    DateTime? dateTime, // ← tiện hơn khi có sẵn DateTime
+    DateTime? dateTime,
+    String? motion,
     TransportMode? transport,
     bool? isNetworkGap,
     int? gapDurationMs,
     int? gapStartTimestamp,
     int? gapEndTimestamp,
   }) {
-    final int resolvedTs = dateTime?.millisecondsSinceEpoch
-        ?? timestamp
-        ?? this.timestamp;
+    final resolvedTs = dateTime?.millisecondsSinceEpoch ?? timestamp ?? this.timestamp;
 
     return LocationData(
       latitude: latitude ?? this.latitude,
@@ -95,6 +91,7 @@ class LocationData {
       heading: heading ?? this.heading,
       isMock: isMock ?? this.isMock,
       timestamp: resolvedTs,
+      motion: motion ?? this.motion,
       transport: transport ?? this.transport,
       isNetworkGap: isNetworkGap ?? this.isNetworkGap,
       gapDurationMs: gapDurationMs ?? this.gapDurationMs,
@@ -103,23 +100,22 @@ class LocationData {
     );
   }
 
-  // ── Serialisation ─────────────────────────────────────────────────────────
-
   Map<String, dynamic> toJson() => {
-    'latitude': latitude,
-    'longitude': longitude,
-    'accuracy': accuracy,
-    'speed': speed,
-    'heading': heading,
-    'isMock': isMock,
-    'timestamp': timestamp,                              // int → server
-    'sentAt': DateTime.now().millisecondsSinceEpoch,
-    'transport': transport.name,
-    if (isNetworkGap) 'isNetworkGap': true,
-    if (gapDurationMs != null) 'gapDurationMs': gapDurationMs,
-    if (gapStartTimestamp != null) 'gapStartTimestamp': gapStartTimestamp,
-    if (gapEndTimestamp != null) 'gapEndTimestamp': gapEndTimestamp,
-  };
+        'latitude': latitude,
+        'longitude': longitude,
+        'accuracy': accuracy,
+        'speed': speed,
+        'heading': heading,
+        'isMock': isMock,
+        'timestamp': timestamp,
+        'sentAt': DateTime.now().millisecondsSinceEpoch,
+        'motion': motion,
+        'transport': transport.name,
+        if (isNetworkGap) 'isNetworkGap': true,
+        if (gapDurationMs != null) 'gapDurationMs': gapDurationMs,
+        if (gapStartTimestamp != null) 'gapStartTimestamp': gapStartTimestamp,
+        if (gapEndTimestamp != null) 'gapEndTimestamp': gapEndTimestamp,
+      };
 
   factory LocationData.fromJson(Map<String, dynamic> json) {
     double toDouble(dynamic v) {
@@ -149,82 +145,56 @@ class LocationData {
       heading: toDouble(json['heading']),
       isMock: toBool(json['isMock']),
       timestamp: toInt(json['timestamp']),
+      motion: (json['motion'] ?? '').toString().trim(),
       transport: parseTransport(json['transport']),
       isNetworkGap: toBool(json['isNetworkGap']),
-      gapDurationMs:
-          json['gapDurationMs'] == null ? null : toInt(json['gapDurationMs']),
-      gapStartTimestamp: json['gapStartTimestamp'] == null
-          ? null
-          : toInt(json['gapStartTimestamp']),
-      gapEndTimestamp: json['gapEndTimestamp'] == null
-          ? null
-          : toInt(json['gapEndTimestamp']),
+      gapDurationMs: json['gapDurationMs'] == null ? null : toInt(json['gapDurationMs']),
+      gapStartTimestamp: json['gapStartTimestamp'] == null ? null : toInt(json['gapStartTimestamp']),
+      gapEndTimestamp: json['gapEndTimestamp'] == null ? null : toInt(json['gapEndTimestamp']),
     );
   }
 
-  // ── DateTime getters (local) ──────────────────────────────────────────────
+  DateTime get dateTime => DateTime.fromMillisecondsSinceEpoch(timestamp);
 
-  /// DateTime đầy đủ (local timezone).
-  DateTime get dateTime =>
-      DateTime.fromMillisecondsSinceEpoch(timestamp);
-
-  /// Chỉ phần ngày, không có giờ.
   DateTime get dateOnly {
     final d = dateTime;
     return DateTime(d.year, d.month, d.day);
   }
 
-  /// Kiểm tra nhanh xem có phải hôm nay không.
   bool get isToday {
     final now = DateTime.now();
     final d = dateTime;
     return d.year == now.year && d.month == now.month && d.day == now.day;
   }
 
-  // ── Format helpers ────────────────────────────────────────────────────────
-
-  /// "HH:mm"
   String get timeLabel {
     final d = dateTime;
-    return '${d.hour.toString().padLeft(2, '0')}:'
-        '${d.minute.toString().padLeft(2, '0')}';
+    return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   }
 
-  /// "HH:mm:ss"
   String get timeLabelFull {
     final d = dateTime;
-    return '${d.hour.toString().padLeft(2, '0')}:'
-        '${d.minute.toString().padLeft(2, '0')}:'
-        '${d.second.toString().padLeft(2, '0')}';
+    return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}:${d.second.toString().padLeft(2, '0')}';
   }
 
-  /// "dd/MM/yyyy"
   String get dateLabel {
     final d = dateTime;
-    return '${d.day.toString().padLeft(2, '0')}/'
-        '${d.month.toString().padLeft(2, '0')}/'
-        '${d.year}';
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
 
-  /// "dd/MM/yyyy HH:mm"
   String get fullLabel => '$dateLabel  $timeLabel';
 
   Duration? get networkGapDuration =>
       gapDurationMs == null ? null : Duration(milliseconds: gapDurationMs!);
 
-  DateTime? get gapStartDateTime => gapStartTimestamp == null
-      ? null
-      : DateTime.fromMillisecondsSinceEpoch(gapStartTimestamp!);
+  DateTime? get gapStartDateTime =>
+      gapStartTimestamp == null ? null : DateTime.fromMillisecondsSinceEpoch(gapStartTimestamp!);
 
-  DateTime? get gapEndDateTime => gapEndTimestamp == null
-      ? null
-      : DateTime.fromMillisecondsSinceEpoch(gapEndTimestamp!);
-
-  // ── Tính toán ─────────────────────────────────────────────────────────────
+  DateTime? get gapEndDateTime =>
+      gapEndTimestamp == null ? null : DateTime.fromMillisecondsSinceEpoch(gapEndTimestamp!);
 
   double get speedKmh => speed * 3.6;
 
-  /// Khoảng cách (km) – Haversine.
   double distanceTo(LocationData other) {
     const r = 6371.0;
     final dLat = _degToRad(other.latitude - latitude);

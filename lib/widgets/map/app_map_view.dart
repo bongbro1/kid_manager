@@ -7,15 +7,36 @@ class AppMapView extends StatefulWidget {
   final Function(MapboxMap) onMapCreated;
   final Future<void> Function(MapboxMap map)? onStyleLoaded;
   final void Function(MapContentGestureContext context)? onTapListener;
+  final AppMapViewController? controller;
+  final bool showInternalMapTypeButton;
+
   const AppMapView({
     super.key,
     required this.onMapCreated,
     this.onStyleLoaded,
     this.onTapListener,
+    this.controller,
+    this.showInternalMapTypeButton = true,
   });
 
   @override
   State<AppMapView> createState() => _AppMapViewState();
+}
+
+class AppMapViewController {
+  VoidCallback? _openMapSelector;
+
+  void _bind(VoidCallback callback) {
+    _openMapSelector = callback;
+  }
+
+  void _unbind() {
+    _openMapSelector = null;
+  }
+
+  void showMapSelector() {
+    _openMapSelector?.call();
+  }
 }
 
 class _AppMapViewState extends State<AppMapView> {
@@ -30,6 +51,27 @@ class _AppMapViewState extends State<AppMapView> {
     center: Point(coordinates: Position(105.8542, 21.0285)),
     zoom: 13,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?._bind(_showMapSelector);
+  }
+
+  @override
+  void didUpdateWidget(covariant AppMapView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?._unbind();
+      widget.controller?._bind(_showMapSelector);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?._unbind();
+    super.dispose();
+  }
 
   String get _styleUri {
     switch (_type) {
@@ -84,16 +126,18 @@ class _AppMapViewState extends State<AppMapView> {
           },
         ),
 
-        Positioned(
-          right: 16,
-          bottom: 120,
-          child: FloatingActionButton(
-            mini: true,
-            backgroundColor: Colors.white,
-            onPressed: _showMapSelector,
-            child: const Icon(Icons.layers, color: Colors.black),
+        if (widget.showInternalMapTypeButton)
+          Positioned(
+            right: 16,
+            bottom: 120,
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: Colors.white,
+              onPressed: _showMapSelector,
+              child: const Icon(Icons.layers, color: Colors.black),
+            ),
           ),
-        ),
+
       ],
     );
   }

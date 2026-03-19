@@ -21,3 +21,4 @@ export { markFamilyChatRead } from "./functions/family_chat_read";
 export { reportTrackingStatus } from "./functions/tracking/reportTrackingStatus";
 export { onTrackingStatusWritten } from "./functions/tracking/onTrackingStatusWritten";
 export { checkTrackingHeartbeat } from "./functions/tracking/checkTrackingHeartbeat";
+export * from "./triggers/safeRoute";

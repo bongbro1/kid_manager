@@ -1,39 +1,64 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// App bar chip  ← THIẾT KẾ BẢN 1
+// Nền trắng nhẹ (#F6F8FA), bo 14, viền mỏng #E3E7EB, icon + text đen
+// ─────────────────────────────────────────────────────────────────────────────
 
 class ChildDetailMapAppBarChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool highlighted;
 
   const ChildDetailMapAppBarChip({
     super.key,
     required this.icon,
     required this.label,
     required this.onTap,
+    this.highlighted = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      borderRadius: BorderRadius.circular(14),
+      child: Ink(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.18),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.35), width: 1),
+          color: highlighted
+              ? const Color(0x1A2196F3)
+              : const Color(0xFFF6F8FA),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: highlighted
+                ? const Color(0x4D2196F3)
+                : const Color(0xFFE3E7EB),
+          ),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
-            Icon(icon, size: 14, color: Colors.white),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            Icon(
+              icon,
+              size: 14,
+              color: highlighted ? const Color(0xFF2196F3) : Colors.black87,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: highlighted
+                      ? const Color(0xFF2196F3)
+                      : Colors.black87,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -42,6 +67,12 @@ class ChildDetailMapAppBarChip extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAB (Floating Action Button)  ← THIẾT KẾ BẢN 1
+// Inactive: nền trắng, viền #E5E7EB
+// Active  : nền primary 14% opacity, viền primary 35% opacity
+// ─────────────────────────────────────────────────────────────────────────────
 
 class ChildDetailMapFab extends StatelessWidget {
   final String tooltip;
@@ -60,35 +91,43 @@ class ChildDetailMapFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+
     return Tooltip(
       message: tooltip,
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: 44,
-          height: 44,
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
-            color: active ? primary : Colors.white,
-            shape: BoxShape.circle,
+            color: active
+                ? primary.withOpacity(0.14)
+                : Colors.white.withOpacity(0.96),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: active
+                  ? primary.withOpacity(0.35)
+                  : const Color(0xFFE5E7EB),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: Colors.black.withOpacity(0.10),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
               ),
             ],
           ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: active ? Colors.white : Colors.black87,
-          ),
+          child: Icon(icon, size: 21, color: active ? primary : Colors.black87),
         ),
       ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Time-window selection model
+// ─────────────────────────────────────────────────────────────────────────────
 
 class ChildDetailTimeWindowSelection {
   final int startMinute;
@@ -99,6 +138,10 @@ class ChildDetailTimeWindowSelection {
     required this.endMinute,
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Time-window bottom sheet  ← THIẾT KẾ BẢN 1
+// ─────────────────────────────────────────────────────────────────────────────
 
 Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
   required BuildContext context,
@@ -134,6 +177,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Title ──────────────────────────────────────────────
                   const Text(
                     'Chọn khung giờ',
                     style: TextStyle(
@@ -151,7 +195,10 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                       color: Colors.grey.shade700,
                     ),
                   ),
+
                   const SizedBox(height: 16),
+
+                  // ── Preset chips ────────────────────────────────────────
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -190,7 +237,10 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 18),
+
+                  // ── Summary display ─────────────────────────────────────
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -198,20 +248,22 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: const Color(0xFFE8EAED)),
                     ),
                     child: Row(
                       children: [
                         Expanded(
-                          child: _SummaryChip(
+                          child: ChildDetailMapSummaryChip(
+                            backgroundColor: Colors.white,
                             label: 'Bắt đầu',
                             value: startLabel,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _SummaryChip(
+                          child: ChildDetailMapSummaryChip(
+                            backgroundColor: Colors.white,
                             label: 'Kết thúc',
                             value: endLabel,
                           ),
@@ -219,7 +271,10 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 12),
+
+                  // ── Range slider ────────────────────────────────────────
                   RangeSlider(
                     values: RangeValues(draftStart, draftEnd),
                     min: 0,
@@ -233,7 +288,10 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                       });
                     },
                   ),
+
                   const SizedBox(height: 10),
+
+                  // ── Action buttons ──────────────────────────────────────
                   Row(
                     children: [
                       Expanded(
@@ -272,6 +330,10 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Private sub-widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _RangePresetChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -306,48 +368,6 @@ class _RangePresetChip extends StatelessWidget {
             color: selected ? primary : Colors.black87,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SummaryChip extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _SummaryChip({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8EAED)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: Colors.black87,
-            ),
-          ),
-        ],
       ),
     );
   }

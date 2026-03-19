@@ -20,6 +20,7 @@ class MapEngine {
   final bool enableRoute;
   final bool enableInteraction;
   final bool enableCameraFollow;
+  final String? childAvatarUrl;
   bool showHistoryDots = false;
 
   late RouteRenderer route;
@@ -52,6 +53,7 @@ class MapEngine {
         this.enableRoute = true,
         this.enableInteraction = true,
         this.enableCameraFollow = true,
+        this.childAvatarUrl,
         this.onHistoryPointSelected
       }) {
     route = RouteRenderer(map);
@@ -61,7 +63,7 @@ class MapEngine {
     startEndMarkers = StartEndMarkerRenderer(map);
 
     if (enableChildDot) {
-      childDot = ChildBlueDotRenderer(map);
+      childDot = ChildBlueDotRenderer(map, avatarUrl: childAvatarUrl);
     }
   }
 
@@ -105,6 +107,37 @@ class MapEngine {
   List<LocationData> _interactivePoints(List<LocationData> basePoints) {
     if (_gapMarkers.isEmpty) return basePoints;
     return [...basePoints, ..._gapMarkers];
+  }
+
+  List<LocationData> _bindRenderedPointsToHistory(
+    List<LocationData> rawPoints, {
+    List<LocationData>? renderedPoints,
+  }) {
+    final displayPoints = renderedPoints;
+    if (displayPoints == null || displayPoints.isEmpty) {
+      return _interactivePoints(rawPoints);
+    }
+
+    final count = rawPoints.length < displayPoints.length
+        ? rawPoints.length
+        : displayPoints.length;
+    if (count <= 0) {
+      return _interactivePoints(rawPoints);
+    }
+
+    final bound = <LocationData>[
+      for (var i = 0; i < count; i++)
+        rawPoints[i].copyWith(
+          latitude: displayPoints[i].latitude,
+          longitude: displayPoints[i].longitude,
+        ),
+    ];
+
+    if (rawPoints.length > count) {
+      bound.addAll(rawPoints.skip(count));
+    }
+
+    return _interactivePoints(bound);
   }
 
   void resetRouteCache() {
@@ -163,7 +196,7 @@ class MapEngine {
 
       if (enableInteraction) {
         interaction = InteractionController(
-          _interactivePoints(sorted),
+          _bindRenderedPointsToHistory(sorted, renderedPoints: sorted),
           onPointSelected: onHistoryPointSelected,
         );
       }
@@ -211,7 +244,7 @@ class MapEngine {
 
     if (enableInteraction) {
       interaction = InteractionController(
-        _interactivePoints(sorted),
+        _bindRenderedPointsToHistory(sorted, renderedPoints: pointsToShow),
         onPointSelected: onHistoryPointSelected,
       );
     }
@@ -245,7 +278,7 @@ class MapEngine {
       if (enableHistory) await history.render(sorted);
       if (enableInteraction) {
         interaction = InteractionController(
-          _interactivePoints(sorted),
+          _bindRenderedPointsToHistory(sorted, renderedPoints: sorted),
           onPointSelected: onHistoryPointSelected,
         );
       }
@@ -323,7 +356,7 @@ class MapEngine {
 
       if (enableInteraction) {
         interaction = InteractionController(
-          _interactivePoints(sorted),
+          _bindRenderedPointsToHistory(sorted, renderedPoints: sorted),
           onPointSelected: onHistoryPointSelected,
         );
       }
@@ -378,8 +411,15 @@ class MapEngine {
     if (enableHistory) await history.render(matched.snappedPoints);
 
     if (enableInteraction) {
+      final renderedHistory = matched.snappedPoints;
+      final rawForRendered = sorted.length >= renderedHistory.length
+          ? sorted.sublist(sorted.length - renderedHistory.length)
+          : sorted;
       interaction = InteractionController(
-        _interactivePoints(sorted),
+        _bindRenderedPointsToHistory(
+          rawForRendered,
+          renderedPoints: renderedHistory,
+        ),
         onPointSelected: onHistoryPointSelected,
       );
     }
@@ -410,7 +450,7 @@ class MapEngine {
 
     if (enableInteraction) {
       interaction = InteractionController(
-        _interactivePoints(data),
+        _bindRenderedPointsToHistory(data, renderedPoints: data),
         onPointSelected: onHistoryPointSelected,
       );
     }

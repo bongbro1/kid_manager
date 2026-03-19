@@ -1,0 +1,1119 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:kid_manager/features/map_engine/controllers/camera_controller.dart';
+import 'package:kid_manager/features/safe_route/data/datasources/safe_route_remote_data_source.dart';
+import 'package:kid_manager/features/safe_route/data/repositories/safe_route_repository_impl.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
+import 'package:kid_manager/features/safe_route/domain/usecases/get_route_by_id_usecase.dart';
+import 'package:kid_manager/features/safe_route/domain/usecases/get_trip_history_by_child_id_usecase.dart';
+import 'package:kid_manager/features/safe_route/presentation/states/safe_route_history_state.dart';
+import 'package:kid_manager/features/safe_route/presentation/viewmodels/safe_route_history_view_model.dart';
+import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/services/location/map_avatar_marker_factory.dart';
+import 'package:kid_manager/widgets/map/app_map_view.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:provider/provider.dart';
+
+class SafeRouteHistoryPage extends StatelessWidget {
+  const SafeRouteHistoryPage({
+    super.key,
+    required this.childId,
+    this.childAvatarUrl,
+  });
+
+  final String childId;
+  final String? childAvatarUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) {
+        final repository = SafeRouteRepositoryImpl(
+          FirebaseSafeRouteRemoteDataSource(),
+        );
+        final viewModel = SafeRouteHistoryViewModel(
+          childId: childId,
+          getTripHistoryByChildIdUseCase: GetTripHistoryByChildIdUseCase(
+            repository,
+          ),
+          getRouteByIdUseCase: GetRouteByIdUseCase(repository),
+        );
+        viewModel.initialize();
+        return viewModel;
+      },
+      child: _SafeRouteHistoryPageBody(childAvatarUrl: childAvatarUrl),
+    );
+  }
+}
+
+class _SafeRouteHistoryPageBody extends StatefulWidget {
+  const _SafeRouteHistoryPageBody({this.childAvatarUrl});
+
+  final String? childAvatarUrl;
+
+  @override
+  State<_SafeRouteHistoryPageBody> createState() =>
+      _SafeRouteHistoryPageBodyState();
+}
+
+class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
+  static const _emptyGeoJson = '{"type":"FeatureCollection","features":[]}';
+  static const _routeSourceId = 'safe-route-history-source';
+  static const _altRouteSourceId = 'safe-route-history-alt-source';
+  static const _startSourceId = 'safe-route-history-start-source';
+  static const _endSourceId = 'safe-route-history-end-source';
+  static const _liveSourceId = 'safe-route-history-live-source';
+  static const _liveMarkerIconProperty = 'live_icon_id';
+  static const _liveMarkerIconId = 'safe-route-history-child-marker';
+  static const _altRouteLayerId = 'safe-route-history-alt-layer';
+  static const _routeLayerId = 'safe-route-history-layer';
+  static const _startLayerId = 'safe-route-history-start-layer';
+  static const _endLayerId = 'safe-route-history-end-layer';
+  static const _liveLayerId = 'safe-route-history-live-layer';
+
+  final AppMapViewController _mapViewController = AppMapViewController();
+
+  MapboxMap? _map;
+  CameraController? _camera;
+  bool _styleReady = false;
+  Future<void>? _styleSetupFuture;
+  String? _lastRenderedRouteId;
+  String? _lastErrorMessage;
+
+  Future<void> _ensureHistoryStyle() async {
+    if (_styleReady) return;
+    final existingSetup = _styleSetupFuture;
+    if (existingSetup != null) {
+      await existingSetup;
+      return;
+    }
+
+    final map = _map;
+    if (map == null) return;
+    final style = map.style;
+
+    Future<void> setup() async {
+      Future<void> addSourceIfNeeded(String id) async {
+        try {
+          await style.addSource(GeoJsonSource(id: id, data: _emptyGeoJson));
+        } catch (error) {
+          if (!_isAlreadyExistsError(error)) rethrow;
+        }
+      }
+
+      Future<void> addLayerIfNeeded(Layer layer) async {
+        try {
+          await style.addLayer(layer);
+        } catch (error) {
+          if (!_isAlreadyExistsError(error)) rethrow;
+        }
+      }
+
+      Future<void> addStyleImageIfNeeded(
+        String id,
+        MapAvatarMarkerImage image,
+      ) async {
+        try {
+          await style.addStyleImage(
+            id,
+            1.0,
+            MbxImage(
+              width: image.width,
+              height: image.height,
+              data: image.bytes,
+            ),
+            false,
+            [],
+            [],
+            null,
+          );
+        } catch (error) {
+          if (!_isAlreadyExistsError(error)) rethrow;
+        }
+      }
+
+      await addSourceIfNeeded(_routeSourceId);
+      await addSourceIfNeeded(_altRouteSourceId);
+      await addSourceIfNeeded(_startSourceId);
+      await addSourceIfNeeded(_endSourceId);
+      await addSourceIfNeeded(_liveSourceId);
+
+      await addStyleImageIfNeeded(
+        _liveMarkerIconId,
+        await MapAvatarMarkerFactory.build(
+          photoUrlOrData: widget.childAvatarUrl,
+          accentColor: const Color(0xFF2563EB),
+          size: 72,
+        ),
+      );
+
+      await addLayerIfNeeded(
+        LineLayer(
+          id: _altRouteLayerId,
+          sourceId: _altRouteSourceId,
+          lineColor: 0xFFBFCCD9,
+          lineWidth: 4,
+          lineCap: LineCap.ROUND,
+          lineJoin: LineJoin.ROUND,
+        ),
+      );
+      await addLayerIfNeeded(
+        LineLayer(
+          id: _routeLayerId,
+          sourceId: _routeSourceId,
+          lineColor: 0xFF1A73E8,
+          lineWidth: 5,
+          lineCap: LineCap.ROUND,
+          lineJoin: LineJoin.ROUND,
+        ),
+      );
+      await addLayerIfNeeded(
+        CircleLayer(
+          id: _startLayerId,
+          sourceId: _startSourceId,
+          circleRadius: 7,
+          circleColor: 0xFF1A73E8,
+          circleStrokeWidth: 4,
+          circleStrokeColor: 0xFFFFFFFF,
+        ),
+      );
+      await addLayerIfNeeded(
+        CircleLayer(
+          id: _endLayerId,
+          sourceId: _endSourceId,
+          circleRadius: 7,
+          circleColor: 0xFF10B981,
+          circleStrokeWidth: 4,
+          circleStrokeColor: 0xFFFFFFFF,
+        ),
+      );
+      await addLayerIfNeeded(
+        SymbolLayer(
+          id: _liveLayerId,
+          sourceId: _liveSourceId,
+          iconImageExpression: ['get', _liveMarkerIconProperty],
+          iconAllowOverlap: true,
+          iconIgnorePlacement: true,
+          iconAnchor: IconAnchor.CENTER,
+          iconSize: 1.0,
+        ),
+      );
+    }
+
+    _styleSetupFuture = setup();
+    try {
+      await _styleSetupFuture;
+      _styleReady = true;
+    } finally {
+      _styleSetupFuture = null;
+    }
+  }
+
+  bool _isAlreadyExistsError(Object error) {
+    return error is PlatformException &&
+        (error.message?.contains('already exists') ?? false);
+  }
+
+  Future<void> _updateGeoJsonSource(
+    String sourceId,
+    Map<String, dynamic> featureCollection,
+  ) async {
+    final map = _map;
+    if (map == null) return;
+    final source = await map.style.getSource(sourceId);
+    if (source is GeoJsonSource) {
+      await source.updateGeoJSON(jsonEncode(featureCollection));
+    }
+  }
+
+  Map<String, dynamic> _pointCollection(RoutePoint? point) {
+    if (point == null) {
+      return const {'type': 'FeatureCollection', 'features': []};
+    }
+
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [point.longitude, point.latitude],
+          },
+          'properties': {'sequence': point.sequence},
+        },
+      ],
+    };
+  }
+
+  Map<String, dynamic> _routeCollection(SafeRoute? route) {
+    if (route == null || route.points.length < 2) {
+      return const {'type': 'FeatureCollection', 'features': []};
+    }
+
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'geometry': {
+            'type': 'LineString',
+            'coordinates': [
+              for (final point in route.points)
+                [point.longitude, point.latitude],
+            ],
+          },
+          'properties': {'routeId': route.id},
+        },
+      ],
+    };
+  }
+
+  Map<String, dynamic> _liveLocationCollection(SafeRouteHistoryState state) {
+    final live = state.selectedTrip?.lastLocation;
+    if (live == null) {
+      return const {'type': 'FeatureCollection', 'features': []};
+    }
+
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [live.longitude, live.latitude],
+          },
+          'properties': {
+            _liveMarkerIconProperty: _liveMarkerIconId,
+          },
+        },
+      ],
+    };
+  }
+
+  Map<String, dynamic> _alternativeRouteCollection(
+    SafeRouteHistoryState state,
+  ) {
+    final alternatives = state.selectedAlternativeRoutes
+        .where((route) => route.points.length >= 2)
+        .toList(growable: false);
+
+    if (alternatives.isEmpty) {
+      return const {'type': 'FeatureCollection', 'features': []};
+    }
+
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        for (final route in alternatives)
+          {
+            'type': 'Feature',
+            'geometry': {
+              'type': 'LineString',
+              'coordinates': [
+                for (final point in route.points)
+                  [point.longitude, point.latitude],
+              ],
+            },
+            'properties': {'routeId': route.id},
+          },
+      ],
+    };
+  }
+
+  List<LocationData> _routeAsLocationData(SafeRoute route) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return [
+      for (final point in route.points)
+        LocationData(
+          latitude: point.latitude,
+          longitude: point.longitude,
+          accuracy: 0,
+          timestamp: now,
+        ),
+    ];
+  }
+
+  List<SafeRoute> _visibleRoutes(SafeRouteHistoryState state) {
+    return [
+      if (state.selectedRoute != null) state.selectedRoute!,
+      ...state.selectedAlternativeRoutes.where(
+        (route) => route.id != state.selectedRoute?.id,
+      ),
+    ];
+  }
+
+  List<LocationData> _routesAsLocationData(Iterable<SafeRoute> routes) {
+    final points = <LocationData>[];
+    final seen = <String>{};
+
+    for (final route in routes) {
+      for (final point in route.points) {
+        final key = '${point.latitude},${point.longitude}';
+        if (seen.add(key)) {
+          points.add(
+            LocationData(
+              latitude: point.latitude,
+              longitude: point.longitude,
+              accuracy: 0,
+              timestamp: DateTime.now().millisecondsSinceEpoch,
+            ),
+          );
+        }
+      }
+    }
+
+    return points;
+  }
+
+  List<LocationData> _viewportPoints(SafeRouteHistoryState state) {
+    final points = _routesAsLocationData(_visibleRoutes(state));
+    final live = state.selectedTrip?.lastLocation;
+    if (live != null) {
+      points.add(
+        LocationData(
+          latitude: live.latitude,
+          longitude: live.longitude,
+          accuracy: live.accuracyMeters,
+          timestamp: live.timestamp,
+        ),
+      );
+    }
+    return points;
+  }
+
+  Future<void> _fitToRoutesIfNeeded(SafeRouteHistoryState state) async {
+    final camera = _camera;
+    final points = _viewportPoints(state);
+    if (camera == null || points.isEmpty) return;
+    final routeKey =
+        '${state.selectedTrip?.id ?? 'none'}|${state.selectedTrip?.lastLocation?.timestamp ?? 0}|'
+        '${_visibleRoutes(state).map((route) => route.id).join('|')}';
+    if (_lastRenderedRouteId == routeKey) return;
+    _lastRenderedRouteId = routeKey;
+    await camera.fitToRoute(points);
+  }
+
+  Future<void> _syncMap(SafeRouteHistoryState state) async {
+    await _ensureHistoryStyle();
+    await _updateGeoJsonSource(
+      _routeSourceId,
+      _routeCollection(state.selectedRoute),
+    );
+    await _updateGeoJsonSource(
+      _altRouteSourceId,
+      _alternativeRouteCollection(state),
+    );
+    await _updateGeoJsonSource(
+      _startSourceId,
+      _pointCollection(state.selectedRoute?.startPoint),
+    );
+    await _updateGeoJsonSource(
+      _endSourceId,
+      _pointCollection(state.selectedRoute?.endPoint),
+    );
+    await _updateGeoJsonSource(
+      _liveSourceId,
+      _liveLocationCollection(state),
+    );
+    await _fitToRoutesIfNeeded(state);
+  }
+
+  void _scheduleSync(SafeRouteHistoryState state) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _syncMap(state);
+    });
+  }
+
+  void _maybeShowError(SafeRouteHistoryViewModel vm) {
+    final error = vm.state.errorMessage;
+    if (error == null || error == _lastErrorMessage) return;
+    _lastErrorMessage = error;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+      vm.clearError();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<SafeRouteHistoryViewModel>(
+      builder: (context, vm, _) {
+        final state = vm.state;
+        _scheduleSync(state);
+        _maybeShowError(vm);
+
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: AppMapView(
+                  controller: _mapViewController,
+                  showInternalMapTypeButton: false,
+                  onMapCreated: (map) {
+                    _map = map;
+                    _camera = CameraController(map);
+                    _styleReady = false;
+                    _styleSetupFuture = null;
+                  },
+                  onStyleLoaded: (map) async {
+                    _map = map;
+                    _styleReady = false;
+                    _styleSetupFuture = null;
+                    await _ensureHistoryStyle();
+                    await _syncMap(state);
+                  },
+                ),
+              ),
+              _buildTopBar(state, vm),
+              Positioned(
+                right: 14,
+                top: MediaQuery.of(context).padding.top + 82,
+                child: Column(
+                  children: [
+                    _CircleActionButton(
+                      icon: Icons.layers_rounded,
+                      onTap: _mapViewController.showMapSelector,
+                    ),
+                    const SizedBox(height: 10),
+                    _CircleActionButton(
+                      icon: Icons.refresh_rounded,
+                      onTap: vm.refresh,
+                    ),
+                  ],
+                ),
+              ),
+              DraggableScrollableSheet(
+                initialChildSize: 0.42,
+                minChildSize: 0.24,
+                maxChildSize: 0.82,
+                builder: (context, scrollController) {
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.97),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(30),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.12),
+                          blurRadius: 24,
+                          offset: const Offset(0, -8),
+                        ),
+                      ],
+                    ),
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD3DCE7),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Lịch sử chuyến đường an toàn',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          state.trips.isEmpty
+                              ? 'Chưa có chuyến nào được lưu cho bé.'
+                              : 'Chạm vào từng chuyến để xem lại tuyến đường và trạng thái di chuyển.',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF667085),
+                            height: 1.35,
+                          ),
+                        ),
+                        if (state.selectedTrip != null) ...[
+                          const SizedBox(height: 14),
+                          _SelectedTripSummaryCard(
+                            trip: state.selectedTrip!,
+                            route: state.selectedRoute,
+                            alternativeRoutes: state.selectedAlternativeRoutes,
+                            isLoadingRoute: state.isLoadingRoute,
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+                        if (state.trips.isEmpty)
+                          const _EmptyHistoryPageState()
+                        else
+                          ...state.trips.map(
+                            (trip) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _HistoryTripCard(
+                                trip: trip,
+                                selected: state.selectedTrip?.id == trip.id,
+                                onTap: () => vm.selectTrip(trip),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              if (state.isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black26,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTopBar(
+    SafeRouteHistoryState state,
+    SafeRouteHistoryViewModel vm,
+  ) {
+    final selectedTrip = state.selectedTrip;
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 8,
+      left: 14,
+      right: 14,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.92),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.10),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            _CircleActionButton(
+              icon: Icons.arrow_back_ios_new_rounded,
+              onTap: () => Navigator.of(context).maybePop(),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Lịch sử tuyến đường',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    selectedTrip == null
+                        ? 'Xem lại toàn bộ hành trình an toàn đã lưu'
+                        : '${_statusLabel(selectedTrip.status)} · ${_updatedLabel(selectedTrip.updatedAt)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A73E8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            _buildChildAvatarBadge(),
+            const SizedBox(width: 10),
+            _CircleActionButton(icon: Icons.refresh_rounded, onTap: vm.refresh),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChildAvatarBadge() {
+    final avatarUrl = widget.childAvatarUrl?.trim() ?? '';
+    return Container(
+      width: 34,
+      height: 34,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        border: Border.all(
+          color: const Color(0xFFDBEAFE),
+          width: 1.6,
+        ),
+      ),
+      child: avatarUrl.isEmpty
+          ? const Icon(
+              Icons.child_care_rounded,
+              size: 18,
+              color: Color(0xFF2563EB),
+            )
+          : Image.network(
+              avatarUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.child_care_rounded,
+                size: 18,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+    );
+  }
+
+  String _statusLabel(TripStatus status) {
+    switch (status) {
+      case TripStatus.active:
+        return 'Đang theo dõi';
+      case TripStatus.temporarilyDeviated:
+        return 'Tạm lệch tuyến';
+      case TripStatus.deviated:
+        return 'Lệch tuyến';
+      case TripStatus.completed:
+        return 'Đã đến nơi';
+      case TripStatus.cancelled:
+        return 'Đã hủy';
+      case TripStatus.planned:
+        return 'Đã lên lịch';
+    }
+  }
+
+  String _updatedLabel(DateTime value) {
+    return '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')} ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _CircleActionButton extends StatelessWidget {
+  const _CircleActionButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: Icon(icon, size: 18, color: const Color(0xFF334155)),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedTripSummaryCard extends StatelessWidget {
+  const _SelectedTripSummaryCard({
+    required this.trip,
+    required this.route,
+    required this.alternativeRoutes,
+    required this.isLoadingRoute,
+  });
+
+  final Trip trip;
+  final SafeRoute? route;
+  final List<SafeRoute> alternativeRoutes;
+  final bool isLoadingRoute;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE7EDF4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  trip.routeName?.trim().isNotEmpty == true
+                      ? trip.routeName!
+                      : 'Tuyến đã chọn',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF111827),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _StatusBadge(status: trip.status),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (route != null)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _InfoChip(
+                  icon: Icons.route_rounded,
+                  label: _distanceLabel(route!.distanceMeters),
+                ),
+                _InfoChip(
+                  icon: Icons.schedule_rounded,
+                  label: _durationLabel(route!.durationSeconds),
+                ),
+                _InfoChip(
+                  icon: Icons.warning_amber_rounded,
+                  label: '${route!.hazards.length} vùng nguy hiểm',
+                ),
+              ],
+            )
+          else if (isLoadingRoute)
+            const LinearProgressIndicator(minHeight: 4),
+          const SizedBox(height: 10),
+          Text(
+            _scheduleSummary(trip),
+            style: const TextStyle(
+              fontSize: 11.5,
+              color: Color(0xFF667085),
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _scheduleSummary(Trip trip) {
+    final parts = <String>[];
+    if (trip.scheduledStartAt != null) {
+      final value = trip.scheduledStartAt!;
+      parts.add(
+        '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')} · ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}',
+      );
+    } else {
+      parts.add('Theo dõi ngay');
+    }
+    if (trip.repeatWeekdays.isNotEmpty) {
+      parts.add(trip.repeatWeekdays.map(_weekdayLabel).join(', '));
+    }
+    return parts.join(' · ');
+  }
+
+  String _weekdayLabel(int weekday) {
+    switch (weekday) {
+      case 1:
+        return 'T2';
+      case 2:
+        return 'T3';
+      case 3:
+        return 'T4';
+      case 4:
+        return 'T5';
+      case 5:
+        return 'T6';
+      case 6:
+        return 'T7';
+      case 7:
+        return 'CN';
+    }
+    return '';
+  }
+
+  String _distanceLabel(double meters) {
+    if (meters >= 1000) {
+      return '${(meters / 1000).toStringAsFixed(1)} km';
+    }
+    return '${meters.round()} m';
+  }
+
+  String _durationLabel(double durationSeconds) {
+    final minutes = (durationSeconds / 60).round();
+    if (minutes <= 0) return '--';
+    if (minutes < 60) return '$minutes phút';
+    final hours = minutes ~/ 60;
+    final remainMinutes = minutes % 60;
+    if (remainMinutes == 0) return '$hours giờ';
+    return '$hours giờ ${remainMinutes}p';
+  }
+}
+
+class _HistoryTripCard extends StatelessWidget {
+  const _HistoryTripCard({
+    required this.trip,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Trip trip;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? const Color(0xFFEAF2FF) : const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFFBFDBFE)
+                  : const Color(0xFFE7EDF4),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0xFFDCEBFF)
+                      : const Color(0xFFFFFFFF),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.alt_route_rounded,
+                  color: Color(0xFF1A73E8),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      trip.routeName?.trim().isNotEmpty == true
+                          ? trip.routeName!
+                          : 'Tuyến ${trip.routeId.substring(0, trip.routeId.length < 8 ? trip.routeId.length : 8)}',
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _subtitle(trip),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF667085),
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _StatusBadge(status: trip.status),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _subtitle(Trip trip) {
+    final parts = <String>[];
+    parts.add(
+      '${trip.updatedAt.day.toString().padLeft(2, '0')}/${trip.updatedAt.month.toString().padLeft(2, '0')} ${trip.updatedAt.hour.toString().padLeft(2, '0')}:${trip.updatedAt.minute.toString().padLeft(2, '0')}',
+    );
+    if (trip.repeatWeekdays.isNotEmpty) {
+      parts.add(trip.repeatWeekdays.map(_weekdayLabel).join(', '));
+    }
+    return parts.join(' · ');
+  }
+
+  String _weekdayLabel(int weekday) {
+    switch (weekday) {
+      case 1:
+        return 'T2';
+      case 2:
+        return 'T3';
+      case 3:
+        return 'T4';
+      case 4:
+        return 'T5';
+      case 5:
+        return 'T6';
+      case 6:
+        return 'T7';
+      case 7:
+        return 'CN';
+    }
+    return '';
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+
+  final TripStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = _badgeStyle(status);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: style.background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        style.label,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          color: style.foreground,
+        ),
+      ),
+    );
+  }
+
+  _HistoryBadgeStyle _badgeStyle(TripStatus status) {
+    switch (status) {
+      case TripStatus.completed:
+        return const _HistoryBadgeStyle(
+          label: 'Đã đến nơi',
+          background: Color(0xFFE8F7ED),
+          foreground: Color(0xFF15803D),
+        );
+      case TripStatus.deviated:
+        return const _HistoryBadgeStyle(
+          label: 'Lệch tuyến',
+          background: Color(0xFFFFE9E5),
+          foreground: Color(0xFFB93815),
+        );
+      case TripStatus.temporarilyDeviated:
+        return const _HistoryBadgeStyle(
+          label: 'Tạm lệch',
+          background: Color(0xFFFFF4DF),
+          foreground: Color(0xFFB45309),
+        );
+      case TripStatus.cancelled:
+        return const _HistoryBadgeStyle(
+          label: 'Đã hủy',
+          background: Color(0xFFF1F5F9),
+          foreground: Color(0xFF475569),
+        );
+      case TripStatus.planned:
+        return const _HistoryBadgeStyle(
+          label: 'Đã lên lịch',
+          background: Color(0xFFEFF6FF),
+          foreground: Color(0xFF1D4ED8),
+        );
+      case TripStatus.active:
+        return const _HistoryBadgeStyle(
+          label: 'Đang theo dõi',
+          background: Color(0xFFEAF2FF),
+          foreground: Color(0xFF1A73E8),
+        );
+    }
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE7EDF4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF526074)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF526074),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyHistoryPageState extends StatelessWidget {
+  const _EmptyHistoryPageState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE7EDF4)),
+      ),
+      child: const Text(
+        'Chưa có tuyến đường nào được lưu trong lịch sử Safe Route.',
+        style: TextStyle(fontSize: 12, color: Color(0xFF667085), height: 1.35),
+      ),
+    );
+  }
+}
+
+class _HistoryBadgeStyle {
+  const _HistoryBadgeStyle({
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+}
