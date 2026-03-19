@@ -636,6 +636,54 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
+  String get birthdayCountdownTitle => '✨ Sắp tới sinh nhật';
+
+  @override
+  String get birthdayCountdownSelfTitle => '✨ Sắp tới sinh nhật của bạn';
+
+  @override
+  String get birthdayCountdownTomorrowChip => 'Ngày mai';
+
+  @override
+  String birthdayCountdownDaysChip(int days) {
+    return 'Còn $days ngày';
+  }
+
+  @override
+  String birthdayCountdownOtherBody(String name, int days) {
+    return 'Chỉ còn $days ngày nữa là đến sinh nhật của $name.';
+  }
+
+  @override
+  String birthdayCountdownOtherBodyTomorrow(String name) {
+    return 'Ngày mai là sinh nhật của $name.';
+  }
+
+  @override
+  String birthdayCountdownSelfBody(int days) {
+    return 'Chỉ còn $days ngày nữa là đến sinh nhật của bạn.';
+  }
+
+  @override
+  String get birthdayCountdownSelfBodyTomorrow =>
+      'Ngày mai là sinh nhật của bạn.';
+
+  @override
+  String get birthdayCountdownSuggestionTitle => 'Gợi ý chuẩn bị';
+
+  @override
+  String birthdayCountdownSuggestionOther(String name) {
+    return 'Bạn có thể chuẩn bị lời chúc, quà tặng hoặc một điều bất ngờ cho $name ngay từ bây giờ.';
+  }
+
+  @override
+  String get birthdayCountdownSuggestionSelf =>
+      'Bạn có thể chuẩn bị lời chúc, món quà nhỏ hoặc một điều bất ngờ cho chính mình ngay từ bây giờ.';
+
+  @override
+  String get birthdayCountdownPlanButton => 'Chuẩn bị lời chúc';
+
+  @override
   String birthdayCopiedFallback(String name) {
     return 'Không tìm thấy chat gia đình. Đã sao chép lời chúc cho $name.';
   }

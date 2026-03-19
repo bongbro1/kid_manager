@@ -1250,6 +1250,78 @@ abstract class AppLocalizations {
   /// **'Today is {name}\'s birthday.'**
   String birthdayTodayIsBirthday(String name);
 
+  /// No description provided for @birthdayCountdownTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'✨ Upcoming birthday'**
+  String get birthdayCountdownTitle;
+
+  /// No description provided for @birthdayCountdownSelfTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'✨ Your birthday is coming'**
+  String get birthdayCountdownSelfTitle;
+
+  /// No description provided for @birthdayCountdownTomorrowChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get birthdayCountdownTomorrowChip;
+
+  /// No description provided for @birthdayCountdownDaysChip.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days left'**
+  String birthdayCountdownDaysChip(int days);
+
+  /// No description provided for @birthdayCountdownOtherBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s birthday is in {days} days.'**
+  String birthdayCountdownOtherBody(String name, int days);
+
+  /// No description provided for @birthdayCountdownOtherBodyTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow is {name}\'s birthday.'**
+  String birthdayCountdownOtherBodyTomorrow(String name);
+
+  /// No description provided for @birthdayCountdownSelfBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your birthday is in {days} days.'**
+  String birthdayCountdownSelfBody(int days);
+
+  /// No description provided for @birthdayCountdownSelfBodyTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow is your birthday.'**
+  String get birthdayCountdownSelfBodyTomorrow;
+
+  /// No description provided for @birthdayCountdownSuggestionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparation ideas'**
+  String get birthdayCountdownSuggestionTitle;
+
+  /// No description provided for @birthdayCountdownSuggestionOther.
+  ///
+  /// In en, this message translates to:
+  /// **'You can prepare a wish, a gift, or a little surprise for {name} starting now.'**
+  String birthdayCountdownSuggestionOther(String name);
+
+  /// No description provided for @birthdayCountdownSuggestionSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'You can prepare a wish, a small gift, or a little surprise for yourself starting now.'**
+  String get birthdayCountdownSuggestionSelf;
+
+  /// No description provided for @birthdayCountdownPlanButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepare wish'**
+  String get birthdayCountdownPlanButton;
+
   /// No description provided for @birthdayCopiedFallback.
   ///
   /// In en, this message translates to:

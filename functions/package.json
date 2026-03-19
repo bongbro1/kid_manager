@@ -9,6 +9,7 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "deploy:birthday": "firebase deploy --only functions:mirrorUserToFamilyMembers,functions:syncFamilyMemberPublicData --project kidmanager-b4a8f",
+    "deploy:birthday-notifications": "firebase deploy --only functions:sendBirthdayNotifications --project kidmanager-b4a8f",
     "logs": "firebase functions:log"
   },
   "engines": {

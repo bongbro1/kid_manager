@@ -277,7 +277,9 @@ class NotificationService {
     }
 
     if (type == 'sos') {
-      debugPrint('[sos] skip duplicate local notification in NotificationService');
+      debugPrint(
+        '[sos] skip duplicate local notification in NotificationService',
+      );
       return;
     }
 
@@ -313,6 +315,11 @@ class NotificationService {
 
     if (type == 'family_event') {
       await _showFamilyEventNotification(message);
+      return;
+    }
+
+    if (type == 'birthday') {
+      await _showBirthdayNotification(message);
       return;
     }
 
@@ -384,6 +391,32 @@ class NotificationService {
 
     debugPrint(
       '🔔 show family event local notification title="$title" body="$body"',
+    );
+
+    await LocalNotificationService.show(
+      title: title,
+      body: body,
+      payload: jsonEncode(message.data),
+    );
+  }
+
+  static Future<void> _showBirthdayNotification(RemoteMessage message) async {
+    final data = message.data;
+    final daysUntil = int.tryParse(data['daysUntil']?.toString() ?? '0') ?? 0;
+    final birthdayName = data['birthdayName']?.toString() ?? '';
+
+    final title =
+        message.notification?.title ?? data['title']?.toString() ?? 'Sinh nhật';
+
+    final body =
+        message.notification?.body ??
+        data['body']?.toString() ??
+        (daysUntil > 0
+            ? 'Sắp tới sinh nhật của $birthdayName!'
+            : 'Hôm nay là sinh nhật của $birthdayName!');
+
+    debugPrint(
+      '🎂 show birthday local notification title="$title" body="$body" daysUntil=$daysUntil',
     );
 
     await LocalNotificationService.show(

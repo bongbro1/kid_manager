@@ -46,7 +46,10 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
   ScheduleSessionState? _session;
 
   bool get _isChildMode => _session?.isChildMode ?? widget.lockChildSelection;
-  String? get _lockedChildName => _session?.lockedChildName;
+  String? get _lockedChildName {
+    final name = (_session?.lockedChildName ?? '').trim();
+    return name.isEmpty ? null : name;
+  }
 
   @override
   void initState() {
@@ -76,7 +79,6 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
   }
 
   Future<void> _initSession() async {
-    final l10n = AppLocalizations.of(context);
     final scheduleVm = context.read<ScheduleViewModel>();
 
     final resolved = await _sessionResolver.resolve(
@@ -86,10 +88,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
     );
     if (resolved == null) return;
 
-    _session =
-        resolved.isChildMode && (resolved.lockedChildName ?? '').trim().isEmpty
-        ? resolved.copyWith(lockedChildName: l10n.scheduleYourChild)
-        : resolved;
+    _session = resolved;
 
     scheduleVm.setScheduleOwnerUid(_session!.ownerParentUid);
     _selectedChildId = _session!.selectedChildId;

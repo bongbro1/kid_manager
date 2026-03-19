@@ -635,6 +635,53 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get birthdayCountdownTitle => '✨ Upcoming birthday';
+
+  @override
+  String get birthdayCountdownSelfTitle => '✨ Your birthday is coming';
+
+  @override
+  String get birthdayCountdownTomorrowChip => 'Tomorrow';
+
+  @override
+  String birthdayCountdownDaysChip(int days) {
+    return '$days days left';
+  }
+
+  @override
+  String birthdayCountdownOtherBody(String name, int days) {
+    return '$name\'s birthday is in $days days.';
+  }
+
+  @override
+  String birthdayCountdownOtherBodyTomorrow(String name) {
+    return 'Tomorrow is $name\'s birthday.';
+  }
+
+  @override
+  String birthdayCountdownSelfBody(int days) {
+    return 'Your birthday is in $days days.';
+  }
+
+  @override
+  String get birthdayCountdownSelfBodyTomorrow => 'Tomorrow is your birthday.';
+
+  @override
+  String get birthdayCountdownSuggestionTitle => 'Preparation ideas';
+
+  @override
+  String birthdayCountdownSuggestionOther(String name) {
+    return 'You can prepare a wish, a gift, or a little surprise for $name starting now.';
+  }
+
+  @override
+  String get birthdayCountdownSuggestionSelf =>
+      'You can prepare a wish, a small gift, or a little surprise for yourself starting now.';
+
+  @override
+  String get birthdayCountdownPlanButton => 'Prepare wish';
+
+  @override
   String birthdayCopiedFallback(String name) {
     return 'Family chat was not found. The birthday wish for $name has been copied.';
   }

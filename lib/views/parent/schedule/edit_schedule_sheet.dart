@@ -35,7 +35,7 @@ class EditScheduleScreen extends StatelessWidget {
           updatedAt: DateTime.now(),
         );
 
-        await vm.updateSchedule(updatedSchedule);
+        await vm.updateSchedule(updatedSchedule, l10n: l10n);
       },
     );
   }

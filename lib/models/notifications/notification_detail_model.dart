@@ -1,3 +1,4 @@
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 
 class NotificationDetailModel {
@@ -31,31 +32,31 @@ class NotificationDetailModel {
     );
   }
 
-  /// 🕒 Format thời gian chuẩn hơn
-  String get timeDisplay {
+  String formatTimeDisplay(AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(createdAt);
 
-    String relative;
-
     if (diff.inMinutes < 1) {
-      relative = "Vừa xong";
-    } else if (diff.inMinutes < 60) {
-      relative = "${diff.inMinutes} phút trước";
-    } else if (diff.inHours < 24) {
-      relative = "${diff.inHours} giờ trước";
-    } else if (diff.inDays == 1) {
-      relative = "Hôm qua";
-    } else if (diff.inDays < 7) {
-      relative = "${diff.inDays} ngày trước";
-    } else {
-      relative =
-          "${createdAt.day.toString().padLeft(2, '0')}/"
-          "${createdAt.month.toString().padLeft(2, '0')}/"
-          "${createdAt.year}";
+      return "${l10n.notificationJustNow} • ${_formatTime(createdAt)}";
     }
 
-    return "$relative • ${_formatTime(createdAt)}";
+    if (diff.inMinutes < 60) {
+      return "${l10n.notificationMinutesAgo(diff.inMinutes)} • ${_formatTime(createdAt)}";
+    }
+
+    if (diff.inHours < 24) {
+      return "${l10n.notificationHoursAgo(diff.inHours)} • ${_formatTime(createdAt)}";
+    }
+
+    if (diff.inDays == 1) {
+      return "${l10n.notificationDateYesterday} • ${_formatTime(createdAt)}";
+    }
+
+    final date =
+        "${createdAt.day.toString().padLeft(2, '0')}/"
+        "${createdAt.month.toString().padLeft(2, '0')}/"
+        "${createdAt.year}";
+    return "$date • ${_formatTime(createdAt)}";
   }
 
   String _formatTime(DateTime date) {

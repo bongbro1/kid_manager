@@ -28,6 +28,59 @@ function formatDayKey(year: number, month: number, day: number) {
   ].join("-");
 }
 
+function utcNoonDate(year: number, month: number, day: number) {
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+}
+
+function resolveBirthdayOccurrenceDate(
+  year: number,
+  month: number,
+  day: number,
+) {
+  if (month === 2 && day === 29 && !isLeapYear(year)) {
+    return utcNoonDate(year, 2, 28);
+  }
+
+  return utcNoonDate(year, month, day);
+}
+
+function daysBetween(target: Date, base: Date) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((target.getTime() - base.getTime()) / msPerDay);
+}
+
+function daysUntilNextBirthday(opts: {
+  today: Date;
+  year: number;
+  birthMonth: number;
+  birthDay: number;
+}) {
+  let nextOccurrence = resolveBirthdayOccurrenceDate(
+    opts.year,
+    opts.birthMonth,
+    opts.birthDay,
+  );
+
+  let daysUntil = daysBetween(nextOccurrence, opts.today);
+  if (daysUntil < 0) {
+    nextOccurrence = resolveBirthdayOccurrenceDate(
+      opts.year + 1,
+      opts.birthMonth,
+      opts.birthDay,
+    );
+    daysUntil = daysBetween(nextOccurrence, opts.today);
+  }
+
+  return {
+    nextOccurrence,
+    daysUntil,
+  };
+}
+
+function isBirthdayCountdownDay(daysUntil: number) {
+  return daysUntil >= 1 && daysUntil <= 7;
+}
+
 function isLeapYear(year: number) {
   if (year % 400 === 0) return true;
   if (year % 100 === 0) return false;
@@ -89,8 +142,49 @@ function buildBirthdayText(opts: {
   birthdayName: string;
   ageTurning: number | null;
   isSelf: boolean;
+  daysUntil: number;
 }) {
   const isEn = opts.locale.toLowerCase().startsWith("en");
+
+  if (opts.daysUntil > 0) {
+    if (opts.isSelf) {
+      if (isEn) {
+        return {
+          title: "Birthday countdown",
+          body:
+            opts.daysUntil === 1
+              ? "Tomorrow is your birthday."
+              : `Your birthday is in ${opts.daysUntil} days.`,
+        };
+      }
+
+      return {
+        title: "Dem nguoc sinh nhat",
+        body:
+          opts.daysUntil === 1
+            ? "Ngay mai la sinh nhat cua ban."
+            : `Sinh nhat cua ban con ${opts.daysUntil} ngay nua.`,
+      };
+    }
+
+    if (isEn) {
+      return {
+        title: "Upcoming birthday",
+        body:
+          opts.daysUntil === 1
+            ? `Tomorrow is ${opts.birthdayName}'s birthday.`
+            : `${opts.birthdayName}'s birthday is in ${opts.daysUntil} days.`,
+      };
+    }
+
+    return {
+      title: "Sap toi sinh nhat",
+      body:
+        opts.daysUntil === 1
+          ? `Ngay mai la sinh nhat cua ${opts.birthdayName}.`
+          : `Sap toi sinh nhat ${opts.birthdayName}! Chi con ${opts.daysUntil} ngay nua.`,
+    };
+  }
 
   if (opts.isSelf) {
     if (isEn) {
@@ -141,6 +235,7 @@ export const sendBirthdayNotifications = onSchedule(
     const now = new Date();
     const { year, month, day, hour } = getZonedDateParts(now, TZ);
     const dayKey = formatDayKey(year, month, day);
+    const today = utcNoonDate(year, month, day);
 
     if (hour < 7) {
       console.log(`[BIRTHDAY_NOTI] skip before 07:00 local time hour=${hour}`);
@@ -149,21 +244,34 @@ export const sendBirthdayNotifications = onSchedule(
 
     console.log(`[BIRTHDAY_NOTI] start dayKey=${dayKey}`);
 
-    const shouldIncludeLeapBirthdays =
-      month === 2 && day === 28 && !isLeapYear(year);
     const familiesSnap = await db.collection("families").get();
-    const birthdayDocs: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>[] = [];
+    const birthdayDocs: Array<{
+      familyId: string;
+      doc: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>;
+      daysUntil: number;
+    }> = [];
 
     for (const familyDoc of familiesSnap.docs) {
-      const membersSnap = await db
-        .collection(`families/${familyDoc.id}/members`)
-        .where("birthMonth", "==", month)
-        .get();
+      const membersSnap = await db.collection(`families/${familyDoc.id}/members`).get();
 
       for (const memberDoc of membersSnap.docs) {
+        const birthMonth = Number(memberDoc.data().birthMonth ?? 0);
         const birthDay = Number(memberDoc.data().birthDay ?? 0);
-        if (birthDay === day || (shouldIncludeLeapBirthdays && birthDay === 29)) {
-          birthdayDocs.push(memberDoc);
+        if (birthMonth <= 0 || birthDay <= 0) continue;
+
+        const { daysUntil } = daysUntilNextBirthday({
+          today,
+          year,
+          birthMonth,
+          birthDay,
+        });
+
+        if (daysUntil === 0 || isBirthdayCountdownDay(daysUntil)) {
+          birthdayDocs.push({
+            familyId: familyDoc.id,
+            doc: memberDoc,
+            daysUntil,
+          });
         }
       }
     }
@@ -182,12 +290,14 @@ export const sendBirthdayNotifications = onSchedule(
     let createdCount = 0;
     let skippedCount = 0;
 
-    for (const birthdayDoc of birthdayDocs) {
-      const familyId = birthdayDoc.ref.parent.parent?.id ?? "";
+    for (const birthdayItem of birthdayDocs) {
+      const familyId = birthdayItem.familyId;
       if (!familyId) continue;
 
+      const birthdayDoc = birthdayItem.doc;
       const birthdayUid = birthdayDoc.id;
       const birthdayData = birthdayDoc.data();
+      const daysUntil = birthdayItem.daysUntil;
       const birthdayName =
         String(birthdayData.displayName ?? birthdayData.email ?? birthdayUid).trim() ||
         "Thành viên";
@@ -204,7 +314,9 @@ export const sendBirthdayNotifications = onSchedule(
         birthYear != null && birthYear <= year ? year - birthYear : null;
 
       for (const receiverId of receiverIds) {
-        const notificationId = `birthday_${dayKey}_${birthdayUid}_${receiverId}`;
+        const notificationId = daysUntil === 0
+          ? `birthday_${dayKey}_${birthdayUid}_${receiverId}`
+          : `birthday_countdown_${dayKey}_${birthdayUid}_${receiverId}`;
         const notificationRef = db.collection("notifications").doc(notificationId);
         const existing = await notificationRef.get();
         if (existing.exists) {
@@ -224,6 +336,7 @@ export const sendBirthdayNotifications = onSchedule(
           birthdayName,
           ageTurning,
           isSelf: receiverId === birthdayUid,
+          daysUntil,
         });
 
         await notificationRef.set({
@@ -241,6 +354,8 @@ export const sendBirthdayNotifications = onSchedule(
             birthMonth: String(birthdayData.birthMonth ?? ""),
             birthDay: String(birthdayData.birthDay ?? ""),
             dayKey,
+            birthdayPhase: daysUntil === 0 ? "today" : "countdown",
+            daysUntil: String(daysUntil),
             isSelf: receiverId === birthdayUid ? "true" : "false",
           },
           isRead: false,
