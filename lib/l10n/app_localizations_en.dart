@@ -111,11 +111,278 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appAppearanceThemeDark => 'Dark';
 
   @override
+  String get appAppearanceSectionApp => 'APP';
+
+  @override
+  String get appAppearanceThemeSubtitle => 'Change light/dark appearance';
+
+  @override
+  String get appAppearanceSectionSecurity => 'SECURITY';
+
+  @override
+  String get appAppearanceChangePasswordTitle => 'Change password';
+
+  @override
+  String get appAppearanceChangePasswordSubtitle => 'Update your password';
+
+  @override
+  String get appAppearanceNotificationsTitle => 'Notifications';
+
+  @override
+  String get appAppearanceNotificationsSubtitle =>
+      'Manage notification preferences';
+
+  @override
   String get addAccountSuccessMessage => 'Child account created successfully';
+
+  @override
+  String get addAccountNameRequired => 'Please enter a name';
+
+  @override
+  String get addAccountAccessLabel => 'Access role';
+
+  @override
+  String get addAccountRoleChild => 'Child';
+
+  @override
+  String get addAccountRoleGuardian => 'Guardian';
+
+  @override
+  String get addAccountSelectBirthDateTitle => 'Select birth date';
+
+  @override
+  String get addAccountSelectButton => 'Select';
 
   @override
   String get sessionExpiredLoginAgain =>
       'Session expired. Please sign in again.';
+
+  @override
+  String userVmLoadUserError(String error) {
+    return 'Failed to load user: $error';
+  }
+
+  @override
+  String userVmLoadChildrenError(String error) {
+    return 'Failed to load children: $error';
+  }
+
+  @override
+  String userVmLoadMembersError(String error) {
+    return 'Failed to load members: $error';
+  }
+
+  @override
+  String get userVmFamilyIdNotFound => 'Family ID was not found';
+
+  @override
+  String userVmLoadFamilyError(String error) {
+    return 'Failed to load family: $error';
+  }
+
+  @override
+  String get userVmUserIdNotFound => 'User ID was not found';
+
+  @override
+  String get userVmFullNameRequired => 'Full name cannot be empty';
+
+  @override
+  String get userVmUpdatePhotoFailed => 'Failed to update photo';
+
+  @override
+  String subscriptionLoadError(String error) {
+    return 'Failed to load subscription: $error';
+  }
+
+  @override
+  String subscriptionWatchError(String error) {
+    return 'Failed to watch subscription: $error';
+  }
+
+  @override
+  String subscriptionUpdateError(String error) {
+    return 'Failed to update subscription: $error';
+  }
+
+  @override
+  String subscriptionActivateError(String error) {
+    return 'Failed to activate plan: $error';
+  }
+
+  @override
+  String subscriptionStartTrialError(String error) {
+    return 'Failed to start trial: $error';
+  }
+
+  @override
+  String subscriptionMarkExpiredError(String error) {
+    return 'Failed to mark subscription as expired: $error';
+  }
+
+  @override
+  String subscriptionClearError(String error) {
+    return 'Failed to clear subscription: $error';
+  }
+
+  @override
+  String get appManagementSyncFailed => 'Could not sync apps';
+
+  @override
+  String get appManagementUserIdNotFound => 'User ID was not found';
+
+  @override
+  String zoneStatusAtText(String zoneName, String duration) {
+    return 'at $zoneName • $duration';
+  }
+
+  @override
+  String zoneStatusWasAtText(String zoneName) {
+    return 'was at $zoneName';
+  }
+
+  @override
+  String zoneStatusWasAtWithAgoText(String zoneName, String ago) {
+    return 'was at $zoneName • $ago';
+  }
+
+  @override
+  String zoneStatusDurationMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String zoneStatusDurationHoursMinutes(int hours, int minutes) {
+    return '$hours h $minutes min';
+  }
+
+  @override
+  String get zoneStatusJustNow => 'just now';
+
+  @override
+  String zoneStatusMinutesAgo(int minutes) {
+    return '$minutes min ago';
+  }
+
+  @override
+  String zoneStatusHoursAgo(int hours) {
+    return '$hours h ago';
+  }
+
+  @override
+  String zoneStatusDaysAgo(int days) {
+    return '$days days ago';
+  }
+
+  @override
+  String get otpResendCooldownError =>
+      'Please wait before requesting another OTP';
+
+  @override
+  String get otpResendLockedError =>
+      'You requested OTP too many times. Please try again later';
+
+  @override
+  String get otpResendMaxError => 'You requested OTP too many times';
+
+  @override
+  String otpRepositoryLockedMessage(int seconds) {
+    return 'OTP sending is temporarily locked. Please try again in ${seconds}s';
+  }
+
+  @override
+  String get authLoginCancelled => 'Login was cancelled';
+
+  @override
+  String get continueButton => 'Continue';
+
+  @override
+  String zoneDetailsRadiusLabel(String radius) {
+    return 'Radius ${radius}m';
+  }
+
+  @override
+  String get zoneDetailsNoCoordinates =>
+      'No coordinates available to display the map';
+
+  @override
+  String birthdaySpecialDayHeadline(String name) {
+    return 'It\'s $name\'s special day!';
+  }
+
+  @override
+  String get mapTopBarTitle => 'Location';
+
+  @override
+  String childGroupMarkerCount(int count) {
+    return '$count children';
+  }
+
+  @override
+  String get changePasswordTitle => 'Change password';
+
+  @override
+  String get changePasswordSuccessMessage => 'Password changed successfully';
+
+  @override
+  String get changePasswordCurrentPasswordLabel => 'Current password';
+
+  @override
+  String get changePasswordCurrentPasswordHint => 'Enter current password';
+
+  @override
+  String get changePasswordNewPasswordLabel => 'New password';
+
+  @override
+  String get changePasswordNewPasswordHint => 'Enter new password';
+
+  @override
+  String get changePasswordConfirmPasswordLabel => 'Confirm password';
+
+  @override
+  String get changePasswordConfirmPasswordHint => 'Re-enter new password';
+
+  @override
+  String get changePasswordUpdateButton => 'Update password';
+
+  @override
+  String get memberManagementTitle => 'Member management';
+
+  @override
+  String get memberManagementAddMemberTitle => 'Add member';
+
+  @override
+  String get memberManagementAddMemberSubtitle =>
+      'Connect a new device for your child';
+
+  @override
+  String get memberManagementAddNowButton => 'Add now';
+
+  @override
+  String get memberManagementFamilyMembersLabel => 'FAMILY MEMBERS';
+
+  @override
+  String get memberManagementEmpty => 'No members yet';
+
+  @override
+  String get memberManagementOnline => 'Online';
+
+  @override
+  String get memberManagementOffline => 'Offline';
+
+  @override
+  String get memberManagementMessageButton => 'Message';
+
+  @override
+  String get memberManagementLocationButton => 'Location';
+
+  @override
+  String get userRoleParent => 'Parent';
+
+  @override
+  String get userRoleChild => 'Child';
+
+  @override
+  String get userRoleGuardian => 'Guardian';
 
   @override
   String get aboutAppName => 'My Application';
@@ -131,6 +398,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutAppCopyright => '© 2026 My Company';
+
+  @override
+  String get themeSelectorTitle => 'Customize appearance';
+
+  @override
+  String get themeSelectorSubtitle =>
+      'Choose the primary color and light/dark mode';
+
+  @override
+  String get themeSelectorDarkMode => 'Dark mode';
+
+  @override
+  String get themeSelectorApplyButton => 'Apply appearance';
+
+  @override
+  String get phoneAuthTitle => 'Login with phone number';
+
+  @override
+  String get phoneAuthSendOtpButton => 'Send OTP';
+
+  @override
+  String get phoneAuthOtpTitle => 'Enter verification code';
+
+  @override
+  String get phoneAuthOtpInstruction =>
+      'Please enter the OTP sent to your phone number';
+
+  @override
+  String get termsTitle => 'Terms';
+
+  @override
+  String get termsNoData => 'No data available';
+
+  @override
+  String termsLastUpdated(String date) {
+    return 'Last updated: $date';
+  }
+
+  @override
+  String get homeTitle => 'Home';
+
+  @override
+  String get homeGreeting => 'Hello';
+
+  @override
+  String get homeManageChildButton => 'Manage child';
 
   @override
   String get accountNotFound => 'Account not found';
@@ -1227,6 +1540,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsContactNowButton => 'Contact now';
 
   @override
+  String get notificationsLocalChannelName => 'Default';
+
+  @override
+  String get notificationsLocalChannelDescription => 'Default notifications';
+
+  @override
+  String get notificationsDefaultTitle => 'Notifications';
+
+  @override
+  String get notificationsDefaultBody => 'You have a new notification';
+
+  @override
+  String get notificationsFamilyChatTitle => 'Family chat';
+
+  @override
+  String get notificationsFamilyChatBody => 'You have a new message';
+
+  @override
+  String get notificationsFamilyEventTitle => 'Family event';
+
+  @override
+  String get notificationsFamilyEventBody => 'Your family has a new event';
+
+  @override
+  String get notificationsBirthdayTitle => 'Birthday';
+
+  @override
+  String notificationsBirthdayUpcomingBody(String name) {
+    return '$name\'s birthday is coming soon!';
+  }
+
+  @override
+  String notificationsBirthdayTodayBody(String name) {
+    return 'Today is $name\'s birthday!';
+  }
+
+  @override
+  String get notificationsTrackingDefaultBody => 'Tracking status has changed.';
+
+  @override
   String scheduleOverlapConflictMessage(
     String title,
     String start,
@@ -1628,6 +1981,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get zonesRadiusLabel => 'Radius';
 
   @override
+  String get zonesOverlappingPrefix => 'Overlapping with: ';
+
+  @override
   String zonesOverlappingWith(String name) {
     return 'Overlapping with: $name';
   }
@@ -1653,6 +2009,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get parentChildrenListTitle => 'Member list';
+
+  @override
+  String get personalInfoManageAccountsTitle => 'Account management';
+
+  @override
+  String get personalInfoManageAccountsSubtitle => 'Manage member accounts';
+
+  @override
+  String get personalInfoDetailsButton => 'Details';
 
   @override
   String get childLocationTransportWalking => 'Walking';
@@ -1760,4 +2125,548 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tracking_default_title => 'Tracking notification';
+
+  @override
+  String get sosChannelName => 'SOS Alerts';
+
+  @override
+  String get sosChannelDescription => 'Emergency SOS alerts';
+
+  @override
+  String get sosFallbackTitle => 'Emergency SOS';
+
+  @override
+  String get sosFallbackBody => 'A family member is asking for help.';
+
+  @override
+  String get localAlarmDangerChannelName => 'Danger zone alerts';
+
+  @override
+  String get localAlarmDangerChannelDescription =>
+      'Alerts when a child enters or leaves a danger zone';
+
+  @override
+  String get localAlarmDangerEnterTitle => 'Danger zone alert';
+
+  @override
+  String localAlarmDangerEnterBody(String zoneName) {
+    return 'You entered: $zoneName';
+  }
+
+  @override
+  String get localAlarmDangerExitTitle => 'Left danger zone';
+
+  @override
+  String localAlarmDangerExitBody(String zoneName) {
+    return 'You left: $zoneName';
+  }
+
+  @override
+  String get trackingStatusLocationServiceOffMessage =>
+      'Device turned off GPS/location';
+
+  @override
+  String get trackingStatusLocationPermissionDeniedMessage =>
+      'Device turned off location permission';
+
+  @override
+  String get trackingStatusPreciseLocationDeniedMessage =>
+      'Device has not granted precise location';
+
+  @override
+  String get trackingStatusBackgroundDisabledMessage =>
+      'Background location sharing is off';
+
+  @override
+  String get trackingStatusOkMessage => 'Location is working normally';
+
+  @override
+  String get trackingErrorEnableLocationService =>
+      'Please turn on GPS/location on the device.';
+
+  @override
+  String get trackingErrorEnablePreciseLocation =>
+      'Please allow precise location.';
+
+  @override
+  String get trackingErrorEnableBackgroundLocation =>
+      'Please allow background location sharing (Allow all the time).';
+
+  @override
+  String get locationForegroundServiceTitle => 'Sharing location';
+
+  @override
+  String get locationForegroundServiceSubtitle =>
+      'The app runs in background to help protect your child';
+
+  @override
+  String parentLocationGpsError(Object error) {
+    return 'GPS error: $error';
+  }
+
+  @override
+  String parentLocationEnableGpsError(Object error) {
+    return 'Failed to enable GPS: $error';
+  }
+
+  @override
+  String parentLocationCurrentLocationError(Object error) {
+    return 'Could not get current location: $error';
+  }
+
+  @override
+  String parentLocationHistoryLoadError(Object error) {
+    return 'Failed to load history: $error';
+  }
+
+  @override
+  String parentLocationWatchChildError(Object childId, Object error) {
+    return 'Failed to watch $childId: $error';
+  }
+
+  @override
+  String get authLoginRequired => 'Not logged in';
+
+  @override
+  String get firebaseAuthCurrentPasswordIncorrect =>
+      'Current password is incorrect';
+
+  @override
+  String get firebaseAuthUserMismatch => 'Authenticated account does not match';
+
+  @override
+  String get firebaseAuthTooManyRequests =>
+      'Too many failed attempts. Please try again later';
+
+  @override
+  String get firebaseAuthNetworkFailed =>
+      'Network connection error. Please check your internet';
+
+  @override
+  String get firebaseAuthChangePasswordFailed =>
+      'Could not change password. Please try again';
+
+  @override
+  String get permissionLocationTitle => 'Enable location access';
+
+  @override
+  String get permissionLocationSubtitle =>
+      'The app needs location permission to track your child\'s position and support safety features.';
+
+  @override
+  String get permissionLocationRecommendation =>
+      'Recommended: allow location while using the app first. If background tracking is needed later, you can grant Always permission after that.';
+
+  @override
+  String get permissionLocationAllowButton => 'Allow location';
+
+  @override
+  String get permissionNotificationTitle => 'Enable SOS Alerts';
+
+  @override
+  String get permissionNotificationSubtitle =>
+      'The app needs notification permission to send emergency SOS alerts even when the app is closed.';
+
+  @override
+  String get permissionNotificationRecommendation =>
+      'After granting permission, make sure the \"SOS Alerts\" notification channel has sound enabled in system settings.';
+
+  @override
+  String get permissionNotificationAllowButton => 'Allow notifications';
+
+  @override
+  String get permissionSosTitle => 'Enable SOS access';
+
+  @override
+  String get permissionSosSubtitle =>
+      'The app needs notification permission to send emergency SOS alerts and play alarm sounds.';
+
+  @override
+  String get permissionSosRecommendation =>
+      'Please enable notifications and make sure the \"SOS Alerts\" channel has sound enabled.';
+
+  @override
+  String get permissionSosAllowButton => 'Allow SOS';
+
+  @override
+  String get permissionOpenSettingsButton => 'Open settings';
+
+  @override
+  String get permissionLaterButton => 'Later';
+
+  @override
+  String permissionStepLabel(int current, int total) {
+    return 'Step $current/$total';
+  }
+
+  @override
+  String get applyButton => 'Apply';
+
+  @override
+  String get commonStartLabel => 'Start';
+
+  @override
+  String get commonEndLabel => 'End';
+
+  @override
+  String get childLocationSosSending => 'Sending SOS...';
+
+  @override
+  String childLocationSosError(String error) {
+    return 'SOS error: $error';
+  }
+
+  @override
+  String get childLocationCurrentJourneyTitle => 'Current journey';
+
+  @override
+  String get childLocationTravelHistoryTitle => 'Movement history';
+
+  @override
+  String get childLocationTodayLabel => 'Today';
+
+  @override
+  String get childLocationRangeAllDay => 'All day';
+
+  @override
+  String get childLocationTagStart => 'Start';
+
+  @override
+  String get childLocationTagEnd => 'End';
+
+  @override
+  String get childLocationTagGpsVeryWeak => 'Very weak GPS';
+
+  @override
+  String get childLocationTagGpsLost => 'GPS lost';
+
+  @override
+  String get childLocationStayedHereLabel => 'Stayed here';
+
+  @override
+  String get childLocationStayedHereUnavailable => 'Unavailable';
+
+  @override
+  String get childLocationSpeedLabel => 'Speed';
+
+  @override
+  String get childLocationSpeedUnavailable => 'Unavailable';
+
+  @override
+  String get childLocationGpsAccuracyLabel => 'GPS accuracy';
+
+  @override
+  String get childLocationMockGpsLabel => 'Mock GPS';
+
+  @override
+  String get childLocationMockGpsDetected => 'Detected';
+
+  @override
+  String get childLocationNoLabel => 'No';
+
+  @override
+  String get childLocationTechnicalDetailsTitle => 'Technical details';
+
+  @override
+  String get childLocationDetailFullTimeLabel => 'Timestamp';
+
+  @override
+  String get childLocationDetailHeadingLabel => 'Heading';
+
+  @override
+  String get childLocationDetailCoordinatesLabel => 'Coordinates';
+
+  @override
+  String get childLocationDetailAccuracyLabel => 'Accuracy';
+
+  @override
+  String get childLocationDurationZeroMinutes => '0 min';
+
+  @override
+  String childLocationDurationHoursMinutes(int hours, int minutes) {
+    return '$hours h $minutes min';
+  }
+
+  @override
+  String childLocationDurationMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String childLocationDurationSeconds(int seconds) {
+    return '$seconds sec';
+  }
+
+  @override
+  String get childLocationGpsLostTitle => 'GPS signal lost';
+
+  @override
+  String get childLocationGpsVeryWeakSubtitle =>
+      'GPS signal is very weak. The location may be inaccurate.';
+
+  @override
+  String childLocationGpsLostSubtitle(String meters) {
+    return 'Accuracy is worse than $meters m';
+  }
+
+  @override
+  String get childLocationStoppedNowTitle => 'Currently stopped';
+
+  @override
+  String childLocationStoppedNowSubtitle(String duration) {
+    return 'Stopped here for $duration';
+  }
+
+  @override
+  String get childLocationStoppedHereTitle => 'Stopped here';
+
+  @override
+  String childLocationStoppedHereSubtitle(String duration) {
+    return 'Stopped for about $duration';
+  }
+
+  @override
+  String get childLocationJourneyStartSubtitle => 'Journey starting point';
+
+  @override
+  String get childLocationJourneyEndSubtitle => 'Journey ending point';
+
+  @override
+  String childLocationUpdatedAt(String time) {
+    return 'Updated at $time';
+  }
+
+  @override
+  String childLocationPassedAt(String time) {
+    return 'Passed this point at $time';
+  }
+
+  @override
+  String get childLocationHeadlineWalking => 'Walking';
+
+  @override
+  String get childLocationHeadlineBicycle => 'Cycling';
+
+  @override
+  String get childLocationHeadlineVehicle => 'In vehicle';
+
+  @override
+  String get childLocationHeadlineStill => 'Standing still';
+
+  @override
+  String get childLocationHeadlineUnknown => 'Unknown status';
+
+  @override
+  String get childLocationSpeedAlmostStill => 'Almost not moving';
+
+  @override
+  String get childLocationAccuracySevere => 'Severe GPS loss';
+
+  @override
+  String get childLocationAccuracyLost => 'GPS lost';
+
+  @override
+  String childLocationAccuracyGood(String meters) {
+    return 'Fairly accurate ($meters m)';
+  }
+
+  @override
+  String childLocationAccuracyModerate(String meters) {
+    return 'Moderate accuracy ($meters m)';
+  }
+
+  @override
+  String get childLocationTimeWindowTitle => 'Choose a time range';
+
+  @override
+  String get childLocationTimeWindowSubtitle =>
+      'Only load and show history within the selected time range.';
+
+  @override
+  String get childLocationPresetMorning => 'Morning';
+
+  @override
+  String get childLocationPresetAfternoon => 'Afternoon';
+
+  @override
+  String get childLocationPresetEvening => 'Evening';
+
+  @override
+  String get childLocationNoDataTitle => 'No data in this range';
+
+  @override
+  String get childLocationNoDataSubtitle =>
+      'Try another time range or another day to review the journey.';
+
+  @override
+  String get childLocationSummaryDateLabel => 'Date';
+
+  @override
+  String get childLocationSummaryTimeRangeLabel => 'Time range';
+
+  @override
+  String get childLocationLiveLabel => 'Live';
+
+  @override
+  String childLocationPointCount(int count) {
+    return '$count points';
+  }
+
+  @override
+  String get locationNoLocationYet => 'No location yet';
+
+  @override
+  String locationCoordinatesSummary(String lat, String lng) {
+    return 'Lat $lat • Lng $lng';
+  }
+
+  @override
+  String get locationSearchHint => 'Search';
+
+  @override
+  String get locationMessageSent => 'Message sent';
+
+  @override
+  String get locationChildInfoTitle => 'Information';
+
+  @override
+  String get locationQuickMessageHint => 'Send a quick message...';
+
+  @override
+  String get locationStatusStudying => 'Studying';
+
+  @override
+  String get locationStopSearching => 'Stop searching';
+
+  @override
+  String incomingSosConfirmFailed(Object error) {
+    return 'Confirmation failed: $error';
+  }
+
+  @override
+  String get incomingSosEmergencyTitle => '🚨 Emergency SOS alert!';
+
+  @override
+  String get incomingSosResolvingButton => 'PROCESSING';
+
+  @override
+  String get incomingSosConfirmButton => 'CONFIRM';
+
+  @override
+  String get sosConfirmedRoleParent => 'Parent';
+
+  @override
+  String get sosConfirmedRoleChild => 'Child';
+
+  @override
+  String get sosConfirmedNameLabel => 'Name';
+
+  @override
+  String get sosConfirmedSenderLabel => 'Sender';
+
+  @override
+  String get sosConfirmedSentAtLabel => 'Sent at';
+
+  @override
+  String get sosConfirmedConfirmedAtLabel => 'Confirmed at';
+
+  @override
+  String get sosConfirmedAccuracyLabel => 'Accuracy';
+
+  @override
+  String get sosConfirmedTitle => 'SOS confirmed';
+
+  @override
+  String get sosConfirmedCloseButton => 'CLOSE';
+
+  @override
+  String get sosButtonLabel => 'SOS';
+
+  @override
+  String get parentPhoneSaveFailed => 'Could not save the phone number';
+
+  @override
+  String get parentPhoneAddTitle => 'Add your child\'s phone number';
+
+  @override
+  String get parentPhoneAddSubtitle =>
+      'Contact your child even when their phone is in silent mode';
+
+  @override
+  String get parentPhoneAddButton => 'Add';
+
+  @override
+  String get parentPhoneContactHasNoNumber =>
+      'This contact has no phone number';
+
+  @override
+  String parentPhonePickFailed(Object error) {
+    return 'Could not get the phone number from contacts: $error';
+  }
+
+  @override
+  String get parentPhonePickTitle => 'Choose phone number';
+
+  @override
+  String get parentPhoneOpenContactsButton => 'Open contacts';
+
+  @override
+  String get appImageReplaceOption => 'Change image';
+
+  @override
+  String get appImageLoadFailed => 'Could not load image';
+
+  @override
+  String get photoUpdateFailedMessage => 'Failed to update photo';
+
+  @override
+  String get mapTypeSheetTitle => 'Map type';
+
+  @override
+  String get mapTypeDefault => 'Default';
+
+  @override
+  String get mapTypeSatellite => 'Satellite';
+
+  @override
+  String get mapTypeTerrain => 'Terrain';
+
+  @override
+  String get phoneHelperSaveSuccessTitle => 'Added successfully';
+
+  @override
+  String get phoneHelperSaveSuccessMessage =>
+      'The child\'s phone number has been saved successfully';
+
+  @override
+  String phoneHelperCallActionFailed(Object error) {
+    return 'Could not complete the call action: $error';
+  }
+
+  @override
+  String get phoneHelperOpenDialerFailed => 'Could not open the phone app';
+
+  @override
+  String phoneHelperLaunchCallFailed(Object error) {
+    return 'Phone call failed: $error';
+  }
+
+  @override
+  String get scheduleRepositoryNotFound => 'Schedule not found';
+
+  @override
+  String get scheduleRepositoryCurrentNotFound => 'Current schedule not found';
+
+  @override
+  String get scheduleRepositoryHistoryNotFound => 'History record not found';
+
+  @override
+  String get locationRepositoryLoginRequired =>
+      'Not logged in. Unable to send location';
+
+  @override
+  String get locationRepositoryParentIdNotFound => 'Parent account not found';
+
+  @override
+  String get cupertinoTimePickerDoneButton => 'Done';
 }

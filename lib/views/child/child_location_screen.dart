@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
@@ -11,7 +12,6 @@ import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 import 'package:kid_manager/widgets/location/map_top_bar.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
-import 'package:flutter/foundation.dart';
 
 class ChildLocationScreen extends StatefulWidget {
   const ChildLocationScreen({super.key});
@@ -64,6 +64,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = context.watch<ChildLocationViewModel>();
     final familyId = context.watch<UserVm>().familyId;
     final myUid = context.select<UserVm, String?>((vm) => vm.me?.uid);
@@ -77,8 +78,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
           onStyleLoaded: (map) async {
             _engine = MapEngine(map, enableChildDot: true); // ✅ quan trọng
             await _engine!.init();
+            if (!mounted) return;
 
-            final vm = context.read<ChildLocationViewModel>();
+            final vm = _vm;
 
             // remove listener cũ nếu có
             if (_vmListener != null) vm.removeListener(_vmListener!);
@@ -148,7 +150,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
               onPressed: () async {
                 final vm = context.read<ChildLocationViewModel>();
                 final loc = vm.currentLocation;
-                final displayName = context.read<UserVm>().me?.displayName ?? 'Unknown';
+                final displayName =
+                    context.read<UserVm>().me?.displayName ??
+                    l10n.parentLocationUnknownUser;
                 final sosVm = context.read<SosViewModel>();
 
                 debugPrint('🆘 Child SOS tapped');
@@ -159,14 +163,14 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
                 if (loc == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Chưa lấy được vị trí hiện tại')),
+                    SnackBar(content: Text(l10n.currentLocationError)),
                   );
                   return;
                 }
 
                 if (sosVm.sending) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đang gửi SOS...')),
+                    SnackBar(content: Text(l10n.childLocationSosSending)),
                   );
                   return;
                 }
@@ -184,7 +188,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại',
+                        sosId != null
+                            ? l10n.parentLocationSosSent
+                            : l10n.parentLocationSosFailed,
                       ),
                     ),
                   );
@@ -194,7 +200,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Lỗi gửi SOS: $e')),
+                    SnackBar(content: Text(l10n.childLocationSosError('$e'))),
                   );
                 }
               },

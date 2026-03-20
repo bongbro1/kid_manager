@@ -1,5 +1,6 @@
-import 'package:flutter/cupertino.dart';
+﻿import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class AppWheelTimePicker {
   static Future<TimeOfDay?> show(
@@ -9,8 +10,9 @@ class AppWheelTimePicker {
     Color primaryColor = const Color(0xFF3F7CFF),
     int minuteInterval = 1,
   }) async {
-    TimeOfDay init = initial ?? TimeOfDay.now();
-    DateTime temp = DateTime(2000, 1, 1, init.hour, init.minute);
+    final l10n = AppLocalizations.of(context);
+    final init = initial ?? TimeOfDay.now();
+    var temp = DateTime(2000, 1, 1, init.hour, init.minute);
     TimeOfDay? result;
 
     await showModalBottomSheet<void>(
@@ -46,7 +48,6 @@ class AppWheelTimePicker {
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
-
                 const SizedBox(height: 10),
 
                 // header
@@ -59,7 +60,7 @@ class AppWheelTimePicker {
                         style: TextButton.styleFrom(
                           foregroundColor: primaryColor,
                         ),
-                        child: const Text('Hủy'),
+                        child: Text(l10n.cancelButton),
                       ),
                       Expanded(
                         child: Text(
@@ -81,15 +82,14 @@ class AppWheelTimePicker {
                         style: TextButton.styleFrom(
                           foregroundColor: primaryColor,
                         ),
-                        child: const Text(
-                          'Xong',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        child: Text(
+                          l10n.cupertinoTimePickerDoneButton,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
                   ),
                 ),
-
                 Divider(height: 1, color: Colors.black.withOpacity(0.08)),
 
                 // picker
@@ -110,7 +110,6 @@ class AppWheelTimePicker {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 10),
               ],
             ),

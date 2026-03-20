@@ -5,7 +5,6 @@ import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/locale_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
 import 'package:provider/provider.dart';
 
 class LanguageSelectorSheet extends StatelessWidget {

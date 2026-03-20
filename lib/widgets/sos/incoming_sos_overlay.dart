@@ -1,9 +1,10 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/core/sos/sos_alarm_player.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:provider/provider.dart';
 
@@ -34,7 +35,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   void initState() {
     super.initState();
     debugPrint(
-      "OVERLAY initState familyId=${widget.familyId} hash=$hashCode",
+      'OVERLAY initState familyId=${widget.familyId} hash=$hashCode',
     );
     _subscribe();
   }
@@ -53,7 +54,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
           .limit(1);
 
       _sub = q.snapshots().listen(
-            (qs) {
+        (qs) {
           if (!mounted) return;
           _permissionRetryCount = 0;
 
@@ -140,6 +141,9 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   Future<void> _handleConfirm() async {
     final previousDoc = _doc;
     if (previousDoc == null) return;
+    final sosViewModel = context.read<SosViewModel>();
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     final sosId = previousDoc.id;
     final data = previousDoc.data() ?? {};
@@ -176,7 +180,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
     }
 
     try {
-      await context.read<SosViewModel>().resolve(
+      await sosViewModel.resolve(
         familyId: widget.familyId,
         sosId: sosId,
       );
@@ -203,8 +207,12 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
         await SosAlarmPlayer.instance.startLoop();
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Xác nhận thất bại: $e')),
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.incomingSosConfirmFailed('$e'),
+          ),
+        ),
       );
     }
   }
@@ -224,6 +232,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final doc = _doc;
     if (doc == null) return const SizedBox.shrink();
 
@@ -238,10 +247,10 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
             children: [
               const Icon(Icons.sos, color: Colors.white),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  '🚨 Có SOS khẩn cấp!',
-                  style: TextStyle(
+                  l10n.incomingSosEmergencyTitle,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
@@ -254,7 +263,11 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
                   shape: const StadiumBorder(),
                 ),
                 onPressed: _resolving ? null : _handleConfirm,
-                child: Text(_resolving ? 'ĐANG XỬ LÝ' : 'XÁC NHẬN'),
+                child: Text(
+                  _resolving
+                      ? l10n.incomingSosResolvingButton
+                      : l10n.incomingSosConfirmButton,
+                ),
               ),
             ],
           ),
@@ -268,7 +281,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
     _sub?.cancel();
     unawaited(SosAlarmPlayer.instance.stop());
     debugPrint(
-      "OVERLAY dispose familyId=${widget.familyId} hash=$hashCode",
+      'OVERLAY dispose familyId=${widget.familyId} hash=$hashCode',
     );
     super.dispose();
   }

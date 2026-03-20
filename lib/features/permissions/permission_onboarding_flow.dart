@@ -1,5 +1,6 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'location_permission_screen.dart';
@@ -74,10 +75,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
       return;
     }
 
-    if (_step == 1) {
-      if (locationStatus.isGranted) {
-        widget.onFinished();
-      }
+    if (_step == 1 && locationStatus.isGranted) {
+      widget.onFinished();
     }
   }
 
@@ -172,18 +171,18 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
                 },
                 child: _step == 0
                     ? NotificationPermissionScreen(
-                  key: const ValueKey('notification-step'),
-                  onAllow: _requestNotificationPermission,
-                  onOpenSettings: _openNotificationSettings,
-                  busy: _busy,
-                )
+                        key: const ValueKey('notification-step'),
+                        onAllow: _requestNotificationPermission,
+                        onOpenSettings: _openNotificationSettings,
+                        busy: _busy,
+                      )
                     : LocationPermissionScreen(
-                  key: const ValueKey('location-step'),
-                  onAllow: _requestLocationPermission,
-                  onOpenSettings: _openAppSettings,
-                  onSkip: _skipLocation,
-                  busy: _busy,
-                ),
+                        key: const ValueKey('location-step'),
+                        onAllow: _requestLocationPermission,
+                        onOpenSettings: _openAppSettings,
+                        onSkip: _skipLocation,
+                        busy: _busy,
+                      ),
               ),
             ),
           ],
@@ -200,6 +199,7 @@ class _PermissionProgressHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final currentStep = step + 1;
     final progress = currentStep / 2;
 
@@ -209,7 +209,7 @@ class _PermissionProgressHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Bước $currentStep/2',
+            l10n.permissionStepLabel(currentStep, 2),
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,

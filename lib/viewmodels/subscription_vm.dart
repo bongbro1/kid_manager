@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/models/user/user_subscription.dart';
 import 'package:kid_manager/repositories/subscription_repository.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class SubscriptionVM extends ChangeNotifier {
   final SubscriptionRepository _repository;
@@ -44,7 +45,7 @@ class SubscriptionVM extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      _setError('Không tải được subscription: $e');
+      _setError(runtimeL10n().subscriptionLoadError('$e'));
     } finally {
       _setLoading(false);
     }
@@ -61,7 +62,7 @@ class SubscriptionVM extends ChangeNotifier {
         notifyListeners();
       },
       onError: (e) {
-        _error = 'Theo dõi subscription thất bại: $e';
+        _error = runtimeL10n().subscriptionWatchError('$e');
         notifyListeners();
       },
     );
@@ -85,7 +86,7 @@ class SubscriptionVM extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      _setError('Cập nhật subscription thất bại: $e');
+      _setError(runtimeL10n().subscriptionUpdateError('$e'));
     } finally {
       _setLoading(false);
     }
@@ -110,7 +111,7 @@ class SubscriptionVM extends ChangeNotifier {
 
       await loadSubscription(uid);
     } catch (e) {
-      _setError('Kích hoạt gói thất bại: $e');
+      _setError(runtimeL10n().subscriptionActivateError('$e'));
     } finally {
       _setLoading(false);
     }
@@ -127,7 +128,7 @@ class SubscriptionVM extends ChangeNotifier {
       await _repository.startTrial(uid: uid, trialDays: trialDays);
       await loadSubscription(uid);
     } catch (e) {
-      _setError('Bắt đầu trial thất bại: $e');
+      _setError(runtimeL10n().subscriptionStartTrialError('$e'));
     } finally {
       _setLoading(false);
     }
@@ -141,7 +142,7 @@ class SubscriptionVM extends ChangeNotifier {
       await _repository.markExpired(uid);
       await loadSubscription(uid);
     } catch (e) {
-      _setError('Đánh dấu expired thất bại: $e');
+      _setError(runtimeL10n().subscriptionMarkExpiredError('$e'));
     } finally {
       _setLoading(false);
     }
@@ -158,7 +159,7 @@ class SubscriptionVM extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      _setError('Xóa subscription thất bại: $e');
+      _setError(runtimeL10n().subscriptionClearError('$e'));
     } finally {
       _setLoading(false);
     }

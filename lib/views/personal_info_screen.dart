@@ -12,7 +12,6 @@ import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
-import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/views/setting_pages/member_management_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -24,7 +23,6 @@ import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/common/smart_network_image.dart';
 import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
-import 'package:kid_manager/views/setting_pages/widgets/language_selector_sheet.dart';
 import 'package:provider/provider.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -448,13 +446,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
                                     const SizedBox(width: 12),
 
-                                    const Expanded(
+                                    Expanded(
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Quản lý tài khoản',
+                                            l10n.personalInfoManageAccountsTitle,
                                             style: TextStyle(
                                               color: Color(0xFF3E3E3E),
                                               fontSize: 16,
@@ -464,7 +462,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           ),
                                           SizedBox(height: 2),
                                           Text(
-                                            'Quản lý tài khoản của thành viên',
+                                            l10n
+                                                .personalInfoManageAccountsSubtitle,
                                             style: TextStyle(
                                               color: Color(0xFF3E3E3E),
                                               fontSize: 12,
@@ -497,8 +496,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                             8,
                                           ),
                                         ),
-                                        child: const Text(
-                                          'Chi tiết',
+                                        child: Text(
+                                          l10n.personalInfoDetailsButton,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 14,

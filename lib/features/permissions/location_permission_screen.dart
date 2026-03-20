@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class LocationPermissionScreen extends StatelessWidget {
   final VoidCallback onAllow;
@@ -16,6 +17,8 @@ class LocationPermissionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(
@@ -27,19 +30,19 @@ class LocationPermissionScreen extends StatelessWidget {
             color: Color(0xFF1E88E5),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Bật quyền vị trí',
+          Text(
+            l10n.permissionLocationTitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Ứng dụng cần quyền vị trí để theo dõi vị trí của trẻ và hỗ trợ các tính năng an toàn.',
+          Text(
+            l10n.permissionLocationSubtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               height: 1.5,
               color: Colors.black87,
@@ -52,10 +55,10 @@ class LocationPermissionScreen extends StatelessWidget {
               color: const Color(0xFFF7F7F7),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text(
-              'Khuyến nghị: cho phép vị trí khi dùng ứng dụng trước. Nếu app cần chạy nền sau này, bạn có thể xin thêm quyền Always.',
+            child: Text(
+              l10n.permissionLocationRecommendation,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: Colors.black54,
               ),
@@ -71,11 +74,11 @@ class LocationPermissionScreen extends StatelessWidget {
               ),
               child: busy
                   ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Text('Cho phép vị trí'),
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.permissionLocationAllowButton),
             ),
           ),
           const SizedBox(height: 12),
@@ -86,13 +89,13 @@ class LocationPermissionScreen extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: const Text('Mở cài đặt'),
+              child: Text(l10n.permissionOpenSettingsButton),
             ),
           ),
           const SizedBox(height: 12),
           TextButton(
             onPressed: busy ? null : onSkip,
-            child: const Text('Để sau'),
+            child: Text(l10n.permissionLaterButton),
           ),
           const SizedBox(height: 4),
         ],

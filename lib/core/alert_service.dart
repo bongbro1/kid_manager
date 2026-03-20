@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class AlertService {
   AlertService._();
@@ -30,12 +31,13 @@ class AlertService {
   static Future<bool> confirm({
     required String title,
     required String message,
-    String okText = 'OK',
-    String cancelText = 'Huỷ',
+    String? okText,
+    String? cancelText,
   }) async {
     final ctx = AppNavigator.navigatorKey.currentContext;
 
     if (ctx == null) return false;
+    final l10n = AppLocalizations.of(ctx);
 
     final res = await showDialog<bool>(
       context: ctx,
@@ -46,11 +48,11 @@ class AlertService {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(cancelText),
+            child: Text(cancelText ?? l10n.cancelButton),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text(okText),
+            child: Text(okText ?? l10n.confirmButton),
           ),
         ],
       ),
@@ -61,23 +63,24 @@ class AlertService {
 
   /// Dialog báo lỗi (1 nút)
   static Future<void> error({
-    String title = 'Có lỗi xảy ra',
+    String? title,
     required String message,
-    String okText = 'Đóng',
+    String? okText,
   }) async {
     final ctx = AppNavigator.navigatorKey.currentContext;
 
     if (ctx == null) return;
+    final l10n = AppLocalizations.of(ctx);
 
     await showDialog<void>(
       context: ctx,
       builder: (context) => AlertDialog(
-        title: Text(title),
+        title: Text(title ?? l10n.authGenericError),
         content: Text(message),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(okText),
+            child: Text(okText ?? l10n.birthdayCloseButton),
           ),
         ],
       ),

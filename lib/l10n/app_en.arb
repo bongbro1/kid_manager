@@ -34,8 +34,250 @@
   "appAppearanceThemeSystem": "Follow system",
   "appAppearanceThemeLight": "Light",
   "appAppearanceThemeDark": "Dark",
+  "appAppearanceSectionApp": "APP",
+  "appAppearanceThemeSubtitle": "Change light/dark appearance",
+  "appAppearanceSectionSecurity": "SECURITY",
+  "appAppearanceChangePasswordTitle": "Change password",
+  "appAppearanceChangePasswordSubtitle": "Update your password",
+  "appAppearanceNotificationsTitle": "Notifications",
+  "appAppearanceNotificationsSubtitle": "Manage notification preferences",
   "addAccountSuccessMessage": "Child account created successfully",
+  "addAccountNameRequired": "Please enter a name",
+  "addAccountAccessLabel": "Access role",
+  "addAccountRoleChild": "Child",
+  "addAccountRoleGuardian": "Guardian",
+  "addAccountSelectBirthDateTitle": "Select birth date",
+  "addAccountSelectButton": "Select",
   "sessionExpiredLoginAgain": "Session expired. Please sign in again.",
+  "userVmLoadUserError": "Failed to load user: {error}",
+  "@userVmLoadUserError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmLoadChildrenError": "Failed to load children: {error}",
+  "@userVmLoadChildrenError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmLoadMembersError": "Failed to load members: {error}",
+  "@userVmLoadMembersError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmFamilyIdNotFound": "Family ID was not found",
+  "userVmLoadFamilyError": "Failed to load family: {error}",
+  "@userVmLoadFamilyError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmUserIdNotFound": "User ID was not found",
+  "userVmFullNameRequired": "Full name cannot be empty",
+  "userVmUpdatePhotoFailed": "Failed to update photo",
+  "subscriptionLoadError": "Failed to load subscription: {error}",
+  "@subscriptionLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionWatchError": "Failed to watch subscription: {error}",
+  "@subscriptionWatchError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpdateError": "Failed to update subscription: {error}",
+  "@subscriptionUpdateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionActivateError": "Failed to activate plan: {error}",
+  "@subscriptionActivateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionStartTrialError": "Failed to start trial: {error}",
+  "@subscriptionStartTrialError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionMarkExpiredError": "Failed to mark subscription as expired: {error}",
+  "@subscriptionMarkExpiredError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionClearError": "Failed to clear subscription: {error}",
+  "@subscriptionClearError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "appManagementSyncFailed": "Could not sync apps",
+  "appManagementUserIdNotFound": "User ID was not found",
+  "zoneStatusAtText": "at {zoneName} • {duration}",
+  "@zoneStatusAtText": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneStatusWasAtText": "was at {zoneName}",
+  "@zoneStatusWasAtText": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneStatusWasAtWithAgoText": "was at {zoneName} • {ago}",
+  "@zoneStatusWasAtWithAgoText": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      },
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneStatusDurationMinutes": "{minutes} min",
+  "@zoneStatusDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusDurationHoursMinutes": "{hours} h {minutes} min",
+  "@zoneStatusDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusJustNow": "just now",
+  "zoneStatusMinutesAgo": "{minutes} min ago",
+  "@zoneStatusMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusHoursAgo": "{hours} h ago",
+  "@zoneStatusHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusDaysAgo": "{days} days ago",
+  "@zoneStatusDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "otpResendCooldownError": "Please wait before requesting another OTP",
+  "otpResendLockedError": "You requested OTP too many times. Please try again later",
+  "otpResendMaxError": "You requested OTP too many times",
+  "otpRepositoryLockedMessage": "OTP sending is temporarily locked. Please try again in {seconds}s",
+  "@otpRepositoryLockedMessage": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authLoginCancelled": "Login was cancelled",
+  "continueButton": "Continue",
+  "zoneDetailsRadiusLabel": "Radius {radius}m",
+  "@zoneDetailsRadiusLabel": {
+    "placeholders": {
+      "radius": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneDetailsNoCoordinates": "No coordinates available to display the map",
+  "birthdaySpecialDayHeadline": "It's {name}'s special day!",
+  "@birthdaySpecialDayHeadline": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapTopBarTitle": "Location",
+  "childGroupMarkerCount": "{count} children",
+  "@childGroupMarkerCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "changePasswordTitle": "Change password",
+  "changePasswordSuccessMessage": "Password changed successfully",
+  "changePasswordCurrentPasswordLabel": "Current password",
+  "changePasswordCurrentPasswordHint": "Enter current password",
+  "changePasswordNewPasswordLabel": "New password",
+  "changePasswordNewPasswordHint": "Enter new password",
+  "changePasswordConfirmPasswordLabel": "Confirm password",
+  "changePasswordConfirmPasswordHint": "Re-enter new password",
+  "changePasswordUpdateButton": "Update password",
+  "memberManagementTitle": "Member management",
+  "memberManagementAddMemberTitle": "Add member",
+  "memberManagementAddMemberSubtitle": "Connect a new device for your child",
+  "memberManagementAddNowButton": "Add now",
+  "memberManagementFamilyMembersLabel": "FAMILY MEMBERS",
+  "memberManagementEmpty": "No members yet",
+  "memberManagementOnline": "Online",
+  "memberManagementOffline": "Offline",
+  "memberManagementMessageButton": "Message",
+  "memberManagementLocationButton": "Location",
+  "userRoleParent": "Parent",
+  "userRoleChild": "Child",
+  "userRoleGuardian": "Guardian",
   "aboutAppName": "My Application",
   "aboutAppVersionLabel": "Version: {version}",
   "@aboutAppVersionLabel": {
@@ -47,6 +289,27 @@
   },
   "aboutAppDescription": "This app helps manage accounts, track activity, and personalize the user experience.",
   "aboutAppCopyright": "© 2026 My Company",
+  "themeSelectorTitle": "Customize appearance",
+  "themeSelectorSubtitle": "Choose the primary color and light/dark mode",
+  "themeSelectorDarkMode": "Dark mode",
+  "themeSelectorApplyButton": "Apply appearance",
+  "phoneAuthTitle": "Login with phone number",
+  "phoneAuthSendOtpButton": "Send OTP",
+  "phoneAuthOtpTitle": "Enter verification code",
+  "phoneAuthOtpInstruction": "Please enter the OTP sent to your phone number",
+  "termsTitle": "Terms",
+  "termsNoData": "No data available",
+  "termsLastUpdated": "Last updated: {date}",
+  "@termsLastUpdated": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "homeTitle": "Home",
+  "homeGreeting": "Hello",
+  "homeManageChildButton": "Manage child",
   "accountNotFound": "Account not found",
   "accountNotActivated": "Account not activated",
   "emailNotRegistered": "Email not registered",
@@ -755,6 +1018,32 @@
   },
   "notificationsZoneViewOnMainMapButton": "View on main map",
   "notificationsContactNowButton": "Contact now",
+  "notificationsLocalChannelName": "Default",
+  "notificationsLocalChannelDescription": "Default notifications",
+  "notificationsDefaultTitle": "Notifications",
+  "notificationsDefaultBody": "You have a new notification",
+  "notificationsFamilyChatTitle": "Family chat",
+  "notificationsFamilyChatBody": "You have a new message",
+  "notificationsFamilyEventTitle": "Family event",
+  "notificationsFamilyEventBody": "Your family has a new event",
+  "notificationsBirthdayTitle": "Birthday",
+  "notificationsBirthdayUpcomingBody": "{name}'s birthday is coming soon!",
+  "@notificationsBirthdayUpcomingBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsBirthdayTodayBody": "Today is {name}'s birthday!",
+  "@notificationsBirthdayTodayBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsTrackingDefaultBody": "Tracking status has changed.",
   "scheduleOverlapConflictMessage": "Conflicts with schedule \"{title}\" ({start} - {end}). Please choose another time.",
   "@scheduleOverlapConflictMessage": {
     "placeholders": {
@@ -1126,6 +1415,7 @@
   "zonesNameFieldLabel": "Zone name",
   "zonesTypeFieldLabel": "Zone type",
   "zonesRadiusLabel": "Radius",
+  "zonesOverlappingPrefix": "Overlapping with: ",
   "zonesOverlappingWith": "Overlapping with: {name}",
   "@zonesOverlappingWith": {
     "placeholders": {
@@ -1141,6 +1431,9 @@
   "parentLocationMapLoadingTitle": "Loading map",
   "parentLocationMapLoadingSubtitle": "Preparing the children's locations",
   "parentChildrenListTitle": "Member list",
+  "personalInfoManageAccountsTitle": "Account management",
+  "personalInfoManageAccountsSubtitle": "Manage member accounts",
+  "personalInfoDetailsButton": "Details",
   "childLocationTransportWalking": "Walking",
   "childLocationTransportBicycle": "Cycling",
   "childLocationTransportVehicle": "In vehicle",
@@ -1188,6 +1481,328 @@
   "tracking_background_disabled_child_title": "Background location is off",
   "tracking_location_stale_child_title": "Location is not updating",
   "tracking_ok_child_title": "Location is working again",
-
-  "tracking_default_title": "Tracking notification"
+  "tracking_default_title": "Tracking notification",
+  "sosChannelName": "SOS Alerts",
+  "sosChannelDescription": "Emergency SOS alerts",
+  "sosFallbackTitle": "Emergency SOS",
+  "sosFallbackBody": "A family member is asking for help.",
+  "localAlarmDangerChannelName": "Danger zone alerts",
+  "localAlarmDangerChannelDescription": "Alerts when a child enters or leaves a danger zone",
+  "localAlarmDangerEnterTitle": "Danger zone alert",
+  "localAlarmDangerEnterBody": "You entered: {zoneName}",
+  "@localAlarmDangerEnterBody": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "localAlarmDangerExitTitle": "Left danger zone",
+  "localAlarmDangerExitBody": "You left: {zoneName}",
+  "@localAlarmDangerExitBody": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "trackingStatusLocationServiceOffMessage": "Device turned off GPS/location",
+  "trackingStatusLocationPermissionDeniedMessage": "Device turned off location permission",
+  "trackingStatusPreciseLocationDeniedMessage": "Device has not granted precise location",
+  "trackingStatusBackgroundDisabledMessage": "Background location sharing is off",
+  "trackingStatusOkMessage": "Location is working normally",
+  "trackingErrorEnableLocationService": "Please turn on GPS/location on the device.",
+  "trackingErrorEnablePreciseLocation": "Please allow precise location.",
+  "trackingErrorEnableBackgroundLocation": "Please allow background location sharing (Allow all the time).",
+  "locationForegroundServiceTitle": "Sharing location",
+  "locationForegroundServiceSubtitle": "The app runs in background to help protect your child",
+  "parentLocationGpsError": "GPS error: {error}",
+  "@parentLocationGpsError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationEnableGpsError": "Failed to enable GPS: {error}",
+  "@parentLocationEnableGpsError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationCurrentLocationError": "Could not get current location: {error}",
+  "@parentLocationCurrentLocationError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationHistoryLoadError": "Failed to load history: {error}",
+  "@parentLocationHistoryLoadError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationWatchChildError": "Failed to watch {childId}: {error}",
+  "@parentLocationWatchChildError": {
+    "placeholders": {
+      "childId": {},
+      "error": {}
+    }
+  },
+  "authLoginRequired": "Not logged in",
+  "firebaseAuthCurrentPasswordIncorrect": "Current password is incorrect",
+  "firebaseAuthUserMismatch": "Authenticated account does not match",
+  "firebaseAuthTooManyRequests": "Too many failed attempts. Please try again later",
+  "firebaseAuthNetworkFailed": "Network connection error. Please check your internet",
+  "firebaseAuthChangePasswordFailed": "Could not change password. Please try again",
+  "permissionLocationTitle": "Enable location access",
+  "permissionLocationSubtitle": "The app needs location permission to track your child's position and support safety features.",
+  "permissionLocationRecommendation": "Recommended: allow location while using the app first. If background tracking is needed later, you can grant Always permission after that.",
+  "permissionLocationAllowButton": "Allow location",
+  "permissionNotificationTitle": "Enable SOS Alerts",
+  "permissionNotificationSubtitle": "The app needs notification permission to send emergency SOS alerts even when the app is closed.",
+  "permissionNotificationRecommendation": "After granting permission, make sure the \"SOS Alerts\" notification channel has sound enabled in system settings.",
+  "permissionNotificationAllowButton": "Allow notifications",
+  "permissionSosTitle": "Enable SOS access",
+  "permissionSosSubtitle": "The app needs notification permission to send emergency SOS alerts and play alarm sounds.",
+  "permissionSosRecommendation": "Please enable notifications and make sure the \"SOS Alerts\" channel has sound enabled.",
+  "permissionSosAllowButton": "Allow SOS",
+  "permissionOpenSettingsButton": "Open settings",
+  "permissionLaterButton": "Later",
+  "permissionStepLabel": "Step {current}/{total}",
+  "@permissionStepLabel": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "applyButton": "Apply",
+  "commonStartLabel": "Start",
+  "commonEndLabel": "End",
+  "childLocationSosSending": "Sending SOS...",
+  "childLocationSosError": "SOS error: {error}",
+  "@childLocationSosError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationCurrentJourneyTitle": "Current journey",
+  "childLocationTravelHistoryTitle": "Movement history",
+  "childLocationTodayLabel": "Today",
+  "childLocationRangeAllDay": "All day",
+  "childLocationTagStart": "Start",
+  "childLocationTagEnd": "End",
+  "childLocationTagGpsVeryWeak": "Very weak GPS",
+  "childLocationTagGpsLost": "GPS lost",
+  "childLocationStayedHereLabel": "Stayed here",
+  "childLocationStayedHereUnavailable": "Unavailable",
+  "childLocationSpeedLabel": "Speed",
+  "childLocationSpeedUnavailable": "Unavailable",
+  "childLocationGpsAccuracyLabel": "GPS accuracy",
+  "childLocationMockGpsLabel": "Mock GPS",
+  "childLocationMockGpsDetected": "Detected",
+  "childLocationNoLabel": "No",
+  "childLocationTechnicalDetailsTitle": "Technical details",
+  "childLocationDetailFullTimeLabel": "Timestamp",
+  "childLocationDetailHeadingLabel": "Heading",
+  "childLocationDetailCoordinatesLabel": "Coordinates",
+  "childLocationDetailAccuracyLabel": "Accuracy",
+  "childLocationDurationZeroMinutes": "0 min",
+  "childLocationDurationHoursMinutes": "{hours} h {minutes} min",
+  "@childLocationDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationDurationMinutes": "{minutes} min",
+  "@childLocationDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationDurationSeconds": "{seconds} sec",
+  "@childLocationDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationGpsLostTitle": "GPS signal lost",
+  "childLocationGpsVeryWeakSubtitle": "GPS signal is very weak. The location may be inaccurate.",
+  "childLocationGpsLostSubtitle": "Accuracy is worse than {meters} m",
+  "@childLocationGpsLostSubtitle": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationStoppedNowTitle": "Currently stopped",
+  "childLocationStoppedNowSubtitle": "Stopped here for {duration}",
+  "@childLocationStoppedNowSubtitle": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationStoppedHereTitle": "Stopped here",
+  "childLocationStoppedHereSubtitle": "Stopped for about {duration}",
+  "@childLocationStoppedHereSubtitle": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationJourneyStartSubtitle": "Journey starting point",
+  "childLocationJourneyEndSubtitle": "Journey ending point",
+  "childLocationUpdatedAt": "Updated at {time}",
+  "@childLocationUpdatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationPassedAt": "Passed this point at {time}",
+  "@childLocationPassedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationHeadlineWalking": "Walking",
+  "childLocationHeadlineBicycle": "Cycling",
+  "childLocationHeadlineVehicle": "In vehicle",
+  "childLocationHeadlineStill": "Standing still",
+  "childLocationHeadlineUnknown": "Unknown status",
+  "childLocationSpeedAlmostStill": "Almost not moving",
+  "childLocationAccuracySevere": "Severe GPS loss",
+  "childLocationAccuracyLost": "GPS lost",
+  "childLocationAccuracyGood": "Fairly accurate ({meters} m)",
+  "@childLocationAccuracyGood": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationAccuracyModerate": "Moderate accuracy ({meters} m)",
+  "@childLocationAccuracyModerate": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationTimeWindowTitle": "Choose a time range",
+  "childLocationTimeWindowSubtitle": "Only load and show history within the selected time range.",
+  "childLocationPresetMorning": "Morning",
+  "childLocationPresetAfternoon": "Afternoon",
+  "childLocationPresetEvening": "Evening",
+  "childLocationNoDataTitle": "No data in this range",
+  "childLocationNoDataSubtitle": "Try another time range or another day to review the journey.",
+  "childLocationSummaryDateLabel": "Date",
+  "childLocationSummaryTimeRangeLabel": "Time range",
+  "childLocationLiveLabel": "Live",
+  "childLocationPointCount": "{count} points",
+  "@childLocationPointCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "locationNoLocationYet": "No location yet",
+  "locationCoordinatesSummary": "Lat {lat} • Lng {lng}",
+  "@locationCoordinatesSummary": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "locationSearchHint": "Search",
+  "locationMessageSent": "Message sent",
+  "locationChildInfoTitle": "Information",
+  "locationQuickMessageHint": "Send a quick message...",
+  "locationStatusStudying": "Studying",
+  "locationStopSearching": "Stop searching",
+  "incomingSosConfirmFailed": "Confirmation failed: {error}",
+  "@incomingSosConfirmFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "incomingSosEmergencyTitle": "🚨 Emergency SOS alert!",
+  "incomingSosResolvingButton": "PROCESSING",
+  "incomingSosConfirmButton": "CONFIRM",
+  "sosConfirmedRoleParent": "Parent",
+  "sosConfirmedRoleChild": "Child",
+  "sosConfirmedNameLabel": "Name",
+  "sosConfirmedSenderLabel": "Sender",
+  "sosConfirmedSentAtLabel": "Sent at",
+  "sosConfirmedConfirmedAtLabel": "Confirmed at",
+  "sosConfirmedAccuracyLabel": "Accuracy",
+  "sosConfirmedTitle": "SOS confirmed",
+  "sosConfirmedCloseButton": "CLOSE",
+  "sosButtonLabel": "SOS",
+  "parentPhoneSaveFailed": "Could not save the phone number",
+  "parentPhoneAddTitle": "Add your child's phone number",
+  "parentPhoneAddSubtitle": "Contact your child even when their phone is in silent mode",
+  "parentPhoneAddButton": "Add",
+  "parentPhoneContactHasNoNumber": "This contact has no phone number",
+  "parentPhonePickFailed": "Could not get the phone number from contacts: {error}",
+  "@parentPhonePickFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentPhonePickTitle": "Choose phone number",
+  "parentPhoneOpenContactsButton": "Open contacts",
+  "appImageReplaceOption": "Change image",
+  "appImageLoadFailed": "Could not load image",
+  "photoUpdateFailedMessage": "Failed to update photo",
+  "mapTypeSheetTitle": "Map type",
+  "mapTypeDefault": "Default",
+  "mapTypeSatellite": "Satellite",
+  "mapTypeTerrain": "Terrain",
+  "phoneHelperSaveSuccessTitle": "Added successfully",
+  "phoneHelperSaveSuccessMessage": "The child's phone number has been saved successfully",
+  "phoneHelperCallActionFailed": "Could not complete the call action: {error}",
+  "@phoneHelperCallActionFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "phoneHelperOpenDialerFailed": "Could not open the phone app",
+  "phoneHelperLaunchCallFailed": "Phone call failed: {error}",
+  "@phoneHelperLaunchCallFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "scheduleRepositoryNotFound": "Schedule not found",
+  "scheduleRepositoryCurrentNotFound": "Current schedule not found",
+  "scheduleRepositoryHistoryNotFound": "History record not found",
+  "locationRepositoryLoginRequired": "Not logged in. Unable to send location",
+  "locationRepositoryParentIdNotFound": "Parent account not found",
+  "cupertinoTimePickerDoneButton": "Done"
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -16,9 +17,6 @@ import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:kid_manager/widgets/notifications/birthday_notification_experience.dart';
 
-// TODO: import đúng màn hình này nếu project đang dùng
-// import 'package:kid_manager/views/family/family_group_chat_screen.dart';
-
 class NotificationService {
   static bool _initialized = false;
   static String? _lastHandledNotificationId;
@@ -28,6 +26,14 @@ class NotificationService {
   static const String _systemSender = 'system';
   static const MethodChannel _channel = MethodChannel('notification_intent');
   static final NotificationRepository _repo = NotificationRepository();
+
+  static Future<AppLocalizations> _loadL10n([String? lang]) {
+    final normalized =
+        (lang ?? PlatformDispatcher.instance.locale.languageCode).toLowerCase();
+    return AppLocalizations.delegate.load(
+      Locale(normalized.startsWith('en') ? 'en' : 'vi'),
+    );
+  }
 
   static Future<void> init() async {
     if (_initialized) return;
@@ -258,15 +264,17 @@ class NotificationService {
         return;
       }
 
+      final l10n = await _loadL10n(data['lang']?.toString());
+
       final title =
           message.notification?.title ??
           data['title']?.toString() ??
-          'Thông báo';
+          l10n.notificationsDefaultTitle;
 
       final body =
           message.notification?.body ??
           data['body']?.toString() ??
-          'Bạn có thông báo mới';
+          l10n.notificationsDefaultBody;
 
       await LocalNotificationService.show(
         title: title,
@@ -333,15 +341,17 @@ class NotificationService {
   }
 
   static Future<void> _showDefaultNotification(RemoteMessage message) async {
+    final l10n = await _loadL10n(message.data['lang']?.toString());
+
     final title =
         message.notification?.title ??
         message.data['title']?.toString() ??
-        'Thông báo';
+        l10n.notificationsDefaultTitle;
 
     final body =
         message.notification?.body ??
         message.data['body']?.toString() ??
-        'Bạn có thông báo mới';
+        l10n.notificationsDefaultBody;
 
     debugPrint(
       '🔔 show default local notification title="$title" body="$body"',
@@ -355,15 +365,17 @@ class NotificationService {
   }
 
   static Future<void> _showFamilyChatNotification(RemoteMessage message) async {
+    final l10n = await _loadL10n(message.data['lang']?.toString());
+
     final title =
         message.notification?.title ??
         message.data['title']?.toString() ??
-        'Tin nhắn gia đình';
+        l10n.notificationsFamilyChatTitle;
 
     final body =
         message.notification?.body ??
         message.data['body']?.toString() ??
-        'Bạn có tin nhắn mới';
+        l10n.notificationsFamilyChatBody;
 
     debugPrint(
       '🔔 show family chat local notification title="$title" body="$body"',
@@ -379,15 +391,17 @@ class NotificationService {
   static Future<void> _showFamilyEventNotification(
     RemoteMessage message,
   ) async {
+    final l10n = await _loadL10n(message.data['lang']?.toString());
+
     final title =
         message.notification?.title ??
         message.data['title']?.toString() ??
-        'Sự kiện gia đình';
+        l10n.notificationsFamilyEventTitle;
 
     final body =
         message.notification?.body ??
         message.data['body']?.toString() ??
-        'Gia đình bạn có sự kiện mới';
+        l10n.notificationsFamilyEventBody;
 
     debugPrint(
       '🔔 show family event local notification title="$title" body="$body"',
@@ -404,16 +418,19 @@ class NotificationService {
     final data = message.data;
     final daysUntil = int.tryParse(data['daysUntil']?.toString() ?? '0') ?? 0;
     final birthdayName = data['birthdayName']?.toString() ?? '';
+    final l10n = await _loadL10n(data['lang']?.toString());
 
     final title =
-        message.notification?.title ?? data['title']?.toString() ?? 'Sinh nhật';
+        message.notification?.title ??
+        data['title']?.toString() ??
+        l10n.notificationsBirthdayTitle;
 
     final body =
         message.notification?.body ??
         data['body']?.toString() ??
         (daysUntil > 0
-            ? 'Sắp tới sinh nhật của $birthdayName!'
-            : 'Hôm nay là sinh nhật của $birthdayName!');
+            ? l10n.notificationsBirthdayUpcomingBody(birthdayName)
+            : l10n.notificationsBirthdayTodayBody(birthdayName));
 
     debugPrint(
       '🎂 show birthday local notification title="$title" body="$body" daysUntil=$daysUntil',
@@ -464,9 +481,7 @@ class NotificationService {
       title = l10n.tracking_default_title;
     }
 
-    final fallbackBody = lang.startsWith('en')
-        ? 'Tracking status has changed.'
-        : 'Trang thai dinh vi da thay doi.';
+    final fallbackBody = l10n.notificationsTrackingDefaultBody;
 
     var body =
         message.notification?.body ??

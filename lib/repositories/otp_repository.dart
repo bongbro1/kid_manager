@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class OtpRepository {
   final FirebaseFirestore _db;
@@ -39,7 +40,7 @@ class OtpRepository {
           final seconds = lockedUntil.difference(now).inSeconds;
 
           throw Exception(
-            "Bạn đã bị khóa gửi OTP. Vui lòng thử lại sau ${seconds}s",
+            runtimeL10n().otpRepositoryLockedMessage(seconds),
           );
         }
       }

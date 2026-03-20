@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class ZoneBubbleState {
   final IconData icon;
@@ -187,18 +188,23 @@ class ZoneStatusVm extends ChangeNotifier {
   }
 
   void _recompute() {
+    final l10n = runtimeL10n();
     final presence = _activePresence;
 
     // 1) Nếu đang inside -> "đang ở ..."
     if (presence != null) {
-      final zoneName = (presence['zoneName'] ?? 'Vùng').toString();
+      final zoneName = (presence['zoneName'] ?? l10n.zonesDefaultNameFallback)
+          .toString();
       final zoneType = (presence['zoneType'] ?? '').toString();
       final enterAt = int.tryParse((presence['enterAt'] ?? '0').toString()) ?? 0;
 
       final elapsedSec =
       enterAt > 0 ? max(0, ((_nowMs - enterAt) / 1000).floor()) : 0;
 
-      final text = "đang ở $zoneName · ${_fmtDuration(elapsedSec)}";
+      final text = l10n.zoneStatusAtText(
+        zoneName,
+        _fmtDuration(elapsedSec),
+      );
       final icon = zoneType == 'danger'
           ? Icons.warning_amber_rounded
           : Icons.home;
@@ -216,7 +222,9 @@ class ZoneStatusVm extends ChangeNotifier {
       if (createdAt is Timestamp) dt = createdAt.toDate();
 
       final ago = dt != null ? _timeAgo(dt) : '';
-      final text = ago.isNotEmpty ? "đã ở $body · $ago" : "đã ở $body";
+      final text = ago.isNotEmpty
+          ? l10n.zoneStatusWasAtWithAgoText(body, ago)
+          : l10n.zoneStatusWasAtText(body);
 
       // icon theo key nếu có
       final key = (ev['eventKey'] ?? '').toString();
@@ -239,19 +247,21 @@ class ZoneStatusVm extends ChangeNotifier {
   }
 
   String _fmtDuration(int sec) {
+    final l10n = runtimeL10n();
     final m = (sec / 60).floor();
     final h = (m / 60).floor();
     final mm = m % 60;
-    if (h <= 0) return "${mm} phút";
-    return "${h}g${mm.toString().padLeft(2, '0')} phút";
+    if (h <= 0) return l10n.zoneStatusDurationMinutes(mm);
+    return l10n.zoneStatusDurationHoursMinutes(h, mm);
   }
 
   String _timeAgo(DateTime t) {
+    final l10n = runtimeL10n();
     final diff = DateTime.now().difference(t);
-    if (diff.inMinutes < 1) return "vừa xong";
-    if (diff.inMinutes < 60) return "${diff.inMinutes} phút trước";
-    if (diff.inHours < 24) return "${diff.inHours} giờ trước";
-    return "${diff.inDays} ngày trước";
+    if (diff.inMinutes < 1) return l10n.zoneStatusJustNow;
+    if (diff.inMinutes < 60) return l10n.zoneStatusMinutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.zoneStatusHoursAgo(diff.inHours);
+    return l10n.zoneStatusDaysAgo(diff.inDays);
   }
 
   @override

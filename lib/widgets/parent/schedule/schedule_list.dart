@@ -138,12 +138,8 @@ class BirthdayItem extends StatelessWidget {
   final DateTime selectedDate;
   final void Function(String wishText) onOpenChat;
 
-  String _headlineText(BuildContext context) {
-    final code = Localizations.localeOf(context).languageCode.toLowerCase();
-    if (code.startsWith('en')) {
-      return "It's ${birthday.displayName}'s special day!";
-    }
-    return 'Sinh nhật của ${birthday.displayName}!';
+  String _headlineText(AppLocalizations l10n) {
+    return l10n.birthdaySpecialDayHeadline(birthday.displayName);
   }
 
   bool get _isBirthdayToday {
@@ -157,7 +153,7 @@ class BirthdayItem extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final age = birthday.ageOn(selectedDate);
     final avatar = birthday.avatarUrl.trim();
-    final headline = _headlineText(context);
+    final headline = _headlineText(l10n);
     final showGiftAction = _isBirthdayToday;
     final wishText = age > 0
         ? l10n.birthdayWishOtherWithAge(birthday.displayName, age)

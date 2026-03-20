@@ -1,14 +1,14 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
-/// Gọi hàm này để mở modal
 Future<void> showImageModal(
   BuildContext context, {
   required List<ImageProvider> images,
   int initialIndex = 0,
-  Future<void> Function(int index, File file)? onReplace, // <- thêm
+  Future<void> Function(int index, File file)? onReplace,
 }) {
   assert(images.isNotEmpty);
   final safeIndex = initialIndex.clamp(0, images.length - 1);
@@ -83,13 +83,15 @@ class _ImageModalState extends State<_ImageModal> {
       context: context,
       showDragHandle: true,
       builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
+
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Thay đổi ảnh'),
+                title: Text(l10n.appImageReplaceOption),
                 onTap: () async {
                   Navigator.of(ctx).pop();
                   await _pickAndReplace();
@@ -97,7 +99,7 @@ class _ImageModalState extends State<_ImageModal> {
               ),
               ListTile(
                 leading: const Icon(Icons.close),
-                title: const Text('Đóng'),
+                title: Text(l10n.birthdayCloseButton),
                 onTap: () => Navigator.of(ctx).pop(),
               ),
             ],
@@ -136,7 +138,7 @@ class _ImageModalState extends State<_ImageModal> {
 
   @override
   Widget build(BuildContext context) {
-    final overlay = const Color(0xB2696969); // #696969B2
+    final overlay = const Color(0xB2696969);
 
     return Material(
       type: MaterialType.transparency,
@@ -150,7 +152,6 @@ class _ImageModalState extends State<_ImageModal> {
               child: Container(color: overlay),
             ),
           ),
-
           if (widget.onReplace != null)
             // ✅ Nút ... ở góc trên-trái của overlay
             Positioned(
@@ -191,7 +192,7 @@ class _ImageModalState extends State<_ImageModal> {
                         maxWidth: MediaQuery.of(context).size.width * 0.92,
                         maxHeight: MediaQuery.of(context).size.height * 0.75,
                       ),
-                      child: (_images.length == 1)
+                      child: _images.length == 1
                           ? _ZoomableImage(image: _images.first)
                           : PageView.builder(
                               controller: _controller,
@@ -206,7 +207,6 @@ class _ImageModalState extends State<_ImageModal> {
               ),
             ),
           ),
-
           if (_busy)
             const Positioned.fill(
               child: IgnorePointer(
@@ -244,18 +244,20 @@ class _ImageLoadFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Container(
       color: Colors.black.withOpacity(0.22),
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.broken_image_outlined, color: Colors.white, size: 40),
-          SizedBox(height: 10),
+          const Icon(Icons.broken_image_outlined, color: Colors.white, size: 40),
+          const SizedBox(height: 10),
           Text(
-            'Không tải được ảnh',
-            style: TextStyle(
+            l10n.appImageLoadFailed,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -267,23 +269,3 @@ class _ImageLoadFallback extends StatelessWidget {
     );
   }
 }
-
-
-// cách dùng
-
-// 1 ảnh
-// showImageModal(
-//   context,
-//   images: [NetworkImage('https://...')],
-// );
-
-// // nhiều ảnh + mở từ ảnh thứ 2
-// showImageModal(
-//   context,
-//   images: [
-//     NetworkImage('https://.../1.jpg'),
-//     NetworkImage('https://.../2.jpg'),
-//     AssetImage('assets/3.png'),
-//   ],
-//   initialIndex: 1,
-// );

@@ -10,6 +10,7 @@ import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/image_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class UserVm extends ChangeNotifier {
   final UserRepository _userRepo;
@@ -99,7 +100,7 @@ class UserVm extends ChangeNotifier {
             notifyListeners();
           },
           onError: (e) {
-            _error = 'Lỗi load user: $e';
+            _error = runtimeL10n().userVmLoadUserError('$e');
             notifyListeners();
           },
         );
@@ -113,7 +114,7 @@ class UserVm extends ChangeNotifier {
         ..clear()
         ..addAll(list);
       notifyListeners();
-    }, onError: (e) => _setError('Lỗi load children: $e'));
+    }, onError: (e) => _setError(runtimeL10n().userVmLoadChildrenError('$e')));
   }
 
   void watchFamilyMembers(String familyId) {
@@ -127,7 +128,7 @@ class UserVm extends ChangeNotifier {
         ..addAll(list.where((u) => u.uid != myUid));
 
       notifyListeners();
-    }, onError: (e) => _setError('Lỗi load members: $e'));
+    }, onError: (e) => _setError(runtimeL10n().userVmLoadMembersError('$e')));
   }
 
   Future<void> watchFamilyMembersByParent(String parentUid) async {
@@ -135,13 +136,13 @@ class UserVm extends ChangeNotifier {
       final familyId = await _userRepo.getFamilyId(parentUid);
 
       if (familyId == null || familyId.isEmpty) {
-        _setError('Không tìm thấy familyId');
+        _setError(runtimeL10n().userVmFamilyIdNotFound);
         return;
       }
 
       watchFamilyMembers(familyId);
     } catch (e) {
-      _setError('Lỗi load family: $e');
+      _setError(runtimeL10n().userVmLoadFamilyError('$e'));
     }
   }
 
@@ -164,7 +165,7 @@ class UserVm extends ChangeNotifier {
       debugPrint('[loadProfile][$caller] resolvedUid=$resolvedUid');
 
       if (resolvedUid == null || resolvedUid.isEmpty) {
-        _error = "Không tìm thấy userId";
+        _error = runtimeL10n().userVmUserIdNotFound;
         return null;
       }
 
@@ -190,7 +191,7 @@ class UserVm extends ChangeNotifier {
     final resolvedUid = uid ?? storageUid ?? authUid;
 
     if (resolvedUid == null || resolvedUid.isEmpty) {
-      _error = "Không tìm thấy userId";
+      _error = runtimeL10n().userVmUserIdNotFound;
       notifyListeners();
       return;
     }
@@ -228,12 +229,12 @@ class UserVm extends ChangeNotifier {
     final userId = _storage.getString(StorageKeys.uid);
 
     if (userId == null) {
-      _error = "Không tìm thấy userId";
+      _error = runtimeL10n().userVmUserIdNotFound;
       return false;
     }
 
     if (name.trim().isEmpty) {
-      _error = "Họ và tên không được để trống";
+      _error = runtimeL10n().userVmFullNameRequired;
       return false;
     }
 
@@ -293,7 +294,7 @@ class UserVm extends ChangeNotifier {
       );
 
       if (!success) {
-        _error = "Cập nhật ảnh thất bại";
+        _error = runtimeL10n().userVmUpdatePhotoFailed;
         return false;
       }
 
@@ -333,7 +334,7 @@ class UserVm extends ChangeNotifier {
       final parentUid = _storage.getString(StorageKeys.uid);
 
       if (parentUid == null) {
-        throw Exception('Phiên đăng nhập đã hết. Vui lòng đăng nhập lại');
+        throw Exception(runtimeL10n().sessionExpiredLoginAgain);
       }
 
       await _userRepo.createChildAccount(

@@ -1,6 +1,7 @@
-// ignore_for_file: deprecated_member_use
+﻿// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
 
@@ -55,19 +56,14 @@ class NotificationDialog extends StatelessWidget {
         children: [
           _IconSection(config: config),
           const SizedBox(height: 10),
-
           Text(
             title,
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 8),
-
           Text(message, textAlign: TextAlign.center),
-
           const SizedBox(height: 24),
-
           _ActionSection(
             type: type,
             primaryColor: config.primary,
@@ -111,6 +107,7 @@ class _ActionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isWarning = type == DialogType.warning;
 
     if (isWarning) {
@@ -140,9 +137,9 @@ class _ActionSection extends StatelessWidget {
                 ),
               ),
               onPressed: () => _close(context, onConfirm),
-              child: const Text(
-                "Xác nhận",
-                style: TextStyle(
+              child: Text(
+                l10n.confirmButton,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -150,9 +147,7 @@ class _ActionSection extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 12),
-
           SizedBox(
             height: 56,
             child: ElevatedButton(
@@ -176,9 +171,9 @@ class _ActionSection extends StatelessWidget {
                 ),
               ),
               onPressed: () => _close(context, onCancel),
-              child: const Text(
-                "Hủy",
-                style: TextStyle(
+              child: Text(
+                l10n.cancelButton,
+                style: const TextStyle(
                   color: Color(0xFF111827),
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -208,9 +203,9 @@ class _ActionSection extends StatelessWidget {
           ),
         ),
         onPressed: () => _close(context, onConfirm),
-        child: const Text(
-          "Tiếp tục",
-          style: TextStyle(
+        child: Text(
+          l10n.continueButton,
+          style: const TextStyle(
             color: Color(0xFF0F172A),
             fontSize: 16,
             fontWeight: FontWeight.w700,

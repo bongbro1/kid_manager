@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class PickChildPhoneScreen extends StatefulWidget {
   const PickChildPhoneScreen({super.key});
@@ -13,6 +14,8 @@ class _PickChildPhoneScreenState extends State<PickChildPhoneScreen> {
   bool _loading = false;
 
   Future<void> _pickPhoneFromContacts() async {
+    final l10n = AppLocalizations.of(context);
+
     setState(() => _loading = true);
     try {
       final contact = await _picker.selectContact();
@@ -42,8 +45,8 @@ class _PickChildPhoneScreenState extends State<PickChildPhoneScreen> {
       if (phone == null || phone.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Liên hệ này không có số điện thoại'),
+          SnackBar(
+            content: Text(l10n.parentPhoneContactHasNoNumber),
           ),
         );
         setState(() => _loading = false);
@@ -61,12 +64,13 @@ class _PickChildPhoneScreenState extends State<PickChildPhoneScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Không thể lấy số điện thoại từ danh bạ: $e'),
+          content: Text(l10n.parentPhonePickFailed('$e')),
         ),
       );
       setState(() => _loading = false);
     }
   }
+
   @override
   void initState() {
     super.initState();
@@ -77,14 +81,16 @@ class _PickChildPhoneScreenState extends State<PickChildPhoneScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: const Text(
-          'Chọn số điện thoại',
-          style: TextStyle(
+        title: Text(
+          l10n.parentPhonePickTitle,
+          style: const TextStyle(
             color: Color(0xFF0F172A),
             fontWeight: FontWeight.w700,
           ),
@@ -95,19 +101,19 @@ class _PickChildPhoneScreenState extends State<PickChildPhoneScreen> {
         child: _loading
             ? const CircularProgressIndicator()
             : SizedBox(
-          width: double.infinity,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: ElevatedButton.icon(
-              onPressed: _pickPhoneFromContacts,
-              icon: const Icon(Icons.contacts_rounded),
-              label: const Text('Mở danh bạ'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: ElevatedButton.icon(
+                    onPressed: _pickPhoneFromContacts,
+                    icon: const Icon(Icons.contacts_rounded),
+                    label: Text(l10n.parentPhoneOpenContactsButton),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }

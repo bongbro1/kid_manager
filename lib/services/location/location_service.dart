@@ -7,7 +7,11 @@ import 'package:location/location.dart' as loc;
 
 abstract class LocationServiceInterface {
   /// Ensure GPS + foreground/background permission depending on requireBackground.
-  Future<bool> ensureServiceAndPermission({required bool requireBackground});
+  Future<bool> ensureServiceAndPermission({
+    required bool requireBackground,
+    String? notificationTitle,
+    String? notificationSubtitle,
+  });
 
   /// Continuous location stream.
   Stream<LocationData> getLocationStream();
@@ -41,6 +45,8 @@ class LocationServiceImpl implements LocationServiceInterface {
   @override
   Future<bool> ensureServiceAndPermission({
     required bool requireBackground,
+    String? notificationTitle,
+    String? notificationSubtitle,
   }) async {
     bool serviceEnabled = await _location.serviceEnabled();
     if (!serviceEnabled) {
@@ -70,8 +76,10 @@ class LocationServiceImpl implements LocationServiceInterface {
         if (!bgOk) return false;
 
         await _location.changeNotificationOptions(
-          title: "Dang chia se vi tri",
-          subtitle: "Ung dung chay nen de bao ve con",
+          title: notificationTitle ?? 'Sharing location',
+          subtitle:
+              notificationSubtitle ??
+              'The app runs in background to help protect your child',
           onTapBringToFront: true,
         );
       } on PlatformException catch (e) {

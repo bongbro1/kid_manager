@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class _HistoryChunkPage {
   final List<LocationData> items;
@@ -81,15 +82,17 @@ class LocationRepositoryImpl implements LocationRepository {
   }
 
   String _requireUid() {
+    final l10n = runtimeL10n();
     final uid = _auth.currentUser?.uid;
     _log('requireUid -> currentUser.uid=$uid');
     if (uid == null || uid.isEmpty) {
-      throw Exception("Chua dang nhap -> khong the gui vi tri");
+      throw Exception(l10n.locationRepositoryLoginRequired);
     }
     return uid;
   }
 
   Future<String> _getParentUid() async {
+    final l10n = runtimeL10n();
     if (_cachedParentUid != null) {
       _log('getParentUid -> cache hit parentUid=$_cachedParentUid');
       return _cachedParentUid!;
@@ -106,7 +109,7 @@ class LocationRepositoryImpl implements LocationRepository {
       _log('getParentUid -> Firestore parentUid=$parentUid');
 
       if (parentUid == null) {
-        throw Exception('Khong tim thay parentUid');
+        throw Exception(l10n.locationRepositoryParentIdNotFound);
       }
 
       _cachedParentUid = parentUid.toString();
@@ -257,14 +260,18 @@ class LocationRepositoryImpl implements LocationRepository {
     int? fromTs,
     int? toTs,
   }) async {
-    final res = await _functions.httpsCallable('getChildHistoryChunk').call({
+    final payload = <String, dynamic>{
       "childUid": childUid,
       "dayKey": dayKey,
       "limit": _historyChunkLimit,
-      if (cursorAfterTs != null) "cursorAfterTs": cursorAfterTs,
-      if (fromTs != null) "fromTs": fromTs,
-      if (toTs != null) "toTs": toTs,
-    });
+    };
+    if (cursorAfterTs != null) payload["cursorAfterTs"] = cursorAfterTs;
+    if (fromTs != null) payload["fromTs"] = fromTs;
+    if (toTs != null) payload["toTs"] = toTs;
+
+    final res = await _functions.httpsCallable('getChildHistoryChunk').call(
+      payload,
+    );
 
     final data = Map<String, dynamic>.from(res.data);
     final nextCursorRaw = data["nextCursorTs"];

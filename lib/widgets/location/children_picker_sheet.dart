@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/user/app_user_extensions.dart';
@@ -7,7 +8,6 @@ class ChildrenPickerSheet extends StatelessWidget {
   final List<AppUser> children;
   final Map<String, LocationData> latestMap;
 
-  /// latest chắc chắn non-null khi gọi
   final void Function(AppUser child, LocationData latest) onPick;
 
   const ChildrenPickerSheet({
@@ -19,6 +19,8 @@ class ChildrenPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return SafeArea(
       top: false,
       child: Material(
@@ -27,17 +29,21 @@ class ChildrenPickerSheet extends StatelessWidget {
           shrinkWrap: true,
           padding: const EdgeInsets.all(12),
           itemCount: children.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, index) => const Divider(height: 1),
           itemBuilder: (context, i) {
             final child = children[i];
-            final latest = latestMap[child.uid]; // LocationData?
+            final latest = latestMap[child.uid];
+
             return ListTile(
               title: Text(child.displayLabel),
               subtitle: latest == null
-                  ? const Text('Chưa có vị trí')
+                  ? Text(l10n.locationNoLocationYet)
                   : Text(
-                'Lat ${latest.latitude.toStringAsFixed(4)} • Lng ${latest.longitude.toStringAsFixed(4)}',
-              ),
+                      l10n.locationCoordinatesSummary(
+                        latest.latitude.toStringAsFixed(4),
+                        latest.longitude.toStringAsFixed(4),
+                      ),
+                    ),
               onTap: latest == null ? null : () => onPick(child, latest),
             );
           },

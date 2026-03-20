@@ -1,6 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -35,10 +35,11 @@ class FirebaseAuthService {
     required String oldPassword,
     required String newPassword,
   }) async {
+    final l10n = runtimeL10n();
     final user = _auth.currentUser;
 
     if (user == null || user.email == null) {
-      throw Exception("Bạn chưa đăng nhập");
+      throw Exception(l10n.authLoginRequired);
     }
 
     try {
@@ -59,25 +60,25 @@ class FirebaseAuthService {
       switch (e.code) {
         case "wrong-password":
         case "invalid-credential":
-          throw Exception("Mật khẩu hiện tại không đúng");
+          throw Exception(l10n.firebaseAuthCurrentPasswordIncorrect);
 
         case "user-mismatch":
-          throw Exception("Tài khoản xác thực không khớp");
+          throw Exception(l10n.firebaseAuthUserMismatch);
 
         case "user-not-found":
-          throw Exception("Tài khoản không tồn tại");
+          throw Exception(l10n.accountNotFound);
 
         case "too-many-requests":
-          throw Exception("Bạn thử sai quá nhiều lần. Vui lòng thử lại sau");
+          throw Exception(l10n.firebaseAuthTooManyRequests);
 
         case "network-request-failed":
-          throw Exception("Lỗi kết nối mạng. Vui lòng kiểm tra Internet");
+          throw Exception(l10n.firebaseAuthNetworkFailed);
 
         case "requires-recent-login":
-          throw Exception("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại");
+          throw Exception(l10n.sessionExpiredLoginAgain);
 
         default:
-          throw Exception("Không thể đổi mật khẩu. Vui lòng thử lại");
+          throw Exception(l10n.firebaseAuthChangePasswordFailed);
       }
     }
   }

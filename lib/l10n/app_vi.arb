@@ -34,8 +34,250 @@
   "appAppearanceThemeSystem": "Theo hệ thống",
   "appAppearanceThemeLight": "Sáng",
   "appAppearanceThemeDark": "Tối",
+  "appAppearanceSectionApp": "ỨNG DỤNG",
+  "appAppearanceThemeSubtitle": "Thay đổi giao diện sáng/tối",
+  "appAppearanceSectionSecurity": "BẢO MẬT",
+  "appAppearanceChangePasswordTitle": "Đổi mật khẩu",
+  "appAppearanceChangePasswordSubtitle": "Cập nhật mật khẩu mới",
+  "appAppearanceNotificationsTitle": "Thông báo",
+  "appAppearanceNotificationsSubtitle": "Quản lý tùy chọn thông báo",
   "addAccountSuccessMessage": "Tạo tài khoản con thành công",
+  "addAccountNameRequired": "Vui lòng nhập tên",
+  "addAccountAccessLabel": "Quyền truy cập",
+  "addAccountRoleChild": "Con",
+  "addAccountRoleGuardian": "Phụ huynh",
+  "addAccountSelectBirthDateTitle": "Chọn ngày sinh",
+  "addAccountSelectButton": "Chọn",
   "sessionExpiredLoginAgain": "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.",
+  "userVmLoadUserError": "Lỗi load user: {error}",
+  "@userVmLoadUserError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmLoadChildrenError": "Lỗi load children: {error}",
+  "@userVmLoadChildrenError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmLoadMembersError": "Lỗi load members: {error}",
+  "@userVmLoadMembersError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmFamilyIdNotFound": "Không tìm thấy familyId",
+  "userVmLoadFamilyError": "Lỗi load family: {error}",
+  "@userVmLoadFamilyError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmUserIdNotFound": "Không tìm thấy userId",
+  "userVmFullNameRequired": "Họ và tên không được để trống",
+  "userVmUpdatePhotoFailed": "Cập nhật ảnh thất bại",
+  "subscriptionLoadError": "Không tải được subscription: {error}",
+  "@subscriptionLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionWatchError": "Theo dõi subscription thất bại: {error}",
+  "@subscriptionWatchError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpdateError": "Cập nhật subscription thất bại: {error}",
+  "@subscriptionUpdateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionActivateError": "Kích hoạt gói thất bại: {error}",
+  "@subscriptionActivateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionStartTrialError": "Bắt đầu trial thất bại: {error}",
+  "@subscriptionStartTrialError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionMarkExpiredError": "Đánh dấu expired thất bại: {error}",
+  "@subscriptionMarkExpiredError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionClearError": "Xóa subscription thất bại: {error}",
+  "@subscriptionClearError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "appManagementSyncFailed": "Không thể đồng bộ ứng dụng",
+  "appManagementUserIdNotFound": "Không tìm thấy userId",
+  "zoneStatusAtText": "đang ở {zoneName} • {duration}",
+  "@zoneStatusAtText": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneStatusWasAtText": "đã ở {zoneName}",
+  "@zoneStatusWasAtText": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneStatusWasAtWithAgoText": "đã ở {zoneName} • {ago}",
+  "@zoneStatusWasAtWithAgoText": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      },
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneStatusDurationMinutes": "{minutes} phút",
+  "@zoneStatusDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusDurationHoursMinutes": "{hours}g{minutes} phút",
+  "@zoneStatusDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusJustNow": "vừa xong",
+  "zoneStatusMinutesAgo": "{minutes} phút trước",
+  "@zoneStatusMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusHoursAgo": "{hours} giờ trước",
+  "@zoneStatusHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusDaysAgo": "{days} ngày trước",
+  "@zoneStatusDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "otpResendCooldownError": "Vui lòng chờ trước khi gửi lại mã",
+  "otpResendLockedError": "Bạn đã gửi OTP quá nhiều lần. Vui lòng thử lại sau",
+  "otpResendMaxError": "Bạn đã gửi OTP quá nhiều lần",
+  "otpRepositoryLockedMessage": "Bạn đã bị khóa gửi OTP. Vui lòng thử lại sau {seconds}s",
+  "@otpRepositoryLockedMessage": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authLoginCancelled": "Đăng nhập đã bị hủy",
+  "continueButton": "Tiếp tục",
+  "zoneDetailsRadiusLabel": "Bán kính {radius}m",
+  "@zoneDetailsRadiusLabel": {
+    "placeholders": {
+      "radius": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneDetailsNoCoordinates": "Không có tọa độ để hiển thị bản đồ",
+  "birthdaySpecialDayHeadline": "Sinh nhật của {name}!",
+  "@birthdaySpecialDayHeadline": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapTopBarTitle": "Vị trí",
+  "childGroupMarkerCount": "{count} trẻ",
+  "@childGroupMarkerCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "changePasswordTitle": "Đổi mật khẩu",
+  "changePasswordSuccessMessage": "Đổi mật khẩu thành công",
+  "changePasswordCurrentPasswordLabel": "Mật khẩu hiện tại",
+  "changePasswordCurrentPasswordHint": "Nhập mật khẩu hiện tại",
+  "changePasswordNewPasswordLabel": "Mật khẩu mới",
+  "changePasswordNewPasswordHint": "Nhập mật khẩu mới",
+  "changePasswordConfirmPasswordLabel": "Xác nhận mật khẩu",
+  "changePasswordConfirmPasswordHint": "Nhập lại mật khẩu mới",
+  "changePasswordUpdateButton": "Cập nhật mật khẩu",
+  "memberManagementTitle": "Quản lý thành viên",
+  "memberManagementAddMemberTitle": "Thêm thành viên",
+  "memberManagementAddMemberSubtitle": "Kết nối thiết bị mới của con",
+  "memberManagementAddNowButton": "Thêm ngay",
+  "memberManagementFamilyMembersLabel": "THÀNH VIÊN GIA ĐÌNH",
+  "memberManagementEmpty": "Chưa có thành viên",
+  "memberManagementOnline": "Đang trực tuyến",
+  "memberManagementOffline": "Ngoại tuyến",
+  "memberManagementMessageButton": "Nhắn tin",
+  "memberManagementLocationButton": "Vị trí",
+  "userRoleParent": "Phụ huynh",
+  "userRoleChild": "Con",
+  "userRoleGuardian": "Người giám hộ",
   "aboutAppName": "My Application",
   "aboutAppVersionLabel": "Phiên bản: {version}",
   "@aboutAppVersionLabel": {
@@ -47,6 +289,27 @@
   },
   "aboutAppDescription": "Ứng dụng giúp quản lý tài khoản, theo dõi hoạt động và cá nhân hóa trải nghiệm người dùng.",
   "aboutAppCopyright": "© 2026 My Company",
+  "themeSelectorTitle": "Tùy chỉnh giao diện",
+  "themeSelectorSubtitle": "Chọn màu chủ đạo và chế độ sáng/tối",
+  "themeSelectorDarkMode": "Chế độ tối",
+  "themeSelectorApplyButton": "Áp dụng giao diện",
+  "phoneAuthTitle": "Đăng nhập bằng số điện thoại",
+  "phoneAuthSendOtpButton": "Gửi mã OTP",
+  "phoneAuthOtpTitle": "Nhập mã xác thực",
+  "phoneAuthOtpInstruction": "Vui lòng nhập mã OTP được gửi đến số điện thoại của bạn",
+  "termsTitle": "Điều khoản",
+  "termsNoData": "Không có dữ liệu",
+  "termsLastUpdated": "Cập nhật lần cuối: {date}",
+  "@termsLastUpdated": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "homeTitle": "Trang chủ",
+  "homeGreeting": "Xin chào",
+  "homeManageChildButton": "Quản lý con",
   "accountNotFound": "Tài khoản không tồn tại",
   "accountNotActivated": "Tài khoản chưa được kích hoạt",
   "emailNotRegistered": "Email chưa đăng ký",
@@ -755,6 +1018,32 @@
   },
   "notificationsZoneViewOnMainMapButton": "Xem trên bản đồ chính",
   "notificationsContactNowButton": "Liên hệ ngay",
+  "notificationsLocalChannelName": "Mặc định",
+  "notificationsLocalChannelDescription": "Thông báo mặc định",
+  "notificationsDefaultTitle": "Thông báo",
+  "notificationsDefaultBody": "Bạn có thông báo mới",
+  "notificationsFamilyChatTitle": "Tin nhắn gia đình",
+  "notificationsFamilyChatBody": "Bạn có tin nhắn mới",
+  "notificationsFamilyEventTitle": "Sự kiện gia đình",
+  "notificationsFamilyEventBody": "Gia đình bạn có sự kiện mới",
+  "notificationsBirthdayTitle": "Sinh nhật",
+  "notificationsBirthdayUpcomingBody": "Sắp tới sinh nhật của {name}!",
+  "@notificationsBirthdayUpcomingBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsBirthdayTodayBody": "Hôm nay là sinh nhật của {name}!",
+  "@notificationsBirthdayTodayBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsTrackingDefaultBody": "Trạng thái định vị đã thay đổi.",
   "scheduleOverlapConflictMessage": "Trùng với lịch \"{title}\" ({start} - {end}). Vui lòng chọn giờ khác.",
   "@scheduleOverlapConflictMessage": {
     "placeholders": {
@@ -1126,6 +1415,7 @@
   "zonesNameFieldLabel": "Tên vùng",
   "zonesTypeFieldLabel": "Loại vùng",
   "zonesRadiusLabel": "Bán kính",
+  "zonesOverlappingPrefix": "Đang chồng lên: ",
   "zonesOverlappingWith": "Đang chồng lên: {name}",
   "@zonesOverlappingWith": {
     "placeholders": {
@@ -1141,6 +1431,9 @@
   "parentLocationMapLoadingTitle": "Đang tải bản đồ",
   "parentLocationMapLoadingSubtitle": "Đang chuẩn bị vị trí của các bé",
   "parentChildrenListTitle": "Danh sách thành viên",
+  "personalInfoManageAccountsTitle": "Quản lý tài khoản",
+  "personalInfoManageAccountsSubtitle": "Quản lý tài khoản của thành viên",
+  "personalInfoDetailsButton": "Chi tiết",
   "childLocationTransportWalking": "Đi bộ",
   "childLocationTransportBicycle": "Xe đạp",
   "childLocationTransportVehicle": "Đi xe",
@@ -1188,7 +1481,329 @@
   "tracking_background_disabled_child_title": "Định vị nền đang tắt",
   "tracking_location_stale_child_title": "Vị trí chưa được cập nhật",
   "tracking_ok_child_title": "Định vị đã hoạt động lại",
-
-  "tracking_default_title": "Thông báo định vị"
+  "tracking_default_title": "Thông báo định vị",
+  "sosChannelName": "Cảnh báo SOS",
+  "sosChannelDescription": "Thông báo SOS khẩn cấp",
+  "sosFallbackTitle": "SOS khẩn cấp",
+  "sosFallbackBody": "Có thành viên đang cầu cứu.",
+  "localAlarmDangerChannelName": "Cảnh báo vùng nguy hiểm",
+  "localAlarmDangerChannelDescription": "Thông báo khi bé vào hoặc rời vùng nguy hiểm",
+  "localAlarmDangerEnterTitle": "Cảnh báo vùng nguy hiểm",
+  "localAlarmDangerEnterBody": "Bạn đã vào: {zoneName}",
+  "@localAlarmDangerEnterBody": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "localAlarmDangerExitTitle": "Đã rời vùng nguy hiểm",
+  "localAlarmDangerExitBody": "Bạn đã rời: {zoneName}",
+  "@localAlarmDangerExitBody": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "trackingStatusLocationServiceOffMessage": "Thiết bị đã tắt GPS/vị trí",
+  "trackingStatusLocationPermissionDeniedMessage": "Thiết bị đã tắt quyền vị trí",
+  "trackingStatusPreciseLocationDeniedMessage": "Thiết bị chưa cấp vị trí chính xác",
+  "trackingStatusBackgroundDisabledMessage": "Đã tắt chia sẻ vị trí nền",
+  "trackingStatusOkMessage": "Định vị hoạt động bình thường",
+  "trackingErrorEnableLocationService": "Vui lòng bật GPS/vị trí trên thiết bị.",
+  "trackingErrorEnablePreciseLocation": "Vui lòng bật vị trí chính xác.",
+  "trackingErrorEnableBackgroundLocation": "Vui lòng bật chia sẻ vị trí nền (Allow all the time).",
+  "locationForegroundServiceTitle": "Đang chia sẻ vị trí",
+  "locationForegroundServiceSubtitle": "Ứng dụng chạy nền để bảo vệ con",
+  "parentLocationGpsError": "Lỗi GPS: {error}",
+  "@parentLocationGpsError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationEnableGpsError": "Lỗi bật GPS: {error}",
+  "@parentLocationEnableGpsError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationCurrentLocationError": "Không lấy được vị trí hiện tại: {error}",
+  "@parentLocationCurrentLocationError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationHistoryLoadError": "Lỗi tải lịch sử: {error}",
+  "@parentLocationHistoryLoadError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationWatchChildError": "Lỗi theo dõi {childId}: {error}",
+  "@parentLocationWatchChildError": {
+    "placeholders": {
+      "childId": {},
+      "error": {}
+    }
+  },
+  "authLoginRequired": "Chưa đăng nhập",
+  "firebaseAuthCurrentPasswordIncorrect": "Mật khẩu hiện tại không đúng",
+  "firebaseAuthUserMismatch": "Tài khoản xác thực không khớp",
+  "firebaseAuthTooManyRequests": "Bạn thử sai quá nhiều lần. Vui lòng thử lại sau",
+  "firebaseAuthNetworkFailed": "Lỗi kết nối mạng. Vui lòng kiểm tra Internet",
+  "firebaseAuthChangePasswordFailed": "Không thể đổi mật khẩu. Vui lòng thử lại",
+  "permissionLocationTitle": "Bật quyền vị trí",
+  "permissionLocationSubtitle": "Ứng dụng cần quyền vị trí để theo dõi vị trí của trẻ và hỗ trợ các tính năng an toàn.",
+  "permissionLocationRecommendation": "Khuyến nghị: cho phép vị trí khi dùng ứng dụng trước. Nếu app cần chạy nền sau này, bạn có thể xin thêm quyền Always.",
+  "permissionLocationAllowButton": "Cho phép vị trí",
+  "permissionNotificationTitle": "Bật SOS Alerts",
+  "permissionNotificationSubtitle": "Ứng dụng cần quyền thông báo để gửi cảnh báo SOS khẩn cấp ngay cả khi bạn không mở app.",
+  "permissionNotificationRecommendation": "Lưu ý: Sau khi cấp quyền, hãy đảm bảo kênh \"SOS Alerts\" được bật âm thanh trong cài đặt thông báo.",
+  "permissionNotificationAllowButton": "Cho phép thông báo",
+  "permissionSosTitle": "Bật quyền SOS",
+  "permissionSosSubtitle": "Ứng dụng cần quyền thông báo để gửi cảnh báo SOS khẩn cấp và phát âm thanh cảnh báo.",
+  "permissionSosRecommendation": "Hãy bật thông báo và đảm bảo kênh \"SOS Alerts\" có âm thanh.",
+  "permissionSosAllowButton": "Cho phép SOS",
+  "permissionOpenSettingsButton": "Mở cài đặt",
+  "permissionLaterButton": "Để sau",
+  "permissionStepLabel": "Bước {current}/{total}",
+  "@permissionStepLabel": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "applyButton": "Áp dụng",
+  "commonStartLabel": "Bắt đầu",
+  "commonEndLabel": "Kết thúc",
+  "childLocationSosSending": "Đang gửi SOS...",
+  "childLocationSosError": "Lỗi gửi SOS: {error}",
+  "@childLocationSosError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationCurrentJourneyTitle": "Hành trình hiện tại",
+  "childLocationTravelHistoryTitle": "Lịch sử di chuyển",
+  "childLocationTodayLabel": "Hôm nay",
+  "childLocationRangeAllDay": "Cả ngày",
+  "childLocationTagStart": "Bắt đầu",
+  "childLocationTagEnd": "Kết thúc",
+  "childLocationTagGpsVeryWeak": "GPS rất yếu",
+  "childLocationTagGpsLost": "Mất GPS",
+  "childLocationStayedHereLabel": "Ở đây được",
+  "childLocationStayedHereUnavailable": "Không xác định ổn định",
+  "childLocationSpeedLabel": "Tốc độ",
+  "childLocationSpeedUnavailable": "Không ổn định",
+  "childLocationGpsAccuracyLabel": "Sai số GPS",
+  "childLocationMockGpsLabel": "GPS giả lập",
+  "childLocationMockGpsDetected": "Có dấu hiệu",
+  "childLocationNoLabel": "Không",
+  "childLocationTechnicalDetailsTitle": "Xem chi tiết kỹ thuật",
+  "childLocationDetailFullTimeLabel": "Thời gian đầy đủ",
+  "childLocationDetailHeadingLabel": "Hướng di chuyển",
+  "childLocationDetailCoordinatesLabel": "Tọa độ",
+  "childLocationDetailAccuracyLabel": "Độ chính xác",
+  "childLocationDurationZeroMinutes": "0 phút",
+  "childLocationDurationHoursMinutes": "{hours} giờ {minutes} phút",
+  "@childLocationDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationDurationMinutes": "{minutes} phút",
+  "@childLocationDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationDurationSeconds": "{seconds} giây",
+  "@childLocationDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationGpsLostTitle": "Mất GPS định vị",
+  "childLocationGpsVeryWeakSubtitle": "Tín hiệu GPS rất yếu, vị trí có thể không chính xác.",
+  "childLocationGpsLostSubtitle": "Sai số lớn hơn {meters} m",
+  "@childLocationGpsLostSubtitle": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationStoppedNowTitle": "Đang đứng yên",
+  "childLocationStoppedNowSubtitle": "Dừng tại đây {duration}",
+  "@childLocationStoppedNowSubtitle": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationStoppedHereTitle": "Đứng yên tại đây",
+  "childLocationStoppedHereSubtitle": "Dừng khoảng {duration}",
+  "@childLocationStoppedHereSubtitle": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationJourneyStartSubtitle": "Điểm bắt đầu hành trình",
+  "childLocationJourneyEndSubtitle": "Điểm kết thúc hành trình",
+  "childLocationUpdatedAt": "Cập nhật lúc {time}",
+  "@childLocationUpdatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationPassedAt": "Đi qua điểm này lúc {time}",
+  "@childLocationPassedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationHeadlineWalking": "Đang đi bộ",
+  "childLocationHeadlineBicycle": "Đang đi xe đạp",
+  "childLocationHeadlineVehicle": "Đang đi xe",
+  "childLocationHeadlineStill": "Đang đứng yên",
+  "childLocationHeadlineUnknown": "Không rõ trạng thái",
+  "childLocationSpeedAlmostStill": "Gần như không di chuyển",
+  "childLocationAccuracySevere": "Mất GPS nghiêm trọng",
+  "childLocationAccuracyLost": "Mất GPS định vị",
+  "childLocationAccuracyGood": "Khá chính xác ({meters} m)",
+  "@childLocationAccuracyGood": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationAccuracyModerate": "Chính xác vừa ({meters} m)",
+  "@childLocationAccuracyModerate": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationTimeWindowTitle": "Chọn khung giờ",
+  "childLocationTimeWindowSubtitle": "Chỉ tải và hiển thị lịch sử trong khoảng giờ đang chọn.",
+  "childLocationPresetMorning": "Sáng",
+  "childLocationPresetAfternoon": "Chiều",
+  "childLocationPresetEvening": "Tối",
+  "childLocationNoDataTitle": "Chưa có dữ liệu trong khung này",
+  "childLocationNoDataSubtitle": "Thử đổi khung giờ khác hoặc chọn ngày khác để xem lại hành trình.",
+  "childLocationSummaryDateLabel": "Ngày",
+  "childLocationSummaryTimeRangeLabel": "Khung giờ",
+  "childLocationLiveLabel": "Trực tiếp",
+  "childLocationPointCount": "{count} điểm",
+  "@childLocationPointCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "locationNoLocationYet": "Chưa có vị trí",
+  "locationCoordinatesSummary": "Lat {lat} • Lng {lng}",
+  "@locationCoordinatesSummary": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "locationSearchHint": "Tìm kiếm",
+  "locationMessageSent": "Đã gửi tin nhắn",
+  "locationChildInfoTitle": "Thông tin",
+  "locationQuickMessageHint": "Gửi tin nhắn nhanh...",
+  "locationStatusStudying": "Đang học",
+  "locationStopSearching": "Tắt tìm kiếm",
+  "incomingSosConfirmFailed": "Xác nhận thất bại: {error}",
+  "@incomingSosConfirmFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "incomingSosEmergencyTitle": "🚨 Có SOS khẩn cấp!",
+  "incomingSosResolvingButton": "ĐANG XỬ LÝ",
+  "incomingSosConfirmButton": "XÁC NHẬN",
+  "sosConfirmedRoleParent": "Phụ huynh",
+  "sosConfirmedRoleChild": "Trẻ",
+  "sosConfirmedNameLabel": "Tên",
+  "sosConfirmedSenderLabel": "Người gửi",
+  "sosConfirmedSentAtLabel": "Gửi lúc",
+  "sosConfirmedConfirmedAtLabel": "Xác nhận lúc",
+  "sosConfirmedAccuracyLabel": "Độ chính xác",
+  "sosConfirmedTitle": "Đã xác nhận SOS",
+  "sosConfirmedCloseButton": "ĐÓNG",
+  "sosButtonLabel": "SOS",
+  "parentPhoneSaveFailed": "Không thể lưu số điện thoại",
+  "parentPhoneAddTitle": "Thêm số điện thoại của con bạn",
+  "parentPhoneAddSubtitle": "Liên lạc với con ngay cả khi điện thoại của con đang ở chế độ im lặng",
+  "parentPhoneAddButton": "Thêm vào",
+  "parentPhoneContactHasNoNumber": "Liên hệ này không có số điện thoại",
+  "parentPhonePickFailed": "Không thể lấy số điện thoại từ danh bạ: {error}",
+  "@parentPhonePickFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentPhonePickTitle": "Chọn số điện thoại",
+  "parentPhoneOpenContactsButton": "Mở danh bạ",
+  "appImageReplaceOption": "Thay đổi ảnh",
+  "appImageLoadFailed": "Không tải được ảnh",
+  "photoUpdateFailedMessage": "Cập nhật ảnh thất bại",
+  "mapTypeSheetTitle": "Loại bản đồ",
+  "mapTypeDefault": "Mặc định",
+  "mapTypeSatellite": "Vệ tinh",
+  "mapTypeTerrain": "Địa hình",
+  "phoneHelperSaveSuccessTitle": "Thêm thành công",
+  "phoneHelperSaveSuccessMessage": "Số điện thoại của bé đã được lưu thành công",
+  "phoneHelperCallActionFailed": "Không thể thực hiện cuộc gọi: {error}",
+  "@phoneHelperCallActionFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "phoneHelperOpenDialerFailed": "Không thể mở ứng dụng điện thoại",
+  "phoneHelperLaunchCallFailed": "Gọi điện thất bại: {error}",
+  "@phoneHelperLaunchCallFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "scheduleRepositoryNotFound": "Lịch trình không tồn tại",
+  "scheduleRepositoryCurrentNotFound": "Lịch trình hiện tại không tồn tại",
+  "scheduleRepositoryHistoryNotFound": "Bản lịch sử không tồn tại",
+  "locationRepositoryLoginRequired": "Chưa đăng nhập, không thể gửi vị trí",
+  "locationRepositoryParentIdNotFound": "Không tìm thấy tài khoản phụ huynh",
+  "cupertinoTimePickerDoneButton": "Xong"
 }
 

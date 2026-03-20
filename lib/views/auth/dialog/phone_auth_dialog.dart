@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/alert_service.dart';
-import 'package:kid_manager/models/notifications/dialog_type.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
-import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:provider/provider.dart';
 
 class PhoneAuthDialog {
   static String normalizePhone(String phone) {
-    phone = phone.replaceAll(" ", "");
+    phone = phone.replaceAll(' ', '');
 
-    if (phone.startsWith("0")) {
-      return "+84${phone.substring(1)}";
+    if (phone.startsWith('0')) {
+      return '+84${phone.substring(1)}';
     }
 
-    if (!phone.startsWith("+")) {
-      return "+$phone";
+    if (!phone.startsWith('+')) {
+      return '+$phone';
     }
 
     return phone;
   }
 
   static void showPhoneDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final phoneController = TextEditingController();
     final vm = context.read<AuthVM>();
 
@@ -51,27 +51,26 @@ class PhoneAuthDialog {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-
-              const Text(
-                "Đăng nhập bằng số điện thoại",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              Text(
+                l10n.phoneAuthTitle,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-
               const SizedBox(height: 20),
-
               TextField(
                 controller: phoneController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  hintText: "973564344",
-
+                  hintText: '973564344',
                   prefixIcon: Padding(
                     padding: const EdgeInsets.only(left: 12, right: 8),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
                         Text(
-                          "+84",
+                          '+84',
                           style: TextStyle(fontWeight: FontWeight.w500),
                         ),
                         SizedBox(width: 8),
@@ -82,28 +81,27 @@ class PhoneAuthDialog {
                       ],
                     ),
                   ),
-
                   prefixIconConstraints: const BoxConstraints(
                     minWidth: 0,
                     minHeight: 0,
                   ),
-
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.sms_outlined),
-                  label: const Text(
-                    "Gửi mã OTP",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  label: Text(
+                    l10n.phoneAuthSendOtpButton,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
@@ -114,18 +112,17 @@ class PhoneAuthDialog {
                     ),
                   ),
                   onPressed: () async {
-                    String phone = phoneController.text.trim();
+                    var phone = phoneController.text.trim();
                     phone = normalizePhone(phone);
 
                     await vm.sendOtpSms(phone);
 
+                    if (!context.mounted) return;
                     Navigator.pop(context);
-
                     showOtpDialog(context);
                   },
                 ),
               ),
-
               const SizedBox(height: 12),
             ],
           ),
@@ -135,6 +132,7 @@ class PhoneAuthDialog {
   }
 
   static void showOtpDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final otpController = TextEditingController();
     final vm = context.read<AuthVM>();
 
@@ -157,68 +155,54 @@ class PhoneAuthDialog {
                       size: 42,
                       color: Colors.green,
                     ),
-
                     const SizedBox(height: 10),
-
-                    const Text(
-                      "Nhập mã xác thực",
-                      style: TextStyle(
+                    Text(
+                      l10n.phoneAuthOtpTitle,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
-                    const Text(
-                      "Vui lòng nhập mã OTP được gửi đến điện thoại của bạn",
+                    Text(
+                      l10n.phoneAuthOtpInstruction,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: const TextStyle(color: Colors.grey),
                     ),
-
                     const SizedBox(height: 20),
-
                     TextField(
                       controller: otpController,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-
                       onChanged: (_) {
-                        setState(() {}); // rebuild dialog
+                        setState(() {});
                       },
-
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(6),
                       ],
-
                       style: const TextStyle(
                         letterSpacing: 6,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
-
                       decoration: InputDecoration(
-                        hintText: "••••••",
+                        hintText: '••••••',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 24),
-
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(context),
-                            child: const Text("Hủy"),
+                            child: Text(l10n.cancelButton),
                           ),
                         ),
-
                         const SizedBox(width: 12),
-
                         Expanded(
                           child: ElevatedButton(
                             onPressed: otpController.text.length == 6
@@ -226,9 +210,13 @@ class PhoneAuthDialog {
                                     try {
                                       await vm.verifyOtpSmS(otpController.text);
 
+                                      if (!context.mounted) return;
                                       Navigator.pop(context);
-                                    } catch (e) {
-                                      AlertService.showSnack('OTP không đúng', isError: true);
+                                    } catch (_) {
+                                      AlertService.showSnack(
+                                        l10n.otpIncorrect,
+                                        isError: true,
+                                      );
                                       // NotificationDialog.show(
                                       //   context,
                                       //   type: DialogType.error,
@@ -238,7 +226,7 @@ class PhoneAuthDialog {
                                     }
                                   }
                                 : null,
-                            child: const Text("Xác nhận"),
+                            child: Text(l10n.confirmButton),
                           ),
                         ),
                       ],

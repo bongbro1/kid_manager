@@ -1,7 +1,6 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:provider/provider.dart';
 
@@ -31,10 +30,8 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
 
   Future<void> _loadTheme() async {
     final storage = context.read<StorageService>();
-
     final savedColorValue =
         storage.getInt(StorageKeys.themeColor) ?? colors[0].value;
-
     final savedDark = storage.getBool(StorageKeys.isDarkMode) ?? false;
 
     final index = colors.indexWhere((c) => c.value == savedColorValue);
@@ -47,6 +44,7 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Container(
@@ -67,28 +65,24 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-
           const SizedBox(height: 16),
 
           /// title
           Text(
-            "Tùy chỉnh giao diện",
+            l10n.themeSelectorTitle,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
-              fontFamily: "Poppins",
+              fontFamily: 'Poppins',
             ),
           ),
-
           const SizedBox(height: 6),
-
           Text(
-            "Chọn màu chủ đạo và chế độ sáng/tối",
+            l10n.themeSelectorSubtitle,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(.6),
-              fontFamily: "Public Sans",
+              fontFamily: 'Public Sans',
             ),
           ),
-
           const SizedBox(height: 22),
 
           /// COLOR THEMES
@@ -107,11 +101,7 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               final selected = selectedColor == index;
 
               return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedColor = index;
-                  });
-                },
+                onTap: () => setState(() => selectedColor = index),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
@@ -133,7 +123,6 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               );
             },
           ),
-
           const SizedBox(height: 26),
 
           /// LIGHT / DARK MODE
@@ -153,26 +142,19 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
                   color: colors[selectedColor],
                 ),
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: Text(
-                    "Chế độ tối",
+                    l10n.themeSelectorDarkMode,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-
                 Switch(
                   value: isDark,
-                  activeColor: colors[selectedColor], // thumb khi bật
-
+                  activeColor: colors[selectedColor],
                   activeTrackColor: colors[selectedColor].withOpacity(.45),
-
-                  inactiveThumbColor: theme.colorScheme.onSurface.withOpacity(
-                    .7,
-                  ),
-
+                  inactiveThumbColor: theme.colorScheme.onSurface.withOpacity(.7),
                   inactiveTrackColor: theme.colorScheme.surfaceContainerHighest,
 
                   onChanged: (v) {
@@ -184,7 +166,6 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               ],
             ),
           ),
-
           const SizedBox(height: 24),
 
           /// APPLY BUTTON
@@ -201,12 +182,11 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               ),
               onPressed: () {
                 final color = colors[selectedColor];
-
-                Navigator.pop(context, {"color": color, "isDark": isDark});
+                Navigator.pop(context, {'color': color, 'isDark': isDark});
               },
-              child: const Text(
-                "Áp dụng giao diện",
-                style: TextStyle(
+              child: Text(
+                l10n.themeSelectorApplyButton,
+                style: const TextStyle(
                   fontSize: 15,
                   color: Colors.white,
                   fontWeight: FontWeight.w600,

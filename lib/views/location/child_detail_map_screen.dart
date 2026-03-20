@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/views/parent/zones/child_zones_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -32,6 +33,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   Timer? _animTick;
   Timer? _renderDebounce;
   DateTime _lastMapMatchAt = DateTime.fromMillisecondsSinceEpoch(0);
+  AppLocalizations get l10n => AppLocalizations.of(context);
 
   late DateTime _selectedDay;
   int _rangeStartMinute = 0;
@@ -199,13 +201,13 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               children: [
                 if (isStart)
                   _tagChip(
-                    'B?t d?u',
+                    l10n.childLocationTagStart,
                     const Color(0xFFDDF5E3),
                     const Color(0xFF188038),
                   ),
                 if (isEnd)
                   _tagChip(
-                    'K?t thúc',
+                    l10n.childLocationTagEnd,
                     const Color(0xFFFDE2E1),
                     const Color(0xFFC5221F),
                   ),
@@ -216,13 +218,13 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                 ),
                 if (gpsVeryBad)
                   _tagChip(
-                    'GPS r?t y?u',
+                    l10n.childLocationTagGpsVeryWeak,
                     const Color(0xFFFCE8E6),
                     const Color(0xFFC5221F),
                   )
                 else if (gpsLost)
                   _tagChip(
-                    'M?t GPS',
+                    l10n.childLocationTagGpsLost,
                     const Color(0xFFFCE8E6),
                     const Color(0xFFC5221F),
                   )
@@ -241,17 +243,19 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               children: [
                 Expanded(
                   child: _infoTile(
-                    label: '? dây du?c',
+                    label: l10n.childLocationStayedHereLabel,
                     value: gpsLost
-                        ? 'Không xác d?nh ?n d?nh'
+                        ? l10n.childLocationStayedHereUnavailable
                         : _formatDuration(stopDuration),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _infoTile(
-                    label: 'T?c d?',
-                    value: gpsLost ? 'Không ?n d?nh' : _speedLabel(point),
+                    label: l10n.childLocationSpeedLabel,
+                    value: gpsLost
+                        ? l10n.childLocationSpeedUnavailable
+                        : _speedLabel(point),
                   ),
                 ),
               ],
@@ -263,15 +267,17 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               children: [
                 Expanded(
                   child: _infoTile(
-                    label: 'Sai s? GPS',
+                    label: l10n.childLocationGpsAccuracyLabel,
                     value: _accuracyLabel(point),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _infoTile(
-                    label: 'GPS gi? l?p',
-                    value: point.isMock ? 'Có d?u hi?u' : 'Không',
+                    label: l10n.childLocationMockGpsLabel,
+                    value: point.isMock
+                        ? l10n.childLocationMockGpsDetected
+                        : l10n.childLocationNoLabel,
                   ),
                 ),
               ],
@@ -285,7 +291,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               dense: true,
               visualDensity: VisualDensity.compact,
               title: Text(
-                'Xem chi ti?t k? thu?t',
+                l10n.childLocationTechnicalDetailsTitle,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -293,14 +299,17 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                 ),
               ),
               children: [
-                _detailRow('Th?i gian d?y d?', point.fullLabel),
-                _detailRow('Hu?ng di chuy?n', '${point.heading.toStringAsFixed(0)}°'),
+                _detailRow(l10n.childLocationDetailFullTimeLabel, point.fullLabel),
                 _detailRow(
-                  'T?a d?',
+                  l10n.childLocationDetailHeadingLabel,
+                  '${point.heading.toStringAsFixed(0)}°',
+                ),
+                _detailRow(
+                  l10n.childLocationDetailCoordinatesLabel,
                   '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
                 ),
                 _detailRow(
-                  'Ð? chính xác',
+                  l10n.childLocationDetailAccuracyLabel,
                   '${point.accuracy.toStringAsFixed(0)} m',
                 ),
               ],
@@ -362,7 +371,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   }
 
   String get _rangeLabel => _isFullDayRange
-      ? 'Ca ngay'
+      ? l10n.childLocationRangeAllDay
       : '${_minuteLabel(_rangeStartMinute)} - ${_minuteLabel(_rangeEndMinute)}';
 
   DateTime _trackingDateTimeForMinute(DateTime day, int minuteOfDay) {
@@ -442,19 +451,19 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   }
 
   String _formatDuration(Duration d) {
-    if (d.inSeconds <= 0) return '0 phút';
+    if (d.inSeconds <= 0) return l10n.childLocationDurationZeroMinutes;
 
     final hours = d.inHours;
     final minutes = d.inMinutes % 60;
     final seconds = d.inSeconds % 60;
 
     if (hours > 0) {
-      return '${hours} gi? ${minutes} phút';
+      return l10n.childLocationDurationHoursMinutes(hours, minutes);
     }
     if (minutes > 0) {
-      return '${minutes} phút';
+      return l10n.childLocationDurationMinutes(minutes);
     }
-    return '${seconds} giây';
+    return l10n.childLocationDurationSeconds(seconds);
   }
 
   IconData _transportIcon(TransportMode t) {
@@ -526,35 +535,35 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
 
     if (gpsVeryBad) {
       return (
-      'M?t GPS d?nh v?',
-      'Tín hi?u GPS r?t y?u, v? trí có th? không chính xác',
+      l10n.childLocationGpsLostTitle,
+      l10n.childLocationGpsVeryWeakSubtitle,
       );
     }
 
     if (gpsLost) {
       return (
-      'M?t GPS d?nh v?',
-      'Sai s? l?n hon ${point.accuracy.toStringAsFixed(0)} m',
+      l10n.childLocationGpsLostTitle,
+      l10n.childLocationGpsLostSubtitle(point.accuracy.toStringAsFixed(0)),
       );
     }
 
     if (isStoppedLongEnough) {
       if (isEnd && _isToday) {
         return (
-        'Ðang d?ng yên',
-        'D?ng t?i dây ${_formatDuration(stopDuration)}',
+        l10n.childLocationStoppedNowTitle,
+        l10n.childLocationStoppedNowSubtitle(_formatDuration(stopDuration)),
         );
       }
       return (
-      'Ð?ng yên t?i dây',
-      'D?ng kho?ng ${_formatDuration(stopDuration)}',
+      l10n.childLocationStoppedHereTitle,
+      l10n.childLocationStoppedHereSubtitle(_formatDuration(stopDuration)),
       );
     }
 
     if (isStart) {
       return (
       _transportHeadline(point.transport),
-      'Ði?m b?t d?u hành trình',
+      l10n.childLocationJourneyStartSubtitle,
       );
     }
 
@@ -562,45 +571,47 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
       return (
       _transportHeadline(point.transport),
       _isToday
-          ? 'C?p nh?t lúc ${point.timeLabel}'
-          : 'Ði?m k?t thúc hành trình',
+          ? l10n.childLocationUpdatedAt(point.timeLabel)
+          : l10n.childLocationJourneyEndSubtitle,
       );
     }
 
     return (
     _transportHeadline(point.transport),
-    'Ði qua di?m này lúc ${point.timeLabel}',
+    l10n.childLocationPassedAt(point.timeLabel),
     );
   }
 
   String _transportHeadline(TransportMode t) {
     switch (t) {
       case TransportMode.walking:
-        return 'Ðang di b?';
+        return l10n.childLocationHeadlineWalking;
       case TransportMode.bicycle:
-        return 'Ðang di xe d?p';
+        return l10n.childLocationHeadlineBicycle;
       case TransportMode.vehicle:
-        return 'Ðang di xe';
+        return l10n.childLocationHeadlineVehicle;
       case TransportMode.still:
-        return 'Ðang d?ng yên';
+        return l10n.childLocationHeadlineStill;
       default:
-        return 'Không rõ tr?ng thái';
+        return l10n.childLocationHeadlineUnknown;
     }
   }
 
   String _speedLabel(LocationData point) {
     final kmh = point.speedKmh;
-    if (kmh <= 1) return 'G?n nhu không di chuy?n';
+    if (kmh <= 1) return l10n.childLocationSpeedAlmostStill;
     return '${kmh.toStringAsFixed(1)} km/h';
   }
 
   String _accuracyLabel(LocationData point) {
     final acc = point.accuracy.toStringAsFixed(0);
 
-    if (point.accuracy > 80) return 'M?t GPS nghiêm tr?ng';
-    if (point.accuracy > 30) return 'M?t GPS d?nh v?';
-    if (point.accuracy <= 15) return 'Khá chính xác (${acc} m)';
-    return 'Chính xác v?a (${acc} m)';
+    if (point.accuracy > 80) return l10n.childLocationAccuracySevere;
+    if (point.accuracy > 30) return l10n.childLocationAccuracyLost;
+    if (point.accuracy <= 15) {
+      return l10n.childLocationAccuracyGood(acc);
+    }
+    return l10n.childLocationAccuracyModerate(acc);
   }
   Color _transportColor(TransportMode t) {
     switch (t) {
@@ -620,15 +631,15 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
   String _transportLabel(TransportMode t) {
     switch (t) {
       case TransportMode.walking:
-        return "Ði b?";
+        return l10n.childLocationTransportWalking;
       case TransportMode.bicycle:
-        return "Xe d?p";
+        return l10n.childLocationTransportBicycle;
       case TransportMode.vehicle:
-        return "Ðang di xe";
+        return l10n.childLocationTransportVehicle;
       case TransportMode.still:
-        return "Ð?ng yên";
+        return l10n.childLocationTransportStill;
       default:
-        return "Không rõ";
+        return l10n.childLocationTransportUnknown;
     }
   }
 
@@ -819,8 +830,8 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Chon khung gio',
+                    Text(
+                      l10n.childLocationTimeWindowTitle,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -829,7 +840,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Chi tai va hien thi lich su trong khoang gio dang chon.',
+                      l10n.childLocationTimeWindowSubtitle,
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.35,
@@ -842,7 +853,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                       runSpacing: 8,
                       children: [
                         _RangePresetChip(
-                          label: 'Ca ngay',
+                          label: l10n.childLocationRangeAllDay,
                           selected: draftStart.round() == 0 &&
                               draftEnd.round() == (24 * 60) - 1,
                           onTap: () => applyPreset(
@@ -852,7 +863,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                           ),
                         ),
                         _RangePresetChip(
-                          label: 'Sang',
+                          label: l10n.childLocationPresetMorning,
                           selected: draftStart.round() == 6 * 60 &&
                               draftEnd.round() == (11 * 60) + 59,
                           onTap: () => applyPreset(
@@ -862,7 +873,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                           ),
                         ),
                         _RangePresetChip(
-                          label: 'Chieu',
+                          label: l10n.childLocationPresetAfternoon,
                           selected: draftStart.round() == 12 * 60 &&
                               draftEnd.round() == (17 * 60) + 59,
                           onTap: () => applyPreset(
@@ -872,7 +883,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                           ),
                         ),
                         _RangePresetChip(
-                          label: 'Toi',
+                          label: l10n.childLocationPresetEvening,
                           selected: draftStart.round() == 18 * 60 &&
                               draftEnd.round() == (23 * 60) + 59,
                           onTap: () => applyPreset(
@@ -898,14 +909,14 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                         children: [
                           Expanded(
                             child: _SummaryChip(
-                              label: 'Bat dau',
+                              label: l10n.commonStartLabel,
                               value: startLabel,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _SummaryChip(
-                              label: 'Ket thuc',
+                              label: l10n.commonEndLabel,
                               value: endLabel,
                             ),
                           ),
@@ -935,7 +946,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(48),
                             ),
-                            child: const Text('Huy'),
+                            child: Text(l10n.cancelButton),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -950,7 +961,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size.fromHeight(48),
                             ),
-                            child: const Text('Ap dung'),
+                            child: Text(l10n.applyButton),
                           ),
                         ),
                       ],
@@ -1097,7 +1108,9 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _isToday ? 'Hanh trinh hien tai' : 'Lich su di chuyen',
+            _isToday
+                ? l10n.childLocationCurrentJourneyTitle
+                : l10n.childLocationTravelHistoryTitle,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -1117,7 +1130,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
       actions: [
         _AppBarChip(
           icon: Icons.calendar_today_rounded,
-          label: _isToday ? 'Hom nay' : _fmtDay(_selectedDay),
+          label: _isToday ? l10n.childLocationTodayLabel : _fmtDay(_selectedDay),
           onTap: _pickDay,
         ),
         const SizedBox(width: 8),
@@ -1137,7 +1150,9 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
       children: [
         // Toggle dots
         _MapFab(
-          tooltip: _showDots ? "?n di?m d?ng" : "Hi?n di?m d?ng",
+          tooltip: _showDots
+              ? l10n.childLocationTooltipHideDots
+              : l10n.childLocationTooltipShowDots,
           icon: _showDots
               ? Icons.scatter_plot_rounded
               : Icons.scatter_plot_outlined,
@@ -1146,7 +1161,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
         ),
         // Vùng an toàn
         _MapFab(
-          tooltip: "Qu?n lý vùng",
+          tooltip: l10n.childLocationZonesButton,
           icon: Icons.shield_outlined,
           active: false,
           onTap: () => Navigator.push(
@@ -1179,8 +1194,8 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Chua co du lieu trong khung nay',
+            Text(
+              l10n.childLocationNoDataTitle,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
@@ -1189,7 +1204,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              'Thu doi khung gio khac hoac chon ngay khac de xem lai hanh trinh.',
+              l10n.childLocationNoDataSubtitle,
               style: TextStyle(
                 fontSize: 12,
                 height: 1.3,
@@ -1201,8 +1216,14 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
               spacing: 8,
               runSpacing: 8,
               children: [
-                _SummaryChip(label: 'Ngay', value: _fmtDay(_selectedDay)),
-                _SummaryChip(label: 'Khung gio', value: _rangeLabel),
+                _SummaryChip(
+                  label: l10n.childLocationSummaryDateLabel,
+                  value: _fmtDay(_selectedDay),
+                ),
+                _SummaryChip(
+                  label: l10n.childLocationSummaryTimeRangeLabel,
+                  value: _rangeLabel,
+                ),
               ],
             ),
           ],
@@ -1267,7 +1288,9 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        _isToday ? "Tr?c ti?p" : "L?ch s?",
+                        _isToday
+                            ? l10n.childLocationLiveLabel
+                            : l10n.childLocationHistoryButton,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -1314,7 +1337,7 @@ class _ChildDetailMapScreenState extends State<ChildDetailMapScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "$pointCount di?m",
+                  l10n.childLocationPointCount(pointCount),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade500,

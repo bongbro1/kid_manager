@@ -112,11 +112,275 @@ class AppLocalizationsVi extends AppLocalizations {
   String get appAppearanceThemeDark => 'Tối';
 
   @override
+  String get appAppearanceSectionApp => 'ỨNG DỤNG';
+
+  @override
+  String get appAppearanceThemeSubtitle => 'Thay đổi giao diện sáng/tối';
+
+  @override
+  String get appAppearanceSectionSecurity => 'BẢO MẬT';
+
+  @override
+  String get appAppearanceChangePasswordTitle => 'Đổi mật khẩu';
+
+  @override
+  String get appAppearanceChangePasswordSubtitle => 'Cập nhật mật khẩu mới';
+
+  @override
+  String get appAppearanceNotificationsTitle => 'Thông báo';
+
+  @override
+  String get appAppearanceNotificationsSubtitle => 'Quản lý tùy chọn thông báo';
+
+  @override
   String get addAccountSuccessMessage => 'Tạo tài khoản con thành công';
+
+  @override
+  String get addAccountNameRequired => 'Vui lòng nhập tên';
+
+  @override
+  String get addAccountAccessLabel => 'Quyền truy cập';
+
+  @override
+  String get addAccountRoleChild => 'Con';
+
+  @override
+  String get addAccountRoleGuardian => 'Phụ huynh';
+
+  @override
+  String get addAccountSelectBirthDateTitle => 'Chọn ngày sinh';
+
+  @override
+  String get addAccountSelectButton => 'Chọn';
 
   @override
   String get sessionExpiredLoginAgain =>
       'Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.';
+
+  @override
+  String userVmLoadUserError(String error) {
+    return 'Lỗi load user: $error';
+  }
+
+  @override
+  String userVmLoadChildrenError(String error) {
+    return 'Lỗi load children: $error';
+  }
+
+  @override
+  String userVmLoadMembersError(String error) {
+    return 'Lỗi load members: $error';
+  }
+
+  @override
+  String get userVmFamilyIdNotFound => 'Không tìm thấy familyId';
+
+  @override
+  String userVmLoadFamilyError(String error) {
+    return 'Lỗi load family: $error';
+  }
+
+  @override
+  String get userVmUserIdNotFound => 'Không tìm thấy userId';
+
+  @override
+  String get userVmFullNameRequired => 'Họ và tên không được để trống';
+
+  @override
+  String get userVmUpdatePhotoFailed => 'Cập nhật ảnh thất bại';
+
+  @override
+  String subscriptionLoadError(String error) {
+    return 'Không tải được subscription: $error';
+  }
+
+  @override
+  String subscriptionWatchError(String error) {
+    return 'Theo dõi subscription thất bại: $error';
+  }
+
+  @override
+  String subscriptionUpdateError(String error) {
+    return 'Cập nhật subscription thất bại: $error';
+  }
+
+  @override
+  String subscriptionActivateError(String error) {
+    return 'Kích hoạt gói thất bại: $error';
+  }
+
+  @override
+  String subscriptionStartTrialError(String error) {
+    return 'Bắt đầu trial thất bại: $error';
+  }
+
+  @override
+  String subscriptionMarkExpiredError(String error) {
+    return 'Đánh dấu expired thất bại: $error';
+  }
+
+  @override
+  String subscriptionClearError(String error) {
+    return 'Xóa subscription thất bại: $error';
+  }
+
+  @override
+  String get appManagementSyncFailed => 'Không thể đồng bộ ứng dụng';
+
+  @override
+  String get appManagementUserIdNotFound => 'Không tìm thấy userId';
+
+  @override
+  String zoneStatusAtText(String zoneName, String duration) {
+    return 'đang ở $zoneName • $duration';
+  }
+
+  @override
+  String zoneStatusWasAtText(String zoneName) {
+    return 'đã ở $zoneName';
+  }
+
+  @override
+  String zoneStatusWasAtWithAgoText(String zoneName, String ago) {
+    return 'đã ở $zoneName • $ago';
+  }
+
+  @override
+  String zoneStatusDurationMinutes(int minutes) {
+    return '$minutes phút';
+  }
+
+  @override
+  String zoneStatusDurationHoursMinutes(int hours, int minutes) {
+    return '${hours}g$minutes phút';
+  }
+
+  @override
+  String get zoneStatusJustNow => 'vừa xong';
+
+  @override
+  String zoneStatusMinutesAgo(int minutes) {
+    return '$minutes phút trước';
+  }
+
+  @override
+  String zoneStatusHoursAgo(int hours) {
+    return '$hours giờ trước';
+  }
+
+  @override
+  String zoneStatusDaysAgo(int days) {
+    return '$days ngày trước';
+  }
+
+  @override
+  String get otpResendCooldownError => 'Vui lòng chờ trước khi gửi lại mã';
+
+  @override
+  String get otpResendLockedError =>
+      'Bạn đã gửi OTP quá nhiều lần. Vui lòng thử lại sau';
+
+  @override
+  String get otpResendMaxError => 'Bạn đã gửi OTP quá nhiều lần';
+
+  @override
+  String otpRepositoryLockedMessage(int seconds) {
+    return 'Bạn đã bị khóa gửi OTP. Vui lòng thử lại sau ${seconds}s';
+  }
+
+  @override
+  String get authLoginCancelled => 'Đăng nhập đã bị hủy';
+
+  @override
+  String get continueButton => 'Tiếp tục';
+
+  @override
+  String zoneDetailsRadiusLabel(String radius) {
+    return 'Bán kính ${radius}m';
+  }
+
+  @override
+  String get zoneDetailsNoCoordinates => 'Không có tọa độ để hiển thị bản đồ';
+
+  @override
+  String birthdaySpecialDayHeadline(String name) {
+    return 'Sinh nhật của $name!';
+  }
+
+  @override
+  String get mapTopBarTitle => 'Vị trí';
+
+  @override
+  String childGroupMarkerCount(int count) {
+    return '$count trẻ';
+  }
+
+  @override
+  String get changePasswordTitle => 'Đổi mật khẩu';
+
+  @override
+  String get changePasswordSuccessMessage => 'Đổi mật khẩu thành công';
+
+  @override
+  String get changePasswordCurrentPasswordLabel => 'Mật khẩu hiện tại';
+
+  @override
+  String get changePasswordCurrentPasswordHint => 'Nhập mật khẩu hiện tại';
+
+  @override
+  String get changePasswordNewPasswordLabel => 'Mật khẩu mới';
+
+  @override
+  String get changePasswordNewPasswordHint => 'Nhập mật khẩu mới';
+
+  @override
+  String get changePasswordConfirmPasswordLabel => 'Xác nhận mật khẩu';
+
+  @override
+  String get changePasswordConfirmPasswordHint => 'Nhập lại mật khẩu mới';
+
+  @override
+  String get changePasswordUpdateButton => 'Cập nhật mật khẩu';
+
+  @override
+  String get memberManagementTitle => 'Quản lý thành viên';
+
+  @override
+  String get memberManagementAddMemberTitle => 'Thêm thành viên';
+
+  @override
+  String get memberManagementAddMemberSubtitle =>
+      'Kết nối thiết bị mới của con';
+
+  @override
+  String get memberManagementAddNowButton => 'Thêm ngay';
+
+  @override
+  String get memberManagementFamilyMembersLabel => 'THÀNH VIÊN GIA ĐÌNH';
+
+  @override
+  String get memberManagementEmpty => 'Chưa có thành viên';
+
+  @override
+  String get memberManagementOnline => 'Đang trực tuyến';
+
+  @override
+  String get memberManagementOffline => 'Ngoại tuyến';
+
+  @override
+  String get memberManagementMessageButton => 'Nhắn tin';
+
+  @override
+  String get memberManagementLocationButton => 'Vị trí';
+
+  @override
+  String get userRoleParent => 'Phụ huynh';
+
+  @override
+  String get userRoleChild => 'Con';
+
+  @override
+  String get userRoleGuardian => 'Người giám hộ';
 
   @override
   String get aboutAppName => 'My Application';
@@ -132,6 +396,51 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get aboutAppCopyright => '© 2026 My Company';
+
+  @override
+  String get themeSelectorTitle => 'Tùy chỉnh giao diện';
+
+  @override
+  String get themeSelectorSubtitle => 'Chọn màu chủ đạo và chế độ sáng/tối';
+
+  @override
+  String get themeSelectorDarkMode => 'Chế độ tối';
+
+  @override
+  String get themeSelectorApplyButton => 'Áp dụng giao diện';
+
+  @override
+  String get phoneAuthTitle => 'Đăng nhập bằng số điện thoại';
+
+  @override
+  String get phoneAuthSendOtpButton => 'Gửi mã OTP';
+
+  @override
+  String get phoneAuthOtpTitle => 'Nhập mã xác thực';
+
+  @override
+  String get phoneAuthOtpInstruction =>
+      'Vui lòng nhập mã OTP được gửi đến số điện thoại của bạn';
+
+  @override
+  String get termsTitle => 'Điều khoản';
+
+  @override
+  String get termsNoData => 'Không có dữ liệu';
+
+  @override
+  String termsLastUpdated(String date) {
+    return 'Cập nhật lần cuối: $date';
+  }
+
+  @override
+  String get homeTitle => 'Trang chủ';
+
+  @override
+  String get homeGreeting => 'Xin chào';
+
+  @override
+  String get homeManageChildButton => 'Quản lý con';
 
   @override
   String get accountNotFound => 'Tài khoản không tồn tại';
@@ -1228,6 +1537,47 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notificationsContactNowButton => 'Liên hệ ngay';
 
   @override
+  String get notificationsLocalChannelName => 'Mặc định';
+
+  @override
+  String get notificationsLocalChannelDescription => 'Thông báo mặc định';
+
+  @override
+  String get notificationsDefaultTitle => 'Thông báo';
+
+  @override
+  String get notificationsDefaultBody => 'Bạn có thông báo mới';
+
+  @override
+  String get notificationsFamilyChatTitle => 'Tin nhắn gia đình';
+
+  @override
+  String get notificationsFamilyChatBody => 'Bạn có tin nhắn mới';
+
+  @override
+  String get notificationsFamilyEventTitle => 'Sự kiện gia đình';
+
+  @override
+  String get notificationsFamilyEventBody => 'Gia đình bạn có sự kiện mới';
+
+  @override
+  String get notificationsBirthdayTitle => 'Sinh nhật';
+
+  @override
+  String notificationsBirthdayUpcomingBody(String name) {
+    return 'Sắp tới sinh nhật của $name!';
+  }
+
+  @override
+  String notificationsBirthdayTodayBody(String name) {
+    return 'Hôm nay là sinh nhật của $name!';
+  }
+
+  @override
+  String get notificationsTrackingDefaultBody =>
+      'Trạng thái định vị đã thay đổi.';
+
+  @override
   String scheduleOverlapConflictMessage(
     String title,
     String start,
@@ -1630,6 +1980,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get zonesRadiusLabel => 'Bán kính';
 
   @override
+  String get zonesOverlappingPrefix => 'Đang chồng lên: ';
+
+  @override
   String zonesOverlappingWith(String name) {
     return 'Đang chồng lên: $name';
   }
@@ -1655,6 +2008,16 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get parentChildrenListTitle => 'Danh sách thành viên';
+
+  @override
+  String get personalInfoManageAccountsTitle => 'Quản lý tài khoản';
+
+  @override
+  String get personalInfoManageAccountsSubtitle =>
+      'Quản lý tài khoản của thành viên';
+
+  @override
+  String get personalInfoDetailsButton => 'Chi tiết';
 
   @override
   String get childLocationTransportWalking => 'Đi bộ';
@@ -1759,4 +2122,550 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get tracking_default_title => 'Thông báo định vị';
+
+  @override
+  String get sosChannelName => 'Cảnh báo SOS';
+
+  @override
+  String get sosChannelDescription => 'Thông báo SOS khẩn cấp';
+
+  @override
+  String get sosFallbackTitle => 'SOS khẩn cấp';
+
+  @override
+  String get sosFallbackBody => 'Có thành viên đang cầu cứu.';
+
+  @override
+  String get localAlarmDangerChannelName => 'Cảnh báo vùng nguy hiểm';
+
+  @override
+  String get localAlarmDangerChannelDescription =>
+      'Thông báo khi bé vào hoặc rời vùng nguy hiểm';
+
+  @override
+  String get localAlarmDangerEnterTitle => 'Cảnh báo vùng nguy hiểm';
+
+  @override
+  String localAlarmDangerEnterBody(String zoneName) {
+    return 'Bạn đã vào: $zoneName';
+  }
+
+  @override
+  String get localAlarmDangerExitTitle => 'Đã rời vùng nguy hiểm';
+
+  @override
+  String localAlarmDangerExitBody(String zoneName) {
+    return 'Bạn đã rời: $zoneName';
+  }
+
+  @override
+  String get trackingStatusLocationServiceOffMessage =>
+      'Thiết bị đã tắt GPS/vị trí';
+
+  @override
+  String get trackingStatusLocationPermissionDeniedMessage =>
+      'Thiết bị đã tắt quyền vị trí';
+
+  @override
+  String get trackingStatusPreciseLocationDeniedMessage =>
+      'Thiết bị chưa cấp vị trí chính xác';
+
+  @override
+  String get trackingStatusBackgroundDisabledMessage =>
+      'Đã tắt chia sẻ vị trí nền';
+
+  @override
+  String get trackingStatusOkMessage => 'Định vị hoạt động bình thường';
+
+  @override
+  String get trackingErrorEnableLocationService =>
+      'Vui lòng bật GPS/vị trí trên thiết bị.';
+
+  @override
+  String get trackingErrorEnablePreciseLocation =>
+      'Vui lòng bật vị trí chính xác.';
+
+  @override
+  String get trackingErrorEnableBackgroundLocation =>
+      'Vui lòng bật chia sẻ vị trí nền (Allow all the time).';
+
+  @override
+  String get locationForegroundServiceTitle => 'Đang chia sẻ vị trí';
+
+  @override
+  String get locationForegroundServiceSubtitle =>
+      'Ứng dụng chạy nền để bảo vệ con';
+
+  @override
+  String parentLocationGpsError(Object error) {
+    return 'Lỗi GPS: $error';
+  }
+
+  @override
+  String parentLocationEnableGpsError(Object error) {
+    return 'Lỗi bật GPS: $error';
+  }
+
+  @override
+  String parentLocationCurrentLocationError(Object error) {
+    return 'Không lấy được vị trí hiện tại: $error';
+  }
+
+  @override
+  String parentLocationHistoryLoadError(Object error) {
+    return 'Lỗi tải lịch sử: $error';
+  }
+
+  @override
+  String parentLocationWatchChildError(Object childId, Object error) {
+    return 'Lỗi theo dõi $childId: $error';
+  }
+
+  @override
+  String get authLoginRequired => 'Chưa đăng nhập';
+
+  @override
+  String get firebaseAuthCurrentPasswordIncorrect =>
+      'Mật khẩu hiện tại không đúng';
+
+  @override
+  String get firebaseAuthUserMismatch => 'Tài khoản xác thực không khớp';
+
+  @override
+  String get firebaseAuthTooManyRequests =>
+      'Bạn thử sai quá nhiều lần. Vui lòng thử lại sau';
+
+  @override
+  String get firebaseAuthNetworkFailed =>
+      'Lỗi kết nối mạng. Vui lòng kiểm tra Internet';
+
+  @override
+  String get firebaseAuthChangePasswordFailed =>
+      'Không thể đổi mật khẩu. Vui lòng thử lại';
+
+  @override
+  String get permissionLocationTitle => 'Bật quyền vị trí';
+
+  @override
+  String get permissionLocationSubtitle =>
+      'Ứng dụng cần quyền vị trí để theo dõi vị trí của trẻ và hỗ trợ các tính năng an toàn.';
+
+  @override
+  String get permissionLocationRecommendation =>
+      'Khuyến nghị: cho phép vị trí khi dùng ứng dụng trước. Nếu app cần chạy nền sau này, bạn có thể xin thêm quyền Always.';
+
+  @override
+  String get permissionLocationAllowButton => 'Cho phép vị trí';
+
+  @override
+  String get permissionNotificationTitle => 'Bật SOS Alerts';
+
+  @override
+  String get permissionNotificationSubtitle =>
+      'Ứng dụng cần quyền thông báo để gửi cảnh báo SOS khẩn cấp ngay cả khi bạn không mở app.';
+
+  @override
+  String get permissionNotificationRecommendation =>
+      'Lưu ý: Sau khi cấp quyền, hãy đảm bảo kênh \"SOS Alerts\" được bật âm thanh trong cài đặt thông báo.';
+
+  @override
+  String get permissionNotificationAllowButton => 'Cho phép thông báo';
+
+  @override
+  String get permissionSosTitle => 'Bật quyền SOS';
+
+  @override
+  String get permissionSosSubtitle =>
+      'Ứng dụng cần quyền thông báo để gửi cảnh báo SOS khẩn cấp và phát âm thanh cảnh báo.';
+
+  @override
+  String get permissionSosRecommendation =>
+      'Hãy bật thông báo và đảm bảo kênh \"SOS Alerts\" có âm thanh.';
+
+  @override
+  String get permissionSosAllowButton => 'Cho phép SOS';
+
+  @override
+  String get permissionOpenSettingsButton => 'Mở cài đặt';
+
+  @override
+  String get permissionLaterButton => 'Để sau';
+
+  @override
+  String permissionStepLabel(int current, int total) {
+    return 'Bước $current/$total';
+  }
+
+  @override
+  String get applyButton => 'Áp dụng';
+
+  @override
+  String get commonStartLabel => 'Bắt đầu';
+
+  @override
+  String get commonEndLabel => 'Kết thúc';
+
+  @override
+  String get childLocationSosSending => 'Đang gửi SOS...';
+
+  @override
+  String childLocationSosError(String error) {
+    return 'Lỗi gửi SOS: $error';
+  }
+
+  @override
+  String get childLocationCurrentJourneyTitle => 'Hành trình hiện tại';
+
+  @override
+  String get childLocationTravelHistoryTitle => 'Lịch sử di chuyển';
+
+  @override
+  String get childLocationTodayLabel => 'Hôm nay';
+
+  @override
+  String get childLocationRangeAllDay => 'Cả ngày';
+
+  @override
+  String get childLocationTagStart => 'Bắt đầu';
+
+  @override
+  String get childLocationTagEnd => 'Kết thúc';
+
+  @override
+  String get childLocationTagGpsVeryWeak => 'GPS rất yếu';
+
+  @override
+  String get childLocationTagGpsLost => 'Mất GPS';
+
+  @override
+  String get childLocationStayedHereLabel => 'Ở đây được';
+
+  @override
+  String get childLocationStayedHereUnavailable => 'Không xác định ổn định';
+
+  @override
+  String get childLocationSpeedLabel => 'Tốc độ';
+
+  @override
+  String get childLocationSpeedUnavailable => 'Không ổn định';
+
+  @override
+  String get childLocationGpsAccuracyLabel => 'Sai số GPS';
+
+  @override
+  String get childLocationMockGpsLabel => 'GPS giả lập';
+
+  @override
+  String get childLocationMockGpsDetected => 'Có dấu hiệu';
+
+  @override
+  String get childLocationNoLabel => 'Không';
+
+  @override
+  String get childLocationTechnicalDetailsTitle => 'Xem chi tiết kỹ thuật';
+
+  @override
+  String get childLocationDetailFullTimeLabel => 'Thời gian đầy đủ';
+
+  @override
+  String get childLocationDetailHeadingLabel => 'Hướng di chuyển';
+
+  @override
+  String get childLocationDetailCoordinatesLabel => 'Tọa độ';
+
+  @override
+  String get childLocationDetailAccuracyLabel => 'Độ chính xác';
+
+  @override
+  String get childLocationDurationZeroMinutes => '0 phút';
+
+  @override
+  String childLocationDurationHoursMinutes(int hours, int minutes) {
+    return '$hours giờ $minutes phút';
+  }
+
+  @override
+  String childLocationDurationMinutes(int minutes) {
+    return '$minutes phút';
+  }
+
+  @override
+  String childLocationDurationSeconds(int seconds) {
+    return '$seconds giây';
+  }
+
+  @override
+  String get childLocationGpsLostTitle => 'Mất GPS định vị';
+
+  @override
+  String get childLocationGpsVeryWeakSubtitle =>
+      'Tín hiệu GPS rất yếu, vị trí có thể không chính xác.';
+
+  @override
+  String childLocationGpsLostSubtitle(String meters) {
+    return 'Sai số lớn hơn $meters m';
+  }
+
+  @override
+  String get childLocationStoppedNowTitle => 'Đang đứng yên';
+
+  @override
+  String childLocationStoppedNowSubtitle(String duration) {
+    return 'Dừng tại đây $duration';
+  }
+
+  @override
+  String get childLocationStoppedHereTitle => 'Đứng yên tại đây';
+
+  @override
+  String childLocationStoppedHereSubtitle(String duration) {
+    return 'Dừng khoảng $duration';
+  }
+
+  @override
+  String get childLocationJourneyStartSubtitle => 'Điểm bắt đầu hành trình';
+
+  @override
+  String get childLocationJourneyEndSubtitle => 'Điểm kết thúc hành trình';
+
+  @override
+  String childLocationUpdatedAt(String time) {
+    return 'Cập nhật lúc $time';
+  }
+
+  @override
+  String childLocationPassedAt(String time) {
+    return 'Đi qua điểm này lúc $time';
+  }
+
+  @override
+  String get childLocationHeadlineWalking => 'Đang đi bộ';
+
+  @override
+  String get childLocationHeadlineBicycle => 'Đang đi xe đạp';
+
+  @override
+  String get childLocationHeadlineVehicle => 'Đang đi xe';
+
+  @override
+  String get childLocationHeadlineStill => 'Đang đứng yên';
+
+  @override
+  String get childLocationHeadlineUnknown => 'Không rõ trạng thái';
+
+  @override
+  String get childLocationSpeedAlmostStill => 'Gần như không di chuyển';
+
+  @override
+  String get childLocationAccuracySevere => 'Mất GPS nghiêm trọng';
+
+  @override
+  String get childLocationAccuracyLost => 'Mất GPS định vị';
+
+  @override
+  String childLocationAccuracyGood(String meters) {
+    return 'Khá chính xác ($meters m)';
+  }
+
+  @override
+  String childLocationAccuracyModerate(String meters) {
+    return 'Chính xác vừa ($meters m)';
+  }
+
+  @override
+  String get childLocationTimeWindowTitle => 'Chọn khung giờ';
+
+  @override
+  String get childLocationTimeWindowSubtitle =>
+      'Chỉ tải và hiển thị lịch sử trong khoảng giờ đang chọn.';
+
+  @override
+  String get childLocationPresetMorning => 'Sáng';
+
+  @override
+  String get childLocationPresetAfternoon => 'Chiều';
+
+  @override
+  String get childLocationPresetEvening => 'Tối';
+
+  @override
+  String get childLocationNoDataTitle => 'Chưa có dữ liệu trong khung này';
+
+  @override
+  String get childLocationNoDataSubtitle =>
+      'Thử đổi khung giờ khác hoặc chọn ngày khác để xem lại hành trình.';
+
+  @override
+  String get childLocationSummaryDateLabel => 'Ngày';
+
+  @override
+  String get childLocationSummaryTimeRangeLabel => 'Khung giờ';
+
+  @override
+  String get childLocationLiveLabel => 'Trực tiếp';
+
+  @override
+  String childLocationPointCount(int count) {
+    return '$count điểm';
+  }
+
+  @override
+  String get locationNoLocationYet => 'Chưa có vị trí';
+
+  @override
+  String locationCoordinatesSummary(String lat, String lng) {
+    return 'Lat $lat • Lng $lng';
+  }
+
+  @override
+  String get locationSearchHint => 'Tìm kiếm';
+
+  @override
+  String get locationMessageSent => 'Đã gửi tin nhắn';
+
+  @override
+  String get locationChildInfoTitle => 'Thông tin';
+
+  @override
+  String get locationQuickMessageHint => 'Gửi tin nhắn nhanh...';
+
+  @override
+  String get locationStatusStudying => 'Đang học';
+
+  @override
+  String get locationStopSearching => 'Tắt tìm kiếm';
+
+  @override
+  String incomingSosConfirmFailed(Object error) {
+    return 'Xác nhận thất bại: $error';
+  }
+
+  @override
+  String get incomingSosEmergencyTitle => '🚨 Có SOS khẩn cấp!';
+
+  @override
+  String get incomingSosResolvingButton => 'ĐANG XỬ LÝ';
+
+  @override
+  String get incomingSosConfirmButton => 'XÁC NHẬN';
+
+  @override
+  String get sosConfirmedRoleParent => 'Phụ huynh';
+
+  @override
+  String get sosConfirmedRoleChild => 'Trẻ';
+
+  @override
+  String get sosConfirmedNameLabel => 'Tên';
+
+  @override
+  String get sosConfirmedSenderLabel => 'Người gửi';
+
+  @override
+  String get sosConfirmedSentAtLabel => 'Gửi lúc';
+
+  @override
+  String get sosConfirmedConfirmedAtLabel => 'Xác nhận lúc';
+
+  @override
+  String get sosConfirmedAccuracyLabel => 'Độ chính xác';
+
+  @override
+  String get sosConfirmedTitle => 'Đã xác nhận SOS';
+
+  @override
+  String get sosConfirmedCloseButton => 'ĐÓNG';
+
+  @override
+  String get sosButtonLabel => 'SOS';
+
+  @override
+  String get parentPhoneSaveFailed => 'Không thể lưu số điện thoại';
+
+  @override
+  String get parentPhoneAddTitle => 'Thêm số điện thoại của con bạn';
+
+  @override
+  String get parentPhoneAddSubtitle =>
+      'Liên lạc với con ngay cả khi điện thoại của con đang ở chế độ im lặng';
+
+  @override
+  String get parentPhoneAddButton => 'Thêm vào';
+
+  @override
+  String get parentPhoneContactHasNoNumber =>
+      'Liên hệ này không có số điện thoại';
+
+  @override
+  String parentPhonePickFailed(Object error) {
+    return 'Không thể lấy số điện thoại từ danh bạ: $error';
+  }
+
+  @override
+  String get parentPhonePickTitle => 'Chọn số điện thoại';
+
+  @override
+  String get parentPhoneOpenContactsButton => 'Mở danh bạ';
+
+  @override
+  String get appImageReplaceOption => 'Thay đổi ảnh';
+
+  @override
+  String get appImageLoadFailed => 'Không tải được ảnh';
+
+  @override
+  String get photoUpdateFailedMessage => 'Cập nhật ảnh thất bại';
+
+  @override
+  String get mapTypeSheetTitle => 'Loại bản đồ';
+
+  @override
+  String get mapTypeDefault => 'Mặc định';
+
+  @override
+  String get mapTypeSatellite => 'Vệ tinh';
+
+  @override
+  String get mapTypeTerrain => 'Địa hình';
+
+  @override
+  String get phoneHelperSaveSuccessTitle => 'Thêm thành công';
+
+  @override
+  String get phoneHelperSaveSuccessMessage =>
+      'Số điện thoại của bé đã được lưu thành công';
+
+  @override
+  String phoneHelperCallActionFailed(Object error) {
+    return 'Không thể thực hiện cuộc gọi: $error';
+  }
+
+  @override
+  String get phoneHelperOpenDialerFailed => 'Không thể mở ứng dụng điện thoại';
+
+  @override
+  String phoneHelperLaunchCallFailed(Object error) {
+    return 'Gọi điện thất bại: $error';
+  }
+
+  @override
+  String get scheduleRepositoryNotFound => 'Lịch trình không tồn tại';
+
+  @override
+  String get scheduleRepositoryCurrentNotFound =>
+      'Lịch trình hiện tại không tồn tại';
+
+  @override
+  String get scheduleRepositoryHistoryNotFound => 'Bản lịch sử không tồn tại';
+
+  @override
+  String get locationRepositoryLoginRequired =>
+      'Chưa đăng nhập, không thể gửi vị trí';
+
+  @override
+  String get locationRepositoryParentIdNotFound =>
+      'Không tìm thấy tài khoản phụ huynh';
+
+  @override
+  String get cupertinoTimePickerDoneButton => 'Xong';
 }

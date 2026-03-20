@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class SosCircleButton extends StatefulWidget {
   final VoidCallback onPressed;
+
   const SosCircleButton({super.key, required this.onPressed});
 
   @override
@@ -44,6 +46,7 @@ class _SosCircleButtonState extends State<SosCircleButton>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     const double core = 52;
     const Color red = Color(0xFFC50F0F);
 
@@ -106,10 +109,10 @@ class _SosCircleButtonState extends State<SosCircleButton>
                       ),
                     ],
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
-                      'SOS',
-                      style: TextStyle(
+                      l10n.sosButtonLabel,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 16,

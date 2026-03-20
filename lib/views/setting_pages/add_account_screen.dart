@@ -59,6 +59,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     DateTime initial = DateTime(now.year - 10, now.month, now.day);
 
     final parsed = _parseDate(_dobCtrl.text);
+
     if (parsed != null) {
       initial = parsed;
     }
@@ -101,9 +102,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       label: Text(label),
       selected: role == value,
       onSelected: (_) {
-        setState(() {
-          role = value;
-        });
+        setState(() => role = value);
       },
     );
   }
@@ -120,17 +119,17 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     final password = _passwordCtrl.text;
 
     if (name.isEmpty) {
-      AlertService.showSnack('Vui lòng nhập tên', isError: true);
+      AlertService.showSnack(l10n.addAccountNameRequired, isError: true);
       return;
     }
 
     if (!Validators.isValidEmail(email)) {
-      AlertService.showSnack('Email không hợp lệ', isError: true);
+      AlertService.showSnack(l10n.emailInvalid, isError: true);
       return;
     }
 
     if (password.length < 6) {
-      AlertService.showSnack('Mật khẩu phải ít nhất 6 ký tự', isError: true);
+      AlertService.showSnack(l10n.weakPassword, isError: true);
       return;
     }
 
@@ -176,11 +175,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final vm = context.watch<UserVm>();
+
     return Stack(
       children: [
         Scaffold(
           backgroundColor: scheme.background,
-
           appBar: AppBar(
             elevation: 0,
             backgroundColor: scheme.surface,
@@ -194,7 +193,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             ),
             iconTheme: IconThemeData(color: scheme.onSurface),
           ),
-
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -219,20 +217,16 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         hint: l10n.fullNameHint,
                         controller: _nameCtrl,
                       ),
-
                       const SizedBox(height: 16),
-
                       AppLabeledTextField(
                         label: l10n.authEmailLabel,
-                hint: l10n.authEnterEmailHint,
+                        hint: l10n.authEnterEmailHint,
                         controller: _emailCtrl,
                       ),
-
                       const SizedBox(height: 16),
-
                       AppLabeledTextField(
                         label: l10n.authPasswordLabel,
-                hint: l10n.authEnterPasswordHint,
+                        hint: l10n.authEnterPasswordHint,
                         controller: _passwordCtrl,
                         obscureText: hidePassword,
                         suffixIcon: IconButton(
@@ -245,48 +239,40 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                             size: 18,
                           ),
                           onPressed: () {
-                            setState(() {
-                              hidePassword = !hidePassword;
-                            });
+                            setState(() => hidePassword = !hidePassword);
                           },
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       AppLabeledTextField(
                         label: l10n.birthDateLabel,
-                hint: l10n.birthDateHint,
+                        hint: l10n.birthDateHint,
                         controller: _dobCtrl,
                         readOnly: true,
                         onTap: pickDate,
                         suffixIcon: const Icon(Icons.calendar_today, size: 18),
                       ),
-
                       const SizedBox(height: 20),
 
                       /// ROLE
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          "Quyền truy cập",
+                          l10n.addAccountAccessLabel,
                           style: Theme.of(context).textTheme.labelMedium,
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       Wrap(
                         spacing: 10,
                         children: [
-                          roleChip("child", "Con"),
-                          roleChip("guardian", "Phụ huynh"),
+                          roleChip('child', l10n.addAccountRoleChild),
+                          roleChip('guardian', l10n.addAccountRoleGuardian),
                         ],
                       ),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
 
                 /// BUTTON
@@ -314,7 +300,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             ),
           ),
         ),
-        if (vm.loading) LoadingOverlay(),
+        if (vm.loading) const LoadingOverlay(),
       ],
     );
   }
@@ -352,6 +338,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final maxDay = daysInMonth(year, month);
@@ -361,7 +348,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -375,17 +362,14 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-
           Text(
-            "Chọn ngày sinh",
+            l10n.addAccountSelectBirthDateTitle,
             style: theme.textTheme.titleMedium?.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
-
           const SizedBox(height: 20),
-
           Expanded(
             child: Row(
               children: [
@@ -403,7 +387,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
                     },
                     children: List.generate(
                       maxDay,
-                      (i) => Center(child: Text("${i + 1}")),
+                      (i) => Center(child: Text('${i + 1}')),
                     ),
                   ),
                 ),
@@ -426,7 +410,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
                     },
                     children: List.generate(
                       12,
-                      (i) => Center(child: Text("${i + 1}")),
+                      (i) => Center(child: Text('${i + 1}')),
                     ),
                   ),
                 ),
@@ -448,16 +432,14 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
                       });
                     },
                     children: years
-                        .map((y) => Center(child: Text("$y")))
+                        .map((value) => Center(child: Text('$value')))
                         .toList(),
                   ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -474,7 +456,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
                 elevation: 0,
               ),
               child: Text(
-                "Chọn",
+                l10n.addAccountSelectButton,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: scheme.onPrimary,
                   fontWeight: FontWeight.w600,

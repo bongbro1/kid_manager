@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/widgets/parent/phone/pick_child_phone_screen.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +22,7 @@ class _AddChildPhoneScreenState extends State<AddChildPhoneScreen> {
   bool _saving = false;
 
   Future<void> _handleAddPhone() async {
+    final userRepository = context.read<UserRepository>();
     final phone = await Navigator.push<String>(
       context,
       MaterialPageRoute(
@@ -32,7 +34,7 @@ class _AddChildPhoneScreenState extends State<AddChildPhoneScreen> {
 
     setState(() => _saving = true);
     try {
-      await context.read<UserRepository>().updateUserProfileByUid(
+      await userRepository.updateUserProfileByUid(
         uid: widget.childId,
         data: {
           'phone': phone.trim(),
@@ -44,8 +46,8 @@ class _AddChildPhoneScreenState extends State<AddChildPhoneScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Không thể lưu số điện thoại'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).parentPhoneSaveFailed),
         ),
       );
     } finally {
@@ -57,6 +59,8 @@ class _AddChildPhoneScreenState extends State<AddChildPhoneScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       body: SafeArea(
@@ -108,20 +112,20 @@ class _AddChildPhoneScreenState extends State<AddChildPhoneScreen> {
                 ],
               ),
               const SizedBox(height: 34),
-              const Text(
-                'Thêm số điện thoại của con bạn',
+              Text(
+                l10n.parentPhoneAddTitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                   color: Colors.black,
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Liên lạc với con ngay cả khi điện thoại của con đang ở chế độ im lặng',
+              Text(
+                l10n.parentPhoneAddSubtitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   height: 1.5,
                   color: Color(0xFF6B7280),
@@ -143,20 +147,20 @@ class _AddChildPhoneScreenState extends State<AddChildPhoneScreen> {
                   ),
                   child: _saving
                       ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                      : const Text(
-                    'Thêm vào',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          l10n.parentPhoneAddButton,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 12),

@@ -1,9 +1,13 @@
 ﻿import 'dart:async';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
+import 'package:kid_manager/utils/app_localizations_loader.dart';
 
 enum LocationSharingStatus { idle, sharing, paused, error }
 
@@ -12,10 +16,6 @@ class ParentLocationVm extends ChangeNotifier {
   final LocationServiceInterface _locationService;
 
   ParentLocationVm(this._locationRepo, this._locationService);
-
-  /* ============================================================
-     STATE
-  ============================================================ */
 
   LocationData? _myLocation;
   LocationData? get myLocation => _myLocation;
@@ -33,6 +33,32 @@ class ParentLocationVm extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  Future<AppLocalizations>? _l10nFuture;
+  String? _l10nUid;
+
+  final Map<String, LocationData> _childrenLocations = {};
+  final Map<String, List<LocationData>> _childrenTrails = {};
+  final Map<String, StreamSubscription<LocationData>> _subs = {};
+
+  Future<AppLocalizations> _getL10n() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (_l10nFuture != null && _l10nUid == uid) {
+      return _l10nFuture!;
+    }
+
+    final fallbackLang =
+        PlatformDispatcher.instance.locale.languageCode.toLowerCase() == 'en'
+        ? 'en'
+        : 'vi';
+    _l10nUid = uid;
+    _l10nFuture = AppLocalizationsLoader.loadForUser(
+      userRepository: UserRepository.background(FirebaseFirestore.instance),
+      uid: uid,
+      fallbackLang: fallbackLang,
+    );
+    return _l10nFuture!;
+  }
+
   void _setError(String msg) {
     _error = msg;
     _status = LocationSharingStatus.error;
@@ -46,48 +72,47 @@ class ParentLocationVm extends ChangeNotifier {
   Map<String, LocationData> get childrenLocations =>
       Map.unmodifiable(_childrenLocations);
 
-  final Map<String, LocationData> _childrenLocations = {};
-
-  final Map<String, List<LocationData>> _childrenTrails = {};
   Map<String, List<LocationData>> get childrenTrails => _childrenTrails;
 
-  final Map<String, StreamSubscription<LocationData>> _subs = {};
-
   Future<void> startMyLocation() async {
+    final l10n = await _getL10n();
+
     try {
       final ok = await _locationService.ensureServiceAndPermission(
         requireBackground: false,
       );
       if (!ok) {
-        _setError('noLocationPermission');
+        _setError(l10n.noLocationPermission);
         return;
       }
 
       await _myGpsSub?.cancel();
-      _myGpsSub = _locationService.getLocationStream().listen((loc) {
-        // loc của bạn đang là LocationData luôn thì ok,
-        // nếu stream trả raw thì map sang LocationData
-        _myLocation = loc;
-        notifyListeners();
-      }, onError: (e) => _setError('Lỗi GPS: $e'));
+      _myGpsSub = _locationService.getLocationStream().listen(
+        (loc) {
+          _myLocation = loc;
+          notifyListeners();
+        },
+        onError: (e) => _setError(l10n.parentLocationGpsError('$e')),
+      );
     } catch (e) {
-      _setError('Lỗi bật GPS: $e');
+      _setError(l10n.parentLocationEnableGpsError('$e'));
     }
   }
 
   Future<LocationData?> getMyLocationOnce({
     Duration timeout = const Duration(seconds: 6),
   }) async {
+    final l10n = await _getL10n();
+
     try {
       final ok = await _locationService.ensureServiceAndPermission(
         requireBackground: false,
       );
       if (!ok) {
-        _setError('noLocationPermission');
+        _setError(l10n.noLocationPermission);
         return null;
       }
 
-      // lấy 1 điểm đầu tiên từ stream
       final loc = await _locationService.getLocationStream().first.timeout(
         timeout,
       );
@@ -96,7 +121,7 @@ class ParentLocationVm extends ChangeNotifier {
       notifyListeners();
       return loc;
     } catch (e) {
-      _setError('Không lấy được vị trí hiện tại: $e');
+      _setError(l10n.parentLocationCurrentLocationError('$e'));
       return null;
     }
   }
@@ -180,8 +205,9 @@ class ParentLocationVm extends ChangeNotifier {
     DateTime day, {
     int? fromTs,
     int? toTs,
-  }
-  ) async {
+  }) async {
+    final l10n = await _getL10n();
+
     try {
       final history = await _locationRepo.getLocationHistoryByDay(
         childUid,
@@ -196,7 +222,7 @@ class ParentLocationVm extends ChangeNotifier {
       notifyListeners();
       return valid;
     } catch (e) {
-      _setError('Lỗi tải lịch sử: $e');
+      _setError(l10n.parentLocationHistoryLoadError('$e'));
       return [];
     }
   }
@@ -232,30 +258,38 @@ class ParentLocationVm extends ChangeNotifier {
         loc.longitude <= 180;
   }
 
+  Future<void> _setChildWatchError(String childId, Object error) async {
+    final l10n = await _getL10n();
+    _setError(l10n.parentLocationWatchChildError(childId, '$error'));
+  }
+
   void _subscribeChild(String childId) {
     if (_subs.containsKey(childId)) return;
 
     _childrenTrails.putIfAbsent(childId, () => []);
 
-    final sub = _locationRepo.watchChildLocation(childId).listen((loc) {
-      if (!_isValidLocation(loc)) return;
+    final sub = _locationRepo.watchChildLocation(childId).listen(
+      (loc) {
+        if (!_isValidLocation(loc)) return;
 
-      _childrenLocations[childId] = loc;
+        _childrenLocations[childId] = loc;
 
-      final trail = _childrenTrails[childId]!;
-      if (trail.isEmpty || trail.last.timestamp != loc.timestamp) {
-        trail.add(loc);
-        if (trail.length > 300) {
-          trail.removeRange(0, trail.length - 300);
+        final trail = _childrenTrails[childId]!;
+        if (trail.isEmpty || trail.last.timestamp != loc.timestamp) {
+          trail.add(loc);
+          if (trail.length > 300) {
+            trail.removeRange(0, trail.length - 300);
+          }
         }
-      }
 
-      if (!_readyForInitialFocus) {
-        _readyForInitialFocus = true;
-      }
+        if (!_readyForInitialFocus) {
+          _readyForInitialFocus = true;
+        }
 
-      notifyListeners();
-    }, onError: (e) => _setError('Lỗi theo dõi $childId: $e'));
+        notifyListeners();
+      },
+      onError: (e) => unawaited(_setChildWatchError(childId, e)),
+    );
 
     _subs[childId] = sub;
   }

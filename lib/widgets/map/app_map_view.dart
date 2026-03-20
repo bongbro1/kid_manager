@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:kid_manager/core/enums/enums.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/widgets/map/map_ornaments.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -7,6 +8,7 @@ class AppMapView extends StatefulWidget {
   final Function(MapboxMap) onMapCreated;
   final Future<void> Function(MapboxMap map)? onStyleLoaded;
   final void Function(MapContentGestureContext context)? onTapListener;
+
   const AppMapView({
     super.key,
     required this.onMapCreated,
@@ -35,12 +37,12 @@ class _AppMapViewState extends State<AppMapView> {
     switch (_type) {
       case AppMapType.street:
         return Theme.of(context).brightness == Brightness.dark
-            ? "mapbox://styles/mapbox/dark-v11"
-            : "mapbox://styles/mapbox/streets-v12";
+            ? 'mapbox://styles/mapbox/dark-v11'
+            : 'mapbox://styles/mapbox/streets-v12';
       case AppMapType.satellite:
-        return "mapbox://styles/mapbox/satellite-streets-v12";
+        return 'mapbox://styles/mapbox/satellite-streets-v12';
       case AppMapType.terrain:
-        return "mapbox://styles/mapbox/outdoors-v12";
+        return 'mapbox://styles/mapbox/outdoors-v12';
     }
   }
 
@@ -49,8 +51,7 @@ class _AppMapViewState extends State<AppMapView> {
     return Stack(
       children: [
         MapWidget(
-          // key theo style => đổi style sẽ reload đúng
-          key: ValueKey("app-map-$_styleUri"),
+          key: ValueKey('app-map-$_styleUri'),
           styleUri: _styleUri,
 
           // ✅ set camera ngay từ đầu để tránh flash "zoom trái đất"
@@ -60,13 +61,11 @@ class _AppMapViewState extends State<AppMapView> {
           mapOptions: MapOptions(
             pixelRatio: MediaQuery.of(context).devicePixelRatio,
           ),
-
           onMapCreated: (map) {
             _map = map;
             widget.onMapCreated(map);
           },
           onTapListener: widget.onTapListener,
-
           onStyleLoadedListener: (_) async {
             final map = _map;
             if (map == null) return;
@@ -83,7 +82,6 @@ class _AppMapViewState extends State<AppMapView> {
             if (cb != null) await cb(map);
           },
         ),
-
         Positioned(
           right: 16,
           bottom: 120,
@@ -107,6 +105,8 @@ class _AppMapViewState extends State<AppMapView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) {
+        final l10n = AppLocalizations.of(context);
+
         return SafeArea(
           top: false,
           child: Padding(
@@ -117,10 +117,10 @@ class _AppMapViewState extends State<AppMapView> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        "Loại bản đồ",
-                        style: TextStyle(
+                        l10n.mapTypeSheetTitle,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
@@ -142,17 +142,17 @@ class _AppMapViewState extends State<AppMapView> {
                   childAspectRatio: 0.92,
                   children: [
                     _mapTypeCard(
-                      title: "Mặc định",
+                      title: l10n.mapTypeDefault,
                       type: AppMapType.street,
                       preview: _previewDefault(),
                     ),
                     _mapTypeCard(
-                      title: "Vệ tinh",
+                      title: l10n.mapTypeSatellite,
                       type: AppMapType.satellite,
                       preview: _previewSatellite(),
                     ),
                     _mapTypeCard(
-                      title: "Địa hình",
+                      title: l10n.mapTypeTerrain,
                       type: AppMapType.terrain,
                       preview: _previewTerrain(),
                     ),
