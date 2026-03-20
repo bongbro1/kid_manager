@@ -22,8 +22,11 @@ class PermissionOnboardingFlow extends StatefulWidget {
   });
 
   final Future<void> Function() onFinished;
-  final Widget Function(BuildContext context, PermissionOnboardingStepType step)?
-      mediaBuilder;
+  final Widget Function(
+    BuildContext context,
+    PermissionOnboardingStepType step,
+  )?
+  mediaBuilder;
 
   @override
   State<PermissionOnboardingFlow> createState() =>
@@ -97,17 +100,17 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
   String _labelForStep(PermissionOnboardingStepType step) {
     switch (step) {
       case PermissionOnboardingStepType.notifications:
-        return 'Thong bao';
+        return 'Thông báo';
       case PermissionOnboardingStepType.location:
-        return 'Vi tri';
+        return 'Vị trí';
       case PermissionOnboardingStepType.backgroundLocation:
-        return 'Vi tri nen';
+        return 'Luôn cho phép';
       case PermissionOnboardingStepType.media:
-        return 'Media';
+        return 'Ảnh';
       case PermissionOnboardingStepType.usage:
-        return 'Usage';
+        return 'Sử dụng';
       case PermissionOnboardingStepType.accessibility:
-        return 'Accessibility';
+        return 'Trợ năng';
       case PermissionOnboardingStepType.battery:
         return 'Pin';
     }
@@ -175,14 +178,14 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
       if (status.isPermanentlyDenied || status.isRestricted) {
         setState(() {
           _statusMessage =
-              'Quyen nay dang bi tu choi o he thong. Mo cai dat de cap lai.';
+              'Quyền này đang bị từ chối ở hệ thống. Hãy mở cài đặt để cấp lại.';
         });
         return;
       }
 
       setState(() {
         _statusMessage =
-            'Quyen nay chua duoc cap. Ban co the thu lai hoac bo qua va bat sau trong app.';
+            'Quyền này chưa được cấp. Bạn có thể thử lại hoặc thiết lập sau.';
       });
     } finally {
       if (mounted) {

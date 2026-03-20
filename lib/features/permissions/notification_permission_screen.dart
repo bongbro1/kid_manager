@@ -34,12 +34,8 @@ class NotificationPermissionScreen extends StatelessWidget {
       totalSteps: totalSteps,
       stepLabels: stepLabels,
       title: 'Bật thông báo',
-      description:
-          'Nhận SOS, cảnh báo lệch tuyến và cập nhật an toàn ngay cả khi bạn không mở app.',
-      helper:
-          helperText ??
-          'Nên bật từ đầu để không bỏ lỡ thông báo khẩn cấp. Sau khi cấp quyền, bạn vẫn có thể tinh chỉnh âm thanh trong cài đặt hệ thống.',
-      primaryLabel: 'Cho phép thông báo',
+      description: 'Để nhận SOS và cảnh báo an toàn ngay lập tức.',
+      primaryLabel: 'Cho phép',
       settingsLabel: 'Mở cài đặt thông báo',
       icon: Icons.notifications_active_rounded,
       color: const Color(0xFFE35D47),

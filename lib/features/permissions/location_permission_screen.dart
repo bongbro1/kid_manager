@@ -33,13 +33,10 @@ class LocationPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Bat vi tri',
-      description:
-          'Can quyen vi tri de theo doi hanh trinh, vung an toan va lich su di chuyen cua thanh vien.',
-      helper: helperText ??
-          'Cap quyen khi dung app truoc. Ngay sau buoc nay app se huong dan bat them "Allow all the time" de tracking nen hoat dong on dinh.',
-      primaryLabel: 'Cho phep vi tri',
-      settingsLabel: 'Mo cai dat vi tri',
+      title: 'Bật “Truy cập vị trí của tôi”',
+      description: 'Nếu không, app sẽ không thể theo dõi vị trí.',
+      primaryLabel: 'Đến cài đặt',
+      settingsLabel: 'Mở cài đặt ứng dụng',
       icon: Icons.location_on_rounded,
       color: const Color(0xFF2D7FF9),
       busy: busy,

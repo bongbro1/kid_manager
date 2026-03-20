@@ -31,12 +31,9 @@ class UsageAccessPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Bật Usage Access',
-      description:
-          'Cần để giám sát thời gian dùng app và kích hoạt các tính năng quản lý thiết bị trên Android.',
-      helper:
-          'Android không hiện popup trực tiếp cho quyền này. App sẽ đưa bạn tới đúng màn cài đặt để bật thủ công.',
-      primaryLabel: 'Mở Usage Access',
+      title: 'Bật quyền sử dụng ứng dụng',
+      description: 'Để quản lý thời gian dùng app trên Android.',
+      primaryLabel: 'Đến cài đặt',
       settingsLabel: 'Mở cài đặt chung',
       icon: Icons.query_stats_rounded,
       color: const Color(0xFF7A5AF8),

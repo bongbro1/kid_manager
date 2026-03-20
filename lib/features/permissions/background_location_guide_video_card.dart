@@ -36,16 +36,12 @@ class _BackgroundLocationGuideVideoCardState
       await controller.setVolume(0);
       await controller.play();
       if (!mounted) return;
-      setState(() {
-        _videoReady = true;
-      });
+      setState(() => _videoReady = true);
     } catch (_) {
       await controller.dispose();
       _controller = null;
       if (!mounted) return;
-      setState(() {
-        _videoFailed = true;
-      });
+      setState(() => _videoFailed = true);
     }
   }
 
@@ -74,7 +70,7 @@ class _BackgroundLocationGuideVideoCardState
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0x18000000), Color(0x66000000)],
+                colors: [Color(0x12000000), Color(0x33000000)],
               ),
             ),
           ),
@@ -82,60 +78,38 @@ class _BackgroundLocationGuideVideoCardState
       );
     }
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Image.asset(
-          'assets/images/Illustration.png',
-          fit: BoxFit.cover,
-          opacity: const AlwaysStoppedAnimation(0.18),
-        ),
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xF2FFFFFF), Color(0xDBF5F8FF)],
-            ),
-          ),
-        ),
-        Center(
-          child: Container(
-            width: 76,
-            height: 76,
+    return Container(
+      color: const Color(0xFFF9FCFF),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 92,
+            height: 92,
             decoration: const BoxDecoration(
-              color: Color(0xFF155EEF),
+              color: Color(0xFF1683F2),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.play_arrow_rounded,
               color: Colors.white,
-              size: 40,
+              size: 48,
             ),
           ),
-        ),
-        Positioned(
-          left: 16,
-          top: 16,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.94),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              _videoFailed
-                  ? 'Them file video vao assets/videos de phat that'
-                  : 'Video huong dan se hien tai day',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF344054),
-              ),
+          const SizedBox(height: 18),
+          Text(
+            _videoFailed
+                ? 'Không tải được video hướng dẫn'
+                : 'Video hướng dẫn sẽ hiển thị tại đây',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF344054),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

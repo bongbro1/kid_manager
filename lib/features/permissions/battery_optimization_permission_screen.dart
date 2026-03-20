@@ -31,13 +31,10 @@ class BatteryOptimizationPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Tat gioi han pin',
-      description:
-          'Giu tracking, vung an toan va cac canh bao hoat dong on dinh khi app chay nen tren Android.',
-      helper:
-          'Khuyen nghi bat de he thong khong dung app som khi man hinh tat hoac thiet bi o che do tiet kiem pin.',
-      primaryLabel: 'Mo cai dat pin',
-      settingsLabel: 'Mo cai dat chung',
+      title: 'Tắt giới hạn pin',
+      description: 'Để app không bị dừng khi chạy nền.',
+      primaryLabel: 'Đến cài đặt',
+      settingsLabel: 'Mở cài đặt chung',
       icon: Icons.battery_charging_full_rounded,
       color: const Color(0xFF12B76A),
       busy: busy,

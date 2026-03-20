@@ -31,12 +31,9 @@ class AccessibilityPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Bật Accessibility',
-      description:
-          'Cần cho một số tính năng giám sát và bảo vệ hoạt động ổn định trên Android.',
-      helper:
-          'Đây là quyền hệ thống nhạy cảm. Chỉ bật khi bạn dùng các tính năng thực sự cần nó, và có thể quay lại thiết lập sau trong app.',
-      primaryLabel: 'Mở Accessibility',
+      title: 'Bật trợ năng',
+      description: 'Cần cho một số tính năng bảo vệ trên Android.',
+      primaryLabel: 'Đến cài đặt',
       settingsLabel: 'Mở cài đặt chung',
       icon: Icons.accessibility_new_rounded,
       color: const Color(0xFFF79009),

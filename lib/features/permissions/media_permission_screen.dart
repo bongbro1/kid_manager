@@ -31,13 +31,10 @@ class MediaPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Bật ảnh và media',
-      description:
-          'Cho phép truy cập ảnh để đổi avatar, chọn hình, và lưu nội dung cần thiết trong các tính năng phù hợp.',
-      helper:
-          'Nếu chưa cần dùng ngay, có thể bỏ qua. App sẽ xin lại đúng lúc bạn thực sự thao tác với ảnh hoặc media.',
-      primaryLabel: 'Cho phép media',
-      settingsLabel: 'Mở cài đặt media',
+      title: 'Cho phép ảnh và media',
+      description: 'Để đổi ảnh đại diện và chọn hình trong app.',
+      primaryLabel: 'Cho phép',
+      settingsLabel: 'Mở cài đặt',
       icon: Icons.photo_library_rounded,
       color: const Color(0xFF00A888),
       busy: busy,
