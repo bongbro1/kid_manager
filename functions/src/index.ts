@@ -8,6 +8,7 @@ setGlobalOptions({ region: REGION });
 export * from "./functions/mirror";
 export * from "./functions/family_members";
 export * from "./functions/birthday_notifications";
+export * from "./functions/memory_day_reminders";
 export * from "./functions/tokens";
 export * from "./functions/sos";
 export * from "./functions/locations";

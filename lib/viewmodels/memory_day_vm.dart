@@ -1,31 +1,38 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
 import '../models/memory_day.dart';
 import '../repositories/memory_day_repository.dart';
-import '../viewmodels/auth_vm.dart';
+import '../services/memory_day/memory_day_reminder_sync_service.dart';
 import '../services/schedule/schedule_notification_service.dart';
+import '../viewmodels/auth_vm.dart';
 
 class MemoryDayViewModel extends ChangeNotifier {
+  MemoryDayViewModel(
+    this._repo,
+    this._authVm,
+    this._notify,
+    this._reminderSync,
+  );
+
   final MemoryDayRepository _repo;
   final AuthVM _authVm;
   final ScheduleNotificationService _notify;
-
-  MemoryDayViewModel(this._repo, this._authVm, this._notify);
+  final MemoryDayReminderSyncService _reminderSync;
 
   String? _ownerUid;
 
   String get ownerUid {
-    final v = _ownerUid;
-    if (v == null) throw Exception('Chưa set ownerUid');
-    return v;
+    final value = _ownerUid;
+    if (value == null) {
+      throw Exception('Owner uid is not set');
+    }
+    return value;
   }
 
   String? get _actorUid => _authVm.user?.uid;
 
-  // ==========================
-  // TOKEN TÁCH RIÊNG
-  // ==========================
   int _monthToken = 0;
   int _allToken = 0;
 
@@ -44,9 +51,6 @@ class MemoryDayViewModel extends ChangeNotifier {
 
   DateTime _normalize(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  // ==========================
-  // RESET KHI ĐỔI SESSION
-  // ==========================
   void resetForNewSession({bool clearOwnerUid = true}) {
     _monthToken++;
     _allToken++;
@@ -84,9 +88,6 @@ class MemoryDayViewModel extends ChangeNotifier {
     return monthMemories[_normalize(day)]?.isNotEmpty == true;
   }
 
-  // ==========================
-  // LOAD MONTH
-  // ==========================
   Future<void> loadMonth() async {
     final uid = _ownerUid;
     if (uid == null) return;
@@ -105,9 +106,9 @@ class MemoryDayViewModel extends ChangeNotifier {
 
       if (token != _monthToken) return;
 
-      final filtered = list.where((m) {
-        if (m.repeatYearly) return true;
-        return m.date.year == focusedMonth.year;
+      final filtered = list.where((memory) {
+        if (memory.repeatYearly) return true;
+        return memory.date.year == focusedMonth.year;
       }).toList();
 
       monthMemories = _groupByDay(filtered);
@@ -125,14 +126,14 @@ class MemoryDayViewModel extends ChangeNotifier {
 
   Map<DateTime, List<MemoryDay>> _groupByDay(List<MemoryDay> list) {
     final map = <DateTime, List<MemoryDay>>{};
-    for (final m in list) {
+    for (final memory in list) {
       final key = DateTime(
-        m.repeatYearly ? focusedMonth.year : m.date.year,
-        m.month,
-        m.day,
+        memory.repeatYearly ? focusedMonth.year : memory.date.year,
+        memory.month,
+        memory.day,
       );
-      final nk = _normalize(key);
-      map.putIfAbsent(nk, () => []).add(m);
+      final normalizedKey = _normalize(key);
+      map.putIfAbsent(normalizedKey, () => []).add(memory);
     }
     return map;
   }
@@ -149,12 +150,11 @@ class MemoryDayViewModel extends ChangeNotifier {
     await loadMonth();
   }
 
-  // ==========================
-  // CRUD
-  // ==========================
-  Future<void> addMemory(MemoryDay m) async {
-    await _repo.create(ownerUid, m);
+  Future<void> addMemory(MemoryDay memory) async {
+    final persisted = await _repo.create(ownerUid, memory);
     await Future.wait([loadMonth(), loadAll()]);
+
+    unawaited(_safeSyncReminder(persisted));
 
     final actorUid = _actorUid;
     if (actorUid != null && actorUid.isNotEmpty) {
@@ -162,7 +162,7 @@ class MemoryDayViewModel extends ChangeNotifier {
         await _notify.notifyMemoryDayCreated(
           actorUid: actorUid,
           ownerParentUid: ownerUid,
-          memoryDay: m,
+          memoryDay: persisted,
         );
       } catch (e) {
         debugPrint('[MEMORY_DAY_VM] notify created failed: $e');
@@ -170,9 +170,11 @@ class MemoryDayViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> updateMemory(MemoryDay m) async {
-    await _repo.update(ownerUid, m);
+  Future<void> updateMemory(MemoryDay memory) async {
+    await _repo.update(ownerUid, memory);
     await Future.wait([loadMonth(), loadAll()]);
+
+    unawaited(_safeSyncReminder(memory));
 
     final actorUid = _actorUid;
     if (actorUid != null && actorUid.isNotEmpty) {
@@ -180,7 +182,7 @@ class MemoryDayViewModel extends ChangeNotifier {
         await _notify.notifyMemoryDayUpdated(
           actorUid: actorUid,
           ownerParentUid: ownerUid,
-          memoryDay: m,
+          memoryDay: memory,
         );
       } catch (e) {
         debugPrint('[MEMORY_DAY_VM] notify updated failed: $e');
@@ -189,8 +191,10 @@ class MemoryDayViewModel extends ChangeNotifier {
   }
 
   Future<void> deleteMemory(String id) async {
-    final existing = _findMemoryById(id) ??
+    final existing =
+        _findMemoryById(id) ??
         await _repo.getById(ownerParentUid: ownerUid, id: id);
+
     debugPrint(
       '[MEMORY_DAY_VM] deleteMemory id=$id existing=${existing?.title} ownerUid=$ownerUid actorUid=$_actorUid',
     );
@@ -198,17 +202,20 @@ class MemoryDayViewModel extends ChangeNotifier {
     try {
       _removeMemoryLocally(id);
       await _repo.delete(ownerUid, id);
+      unawaited(_safeDeleteReminder(id));
 
       final actorUid = _actorUid;
       if (existing != null && actorUid != null && actorUid.isNotEmpty) {
         unawaited(
-          _notify.notifyMemoryDayDeleted(
-            actorUid: actorUid,
-            ownerParentUid: ownerUid,
-            memoryDay: existing,
-          ).catchError((Object e) {
-            debugPrint('[MEMORY_DAY_VM] notify deleted failed: $e');
-          }),
+          _notify
+              .notifyMemoryDayDeleted(
+                actorUid: actorUid,
+                ownerParentUid: ownerUid,
+                memoryDay: existing,
+              )
+              .catchError((Object e) {
+                debugPrint('[MEMORY_DAY_VM] notify deleted failed: $e');
+              }),
         );
       }
     } catch (e) {
@@ -217,9 +224,6 @@ class MemoryDayViewModel extends ChangeNotifier {
     }
   }
 
-  // ==========================
-  // LOAD ALL
-  // ==========================
   Future<void> loadAll() async {
     final uid = _ownerUid;
     if (uid == null) return;
@@ -247,16 +251,16 @@ class MemoryDayViewModel extends ChangeNotifier {
     }
   }
 
-  int daysUntilNextOccurrence(MemoryDay m) {
+  int daysUntilNextOccurrence(MemoryDay memory) {
     final now = _normalize(DateTime.now());
-    DateTime next = DateTime(now.year, m.month, m.day);
+    DateTime next = DateTime(now.year, memory.month, memory.day);
 
     if (next.isBefore(now)) {
-      next = DateTime(now.year + 1, m.month, m.day);
+      next = DateTime(now.year + 1, memory.month, memory.day);
     }
 
-    if (!m.repeatYearly) {
-      next = _normalize(m.date);
+    if (!memory.repeatYearly) {
+      next = _normalize(memory.date);
     }
 
     return next.difference(now).inDays;
@@ -289,5 +293,30 @@ class MemoryDayViewModel extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  Future<void> _safeSyncReminder(MemoryDay memory) async {
+    try {
+      await _reminderSync.syncMemoryDay(
+        ownerParentUid: ownerUid,
+        memory: memory,
+        actorUid: _actorUid,
+      );
+    } catch (e) {
+      debugPrint(
+        '[MEMORY_DAY_VM] reminder sync failed ownerUid=$ownerUid actorUid=$_actorUid error=$e',
+      );
+    }
+  }
+
+  Future<void> _safeDeleteReminder(String memoryId) async {
+    try {
+      await _reminderSync.deleteMemoryDay(
+        ownerParentUid: ownerUid,
+        memoryDayId: memoryId,
+      );
+    } catch (e) {
+      debugPrint('[MEMORY_DAY_VM] reminder delete sync failed: $e');
+    }
   }
 }

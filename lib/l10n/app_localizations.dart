@@ -1922,6 +1922,36 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get memoryDayFormNoteLabel;
 
+  /// No description provided for @memoryDayReminderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind before'**
+  String get memoryDayReminderLabel;
+
+  /// No description provided for @memoryDayReminderNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No reminder'**
+  String get memoryDayReminderNone;
+
+  /// No description provided for @memoryDayReminderOneDay.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day before'**
+  String get memoryDayReminderOneDay;
+
+  /// No description provided for @memoryDayReminderThreeDays.
+  ///
+  /// In en, this message translates to:
+  /// **'3 days before'**
+  String get memoryDayReminderThreeDays;
+
+  /// No description provided for @memoryDayReminderSevenDays.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days before'**
+  String get memoryDayReminderSevenDays;
+
   /// No description provided for @memoryDayRepeatYearlyLabel.
   ///
   /// In en, this message translates to:
@@ -1975,6 +2005,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add memorable day'**
   String get memoryDayAddButton;
+
+  /// No description provided for @memoryDayEditAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get memoryDayEditAction;
+
+  /// No description provided for @memoryDayDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get memoryDayDeleteAction;
 
   /// No description provided for @notificationsEmptyTitle.
   ///

@@ -1036,6 +1036,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoryDayFormNoteLabel => 'Note';
 
   @override
+  String get memoryDayReminderLabel => 'Remind before';
+
+  @override
+  String get memoryDayReminderNone => 'No reminder';
+
+  @override
+  String get memoryDayReminderOneDay => '1 day before';
+
+  @override
+  String get memoryDayReminderThreeDays => '3 days before';
+
+  @override
+  String get memoryDayReminderSevenDays => '7 days before';
+
+  @override
   String get memoryDayRepeatYearlyLabel => 'Repeat yearly';
 
   @override
@@ -1062,6 +1077,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memoryDayAddButton => 'Add memorable day';
+
+  @override
+  String get memoryDayEditAction => 'Edit';
+
+  @override
+  String get memoryDayDeleteAction => 'Delete';
 
   @override
   String get notificationsEmptyTitle => 'No notifications yet';

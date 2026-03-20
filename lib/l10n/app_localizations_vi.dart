@@ -1036,6 +1036,21 @@ class AppLocalizationsVi extends AppLocalizations {
   String get memoryDayFormNoteLabel => 'Ghi chú';
 
   @override
+  String get memoryDayReminderLabel => 'Nhắc nhở trước';
+
+  @override
+  String get memoryDayReminderNone => 'Không nhắc';
+
+  @override
+  String get memoryDayReminderOneDay => 'Trước 1 ngày';
+
+  @override
+  String get memoryDayReminderThreeDays => 'Trước 3 ngày';
+
+  @override
+  String get memoryDayReminderSevenDays => 'Trước 7 ngày';
+
+  @override
   String get memoryDayRepeatYearlyLabel => 'Lặp lại hàng năm';
 
   @override
@@ -1062,6 +1077,12 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get memoryDayAddButton => 'Thêm ngày đáng nhớ';
+
+  @override
+  String get memoryDayEditAction => 'Sửa';
+
+  @override
+  String get memoryDayDeleteAction => 'Xóa';
 
   @override
   String get notificationsEmptyTitle => 'Chưa có thông báo';
