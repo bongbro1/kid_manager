@@ -3,16 +3,15 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { admin } from "../bootstrap";
 import { REGION } from "../config";
 import { mustString, mustNumber, validateLatLng } from "../helpers";
-import { requireParentOfChild } from "../services/child";
-import { db } from "../bootstrap";
+import { requireLocationViewerAccess } from "../services/locationAccess";
 
 // upsertChildZone
 export const upsertChildZone = onCall({ region: REGION }, async (req) => {
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
-  const parentUid = req.auth.uid;
+  const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
-  await requireParentOfChild(parentUid, childUid);
+  await requireLocationViewerAccess(viewerUid, childUid);
 
   const zoneIdRaw = req.data?.zoneId;
   const zoneId =
@@ -43,7 +42,7 @@ export const upsertChildZone = onCall({ region: REGION }, async (req) => {
     lng,
     radiusM,
     enabled,
-    createdBy: parentUid,
+    createdBy: viewerUid,
     createdAt: req.data?.createdAt ?? nowMs,
     updatedAt: nowMs,
   };
@@ -55,11 +54,11 @@ export const upsertChildZone = onCall({ region: REGION }, async (req) => {
 // deleteChildZone
 export const deleteChildZone = onCall({ region: REGION }, async (req) => {
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
-  const parentUid = req.auth.uid;
+  const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
   const zoneId = mustString(req.data?.zoneId, "zoneId");
-  await requireParentOfChild(parentUid, childUid);
+  await requireLocationViewerAccess(viewerUid, childUid);
 
   await admin.database().ref(`zonesByChild/${childUid}/${zoneId}`).remove();
   return { ok: true };
@@ -68,20 +67,28 @@ export const deleteChildZone = onCall({ region: REGION }, async (req) => {
 // getChildZones
 export const getChildZones = onCall({ region: REGION }, async (req) => {
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
-  const uid = req.auth.uid;
+  const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
-
-  const childSnap = await db.doc(`users/${childUid}`).get();
-  if (!childSnap.exists) throw new HttpsError("not-found", "Child not found");
-  const child = childSnap.data() as any;
-
-  if (uid !== childUid && uid !== child.parentUid) {
-    throw new HttpsError("permission-denied", "Not allowed");
-  }
+  await requireLocationViewerAccess(viewerUid, childUid);
 
   const snap = await admin.database().ref(`zonesByChild/${childUid}`).get();
   const zones = snap.exists() ? snap.val() : null;
 
   return { ok: true, childUid, zones };
+});
+
+export const getChildZonePresence = onCall({ region: REGION }, async (req) => {
+  if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+  const viewerUid = req.auth.uid;
+
+  const childUid = mustString(req.data?.childUid, "childUid");
+  await requireLocationViewerAccess(viewerUid, childUid);
+
+  const snap = await admin.database().ref(`zonePresenceByChild/${childUid}`).get();
+  return {
+    ok: true,
+    childUid,
+    presence: snap.exists() ? snap.val() : null,
+  };
 });

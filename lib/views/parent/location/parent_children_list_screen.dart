@@ -16,7 +16,7 @@ class ParentChildrenListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<UserVm>();
-    final children = vm.children;
+    final children = vm.locationMembers;
     final locationVm = context.watch<ParentLocationVm>();
 
     return Scaffold(

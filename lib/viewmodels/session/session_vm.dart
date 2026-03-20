@@ -55,6 +55,8 @@ class SessionVM extends ChangeNotifier {
 
   bool get isParent => _user?.role == UserRole.parent;
   bool get isChild => _user?.role == UserRole.child;
+  bool get isGuardian => _user?.role == UserRole.guardian;
+  bool get isLocationViewer => isParent || isGuardian;
 
   @override
   void dispose() {

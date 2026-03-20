@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/features/permissions/permission_onboarding_flow.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -31,9 +33,31 @@ class _FlashScreenState extends State<FlashScreen> {
 
   Future<void> _init() async {
     final appVM = context.read<AppManagementVM>();
+    final storage = context.read<StorageService>();
+
     appVM.loadAndSeedApp();
+
+    final hasSeenPermissionFlow =
+        storage.getBool(StorageKeys.permissionOnboardingSeenV1) ?? false;
+
     if (!mounted) return;
-    setState(() => _showPermissionFlow = true);
+    setState(() {
+      _showPermissionFlow = !hasSeenPermissionFlow;
+      _permissionsDone = hasSeenPermissionFlow;
+    });
+  }
+
+  Future<void> _finishPermissionFlow() async {
+    await context.read<StorageService>().setBool(
+      StorageKeys.permissionOnboardingSeenV1,
+      true,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _permissionsDone = true;
+      _showPermissionFlow = false;
+    });
   }
 
   @override
@@ -41,16 +65,13 @@ class _FlashScreenState extends State<FlashScreen> {
     final appVM = context.watch<AppManagementVM>();
     final l10n = AppLocalizations.of(context);
 
-    if (appVM.loading) return LoadingOverlay();
+    if (appVM.loading) {
+      return LoadingOverlay();
+    }
 
     if (_showPermissionFlow && !_permissionsDone) {
       return PermissionOnboardingFlow(
-        onFinished: () {
-          if (!mounted) return;
-          setState(() {
-            _permissionsDone = true;
-          });
-        },
+        onFinished: _finishPermissionFlow,
       );
     }
 
@@ -72,7 +93,7 @@ class _FlashScreenState extends State<FlashScreen> {
                       child: Text(
                         l10n.flashWelcomeTitle,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Color(0xFF2D2B2E),
                           fontSize: 24,
                           fontFamily: 'Poppins',
@@ -88,7 +109,7 @@ class _FlashScreenState extends State<FlashScreen> {
                       child: Text(
                         l10n.flashWelcomeSubtitle,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Color(0xFF2D2B2E),
                           fontSize: 14,
                           fontFamily: 'DM Sans',
@@ -113,7 +134,7 @@ class _FlashScreenState extends State<FlashScreen> {
                     child: Text(
                       l10n.flashNext,
                       textAlign: TextAlign.right,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Color(0xFF2D2B2E),
                         fontSize: 18,
                         fontFamily: 'Poppins',

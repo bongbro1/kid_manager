@@ -28,16 +28,18 @@ export const mirrorUserToRtdb = onDocumentWritten(
       typeof data.role === "string" && data.role.trim()
         ? data.role.trim()
         : null;
+    const allowTracking = data.allowTracking === true;
 
     await targetRef.set({
       parentUid,
       familyId,
       role,
+      allowTracking,
       mirroredAt: admin.database.ServerValue.TIMESTAMP,
     });
 
     console.log(
-      `[mirrorUserToRtdb] mirrored uid=${uid} parentUid=${parentUid} familyId=${familyId} role=${role}`
+      `[mirrorUserToRtdb] mirrored uid=${uid} parentUid=${parentUid} familyId=${familyId} role=${role} allowTracking=${allowTracking}`
     );
   }
 );

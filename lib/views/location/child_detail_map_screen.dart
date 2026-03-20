@@ -5,9 +5,11 @@ import 'package:kid_manager/features/map_engine/map_engine.dart';
 import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
 import 'package:kid_manager/features/safe_route/presentation/pages/tracking_page.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_cards.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_controls.dart';
 import 'package:kid_manager/views/parent/zones/child_zones_screen.dart';
@@ -41,10 +43,7 @@ class _ChildDetailMapBody extends StatefulWidget {
   final String childId;
   final String? childAvatarUrl;
 
-  const _ChildDetailMapBody({
-    required this.childId,
-    this.childAvatarUrl,
-  });
+  const _ChildDetailMapBody({required this.childId, this.childAvatarUrl});
 
   @override
   State<_ChildDetailMapBody> createState() => _ChildDetailMapBodyState();
@@ -305,17 +304,17 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   String _buildAppBarSubtitle(ChildDetailMapVm vm) {
     final latest = vm.latest;
     if (latest == null) {
-      return '${_fmtDay(vm.selectedDay)} \u00B7 ${vm.rangeLabel}';
+      return '${_fmtDay(vm.selectedDay)} · ${vm.rangeLabel}';
     }
 
     final diff = DateTime.now().difference(latest.dateTime);
     final freshness = diff.inMinutes <= 0
-        ? 'C\u1EADp nh\u1EADt v\u1EEBa xong'
+        ? 'Cập nhật vừa xong'
         : diff.inMinutes == 1
-        ? 'C\u1EADp nh\u1EADt 1 ph\u00FAt tr\u01B0\u1EDBc'
-        : 'C\u1EADp nh\u1EADt ${diff.inMinutes} ph\u00FAt tr\u01B0\u1EDBc';
+        ? 'Cập nhật 1 phút trước'
+        : 'Cập nhật ${diff.inMinutes} phút trước';
 
-    return '$freshness \u00B7 ${vm.rangeLabel}';
+    return '$freshness · ${vm.rangeLabel}';
   }
 
   String _buildAvatarLabel() {
@@ -327,6 +326,27 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       return compact.toUpperCase();
     }
     return 'BE';
+  }
+
+  AppUser? _resolveTrackedMember() {
+    final userVm = context.read<UserVm>();
+    for (final member in userVm.locationMembers) {
+      if (member.uid == widget.childId) {
+        return member;
+      }
+    }
+    for (final member in userVm.familyMembers) {
+      if (member.uid == widget.childId) {
+        return member;
+      }
+    }
+    return null;
+  }
+
+  bool _canOpenSafeRoute() {
+    final viewer = context.read<UserVm>().me;
+    final target = _resolveTrackedMember();
+    return viewer?.isParent == true && target?.isChild == true;
   }
 
   Widget _buildAvatarBadge() {
@@ -432,8 +452,8 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                       children: [
                         Text(
                           vm.isToday
-                              ? 'H\u00E0nh tr\u00ECnh hi\u1EC7n t\u1EA1i'
-                              : 'L\u1ECBch s\u1EED di chuy\u1EC3n',
+                              ? 'Hành trình hiện tại'
+                              : 'Lịch sử di chuyển',
                           style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
@@ -462,9 +482,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                   Expanded(
                     child: ChildDetailMapAppBarChip(
                       icon: Icons.calendar_today_rounded,
-                      label: vm.isToday
-                          ? 'H\u00F4m nay'
-                          : _fmtDay(vm.selectedDay),
+                      label: vm.isToday ? 'Hôm nay' : _fmtDay(vm.selectedDay),
                       onTap: _pickDay,
                       highlighted: true,
                     ),
@@ -487,6 +505,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   }
 
   Widget _buildFabColumn(ChildDetailMapVm vm) {
+    final canOpenSafeRoute = _canOpenSafeRoute();
     final startPointSource = vm.selectedPoint ?? vm.latest;
     final startPoint = startPointSource == null
         ? null
@@ -517,22 +536,24 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
           ),
         ),
         const SizedBox(height: 10),
-        ChildDetailMapFab(
-          tooltip: 'Tuyến đường an toàn',
-          icon: Icons.route_rounded,
-          active: false,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TrackingPage(
-                childId: widget.childId,
-                childAvatarUrl: widget.childAvatarUrl,
-                initialStartPoint: startPoint,
+        if (canOpenSafeRoute) ...[
+          ChildDetailMapFab(
+            tooltip: 'Tuyến đường an toàn',
+            icon: Icons.route_rounded,
+            active: false,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TrackingPage(
+                  childId: widget.childId,
+                  childAvatarUrl: widget.childAvatarUrl,
+                  initialStartPoint: startPoint,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
+        ],
         ChildDetailMapFab(
           tooltip: 'Chọn bản đồ',
           icon: Icons.layers_outlined,
@@ -546,8 +567,8 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   Widget _buildOverlay(ChildDetailMapVm vm) {
     final topInset = MediaQuery.of(context).padding.top;
 
-    // chiÃ¡Â»Âu cao vÃƒÂ¹ng header Ã„â€˜ang dÃƒÂ¹ng:
-    // AppBar 110 + khoÃ¡ÂºÂ£ng Ã„â€˜Ã¡Â»â€¡m nhÃƒÂ¬n thÃ¡Â»Â±c tÃ¡ÂºÂ¿ thÃƒÂªm mÃ¡Â»â„¢t chÃƒÂºt
+    // chiều cao vùng header đang dùng:
+    // AppBar 110 + khoảng đệm nhìn thực tế thêm một chút
     final fabTop = topInset + 112 + 18;
 
     return Stack(
@@ -619,7 +640,6 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
           AppMapView(
             controller: _mapViewController,
             showInternalMapTypeButton: false,
-
             onMapCreated: (_) {},
             onTapListener: (gesture) {
               _engine?.handleMapTap(gesture);

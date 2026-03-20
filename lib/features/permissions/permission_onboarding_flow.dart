@@ -1,34 +1,65 @@
-import 'package:app_settings/app_settings.dart';
-import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'dart:async';
+import 'dart:io';
 
-import 'location_permission_screen.dart';
-import 'notification_permission_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:kid_manager/features/permissions/accessibility_permission_screen.dart';
+import 'package:kid_manager/features/permissions/background_location_guide_video_card.dart';
+import 'package:kid_manager/features/permissions/background_location_permission_screen.dart';
+import 'package:kid_manager/features/permissions/battery_optimization_permission_screen.dart';
+import 'package:kid_manager/features/permissions/location_permission_screen.dart';
+import 'package:kid_manager/features/permissions/media_permission_screen.dart';
+import 'package:kid_manager/features/permissions/notification_permission_screen.dart';
+import 'package:kid_manager/features/permissions/usage_access_permission_screen.dart';
+import 'package:kid_manager/services/permission_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 
 class PermissionOnboardingFlow extends StatefulWidget {
-  final VoidCallback onFinished;
-
   const PermissionOnboardingFlow({
     super.key,
     required this.onFinished,
+    this.mediaBuilder,
   });
+
+  final Future<void> Function() onFinished;
+  final Widget Function(BuildContext context, PermissionOnboardingStepType step)?
+      mediaBuilder;
 
   @override
   State<PermissionOnboardingFlow> createState() =>
       _PermissionOnboardingFlowState();
 }
 
+enum PermissionOnboardingStepType {
+  notifications,
+  location,
+  backgroundLocation,
+  media,
+  usage,
+  accessibility,
+  battery,
+}
+
 class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
     with WidgetsBindingObserver {
-  int _step = 0; // 0 = notification, 1 = location
-  bool _openedSettings = false;
+  late final PermissionService _permissionService;
+  late final List<PermissionOnboardingStepType> _steps;
+
+  int _stepIndex = 0;
   bool _busy = false;
+  bool _openedSettings = false;
+  String? _statusMessage;
+
+  PermissionOnboardingStepType get _currentStep => _steps[_stepIndex];
+  List<String> get _stepLabels => _steps.map(_labelForStep).toList();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _checkInitialPermissions();
+    _permissionService = context.read<PermissionService>();
+    _steps = _buildSteps();
+    Future.microtask(_syncCurrentStep);
   }
 
   @override
@@ -37,197 +68,384 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
     super.dispose();
   }
 
-  Future<void> _checkInitialPermissions() async {
-    final notificationStatus = await Permission.notification.status;
-    final locationStatus = await Permission.locationWhenInUse.status;
-
-    if (!mounted) return;
-
-    if (notificationStatus.isGranted && locationStatus.isGranted) {
-      widget.onFinished();
-      return;
-    }
-
-    if (notificationStatus.isGranted) {
-      setState(() => _step = 1);
-      return;
-    }
-
-    setState(() => _step = 0);
-  }
-
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) async {
+  void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_openedSettings || state != AppLifecycleState.resumed) return;
+    _openedSettings = false;
+    Future.delayed(const Duration(milliseconds: 350), _syncCurrentStep);
+  }
 
-    final notificationStatus = await Permission.notification.status;
-    final locationStatus = await Permission.locationWhenInUse.status;
+  List<PermissionOnboardingStepType> _buildSteps() {
+    final steps = <PermissionOnboardingStepType>[
+      PermissionOnboardingStepType.notifications,
+      PermissionOnboardingStepType.location,
+      PermissionOnboardingStepType.backgroundLocation,
+      PermissionOnboardingStepType.media,
+    ];
 
+    if (Platform.isAndroid) {
+      steps.addAll(const [
+        PermissionOnboardingStepType.usage,
+        PermissionOnboardingStepType.accessibility,
+        PermissionOnboardingStepType.battery,
+      ]);
+    }
+
+    return steps;
+  }
+
+  String _labelForStep(PermissionOnboardingStepType step) {
+    switch (step) {
+      case PermissionOnboardingStepType.notifications:
+        return 'Thong bao';
+      case PermissionOnboardingStepType.location:
+        return 'Vi tri';
+      case PermissionOnboardingStepType.backgroundLocation:
+        return 'Vi tri nen';
+      case PermissionOnboardingStepType.media:
+        return 'Media';
+      case PermissionOnboardingStepType.usage:
+        return 'Usage';
+      case PermissionOnboardingStepType.accessibility:
+        return 'Accessibility';
+      case PermissionOnboardingStepType.battery:
+        return 'Pin';
+    }
+  }
+
+  Future<void> _syncCurrentStep() async {
     if (!mounted) return;
 
-    setState(() => _openedSettings = false);
-
-    if (_step == 0) {
-      if (notificationStatus.isGranted) {
-        setState(() => _step = 1);
+    for (var i = 0; i < _steps.length; i++) {
+      final granted = await _isGranted(_steps[i]);
+      if (!granted) {
+        if (!mounted) return;
+        setState(() {
+          _stepIndex = i;
+          _statusMessage = null;
+        });
+        return;
       }
-      return;
     }
 
-    if (_step == 1) {
-      if (locationStatus.isGranted) {
-        widget.onFinished();
-      }
+    await widget.onFinished();
+  }
+
+  Future<bool> _isGranted(PermissionOnboardingStepType type) {
+    switch (type) {
+      case PermissionOnboardingStepType.notifications:
+        return _permissionService.hasNotificationPermission();
+      case PermissionOnboardingStepType.location:
+        return _permissionService.hasForegroundLocationPermission();
+      case PermissionOnboardingStepType.backgroundLocation:
+        return _permissionService.hasBackgroundLocationPermission();
+      case PermissionOnboardingStepType.media:
+        return _permissionService.hasPhotosOrStoragePermission();
+      case PermissionOnboardingStepType.usage:
+        return _permissionService.hasUsagePermission();
+      case PermissionOnboardingStepType.accessibility:
+        return _permissionService.hasAccessibilityPermission();
+      case PermissionOnboardingStepType.battery:
+        return _permissionService.hasBatteryOptimizationDisabled();
     }
   }
 
-  Future<void> _requestNotificationPermission() async {
+  Future<void> _handlePrimary() async {
     if (_busy) return;
-    setState(() => _busy = true);
+
+    setState(() {
+      _busy = true;
+      _statusMessage = null;
+    });
 
     try {
-      final status = await Permission.notification.request();
-
-      if (!mounted) return;
-
-      if (status.isGranted) {
-        setState(() => _step = 1);
+      if (_isSettingsOnlyStep(_currentStep)) {
+        await _openSettings(_currentStep);
         return;
       }
 
-      if (status.isPermanentlyDenied || status.isRestricted || status.isDenied) {
-        _openNotificationSettings();
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  Future<void> _requestLocationPermission() async {
-    if (_busy) return;
-    setState(() => _busy = true);
-
-    try {
-      final status = await Permission.locationWhenInUse.request();
-
+      final status = await _requestPermission(_currentStep);
       if (!mounted) return;
 
-      if (status.isGranted) {
-        widget.onFinished();
+      if (_isRequestGranted(status, _currentStep)) {
+        await _moveToNextStep();
         return;
       }
 
-      if (status.isPermanentlyDenied || status.isRestricted || status.isDenied) {
-        _openAppSettings();
+      if (status.isPermanentlyDenied || status.isRestricted) {
+        setState(() {
+          _statusMessage =
+              'Quyen nay dang bi tu choi o he thong. Mo cai dat de cap lai.';
+        });
+        return;
       }
+
+      setState(() {
+        _statusMessage =
+            'Quyen nay chua duoc cap. Ban co the thu lai hoac bo qua va bat sau trong app.';
+      });
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
+        setState(() {
+          _busy = false;
+        });
       }
     }
   }
 
-  void _skipLocation() {
-    widget.onFinished();
+  Future<void> _handleOpenSettings() async {
+    if (_busy) return;
+
+    setState(() {
+      _busy = true;
+      _statusMessage = null;
+    });
+
+    try {
+      await _openSettings(_currentStep);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+        });
+      }
+    }
   }
 
-  void _openNotificationSettings() {
-    setState(() => _openedSettings = true);
-    AppSettings.openAppSettings(type: AppSettingsType.notification);
+  Future<void> _handleSkip() async {
+    if (_busy) return;
+    await _moveToNextStep();
   }
 
-  void _openAppSettings() {
-    setState(() => _openedSettings = true);
-    openAppSettings();
+  Future<void> _moveToNextStep() async {
+    for (var i = _stepIndex + 1; i < _steps.length; i++) {
+      final granted = await _isGranted(_steps[i]);
+      if (!granted) {
+        if (!mounted) return;
+        setState(() {
+          _stepIndex = i;
+          _statusMessage = null;
+        });
+        return;
+      }
+    }
+
+    await widget.onFinished();
+  }
+
+  bool _isSettingsOnlyStep(PermissionOnboardingStepType step) {
+    switch (step) {
+      case PermissionOnboardingStepType.usage:
+      case PermissionOnboardingStepType.accessibility:
+      case PermissionOnboardingStepType.battery:
+        return true;
+      case PermissionOnboardingStepType.notifications:
+      case PermissionOnboardingStepType.location:
+      case PermissionOnboardingStepType.backgroundLocation:
+      case PermissionOnboardingStepType.media:
+        return false;
+    }
+  }
+
+  Future<void> _openSettings(PermissionOnboardingStepType type) async {
+    _openedSettings = true;
+    switch (type) {
+      case PermissionOnboardingStepType.notifications:
+        await _permissionService.openNotificationSettings();
+        break;
+      case PermissionOnboardingStepType.location:
+      case PermissionOnboardingStepType.backgroundLocation:
+      case PermissionOnboardingStepType.media:
+        if (type == PermissionOnboardingStepType.backgroundLocation) {
+          await _permissionService.openLocationSettings();
+        } else {
+          await _permissionService.openAppSettingsPage();
+        }
+        break;
+      case PermissionOnboardingStepType.usage:
+        await _permissionService.openUsageAccessSettings();
+        break;
+      case PermissionOnboardingStepType.accessibility:
+        await _permissionService.openAccessibilitySettings();
+        break;
+      case PermissionOnboardingStepType.battery:
+        await _permissionService.openBatteryOptimizationSettings();
+        break;
+    }
+  }
+
+  Future<PermissionStatus> _requestPermission(
+    PermissionOnboardingStepType type,
+  ) {
+    switch (type) {
+      case PermissionOnboardingStepType.notifications:
+        return _permissionService.requestNotificationPermission();
+      case PermissionOnboardingStepType.location:
+        return _permissionService.requestForegroundLocationPermission();
+      case PermissionOnboardingStepType.backgroundLocation:
+        return _permissionService.requestBackgroundLocationPermission();
+      case PermissionOnboardingStepType.media:
+        return _requestMediaPermission();
+      case PermissionOnboardingStepType.usage:
+      case PermissionOnboardingStepType.accessibility:
+      case PermissionOnboardingStepType.battery:
+        return Future.value(PermissionStatus.denied);
+    }
+  }
+
+  Future<PermissionStatus> _requestMediaPermission() async {
+    final granted = await _permissionService.requestPhotosOrStoragePermission();
+    return granted ? PermissionStatus.granted : PermissionStatus.denied;
+  }
+
+  bool _isRequestGranted(
+    PermissionStatus status,
+    PermissionOnboardingStepType type,
+  ) {
+    if (status.isGranted) return true;
+    if (type == PermissionOnboardingStepType.notifications &&
+        status == PermissionStatus.provisional) {
+      return true;
+    }
+    if (type == PermissionOnboardingStepType.media &&
+        status == PermissionStatus.limited) {
+      return true;
+    }
+    return false;
+  }
+
+  Widget _buildStepScreen() {
+    final currentStep = _stepIndex + 1;
+    final totalSteps = _steps.length;
+    final media = _buildStepMedia();
+
+    switch (_currentStep) {
+      case PermissionOnboardingStepType.notifications:
+        return NotificationPermissionScreen(
+          key: const ValueKey('notifications'),
+          currentStep: currentStep,
+          totalSteps: totalSteps,
+          stepLabels: _stepLabels,
+          busy: _busy,
+          statusMessage: _statusMessage,
+          media: media,
+          helperText:
+              'Chỉ cần cấp quyền khi dùng app trước. Ngay sau bước này app sẽ hướng dẫn bật thêm \"Allow all the time\" để tracking nền hoạt động ổn định.',
+          onAllow: () => unawaited(_handlePrimary()),
+          onOpenSettings: () => unawaited(_handleOpenSettings()),
+          onSkip: () => unawaited(_handleSkip()),
+        );
+      case PermissionOnboardingStepType.location:
+        return LocationPermissionScreen(
+          key: const ValueKey('location'),
+          currentStep: currentStep,
+          totalSteps: totalSteps,
+          stepLabels: _stepLabels,
+          busy: _busy,
+          statusMessage: _statusMessage,
+          media: media,
+          onAllow: () => unawaited(_handlePrimary()),
+          onOpenSettings: () => unawaited(_handleOpenSettings()),
+          onSkip: () => unawaited(_handleSkip()),
+        );
+      case PermissionOnboardingStepType.backgroundLocation:
+        return BackgroundLocationPermissionScreen(
+          key: const ValueKey('background-location'),
+          currentStep: currentStep,
+          totalSteps: totalSteps,
+          stepLabels: _stepLabels,
+          busy: _busy,
+          statusMessage: _statusMessage,
+          media: media,
+          onAllow: () => unawaited(_handlePrimary()),
+          onOpenSettings: () => unawaited(_handleOpenSettings()),
+          onSkip: () => unawaited(_handleSkip()),
+        );
+      case PermissionOnboardingStepType.media:
+        return MediaPermissionScreen(
+          key: const ValueKey('media'),
+          currentStep: currentStep,
+          totalSteps: totalSteps,
+          stepLabels: _stepLabels,
+          busy: _busy,
+          statusMessage: _statusMessage,
+          media: media,
+          onAllow: () => unawaited(_handlePrimary()),
+          onOpenSettings: () => unawaited(_handleOpenSettings()),
+          onSkip: () => unawaited(_handleSkip()),
+        );
+      case PermissionOnboardingStepType.usage:
+        return UsageAccessPermissionScreen(
+          key: const ValueKey('usage'),
+          currentStep: currentStep,
+          totalSteps: totalSteps,
+          stepLabels: _stepLabels,
+          busy: _busy,
+          statusMessage: _statusMessage,
+          media: media,
+          onOpenUsageAccess: () => unawaited(_handlePrimary()),
+          onOpenSettings: () => unawaited(_handleOpenSettings()),
+          onSkip: () => unawaited(_handleSkip()),
+        );
+      case PermissionOnboardingStepType.accessibility:
+        return AccessibilityPermissionScreen(
+          key: const ValueKey('accessibility'),
+          currentStep: currentStep,
+          totalSteps: totalSteps,
+          stepLabels: _stepLabels,
+          busy: _busy,
+          statusMessage: _statusMessage,
+          media: media,
+          onOpenAccessibility: () => unawaited(_handlePrimary()),
+          onOpenSettings: () => unawaited(_handleOpenSettings()),
+          onSkip: () => unawaited(_handleSkip()),
+        );
+      case PermissionOnboardingStepType.battery:
+        return BatteryOptimizationPermissionScreen(
+          key: const ValueKey('battery'),
+          currentStep: currentStep,
+          totalSteps: totalSteps,
+          stepLabels: _stepLabels,
+          busy: _busy,
+          statusMessage: _statusMessage,
+          media: media,
+          onOpenBatterySettings: () => unawaited(_handlePrimary()),
+          onOpenSettings: () => unawaited(_handleOpenSettings()),
+          onSkip: () => unawaited(_handleSkip()),
+        );
+    }
+  }
+
+  Widget? _buildStepMedia() {
+    final override = widget.mediaBuilder?.call(context, _currentStep);
+    if (override != null) return override;
+
+    if (_currentStep == PermissionOnboardingStepType.backgroundLocation) {
+      return const BackgroundLocationGuideVideoCard();
+    }
+
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _PermissionProgressHeader(step: _step),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 350),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                transitionBuilder: (child, animation) {
-                  final slide = Tween<Offset>(
-                    begin: const Offset(0.08, 0),
-                    end: Offset.zero,
-                  ).animate(animation);
-
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: slide,
-                      child: child,
-                    ),
-                  );
-                },
-                child: _step == 0
-                    ? NotificationPermissionScreen(
-                  key: const ValueKey('notification-step'),
-                  onAllow: _requestNotificationPermission,
-                  onOpenSettings: _openNotificationSettings,
-                  busy: _busy,
-                )
-                    : LocationPermissionScreen(
-                  key: const ValueKey('location-step'),
-                  onAllow: _requestLocationPermission,
-                  onOpenSettings: _openAppSettings,
-                  onSkip: _skipLocation,
-                  busy: _busy,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PermissionProgressHeader extends StatelessWidget {
-  final int step;
-
-  const _PermissionProgressHeader({required this.step});
-
-  @override
-  Widget build(BuildContext context) {
-    final currentStep = step + 1;
-    final progress = currentStep / 2;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Bước $currentStep/2',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF2D2B2E),
-            ),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 280),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.05, 0),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
           ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFEAEAEA),
-              valueColor: const AlwaysStoppedAnimation(Color(0xFF2D2B2E)),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
+      child: _buildStepScreen(),
     );
   }
 }

@@ -130,4 +130,49 @@ class AppShellConfig {
       root: const PersonalInfoScreen(),
     ),
   ], chatTabIndex: 1);
+
+  static AppShellConfig guardian() => AppShellConfig([
+    BottomTabConfig(
+      iconAsset: 'assets/icons/location.svg',
+      isMapTab: true,
+      root: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => MapboxController()),
+          ChangeNotifierProvider(create: (_) => ZoneStatusVm()),
+        ],
+        child: const ParentAllChildrenMapScreen(),
+      ),
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/sms.svg',
+      root: const FamilyGroupChatScreen(),
+      showBadge: true,
+      badgeCountStreamBuilder: (context) {
+        final userVm = context.read<UserVm>();
+        final familyId = userVm.familyId;
+        final me = userVm.me;
+
+        if (familyId == null || me == null) {
+          return Stream.value(0);
+        }
+
+        return FamilyChatRepository().watchUnreadCount(
+          familyId: familyId,
+          uid: me.uid,
+        );
+      },
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/bell.svg',
+      root: const NotificationTab(
+        sources: [NotificationSource.global, NotificationSource.userInbox],
+      ),
+      showBadge: true,
+      isNotificationTab: true,
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/user_nav.svg',
+      root: const PersonalInfoScreen(),
+    ),
+  ], chatTabIndex: 1);
 }

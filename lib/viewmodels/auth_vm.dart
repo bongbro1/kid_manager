@@ -51,7 +51,6 @@ class AuthVM extends ChangeNotifier {
 
       final uid = user.uid;
 
-      /// ðŸ”Ž Ä‘á»c user document
       final userInfo = await _userRepo.getUserById(uid);
 
       if (userInfo == null) {
@@ -59,13 +58,11 @@ class AuthVM extends ChangeNotifier {
         throw Exception("accountNotFound");
       }
 
-      // /// âŒ chÆ°a verify OTP
       if (userInfo.isActive != true) {
         await _authRepo.logout();
         throw Exception("accountNotActivated");
       }
 
-      ///  há»£p lá»‡
       _user = user;
       debugPrint("User : $_user");
       notifyListeners();
@@ -231,7 +228,7 @@ class AuthVM extends ChangeNotifier {
     } catch (e) {
       debugPrint("AUTH ERROR (Unknown): $e");
 
-      _error = 'CÃ³ lá»—i xáº£y ra. Vui lÃ²ng thá»­ láº¡i.';
+      _error = 'Có lỗi xảy ra. Vui lòng thử lại.';
       return null;
     } finally {
       _setLoading(false);

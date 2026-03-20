@@ -199,9 +199,13 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
 
     try {
       final userVm = context.read<UserVm>();
-      for (final child in userVm.children) {
-        if (child.uid == childId) {
-          final avatarUrl = child.avatarUrl?.trim() ?? '';
+      for (final member in <dynamic>[
+        ...userVm.locationMembers,
+        ...userVm.children,
+        ...userVm.familyMembers,
+      ]) {
+        if (member.uid == childId) {
+          final avatarUrl = member.avatarUrl?.trim() ?? '';
           return avatarUrl.isEmpty ? null : avatarUrl;
         }
       }

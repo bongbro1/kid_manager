@@ -32,13 +32,18 @@ class UserVm extends ChangeNotifier {
   StreamSubscription<UserProfile?>? _profileSubscription;
   StreamSubscription<List<AppUser>>? _childrenSub;
   StreamSubscription<List<AppUser>>? _familySub;
+  StreamSubscription<List<AppUser>>? _locationMembersSub;
 
   final List<AppUser> _children = [];
   List<AppUser> get children => _children;
 
   final List<AppUser> _familyMembers = [];
   List<AppUser> get familyMembers => _familyMembers;
+  final List<AppUser> _locationMembers = [];
+  List<AppUser> get locationMembers => _locationMembers;
   List<String> get childrenIds => _children.map((c) => c.uid).toList();
+  List<String> get locationMemberIds =>
+      _locationMembers.map((member) => member.uid).toList();
 
   String? _currentWatchedUid;
   String? _currentProfileUid;
@@ -58,10 +63,14 @@ class UserVm extends ChangeNotifier {
 
   Future<void> clear() async {
     await _childrenSub?.cancel();
+    await _familySub?.cancel();
+    await _locationMembersSub?.cancel();
     await _profileSubscription?.cancel();
     await _meSub?.cancel();
 
     _childrenSub = null;
+    _familySub = null;
+    _locationMembersSub = null;
     _profileSubscription = null;
     _meSub = null;
 
@@ -70,6 +79,8 @@ class UserVm extends ChangeNotifier {
     profile = null;
     me = null;
     _children.clear();
+    _familyMembers.clear();
+    _locationMembers.clear();
 
     notifyListeners();
   }
@@ -104,7 +115,7 @@ class UserVm extends ChangeNotifier {
             notifyListeners();
           },
           onError: (e) {
-            _error = 'Lỗi load user: $e';
+            _error = 'Lỗi tải thông tin người dùng: $e';
             notifyListeners();
           },
         );
@@ -118,7 +129,7 @@ class UserVm extends ChangeNotifier {
         ..clear()
         ..addAll(list);
       notifyListeners();
-    }, onError: (e) => _setError('Lỗi load children: $e'));
+    }, onError: (e) => _setError('Lỗi tải danh sách trẻ: $e'));
   }
 
   void watchFamilyMembers(String familyId) {
@@ -132,7 +143,22 @@ class UserVm extends ChangeNotifier {
         ..addAll(list.where((u) => u.uid != myUid));
 
       notifyListeners();
-    }, onError: (e) => _setError('Lỗi load members: $e'));
+    }, onError: (e) => _setError('Lỗi tải danh sách thành viên: $e'));
+  }
+
+  void watchLocationMembers(String familyId, {String? excludeUid}) {
+    _locationMembersSub?.cancel();
+
+    final myUid = excludeUid ?? _storage.getString(StorageKeys.uid);
+
+    _locationMembersSub = _userRepo
+        .watchTrackableLocationMembers(familyId, excludeUid: myUid)
+        .listen((list) {
+          _locationMembers
+            ..clear()
+            ..addAll(list);
+          notifyListeners();
+        }, onError: (e) => _setError('Location members load error: $e'));
   }
 
   Future<void> watchFamilyMembersByParent(String parentUid) async {
@@ -196,7 +222,6 @@ class UserVm extends ChangeNotifier {
     final storageUid = _storage.getString(StorageKeys.uid);
     final authUid = FirebaseAuth.instance.currentUser?.uid;
     final resolvedUid = uid ?? storageUid ?? authUid;
-
     if (resolvedUid == null || resolvedUid.isEmpty) {
       _error = "Không tìm thấy userId";
       notifyListeners();
@@ -303,7 +328,6 @@ class UserVm extends ChangeNotifier {
         url: url,
         type: type,
       );
-
       if (!success) {
         _error = "Cập nhật ảnh thất bại";
         return false;
@@ -347,7 +371,6 @@ class UserVm extends ChangeNotifier {
       if (parentUid == null) {
         throw Exception('Phiên đăng nhập đã hết. Vui lòng đăng nhập lại');
       }
-
       await _userRepo.createChildAccount(
         parentUid: parentUid,
         email: email,
@@ -372,6 +395,8 @@ class UserVm extends ChangeNotifier {
   @override
   void dispose() {
     _childrenSub?.cancel();
+    _familySub?.cancel();
+    _locationMembersSub?.cancel();
     _profileSubscription?.cancel();
     _meSub?.cancel();
     super.dispose();

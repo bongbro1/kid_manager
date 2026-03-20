@@ -6,11 +6,13 @@ class FamilyChatMessage {
   final String senderUid;
   final String senderRole;
   final String senderName;
+  final String? clientMessageId;
   final String text;
   final String type;
   final DateTime? createdAt;
   final String verifyState;
   final String? verifyError;
+  final bool hasPendingWrites;
 
   const FamilyChatMessage({
     required this.id,
@@ -18,11 +20,13 @@ class FamilyChatMessage {
     required this.senderUid,
     required this.senderRole,
     required this.senderName,
+    required this.clientMessageId,
     required this.text,
     required this.type,
     required this.createdAt,
     required this.verifyState,
     required this.verifyError,
+    required this.hasPendingWrites,
   });
 
   factory FamilyChatMessage.fromDoc(
@@ -37,11 +41,15 @@ class FamilyChatMessage {
       senderUid: (data['senderUid'] ?? '').toString(),
       senderRole: (data['senderRole'] ?? '').toString(),
       senderName: (data['senderName'] ?? '').toString(),
+      clientMessageId: data['clientMessageId']?.toString(),
       text: (data['text'] ?? '').toString(),
       type: (data['type'] ?? 'text').toString(),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      createdAt:
+          (data['createdAt'] as Timestamp?)?.toDate() ??
+          (data['clientCreatedAt'] as Timestamp?)?.toDate(),
       verifyState: (data['verifyState'] ?? 'verified').toString(),
       verifyError: data['verifyError']?.toString(),
+      hasPendingWrites: doc.metadata.hasPendingWrites,
     );
   }
 }

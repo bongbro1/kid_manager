@@ -26,6 +26,7 @@ class AppUser {
   final DateTime? lastActiveAt;
   final String? familyId;
   final bool isActive;
+  final bool allowTracking;
 
   /// child only
   final String? parentUid;
@@ -48,11 +49,13 @@ class AppUser {
     this.parentUid,
     this.subscription,
     this.isActive = false,
+    this.allowTracking = false,
     this.phone,
   });
 
   bool get isParent => role == UserRole.parent;
   bool get isChild => role == UserRole.child;
+  bool get isGuardian => role == UserRole.guardian;
 
   // ================= FIRESTORE =================
 
@@ -69,6 +72,7 @@ class AppUser {
     'timezone': timezone,
     'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
     'isActive': isActive,
+    'allowTracking': allowTracking,
     'lastActiveAt': lastActiveAt == null
         ? null
         : Timestamp.fromDate(lastActiveAt!),
@@ -94,6 +98,7 @@ class AppUser {
       lastActiveAt: (d['lastActiveAt'] as Timestamp?)?.toDate(),
       parentUid: d['parentUid'],
       isActive: d['isActive'] ?? false,
+      allowTracking: d['allowTracking'] ?? false,
       subscription: d['subscription'] == null
           ? null
           : SubscriptionInfo.fromMap(
@@ -114,6 +119,7 @@ class AppUser {
     SubscriptionInfo? subscription,
     String? familyId,
     bool? isActive,
+    bool? allowTracking,
   }) {
     return AppUser(
       uid: uid,
@@ -130,6 +136,7 @@ class AppUser {
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
       parentUid: parentUid,
       isActive: isActive ?? this.isActive,
+      allowTracking: allowTracking ?? this.allowTracking,
       subscription: subscription ?? this.subscription,
     );
   }

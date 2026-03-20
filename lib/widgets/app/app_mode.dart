@@ -1,5 +1,6 @@
 enum AppMode{
   parent,
+  guardian,
   child
 }
 

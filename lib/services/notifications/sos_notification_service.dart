@@ -44,9 +44,9 @@ class SosNotificationService {
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     final iosInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestSoundPermission: true,
-      requestBadgePermission: true,
+      requestAlertPermission: false,
+      requestSoundPermission: false,
+      requestBadgePermission: false,
       notificationCategories: [
         DarwinNotificationCategory(
           'sos_category',

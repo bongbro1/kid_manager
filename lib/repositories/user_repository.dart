@@ -217,6 +217,43 @@ class UserRepository {
         .map((qs) => qs.docs.map(AppUser.fromDoc).toList());
   }
 
+  Stream<List<AppUser>> watchTrackableLocationMembers(
+    String familyId, {
+    String? excludeUid,
+  }) {
+    return _users
+        .where('familyId', isEqualTo: familyId)
+        .snapshots()
+        .map((qs) {
+          final list = qs.docs
+              .map(AppUser.fromDoc)
+              .where((user) {
+                if (excludeUid != null && excludeUid.isNotEmpty && user.uid == excludeUid) {
+                  return false;
+                }
+
+                if (user.role == UserRole.child) {
+                  return true;
+                }
+
+                return user.role == UserRole.guardian && user.allowTracking;
+              })
+              .toList();
+
+          list.sort((a, b) {
+            final roleScoreA = a.role == UserRole.child ? 0 : 1;
+            final roleScoreB = b.role == UserRole.child ? 0 : 1;
+            final roleCompare = roleScoreA.compareTo(roleScoreB);
+            if (roleCompare != 0) return roleCompare;
+            final nameA = (a.displayName ?? a.email ?? '').trim().toLowerCase();
+            final nameB = (b.displayName ?? b.email ?? '').trim().toLowerCase();
+            return nameA.compareTo(nameB);
+          });
+
+          return list;
+        });
+  }
+
   Future<String?> getFamilyId(String uid) async {
     final snap = await userRef(uid).get();
 

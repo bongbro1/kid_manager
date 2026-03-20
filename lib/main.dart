@@ -86,19 +86,6 @@ Future<void> _runDeferredStartupTasks() async {
   }
 
   try {
-    final settings = await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    if (kDebugMode) {
-      debugPrint('FCM permission=${settings.authorizationStatus}');
-    }
-  } catch (e) {
-    debugPrint('FCM permission request failed: $e');
-  }
-
-  try {
     final token = await FirebaseMessaging.instance.getToken();
     if (kDebugMode) {
       debugPrint('FCM token=${_maskToken(token)}');

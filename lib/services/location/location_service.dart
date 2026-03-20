@@ -7,7 +7,10 @@ import 'package:location/location.dart' as loc;
 
 abstract class LocationServiceInterface {
   /// Ensure GPS + foreground/background permission depending on requireBackground.
-  Future<bool> ensureServiceAndPermission({required bool requireBackground});
+  Future<bool> ensureServiceAndPermission({
+    required bool requireBackground,
+    bool requestIfNeeded = true,
+  });
 
   /// Continuous location stream.
   Stream<LocationData> getLocationStream();
@@ -41,15 +44,18 @@ class LocationServiceImpl implements LocationServiceInterface {
   @override
   Future<bool> ensureServiceAndPermission({
     required bool requireBackground,
+    bool requestIfNeeded = true,
   }) async {
     bool serviceEnabled = await _location.serviceEnabled();
     if (!serviceEnabled) {
+      if (!requestIfNeeded) return false;
       serviceEnabled = await _location.requestService();
       if (!serviceEnabled) return false;
     }
 
     var permission = await _location.hasPermission();
     if (permission == loc.PermissionStatus.denied) {
+      if (!requestIfNeeded) return false;
       permission = await _location.requestPermission();
     }
 
@@ -60,13 +66,22 @@ class LocationServiceImpl implements LocationServiceInterface {
 
     final preciseGranted = await _isPreciseGranted();
     if (!preciseGranted) {
-      await geo.Geolocator.openAppSettings();
+      if (requestIfNeeded) {
+        await geo.Geolocator.openAppSettings();
+      }
       return false;
     }
 
     if (requireBackground) {
+      if (!requestIfNeeded) {
+        final backgroundEnabled = await _location.isBackgroundModeEnabled();
+        if (!backgroundEnabled) return false;
+      }
+
       try {
-        final bgOk = await _location.enableBackgroundMode(enable: true);
+        final bgOk = requestIfNeeded
+            ? await _location.enableBackgroundMode(enable: true)
+            : true;
         if (!bgOk) return false;
 
         await _location.changeNotificationOptions(

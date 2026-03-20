@@ -21,9 +21,9 @@ class LocalAlarmService {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const iosInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestSoundPermission: true,
-      requestBadgePermission: true,
+      requestAlertPermission: false,
+      requestSoundPermission: false,
+      requestBadgePermission: false,
     );
 
     const settings = InitializationSettings(

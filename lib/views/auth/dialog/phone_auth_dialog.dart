@@ -15,7 +15,7 @@ class PhoneAuthDialog {
     }
 
     if (!phone.startsWith("+")) {
-      return "+$phone";
+      return "+84$phone";
     }
 
     return phone;
@@ -228,7 +228,10 @@ class PhoneAuthDialog {
 
                                       Navigator.pop(context);
                                     } catch (e) {
-                                      AlertService.showSnack('OTP không đúng', isError: true);
+                                      AlertService.showSnack(
+                                        'OTP không đúng',
+                                        isError: true,
+                                      );
                                       // NotificationDialog.show(
                                       //   context,
                                       //   type: DialogType.error,

@@ -24,7 +24,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
             padding: const EdgeInsets.only(right: 12),
             child: right!,
           )
-        else if (mode == AppMode.parent)
+        else if (mode == AppMode.parent || mode == AppMode.guardian)
           const Icon(Icons.search)
         else
           const SizedBox(width: 12),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -17,14 +18,19 @@ class ZoneStatusVm extends ChangeNotifier {
   final FirebaseDatabase _rtdb;
   final FirebaseFirestore _fs;
   final FirebaseAuth _auth;
+  final FirebaseFunctions _functions;
 
   ZoneStatusVm({
     FirebaseDatabase? rtdb,
     FirebaseFirestore? fs,
     FirebaseAuth? auth,
+    FirebaseFunctions? functions,
   })  : _rtdb = rtdb ?? FirebaseDatabase.instance,
         _fs = fs ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance {
+        _auth = auth ?? FirebaseAuth.instance,
+        _functions =
+            functions ??
+            FirebaseFunctions.instanceFor(region: 'asia-southeast1') {
     _authSub = _auth.authStateChanges().listen((user) {
       if (user == null) {
         _cancelFocusStreams();
@@ -46,6 +52,7 @@ class ZoneStatusVm extends ChangeNotifier {
   StreamSubscription<User?>? _authSub;
   StreamSubscription<DatabaseEvent>? _presenceSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _lastEventSub;
+  Timer? _presencePollTimer;
   Timer? _tick;
 
   Map<String, dynamic>? _activePresence; // zone đang inside (danger ưu tiên)
@@ -89,6 +96,8 @@ class ZoneStatusVm extends ChangeNotifier {
   void _cancelFocusStreams() {
     _presenceSub?.cancel();
     _presenceSub = null;
+    _presencePollTimer?.cancel();
+    _presencePollTimer = null;
     _lastEventSub?.cancel();
     _lastEventSub = null;
   }
@@ -126,36 +135,72 @@ class ZoneStatusVm extends ChangeNotifier {
     final ref = _rtdb.ref('zonePresenceByChild/$childId');
 
     _presenceSub = ref.onValue.listen((e) {
-      final v = e.snapshot.value;
-      if (v == null) {
-        _activePresence = null;
-        _recompute();
-        return;
-      }
-
-      final m = Map<dynamic, dynamic>.from(v as Map);
-
-      Map<String, dynamic>? bestDanger;
-      Map<String, dynamic>? bestSafe;
-
-      for (final entry in m.entries) {
-        final data = Map<String, dynamic>.from(entry.value as Map);
-        if (data['inside'] != true) continue;
-
-        final type = (data['zoneType'] ?? '').toString();
-        if (type == 'danger') bestDanger ??= data;
-        if (type == 'safe') bestSafe ??= data;
-      }
-
-      _activePresence = bestDanger ?? bestSafe;
-      _recompute();
+      _applyPresenceValue(e.snapshot.value);
     }, onError: (Object e, StackTrace st) {
       debugPrint(
         '[ZoneStatusVm] zonePresence listen error child=$childId error=$e',
       );
       debugPrint('$st');
+      unawaited(_presenceSub?.cancel());
+      _presenceSub = null;
+      _startPresenceFallbackPolling(childId);
+    });
+  }
+
+  void _applyPresenceValue(dynamic value) {
+    if (value == null) {
       _activePresence = null;
       _recompute();
+      return;
+    }
+
+    if (value is! Map) {
+      _activePresence = null;
+      _recompute();
+      return;
+    }
+
+    final m = Map<dynamic, dynamic>.from(value);
+
+    Map<String, dynamic>? bestDanger;
+    Map<String, dynamic>? bestSafe;
+
+    for (final entry in m.entries) {
+      final raw = entry.value;
+      if (raw is! Map) continue;
+      final data = Map<String, dynamic>.from(raw);
+      if (data['inside'] != true) continue;
+
+      final type = (data['zoneType'] ?? '').toString();
+      if (type == 'danger') bestDanger ??= data;
+      if (type == 'safe') bestSafe ??= data;
+    }
+
+    _activePresence = bestDanger ?? bestSafe;
+    _recompute();
+  }
+
+  Future<void> _pollPresenceOnce(String childId) async {
+    try {
+      final res = await _functions.httpsCallable('getChildZonePresence').call({
+        'childUid': childId,
+      });
+      final data = Map<String, dynamic>.from(res.data as Map);
+      _applyPresenceValue(data['presence']);
+    } catch (e, st) {
+      debugPrint('[ZoneStatusVm] zonePresence callable error child=$childId error=$e');
+      debugPrint('$st');
+      _activePresence = null;
+      _recompute();
+    }
+  }
+
+  void _startPresenceFallbackPolling(String childId) {
+    if (_presencePollTimer != null) return;
+
+    unawaited(_pollPresenceOnce(childId));
+    _presencePollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      unawaited(_pollPresenceOnce(childId));
     });
   }
 

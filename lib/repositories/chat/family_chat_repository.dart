@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
 import 'package:kid_manager/models/chat/family_chat_message.dart';
 import 'package:kid_manager/models/chat/family_chat_state.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 
 class FamilyChatRepository {
   FamilyChatRepository({
@@ -28,7 +30,7 @@ class FamilyChatRepository {
     return _messageCollection(familyId)
         .orderBy('createdAt', descending: true)
         .limit(limit)
-        .snapshots()
+        .snapshots(includeMetadataChanges: true)
         .map((snapshot) => snapshot.docs
         .map((doc) => FamilyChatMessage.fromDoc(doc, familyId: familyId))
         .toList());
@@ -97,7 +99,10 @@ class FamilyChatRepository {
   }
 
   Future<Map<String, dynamic>> sendTextMessage({
+    required String familyId,
+    required AppUser sender,
     required String text,
+    String? clientMessageId,
   }) async {
     final normalized = text.trim();
     if (normalized.isEmpty) {
@@ -112,30 +117,51 @@ class FamilyChatRepository {
       );
     }
 
-    debugPrint('[FamilyChatRepository] sendTextMessage start text="$normalized"');
+    final resolvedFamilyId = familyId.trim();
+    if (resolvedFamilyId.isEmpty) {
+      throw ArgumentError.value(familyId, 'familyId', 'familyId is required');
+    }
+
+    final resolvedSenderName =
+        sender.displayName?.trim().isNotEmpty == true
+            ? sender.displayName!.trim()
+            : sender.email?.trim().isNotEmpty == true
+            ? sender.email!.trim()
+            : 'Family member';
+
+    final messageId = (clientMessageId?.trim().isNotEmpty == true)
+        ? clientMessageId!.trim()
+        : _messageCollection(resolvedFamilyId).doc().id;
+    final clientCreatedAt = Timestamp.now();
+
+    debugPrint(
+      '[FamilyChatRepository] sendTextMessage direct '
+      'familyId=$resolvedFamilyId messageId=$messageId text="$normalized"',
+    );
 
     try {
-      final result = await _functions.httpsCallable('sendFamilyMessage').call({
+      await _messageCollection(resolvedFamilyId).doc(messageId).set({
+        'id': messageId,
+        'familyId': resolvedFamilyId,
+        'senderUid': sender.uid,
+        'senderRole': roleToString(sender.role),
+        'senderName': resolvedSenderName,
+        'clientMessageId': messageId,
         'text': normalized,
+        'type': 'text',
+        'verifyState': 'pending',
+        'clientCreatedAt': clientCreatedAt,
+        'createdAt': clientCreatedAt,
       });
 
-      debugPrint('[FamilyChatRepository] raw result.data=${result.data}');
-
-      final map = result.data is Map
-          ? Map<String, dynamic>.from(result.data as Map)
-          : <String, dynamic>{};
-
-      debugPrint('[FamilyChatRepository] parsed result=$map');
-      return map;
-    } on FirebaseFunctionsException catch (e, st) {
-      debugPrint(
-        '[FamilyChatRepository] FirebaseFunctionsException '
-            'code=${e.code} message=${e.message} details=${e.details}',
-      );
-      debugPrintStack(stackTrace: st);
-      rethrow;
+      return <String, dynamic>{
+        'ok': true,
+        'familyId': resolvedFamilyId,
+        'messageId': messageId,
+        'clientMessageId': messageId,
+      };
     } catch (e, st) {
-      debugPrint('[FamilyChatRepository] sendTextMessage error: $e');
+      debugPrint('[FamilyChatRepository] direct sendTextMessage error: $e');
       debugPrintStack(stackTrace: st);
       rethrow;
     }
