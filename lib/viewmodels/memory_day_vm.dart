@@ -70,6 +70,8 @@ class MemoryDayViewModel extends ChangeNotifier {
   }
 
   void setOwnerUid(String uid) {
+    // Phase 2: Handle owner mapping for guardian. Memory Day data always lives
+    // under the resolved parent owner namespace.
     final normalized = uid.trim();
     if (normalized.isEmpty || _ownerUid == normalized) return;
     _ownerUid = normalized;

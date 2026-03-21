@@ -1868,6 +1868,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoryDayNotifyTitleChanged => 'Memorable day changed';
 
   @override
+  String get memoryDayNotifyTitleReminder => 'Upcoming memory day';
+
+  @override
+  String memoryDayNotifyBodyReminderTomorrow(String title, String date) {
+    return 'Tomorrow is \"$title\" ($date).';
+  }
+
+  @override
+  String memoryDayNotifyBodyReminderInDays(
+    String title,
+    int days,
+    String date,
+  ) {
+    return '\"$title\" is in $days days ($date).';
+  }
+
+  @override
   String memoryDayNotifyBodyParentCreated(String title) {
     return 'Parent added memorable day \"$title\".';
   }

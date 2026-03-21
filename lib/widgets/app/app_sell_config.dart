@@ -70,6 +70,7 @@ class AppShellConfig {
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
       root: const ScheduleScreen(),
+      isScheduleTab: true,
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/user_nav.svg',
@@ -124,6 +125,7 @@ class AppShellConfig {
     BottomTabConfig(
       iconAsset: 'assets/icons/calendar.svg',
       root: const ChildScheduleScreen(),
+      isScheduleTab: true,
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/user_nav.svg',
@@ -169,6 +171,11 @@ class AppShellConfig {
       ),
       showBadge: true,
       isNotificationTab: true,
+    ),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/calendar.svg',
+      root: const ScheduleScreen(),
+      isScheduleTab: true,
     ),
     BottomTabConfig(
       iconAsset: 'assets/icons/user_nav.svg',

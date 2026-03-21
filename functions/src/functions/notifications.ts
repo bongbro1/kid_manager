@@ -105,6 +105,7 @@ export const onNotificationCreated = onDocumentCreated(
       },
       data: {
         ...payloadData,
+        receiverId: toUid,
         title: safeTitle,
         body: safeBody,
         type: String(data.type ?? "GENERIC"),

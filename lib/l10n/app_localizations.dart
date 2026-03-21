@@ -3297,6 +3297,24 @@ abstract class AppLocalizations {
   /// **'Memorable day changed'**
   String get memoryDayNotifyTitleChanged;
 
+  /// No description provided for @memoryDayNotifyTitleReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming memory day'**
+  String get memoryDayNotifyTitleReminder;
+
+  /// No description provided for @memoryDayNotifyBodyReminderTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow is \"{title}\" ({date}).'**
+  String memoryDayNotifyBodyReminderTomorrow(String title, String date);
+
+  /// No description provided for @memoryDayNotifyBodyReminderInDays.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" is in {days} days ({date}).'**
+  String memoryDayNotifyBodyReminderInDays(String title, int days, String date);
+
   /// No description provided for @memoryDayNotifyBodyParentCreated.
   ///
   /// In en, this message translates to:

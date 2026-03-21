@@ -226,7 +226,6 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(
           create: (context) => ScheduleHistoryViewModel(
             context.read<ScheduleRepository>(),
-            context.read<AuthVM>(),
           ),
         ),
 

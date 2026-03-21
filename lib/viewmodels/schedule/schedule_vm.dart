@@ -51,8 +51,10 @@ class ScheduleViewModel extends ChangeNotifier {
   bool get hasBoundScheduleOwner =>
       _scheduleOwnerUid != null && _scheduleOwnerUid!.trim().isNotEmpty;
 
-  void setScheduleOwnerUid(String uid) {
-    final normalized = uid.trim();
+  void setScheduleOwnerUid(String ownerParentUid) {
+    // Phase 2: Handle owner mapping for guardian. The schedule owner path is
+    // the parent namespace, which can differ from the logged-in actor uid.
+    final normalized = ownerParentUid.trim();
     if (normalized.isEmpty) {
       _scheduleOwnerUid = null;
       return;
@@ -267,6 +269,8 @@ class ScheduleViewModel extends ChangeNotifier {
     required DateTime fromDate,
     required DateTime toDate,
   }) async {
+    // Phase 2: Export always reads from parents/{scheduleOwnerUid}/..., even
+    // when the current actor is a guardian.
     final start = DateTime(fromDate.year, fromDate.month, fromDate.day);
     final endExclusive = DateTime(toDate.year, toDate.month, toDate.day + 1);
 

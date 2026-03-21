@@ -8,6 +8,8 @@ class MemoryDayRepository {
   final FirebaseFirestore _firestore;
 
   CollectionReference<Map<String, dynamic>> _col(String ownerParentUid) {
+    // Phase 2: The repository never infers the current user. Callers must pass
+    // the resolved parent owner uid so guardian uses the parent's namespace.
     return _firestore
         .collection('parents')
         .doc(ownerParentUid)

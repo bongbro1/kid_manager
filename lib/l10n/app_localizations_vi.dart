@@ -1864,6 +1864,23 @@ class AppLocalizationsVi extends AppLocalizations {
   String get memoryDayNotifyTitleChanged => 'Ngày đáng nhớ có thay đổi';
 
   @override
+  String get memoryDayNotifyTitleReminder => 'Sắp đến ngày đáng nhớ';
+
+  @override
+  String memoryDayNotifyBodyReminderTomorrow(String title, String date) {
+    return 'Ngày mai là \"$title\" ($date).';
+  }
+
+  @override
+  String memoryDayNotifyBodyReminderInDays(
+    String title,
+    int days,
+    String date,
+  ) {
+    return 'Còn $days ngày đến \"$title\" ($date).';
+  }
+
+  @override
   String memoryDayNotifyBodyParentCreated(String title) {
     return 'Cha đã thêm ngày đáng nhớ \"$title\".';
   }

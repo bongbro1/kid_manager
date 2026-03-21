@@ -1314,6 +1314,32 @@
   "memoryDayNotifyTitleUpdated": "Ngày đáng nhớ đã thay đổi",
   "memoryDayNotifyTitleDeleted": "Ngày đáng nhớ đã bị xóa",
   "memoryDayNotifyTitleChanged": "Ngày đáng nhớ có thay đổi",
+  "memoryDayNotifyTitleReminder": "Sắp đến ngày đáng nhớ",
+  "memoryDayNotifyBodyReminderTomorrow": "Ngày mai là \"{title}\" ({date}).",
+  "@memoryDayNotifyBodyReminderTomorrow": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyReminderInDays": "Còn {days} ngày đến \"{title}\" ({date}).",
+  "@memoryDayNotifyBodyReminderInDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "memoryDayNotifyBodyParentCreated": "Cha đã thêm ngày đáng nhớ \"{title}\".",
   "@memoryDayNotifyBodyParentCreated": {
     "placeholders": {

@@ -90,6 +90,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
 
     _session = resolved;
 
+    // Phase 2: Handle owner mapping for guardian. Export must read from the
+    // resolved parent owner namespace instead of the logged-in guardian uid.
     scheduleVm.setScheduleOwnerUid(_session!.ownerParentUid);
     _selectedChildId = _session!.selectedChildId;
 
@@ -106,6 +108,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
     if (_resolvingDefaultChild) return;
     if (_session == null || _isChildMode || _selectedChildId != null) return;
 
+    // Phase 2: The export child selector follows the resolved ownerParentUid
+    // stream so guardian and parent see the same eligible children.
     final children = context.read<UserVm>().children;
     if (children.isEmpty) return;
 

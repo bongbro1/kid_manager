@@ -34,13 +34,19 @@ String resolveNotificationTitle({
           return l10n.memoryDayNotifyTitleDeleted;
         case 'changed':
           return l10n.memoryDayNotifyTitleChanged;
+        case 'reminder':
+          return l10n.memoryDayNotifyTitleReminder;
         default:
           return fallbackTitle.trim();
       }
     case NotificationType.importExcel:
       return l10n.scheduleImportNotifyTitle;
     case NotificationType.birthday:
-      return _birthdayTitle(l10n: l10n, data: data, fallbackTitle: fallbackTitle);
+      return _birthdayTitle(
+        l10n: l10n,
+        data: data,
+        fallbackTitle: fallbackTitle,
+      );
     default:
       return fallbackTitle.trim();
   }
@@ -115,6 +121,7 @@ String _scheduleBody({
   final action = _read(data, 'action').toLowerCase();
   final actorRole = _read(data, 'actorRole').toLowerCase();
   final childName = _childName(l10n, data);
+  final actorDisplayName = _actorDisplayName(l10n, data);
   final title = _titleOrFallback(l10n, _read(data, 'scheduleTitle'));
   final date = _read(data, 'date');
   final startAt = _read(data, 'startAt');
@@ -143,16 +150,21 @@ String _scheduleBody({
   switch (action) {
     case 'created':
       return _hasDateAndTime(date, time)
-          ? l10n.scheduleNotifyBodyChildCreated(childName, title, date, time)
+          ? l10n.scheduleNotifyBodyChildCreated(
+              actorDisplayName,
+              title,
+              date,
+              time,
+            )
           : fallbackBody;
     case 'updated':
-      return l10n.scheduleNotifyBodyChildUpdated(childName, title);
+      return l10n.scheduleNotifyBodyChildUpdated(actorDisplayName, title);
     case 'deleted':
-      return l10n.scheduleNotifyBodyChildDeleted(childName, title);
+      return l10n.scheduleNotifyBodyChildDeleted(actorDisplayName, title);
     case 'restored':
-      return l10n.scheduleNotifyBodyChildRestored(childName, title);
+      return l10n.scheduleNotifyBodyChildRestored(actorDisplayName, title);
     case 'changed':
-      return l10n.scheduleNotifyBodyChildChanged(childName, title);
+      return l10n.scheduleNotifyBodyChildChanged(actorDisplayName, title);
     default:
       return fallbackBody;
   }
@@ -166,9 +178,16 @@ String _memoryDayBody({
   final action = _read(data, 'action').toLowerCase();
   final actorRole = _read(data, 'actorRole').toLowerCase();
   final title = _titleOrFallback(l10n, _read(data, 'memoryDayTitle'));
-  final actorChildName = _read(data, 'childName').trim().isEmpty
-      ? l10n.notificationsActorChild
-      : _read(data, 'childName');
+  final date = _read(data, 'date');
+  final daysUntil = int.tryParse(_read(data, 'daysUntil')) ?? 0;
+  final actorDisplayName = _actorDisplayName(l10n, data);
+
+  if (action == 'reminder') {
+    if (date.isEmpty) return fallbackBody;
+    return daysUntil <= 1
+        ? l10n.memoryDayNotifyBodyReminderTomorrow(title, date)
+        : l10n.memoryDayNotifyBodyReminderInDays(title, daysUntil, date);
+  }
 
   if (actorRole == 'parent') {
     switch (action) {
@@ -187,13 +206,13 @@ String _memoryDayBody({
 
   switch (action) {
     case 'created':
-      return l10n.memoryDayNotifyBodyChildCreated(actorChildName, title);
+      return l10n.memoryDayNotifyBodyChildCreated(actorDisplayName, title);
     case 'updated':
-      return l10n.memoryDayNotifyBodyChildUpdated(actorChildName, title);
+      return l10n.memoryDayNotifyBodyChildUpdated(actorDisplayName, title);
     case 'deleted':
-      return l10n.memoryDayNotifyBodyChildDeleted(actorChildName, title);
+      return l10n.memoryDayNotifyBodyChildDeleted(actorDisplayName, title);
     case 'changed':
-      return l10n.memoryDayNotifyBodyChildChanged(actorChildName, title);
+      return l10n.memoryDayNotifyBodyChildChanged(actorDisplayName, title);
     default:
       return fallbackBody;
   }
@@ -206,17 +225,15 @@ String _scheduleImportBody({
 }) {
   final actorRole = _read(data, 'actorRole').toLowerCase();
   final childName = _childName(l10n, data);
-  final actorChildName = _read(data, 'actorChildName').trim().isEmpty
-      ? l10n.notificationsActorChild
-      : _read(data, 'actorChildName');
+  final actorDisplayName = _actorDisplayName(l10n, data);
   final importCount = int.tryParse(_read(data, 'importCount')) ?? 0;
 
   if (actorRole == 'parent') {
     return l10n.scheduleImportNotifyBodyParent(importCount, childName);
   }
 
-  if (actorRole == 'child') {
-    return l10n.scheduleImportNotifyBodyChild(actorChildName, importCount);
+  if (actorRole == 'child' || actorRole == 'guardian') {
+    return l10n.scheduleImportNotifyBodyChild(actorDisplayName, importCount);
   }
 
   return fallbackBody;
@@ -229,6 +246,18 @@ String _childName(AppLocalizations l10n, Map<String, dynamic> data) {
 
 String _titleOrFallback(AppLocalizations l10n, String title) {
   return title.trim().isEmpty ? l10n.notificationsNoTitle : title.trim();
+}
+
+String _actorDisplayName(AppLocalizations l10n, Map<String, dynamic> data) {
+  final actorRole = _read(data, 'actorRole').toLowerCase();
+  final actorDisplayName = _read(data, 'actorDisplayName');
+  final legacyActorName = _read(data, 'actorChildName');
+
+  if (actorDisplayName.isNotEmpty) return actorDisplayName;
+  if (legacyActorName.isNotEmpty) return legacyActorName;
+  if (actorRole == 'parent') return l10n.notificationsActorParent;
+  if (actorRole == 'guardian') return l10n.notificationsActorParent;
+  return l10n.notificationsActorChild;
 }
 
 bool _hasDateAndTime(String date, String time) =>

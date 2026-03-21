@@ -222,12 +222,14 @@ class NotificationService {
     final type = data['type']?.toString().toLowerCase() ?? '';
 
     // Guard riêng cho schedule + memory_day
-    if (type == 'schedule' || type == 'memory_day') {
+    if (type == 'schedule' ||
+        type == 'memoryday' ||
+        type == 'memory_day' ||
+        type == 'importexcel' ||
+        type == 'schedule_import') {
       final currentUid = FirebaseAuth.instance.currentUser?.uid;
       final actorUid = data['actorUid']?.toString();
-      final actorRole = data['actorRole']?.toString().toLowerCase();
-      final childId = data['childId']?.toString();
-      final ownerParentUid = data['ownerParentUid']?.toString();
+      final directReceiverId = data['receiverId']?.toString();
 
       if (currentUid == null || currentUid.isEmpty) {
         debugPrint('🔕 [$type] skip: no current user');
@@ -242,24 +244,14 @@ class NotificationService {
         return;
       }
 
-      String? expectedReceiverId;
-
-      if (actorRole == 'child') {
-        expectedReceiverId = ownerParentUid;
-      } else if (actorRole == 'parent') {
-        expectedReceiverId = childId;
-      } else {
-        expectedReceiverId = ownerParentUid;
-      }
-
-      if (expectedReceiverId == null || expectedReceiverId.isEmpty) {
-        debugPrint('🔕 [$type] skip: expectedReceiverId is null/empty');
+      if (directReceiverId == null || directReceiverId.isEmpty) {
+        debugPrint('ðŸ”• [$type] skip: receiverId is null/empty');
         return;
       }
 
-      if (expectedReceiverId != currentUid) {
+      if (directReceiverId != currentUid) {
         debugPrint(
-          '🔕 [$type] skip wrong receiver: currentUid=$currentUid expectedReceiverId=$expectedReceiverId actorUid=$actorUid',
+          '🔕 [$type] skip wrong receiver: currentUid=$currentUid receiverId=$directReceiverId actorUid=$actorUid',
         );
         return;
       }

@@ -496,6 +496,21 @@ class UserRepository {
     }
   }
 
+  Future<List<AppUser>> getGuardiansByParentUid(String parentUid) async {
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'guardian')
+          .where('parentUid', isEqualTo: parentUid)
+          .get();
+
+      return snapshot.docs.map((doc) => AppUser.fromDoc(doc)).toList();
+    } catch (e) {
+      debugPrint('getGuardiansByParentUid error: $e');
+      return [];
+    }
+  }
+
   Future<bool> updateUserPhotoUrl({
     required String uid,
     required String url,

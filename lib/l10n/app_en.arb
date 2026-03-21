@@ -1314,6 +1314,32 @@
   "memoryDayNotifyTitleUpdated": "Memorable day updated",
   "memoryDayNotifyTitleDeleted": "Memorable day deleted",
   "memoryDayNotifyTitleChanged": "Memorable day changed",
+  "memoryDayNotifyTitleReminder": "Upcoming memory day",
+  "memoryDayNotifyBodyReminderTomorrow": "Tomorrow is \"{title}\" ({date}).",
+  "@memoryDayNotifyBodyReminderTomorrow": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyReminderInDays": "\"{title}\" is in {days} days ({date}).",
+  "@memoryDayNotifyBodyReminderInDays": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "memoryDayNotifyBodyParentCreated": "Parent added memorable day \"{title}\".",
   "@memoryDayNotifyBodyParentCreated": {
     "placeholders": {

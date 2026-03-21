@@ -10,6 +10,8 @@ class ScheduleRepository {
   ScheduleRepository(this._firestore);
 
   CollectionReference<Map<String, dynamic>> _scheduleCol(String parentUid) {
+    // Phase 2: parentUid here is the explicit owner namespace passed from the
+    // ViewModel, so guardian can reuse parents/{ownerParentUid}/...
     return _firestore
         .collection('parents')
         .doc(parentUid)

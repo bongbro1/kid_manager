@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/birthday_event.dart';
 import 'package:kid_manager/models/memory_day.dart';
@@ -11,6 +12,8 @@ import 'package:provider/provider.dart';
 import '../../../../../core/app_text_styles.dart';
 import '../../../../../utils/date_utils.dart';
 import 'schedule_timeline_support.dart';
+
+enum _ScheduleMemoryAction { edit, delete }
 
 class ScheduleList extends StatelessWidget {
   const ScheduleList({super.key});
@@ -628,17 +631,31 @@ class MemoryDayItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final memoryVm = context.read<MemoryDayViewModel>();
+    final daysLeft = memoryVm.daysUntilNextOccurrence(memory);
+    final dateText = DateFormat('dd/MM/yyyy').format(memory.date);
+    final noteText = (memory.note ?? '').trim();
+    final countdownText = daysLeft < 0
+        ? l10n.memoryDayDaysPassed(daysLeft.abs())
+        : daysLeft == 0
+        ? l10n.memoryDayToday
+        : l10n.memoryDayDaysLeft(daysLeft);
+    final badgeStyle = _memoryBadgeStyleFor(daysLeft);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7D6),
-        borderRadius: BorderRadius.circular(16),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: const Border(
+          left: BorderSide(color: Color(0xFFE2B53B), width: 3),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -646,41 +663,191 @@ class MemoryDayItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.star, size: 16, color: Color(0xFFF4B400)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  memory.title,
-                  style: AppTextStyles.scheduleItemTitle,
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7DE),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.star_rounded,
+                  size: 18,
+                  color: Color(0xFFE2B53B),
                 ),
               ),
-              if (canEdit) ...[
-                _ActionIcon(
-                  asset: 'assets/images/edit.png',
-                  width: 18,
-                  height: 18,
-                  onTap: onEdit,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    memory.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1F2937),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 10),
-                _ActionIcon(asset: 'assets/images/delete.png', onTap: onDelete),
-              ],
+              ),
+              if (canEdit)
+                PopupMenuButton<_ScheduleMemoryAction>(
+                  tooltip: '',
+                  position: PopupMenuPosition.under,
+                  elevation: 6,
+                  color: theme.colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  onSelected: (value) {
+                    if (value == _ScheduleMemoryAction.edit) {
+                      onEdit?.call();
+                      return;
+                    }
+                    onDelete?.call();
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem<_ScheduleMemoryAction>(
+                      value: _ScheduleMemoryAction.edit,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: Color(0xFF2563EB),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            l10n.memoryDayEditAction,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1F2937),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<_ScheduleMemoryAction>(
+                      value: _ScheduleMemoryAction.delete,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            l10n.memoryDayDeleteAction,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    margin: const EdgeInsets.only(left: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.more_vert_rounded,
+                      size: 18,
+                      color: Color(0xFF6B7280),
+                    ),
+                  ),
+                ),
             ],
           ),
-          if ((memory.note ?? '').isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(memory.note!, style: AppTextStyles.scheduleItemTime),
-          ],
-          const SizedBox(height: 6),
-          if (memory.repeatYearly)
-            Text(
-              l10n.memoryDayRepeatYearlyLabel,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF8A6D00)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: badgeStyle.backgroundColor,
+              borderRadius: BorderRadius.circular(999),
             ),
+            child: Text(
+              countdownText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.1,
+                color: badgeStyle.textColor,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            memory.repeatYearly
+                ? l10n.memoryDayDateRepeatText(dateText)
+                : l10n.memoryDayDateText(dateText),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 12.5,
+              height: 1.3,
+              color: const Color(0xFF6B7280),
+            ),
+          ),
+          if (noteText.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              noteText,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 12.5,
+                height: 1.35,
+                color: const Color(0xFF9CA3AF),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+
+  _MemoryDayBadgeStyle _memoryBadgeStyleFor(int daysLeft) {
+    if (daysLeft < 0) {
+      return const _MemoryDayBadgeStyle(
+        backgroundColor: Color(0xFFF3F4F6),
+        textColor: Color(0xFF6B7280),
+      );
+    }
+
+    if (daysLeft == 0) {
+      return const _MemoryDayBadgeStyle(
+        backgroundColor: Color(0xFFFFF3D6),
+        textColor: Color(0xFF9A6700),
+      );
+    }
+
+    return const _MemoryDayBadgeStyle(
+      backgroundColor: Color(0xFFFFF7E3),
+      textColor: Color(0xFF9A6700),
+    );
+  }
+}
+
+class _MemoryDayBadgeStyle {
+  const _MemoryDayBadgeStyle({
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  final Color backgroundColor;
+  final Color textColor;
 }
 
 class _ActionIcon extends StatelessWidget {

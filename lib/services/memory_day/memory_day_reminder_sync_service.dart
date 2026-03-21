@@ -13,6 +13,8 @@ class MemoryDayReminderSyncService {
   CollectionReference<Map<String, dynamic>> _metaCollection(
     String ownerParentUid,
   ) {
+    // Phase 2: Reminder meta is stored under the same parent-owned namespace
+    // used by Schedule/Memory Day, including guardian flows.
     return _firestore
         .collection('parents')
         .doc(ownerParentUid)
