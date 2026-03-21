@@ -226,13 +226,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                       AppLabeledTextField(
                         label: l10n.authEmailLabel,
                         hint: l10n.authEnterEmailHint,
-                        hint: l10n.authEnterEmailHint,
                         controller: _emailCtrl,
                       ),
                       const SizedBox(height: 16),
                       AppLabeledTextField(
                         label: l10n.authPasswordLabel,
-                        hint: l10n.authEnterPasswordHint,
                         hint: l10n.authEnterPasswordHint,
                         controller: _passwordCtrl,
                         obscureText: hidePassword,

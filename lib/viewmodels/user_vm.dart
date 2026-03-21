@@ -147,6 +147,21 @@ class UserVm extends ChangeNotifier {
     }, onError: (e) => _setError(runtimeL10n().userVmLoadMembersError('$e')));
   }
 
+    void watchLocationMembers(String familyId, {String? excludeUid}) {
+    _locationMembersSub?.cancel();
+
+    final myUid = excludeUid ?? _storage.getString(StorageKeys.uid);
+
+    _locationMembersSub = _userRepo
+        .watchTrackableLocationMembers(familyId, excludeUid: myUid)
+        .listen((list) {
+          _locationMembers
+            ..clear()
+            ..addAll(list);
+          notifyListeners();
+        }, onError: (e) => _setError('Location members load error: $e'));
+  }
+
   Future<void> watchFamilyMembersByParent(String parentUid) async {
     try {
       final familyId = await _userRepo.getFamilyId(parentUid);

@@ -8,7 +8,6 @@ import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
 import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-import 'package:provider/provider.dart';
 
 import 'package:kid_manager/features/map_engine/map_engine.dart';
 import 'package:kid_manager/features/safe_route/data/datasources/safe_route_remote_data_source.dart';
@@ -23,14 +22,10 @@ import 'package:kid_manager/features/safe_route/presentation/viewmodels/child_sa
 import 'package:kid_manager/features/safe_route/presentation/widgets/child_safe_route_hud.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
-import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/locale_vm.dart';
-import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 import 'package:kid_manager/widgets/location/map_top_bar.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
-import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
-import 'package:kid_manager/widgets/sos/sos_view.dart';
 
 class ChildLocationScreen extends StatefulWidget {
   const ChildLocationScreen({super.key});
@@ -407,7 +402,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.childLocationSosError('$e'))),
+                    SnackBar(content: Text(l10n.childLocationSosError('$error'))),
                   );
                 }
               },

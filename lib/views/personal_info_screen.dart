@@ -223,7 +223,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                         barrierLabel: 'Close',
                         barrierColor: Colors.black.withOpacity(0.12),
                         transitionDuration: const Duration(milliseconds: 280),
-                        pageBuilder: (_, __, ___) {
+                        pageBuilder: (routeContext, animation, secondaryAnimation) {
                           return const MoreActionSheet();
                         },
                       ),
@@ -567,24 +567,25 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                             fontSize: 14,
                                             fontFamily: 'Poppins',
                                             fontWeight: FontWeight.w600,
+),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ],
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -596,12 +597,6 @@ class MoreActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    final role = context.watch<UserVm>().profile?.role;
-    final isParent = roleFromString(role ?? 'child') == UserRole.parent;
-
     return AppOverlaySheet(
       showHandle: true,
       child: Padding(
@@ -649,16 +644,22 @@ class MoreActionSheet extends StatelessWidget {
               iconType: AppIconType.png,
               iconSize: 17,
               onTap: () {
-                Navigator.pop(context);
-
-                Future.microtask(() {
-                  showModalBottomSheet(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    isScrollControlled: true,
-                    builder: (_) => const ConfirmLogoutSheet(),
-                  );
-                });
+                final rootNavigator = Navigator.of(context, rootNavigator: true);
+                rootNavigator.pushReplacement(
+                  RawDialogRoute<void>(
+                    barrierDismissible: true,
+                    barrierLabel: 'Close',
+                    barrierColor: Colors.transparent,
+                    transitionDuration: const Duration(milliseconds: 280),
+                    pageBuilder: (
+                      routeContext,
+                      animation,
+                      secondaryAnimation,
+                    ) {
+                      return const ConfirmLogoutSheet();
+                    },
+                  ),
+                );
               },
             ),
 
@@ -711,12 +712,11 @@ class ConfirmLogoutSheet extends StatelessWidget {
     return Stack(
       children: [
         AppOverlaySheet(
-          height: 210,
           showHandle: true,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Column(
-              mainAxisSize: MainAxisSize.max,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 6),
 
