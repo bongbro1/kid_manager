@@ -133,16 +133,13 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     _safeRouteLanguageCode = languageCode;
     _safeRouteListener = () {
       final nextSeverity = viewModel.state.guidance?.severity;
-      final languageCode = _safeRouteLanguageCode;
       final recoveredToRoute =
           _lastSafeRouteSeverity == ChildSafeRouteSeverity.offRoute &&
           (nextSeverity == ChildSafeRouteSeverity.safe ||
               nextSeverity == ChildSafeRouteSeverity.arrived);
       if (recoveredToRoute) {
         _showTransientSafeRouteBanner(
-          languageCode.startsWith('en')
-              ? 'Back on the safe route'
-              : 'Đã quay lại tuyến an toàn',
+          AppLocalizations.of(context).childLocationSafeRouteRecoveredBanner,
         );
       }
       _lastSafeRouteSeverity = nextSeverity;

@@ -1,9 +1,11 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_hazard.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 enum SafeRouteTrackingSeverity {
   safe,
@@ -43,6 +45,7 @@ class SafeRouteTrackingVisuals {
 
 SafeRouteTrackingVisuals resolveSafeRouteTrackingVisuals(
   SafeRouteTrackingState state, {
+  required AppLocalizations l10n,
   required String fallbackStatusLabel,
 }) {
   final distanceMeters = state.activeTrip?.currentDistanceFromRouteMeters ?? 0;
@@ -52,9 +55,9 @@ SafeRouteTrackingVisuals resolveSafeRouteTrackingVisuals(
     return SafeRouteTrackingVisuals(
       severity: SafeRouteTrackingSeverity.danger,
       icon: Icons.warning_amber_rounded,
-      title: 'Đi vào vùng nguy hiểm!',
-      subtitle: 'Bé đang ở gần ${triggeredHazard.name}.',
-      badgeLabel: 'NGUY HIỂM',
+      title: l10n.safeRouteVisualDangerTitle,
+      subtitle: l10n.safeRouteVisualDangerSubtitle(triggeredHazard.name),
+      badgeLabel: l10n.safeRouteVisualDangerBadge,
       accentColor: const Color(0xFFDC2626),
       softColor: const Color(0xFFFEF2F2),
       bannerColor: const Color(0xFFFFF6F6),
@@ -72,12 +75,14 @@ SafeRouteTrackingVisuals resolveSafeRouteTrackingVisuals(
         severity: SafeRouteTrackingSeverity.warning,
         icon: Icons.near_me_rounded,
         title: distanceMeters > 0
-            ? 'Đang lệch tuyến ~${distanceMeters.round()}m'
+            ? l10n.safeRouteVisualOffRouteTitle(
+                l10n.safeRouteDistanceLabel(distanceMeters),
+              )
             : fallbackStatusLabel,
         subtitle: state.activeTrip?.reason?.trim().isNotEmpty == true
             ? state.activeTrip!.reason!
-            : 'Bé đang đi ra ngoài hành lang an toàn đã chọn.',
-        badgeLabel: 'LỆCH TUYẾN',
+            : l10n.safeRouteVisualOffRouteSubtitle,
+        badgeLabel: l10n.safeRouteVisualOffRouteBadge,
         accentColor: const Color(0xFFD97706),
         softColor: const Color(0xFFFFF7ED),
         bannerColor: const Color(0xFFFFFBF2),
@@ -90,9 +95,9 @@ SafeRouteTrackingVisuals resolveSafeRouteTrackingVisuals(
       return SafeRouteTrackingVisuals(
         severity: SafeRouteTrackingSeverity.safe,
         icon: Icons.check_circle_rounded,
-        title: 'Bé đã đến nơi an toàn',
-        subtitle: 'Hành trình vừa được đánh dấu hoàn thành.',
-        badgeLabel: 'HOÀN THÀNH',
+        title: l10n.safeRouteVisualCompletedTitle,
+        subtitle: l10n.safeRouteVisualCompletedSubtitle,
+        badgeLabel: l10n.safeRouteVisualCompletedBadge,
         accentColor: const Color(0xFF2563EB),
         softColor: const Color(0xFFEFF6FF),
         bannerColor: Colors.white,
@@ -105,9 +110,9 @@ SafeRouteTrackingVisuals resolveSafeRouteTrackingVisuals(
       return SafeRouteTrackingVisuals(
         severity: SafeRouteTrackingSeverity.warning,
         icon: Icons.pause_circle_rounded,
-        title: 'Đã dừng theo dõi hành trình',
-        subtitle: 'Phụ huynh đã kết thúc chế độ giám sát hiện tại.',
-        badgeLabel: 'ĐÃ DỪNG',
+        title: l10n.safeRouteVisualCancelledTitle,
+        subtitle: l10n.safeRouteVisualCancelledSubtitle,
+        badgeLabel: l10n.safeRouteVisualCancelledBadge,
         accentColor: const Color(0xFF64748B),
         softColor: const Color(0xFFF8FAFC),
         bannerColor: Colors.white,
@@ -120,9 +125,9 @@ SafeRouteTrackingVisuals resolveSafeRouteTrackingVisuals(
       return SafeRouteTrackingVisuals(
         severity: SafeRouteTrackingSeverity.safe,
         icon: Icons.event_available_rounded,
-        title: 'Tuyến đang chờ kích hoạt',
-        subtitle: 'Safe Route sẽ tự bắt đầu theo ngày giờ đã cài đặt.',
-        badgeLabel: 'ĐÃ LÊN LỊCH',
+        title: l10n.safeRouteVisualPlannedTitle,
+        subtitle: l10n.safeRouteVisualPlannedSubtitle,
+        badgeLabel: l10n.safeRouteVisualPlannedBadge,
         accentColor: const Color(0xFF1D4ED8),
         softColor: const Color(0xFFEFF6FF),
         bannerColor: Colors.white,
@@ -136,9 +141,9 @@ SafeRouteTrackingVisuals resolveSafeRouteTrackingVisuals(
       return SafeRouteTrackingVisuals(
         severity: SafeRouteTrackingSeverity.safe,
         icon: Icons.shield_rounded,
-        title: 'Đang đi đúng tuyến',
-        subtitle: 'Bé đang trong hành lang an toàn đã chọn.',
-        badgeLabel: 'AN TOÀN',
+        title: l10n.safeRouteVisualActiveTitle,
+        subtitle: l10n.safeRouteVisualActiveSubtitle,
+        badgeLabel: l10n.safeRouteVisualActiveBadge,
         accentColor: const Color(0xFF059669),
         softColor: const Color(0xFFECFDF3),
         bannerColor: Colors.white,

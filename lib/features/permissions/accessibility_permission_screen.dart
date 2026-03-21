@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/permissions/permission_step_scaffold.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class AccessibilityPermissionScreen extends StatelessWidget {
   const AccessibilityPermissionScreen({
@@ -27,14 +28,15 @@ class AccessibilityPermissionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PermissionStepScaffold(
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Bật trợ năng',
-      description: 'Cần cho một số tính năng bảo vệ trên Android.',
-      primaryLabel: 'Đến cài đặt',
-      settingsLabel: 'Mở cài đặt chung',
+      title: l10n.permissionOnboardingAccessibilityTitle,
+      description: l10n.permissionOnboardingAccessibilitySubtitle,
+      primaryLabel: l10n.permissionOnboardingAccessibilityPrimaryButton,
+      settingsLabel: l10n.permissionOnboardingAccessibilitySettingsButton,
       icon: Icons.accessibility_new_rounded,
       color: const Color(0xFFF79009),
       busy: busy,

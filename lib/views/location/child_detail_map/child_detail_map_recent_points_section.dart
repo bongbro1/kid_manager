@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 
@@ -65,6 +66,7 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final pointIndex = history.indexWhere(
       (entry) => entry.timestamp == point.timestamp,
     );
@@ -110,8 +112,9 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
                   children: [
                     Text(
                       point.accuracy > 30
-                          ? 'Tín hiệu GPS yếu'
+                          ? l10n.childLocationWeakGpsSignal
                           : LocationHistoryPresenter.transportLabel(
+                              l10n,
                               effectiveTransport,
                             ),
                       style: const TextStyle(
@@ -122,7 +125,7 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Bấm để xem chi tiết',
+                      l10n.childLocationTapToSeeDetails,
                       style: TextStyle(
                         fontSize: 11.5,
                         color: Colors.grey.shade600,

@@ -11,6 +11,9 @@
   "phoneHint": "+84 012345678",
   "genderLabel": "Giới tính",
   "genderHint": "Nam",
+  "genderMaleOption": "Nam",
+  "genderFemaleOption": "Nữ",
+  "genderOtherOption": "Khác",
   "birthDateLabel": "Ngày sinh",
   "birthDateHint": "12/12/2003",
   "addressLabel": "Địa chỉ",
@@ -25,6 +28,10 @@
   "confirmLogoutQuestion": "Bạn muốn đăng xuất?",
   "cancelButton": "Hủy bỏ",
   "confirmButton": "Xác nhận",
+  "cropPhotoAvatarTitle": "Chỉnh ảnh đại diện",
+  "cropPhotoCoverTitle": "Chỉnh ảnh bìa",
+  "cropPhotoDoneButton": "Xong",
+  "cropPhotoFailedMessage": "Không thể crop ảnh",
   "languageSetting": "Ngôn ngữ",
   "vietnamese": "Tiếng Việt",
   "english": "English",
@@ -726,9 +733,86 @@
   },
   "notificationDetailTitle": "Chi tiết thông báo",
   "notificationDetailSectionTitle": "CHI TIẾT",
+  "accessibilityNoticeBarrierLabel": "Hộp thoại thông báo",
+  "accessibilityImageModalBarrierLabel": "Trình xem ảnh",
   "notificationChildFallback": "Bé",
   "notificationChildInfoNotFound": "Không tìm thấy thông tin của bé",
   "notificationMapLocationNotFound": "Không tìm thấy vị trí để mở bản đồ",
+  "notificationTrackingDetailNotFound": "Không tìm thấy thông tin hành trình của bé",
+  "notificationTrackingUnknownValue": "Không rõ",
+  "notificationTrackingChildLabel": "Bé",
+  "notificationTrackingRouteLabel": "Tuyến đường",
+  "notificationTrackingDistanceToRouteLabel": "Khoảng cách tới tuyến",
+  "notificationTrackingHazardLabel": "Vùng nguy hiểm",
+  "notificationTrackingStationaryLabel": "Đứng yên",
+  "notificationTrackingTimeLabel": "Thời điểm",
+  "notificationTrackingOpenHint": "Mở trang theo dõi để xem vị trí hiện tại của bé, tuyến đang bám và toàn bộ trạng thái hành trình trên bản đồ.",
+  "notificationTrackingOpenButton": "Mở theo dõi hành trình",
+  "notificationTrackingStatusOffRoute": "Lệch tuyến",
+  "notificationTrackingStatusBackOnRoute": "Quay lại tuyến",
+  "notificationTrackingStatusReturnedToStart": "Về điểm đầu",
+  "notificationTrackingStatusStationary": "Đứng yên quá lâu",
+  "notificationTrackingStatusArrived": "Đã đến nơi",
+  "notificationTrackingStatusDanger": "Nguy hiểm",
+  "notificationTrackingStatusDefault": "Safe Route",
+  "notificationTrackingHeadlineOffRoute": "Bé đang đi lệch khỏi tuyến đã chọn",
+  "notificationTrackingHeadlineBackOnRoute": "Bé đã quay lại tuyến an toàn",
+  "notificationTrackingHeadlineReturnedToStart": "Bé đang quay lại gần điểm xuất phát",
+  "notificationTrackingHeadlineStationary": "Bé đang đứng yên lâu hơn bình thường",
+  "notificationTrackingHeadlineArrived": "Bé đã đến nơi an toàn",
+  "notificationTrackingHeadlineDanger": "Bé đang đi vào vùng nguy hiểm",
+  "notificationTrackingFallbackOffRoute": "Hệ thống phát hiện bé đã ra ngoài hành lang an toàn của tuyến {routeName}.",
+  "@notificationTrackingFallbackOffRoute": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackBackOnRoute": "Hệ thống ghi nhận bé đã quay lại hành lang an toàn của tuyến {routeName}.",
+  "@notificationTrackingFallbackBackOnRoute": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackReturnedToStart": "Bé đang quay lại gần vị trí xuất phát của tuyến {routeName}.",
+  "@notificationTrackingFallbackReturnedToStart": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackStationary": "Bé đã đứng gần cùng một vị trí quá lâu khi đang đi trên {routeName}.",
+  "@notificationTrackingFallbackStationary": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackArrived": "Bé đã đến điểm đích của {routeName}.",
+  "@notificationTrackingFallbackArrived": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackDangerGeneric": "Bé đã đi vào một vùng nguy hiểm trên hành trình hiện tại.",
+  "notificationTrackingFallbackDangerWithHazard": "Bé đã đi vào {hazardName} khi đang theo tuyến {routeName}.",
+  "@notificationTrackingFallbackDangerWithHazard": {
+    "placeholders": {
+      "hazardName": {
+        "type": "String"
+      },
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
   "notificationScheduleCreatedTitle": "Lịch trình mới của {childName}",
   "@notificationScheduleCreatedTitle": {
     "placeholders": {
@@ -1357,6 +1441,42 @@
   "parentStatsAppDetailsTitle": "Chi tiết ứng dụng",
   "parentStatsCollapse": "THU GỌN",
   "parentStatsViewAll": "XEM TẤT CẢ",
+  "parentStatsDurationZero": "0p",
+  "parentStatsDurationMinutes": "{minutes}p",
+  "@parentStatsDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "parentStatsDurationHours": "{hours}g",
+  "@parentStatsDurationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "parentStatsDurationHoursMinutes": "{hours}g {minutes}p",
+  "@parentStatsDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "parentStatsHourLabel": "{hour}g",
+  "@parentStatsHourLabel": {
+    "placeholders": {
+      "hour": {
+        "type": "int"
+      }
+    }
+  },
   "parentUsageNoAvailableSlot": "Không còn khoảng thời gian trống",
   "parentUsageStartBeforeEnd": "Giờ bắt đầu phải nhỏ hơn giờ kết thúc",
   "parentUsageOverlapTimeRange": "Khoảng thời gian bị trùng với mốc khác",
@@ -1567,6 +1687,7 @@
   "permissionSosAllowButton": "Cho phép SOS",
   "permissionOpenSettingsButton": "Mở cài đặt",
   "permissionLaterButton": "Để sau",
+  "permissionSkipButton": "Bỏ qua",
   "permissionStepLabel": "Bước {current}/{total}",
   "@permissionStepLabel": {
     "placeholders": {
@@ -1578,6 +1699,46 @@
       }
     }
   },
+  "permissionOnboardingAccessibilityTitle": "Bật trợ năng",
+  "permissionOnboardingAccessibilitySubtitle": "Cần cho một số tính năng bảo vệ trên Android.",
+  "permissionOnboardingAccessibilityPrimaryButton": "Đến cài đặt",
+  "permissionOnboardingAccessibilitySettingsButton": "Mở cài đặt chung",
+  "permissionOnboardingBackgroundLocationTitle": "Chọn \"Luôn cho phép\"",
+  "permissionOnboardingBackgroundLocationSubtitle": "Để vị trí vẫn cập nhật khi app chạy nền.",
+  "permissionOnboardingBackgroundLocationPrimaryButton": "Tiếp tục",
+  "permissionOnboardingBackgroundLocationSettingsButton": "Mở cài đặt vị trí",
+  "permissionOnboardingBatteryTitle": "Tắt giới hạn pin",
+  "permissionOnboardingBatterySubtitle": "Để app không bị dừng khi chạy nền.",
+  "permissionOnboardingBatteryPrimaryButton": "Đến cài đặt",
+  "permissionOnboardingBatterySettingsButton": "Mở cài đặt chung",
+  "permissionOnboardingLocationTitle": "Bật \"Truy cập vị trí của tôi\"",
+  "permissionOnboardingLocationSubtitle": "Nếu không, app sẽ không thể theo dõi vị trí.",
+  "permissionOnboardingLocationPrimaryButton": "Đến cài đặt",
+  "permissionOnboardingLocationSettingsButton": "Mở cài đặt ứng dụng",
+  "permissionOnboardingMediaTitle": "Cho phép ảnh và media",
+  "permissionOnboardingMediaSubtitle": "Để đổi ảnh đại diện và chọn hình trong app.",
+  "permissionOnboardingMediaPrimaryButton": "Cho phép",
+  "permissionOnboardingMediaSettingsButton": "Mở cài đặt",
+  "permissionOnboardingNotificationTitle": "Bật thông báo",
+  "permissionOnboardingNotificationSubtitle": "Để nhận SOS và cảnh báo an toàn ngay lập tức.",
+  "permissionOnboardingNotificationPrimaryButton": "Cho phép",
+  "permissionOnboardingNotificationSettingsButton": "Mở cài đặt thông báo",
+  "permissionOnboardingUsageTitle": "Bật quyền sử dụng ứng dụng",
+  "permissionOnboardingUsageSubtitle": "Để quản lý thời gian dùng app trên Android.",
+  "permissionOnboardingUsagePrimaryButton": "Đến cài đặt",
+  "permissionOnboardingUsageSettingsButton": "Mở cài đặt chung",
+  "permissionOnboardingStepNotificationsLabel": "Thông báo",
+  "permissionOnboardingStepLocationLabel": "Vị trí",
+  "permissionOnboardingStepBackgroundLocationLabel": "Luôn cho phép",
+  "permissionOnboardingStepMediaLabel": "Ảnh",
+  "permissionOnboardingStepUsageLabel": "Sử dụng",
+  "permissionOnboardingStepAccessibilityLabel": "Trợ năng",
+  "permissionOnboardingStepBatteryLabel": "Pin",
+  "permissionOnboardingSystemDeniedMessage": "Quyền này đang bị từ chối ở hệ thống. Hãy mở cài đặt để cấp lại.",
+  "permissionOnboardingNotGrantedMessage": "Quyền này chưa được cấp. Bạn có thể thử lại hoặc thiết lập sau.",
+  "permissionOnboardingNotificationHelperText": "Chỉ cần cấp quyền khi dùng app trước. Ngay sau bước này app sẽ hướng dẫn bật thêm \"Allow all the time\" để tracking nền hoạt động ổn định.",
+  "permissionOnboardingGuideVideoLoadFailed": "Không tải được video hướng dẫn",
+  "permissionOnboardingGuideVideoPlaceholder": "Video hướng dẫn sẽ hiển thị tại đây",
   "applyButton": "Áp dụng",
   "commonStartLabel": "Bắt đầu",
   "commonEndLabel": "Kết thúc",
@@ -1592,20 +1753,39 @@
   },
   "childLocationCurrentJourneyTitle": "Hành trình hiện tại",
   "childLocationTravelHistoryTitle": "Lịch sử di chuyển",
+  "childLocationSelectedHistoryLabel": "Lịch sử đã chọn",
   "childLocationTodayLabel": "Hôm nay",
+  "childLocationUpdatedJustNow": "Cập nhật vừa xong",
+  "childLocationUpdatedOneMinuteAgo": "Cập nhật 1 phút trước",
+  "childLocationUpdatedMinutesAgo": "Cập nhật {minutes} phút trước",
+  "@childLocationUpdatedMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "childLocationRangeAllDay": "Cả ngày",
+  "childLocationTooltipManageZones": "Quản lý vùng",
+  "childLocationTooltipSafeRoute": "Tuyến đường an toàn",
+  "childLocationTooltipChooseMap": "Chọn bản đồ",
   "childLocationTagStart": "Bắt đầu",
   "childLocationTagEnd": "Kết thúc",
   "childLocationTagGpsVeryWeak": "GPS rất yếu",
   "childLocationTagGpsLost": "Mất GPS",
   "childLocationStayedHereLabel": "Ở đây được",
   "childLocationStayedHereUnavailable": "Không xác định ổn định",
+  "childLocationStopDurationHint": "Thời gian dừng",
   "childLocationSpeedLabel": "Tốc độ",
   "childLocationSpeedUnavailable": "Không ổn định",
+  "childLocationGpsTitle": "GPS",
+  "childLocationPointCountTitle": "Số điểm",
+  "childLocationPointCountUnit": "điểm",
   "childLocationGpsAccuracyLabel": "Sai số GPS",
   "childLocationMockGpsLabel": "GPS giả lập",
   "childLocationMockGpsDetected": "Có dấu hiệu",
   "childLocationNoLabel": "Không",
+  "childLocationDeviceStatusHint": "Trạng thái thiết bị",
   "childLocationTechnicalDetailsTitle": "Xem chi tiết kỹ thuật",
   "childLocationDetailFullTimeLabel": "Thời gian đầy đủ",
   "childLocationDetailHeadingLabel": "Hướng di chuyển",
@@ -1719,6 +1899,16 @@
   "childLocationSummaryDateLabel": "Ngày",
   "childLocationSummaryTimeRangeLabel": "Khung giờ",
   "childLocationLiveLabel": "Trực tiếp",
+  "childLocationRecentPointsTitle": "Các điểm gần đây",
+  "childLocationLoadMoreRecentHours": "Tải thêm {label}",
+  "@childLocationLoadMoreRecentHours": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "childLocationViewAllButton": "Xem tất cả",
+  "childLocationTapToSeeDetails": "Bấm để xem chi tiết",
+  "childLocationWeakGpsSignal": "Tín hiệu GPS yếu",
   "childLocationPointCount": "{count} điểm",
   "@childLocationPointCount": {
     "placeholders": {
@@ -1727,6 +1917,21 @@
       }
     }
   },
+  "childLocationNetworkGapTitle": "Mất mạng",
+  "childLocationNetworkGapSubtitle": "Bản đồ nối tạm 2 đầu vì dữ liệu bị ngắt trong {duration}.",
+  "@childLocationNetworkGapSubtitle": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "childLocationNetworkGapChip": "Mất kết nối",
+  "childLocationNetworkGapFromLabel": "Mất từ",
+  "childLocationNetworkGapToLabel": "Có lại lúc",
+  "childLocationMapSearchSubtitle": "Tìm kiếm địa điểm để chọn nhanh trên bản đồ.",
+  "childLocationMapSearchInputHint": "Nhập tên đường, trường học, địa chỉ...",
+  "childLocationMapSearchMinChars": "Nhập ít nhất 2 ký tự để tìm địa điểm.",
+  "childLocationMapSearchNoResults": "Không tìm thấy địa điểm phù hợp.",
+  "childLocationSafeRouteRecoveredBanner": "Đã quay lại tuyến an toàn",
   "locationNoLocationYet": "Chưa có vị trí",
   "locationCoordinatesSummary": "Lat {lat} • Lng {lng}",
   "@locationCoordinatesSummary": {
@@ -1804,6 +2009,467 @@
   "scheduleRepositoryHistoryNotFound": "Bản lịch sử không tồn tại",
   "locationRepositoryLoginRequired": "Chưa đăng nhập, không thể gửi vị trí",
   "locationRepositoryParentIdNotFound": "Không tìm thấy tài khoản phụ huynh",
-  "cupertinoTimePickerDoneButton": "Xong"
+  "safeRouteTripStatusActive": "Đang theo dõi",
+  "safeRouteTripStatusTemporarilyDeviated": "Tạm lệch tuyến",
+  "safeRouteTripStatusDeviated": "Lệch tuyến",
+  "safeRouteTripStatusCompleted": "Đã đến nơi",
+  "safeRouteTripStatusCancelled": "Đã hủy",
+  "safeRouteTripStatusPlanned": "Đã lên lịch",
+  "safeRouteTripStatusNoTrip": "Chưa có chuyến đi",
+  "safeRouteTravelModeWalking": "Đi bộ",
+  "safeRouteTravelModeMotorbike": "Xe máy",
+  "safeRouteTravelModePickup": "Đón con",
+  "safeRouteTravelModeOtherVehicle": "Phương tiện khác",
+  "safeRouteDistanceMeters": "{value} m",
+  "@safeRouteDistanceMeters": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteDistanceKilometers": "{value} km",
+  "@safeRouteDistanceKilometers": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "safeRouteDurationMinutes": "{minutes} phút",
+  "@safeRouteDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteDurationHours": "{hours} giờ",
+  "@safeRouteDurationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteDurationHoursMinutes": "{hours} giờ {minutes} phút",
+  "@safeRouteDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteDurationHoursMinutesShort": "{hours} giờ {minutes}p",
+  "@safeRouteDurationHoursMinutesShort": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteEtaApproxMinutes": "~{minutes} phút",
+  "@safeRouteEtaApproxMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteEtaApproxHours": "~{hours} giờ",
+  "@safeRouteEtaApproxHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteEtaApproxHoursMinutes": "~{hours} giờ {minutes}p",
+  "@safeRouteEtaApproxHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteTodayLabel": "Hôm nay",
+  "safeRouteTomorrowLabel": "Ngày mai",
+  "safeRouteNowLabel": "Bây giờ",
+  "safeRouteSecondsAgo": "{seconds}s",
+  "@safeRouteSecondsAgo": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteFormatTime": "{hour}:{minute}",
+  "@safeRouteFormatTime": {
+    "placeholders": {
+      "hour": {},
+      "minute": {}
+    }
+  },
+  "safeRouteTrackNowLabel": "Theo dõi ngay",
+  "safeRouteNoRepeatSummary": "Không lặp lại, tuyến sẽ được áp dụng cho một lịch theo dõi gần nhất.",
+  "safeRouteRepeatSummaryText": "Lặp lại vào: {labels}",
+  "@safeRouteRepeatSummaryText": {
+    "placeholders": {
+      "labels": {}
+    }
+  },
+  "safeRouteCurrentRoutePrimary": "Đang đi trên tuyến chính",
+  "safeRouteCurrentRouteAlternativeIndexed": "Đang đi trên tuyến phụ {index}",
+  "@safeRouteCurrentRouteAlternativeIndexed": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteCurrentRouteAlternative": "Đang đi trên tuyến phụ",
+  "safeRouteRouteFallbackNameText": "Tuyến {id}",
+  "@safeRouteRouteFallbackNameText": {
+    "placeholders": {
+      "id": {}
+    }
+  },
+  "safeRouteSelectedRouteFallbackName": "Tuyến đã chọn",
+  "safeRouteGuidanceLoadingRoute": "Đang tải tuyến đường...",
+  "safeRouteGuidanceDangerArea": "vùng nguy hiểm",
+  "safeRouteGuidanceReturnToSafeRoute": "Quay lại tuyến an toàn",
+  "safeRouteGuidanceArrivedInstruction": "Sắp tới nơi rồi",
+  "safeRouteGuidanceArrivedDescription": "Đi tiếp đến điểm đích để hoàn thành hành trình.",
+  "safeRouteGuidanceStatusOnRoute": "Đúng tuyến",
+  "safeRouteGuidanceStatusOffRoute": "Lệch tuyến",
+  "safeRouteGuidanceStatusAlmostThere": "Sắp đến nơi",
+  "safeRouteGuidanceStatusSafeRoute": "Tuyến an toàn",
+  "safeRouteGuidanceLeaveDangerZone": "Rời khỏi {hazardName} ngay",
+  "@safeRouteGuidanceLeaveDangerZone": {
+    "placeholders": {
+      "hazardName": {}
+    }
+  },
+  "safeRouteGuidanceDangerDescription": "Đi ra khỏi {hazardName} và quay lại tuyến an toàn.",
+  "@safeRouteGuidanceDangerDescription": {
+    "placeholders": {
+      "hazardName": {}
+    }
+  },
+  "safeRouteGuidanceOffRouteDescription": "Bạn đang cách tuyến khoảng {distanceLabel}.",
+  "@safeRouteGuidanceOffRouteDescription": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceRemainingDescription": "Còn {distanceLabel} để đến điểm đích.",
+  "@safeRouteGuidanceRemainingDescription": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceContinueStraight": "Đi thẳng {distanceLabel}",
+  "@safeRouteGuidanceContinueStraight": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceTurnLeft": "Rẽ trái sau {distanceLabel}",
+  "@safeRouteGuidanceTurnLeft": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceTurnRight": "Rẽ phải sau {distanceLabel}",
+  "@safeRouteGuidanceTurnRight": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceKeepLeft": "Chếch trái sau {distanceLabel}",
+  "@safeRouteGuidanceKeepLeft": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceKeepRight": "Chếch phải sau {distanceLabel}",
+  "@safeRouteGuidanceKeepRight": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceMakeUTurn": "Quay đầu sau {distanceLabel}",
+  "@safeRouteGuidanceMakeUTurn": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceEtaNow": "Đến ngay bây giờ",
+  "safeRouteVisualDangerTitle": "Đi vào vùng nguy hiểm!",
+  "safeRouteVisualDangerSubtitle": "Bé đang ở gần {hazardName}.",
+  "@safeRouteVisualDangerSubtitle": {
+    "placeholders": {
+      "hazardName": {}
+    }
+  },
+  "safeRouteVisualDangerBadge": "NGUY HIỂM",
+  "safeRouteVisualOffRouteTitle": "Đang lệch tuyến ~{distanceLabel}",
+  "@safeRouteVisualOffRouteTitle": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteVisualOffRouteSubtitle": "Bé đang đi ra ngoài hành lang an toàn đã chọn.",
+  "safeRouteVisualOffRouteBadge": "LỆCH TUYẾN",
+  "safeRouteVisualCompletedTitle": "Bé đã đến nơi an toàn",
+  "safeRouteVisualCompletedSubtitle": "Hành trình vừa được đánh dấu hoàn thành.",
+  "safeRouteVisualCompletedBadge": "HOÀN THÀNH",
+  "safeRouteVisualCancelledTitle": "Đã dừng theo dõi hành trình",
+  "safeRouteVisualCancelledSubtitle": "Phụ huynh đã kết thúc chế độ giám sát hiện tại.",
+  "safeRouteVisualCancelledBadge": "ĐÃ DỪNG",
+  "safeRouteVisualPlannedTitle": "Tuyến đang chờ kích hoạt",
+  "safeRouteVisualPlannedSubtitle": "Safe Route sẽ tự bắt đầu theo ngày giờ đã cài đặt.",
+  "safeRouteVisualPlannedBadge": "ĐÃ LÊN LỊCH",
+  "safeRouteVisualActiveTitle": "Đang đi đúng tuyến",
+  "safeRouteVisualActiveSubtitle": "Bé đang trong hành lang an toàn đã chọn.",
+  "safeRouteVisualActiveBadge": "AN TOÀN",
+  "safeRouteErrorMaxAlternative": "Chỉ nên chọn tối đa 2 tuyến phụ cho mỗi chuyến.",
+  "safeRouteErrorNoCurrentLocation": "Chưa có vị trí hiện tại của trẻ.",
+  "safeRouteErrorNeedStartEnd": "Cần chọn điểm A và điểm B trước.",
+  "safeRouteErrorLoadHistoryRoute": "Không tải được tuyến đường trong lịch sử.",
+  "safeRouteErrorNeedRoute": "Cần chọn một tuyến đường an toàn.",
+  "safeRouteErrorLoginAgain": "Bạn cần đăng nhập lại để bắt đầu chuyến đi.",
+  "safeRouteErrorSelectTimeForRepeat": "Chọn giờ áp dụng nếu muốn lặp lại theo ngày.",
+  "safeRouteUseCurrentLocationLabel": "Vị trí hiện tại",
+  "safeRouteStartPointOfRoute": "Điểm bắt đầu của tuyến",
+  "safeRouteEndPointOfRoute": "Điểm kết thúc của tuyến",
+  "safeRouteCancelledByParentReason": "Đã hủy bởi phụ huynh",
+  "safeRouteSpeedValue": "{value} km/h",
+  "@safeRouteSpeedValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "safeRoutePageSelectRouteTitle": "Chọn tuyến an toàn",
+  "safeRoutePageJourneyTitle": "Hành trình an toàn",
+  "safeRouteSnackbarAutoFollowEnabled": "Đã bật Auto follow",
+  "safeRouteSnackbarAutoFollowDisabled": "Đã tắt Auto follow",
+  "safeRouteSearchStartTitle": "Tìm điểm đi",
+  "safeRouteSearchStartHint": "Tìm nhà, điểm đón hoặc vị trí bắt đầu hành trình.",
+  "safeRouteSearchEndTitle": "Tìm điểm đến",
+  "safeRouteSearchEndHint": "Tìm trường học, nhà người thân hoặc điểm đến cần theo dõi.",
+  "safeRouteScheduledAutoActivationPrefix": "Tự kích hoạt theo lịch · {summary}",
+  "@safeRouteScheduledAutoActivationPrefix": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "safeRouteTopSubtitleWarning": "Đang lệch tuyến",
+  "safeRouteTopSubtitleDanger": "Cảnh báo nguy hiểm",
+  "safeRouteTopSubtitleReady": "Điểm đi và điểm đến đã sẵn sàng",
+  "safeRouteTopSubtitleOnlyStart": "Đã chọn điểm đi, tiếp tục chọn điểm đến",
+  "safeRouteTopSubtitleChoosePoints": "Chọn điểm đi và điểm đến theo phong cách bản đồ",
+  "safeRouteSelectScheduleDateHelp": "Chọn ngày áp dụng",
+  "safeRouteSelectScheduleTimeTitle": "Chọn giờ áp dụng",
+  "safeRouteArrivedDialogTitle": "Bé đã đến nơi an toàn",
+  "safeRouteArrivedDialogMessage": "Hành trình này đã được hoàn tất. Bạn có thể quay lại để chọn tuyến đường mới cho bé.",
+  "safeRouteArrivedDialogConfirm": "Quay lại chọn tuyến đường",
+  "safeRouteCancelPlannedTitle": "Xác nhận hủy lịch Safe Route",
+  "safeRouteCancelActiveTitle": "Xác nhận hủy tuyến Safe Route",
+  "safeRouteCancelPlannedMessage": "Lịch theo dõi này sẽ không tự kích hoạt nữa. Bạn có chắc muốn hủy không?",
+  "safeRouteCancelActiveMessage": "Tuyến đường an toàn hiện tại sẽ dừng theo dõi ngay. Bạn có chắc muốn hủy không?",
+  "safeRouteCancelPlannedConfirm": "Xác nhận hủy lịch",
+  "safeRouteCancelActiveConfirm": "Xác nhận hủy tuyến",
+  "safeRouteDialogBack": "Quay lại",
+  "safeRouteTooltipFocusChild": "Đưa camera tới bé",
+  "safeRouteTooltipDisableAutoFollow": "Tắt Auto follow",
+  "safeRouteTooltipEnableAutoFollow": "Bật Auto follow",
+  "safeRouteAutoFollowLabel": "Auto follow",
+  "safeRouteTooltipHideHazards": "Ẩn vùng nguy hiểm",
+  "safeRouteTooltipShowHazards": "Hiện vùng nguy hiểm",
+  "safeRouteTooltipMapType": "Chọn kiểu bản đồ",
+  "safeRouteMapHintPlaceStart": "Chạm trên bản đồ để đặt điểm đi",
+  "safeRouteMapHintPlaceEnd": "Chạm trên bản đồ để đặt điểm đến",
+  "safeRouteMapHintTapStart": "Chạm trên bản đồ để chọn điểm đi cho bé.",
+  "safeRouteMapHintTapEnd": "Chạm trên bản đồ để chọn điểm đến của bé.",
+  "safeRouteSnackbarSelectedEndPoint": "Đã chọn điểm đến trên bản đồ",
+  "safeRouteSnackbarSelectedStartPoint": "Đã chọn điểm đi trên bản đồ",
+  "safeRouteSelectSafeRouteTitle": "Chọn tuyến an toàn",
+  "safeRouteSuggestedRoutesTitle": "Các tuyến đường gợi ý",
+  "safeRouteSuggestedRoutesSubtitle": "Ưu tiên an toàn, dễ theo dõi và ít đi qua vùng nguy hiểm",
+  "safeRouteHistoryButton": "Lịch sử",
+  "safeRouteRefreshingRoutes": "Đang tìm...",
+  "safeRouteRefreshButton": "Làm mới",
+  "safeRouteConfirmingRoute": "Đang xác nhận tuyến...",
+  "safeRouteFetchSuggestedRoutes": "Lấy gợi ý tuyến đường",
+  "safeRouteHintSelectingStart": "Chạm trên bản đồ để chọn điểm đi cho bé.",
+  "safeRouteHintSelectingEnd": "Chạm trên bản đồ để chọn điểm đến của bé.",
+  "safeRouteHintMissingPoints": "Chọn điểm A và điểm B theo phong cách bản đồ, sau đó xem các tuyến gợi ý.",
+  "safeRouteHintReadyChooseRoute": "Đã có đủ điểm đi và điểm đến. Bạn có thể chọn tuyến an toàn nhất để bắt đầu giám sát.",
+  "safeRouteEmptyRoutesNeedPoints": "Hãy chọn cả điểm đi và điểm đến để app đề xuất các tuyến đường an toàn.",
+  "safeRouteEmptyRoutesRefresh": "Nhấn \"Làm mới\" hoặc nút phía dưới để lấy lại danh sách tuyến gợi ý.",
+  "safeRoutePrimaryActionSaveSchedule": "Lưu tuyến và lên lịch theo dõi",
+  "safeRoutePrimaryActionStartSelectedRoutes": "Bắt đầu theo dõi các tuyến đã chọn",
+  "safeRoutePrimaryActionSelectThisRoute": "Chọn tuyến này và bắt đầu theo dõi",
+  "safeRouteSelectedRoutesNeedPrimary": "Hãy chọn 1 tuyến chính và có thể thêm tối đa 2 tuyến phụ.",
+  "safeRouteSelectedRoutesPrimaryOnly": "Đã chọn 1 tuyến chính. Bạn có thể thêm tối đa 2 tuyến phụ.",
+  "safeRouteSelectedRoutesWithAlternatives": "Đã chọn 1 tuyến chính và {count} tuyến phụ.",
+  "@safeRouteSelectedRoutesWithAlternatives": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteActionStopTracking": "Dừng theo dõi",
+  "safeRouteActionViewRoute": "Xem tuyến",
+  "safeRouteActionMarkArrived": "Đánh dấu đã đến",
+  "safeRouteActionCancelSchedule": "Hủy lịch",
+  "safeRouteActionChooseNewRoute": "Chọn tuyến mới",
+  "safeRouteActionRouteDetails": "Chi tiết tuyến",
+  "safeRouteStatusSubtitleActive": "Bé đang bám sát tuyến đã chọn",
+  "safeRouteStatusSubtitleTemporarilyDeviated": "Có dấu hiệu lệch nhẹ, hệ thống đang tiếp tục theo dõi",
+  "safeRouteStatusSubtitleDeviated": "Bé đã lệch khỏi corridor an toàn",
+  "safeRouteStatusSubtitleCompleted": "Hành trình đã hoàn tất",
+  "safeRouteStatusSubtitleCancelled": "Phụ huynh đã dừng giám sát",
+  "safeRouteStatusSubtitlePlanned": "Tuyến đang chờ tới giờ để tự kích hoạt",
+  "safeRouteStatusSubtitleNoData": "Chưa có dữ liệu giám sát",
+  "safeRouteSpeedStanding": "Đứng yên",
+  "safeRouteSpeedWalking": "Đi bộ",
+  "safeRouteSpeedCycling": "Đi xe đạp",
+  "safeRouteSpeedMoving": "Di chuyển",
+  "safeRouteMetricSpeed": "Tốc độ",
+  "safeRouteMetricOffRoute": "Lệch tuyến",
+  "safeRouteMetricOffCorridor": "Ngoài corridor",
+  "safeRouteMetricEta": "Đến nơi",
+  "safeRouteMetricEtaEstimate": "Ước tính",
+  "safeRouteDangerCheckNow": "Cần kiểm tra ngay",
+  "safeRouteDeviceBatteryLabel": "Pin thiết bị",
+  "safeRouteProgressTitle": "Tiến độ hành trình",
+  "safeRouteProgressCompletedPercent": "Đã đi {percent}%",
+  "@safeRouteProgressCompletedPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteProgressTraveled": "Đã đi {traveled}/{total}",
+  "@safeRouteProgressTraveled": {
+    "placeholders": {
+      "traveled": {},
+      "total": {}
+    }
+  },
+  "safeRouteProgressRemainingPercent": "Còn lại {percent}%",
+  "@safeRouteProgressRemainingPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteProgressRemaining": "Còn {distance}",
+  "@safeRouteProgressRemaining": {
+    "placeholders": {
+      "distance": {}
+    }
+  },
+  "safeRouteFromLabel": "Từ",
+  "safeRouteToLabel": "Đến",
+  "safeRouteSearchOrSelectStart": "Tìm hoặc chọn điểm đi",
+  "safeRouteSearchOrSelectEnd": "Tìm hoặc chọn điểm đến",
+  "safeRouteScheduleTitle": "Lịch áp dụng tuyến",
+  "safeRouteScheduleSubtitle": "Đặt ngày, giờ và chọn các ngày lặp lại cho tuyến đường an toàn này.",
+  "safeRouteDateLabel": "Ngày",
+  "safeRouteTimeLabel": "Giờ",
+  "safeRouteRepeatByDayLabel": "Lặp lại theo ngày",
+  "safeRouteHistoryTripsTitle": "Lịch sử chuyến đường an toàn",
+  "safeRouteHistoryTripsEmpty": "Chưa có chuyến nào được lưu cho bé.",
+  "safeRouteHistoryTripsSubtitle": "Chạm vào từng chuyến để xem lại tuyến đường và trạng thái di chuyển.",
+  "safeRouteHistoryPageTitle": "Lịch sử tuyến đường",
+  "safeRouteHistoryPageReviewSaved": "Xem lại toàn bộ hành trình an toàn đã lưu",
+  "safeRouteHistoryEmptyState": "Chưa có tuyến đường nào được lưu trong lịch sử Safe Route.",
+  "safeRouteNoRepeatLabel": "Không lặp lại",
+  "safeRouteBadgeSafest": "An toàn nhất",
+  "safeRouteBadgeFewerHazards": "Ít vùng nguy hiểm",
+  "safeRouteBadgeFaster": "Nhanh hơn",
+  "safeRouteBadgeAlternative": "Tuyến phụ",
+  "safeRouteRolePrimary": "Tuyến chính",
+  "safeRouteRoleAlternative": "Tuyến phụ",
+  "safeRouteCorridorLabel": "{distance} corridor",
+  "@safeRouteCorridorLabel": {
+    "placeholders": {
+      "distance": {}
+    }
+  },
+  "safeRouteActionPrimarySelected": "Đang là tuyến chính",
+  "safeRouteActionSetPrimary": "Đặt làm tuyến chính",
+  "safeRouteActionRemoveAlternative": "Bỏ tuyến phụ",
+  "safeRouteActionSelectAlternative": "Chọn tuyến phụ",
+  "safeRouteActionAlternativeLimitReached": "Đã đủ tuyến phụ",
+  "safeRouteRouteDescriptionStable": "Tuyến khá ổn định, gần như không đi vào vùng nguy hiểm.",
+  "safeRouteRouteDescriptionOneHazard": "Có 1 điểm cần lưu ý nhưng vẫn phù hợp để theo dõi an toàn.",
+  "safeRouteRouteDescriptionMoreHazards": "Tuyến đi nhanh hơn nhưng cần chú ý vì có nhiều vùng cảnh báo hơn.",
+  "safeRouteHazardCount": "{count} vùng nguy hiểm",
+  "@safeRouteHazardCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteAlternativeRouteCount": "+{count} tuyến phụ",
+  "@safeRouteAlternativeRouteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cupertinoTimePickerDoneButton": "Xong",
+  "childLocationUpdatedOneHourAgo": "Cập nhật 1 giờ trước",
+  "childLocationUpdatedHoursAgo": "Cập nhật {hours} giờ trước",
+  "@childLocationUpdatedHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "validationPasswordRequired": "Vui lòng nhập mật khẩu",
+  "validationPasswordMinLength": "Mật khẩu phải có ít nhất 6 ký tự",
+  "validationPasswordUppercaseRequired": "Mật khẩu phải có ít nhất 1 chữ hoa",
+  "validationPasswordLowercaseRequired": "Mật khẩu phải có ít nhất 1 chữ thường",
+  "validationPasswordNumberRequired": "Mật khẩu phải có ít nhất 1 chữ số",
+  "validationPasswordConfirmRequired": "Vui lòng nhập lại mật khẩu",
+  "firebaseAuthOperationNotAllowed": "Chức năng tạo tài khoản chưa được bật trong Firebase Auth",
+  "userRepositoryCreateAccountFailed": "Không thể tạo tài khoản",
+  "firestorePermissionDenied": "Bạn không có quyền ghi dữ liệu",
+  "firestoreUnavailable": "Firestore tạm thời không khả dụng",
+  "firestoreGenericError": "Lỗi Firestore",
+  "userRepositoryCreateChildFailed": "Không thể tạo tài khoản con",
+  "mapPlaceSearchMissingAccessToken": "Thiếu ACCESS_TOKEN Mapbox cho tìm kiếm địa điểm.",
+  "mapPlaceSearchRequestFailed": "Tìm kiếm địa điểm thất bại ({statusCode}).",
+  "@mapPlaceSearchRequestFailed": {
+    "placeholders": {
+      "statusCode": {
+        "type": "int"
+      }
+    }
+  },
+  "mapPlaceSearchInvalidResponse": "Dữ liệu trả về từ Mapbox không hợp lệ.",
+  "mapPlaceSearchTimeout": "Tìm kiếm địa điểm quá thời gian, vui lòng thử lại.",
+  "mapPlaceSearchDecodeFailed": "Không thể đọc dữ liệu địa điểm.",
+  "mapPlaceSearchUnexpectedError": "Có lỗi xảy ra khi tìm kiếm địa điểm.",
+  "mapPlaceSearchNoAddress": "Không có địa chỉ",
+  "mapPlaceSearchDefaultName": "Địa điểm"
 }
 

@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,8 +11,10 @@ import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums
 import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_route_by_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_trip_history_by_child_id_usecase.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_history_state.dart';
 import 'package:kid_manager/features/safe_route/presentation/viewmodels/safe_route_history_view_model.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/services/location/map_avatar_marker_factory.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
@@ -327,19 +329,6 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
     };
   }
 
-  List<LocationData> _routeAsLocationData(SafeRoute route) {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    return [
-      for (final point in route.points)
-        LocationData(
-          latitude: point.latitude,
-          longitude: point.longitude,
-          accuracy: 0,
-          timestamp: now,
-        ),
-    ];
-  }
-
   List<SafeRoute> _visibleRoutes(SafeRouteHistoryState state) {
     return [
       if (state.selectedRoute != null) state.selectedRoute!,
@@ -528,9 +517,9 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        const Text(
-                          'Lịch sử chuyến đường an toàn',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context).safeRouteHistoryPageTitle,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                             color: Color(0xFF111827),
@@ -539,8 +528,8 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                         const SizedBox(height: 4),
                         Text(
                           state.trips.isEmpty
-                              ? 'Chưa có chuyến nào được lưu cho bé.'
-                              : 'Chạm vào từng chuyến để xem lại tuyến đường và trạng thái di chuyển.',
+                              ? AppLocalizations.of(context).safeRouteHistoryTripsEmpty
+                              : AppLocalizations.of(context).safeRouteHistoryPageReviewSaved,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF667085),
@@ -593,6 +582,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
     SafeRouteHistoryState state,
     SafeRouteHistoryViewModel vm,
   ) {
+    final l10n = AppLocalizations.of(context);
     final selectedTrip = state.selectedTrip;
     return Positioned(
       top: MediaQuery.of(context).padding.top + 8,
@@ -622,9 +612,9 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Lịch sử tuyến đường',
-                    style: TextStyle(
+                  Text(
+                    l10n.safeRouteHistoryPageTitle,
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF0F172A),
@@ -633,8 +623,8 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                   const SizedBox(height: 3),
                   Text(
                     selectedTrip == null
-                        ? 'Xem lại toàn bộ hành trình an toàn đã lưu'
-                        : '${_statusLabel(selectedTrip.status)} · ${_updatedLabel(selectedTrip.updatedAt)}',
+                        ? l10n.safeRouteHistoryPageReviewSaved
+                        : '${_statusLabel(context, selectedTrip.status)} · ${_updatedLabel(context, selectedTrip.updatedAt)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -679,7 +669,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
           : Image.network(
               avatarUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(
+              errorBuilder: (_, _, _) => const Icon(
                 Icons.child_care_rounded,
                 size: 18,
                 color: Color(0xFF2563EB),
@@ -688,25 +678,12 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
     );
   }
 
-  String _statusLabel(TripStatus status) {
-    switch (status) {
-      case TripStatus.active:
-        return 'Đang theo dõi';
-      case TripStatus.temporarilyDeviated:
-        return 'Tạm lệch tuyến';
-      case TripStatus.deviated:
-        return 'Lệch tuyến';
-      case TripStatus.completed:
-        return 'Đã đến nơi';
-      case TripStatus.cancelled:
-        return 'Đã hủy';
-      case TripStatus.planned:
-        return 'Đã lên lịch';
-    }
+  String _statusLabel(BuildContext context, TripStatus status) {
+    return AppLocalizations.of(context).safeRouteTripStatusLabel(status);
   }
 
-  String _updatedLabel(DateTime value) {
-    return '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')} ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+  String _updatedLabel(BuildContext context, DateTime value) {
+    return AppLocalizations.of(context).safeRouteDateTimeShortLabel(value);
   }
 }
 
@@ -749,6 +726,8 @@ class _SelectedTripSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -766,7 +745,7 @@ class _SelectedTripSummaryCard extends StatelessWidget {
                 child: Text(
                   trip.routeName?.trim().isNotEmpty == true
                       ? trip.routeName!
-                      : 'Tuyến đã chọn',
+                      : l10n.safeRouteSelectedRouteFallbackName,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -786,15 +765,15 @@ class _SelectedTripSummaryCard extends StatelessWidget {
               children: [
                 _InfoChip(
                   icon: Icons.route_rounded,
-                  label: _distanceLabel(route!.distanceMeters),
+                  label: l10n.safeRouteDistanceLabel(route!.distanceMeters),
                 ),
                 _InfoChip(
                   icon: Icons.schedule_rounded,
-                  label: _durationLabel(route!.durationSeconds),
+                  label: l10n.safeRouteDurationLabel(route!.durationSeconds),
                 ),
                 _InfoChip(
                   icon: Icons.warning_amber_rounded,
-                  label: '${route!.hazards.length} vùng nguy hiểm',
+                  label: l10n.safeRouteHazardCount(route!.hazards.length),
                 ),
               ],
             )
@@ -802,7 +781,7 @@ class _SelectedTripSummaryCard extends StatelessWidget {
             const LinearProgressIndicator(minHeight: 4),
           const SizedBox(height: 10),
           Text(
-            _scheduleSummary(trip),
+            _scheduleSummary(l10n, trip),
             style: const TextStyle(
               fontSize: 11.5,
               color: Color(0xFF667085),
@@ -814,60 +793,19 @@ class _SelectedTripSummaryCard extends StatelessWidget {
     );
   }
 
-  String _scheduleSummary(Trip trip) {
+  String _scheduleSummary(AppLocalizations l10n, Trip trip) {
     final parts = <String>[];
     if (trip.scheduledStartAt != null) {
-      final value = trip.scheduledStartAt!;
-      parts.add(
-        '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')} · ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}',
-      );
+      parts.add(l10n.safeRouteDateTimeLabel(trip.scheduledStartAt!));
     } else {
-      parts.add('Theo dõi ngay');
+      parts.add(l10n.safeRouteTrackNowLabel);
     }
     if (trip.repeatWeekdays.isNotEmpty) {
-      parts.add(trip.repeatWeekdays.map(_weekdayLabel).join(', '));
+      parts.add(l10n.safeRouteRepeatSummary(trip.repeatWeekdays));
     }
     return parts.join(' · ');
   }
-
-  String _weekdayLabel(int weekday) {
-    switch (weekday) {
-      case 1:
-        return 'T2';
-      case 2:
-        return 'T3';
-      case 3:
-        return 'T4';
-      case 4:
-        return 'T5';
-      case 5:
-        return 'T6';
-      case 6:
-        return 'T7';
-      case 7:
-        return 'CN';
-    }
-    return '';
-  }
-
-  String _distanceLabel(double meters) {
-    if (meters >= 1000) {
-      return '${(meters / 1000).toStringAsFixed(1)} km';
-    }
-    return '${meters.round()} m';
-  }
-
-  String _durationLabel(double durationSeconds) {
-    final minutes = (durationSeconds / 60).round();
-    if (minutes <= 0) return '--';
-    if (minutes < 60) return '$minutes phút';
-    final hours = minutes ~/ 60;
-    final remainMinutes = minutes % 60;
-    if (remainMinutes == 0) return '$hours giờ';
-    return '$hours giờ ${remainMinutes}p';
-  }
 }
-
 class _HistoryTripCard extends StatelessWidget {
   const _HistoryTripCard({
     required this.trip,
@@ -881,6 +819,8 @@ class _HistoryTripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Material(
       color: selected ? const Color(0xFFEAF2FF) : const Color(0xFFF8FAFC),
       borderRadius: BorderRadius.circular(20),
@@ -921,7 +861,7 @@ class _HistoryTripCard extends StatelessWidget {
                     Text(
                       trip.routeName?.trim().isNotEmpty == true
                           ? trip.routeName!
-                          : 'Tuyến ${trip.routeId.substring(0, trip.routeId.length < 8 ? trip.routeId.length : 8)}',
+                          : l10n.safeRouteRouteFallbackName(trip.routeId),
                       style: const TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w800,
@@ -930,7 +870,7 @@ class _HistoryTripCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _subtitle(trip),
+                      _subtitle(l10n, trip),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -951,38 +891,15 @@ class _HistoryTripCard extends StatelessWidget {
     );
   }
 
-  String _subtitle(Trip trip) {
+  String _subtitle(AppLocalizations l10n, Trip trip) {
     final parts = <String>[];
-    parts.add(
-      '${trip.updatedAt.day.toString().padLeft(2, '0')}/${trip.updatedAt.month.toString().padLeft(2, '0')} ${trip.updatedAt.hour.toString().padLeft(2, '0')}:${trip.updatedAt.minute.toString().padLeft(2, '0')}',
-    );
+    parts.add(l10n.safeRouteDateTimeShortLabel(trip.updatedAt));
     if (trip.repeatWeekdays.isNotEmpty) {
-      parts.add(trip.repeatWeekdays.map(_weekdayLabel).join(', '));
+      parts.add(l10n.safeRouteRepeatSummary(trip.repeatWeekdays));
     }
     return parts.join(' · ');
   }
-
-  String _weekdayLabel(int weekday) {
-    switch (weekday) {
-      case 1:
-        return 'T2';
-      case 2:
-        return 'T3';
-      case 3:
-        return 'T4';
-      case 4:
-        return 'T5';
-      case 5:
-        return 'T6';
-      case 6:
-        return 'T7';
-      case 7:
-        return 'CN';
-    }
-    return '';
-  }
 }
-
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status});
 
@@ -990,7 +907,7 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = _badgeStyle(status);
+    final style = _badgeStyle(context, status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -1009,48 +926,48 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 
-  _HistoryBadgeStyle _badgeStyle(TripStatus status) {
+  _HistoryBadgeStyle _badgeStyle(BuildContext context, TripStatus status) {
+    final l10n = AppLocalizations.of(context);
     switch (status) {
       case TripStatus.completed:
-        return const _HistoryBadgeStyle(
-          label: 'Đã đến nơi',
-          background: Color(0xFFE8F7ED),
-          foreground: Color(0xFF15803D),
+        return _HistoryBadgeStyle(
+          label: l10n.safeRouteTripStatusCompleted,
+          background: const Color(0xFFE8F7ED),
+          foreground: const Color(0xFF15803D),
         );
       case TripStatus.deviated:
-        return const _HistoryBadgeStyle(
-          label: 'Lệch tuyến',
-          background: Color(0xFFFFE9E5),
-          foreground: Color(0xFFB93815),
+        return _HistoryBadgeStyle(
+          label: l10n.safeRouteTripStatusDeviated,
+          background: const Color(0xFFFFE9E5),
+          foreground: const Color(0xFFB93815),
         );
       case TripStatus.temporarilyDeviated:
-        return const _HistoryBadgeStyle(
-          label: 'Tạm lệch',
-          background: Color(0xFFFFF4DF),
-          foreground: Color(0xFFB45309),
+        return _HistoryBadgeStyle(
+          label: l10n.safeRouteTripStatusTemporarilyDeviated,
+          background: const Color(0xFFFFF4DF),
+          foreground: const Color(0xFFB45309),
         );
       case TripStatus.cancelled:
-        return const _HistoryBadgeStyle(
-          label: 'Đã hủy',
-          background: Color(0xFFF1F5F9),
-          foreground: Color(0xFF475569),
+        return _HistoryBadgeStyle(
+          label: l10n.safeRouteTripStatusCancelled,
+          background: const Color(0xFFF1F5F9),
+          foreground: const Color(0xFF475569),
         );
       case TripStatus.planned:
-        return const _HistoryBadgeStyle(
-          label: 'Đã lên lịch',
-          background: Color(0xFFEFF6FF),
-          foreground: Color(0xFF1D4ED8),
+        return _HistoryBadgeStyle(
+          label: l10n.safeRouteTripStatusPlanned,
+          background: const Color(0xFFEFF6FF),
+          foreground: const Color(0xFF1D4ED8),
         );
       case TripStatus.active:
-        return const _HistoryBadgeStyle(
-          label: 'Đang theo dõi',
-          background: Color(0xFFEAF2FF),
-          foreground: Color(0xFF1A73E8),
+        return _HistoryBadgeStyle(
+          label: l10n.safeRouteTripStatusActive,
+          background: const Color(0xFFEAF2FF),
+          foreground: const Color(0xFF1A73E8),
         );
     }
   }
 }
-
 class _InfoChip extends StatelessWidget {
   const _InfoChip({required this.icon, required this.label});
 
@@ -1098,14 +1015,13 @@ class _EmptyHistoryPageState extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFE7EDF4)),
       ),
-      child: const Text(
-        'Chưa có tuyến đường nào được lưu trong lịch sử Safe Route.',
-        style: TextStyle(fontSize: 12, color: Color(0xFF667085), height: 1.35),
+      child: Text(
+        AppLocalizations.of(context).safeRouteHistoryEmptyState,
+        style: const TextStyle(fontSize: 12, color: Color(0xFF667085), height: 1.35),
       ),
     );
   }
 }
-
 class _HistoryBadgeStyle {
   const _HistoryBadgeStyle({
     required this.label,
@@ -1117,3 +1033,11 @@ class _HistoryBadgeStyle {
   final Color background;
   final Color foreground;
 }
+
+
+
+
+
+
+
+

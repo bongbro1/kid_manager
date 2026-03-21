@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/permissions/permission_step_scaffold.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class UsageAccessPermissionScreen extends StatelessWidget {
   const UsageAccessPermissionScreen({
@@ -27,14 +28,15 @@ class UsageAccessPermissionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PermissionStepScaffold(
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Bật quyền sử dụng ứng dụng',
-      description: 'Để quản lý thời gian dùng app trên Android.',
-      primaryLabel: 'Đến cài đặt',
-      settingsLabel: 'Mở cài đặt chung',
+      title: l10n.permissionOnboardingUsageTitle,
+      description: l10n.permissionOnboardingUsageSubtitle,
+      primaryLabel: l10n.permissionOnboardingUsagePrimaryButton,
+      settingsLabel: l10n.permissionOnboardingUsageSettingsButton,
       icon: Icons.query_stats_rounded,
       color: const Color(0xFF7A5AF8),
       busy: busy,

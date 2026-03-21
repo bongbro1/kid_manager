@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:video_player/video_player.dart';
 
 class BackgroundLocationGuideVideoCard extends StatefulWidget {
@@ -53,6 +54,8 @@ class _BackgroundLocationGuideVideoCardState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     if (_videoReady && _controller != null) {
       return Stack(
         fit: StackFit.expand,
@@ -99,8 +102,8 @@ class _BackgroundLocationGuideVideoCardState
           const SizedBox(height: 18),
           Text(
             _videoFailed
-                ? 'Không tải được video hướng dẫn'
-                : 'Video hướng dẫn sẽ hiển thị tại đây',
+                ? l10n.permissionOnboardingGuideVideoLoadFailed
+                : l10n.permissionOnboardingGuideVideoPlaceholder,
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 14,

@@ -130,7 +130,10 @@ class AuthVM extends ChangeNotifier {
   }) async {
     await _runAuthAction(() async {
       /// validate password rule
-      final passError = Validators.validatePassword(newPassword);
+      final passError = Validators.validatePassword(
+        newPassword,
+        l10n: runtimeL10n(),
+      );
       if (passError != null) {
         throw Exception(passError);
       }
@@ -139,6 +142,7 @@ class AuthVM extends ChangeNotifier {
       final confirmError = Validators.validateConfirmPassword(
         newPassword,
         confirmPassword,
+        l10n: runtimeL10n(),
       );
       if (confirmError != null) {
         throw Exception(confirmError);

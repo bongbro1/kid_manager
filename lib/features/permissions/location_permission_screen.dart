@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/features/permissions/permission_step_scaffold.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class LocationPermissionScreen extends StatelessWidget {
   const LocationPermissionScreen({
@@ -30,14 +30,15 @@ class LocationPermissionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PermissionStepScaffold(
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Bật “Truy cập vị trí của tôi”',
-      description: 'Nếu không, app sẽ không thể theo dõi vị trí.',
-      primaryLabel: 'Đến cài đặt',
-      settingsLabel: 'Mở cài đặt ứng dụng',
+      title: l10n.permissionOnboardingLocationTitle,
+      description: l10n.permissionOnboardingLocationSubtitle,
+      primaryLabel: l10n.permissionOnboardingLocationPrimaryButton,
+      settingsLabel: l10n.permissionOnboardingLocationSettingsButton,
       icon: Icons.location_on_rounded,
       color: const Color(0xFF2D7FF9),
       busy: busy,

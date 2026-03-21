@@ -18,7 +18,7 @@ Future<void> showImageModal(
   return showGeneralDialog(
     context: context,
     barrierDismissible: false,
-    barrierLabel: 'image_modal',
+    barrierLabel: AppLocalizations.of(context).accessibilityImageModalBarrierLabel,
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 180),
     pageBuilder: (ctx, _, _) {

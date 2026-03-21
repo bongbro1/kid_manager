@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -155,6 +156,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
     showDragHandle: true,
     backgroundColor: Colors.white,
     builder: (context) {
+      final l10n = AppLocalizations.of(context);
       var draftStart = initialStartMinute.toDouble();
       var draftEnd = initialEndMinute.toDouble();
 
@@ -178,8 +180,8 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Title ──────────────────────────────────────────────
-                  const Text(
-                    'Chọn khung giờ',
+                  Text(
+                    l10n.childLocationTimeWindowTitle,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -188,7 +190,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Chỉ tải và hiển thị lịch sử trong khoảng giờ đang chọn.',
+                    l10n.childLocationTimeWindowSubtitle,
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.35,
@@ -204,7 +206,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                     runSpacing: 8,
                     children: [
                       _RangePresetChip(
-                        label: 'Cả ngày',
+                        label: l10n.childLocationRangeAllDay,
                         selected:
                             draftStart.round() == 0 &&
                             draftEnd.round() == (24 * 60) - 1,
@@ -212,7 +214,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                             applyPreset(setSheetState, 0, (24 * 60) - 1),
                       ),
                       _RangePresetChip(
-                        label: 'Sáng',
+                        label: l10n.childLocationPresetMorning,
                         selected:
                             draftStart.round() == 6 * 60 &&
                             draftEnd.round() == (11 * 60) + 59,
@@ -220,7 +222,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                             applyPreset(setSheetState, 6 * 60, (11 * 60) + 59),
                       ),
                       _RangePresetChip(
-                        label: 'Chiều',
+                        label: l10n.childLocationPresetAfternoon,
                         selected:
                             draftStart.round() == 12 * 60 &&
                             draftEnd.round() == (17 * 60) + 59,
@@ -228,7 +230,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                             applyPreset(setSheetState, 12 * 60, (17 * 60) + 59),
                       ),
                       _RangePresetChip(
-                        label: 'Tối',
+                        label: l10n.childLocationPresetEvening,
                         selected:
                             draftStart.round() == 18 * 60 &&
                             draftEnd.round() == (23 * 60) + 59,
@@ -256,7 +258,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                         Expanded(
                           child: ChildDetailMapSummaryChip(
                             backgroundColor: Colors.white,
-                            label: 'Bắt đầu',
+                            label: l10n.childLocationTagStart,
                             value: startLabel,
                           ),
                         ),
@@ -264,7 +266,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                         Expanded(
                           child: ChildDetailMapSummaryChip(
                             backgroundColor: Colors.white,
-                            label: 'Kết thúc',
+                            label: l10n.childLocationTagEnd,
                             value: endLabel,
                           ),
                         ),
@@ -300,7 +302,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(48),
                           ),
-                          child: const Text('Hủy'),
+                          child: Text(l10n.cancelButton),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -315,7 +317,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size.fromHeight(48),
                           ),
-                          child: const Text('Áp dụng'),
+                          child: Text(l10n.confirmButton),
                         ),
                       ),
                     ],

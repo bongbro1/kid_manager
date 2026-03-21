@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/permissions/permission_step_scaffold.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class BatteryOptimizationPermissionScreen extends StatelessWidget {
   const BatteryOptimizationPermissionScreen({
@@ -27,14 +28,15 @@ class BatteryOptimizationPermissionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PermissionStepScaffold(
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Tắt giới hạn pin',
-      description: 'Để app không bị dừng khi chạy nền.',
-      primaryLabel: 'Đến cài đặt',
-      settingsLabel: 'Mở cài đặt chung',
+      title: l10n.permissionOnboardingBatteryTitle,
+      description: l10n.permissionOnboardingBatterySubtitle,
+      primaryLabel: l10n.permissionOnboardingBatteryPrimaryButton,
+      settingsLabel: l10n.permissionOnboardingBatterySettingsButton,
       icon: Icons.battery_charging_full_rounded,
       color: const Color(0xFF12B76A),
       busy: busy,

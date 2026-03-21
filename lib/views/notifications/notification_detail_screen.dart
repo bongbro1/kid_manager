@@ -152,12 +152,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     if (isDanger && !isEnter) return Icons.verified_rounded;
     return Icons.location_on_outlined;
   }
-
-
-  void _handleZoneViewMap(NotificationDetailModel detail) {
-    _openZoneOnMainMap(detail);
-  }
-
   Future<void> _handleOpenSafeRouteTracking(NotificationDetailModel detail) async {
     final childId = (detail.data['childUid'] ?? detail.data['childId'] ?? '')
         .toString()
@@ -166,8 +160,10 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     if (childId.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Không tìm thấy thông tin hành trình của bé'),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).notificationTrackingDetailNotFound,
+          ),
         ),
       );
       return;
@@ -332,7 +328,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                             height: 1.3,
-                            fontSize: 20
+                            fontSize: 20,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -406,12 +402,12 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                           detail: detail,
                           onZoneViewMap:
                               detail.notificationType == NotificationType.zone
-                              ? () => _openZoneOnMainMap(detail)
-                              : null,
+                                  ? () => _openZoneOnMainMap(detail)
+                                  : null,
                           onZonePhone:
                               detail.notificationType == NotificationType.zone
-                              ? () => _handleZonePhone(detail)
-                              : null,
+                                  ? () => _handleZonePhone(detail)
+                                  : null,
                           onOpenSafeRouteTracking:
                               detail.notificationType == NotificationType.tracking
                                   ? () => _handleOpenSafeRouteTracking(detail)

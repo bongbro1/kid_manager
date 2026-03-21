@@ -6,7 +6,6 @@ import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
@@ -26,7 +25,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final _passwordCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
 
-  String role = "child";
+  String role = 'child';
   bool hidePassword = true;
 
   final String localeString =
@@ -37,11 +36,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final String timezone = DateTime.now().timeZoneName.isNotEmpty
       ? DateTime.now().timeZoneName
       : 'Asia/Ho_Chi_Minh';
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -58,10 +52,9 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
   Future<void> pickDate() async {
     final now = DateTime.now();
-    DateTime initial = DateTime(now.year - 10, now.month, now.day);
+    var initial = DateTime(now.year - 10, now.month, now.day);
 
     final parsed = _parseDate(_dobCtrl.text);
-
     if (parsed != null) {
       initial = parsed;
     }
@@ -72,7 +65,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     );
 
     if (date != null) {
-      _dobCtrl.text = "${date.day}/${date.month}/${date.year}";
+      _dobCtrl.text = '${date.day}/${date.month}/${date.year}';
     }
   }
 
@@ -80,7 +73,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     try {
       if (text.isEmpty) return null;
 
-      final parts = text.split("/");
+      final parts = text.split('/');
       if (parts.length != 3) return null;
 
       final day = int.tryParse(parts[0]);
@@ -140,7 +133,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     try {
       dob = DateFormat('dd/MM/yyyy').parseStrict(dobText);
     } catch (_) {
-      AlertService.showSnack('Ngày sinh không hợp lệ', isError: true);
+      AlertService.showSnack(l10n.invalidBirthDate, isError: true);
       return;
     }
 
@@ -334,7 +327,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
     year = widget.initialDate.year;
   }
 
-  List<int> years = List.generate(60, (i) => 1970 + i);
+  final List<int> years = List.generate(60, (i) => 1970 + i);
 
   int daysInMonth(int year, int month) {
     final date = DateTime(year, month + 1, 0);

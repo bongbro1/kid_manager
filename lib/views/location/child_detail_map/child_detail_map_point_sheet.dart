@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_network_gap_sheet.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
@@ -20,6 +21,7 @@ class ChildDetailMapPointSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (point.isNetworkGap) {
       return ChildDetailMapNetworkGapSheet(point: point, onClose: onClose);
     }
@@ -33,6 +35,7 @@ class ChildDetailMapPointSheet extends StatelessWidget {
       point,
     );
     final summary = LocationHistoryPresenter.buildPointSummary(
+      l10n: l10n,
       history: orderedHistory,
       point: point,
       stopDuration: stopDuration,
@@ -94,8 +97,8 @@ class ChildDetailMapPointSheet extends StatelessWidget {
                   children: [
                     Text(
                       isToday && isLatestPoint
-                          ? 'Theo dõi trực tiếp'
-                          : 'Lịch sử đã chọn',
+                          ? l10n.childLocationLiveLabel
+                          : l10n.childLocationSelectedHistoryLabel,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -143,39 +146,40 @@ class ChildDetailMapPointSheet extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [
-              if (isStart)
-                const ChildDetailMapTagChip(
-                  text: 'Bắt đầu',
-                  backgroundColor: Color(0xFFDDF5E3),
-                  foregroundColor: Color(0xFF188038),
-                ),
-              if (isEnd)
-                const ChildDetailMapTagChip(
-                  text: 'Kết thúc',
-                  backgroundColor: Color(0xFFFDE2E1),
-                  foregroundColor: Color(0xFFC5221F),
-                ),
+              children: [
+                if (isStart)
+                  ChildDetailMapTagChip(
+                    text: l10n.childLocationTagStart,
+                    backgroundColor: Color(0xFFDDF5E3),
+                    foregroundColor: Color(0xFF188038),
+                  ),
+                if (isEnd)
+                  ChildDetailMapTagChip(
+                    text: l10n.childLocationTagEnd,
+                    backgroundColor: Color(0xFFFDE2E1),
+                    foregroundColor: Color(0xFFC5221F),
+                  ),
               ChildDetailMapTagChip(
                 text: point.timeLabel,
                 backgroundColor: const Color(0xFFF1F3F4),
                 foregroundColor: const Color(0xFF5F6368),
-              ),
-              if (gpsVeryBad)
-                const ChildDetailMapTagChip(
-                  text: 'GPS rất yếu',
-                  backgroundColor: Color(0xFFFCE8E6),
-                  foregroundColor: Color(0xFFC5221F),
-                )
-              else if (gpsLost)
-                const ChildDetailMapTagChip(
-                  text: 'Mất GPS',
-                  backgroundColor: Color(0xFFFCE8E6),
-                  foregroundColor: Color(0xFFC5221F),
+                ),
+                if (gpsVeryBad)
+                  ChildDetailMapTagChip(
+                    text: l10n.childLocationTagGpsVeryWeak,
+                    backgroundColor: Color(0xFFFCE8E6),
+                    foregroundColor: Color(0xFFC5221F),
+                  )
+                else if (gpsLost)
+                  ChildDetailMapTagChip(
+                    text: l10n.childLocationTagGpsLost,
+                    backgroundColor: Color(0xFFFCE8E6),
+                    foregroundColor: Color(0xFFC5221F),
                 )
               else
                 ChildDetailMapTagChip(
                   text: LocationHistoryPresenter.transportLabel(
+                    l10n,
                     effectiveTransport,
                   ),
                   backgroundColor: displayColor.withOpacity(0.12),
@@ -188,24 +192,26 @@ class ChildDetailMapPointSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: ChildDetailMapInfoCard(
-                  label: 'Ở đây được',
+                  label: l10n.childLocationStayedHereLabel,
                   value: gpsLost
-                      ? 'Không xác định ổn định'
-                      : LocationHistoryPresenter.formatDuration(stopDuration),
-                  hint: 'Thời gian dừng',
+                      ? l10n.childLocationStayedHereUnavailable
+                      : LocationHistoryPresenter.formatDuration(l10n, stopDuration),
+                  hint: l10n.childLocationStopDurationHint,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: ChildDetailMapInfoCard(
-                  label: 'Tốc độ',
+                  label: l10n.childLocationSpeedLabel,
                   value: gpsLost
-                      ? 'Không ổn định'
+                      ? l10n.childLocationSpeedUnavailable
                       : LocationHistoryPresenter.speedLabel(
+                          l10n,
                           orderedHistory,
                           point,
                         ),
                   hint: LocationHistoryPresenter.transportLabel(
+                    l10n,
                     effectiveTransport,
                   ),
                 ),
@@ -217,17 +223,19 @@ class ChildDetailMapPointSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: ChildDetailMapInfoCard(
-                  label: 'Sai số GPS',
-                  value: LocationHistoryPresenter.accuracyLabel(point),
+                  label: l10n.childLocationGpsAccuracyLabel,
+                  value: LocationHistoryPresenter.accuracyLabel(l10n, point),
                   hint: '${point.accuracy.toStringAsFixed(0)} m',
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: ChildDetailMapInfoCard(
-                  label: 'GPS giả lập',
-                  value: point.isMock ? 'Có dấu hiệu' : 'Không',
-                  hint: 'Trạng thái thiết bị',
+                  label: l10n.childLocationMockGpsLabel,
+                  value: point.isMock
+                      ? l10n.childLocationMockGpsDetected
+                      : l10n.childLocationNoLabel,
+                  hint: l10n.childLocationDeviceStatusHint,
                 ),
               ),
             ],

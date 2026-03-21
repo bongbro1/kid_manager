@@ -35,6 +35,10 @@ class PersonalInfoScreen extends StatefulWidget {
 }
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+  static const _genderMaleValue = 'Nam';
+  static const _genderFemaleValue = 'Nữ';
+  static const _genderOtherValue = 'Khác';
+
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
@@ -103,7 +107,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final ok = await vm.updateUserInfo(
       name: _nameCtrl.text,
       phone: _phoneCtrl.text,
-      gender: _selectedGender ?? "Nam",
+      gender: _selectedGender ?? _genderMaleValue,
       dob: _dobCtrl.text,
       address: _addressCtrl.text,
       allowTracking: allowLocationTracking,
@@ -220,7 +224,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     Navigator.of(context, rootNavigator: true).push(
                       RawDialogRoute<void>(
                         barrierDismissible: true,
-                        barrierLabel: 'Close',
+                        barrierLabel: l10n.birthdayCloseButton,
                         barrierColor: Colors.black.withOpacity(0.12),
                         transitionDuration: const Duration(milliseconds: 280),
                         pageBuilder: (routeContext, animation, secondaryAnimation) {
@@ -430,10 +434,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             label: l10n.genderLabel,
                             hint: l10n.genderHint,
                             value: _selectedGender,
-                            items: const [
-                              DropdownMenuEntry(value: 'Nam', label: 'Nam'),
-                              DropdownMenuEntry(value: 'Nữ', label: 'Nữ'),
-                              DropdownMenuEntry(value: 'Khác', label: 'Khác'),
+                            items: [
+                              DropdownMenuEntry(
+                                value: _genderMaleValue,
+                                label: l10n.genderMaleOption,
+                              ),
+                              DropdownMenuEntry(
+                                value: _genderFemaleValue,
+                                label: l10n.genderFemaleOption,
+                              ),
+                              DropdownMenuEntry(
+                                value: _genderOtherValue,
+                                label: l10n.genderOtherOption,
+                              ),
                             ],
                             onChanged: (value) {
                               setState(() {
@@ -648,7 +661,7 @@ class MoreActionSheet extends StatelessWidget {
                 rootNavigator.pushReplacement(
                   RawDialogRoute<void>(
                     barrierDismissible: true,
-                    barrierLabel: 'Close',
+                    barrierLabel: AppLocalizations.of(context).birthdayCloseButton,
                     barrierColor: Colors.transparent,
                     transitionDuration: const Duration(milliseconds: 280),
                     pageBuilder: (

@@ -10,8 +10,8 @@ import 'package:kid_manager/features/permissions/location_permission_screen.dart
 import 'package:kid_manager/features/permissions/media_permission_screen.dart';
 import 'package:kid_manager/features/permissions/notification_permission_screen.dart';
 import 'package:kid_manager/features/permissions/usage_access_permission_screen.dart';
-import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/permission_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
@@ -99,21 +99,22 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
   }
 
   String _labelForStep(PermissionOnboardingStepType step) {
+    final l10n = AppLocalizations.of(context);
     switch (step) {
       case PermissionOnboardingStepType.notifications:
-        return 'Thông báo';
+        return l10n.permissionOnboardingStepNotificationsLabel;
       case PermissionOnboardingStepType.location:
-        return 'Vị trí';
+        return l10n.permissionOnboardingStepLocationLabel;
       case PermissionOnboardingStepType.backgroundLocation:
-        return 'Luôn cho phép';
+        return l10n.permissionOnboardingStepBackgroundLocationLabel;
       case PermissionOnboardingStepType.media:
-        return 'Ảnh';
+        return l10n.permissionOnboardingStepMediaLabel;
       case PermissionOnboardingStepType.usage:
-        return 'Sử dụng';
+        return l10n.permissionOnboardingStepUsageLabel;
       case PermissionOnboardingStepType.accessibility:
-        return 'Trợ năng';
+        return l10n.permissionOnboardingStepAccessibilityLabel;
       case PermissionOnboardingStepType.battery:
-        return 'Pin';
+        return l10n.permissionOnboardingStepBatteryLabel;
     }
   }
 
@@ -176,17 +177,16 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
         return;
       }
 
+      final l10n = AppLocalizations.of(context);
       if (status.isPermanentlyDenied || status.isRestricted) {
         setState(() {
-          _statusMessage =
-              'Quyền này đang bị từ chối ở hệ thống. Hãy mở cài đặt để cấp lại.';
+          _statusMessage = l10n.permissionOnboardingSystemDeniedMessage;
         });
         return;
       }
 
       setState(() {
-        _statusMessage =
-            'Quyền này chưa được cấp. Bạn có thể thử lại hoặc thiết lập sau.';
+        _statusMessage = l10n.permissionOnboardingNotGrantedMessage;
       });
     } finally {
       if (mounted) {
@@ -319,6 +319,7 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
   }
 
   Widget _buildStepScreen() {
+    final l10n = AppLocalizations.of(context);
     final currentStep = _stepIndex + 1;
     final totalSteps = _steps.length;
     final media = _buildStepMedia();
@@ -333,8 +334,7 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           busy: _busy,
           statusMessage: _statusMessage,
           media: media,
-          helperText:
-              'Chỉ cần cấp quyền khi dùng app trước. Ngay sau bước này app sẽ hướng dẫn bật thêm \"Allow all the time\" để tracking nền hoạt động ổn định.',
+          helperText: l10n.permissionOnboardingNotificationHelperText,
           onAllow: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
           onSkip: () => unawaited(_handleSkip()),

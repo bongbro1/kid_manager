@@ -42,6 +42,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get genderHint => 'Nam';
 
   @override
+  String get genderMaleOption => 'Nam';
+
+  @override
+  String get genderFemaleOption => 'Nữ';
+
+  @override
+  String get genderOtherOption => 'Khác';
+
+  @override
   String get birthDateLabel => 'Ngày sinh';
 
   @override
@@ -82,6 +91,18 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get confirmButton => 'Xác nhận';
+
+  @override
+  String get cropPhotoAvatarTitle => 'Chỉnh ảnh đại diện';
+
+  @override
+  String get cropPhotoCoverTitle => 'Chỉnh ảnh bìa';
+
+  @override
+  String get cropPhotoDoneButton => 'Xong';
+
+  @override
+  String get cropPhotoFailedMessage => 'Không thể crop ảnh';
 
   @override
   String get languageSetting => 'Ngôn ngữ';
@@ -1108,6 +1129,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notificationDetailSectionTitle => 'CHI TIẾT';
 
   @override
+  String get accessibilityNoticeBarrierLabel => 'Hộp thoại thông báo';
+
+  @override
+  String get accessibilityImageModalBarrierLabel => 'Trình xem ảnh';
+
+  @override
   String get notificationChildFallback => 'Bé';
 
   @override
@@ -1116,6 +1143,120 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get notificationMapLocationNotFound =>
       'Không tìm thấy vị trí để mở bản đồ';
+
+  @override
+  String get notificationTrackingDetailNotFound =>
+      'Không tìm thấy thông tin hành trình của bé';
+
+  @override
+  String get notificationTrackingUnknownValue => 'Không rõ';
+
+  @override
+  String get notificationTrackingChildLabel => 'Bé';
+
+  @override
+  String get notificationTrackingRouteLabel => 'Tuyến đường';
+
+  @override
+  String get notificationTrackingDistanceToRouteLabel =>
+      'Khoảng cách tới tuyến';
+
+  @override
+  String get notificationTrackingHazardLabel => 'Vùng nguy hiểm';
+
+  @override
+  String get notificationTrackingStationaryLabel => 'Đứng yên';
+
+  @override
+  String get notificationTrackingTimeLabel => 'Thời điểm';
+
+  @override
+  String get notificationTrackingOpenHint =>
+      'Mở trang theo dõi để xem vị trí hiện tại của bé, tuyến đang bám và toàn bộ trạng thái hành trình trên bản đồ.';
+
+  @override
+  String get notificationTrackingOpenButton => 'Mở theo dõi hành trình';
+
+  @override
+  String get notificationTrackingStatusOffRoute => 'Lệch tuyến';
+
+  @override
+  String get notificationTrackingStatusBackOnRoute => 'Quay lại tuyến';
+
+  @override
+  String get notificationTrackingStatusReturnedToStart => 'Về điểm đầu';
+
+  @override
+  String get notificationTrackingStatusStationary => 'Đứng yên quá lâu';
+
+  @override
+  String get notificationTrackingStatusArrived => 'Đã đến nơi';
+
+  @override
+  String get notificationTrackingStatusDanger => 'Nguy hiểm';
+
+  @override
+  String get notificationTrackingStatusDefault => 'Safe Route';
+
+  @override
+  String get notificationTrackingHeadlineOffRoute =>
+      'Bé đang đi lệch khỏi tuyến đã chọn';
+
+  @override
+  String get notificationTrackingHeadlineBackOnRoute =>
+      'Bé đã quay lại tuyến an toàn';
+
+  @override
+  String get notificationTrackingHeadlineReturnedToStart =>
+      'Bé đang quay lại gần điểm xuất phát';
+
+  @override
+  String get notificationTrackingHeadlineStationary =>
+      'Bé đang đứng yên lâu hơn bình thường';
+
+  @override
+  String get notificationTrackingHeadlineArrived => 'Bé đã đến nơi an toàn';
+
+  @override
+  String get notificationTrackingHeadlineDanger =>
+      'Bé đang đi vào vùng nguy hiểm';
+
+  @override
+  String notificationTrackingFallbackOffRoute(String routeName) {
+    return 'Hệ thống phát hiện bé đã ra ngoài hành lang an toàn của tuyến $routeName.';
+  }
+
+  @override
+  String notificationTrackingFallbackBackOnRoute(String routeName) {
+    return 'Hệ thống ghi nhận bé đã quay lại hành lang an toàn của tuyến $routeName.';
+  }
+
+  @override
+  String notificationTrackingFallbackReturnedToStart(String routeName) {
+    return 'Bé đang quay lại gần vị trí xuất phát của tuyến $routeName.';
+  }
+
+  @override
+  String notificationTrackingFallbackStationary(String routeName) {
+    return 'Bé đã đứng gần cùng một vị trí quá lâu khi đang đi trên $routeName.';
+  }
+
+  @override
+  String notificationTrackingFallbackArrived(String routeName) {
+    return 'Bé đã đến điểm đích của $routeName.';
+  }
+
+  @override
+  String get notificationTrackingFallbackDangerGeneric =>
+      'Bé đã đi vào một vùng nguy hiểm trên hành trình hiện tại.';
+
+  @override
+  String notificationTrackingFallbackDangerWithHazard(
+    String hazardName,
+    String routeName,
+  ) {
+    return 'Bé đã đi vào $hazardName khi đang theo tuyến $routeName.';
+  }
 
   @override
   String notificationScheduleCreatedTitle(String childName) {
@@ -1834,6 +1975,29 @@ class AppLocalizationsVi extends AppLocalizations {
   String get parentStatsViewAll => 'XEM TẤT CẢ';
 
   @override
+  String get parentStatsDurationZero => '0p';
+
+  @override
+  String parentStatsDurationMinutes(int minutes) {
+    return '${minutes}p';
+  }
+
+  @override
+  String parentStatsDurationHours(int hours) {
+    return '${hours}g';
+  }
+
+  @override
+  String parentStatsDurationHoursMinutes(int hours, int minutes) {
+    return '${hours}g ${minutes}p';
+  }
+
+  @override
+  String parentStatsHourLabel(int hour) {
+    return '${hour}g';
+  }
+
+  @override
   String get parentUsageNoAvailableSlot => 'Không còn khoảng thời gian trống';
 
   @override
@@ -2292,9 +2456,150 @@ class AppLocalizationsVi extends AppLocalizations {
   String get permissionLaterButton => 'Để sau';
 
   @override
+  String get permissionSkipButton => 'Bỏ qua';
+
+  @override
   String permissionStepLabel(int current, int total) {
     return 'Bước $current/$total';
   }
+
+  @override
+  String get permissionOnboardingAccessibilityTitle => 'Bật trợ năng';
+
+  @override
+  String get permissionOnboardingAccessibilitySubtitle =>
+      'Cần cho một số tính năng bảo vệ trên Android.';
+
+  @override
+  String get permissionOnboardingAccessibilityPrimaryButton => 'Đến cài đặt';
+
+  @override
+  String get permissionOnboardingAccessibilitySettingsButton =>
+      'Mở cài đặt chung';
+
+  @override
+  String get permissionOnboardingBackgroundLocationTitle =>
+      'Chọn \"Luôn cho phép\"';
+
+  @override
+  String get permissionOnboardingBackgroundLocationSubtitle =>
+      'Để vị trí vẫn cập nhật khi app chạy nền.';
+
+  @override
+  String get permissionOnboardingBackgroundLocationPrimaryButton => 'Tiếp tục';
+
+  @override
+  String get permissionOnboardingBackgroundLocationSettingsButton =>
+      'Mở cài đặt vị trí';
+
+  @override
+  String get permissionOnboardingBatteryTitle => 'Tắt giới hạn pin';
+
+  @override
+  String get permissionOnboardingBatterySubtitle =>
+      'Để app không bị dừng khi chạy nền.';
+
+  @override
+  String get permissionOnboardingBatteryPrimaryButton => 'Đến cài đặt';
+
+  @override
+  String get permissionOnboardingBatterySettingsButton => 'Mở cài đặt chung';
+
+  @override
+  String get permissionOnboardingLocationTitle =>
+      'Bật \"Truy cập vị trí của tôi\"';
+
+  @override
+  String get permissionOnboardingLocationSubtitle =>
+      'Nếu không, app sẽ không thể theo dõi vị trí.';
+
+  @override
+  String get permissionOnboardingLocationPrimaryButton => 'Đến cài đặt';
+
+  @override
+  String get permissionOnboardingLocationSettingsButton =>
+      'Mở cài đặt ứng dụng';
+
+  @override
+  String get permissionOnboardingMediaTitle => 'Cho phép ảnh và media';
+
+  @override
+  String get permissionOnboardingMediaSubtitle =>
+      'Để đổi ảnh đại diện và chọn hình trong app.';
+
+  @override
+  String get permissionOnboardingMediaPrimaryButton => 'Cho phép';
+
+  @override
+  String get permissionOnboardingMediaSettingsButton => 'Mở cài đặt';
+
+  @override
+  String get permissionOnboardingNotificationTitle => 'Bật thông báo';
+
+  @override
+  String get permissionOnboardingNotificationSubtitle =>
+      'Để nhận SOS và cảnh báo an toàn ngay lập tức.';
+
+  @override
+  String get permissionOnboardingNotificationPrimaryButton => 'Cho phép';
+
+  @override
+  String get permissionOnboardingNotificationSettingsButton =>
+      'Mở cài đặt thông báo';
+
+  @override
+  String get permissionOnboardingUsageTitle => 'Bật quyền sử dụng ứng dụng';
+
+  @override
+  String get permissionOnboardingUsageSubtitle =>
+      'Để quản lý thời gian dùng app trên Android.';
+
+  @override
+  String get permissionOnboardingUsagePrimaryButton => 'Đến cài đặt';
+
+  @override
+  String get permissionOnboardingUsageSettingsButton => 'Mở cài đặt chung';
+
+  @override
+  String get permissionOnboardingStepNotificationsLabel => 'Thông báo';
+
+  @override
+  String get permissionOnboardingStepLocationLabel => 'Vị trí';
+
+  @override
+  String get permissionOnboardingStepBackgroundLocationLabel => 'Luôn cho phép';
+
+  @override
+  String get permissionOnboardingStepMediaLabel => 'Ảnh';
+
+  @override
+  String get permissionOnboardingStepUsageLabel => 'Sử dụng';
+
+  @override
+  String get permissionOnboardingStepAccessibilityLabel => 'Trợ năng';
+
+  @override
+  String get permissionOnboardingStepBatteryLabel => 'Pin';
+
+  @override
+  String get permissionOnboardingSystemDeniedMessage =>
+      'Quyền này đang bị từ chối ở hệ thống. Hãy mở cài đặt để cấp lại.';
+
+  @override
+  String get permissionOnboardingNotGrantedMessage =>
+      'Quyền này chưa được cấp. Bạn có thể thử lại hoặc thiết lập sau.';
+
+  @override
+  String get permissionOnboardingNotificationHelperText =>
+      'Chỉ cần cấp quyền khi dùng app trước. Ngay sau bước này app sẽ hướng dẫn bật thêm \"Allow all the time\" để tracking nền hoạt động ổn định.';
+
+  @override
+  String get permissionOnboardingGuideVideoLoadFailed =>
+      'Không tải được video hướng dẫn';
+
+  @override
+  String get permissionOnboardingGuideVideoPlaceholder =>
+      'Video hướng dẫn sẽ hiển thị tại đây';
 
   @override
   String get applyButton => 'Áp dụng';
@@ -2320,10 +2625,33 @@ class AppLocalizationsVi extends AppLocalizations {
   String get childLocationTravelHistoryTitle => 'Lịch sử di chuyển';
 
   @override
+  String get childLocationSelectedHistoryLabel => 'Lịch sử đã chọn';
+
+  @override
   String get childLocationTodayLabel => 'Hôm nay';
 
   @override
+  String get childLocationUpdatedJustNow => 'Cập nhật vừa xong';
+
+  @override
+  String get childLocationUpdatedOneMinuteAgo => 'Cập nhật 1 phút trước';
+
+  @override
+  String childLocationUpdatedMinutesAgo(int minutes) {
+    return 'Cập nhật $minutes phút trước';
+  }
+
+  @override
   String get childLocationRangeAllDay => 'Cả ngày';
+
+  @override
+  String get childLocationTooltipManageZones => 'Quản lý vùng';
+
+  @override
+  String get childLocationTooltipSafeRoute => 'Tuyến đường an toàn';
+
+  @override
+  String get childLocationTooltipChooseMap => 'Chọn bản đồ';
 
   @override
   String get childLocationTagStart => 'Bắt đầu';
@@ -2344,10 +2672,22 @@ class AppLocalizationsVi extends AppLocalizations {
   String get childLocationStayedHereUnavailable => 'Không xác định ổn định';
 
   @override
+  String get childLocationStopDurationHint => 'Thời gian dừng';
+
+  @override
   String get childLocationSpeedLabel => 'Tốc độ';
 
   @override
   String get childLocationSpeedUnavailable => 'Không ổn định';
+
+  @override
+  String get childLocationGpsTitle => 'GPS';
+
+  @override
+  String get childLocationPointCountTitle => 'Số điểm';
+
+  @override
+  String get childLocationPointCountUnit => 'điểm';
 
   @override
   String get childLocationGpsAccuracyLabel => 'Sai số GPS';
@@ -2360,6 +2700,9 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get childLocationNoLabel => 'Không';
+
+  @override
+  String get childLocationDeviceStatusHint => 'Trạng thái thiết bị';
 
   @override
   String get childLocationTechnicalDetailsTitle => 'Xem chi tiết kỹ thuật';
@@ -2505,9 +2848,63 @@ class AppLocalizationsVi extends AppLocalizations {
   String get childLocationLiveLabel => 'Trực tiếp';
 
   @override
+  String get childLocationRecentPointsTitle => 'Các điểm gần đây';
+
+  @override
+  String childLocationLoadMoreRecentHours(Object label) {
+    return 'Tải thêm $label';
+  }
+
+  @override
+  String get childLocationViewAllButton => 'Xem tất cả';
+
+  @override
+  String get childLocationTapToSeeDetails => 'Bấm để xem chi tiết';
+
+  @override
+  String get childLocationWeakGpsSignal => 'Tín hiệu GPS yếu';
+
+  @override
   String childLocationPointCount(int count) {
     return '$count điểm';
   }
+
+  @override
+  String get childLocationNetworkGapTitle => 'Mất mạng';
+
+  @override
+  String childLocationNetworkGapSubtitle(Object duration) {
+    return 'Bản đồ nối tạm 2 đầu vì dữ liệu bị ngắt trong $duration.';
+  }
+
+  @override
+  String get childLocationNetworkGapChip => 'Mất kết nối';
+
+  @override
+  String get childLocationNetworkGapFromLabel => 'Mất từ';
+
+  @override
+  String get childLocationNetworkGapToLabel => 'Có lại lúc';
+
+  @override
+  String get childLocationMapSearchSubtitle =>
+      'Tìm kiếm địa điểm để chọn nhanh trên bản đồ.';
+
+  @override
+  String get childLocationMapSearchInputHint =>
+      'Nhập tên đường, trường học, địa chỉ...';
+
+  @override
+  String get childLocationMapSearchMinChars =>
+      'Nhập ít nhất 2 ký tự để tìm địa điểm.';
+
+  @override
+  String get childLocationMapSearchNoResults =>
+      'Không tìm thấy địa điểm phù hợp.';
+
+  @override
+  String get childLocationSafeRouteRecoveredBanner =>
+      'Đã quay lại tuyến an toàn';
 
   @override
   String get locationNoLocationYet => 'Chưa có vị trí';
@@ -2667,5 +3064,813 @@ class AppLocalizationsVi extends AppLocalizations {
       'Không tìm thấy tài khoản phụ huynh';
 
   @override
+  String get safeRouteTripStatusActive => 'Đang theo dõi';
+
+  @override
+  String get safeRouteTripStatusTemporarilyDeviated => 'Tạm lệch tuyến';
+
+  @override
+  String get safeRouteTripStatusDeviated => 'Lệch tuyến';
+
+  @override
+  String get safeRouteTripStatusCompleted => 'Đã đến nơi';
+
+  @override
+  String get safeRouteTripStatusCancelled => 'Đã hủy';
+
+  @override
+  String get safeRouteTripStatusPlanned => 'Đã lên lịch';
+
+  @override
+  String get safeRouteTripStatusNoTrip => 'Chưa có chuyến đi';
+
+  @override
+  String get safeRouteTravelModeWalking => 'Đi bộ';
+
+  @override
+  String get safeRouteTravelModeMotorbike => 'Xe máy';
+
+  @override
+  String get safeRouteTravelModePickup => 'Đón con';
+
+  @override
+  String get safeRouteTravelModeOtherVehicle => 'Phương tiện khác';
+
+  @override
+  String safeRouteDistanceMeters(int value) {
+    return '$value m';
+  }
+
+  @override
+  String safeRouteDistanceKilometers(Object value) {
+    return '$value km';
+  }
+
+  @override
+  String safeRouteDurationMinutes(int minutes) {
+    return '$minutes phút';
+  }
+
+  @override
+  String safeRouteDurationHours(int hours) {
+    return '$hours giờ';
+  }
+
+  @override
+  String safeRouteDurationHoursMinutes(int hours, int minutes) {
+    return '$hours giờ $minutes phút';
+  }
+
+  @override
+  String safeRouteDurationHoursMinutesShort(int hours, int minutes) {
+    return '$hours giờ ${minutes}p';
+  }
+
+  @override
+  String safeRouteEtaApproxMinutes(int minutes) {
+    return '~$minutes phút';
+  }
+
+  @override
+  String safeRouteEtaApproxHours(int hours) {
+    return '~$hours giờ';
+  }
+
+  @override
+  String safeRouteEtaApproxHoursMinutes(int hours, int minutes) {
+    return '~$hours giờ ${minutes}p';
+  }
+
+  @override
+  String get safeRouteTodayLabel => 'Hôm nay';
+
+  @override
+  String get safeRouteTomorrowLabel => 'Ngày mai';
+
+  @override
+  String get safeRouteNowLabel => 'Bây giờ';
+
+  @override
+  String safeRouteSecondsAgo(int seconds) {
+    return '${seconds}s';
+  }
+
+  @override
+  String safeRouteFormatTime(Object hour, Object minute) {
+    return '$hour:$minute';
+  }
+
+  @override
+  String get safeRouteTrackNowLabel => 'Theo dõi ngay';
+
+  @override
+  String get safeRouteNoRepeatSummary =>
+      'Không lặp lại, tuyến sẽ được áp dụng cho một lịch theo dõi gần nhất.';
+
+  @override
+  String safeRouteRepeatSummaryText(Object labels) {
+    return 'Lặp lại vào: $labels';
+  }
+
+  @override
+  String get safeRouteCurrentRoutePrimary => 'Đang đi trên tuyến chính';
+
+  @override
+  String safeRouteCurrentRouteAlternativeIndexed(int index) {
+    return 'Đang đi trên tuyến phụ $index';
+  }
+
+  @override
+  String get safeRouteCurrentRouteAlternative => 'Đang đi trên tuyến phụ';
+
+  @override
+  String safeRouteRouteFallbackNameText(Object id) {
+    return 'Tuyến $id';
+  }
+
+  @override
+  String get safeRouteSelectedRouteFallbackName => 'Tuyến đã chọn';
+
+  @override
+  String get safeRouteGuidanceLoadingRoute => 'Đang tải tuyến đường...';
+
+  @override
+  String get safeRouteGuidanceDangerArea => 'vùng nguy hiểm';
+
+  @override
+  String get safeRouteGuidanceReturnToSafeRoute => 'Quay lại tuyến an toàn';
+
+  @override
+  String get safeRouteGuidanceArrivedInstruction => 'Sắp tới nơi rồi';
+
+  @override
+  String get safeRouteGuidanceArrivedDescription =>
+      'Đi tiếp đến điểm đích để hoàn thành hành trình.';
+
+  @override
+  String get safeRouteGuidanceStatusOnRoute => 'Đúng tuyến';
+
+  @override
+  String get safeRouteGuidanceStatusOffRoute => 'Lệch tuyến';
+
+  @override
+  String get safeRouteGuidanceStatusAlmostThere => 'Sắp đến nơi';
+
+  @override
+  String get safeRouteGuidanceStatusSafeRoute => 'Tuyến an toàn';
+
+  @override
+  String safeRouteGuidanceLeaveDangerZone(Object hazardName) {
+    return 'Rời khỏi $hazardName ngay';
+  }
+
+  @override
+  String safeRouteGuidanceDangerDescription(Object hazardName) {
+    return 'Đi ra khỏi $hazardName và quay lại tuyến an toàn.';
+  }
+
+  @override
+  String safeRouteGuidanceOffRouteDescription(Object distanceLabel) {
+    return 'Bạn đang cách tuyến khoảng $distanceLabel.';
+  }
+
+  @override
+  String safeRouteGuidanceRemainingDescription(Object distanceLabel) {
+    return 'Còn $distanceLabel để đến điểm đích.';
+  }
+
+  @override
+  String safeRouteGuidanceContinueStraight(Object distanceLabel) {
+    return 'Đi thẳng $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceTurnLeft(Object distanceLabel) {
+    return 'Rẽ trái sau $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceTurnRight(Object distanceLabel) {
+    return 'Rẽ phải sau $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceKeepLeft(Object distanceLabel) {
+    return 'Chếch trái sau $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceKeepRight(Object distanceLabel) {
+    return 'Chếch phải sau $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceMakeUTurn(Object distanceLabel) {
+    return 'Quay đầu sau $distanceLabel';
+  }
+
+  @override
+  String get safeRouteGuidanceEtaNow => 'Đến ngay bây giờ';
+
+  @override
+  String get safeRouteVisualDangerTitle => 'Đi vào vùng nguy hiểm!';
+
+  @override
+  String safeRouteVisualDangerSubtitle(Object hazardName) {
+    return 'Bé đang ở gần $hazardName.';
+  }
+
+  @override
+  String get safeRouteVisualDangerBadge => 'NGUY HIỂM';
+
+  @override
+  String safeRouteVisualOffRouteTitle(Object distanceLabel) {
+    return 'Đang lệch tuyến ~$distanceLabel';
+  }
+
+  @override
+  String get safeRouteVisualOffRouteSubtitle =>
+      'Bé đang đi ra ngoài hành lang an toàn đã chọn.';
+
+  @override
+  String get safeRouteVisualOffRouteBadge => 'LỆCH TUYẾN';
+
+  @override
+  String get safeRouteVisualCompletedTitle => 'Bé đã đến nơi an toàn';
+
+  @override
+  String get safeRouteVisualCompletedSubtitle =>
+      'Hành trình vừa được đánh dấu hoàn thành.';
+
+  @override
+  String get safeRouteVisualCompletedBadge => 'HOÀN THÀNH';
+
+  @override
+  String get safeRouteVisualCancelledTitle => 'Đã dừng theo dõi hành trình';
+
+  @override
+  String get safeRouteVisualCancelledSubtitle =>
+      'Phụ huynh đã kết thúc chế độ giám sát hiện tại.';
+
+  @override
+  String get safeRouteVisualCancelledBadge => 'ĐÃ DỪNG';
+
+  @override
+  String get safeRouteVisualPlannedTitle => 'Tuyến đang chờ kích hoạt';
+
+  @override
+  String get safeRouteVisualPlannedSubtitle =>
+      'Safe Route sẽ tự bắt đầu theo ngày giờ đã cài đặt.';
+
+  @override
+  String get safeRouteVisualPlannedBadge => 'ĐÃ LÊN LỊCH';
+
+  @override
+  String get safeRouteVisualActiveTitle => 'Đang đi đúng tuyến';
+
+  @override
+  String get safeRouteVisualActiveSubtitle =>
+      'Bé đang trong hành lang an toàn đã chọn.';
+
+  @override
+  String get safeRouteVisualActiveBadge => 'AN TOÀN';
+
+  @override
+  String get safeRouteErrorMaxAlternative =>
+      'Chỉ nên chọn tối đa 2 tuyến phụ cho mỗi chuyến.';
+
+  @override
+  String get safeRouteErrorNoCurrentLocation =>
+      'Chưa có vị trí hiện tại của trẻ.';
+
+  @override
+  String get safeRouteErrorNeedStartEnd => 'Cần chọn điểm A và điểm B trước.';
+
+  @override
+  String get safeRouteErrorLoadHistoryRoute =>
+      'Không tải được tuyến đường trong lịch sử.';
+
+  @override
+  String get safeRouteErrorNeedRoute => 'Cần chọn một tuyến đường an toàn.';
+
+  @override
+  String get safeRouteErrorLoginAgain =>
+      'Bạn cần đăng nhập lại để bắt đầu chuyến đi.';
+
+  @override
+  String get safeRouteErrorSelectTimeForRepeat =>
+      'Chọn giờ áp dụng nếu muốn lặp lại theo ngày.';
+
+  @override
+  String get safeRouteUseCurrentLocationLabel => 'Vị trí hiện tại';
+
+  @override
+  String get safeRouteStartPointOfRoute => 'Điểm bắt đầu của tuyến';
+
+  @override
+  String get safeRouteEndPointOfRoute => 'Điểm kết thúc của tuyến';
+
+  @override
+  String get safeRouteCancelledByParentReason => 'Đã hủy bởi phụ huynh';
+
+  @override
+  String safeRouteSpeedValue(Object value) {
+    return '$value km/h';
+  }
+
+  @override
+  String get safeRoutePageSelectRouteTitle => 'Chọn tuyến an toàn';
+
+  @override
+  String get safeRoutePageJourneyTitle => 'Hành trình an toàn';
+
+  @override
+  String get safeRouteSnackbarAutoFollowEnabled => 'Đã bật Auto follow';
+
+  @override
+  String get safeRouteSnackbarAutoFollowDisabled => 'Đã tắt Auto follow';
+
+  @override
+  String get safeRouteSearchStartTitle => 'Tìm điểm đi';
+
+  @override
+  String get safeRouteSearchStartHint =>
+      'Tìm nhà, điểm đón hoặc vị trí bắt đầu hành trình.';
+
+  @override
+  String get safeRouteSearchEndTitle => 'Tìm điểm đến';
+
+  @override
+  String get safeRouteSearchEndHint =>
+      'Tìm trường học, nhà người thân hoặc điểm đến cần theo dõi.';
+
+  @override
+  String safeRouteScheduledAutoActivationPrefix(Object summary) {
+    return 'Tự kích hoạt theo lịch · $summary';
+  }
+
+  @override
+  String get safeRouteTopSubtitleWarning => 'Đang lệch tuyến';
+
+  @override
+  String get safeRouteTopSubtitleDanger => 'Cảnh báo nguy hiểm';
+
+  @override
+  String get safeRouteTopSubtitleReady => 'Điểm đi và điểm đến đã sẵn sàng';
+
+  @override
+  String get safeRouteTopSubtitleOnlyStart =>
+      'Đã chọn điểm đi, tiếp tục chọn điểm đến';
+
+  @override
+  String get safeRouteTopSubtitleChoosePoints =>
+      'Chọn điểm đi và điểm đến theo phong cách bản đồ';
+
+  @override
+  String get safeRouteSelectScheduleDateHelp => 'Chọn ngày áp dụng';
+
+  @override
+  String get safeRouteSelectScheduleTimeTitle => 'Chọn giờ áp dụng';
+
+  @override
+  String get safeRouteArrivedDialogTitle => 'Bé đã đến nơi an toàn';
+
+  @override
+  String get safeRouteArrivedDialogMessage =>
+      'Hành trình này đã được hoàn tất. Bạn có thể quay lại để chọn tuyến đường mới cho bé.';
+
+  @override
+  String get safeRouteArrivedDialogConfirm => 'Quay lại chọn tuyến đường';
+
+  @override
+  String get safeRouteCancelPlannedTitle => 'Xác nhận hủy lịch Safe Route';
+
+  @override
+  String get safeRouteCancelActiveTitle => 'Xác nhận hủy tuyến Safe Route';
+
+  @override
+  String get safeRouteCancelPlannedMessage =>
+      'Lịch theo dõi này sẽ không tự kích hoạt nữa. Bạn có chắc muốn hủy không?';
+
+  @override
+  String get safeRouteCancelActiveMessage =>
+      'Tuyến đường an toàn hiện tại sẽ dừng theo dõi ngay. Bạn có chắc muốn hủy không?';
+
+  @override
+  String get safeRouteCancelPlannedConfirm => 'Xác nhận hủy lịch';
+
+  @override
+  String get safeRouteCancelActiveConfirm => 'Xác nhận hủy tuyến';
+
+  @override
+  String get safeRouteDialogBack => 'Quay lại';
+
+  @override
+  String get safeRouteTooltipFocusChild => 'Đưa camera tới bé';
+
+  @override
+  String get safeRouteTooltipDisableAutoFollow => 'Tắt Auto follow';
+
+  @override
+  String get safeRouteTooltipEnableAutoFollow => 'Bật Auto follow';
+
+  @override
+  String get safeRouteAutoFollowLabel => 'Auto follow';
+
+  @override
+  String get safeRouteTooltipHideHazards => 'Ẩn vùng nguy hiểm';
+
+  @override
+  String get safeRouteTooltipShowHazards => 'Hiện vùng nguy hiểm';
+
+  @override
+  String get safeRouteTooltipMapType => 'Chọn kiểu bản đồ';
+
+  @override
+  String get safeRouteMapHintPlaceStart => 'Chạm trên bản đồ để đặt điểm đi';
+
+  @override
+  String get safeRouteMapHintPlaceEnd => 'Chạm trên bản đồ để đặt điểm đến';
+
+  @override
+  String get safeRouteMapHintTapStart =>
+      'Chạm trên bản đồ để chọn điểm đi cho bé.';
+
+  @override
+  String get safeRouteMapHintTapEnd =>
+      'Chạm trên bản đồ để chọn điểm đến của bé.';
+
+  @override
+  String get safeRouteSnackbarSelectedEndPoint =>
+      'Đã chọn điểm đến trên bản đồ';
+
+  @override
+  String get safeRouteSnackbarSelectedStartPoint =>
+      'Đã chọn điểm đi trên bản đồ';
+
+  @override
+  String get safeRouteSelectSafeRouteTitle => 'Chọn tuyến an toàn';
+
+  @override
+  String get safeRouteSuggestedRoutesTitle => 'Các tuyến đường gợi ý';
+
+  @override
+  String get safeRouteSuggestedRoutesSubtitle =>
+      'Ưu tiên an toàn, dễ theo dõi và ít đi qua vùng nguy hiểm';
+
+  @override
+  String get safeRouteHistoryButton => 'Lịch sử';
+
+  @override
+  String get safeRouteRefreshingRoutes => 'Đang tìm...';
+
+  @override
+  String get safeRouteRefreshButton => 'Làm mới';
+
+  @override
+  String get safeRouteConfirmingRoute => 'Đang xác nhận tuyến...';
+
+  @override
+  String get safeRouteFetchSuggestedRoutes => 'Lấy gợi ý tuyến đường';
+
+  @override
+  String get safeRouteHintSelectingStart =>
+      'Chạm trên bản đồ để chọn điểm đi cho bé.';
+
+  @override
+  String get safeRouteHintSelectingEnd =>
+      'Chạm trên bản đồ để chọn điểm đến của bé.';
+
+  @override
+  String get safeRouteHintMissingPoints =>
+      'Chọn điểm A và điểm B theo phong cách bản đồ, sau đó xem các tuyến gợi ý.';
+
+  @override
+  String get safeRouteHintReadyChooseRoute =>
+      'Đã có đủ điểm đi và điểm đến. Bạn có thể chọn tuyến an toàn nhất để bắt đầu giám sát.';
+
+  @override
+  String get safeRouteEmptyRoutesNeedPoints =>
+      'Hãy chọn cả điểm đi và điểm đến để app đề xuất các tuyến đường an toàn.';
+
+  @override
+  String get safeRouteEmptyRoutesRefresh =>
+      'Nhấn \"Làm mới\" hoặc nút phía dưới để lấy lại danh sách tuyến gợi ý.';
+
+  @override
+  String get safeRoutePrimaryActionSaveSchedule =>
+      'Lưu tuyến và lên lịch theo dõi';
+
+  @override
+  String get safeRoutePrimaryActionStartSelectedRoutes =>
+      'Bắt đầu theo dõi các tuyến đã chọn';
+
+  @override
+  String get safeRoutePrimaryActionSelectThisRoute =>
+      'Chọn tuyến này và bắt đầu theo dõi';
+
+  @override
+  String get safeRouteSelectedRoutesNeedPrimary =>
+      'Hãy chọn 1 tuyến chính và có thể thêm tối đa 2 tuyến phụ.';
+
+  @override
+  String get safeRouteSelectedRoutesPrimaryOnly =>
+      'Đã chọn 1 tuyến chính. Bạn có thể thêm tối đa 2 tuyến phụ.';
+
+  @override
+  String safeRouteSelectedRoutesWithAlternatives(int count) {
+    return 'Đã chọn 1 tuyến chính và $count tuyến phụ.';
+  }
+
+  @override
+  String get safeRouteActionStopTracking => 'Dừng theo dõi';
+
+  @override
+  String get safeRouteActionViewRoute => 'Xem tuyến';
+
+  @override
+  String get safeRouteActionMarkArrived => 'Đánh dấu đã đến';
+
+  @override
+  String get safeRouteActionCancelSchedule => 'Hủy lịch';
+
+  @override
+  String get safeRouteActionChooseNewRoute => 'Chọn tuyến mới';
+
+  @override
+  String get safeRouteActionRouteDetails => 'Chi tiết tuyến';
+
+  @override
+  String get safeRouteStatusSubtitleActive => 'Bé đang bám sát tuyến đã chọn';
+
+  @override
+  String get safeRouteStatusSubtitleTemporarilyDeviated =>
+      'Có dấu hiệu lệch nhẹ, hệ thống đang tiếp tục theo dõi';
+
+  @override
+  String get safeRouteStatusSubtitleDeviated =>
+      'Bé đã lệch khỏi corridor an toàn';
+
+  @override
+  String get safeRouteStatusSubtitleCompleted => 'Hành trình đã hoàn tất';
+
+  @override
+  String get safeRouteStatusSubtitleCancelled => 'Phụ huynh đã dừng giám sát';
+
+  @override
+  String get safeRouteStatusSubtitlePlanned =>
+      'Tuyến đang chờ tới giờ để tự kích hoạt';
+
+  @override
+  String get safeRouteStatusSubtitleNoData => 'Chưa có dữ liệu giám sát';
+
+  @override
+  String get safeRouteSpeedStanding => 'Đứng yên';
+
+  @override
+  String get safeRouteSpeedWalking => 'Đi bộ';
+
+  @override
+  String get safeRouteSpeedCycling => 'Đi xe đạp';
+
+  @override
+  String get safeRouteSpeedMoving => 'Di chuyển';
+
+  @override
+  String get safeRouteMetricSpeed => 'Tốc độ';
+
+  @override
+  String get safeRouteMetricOffRoute => 'Lệch tuyến';
+
+  @override
+  String get safeRouteMetricOffCorridor => 'Ngoài corridor';
+
+  @override
+  String get safeRouteMetricEta => 'Đến nơi';
+
+  @override
+  String get safeRouteMetricEtaEstimate => 'Ước tính';
+
+  @override
+  String get safeRouteDangerCheckNow => 'Cần kiểm tra ngay';
+
+  @override
+  String get safeRouteDeviceBatteryLabel => 'Pin thiết bị';
+
+  @override
+  String get safeRouteProgressTitle => 'Tiến độ hành trình';
+
+  @override
+  String safeRouteProgressCompletedPercent(int percent) {
+    return 'Đã đi $percent%';
+  }
+
+  @override
+  String safeRouteProgressTraveled(Object traveled, Object total) {
+    return 'Đã đi $traveled/$total';
+  }
+
+  @override
+  String safeRouteProgressRemainingPercent(int percent) {
+    return 'Còn lại $percent%';
+  }
+
+  @override
+  String safeRouteProgressRemaining(Object distance) {
+    return 'Còn $distance';
+  }
+
+  @override
+  String get safeRouteFromLabel => 'Từ';
+
+  @override
+  String get safeRouteToLabel => 'Đến';
+
+  @override
+  String get safeRouteSearchOrSelectStart => 'Tìm hoặc chọn điểm đi';
+
+  @override
+  String get safeRouteSearchOrSelectEnd => 'Tìm hoặc chọn điểm đến';
+
+  @override
+  String get safeRouteScheduleTitle => 'Lịch áp dụng tuyến';
+
+  @override
+  String get safeRouteScheduleSubtitle =>
+      'Đặt ngày, giờ và chọn các ngày lặp lại cho tuyến đường an toàn này.';
+
+  @override
+  String get safeRouteDateLabel => 'Ngày';
+
+  @override
+  String get safeRouteTimeLabel => 'Giờ';
+
+  @override
+  String get safeRouteRepeatByDayLabel => 'Lặp lại theo ngày';
+
+  @override
+  String get safeRouteHistoryTripsTitle => 'Lịch sử chuyến đường an toàn';
+
+  @override
+  String get safeRouteHistoryTripsEmpty =>
+      'Chưa có chuyến nào được lưu cho bé.';
+
+  @override
+  String get safeRouteHistoryTripsSubtitle =>
+      'Chạm vào từng chuyến để xem lại tuyến đường và trạng thái di chuyển.';
+
+  @override
+  String get safeRouteHistoryPageTitle => 'Lịch sử tuyến đường';
+
+  @override
+  String get safeRouteHistoryPageReviewSaved =>
+      'Xem lại toàn bộ hành trình an toàn đã lưu';
+
+  @override
+  String get safeRouteHistoryEmptyState =>
+      'Chưa có tuyến đường nào được lưu trong lịch sử Safe Route.';
+
+  @override
+  String get safeRouteNoRepeatLabel => 'Không lặp lại';
+
+  @override
+  String get safeRouteBadgeSafest => 'An toàn nhất';
+
+  @override
+  String get safeRouteBadgeFewerHazards => 'Ít vùng nguy hiểm';
+
+  @override
+  String get safeRouteBadgeFaster => 'Nhanh hơn';
+
+  @override
+  String get safeRouteBadgeAlternative => 'Tuyến phụ';
+
+  @override
+  String get safeRouteRolePrimary => 'Tuyến chính';
+
+  @override
+  String get safeRouteRoleAlternative => 'Tuyến phụ';
+
+  @override
+  String safeRouteCorridorLabel(Object distance) {
+    return '$distance corridor';
+  }
+
+  @override
+  String get safeRouteActionPrimarySelected => 'Đang là tuyến chính';
+
+  @override
+  String get safeRouteActionSetPrimary => 'Đặt làm tuyến chính';
+
+  @override
+  String get safeRouteActionRemoveAlternative => 'Bỏ tuyến phụ';
+
+  @override
+  String get safeRouteActionSelectAlternative => 'Chọn tuyến phụ';
+
+  @override
+  String get safeRouteActionAlternativeLimitReached => 'Đã đủ tuyến phụ';
+
+  @override
+  String get safeRouteRouteDescriptionStable =>
+      'Tuyến khá ổn định, gần như không đi vào vùng nguy hiểm.';
+
+  @override
+  String get safeRouteRouteDescriptionOneHazard =>
+      'Có 1 điểm cần lưu ý nhưng vẫn phù hợp để theo dõi an toàn.';
+
+  @override
+  String get safeRouteRouteDescriptionMoreHazards =>
+      'Tuyến đi nhanh hơn nhưng cần chú ý vì có nhiều vùng cảnh báo hơn.';
+
+  @override
+  String safeRouteHazardCount(int count) {
+    return '$count vùng nguy hiểm';
+  }
+
+  @override
+  String safeRouteAlternativeRouteCount(int count) {
+    return '+$count tuyến phụ';
+  }
+
+  @override
   String get cupertinoTimePickerDoneButton => 'Xong';
+
+  @override
+  String get childLocationUpdatedOneHourAgo => 'Cập nhật 1 giờ trước';
+
+  @override
+  String childLocationUpdatedHoursAgo(int hours) {
+    return 'Cập nhật $hours giờ trước';
+  }
+
+  @override
+  String get validationPasswordRequired => 'Vui lòng nhập mật khẩu';
+
+  @override
+  String get validationPasswordMinLength => 'Mật khẩu phải có ít nhất 6 ký tự';
+
+  @override
+  String get validationPasswordUppercaseRequired =>
+      'Mật khẩu phải có ít nhất 1 chữ hoa';
+
+  @override
+  String get validationPasswordLowercaseRequired =>
+      'Mật khẩu phải có ít nhất 1 chữ thường';
+
+  @override
+  String get validationPasswordNumberRequired =>
+      'Mật khẩu phải có ít nhất 1 chữ số';
+
+  @override
+  String get validationPasswordConfirmRequired => 'Vui lòng nhập lại mật khẩu';
+
+  @override
+  String get firebaseAuthOperationNotAllowed =>
+      'Chức năng tạo tài khoản chưa được bật trong Firebase Auth';
+
+  @override
+  String get userRepositoryCreateAccountFailed => 'Không thể tạo tài khoản';
+
+  @override
+  String get firestorePermissionDenied => 'Bạn không có quyền ghi dữ liệu';
+
+  @override
+  String get firestoreUnavailable => 'Firestore tạm thời không khả dụng';
+
+  @override
+  String get firestoreGenericError => 'Lỗi Firestore';
+
+  @override
+  String get userRepositoryCreateChildFailed => 'Không thể tạo tài khoản con';
+
+  @override
+  String get mapPlaceSearchMissingAccessToken =>
+      'Thiếu ACCESS_TOKEN Mapbox cho tìm kiếm địa điểm.';
+
+  @override
+  String mapPlaceSearchRequestFailed(int statusCode) {
+    return 'Tìm kiếm địa điểm thất bại ($statusCode).';
+  }
+
+  @override
+  String get mapPlaceSearchInvalidResponse =>
+      'Dữ liệu trả về từ Mapbox không hợp lệ.';
+
+  @override
+  String get mapPlaceSearchTimeout =>
+      'Tìm kiếm địa điểm quá thời gian, vui lòng thử lại.';
+
+  @override
+  String get mapPlaceSearchDecodeFailed => 'Không thể đọc dữ liệu địa điểm.';
+
+  @override
+  String get mapPlaceSearchUnexpectedError =>
+      'Có lỗi xảy ra khi tìm kiếm địa điểm.';
+
+  @override
+  String get mapPlaceSearchNoAddress => 'Không có địa chỉ';
+
+  @override
+  String get mapPlaceSearchDefaultName => 'Địa điểm';
 }

@@ -42,6 +42,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get genderHint => 'Male';
 
   @override
+  String get genderMaleOption => 'Male';
+
+  @override
+  String get genderFemaleOption => 'Female';
+
+  @override
+  String get genderOtherOption => 'Other';
+
+  @override
   String get birthDateLabel => 'Birth date';
 
   @override
@@ -82,6 +91,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmButton => 'Confirm';
+
+  @override
+  String get cropPhotoAvatarTitle => 'Edit avatar';
+
+  @override
+  String get cropPhotoCoverTitle => 'Edit cover photo';
+
+  @override
+  String get cropPhotoDoneButton => 'Done';
+
+  @override
+  String get cropPhotoFailedMessage => 'Could not crop the image';
 
   @override
   String get languageSetting => 'Language';
@@ -1110,6 +1131,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationDetailSectionTitle => 'DETAILS';
 
   @override
+  String get accessibilityNoticeBarrierLabel => 'Notice dialog';
+
+  @override
+  String get accessibilityImageModalBarrierLabel => 'Image viewer';
+
+  @override
   String get notificationChildFallback => 'Child';
 
   @override
@@ -1119,6 +1146,120 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notificationMapLocationNotFound =>
       'Location could not be found to open the map';
+
+  @override
+  String get notificationTrackingDetailNotFound =>
+      'Could not find the child\'s journey information';
+
+  @override
+  String get notificationTrackingUnknownValue => 'Unknown';
+
+  @override
+  String get notificationTrackingChildLabel => 'Child';
+
+  @override
+  String get notificationTrackingRouteLabel => 'Route';
+
+  @override
+  String get notificationTrackingDistanceToRouteLabel => 'Distance to route';
+
+  @override
+  String get notificationTrackingHazardLabel => 'Danger zone';
+
+  @override
+  String get notificationTrackingStationaryLabel => 'Stationary';
+
+  @override
+  String get notificationTrackingTimeLabel => 'Time';
+
+  @override
+  String get notificationTrackingOpenHint =>
+      'Open the tracking page to review the child\'s current location, followed route, and full journey status on the map.';
+
+  @override
+  String get notificationTrackingOpenButton => 'Open journey tracking';
+
+  @override
+  String get notificationTrackingStatusOffRoute => 'Off route';
+
+  @override
+  String get notificationTrackingStatusBackOnRoute => 'Back on route';
+
+  @override
+  String get notificationTrackingStatusReturnedToStart => 'Returned to start';
+
+  @override
+  String get notificationTrackingStatusStationary => 'Stopped too long';
+
+  @override
+  String get notificationTrackingStatusArrived => 'Arrived safely';
+
+  @override
+  String get notificationTrackingStatusDanger => 'Danger';
+
+  @override
+  String get notificationTrackingStatusDefault => 'Safe Route';
+
+  @override
+  String get notificationTrackingHeadlineOffRoute =>
+      'The child is moving away from the selected route';
+
+  @override
+  String get notificationTrackingHeadlineBackOnRoute =>
+      'The child is back on the safe route';
+
+  @override
+  String get notificationTrackingHeadlineReturnedToStart =>
+      'The child is moving back near the starting point';
+
+  @override
+  String get notificationTrackingHeadlineStationary =>
+      'The child has stayed still longer than usual';
+
+  @override
+  String get notificationTrackingHeadlineArrived =>
+      'The child has arrived safely';
+
+  @override
+  String get notificationTrackingHeadlineDanger =>
+      'The child is entering a danger zone';
+
+  @override
+  String notificationTrackingFallbackOffRoute(String routeName) {
+    return 'The system detected that the child moved outside the safe corridor of route $routeName.';
+  }
+
+  @override
+  String notificationTrackingFallbackBackOnRoute(String routeName) {
+    return 'The system recorded that the child returned to the safe corridor of route $routeName.';
+  }
+
+  @override
+  String notificationTrackingFallbackReturnedToStart(String routeName) {
+    return 'The child is moving back near the starting point of route $routeName.';
+  }
+
+  @override
+  String notificationTrackingFallbackStationary(String routeName) {
+    return 'The child has remained near the same location for too long while on route $routeName.';
+  }
+
+  @override
+  String notificationTrackingFallbackArrived(String routeName) {
+    return 'The child has reached the destination of route $routeName.';
+  }
+
+  @override
+  String get notificationTrackingFallbackDangerGeneric =>
+      'The child entered a danger zone on the current journey.';
+
+  @override
+  String notificationTrackingFallbackDangerWithHazard(
+    String hazardName,
+    String routeName,
+  ) {
+    return 'The child entered $hazardName while following route $routeName.';
+  }
 
   @override
   String notificationScheduleCreatedTitle(String childName) {
@@ -1837,6 +1978,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get parentStatsViewAll => 'VIEW ALL';
 
   @override
+  String get parentStatsDurationZero => '0m';
+
+  @override
+  String parentStatsDurationMinutes(int minutes) {
+    return '${minutes}m';
+  }
+
+  @override
+  String parentStatsDurationHours(int hours) {
+    return '${hours}h';
+  }
+
+  @override
+  String parentStatsDurationHoursMinutes(int hours, int minutes) {
+    return '${hours}h ${minutes}m';
+  }
+
+  @override
+  String parentStatsHourLabel(int hour) {
+    return '${hour}h';
+  }
+
+  @override
   String get parentUsageNoAvailableSlot => 'No available time slot';
 
   @override
@@ -2295,9 +2459,152 @@ class AppLocalizationsEn extends AppLocalizations {
   String get permissionLaterButton => 'Later';
 
   @override
+  String get permissionSkipButton => 'Skip';
+
+  @override
   String permissionStepLabel(int current, int total) {
     return 'Step $current/$total';
   }
+
+  @override
+  String get permissionOnboardingAccessibilityTitle =>
+      'Enable accessibility access';
+
+  @override
+  String get permissionOnboardingAccessibilitySubtitle =>
+      'Needed for some protection features on Android.';
+
+  @override
+  String get permissionOnboardingAccessibilityPrimaryButton => 'Go to settings';
+
+  @override
+  String get permissionOnboardingAccessibilitySettingsButton =>
+      'Open general settings';
+
+  @override
+  String get permissionOnboardingBackgroundLocationTitle =>
+      'Choose \"Allow all the time\"';
+
+  @override
+  String get permissionOnboardingBackgroundLocationSubtitle =>
+      'So location can still update when the app runs in the background.';
+
+  @override
+  String get permissionOnboardingBackgroundLocationPrimaryButton => 'Continue';
+
+  @override
+  String get permissionOnboardingBackgroundLocationSettingsButton =>
+      'Open location settings';
+
+  @override
+  String get permissionOnboardingBatteryTitle =>
+      'Turn off battery restrictions';
+
+  @override
+  String get permissionOnboardingBatterySubtitle =>
+      'So the app is not stopped while running in the background.';
+
+  @override
+  String get permissionOnboardingBatteryPrimaryButton => 'Go to settings';
+
+  @override
+  String get permissionOnboardingBatterySettingsButton =>
+      'Open general settings';
+
+  @override
+  String get permissionOnboardingLocationTitle => 'Turn on \"Location access\"';
+
+  @override
+  String get permissionOnboardingLocationSubtitle =>
+      'Otherwise, the app will not be able to track location.';
+
+  @override
+  String get permissionOnboardingLocationPrimaryButton => 'Go to settings';
+
+  @override
+  String get permissionOnboardingLocationSettingsButton => 'Open app settings';
+
+  @override
+  String get permissionOnboardingMediaTitle => 'Allow photos and media';
+
+  @override
+  String get permissionOnboardingMediaSubtitle =>
+      'To change the profile photo and choose images in the app.';
+
+  @override
+  String get permissionOnboardingMediaPrimaryButton => 'Allow';
+
+  @override
+  String get permissionOnboardingMediaSettingsButton => 'Open settings';
+
+  @override
+  String get permissionOnboardingNotificationTitle => 'Turn on notifications';
+
+  @override
+  String get permissionOnboardingNotificationSubtitle =>
+      'To receive SOS and safety alerts immediately.';
+
+  @override
+  String get permissionOnboardingNotificationPrimaryButton => 'Allow';
+
+  @override
+  String get permissionOnboardingNotificationSettingsButton =>
+      'Open notification settings';
+
+  @override
+  String get permissionOnboardingUsageTitle => 'Enable app usage access';
+
+  @override
+  String get permissionOnboardingUsageSubtitle =>
+      'To manage app usage time on Android.';
+
+  @override
+  String get permissionOnboardingUsagePrimaryButton => 'Go to settings';
+
+  @override
+  String get permissionOnboardingUsageSettingsButton => 'Open general settings';
+
+  @override
+  String get permissionOnboardingStepNotificationsLabel => 'Notifications';
+
+  @override
+  String get permissionOnboardingStepLocationLabel => 'Location';
+
+  @override
+  String get permissionOnboardingStepBackgroundLocationLabel =>
+      'Allow all the time';
+
+  @override
+  String get permissionOnboardingStepMediaLabel => 'Photos';
+
+  @override
+  String get permissionOnboardingStepUsageLabel => 'Usage';
+
+  @override
+  String get permissionOnboardingStepAccessibilityLabel => 'Accessibility';
+
+  @override
+  String get permissionOnboardingStepBatteryLabel => 'Battery';
+
+  @override
+  String get permissionOnboardingSystemDeniedMessage =>
+      'This permission is blocked by the system. Open settings to grant it again.';
+
+  @override
+  String get permissionOnboardingNotGrantedMessage =>
+      'This permission has not been granted yet. You can try again or set it up later.';
+
+  @override
+  String get permissionOnboardingNotificationHelperText =>
+      'First, just allow permission while using the app. Right after this, the app will guide you to enable \"Allow all the time\" for stable background tracking.';
+
+  @override
+  String get permissionOnboardingGuideVideoLoadFailed =>
+      'Could not load the guide video';
+
+  @override
+  String get permissionOnboardingGuideVideoPlaceholder =>
+      'The guide video will appear here';
 
   @override
   String get applyButton => 'Apply';
@@ -2323,10 +2630,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childLocationTravelHistoryTitle => 'Movement history';
 
   @override
+  String get childLocationSelectedHistoryLabel => 'Selected history';
+
+  @override
   String get childLocationTodayLabel => 'Today';
 
   @override
+  String get childLocationUpdatedJustNow => 'Updated just now';
+
+  @override
+  String get childLocationUpdatedOneMinuteAgo => 'Updated 1 minute ago';
+
+  @override
+  String childLocationUpdatedMinutesAgo(int minutes) {
+    return 'Updated $minutes minutes ago';
+  }
+
+  @override
   String get childLocationRangeAllDay => 'All day';
+
+  @override
+  String get childLocationTooltipManageZones => 'Manage zones';
+
+  @override
+  String get childLocationTooltipSafeRoute => 'Safe route';
+
+  @override
+  String get childLocationTooltipChooseMap => 'Choose map';
 
   @override
   String get childLocationTagStart => 'Start';
@@ -2347,10 +2677,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childLocationStayedHereUnavailable => 'Unavailable';
 
   @override
+  String get childLocationStopDurationHint => 'Stop duration';
+
+  @override
   String get childLocationSpeedLabel => 'Speed';
 
   @override
   String get childLocationSpeedUnavailable => 'Unavailable';
+
+  @override
+  String get childLocationGpsTitle => 'GPS';
+
+  @override
+  String get childLocationPointCountTitle => 'Points';
+
+  @override
+  String get childLocationPointCountUnit => 'points';
 
   @override
   String get childLocationGpsAccuracyLabel => 'GPS accuracy';
@@ -2363,6 +2705,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get childLocationNoLabel => 'No';
+
+  @override
+  String get childLocationDeviceStatusHint => 'Device status';
 
   @override
   String get childLocationTechnicalDetailsTitle => 'Technical details';
@@ -2508,9 +2853,61 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childLocationLiveLabel => 'Live';
 
   @override
+  String get childLocationRecentPointsTitle => 'Recent points';
+
+  @override
+  String childLocationLoadMoreRecentHours(Object label) {
+    return 'Load more $label';
+  }
+
+  @override
+  String get childLocationViewAllButton => 'View all';
+
+  @override
+  String get childLocationTapToSeeDetails => 'Tap to view details';
+
+  @override
+  String get childLocationWeakGpsSignal => 'Weak GPS signal';
+
+  @override
   String childLocationPointCount(int count) {
     return '$count points';
   }
+
+  @override
+  String get childLocationNetworkGapTitle => 'Network lost';
+
+  @override
+  String childLocationNetworkGapSubtitle(Object duration) {
+    return 'The map temporarily connects both ends because the data was interrupted for $duration.';
+  }
+
+  @override
+  String get childLocationNetworkGapChip => 'Connection lost';
+
+  @override
+  String get childLocationNetworkGapFromLabel => 'Lost from';
+
+  @override
+  String get childLocationNetworkGapToLabel => 'Back at';
+
+  @override
+  String get childLocationMapSearchSubtitle =>
+      'Search for a place to quickly pick it on the map.';
+
+  @override
+  String get childLocationMapSearchInputHint =>
+      'Enter a street, school, or address...';
+
+  @override
+  String get childLocationMapSearchMinChars =>
+      'Enter at least 2 characters to search for a place.';
+
+  @override
+  String get childLocationMapSearchNoResults => 'No matching places found.';
+
+  @override
+  String get childLocationSafeRouteRecoveredBanner => 'Back on the safe route';
 
   @override
   String get locationNoLocationYet => 'No location yet';
@@ -2668,5 +3065,828 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationRepositoryParentIdNotFound => 'Parent account not found';
 
   @override
+  String get safeRouteTripStatusActive => 'Tracking';
+
+  @override
+  String get safeRouteTripStatusTemporarilyDeviated => 'Temporarily off route';
+
+  @override
+  String get safeRouteTripStatusDeviated => 'Off route';
+
+  @override
+  String get safeRouteTripStatusCompleted => 'Arrived';
+
+  @override
+  String get safeRouteTripStatusCancelled => 'Cancelled';
+
+  @override
+  String get safeRouteTripStatusPlanned => 'Scheduled';
+
+  @override
+  String get safeRouteTripStatusNoTrip => 'No trip yet';
+
+  @override
+  String get safeRouteTravelModeWalking => 'Walking';
+
+  @override
+  String get safeRouteTravelModeMotorbike => 'Motorbike';
+
+  @override
+  String get safeRouteTravelModePickup => 'Pickup';
+
+  @override
+  String get safeRouteTravelModeOtherVehicle => 'Other vehicle';
+
+  @override
+  String safeRouteDistanceMeters(int value) {
+    return '$value m';
+  }
+
+  @override
+  String safeRouteDistanceKilometers(Object value) {
+    return '$value km';
+  }
+
+  @override
+  String safeRouteDurationMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String safeRouteDurationHours(int hours) {
+    return '$hours h';
+  }
+
+  @override
+  String safeRouteDurationHoursMinutes(int hours, int minutes) {
+    return '$hours h $minutes min';
+  }
+
+  @override
+  String safeRouteDurationHoursMinutesShort(int hours, int minutes) {
+    return '$hours h ${minutes}m';
+  }
+
+  @override
+  String safeRouteEtaApproxMinutes(int minutes) {
+    return '~$minutes min';
+  }
+
+  @override
+  String safeRouteEtaApproxHours(int hours) {
+    return '~$hours h';
+  }
+
+  @override
+  String safeRouteEtaApproxHoursMinutes(int hours, int minutes) {
+    return '~$hours h ${minutes}m';
+  }
+
+  @override
+  String get safeRouteTodayLabel => 'Today';
+
+  @override
+  String get safeRouteTomorrowLabel => 'Tomorrow';
+
+  @override
+  String get safeRouteNowLabel => 'Now';
+
+  @override
+  String safeRouteSecondsAgo(int seconds) {
+    return '${seconds}s';
+  }
+
+  @override
+  String safeRouteFormatTime(Object hour, Object minute) {
+    return '$hour:$minute';
+  }
+
+  @override
+  String get safeRouteTrackNowLabel => 'Track now';
+
+  @override
+  String get safeRouteNoRepeatSummary =>
+      'No repeat. This route will be used for the nearest tracking session.';
+
+  @override
+  String safeRouteRepeatSummaryText(Object labels) {
+    return 'Repeats on: $labels';
+  }
+
+  @override
+  String get safeRouteCurrentRoutePrimary => 'Currently on the primary route';
+
+  @override
+  String safeRouteCurrentRouteAlternativeIndexed(int index) {
+    return 'Currently on alternative route $index';
+  }
+
+  @override
+  String get safeRouteCurrentRouteAlternative =>
+      'Currently on an alternative route';
+
+  @override
+  String safeRouteRouteFallbackNameText(Object id) {
+    return 'Route $id';
+  }
+
+  @override
+  String get safeRouteSelectedRouteFallbackName => 'Selected route';
+
+  @override
+  String get safeRouteGuidanceLoadingRoute => 'Loading route...';
+
+  @override
+  String get safeRouteGuidanceDangerArea => 'danger area';
+
+  @override
+  String get safeRouteGuidanceReturnToSafeRoute => 'Return to the safe route';
+
+  @override
+  String get safeRouteGuidanceArrivedInstruction => 'You are almost there';
+
+  @override
+  String get safeRouteGuidanceArrivedDescription =>
+      'Keep going to the destination marker.';
+
+  @override
+  String get safeRouteGuidanceStatusOnRoute => 'On route';
+
+  @override
+  String get safeRouteGuidanceStatusOffRoute => 'Off route';
+
+  @override
+  String get safeRouteGuidanceStatusAlmostThere => 'Almost there';
+
+  @override
+  String get safeRouteGuidanceStatusSafeRoute => 'Safe route';
+
+  @override
+  String safeRouteGuidanceLeaveDangerZone(Object hazardName) {
+    return 'Leave $hazardName immediately';
+  }
+
+  @override
+  String safeRouteGuidanceDangerDescription(Object hazardName) {
+    return 'Move back to the route and away from $hazardName.';
+  }
+
+  @override
+  String safeRouteGuidanceOffRouteDescription(Object distanceLabel) {
+    return 'You are about $distanceLabel away from the route.';
+  }
+
+  @override
+  String safeRouteGuidanceRemainingDescription(Object distanceLabel) {
+    return '$distanceLabel left to the destination.';
+  }
+
+  @override
+  String safeRouteGuidanceContinueStraight(Object distanceLabel) {
+    return 'Continue straight for $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceTurnLeft(Object distanceLabel) {
+    return 'Turn left in $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceTurnRight(Object distanceLabel) {
+    return 'Turn right in $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceKeepLeft(Object distanceLabel) {
+    return 'Keep left in $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceKeepRight(Object distanceLabel) {
+    return 'Keep right in $distanceLabel';
+  }
+
+  @override
+  String safeRouteGuidanceMakeUTurn(Object distanceLabel) {
+    return 'Make a U-turn in $distanceLabel';
+  }
+
+  @override
+  String get safeRouteGuidanceEtaNow => 'ETA now';
+
+  @override
+  String get safeRouteVisualDangerTitle => 'Entered a danger zone!';
+
+  @override
+  String safeRouteVisualDangerSubtitle(Object hazardName) {
+    return 'Your child is near $hazardName.';
+  }
+
+  @override
+  String get safeRouteVisualDangerBadge => 'DANGER';
+
+  @override
+  String safeRouteVisualOffRouteTitle(Object distanceLabel) {
+    return 'Off route ~$distanceLabel';
+  }
+
+  @override
+  String get safeRouteVisualOffRouteSubtitle =>
+      'Your child is leaving the selected safe corridor.';
+
+  @override
+  String get safeRouteVisualOffRouteBadge => 'OFF ROUTE';
+
+  @override
+  String get safeRouteVisualCompletedTitle => 'Child arrived safely';
+
+  @override
+  String get safeRouteVisualCompletedSubtitle =>
+      'This journey was marked as completed.';
+
+  @override
+  String get safeRouteVisualCompletedBadge => 'COMPLETED';
+
+  @override
+  String get safeRouteVisualCancelledTitle => 'Journey tracking stopped';
+
+  @override
+  String get safeRouteVisualCancelledSubtitle =>
+      'The parent ended the current monitoring session.';
+
+  @override
+  String get safeRouteVisualCancelledBadge => 'STOPPED';
+
+  @override
+  String get safeRouteVisualPlannedTitle => 'Route is waiting to start';
+
+  @override
+  String get safeRouteVisualPlannedSubtitle =>
+      'Safe Route will start automatically at the scheduled time.';
+
+  @override
+  String get safeRouteVisualPlannedBadge => 'SCHEDULED';
+
+  @override
+  String get safeRouteVisualActiveTitle => 'Following the route';
+
+  @override
+  String get safeRouteVisualActiveSubtitle =>
+      'Your child is inside the selected safe corridor.';
+
+  @override
+  String get safeRouteVisualActiveBadge => 'SAFE';
+
+  @override
+  String get safeRouteErrorMaxAlternative =>
+      'You should select at most 2 alternative routes per trip.';
+
+  @override
+  String get safeRouteErrorNoCurrentLocation =>
+      'The child does not have a current location yet.';
+
+  @override
+  String get safeRouteErrorNeedStartEnd =>
+      'Please choose point A and point B first.';
+
+  @override
+  String get safeRouteErrorLoadHistoryRoute =>
+      'Could not load the route from history.';
+
+  @override
+  String get safeRouteErrorNeedRoute => 'Please choose a safe route first.';
+
+  @override
+  String get safeRouteErrorLoginAgain =>
+      'Please sign in again to start the trip.';
+
+  @override
+  String get safeRouteErrorSelectTimeForRepeat =>
+      'Choose a time if you want the route to repeat by day.';
+
+  @override
+  String get safeRouteUseCurrentLocationLabel => 'Current location';
+
+  @override
+  String get safeRouteStartPointOfRoute => 'Route start point';
+
+  @override
+  String get safeRouteEndPointOfRoute => 'Route destination';
+
+  @override
+  String get safeRouteCancelledByParentReason => 'Cancelled by parent';
+
+  @override
+  String safeRouteSpeedValue(Object value) {
+    return '$value km/h';
+  }
+
+  @override
+  String get safeRoutePageSelectRouteTitle => 'Choose a safe route';
+
+  @override
+  String get safeRoutePageJourneyTitle => 'Safe journey';
+
+  @override
+  String get safeRouteSnackbarAutoFollowEnabled => 'Auto follow turned on';
+
+  @override
+  String get safeRouteSnackbarAutoFollowDisabled => 'Auto follow turned off';
+
+  @override
+  String get safeRouteSearchStartTitle => 'Search starting point';
+
+  @override
+  String get safeRouteSearchStartHint =>
+      'Search for home, pickup point, or journey start.';
+
+  @override
+  String get safeRouteSearchEndTitle => 'Search destination';
+
+  @override
+  String get safeRouteSearchEndHint =>
+      'Search for a school, relative\'s house, or the destination to monitor.';
+
+  @override
+  String safeRouteScheduledAutoActivationPrefix(Object summary) {
+    return 'Auto-activates on schedule · $summary';
+  }
+
+  @override
+  String get safeRouteTopSubtitleWarning => 'Off route';
+
+  @override
+  String get safeRouteTopSubtitleDanger => 'Danger alert';
+
+  @override
+  String get safeRouteTopSubtitleReady => 'Start and destination are ready';
+
+  @override
+  String get safeRouteTopSubtitleOnlyStart =>
+      'Starting point selected, now choose the destination';
+
+  @override
+  String get safeRouteTopSubtitleChoosePoints =>
+      'Choose start and destination on the map';
+
+  @override
+  String get safeRouteSelectScheduleDateHelp => 'Choose the effective date';
+
+  @override
+  String get safeRouteSelectScheduleTimeTitle => 'Choose the effective time';
+
+  @override
+  String get safeRouteArrivedDialogTitle => 'Child arrived safely';
+
+  @override
+  String get safeRouteArrivedDialogMessage =>
+      'This journey has been completed. You can go back to choose a new route for your child.';
+
+  @override
+  String get safeRouteArrivedDialogConfirm => 'Go back and choose a route';
+
+  @override
+  String get safeRouteCancelPlannedTitle =>
+      'Confirm Safe Route schedule cancellation';
+
+  @override
+  String get safeRouteCancelActiveTitle => 'Confirm Safe Route cancellation';
+
+  @override
+  String get safeRouteCancelPlannedMessage =>
+      'This scheduled tracking will no longer start automatically. Are you sure you want to cancel it?';
+
+  @override
+  String get safeRouteCancelActiveMessage =>
+      'The current safe route will stop tracking immediately. Are you sure you want to cancel it?';
+
+  @override
+  String get safeRouteCancelPlannedConfirm => 'Confirm schedule cancellation';
+
+  @override
+  String get safeRouteCancelActiveConfirm => 'Confirm route cancellation';
+
+  @override
+  String get safeRouteDialogBack => 'Back';
+
+  @override
+  String get safeRouteTooltipFocusChild => 'Center the camera on the child';
+
+  @override
+  String get safeRouteTooltipDisableAutoFollow => 'Turn off Auto follow';
+
+  @override
+  String get safeRouteTooltipEnableAutoFollow => 'Turn on Auto follow';
+
+  @override
+  String get safeRouteAutoFollowLabel => 'Auto follow';
+
+  @override
+  String get safeRouteTooltipHideHazards => 'Hide danger zones';
+
+  @override
+  String get safeRouteTooltipShowHazards => 'Show danger zones';
+
+  @override
+  String get safeRouteTooltipMapType => 'Choose map type';
+
+  @override
+  String get safeRouteMapHintPlaceStart =>
+      'Tap on the map to place the starting point';
+
+  @override
+  String get safeRouteMapHintPlaceEnd =>
+      'Tap on the map to place the destination';
+
+  @override
+  String get safeRouteMapHintTapStart =>
+      'Tap on the map to choose the child\'s starting point.';
+
+  @override
+  String get safeRouteMapHintTapEnd =>
+      'Tap on the map to choose the child\'s destination.';
+
+  @override
+  String get safeRouteSnackbarSelectedEndPoint =>
+      'Destination selected on the map';
+
+  @override
+  String get safeRouteSnackbarSelectedStartPoint =>
+      'Starting point selected on the map';
+
+  @override
+  String get safeRouteSelectSafeRouteTitle => 'Choose a safe route';
+
+  @override
+  String get safeRouteSuggestedRoutesTitle => 'Suggested routes';
+
+  @override
+  String get safeRouteSuggestedRoutesSubtitle =>
+      'Prioritizes safety, easy monitoring, and fewer danger zones';
+
+  @override
+  String get safeRouteHistoryButton => 'History';
+
+  @override
+  String get safeRouteRefreshingRoutes => 'Searching...';
+
+  @override
+  String get safeRouteRefreshButton => 'Refresh';
+
+  @override
+  String get safeRouteConfirmingRoute => 'Confirming route...';
+
+  @override
+  String get safeRouteFetchSuggestedRoutes => 'Get route suggestions';
+
+  @override
+  String get safeRouteHintSelectingStart =>
+      'Tap on the map to choose the child\'s starting point.';
+
+  @override
+  String get safeRouteHintSelectingEnd =>
+      'Tap on the map to choose the child\'s destination.';
+
+  @override
+  String get safeRouteHintMissingPoints =>
+      'Choose point A and point B on the map, then review the suggested routes.';
+
+  @override
+  String get safeRouteHintReadyChooseRoute =>
+      'Start and destination are ready. You can now choose the safest route to begin monitoring.';
+
+  @override
+  String get safeRouteEmptyRoutesNeedPoints =>
+      'Choose both the starting point and destination so the app can suggest safe routes.';
+
+  @override
+  String get safeRouteEmptyRoutesRefresh =>
+      'Tap \"Refresh\" or the button below to request the route suggestions again.';
+
+  @override
+  String get safeRoutePrimaryActionSaveSchedule =>
+      'Save route and schedule tracking';
+
+  @override
+  String get safeRoutePrimaryActionStartSelectedRoutes =>
+      'Start tracking the selected routes';
+
+  @override
+  String get safeRoutePrimaryActionSelectThisRoute =>
+      'Select this route and start tracking';
+
+  @override
+  String get safeRouteSelectedRoutesNeedPrimary =>
+      'Choose 1 primary route and optionally add up to 2 alternatives.';
+
+  @override
+  String get safeRouteSelectedRoutesPrimaryOnly =>
+      '1 primary route selected. You can add up to 2 alternatives.';
+
+  @override
+  String safeRouteSelectedRoutesWithAlternatives(int count) {
+    return '1 primary route and $count alternative routes selected.';
+  }
+
+  @override
+  String get safeRouteActionStopTracking => 'Stop tracking';
+
+  @override
+  String get safeRouteActionViewRoute => 'View route';
+
+  @override
+  String get safeRouteActionMarkArrived => 'Mark as arrived';
+
+  @override
+  String get safeRouteActionCancelSchedule => 'Cancel schedule';
+
+  @override
+  String get safeRouteActionChooseNewRoute => 'Choose a new route';
+
+  @override
+  String get safeRouteActionRouteDetails => 'Route details';
+
+  @override
+  String get safeRouteStatusSubtitleActive =>
+      'Your child is closely following the selected route';
+
+  @override
+  String get safeRouteStatusSubtitleTemporarilyDeviated =>
+      'A slight deviation was detected. The system is still monitoring.';
+
+  @override
+  String get safeRouteStatusSubtitleDeviated =>
+      'Your child has left the safe corridor';
+
+  @override
+  String get safeRouteStatusSubtitleCompleted =>
+      'The journey has been completed';
+
+  @override
+  String get safeRouteStatusSubtitleCancelled =>
+      'The parent stopped monitoring';
+
+  @override
+  String get safeRouteStatusSubtitlePlanned =>
+      'The route is waiting for its scheduled time to start';
+
+  @override
+  String get safeRouteStatusSubtitleNoData => 'No tracking data yet';
+
+  @override
+  String get safeRouteSpeedStanding => 'Standing still';
+
+  @override
+  String get safeRouteSpeedWalking => 'Walking';
+
+  @override
+  String get safeRouteSpeedCycling => 'Cycling';
+
+  @override
+  String get safeRouteSpeedMoving => 'Moving';
+
+  @override
+  String get safeRouteMetricSpeed => 'Speed';
+
+  @override
+  String get safeRouteMetricOffRoute => 'Off route';
+
+  @override
+  String get safeRouteMetricOffCorridor => 'Outside corridor';
+
+  @override
+  String get safeRouteMetricEta => 'ETA';
+
+  @override
+  String get safeRouteMetricEtaEstimate => 'Estimate';
+
+  @override
+  String get safeRouteDangerCheckNow => 'Check immediately';
+
+  @override
+  String get safeRouteDeviceBatteryLabel => 'Device battery';
+
+  @override
+  String get safeRouteProgressTitle => 'Journey progress';
+
+  @override
+  String safeRouteProgressCompletedPercent(int percent) {
+    return 'Completed $percent%';
+  }
+
+  @override
+  String safeRouteProgressTraveled(Object traveled, Object total) {
+    return 'Traveled $traveled/$total';
+  }
+
+  @override
+  String safeRouteProgressRemainingPercent(int percent) {
+    return 'Remaining $percent%';
+  }
+
+  @override
+  String safeRouteProgressRemaining(Object distance) {
+    return 'Remaining $distance';
+  }
+
+  @override
+  String get safeRouteFromLabel => 'From';
+
+  @override
+  String get safeRouteToLabel => 'To';
+
+  @override
+  String get safeRouteSearchOrSelectStart =>
+      'Search or choose a starting point';
+
+  @override
+  String get safeRouteSearchOrSelectEnd => 'Search or choose a destination';
+
+  @override
+  String get safeRouteScheduleTitle => 'Route schedule';
+
+  @override
+  String get safeRouteScheduleSubtitle =>
+      'Set the date, time, and repeating days for this safe route.';
+
+  @override
+  String get safeRouteDateLabel => 'Date';
+
+  @override
+  String get safeRouteTimeLabel => 'Time';
+
+  @override
+  String get safeRouteRepeatByDayLabel => 'Repeat by day';
+
+  @override
+  String get safeRouteHistoryTripsTitle => 'Safe route trip history';
+
+  @override
+  String get safeRouteHistoryTripsEmpty =>
+      'No trips have been saved for your child yet.';
+
+  @override
+  String get safeRouteHistoryTripsSubtitle =>
+      'Tap any trip to review the route and movement status.';
+
+  @override
+  String get safeRouteHistoryPageTitle => 'Route history';
+
+  @override
+  String get safeRouteHistoryPageReviewSaved =>
+      'Review all saved safe journeys';
+
+  @override
+  String get safeRouteHistoryEmptyState =>
+      'No safe routes have been saved in history yet.';
+
+  @override
+  String get safeRouteNoRepeatLabel => 'No repeat';
+
+  @override
+  String get safeRouteBadgeSafest => 'Safest';
+
+  @override
+  String get safeRouteBadgeFewerHazards => 'Fewer hazards';
+
+  @override
+  String get safeRouteBadgeFaster => 'Faster';
+
+  @override
+  String get safeRouteBadgeAlternative => 'Alternative';
+
+  @override
+  String get safeRouteRolePrimary => 'Primary';
+
+  @override
+  String get safeRouteRoleAlternative => 'Alternative';
+
+  @override
+  String safeRouteCorridorLabel(Object distance) {
+    return '$distance corridor';
+  }
+
+  @override
+  String get safeRouteActionPrimarySelected => 'Primary route selected';
+
+  @override
+  String get safeRouteActionSetPrimary => 'Set as primary route';
+
+  @override
+  String get safeRouteActionRemoveAlternative => 'Remove alternative';
+
+  @override
+  String get safeRouteActionSelectAlternative => 'Select alternative';
+
+  @override
+  String get safeRouteActionAlternativeLimitReached =>
+      'Alternative limit reached';
+
+  @override
+  String get safeRouteRouteDescriptionStable =>
+      'This route is quite stable and almost avoids danger zones.';
+
+  @override
+  String get safeRouteRouteDescriptionOneHazard =>
+      'There is 1 point to watch, but it is still suitable for safe monitoring.';
+
+  @override
+  String get safeRouteRouteDescriptionMoreHazards =>
+      'This route is faster but needs more attention because it passes more warning zones.';
+
+  @override
+  String safeRouteHazardCount(int count) {
+    return '$count danger zones';
+  }
+
+  @override
+  String safeRouteAlternativeRouteCount(int count) {
+    return '+$count alternatives';
+  }
+
+  @override
   String get cupertinoTimePickerDoneButton => 'Done';
+
+  @override
+  String get childLocationUpdatedOneHourAgo => 'Updated 1 hour ago';
+
+  @override
+  String childLocationUpdatedHoursAgo(int hours) {
+    return 'Updated $hours hours ago';
+  }
+
+  @override
+  String get validationPasswordRequired => 'Please enter a password';
+
+  @override
+  String get validationPasswordMinLength =>
+      'Password must be at least 6 characters';
+
+  @override
+  String get validationPasswordUppercaseRequired =>
+      'Password must include at least 1 uppercase letter';
+
+  @override
+  String get validationPasswordLowercaseRequired =>
+      'Password must include at least 1 lowercase letter';
+
+  @override
+  String get validationPasswordNumberRequired =>
+      'Password must include at least 1 number';
+
+  @override
+  String get validationPasswordConfirmRequired =>
+      'Please re-enter the password';
+
+  @override
+  String get firebaseAuthOperationNotAllowed =>
+      'Account creation is not enabled in Firebase Auth';
+
+  @override
+  String get userRepositoryCreateAccountFailed =>
+      'Could not create the account';
+
+  @override
+  String get firestorePermissionDenied =>
+      'You do not have permission to write data';
+
+  @override
+  String get firestoreUnavailable => 'Firestore is temporarily unavailable';
+
+  @override
+  String get firestoreGenericError => 'Firestore error';
+
+  @override
+  String get userRepositoryCreateChildFailed =>
+      'Could not create the child account';
+
+  @override
+  String get mapPlaceSearchMissingAccessToken =>
+      'Missing Mapbox ACCESS_TOKEN for place search.';
+
+  @override
+  String mapPlaceSearchRequestFailed(int statusCode) {
+    return 'Place search failed ($statusCode).';
+  }
+
+  @override
+  String get mapPlaceSearchInvalidResponse =>
+      'The response from Mapbox is invalid.';
+
+  @override
+  String get mapPlaceSearchTimeout =>
+      'Place search timed out. Please try again.';
+
+  @override
+  String get mapPlaceSearchDecodeFailed => 'Could not read the place data.';
+
+  @override
+  String get mapPlaceSearchUnexpectedError =>
+      'An error occurred while searching for a place.';
+
+  @override
+  String get mapPlaceSearchNoAddress => 'No address available';
+
+  @override
+  String get mapPlaceSearchDefaultName => 'Place';
 }

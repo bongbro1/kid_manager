@@ -164,6 +164,24 @@ abstract class AppLocalizations {
   /// **'Male'**
   String get genderHint;
 
+  /// No description provided for @genderMaleOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Male'**
+  String get genderMaleOption;
+
+  /// No description provided for @genderFemaleOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Female'**
+  String get genderFemaleOption;
+
+  /// No description provided for @genderOtherOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get genderOtherOption;
+
   /// No description provided for @birthDateLabel.
   ///
   /// In en, this message translates to:
@@ -247,6 +265,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm'**
   String get confirmButton;
+
+  /// No description provided for @cropPhotoAvatarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit avatar'**
+  String get cropPhotoAvatarTitle;
+
+  /// No description provided for @cropPhotoCoverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit cover photo'**
+  String get cropPhotoCoverTitle;
+
+  /// No description provided for @cropPhotoDoneButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get cropPhotoDoneButton;
+
+  /// No description provided for @cropPhotoFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not crop the image'**
+  String get cropPhotoFailedMessage;
 
   /// No description provided for @languageSetting.
   ///
@@ -2042,6 +2084,18 @@ abstract class AppLocalizations {
   /// **'DETAILS'**
   String get notificationDetailSectionTitle;
 
+  /// No description provided for @accessibilityNoticeBarrierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice dialog'**
+  String get accessibilityNoticeBarrierLabel;
+
+  /// No description provided for @accessibilityImageModalBarrierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Image viewer'**
+  String get accessibilityImageModalBarrierLabel;
+
   /// No description provided for @notificationChildFallback.
   ///
   /// In en, this message translates to:
@@ -2059,6 +2113,189 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Location could not be found to open the map'**
   String get notificationMapLocationNotFound;
+
+  /// No description provided for @notificationTrackingDetailNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not find the child\'s journey information'**
+  String get notificationTrackingDetailNotFound;
+
+  /// No description provided for @notificationTrackingUnknownValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get notificationTrackingUnknownValue;
+
+  /// No description provided for @notificationTrackingChildLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Child'**
+  String get notificationTrackingChildLabel;
+
+  /// No description provided for @notificationTrackingRouteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Route'**
+  String get notificationTrackingRouteLabel;
+
+  /// No description provided for @notificationTrackingDistanceToRouteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance to route'**
+  String get notificationTrackingDistanceToRouteLabel;
+
+  /// No description provided for @notificationTrackingHazardLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger zone'**
+  String get notificationTrackingHazardLabel;
+
+  /// No description provided for @notificationTrackingStationaryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Stationary'**
+  String get notificationTrackingStationaryLabel;
+
+  /// No description provided for @notificationTrackingTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get notificationTrackingTimeLabel;
+
+  /// No description provided for @notificationTrackingOpenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the tracking page to review the child\'s current location, followed route, and full journey status on the map.'**
+  String get notificationTrackingOpenHint;
+
+  /// No description provided for @notificationTrackingOpenButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open journey tracking'**
+  String get notificationTrackingOpenButton;
+
+  /// No description provided for @notificationTrackingStatusOffRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Off route'**
+  String get notificationTrackingStatusOffRoute;
+
+  /// No description provided for @notificationTrackingStatusBackOnRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Back on route'**
+  String get notificationTrackingStatusBackOnRoute;
+
+  /// No description provided for @notificationTrackingStatusReturnedToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Returned to start'**
+  String get notificationTrackingStatusReturnedToStart;
+
+  /// No description provided for @notificationTrackingStatusStationary.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped too long'**
+  String get notificationTrackingStatusStationary;
+
+  /// No description provided for @notificationTrackingStatusArrived.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrived safely'**
+  String get notificationTrackingStatusArrived;
+
+  /// No description provided for @notificationTrackingStatusDanger.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger'**
+  String get notificationTrackingStatusDanger;
+
+  /// No description provided for @notificationTrackingStatusDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe Route'**
+  String get notificationTrackingStatusDefault;
+
+  /// No description provided for @notificationTrackingHeadlineOffRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'The child is moving away from the selected route'**
+  String get notificationTrackingHeadlineOffRoute;
+
+  /// No description provided for @notificationTrackingHeadlineBackOnRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'The child is back on the safe route'**
+  String get notificationTrackingHeadlineBackOnRoute;
+
+  /// No description provided for @notificationTrackingHeadlineReturnedToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'The child is moving back near the starting point'**
+  String get notificationTrackingHeadlineReturnedToStart;
+
+  /// No description provided for @notificationTrackingHeadlineStationary.
+  ///
+  /// In en, this message translates to:
+  /// **'The child has stayed still longer than usual'**
+  String get notificationTrackingHeadlineStationary;
+
+  /// No description provided for @notificationTrackingHeadlineArrived.
+  ///
+  /// In en, this message translates to:
+  /// **'The child has arrived safely'**
+  String get notificationTrackingHeadlineArrived;
+
+  /// No description provided for @notificationTrackingHeadlineDanger.
+  ///
+  /// In en, this message translates to:
+  /// **'The child is entering a danger zone'**
+  String get notificationTrackingHeadlineDanger;
+
+  /// No description provided for @notificationTrackingFallbackOffRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'The system detected that the child moved outside the safe corridor of route {routeName}.'**
+  String notificationTrackingFallbackOffRoute(String routeName);
+
+  /// No description provided for @notificationTrackingFallbackBackOnRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'The system recorded that the child returned to the safe corridor of route {routeName}.'**
+  String notificationTrackingFallbackBackOnRoute(String routeName);
+
+  /// No description provided for @notificationTrackingFallbackReturnedToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'The child is moving back near the starting point of route {routeName}.'**
+  String notificationTrackingFallbackReturnedToStart(String routeName);
+
+  /// No description provided for @notificationTrackingFallbackStationary.
+  ///
+  /// In en, this message translates to:
+  /// **'The child has remained near the same location for too long while on route {routeName}.'**
+  String notificationTrackingFallbackStationary(String routeName);
+
+  /// No description provided for @notificationTrackingFallbackArrived.
+  ///
+  /// In en, this message translates to:
+  /// **'The child has reached the destination of route {routeName}.'**
+  String notificationTrackingFallbackArrived(String routeName);
+
+  /// No description provided for @notificationTrackingFallbackDangerGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'The child entered a danger zone on the current journey.'**
+  String get notificationTrackingFallbackDangerGeneric;
+
+  /// No description provided for @notificationTrackingFallbackDangerWithHazard.
+  ///
+  /// In en, this message translates to:
+  /// **'The child entered {hazardName} while following route {routeName}.'**
+  String notificationTrackingFallbackDangerWithHazard(
+    String hazardName,
+    String routeName,
+  );
 
   /// No description provided for @notificationScheduleCreatedTitle.
   ///
@@ -3234,6 +3471,36 @@ abstract class AppLocalizations {
   /// **'VIEW ALL'**
   String get parentStatsViewAll;
 
+  /// No description provided for @parentStatsDurationZero.
+  ///
+  /// In en, this message translates to:
+  /// **'0m'**
+  String get parentStatsDurationZero;
+
+  /// No description provided for @parentStatsDurationMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m'**
+  String parentStatsDurationMinutes(int minutes);
+
+  /// No description provided for @parentStatsDurationHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h'**
+  String parentStatsDurationHours(int hours);
+
+  /// No description provided for @parentStatsDurationHoursMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h {minutes}m'**
+  String parentStatsDurationHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @parentStatsHourLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{hour}h'**
+  String parentStatsHourLabel(int hour);
+
   /// No description provided for @parentUsageNoAvailableSlot.
   ///
   /// In en, this message translates to:
@@ -4032,11 +4299,257 @@ abstract class AppLocalizations {
   /// **'Later'**
   String get permissionLaterButton;
 
+  /// No description provided for @permissionSkipButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get permissionSkipButton;
+
   /// No description provided for @permissionStepLabel.
   ///
   /// In en, this message translates to:
   /// **'Step {current}/{total}'**
   String permissionStepLabel(int current, int total);
+
+  /// No description provided for @permissionOnboardingAccessibilityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable accessibility access'**
+  String get permissionOnboardingAccessibilityTitle;
+
+  /// No description provided for @permissionOnboardingAccessibilitySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed for some protection features on Android.'**
+  String get permissionOnboardingAccessibilitySubtitle;
+
+  /// No description provided for @permissionOnboardingAccessibilityPrimaryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to settings'**
+  String get permissionOnboardingAccessibilityPrimaryButton;
+
+  /// No description provided for @permissionOnboardingAccessibilitySettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open general settings'**
+  String get permissionOnboardingAccessibilitySettingsButton;
+
+  /// No description provided for @permissionOnboardingBackgroundLocationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose \"Allow all the time\"'**
+  String get permissionOnboardingBackgroundLocationTitle;
+
+  /// No description provided for @permissionOnboardingBackgroundLocationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'So location can still update when the app runs in the background.'**
+  String get permissionOnboardingBackgroundLocationSubtitle;
+
+  /// No description provided for @permissionOnboardingBackgroundLocationPrimaryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get permissionOnboardingBackgroundLocationPrimaryButton;
+
+  /// No description provided for @permissionOnboardingBackgroundLocationSettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open location settings'**
+  String get permissionOnboardingBackgroundLocationSettingsButton;
+
+  /// No description provided for @permissionOnboardingBatteryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off battery restrictions'**
+  String get permissionOnboardingBatteryTitle;
+
+  /// No description provided for @permissionOnboardingBatterySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'So the app is not stopped while running in the background.'**
+  String get permissionOnboardingBatterySubtitle;
+
+  /// No description provided for @permissionOnboardingBatteryPrimaryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to settings'**
+  String get permissionOnboardingBatteryPrimaryButton;
+
+  /// No description provided for @permissionOnboardingBatterySettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open general settings'**
+  String get permissionOnboardingBatterySettingsButton;
+
+  /// No description provided for @permissionOnboardingLocationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on \"Location access\"'**
+  String get permissionOnboardingLocationTitle;
+
+  /// No description provided for @permissionOnboardingLocationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Otherwise, the app will not be able to track location.'**
+  String get permissionOnboardingLocationSubtitle;
+
+  /// No description provided for @permissionOnboardingLocationPrimaryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to settings'**
+  String get permissionOnboardingLocationPrimaryButton;
+
+  /// No description provided for @permissionOnboardingLocationSettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open app settings'**
+  String get permissionOnboardingLocationSettingsButton;
+
+  /// No description provided for @permissionOnboardingMediaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow photos and media'**
+  String get permissionOnboardingMediaTitle;
+
+  /// No description provided for @permissionOnboardingMediaSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To change the profile photo and choose images in the app.'**
+  String get permissionOnboardingMediaSubtitle;
+
+  /// No description provided for @permissionOnboardingMediaPrimaryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get permissionOnboardingMediaPrimaryButton;
+
+  /// No description provided for @permissionOnboardingMediaSettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get permissionOnboardingMediaSettingsButton;
+
+  /// No description provided for @permissionOnboardingNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on notifications'**
+  String get permissionOnboardingNotificationTitle;
+
+  /// No description provided for @permissionOnboardingNotificationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To receive SOS and safety alerts immediately.'**
+  String get permissionOnboardingNotificationSubtitle;
+
+  /// No description provided for @permissionOnboardingNotificationPrimaryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get permissionOnboardingNotificationPrimaryButton;
+
+  /// No description provided for @permissionOnboardingNotificationSettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open notification settings'**
+  String get permissionOnboardingNotificationSettingsButton;
+
+  /// No description provided for @permissionOnboardingUsageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable app usage access'**
+  String get permissionOnboardingUsageTitle;
+
+  /// No description provided for @permissionOnboardingUsageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To manage app usage time on Android.'**
+  String get permissionOnboardingUsageSubtitle;
+
+  /// No description provided for @permissionOnboardingUsagePrimaryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to settings'**
+  String get permissionOnboardingUsagePrimaryButton;
+
+  /// No description provided for @permissionOnboardingUsageSettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open general settings'**
+  String get permissionOnboardingUsageSettingsButton;
+
+  /// No description provided for @permissionOnboardingStepNotificationsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get permissionOnboardingStepNotificationsLabel;
+
+  /// No description provided for @permissionOnboardingStepLocationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get permissionOnboardingStepLocationLabel;
+
+  /// No description provided for @permissionOnboardingStepBackgroundLocationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow all the time'**
+  String get permissionOnboardingStepBackgroundLocationLabel;
+
+  /// No description provided for @permissionOnboardingStepMediaLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get permissionOnboardingStepMediaLabel;
+
+  /// No description provided for @permissionOnboardingStepUsageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage'**
+  String get permissionOnboardingStepUsageLabel;
+
+  /// No description provided for @permissionOnboardingStepAccessibilityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessibility'**
+  String get permissionOnboardingStepAccessibilityLabel;
+
+  /// No description provided for @permissionOnboardingStepBatteryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery'**
+  String get permissionOnboardingStepBatteryLabel;
+
+  /// No description provided for @permissionOnboardingSystemDeniedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This permission is blocked by the system. Open settings to grant it again.'**
+  String get permissionOnboardingSystemDeniedMessage;
+
+  /// No description provided for @permissionOnboardingNotGrantedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This permission has not been granted yet. You can try again or set it up later.'**
+  String get permissionOnboardingNotGrantedMessage;
+
+  /// No description provided for @permissionOnboardingNotificationHelperText.
+  ///
+  /// In en, this message translates to:
+  /// **'First, just allow permission while using the app. Right after this, the app will guide you to enable \"Allow all the time\" for stable background tracking.'**
+  String get permissionOnboardingNotificationHelperText;
+
+  /// No description provided for @permissionOnboardingGuideVideoLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the guide video'**
+  String get permissionOnboardingGuideVideoLoadFailed;
+
+  /// No description provided for @permissionOnboardingGuideVideoPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'The guide video will appear here'**
+  String get permissionOnboardingGuideVideoPlaceholder;
 
   /// No description provided for @applyButton.
   ///
@@ -4080,17 +4593,59 @@ abstract class AppLocalizations {
   /// **'Movement history'**
   String get childLocationTravelHistoryTitle;
 
+  /// No description provided for @childLocationSelectedHistoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected history'**
+  String get childLocationSelectedHistoryLabel;
+
   /// No description provided for @childLocationTodayLabel.
   ///
   /// In en, this message translates to:
   /// **'Today'**
   String get childLocationTodayLabel;
 
+  /// No description provided for @childLocationUpdatedJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated just now'**
+  String get childLocationUpdatedJustNow;
+
+  /// No description provided for @childLocationUpdatedOneMinuteAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated 1 minute ago'**
+  String get childLocationUpdatedOneMinuteAgo;
+
+  /// No description provided for @childLocationUpdatedMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {minutes} minutes ago'**
+  String childLocationUpdatedMinutesAgo(int minutes);
+
   /// No description provided for @childLocationRangeAllDay.
   ///
   /// In en, this message translates to:
   /// **'All day'**
   String get childLocationRangeAllDay;
+
+  /// No description provided for @childLocationTooltipManageZones.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage zones'**
+  String get childLocationTooltipManageZones;
+
+  /// No description provided for @childLocationTooltipSafeRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe route'**
+  String get childLocationTooltipSafeRoute;
+
+  /// No description provided for @childLocationTooltipChooseMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose map'**
+  String get childLocationTooltipChooseMap;
 
   /// No description provided for @childLocationTagStart.
   ///
@@ -4128,6 +4683,12 @@ abstract class AppLocalizations {
   /// **'Unavailable'**
   String get childLocationStayedHereUnavailable;
 
+  /// No description provided for @childLocationStopDurationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop duration'**
+  String get childLocationStopDurationHint;
+
   /// No description provided for @childLocationSpeedLabel.
   ///
   /// In en, this message translates to:
@@ -4139,6 +4700,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unavailable'**
   String get childLocationSpeedUnavailable;
+
+  /// No description provided for @childLocationGpsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'GPS'**
+  String get childLocationGpsTitle;
+
+  /// No description provided for @childLocationPointCountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get childLocationPointCountTitle;
+
+  /// No description provided for @childLocationPointCountUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'points'**
+  String get childLocationPointCountUnit;
 
   /// No description provided for @childLocationGpsAccuracyLabel.
   ///
@@ -4163,6 +4742,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No'**
   String get childLocationNoLabel;
+
+  /// No description provided for @childLocationDeviceStatusHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Device status'**
+  String get childLocationDeviceStatusHint;
 
   /// No description provided for @childLocationTechnicalDetailsTitle.
   ///
@@ -4404,11 +4989,101 @@ abstract class AppLocalizations {
   /// **'Live'**
   String get childLocationLiveLabel;
 
+  /// No description provided for @childLocationRecentPointsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent points'**
+  String get childLocationRecentPointsTitle;
+
+  /// No description provided for @childLocationLoadMoreRecentHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more {label}'**
+  String childLocationLoadMoreRecentHours(Object label);
+
+  /// No description provided for @childLocationViewAllButton.
+  ///
+  /// In en, this message translates to:
+  /// **'View all'**
+  String get childLocationViewAllButton;
+
+  /// No description provided for @childLocationTapToSeeDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view details'**
+  String get childLocationTapToSeeDetails;
+
+  /// No description provided for @childLocationWeakGpsSignal.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak GPS signal'**
+  String get childLocationWeakGpsSignal;
+
   /// No description provided for @childLocationPointCount.
   ///
   /// In en, this message translates to:
   /// **'{count} points'**
   String childLocationPointCount(int count);
+
+  /// No description provided for @childLocationNetworkGapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Network lost'**
+  String get childLocationNetworkGapTitle;
+
+  /// No description provided for @childLocationNetworkGapSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The map temporarily connects both ends because the data was interrupted for {duration}.'**
+  String childLocationNetworkGapSubtitle(Object duration);
+
+  /// No description provided for @childLocationNetworkGapChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost'**
+  String get childLocationNetworkGapChip;
+
+  /// No description provided for @childLocationNetworkGapFromLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Lost from'**
+  String get childLocationNetworkGapFromLabel;
+
+  /// No description provided for @childLocationNetworkGapToLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Back at'**
+  String get childLocationNetworkGapToLabel;
+
+  /// No description provided for @childLocationMapSearchSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for a place to quickly pick it on the map.'**
+  String get childLocationMapSearchSubtitle;
+
+  /// No description provided for @childLocationMapSearchInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a street, school, or address...'**
+  String get childLocationMapSearchInputHint;
+
+  /// No description provided for @childLocationMapSearchMinChars.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least 2 characters to search for a place.'**
+  String get childLocationMapSearchMinChars;
+
+  /// No description provided for @childLocationMapSearchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching places found.'**
+  String get childLocationMapSearchNoResults;
+
+  /// No description provided for @childLocationSafeRouteRecoveredBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Back on the safe route'**
+  String get childLocationSafeRouteRecoveredBanner;
 
   /// No description provided for @locationNoLocationYet.
   ///
@@ -4692,11 +5367,1367 @@ abstract class AppLocalizations {
   /// **'Parent account not found'**
   String get locationRepositoryParentIdNotFound;
 
+  /// No description provided for @safeRouteTripStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracking'**
+  String get safeRouteTripStatusActive;
+
+  /// No description provided for @safeRouteTripStatusTemporarilyDeviated.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporarily off route'**
+  String get safeRouteTripStatusTemporarilyDeviated;
+
+  /// No description provided for @safeRouteTripStatusDeviated.
+  ///
+  /// In en, this message translates to:
+  /// **'Off route'**
+  String get safeRouteTripStatusDeviated;
+
+  /// No description provided for @safeRouteTripStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrived'**
+  String get safeRouteTripStatusCompleted;
+
+  /// No description provided for @safeRouteTripStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get safeRouteTripStatusCancelled;
+
+  /// No description provided for @safeRouteTripStatusPlanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled'**
+  String get safeRouteTripStatusPlanned;
+
+  /// No description provided for @safeRouteTripStatusNoTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'No trip yet'**
+  String get safeRouteTripStatusNoTrip;
+
+  /// No description provided for @safeRouteTravelModeWalking.
+  ///
+  /// In en, this message translates to:
+  /// **'Walking'**
+  String get safeRouteTravelModeWalking;
+
+  /// No description provided for @safeRouteTravelModeMotorbike.
+  ///
+  /// In en, this message translates to:
+  /// **'Motorbike'**
+  String get safeRouteTravelModeMotorbike;
+
+  /// No description provided for @safeRouteTravelModePickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup'**
+  String get safeRouteTravelModePickup;
+
+  /// No description provided for @safeRouteTravelModeOtherVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Other vehicle'**
+  String get safeRouteTravelModeOtherVehicle;
+
+  /// No description provided for @safeRouteDistanceMeters.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} m'**
+  String safeRouteDistanceMeters(int value);
+
+  /// No description provided for @safeRouteDistanceKilometers.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} km'**
+  String safeRouteDistanceKilometers(Object value);
+
+  /// No description provided for @safeRouteDurationMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String safeRouteDurationMinutes(int minutes);
+
+  /// No description provided for @safeRouteDurationHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h'**
+  String safeRouteDurationHours(int hours);
+
+  /// No description provided for @safeRouteDurationHoursMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h {minutes} min'**
+  String safeRouteDurationHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @safeRouteDurationHoursMinutesShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h {minutes}m'**
+  String safeRouteDurationHoursMinutesShort(int hours, int minutes);
+
+  /// No description provided for @safeRouteEtaApproxMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'~{minutes} min'**
+  String safeRouteEtaApproxMinutes(int minutes);
+
+  /// No description provided for @safeRouteEtaApproxHours.
+  ///
+  /// In en, this message translates to:
+  /// **'~{hours} h'**
+  String safeRouteEtaApproxHours(int hours);
+
+  /// No description provided for @safeRouteEtaApproxHoursMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'~{hours} h {minutes}m'**
+  String safeRouteEtaApproxHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @safeRouteTodayLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get safeRouteTodayLabel;
+
+  /// No description provided for @safeRouteTomorrowLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get safeRouteTomorrowLabel;
+
+  /// No description provided for @safeRouteNowLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get safeRouteNowLabel;
+
+  /// No description provided for @safeRouteSecondsAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s'**
+  String safeRouteSecondsAgo(int seconds);
+
+  /// No description provided for @safeRouteFormatTime.
+  ///
+  /// In en, this message translates to:
+  /// **'{hour}:{minute}'**
+  String safeRouteFormatTime(Object hour, Object minute);
+
+  /// No description provided for @safeRouteTrackNowLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Track now'**
+  String get safeRouteTrackNowLabel;
+
+  /// No description provided for @safeRouteNoRepeatSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'No repeat. This route will be used for the nearest tracking session.'**
+  String get safeRouteNoRepeatSummary;
+
+  /// No description provided for @safeRouteRepeatSummaryText.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats on: {labels}'**
+  String safeRouteRepeatSummaryText(Object labels);
+
+  /// No description provided for @safeRouteCurrentRoutePrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently on the primary route'**
+  String get safeRouteCurrentRoutePrimary;
+
+  /// No description provided for @safeRouteCurrentRouteAlternativeIndexed.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently on alternative route {index}'**
+  String safeRouteCurrentRouteAlternativeIndexed(int index);
+
+  /// No description provided for @safeRouteCurrentRouteAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently on an alternative route'**
+  String get safeRouteCurrentRouteAlternative;
+
+  /// No description provided for @safeRouteRouteFallbackNameText.
+  ///
+  /// In en, this message translates to:
+  /// **'Route {id}'**
+  String safeRouteRouteFallbackNameText(Object id);
+
+  /// No description provided for @safeRouteSelectedRouteFallbackName.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected route'**
+  String get safeRouteSelectedRouteFallbackName;
+
+  /// No description provided for @safeRouteGuidanceLoadingRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading route...'**
+  String get safeRouteGuidanceLoadingRoute;
+
+  /// No description provided for @safeRouteGuidanceDangerArea.
+  ///
+  /// In en, this message translates to:
+  /// **'danger area'**
+  String get safeRouteGuidanceDangerArea;
+
+  /// No description provided for @safeRouteGuidanceReturnToSafeRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Return to the safe route'**
+  String get safeRouteGuidanceReturnToSafeRoute;
+
+  /// No description provided for @safeRouteGuidanceArrivedInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'You are almost there'**
+  String get safeRouteGuidanceArrivedInstruction;
+
+  /// No description provided for @safeRouteGuidanceArrivedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep going to the destination marker.'**
+  String get safeRouteGuidanceArrivedDescription;
+
+  /// No description provided for @safeRouteGuidanceStatusOnRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'On route'**
+  String get safeRouteGuidanceStatusOnRoute;
+
+  /// No description provided for @safeRouteGuidanceStatusOffRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Off route'**
+  String get safeRouteGuidanceStatusOffRoute;
+
+  /// No description provided for @safeRouteGuidanceStatusAlmostThere.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost there'**
+  String get safeRouteGuidanceStatusAlmostThere;
+
+  /// No description provided for @safeRouteGuidanceStatusSafeRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe route'**
+  String get safeRouteGuidanceStatusSafeRoute;
+
+  /// No description provided for @safeRouteGuidanceLeaveDangerZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave {hazardName} immediately'**
+  String safeRouteGuidanceLeaveDangerZone(Object hazardName);
+
+  /// No description provided for @safeRouteGuidanceDangerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Move back to the route and away from {hazardName}.'**
+  String safeRouteGuidanceDangerDescription(Object hazardName);
+
+  /// No description provided for @safeRouteGuidanceOffRouteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You are about {distanceLabel} away from the route.'**
+  String safeRouteGuidanceOffRouteDescription(Object distanceLabel);
+
+  /// No description provided for @safeRouteGuidanceRemainingDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'{distanceLabel} left to the destination.'**
+  String safeRouteGuidanceRemainingDescription(Object distanceLabel);
+
+  /// No description provided for @safeRouteGuidanceContinueStraight.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue straight for {distanceLabel}'**
+  String safeRouteGuidanceContinueStraight(Object distanceLabel);
+
+  /// No description provided for @safeRouteGuidanceTurnLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn left in {distanceLabel}'**
+  String safeRouteGuidanceTurnLeft(Object distanceLabel);
+
+  /// No description provided for @safeRouteGuidanceTurnRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn right in {distanceLabel}'**
+  String safeRouteGuidanceTurnRight(Object distanceLabel);
+
+  /// No description provided for @safeRouteGuidanceKeepLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep left in {distanceLabel}'**
+  String safeRouteGuidanceKeepLeft(Object distanceLabel);
+
+  /// No description provided for @safeRouteGuidanceKeepRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep right in {distanceLabel}'**
+  String safeRouteGuidanceKeepRight(Object distanceLabel);
+
+  /// No description provided for @safeRouteGuidanceMakeUTurn.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a U-turn in {distanceLabel}'**
+  String safeRouteGuidanceMakeUTurn(Object distanceLabel);
+
+  /// No description provided for @safeRouteGuidanceEtaNow.
+  ///
+  /// In en, this message translates to:
+  /// **'ETA now'**
+  String get safeRouteGuidanceEtaNow;
+
+  /// No description provided for @safeRouteVisualDangerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Entered a danger zone!'**
+  String get safeRouteVisualDangerTitle;
+
+  /// No description provided for @safeRouteVisualDangerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your child is near {hazardName}.'**
+  String safeRouteVisualDangerSubtitle(Object hazardName);
+
+  /// No description provided for @safeRouteVisualDangerBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'DANGER'**
+  String get safeRouteVisualDangerBadge;
+
+  /// No description provided for @safeRouteVisualOffRouteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Off route ~{distanceLabel}'**
+  String safeRouteVisualOffRouteTitle(Object distanceLabel);
+
+  /// No description provided for @safeRouteVisualOffRouteSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your child is leaving the selected safe corridor.'**
+  String get safeRouteVisualOffRouteSubtitle;
+
+  /// No description provided for @safeRouteVisualOffRouteBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'OFF ROUTE'**
+  String get safeRouteVisualOffRouteBadge;
+
+  /// No description provided for @safeRouteVisualCompletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Child arrived safely'**
+  String get safeRouteVisualCompletedTitle;
+
+  /// No description provided for @safeRouteVisualCompletedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This journey was marked as completed.'**
+  String get safeRouteVisualCompletedSubtitle;
+
+  /// No description provided for @safeRouteVisualCompletedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPLETED'**
+  String get safeRouteVisualCompletedBadge;
+
+  /// No description provided for @safeRouteVisualCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Journey tracking stopped'**
+  String get safeRouteVisualCancelledTitle;
+
+  /// No description provided for @safeRouteVisualCancelledSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The parent ended the current monitoring session.'**
+  String get safeRouteVisualCancelledSubtitle;
+
+  /// No description provided for @safeRouteVisualCancelledBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'STOPPED'**
+  String get safeRouteVisualCancelledBadge;
+
+  /// No description provided for @safeRouteVisualPlannedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Route is waiting to start'**
+  String get safeRouteVisualPlannedTitle;
+
+  /// No description provided for @safeRouteVisualPlannedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe Route will start automatically at the scheduled time.'**
+  String get safeRouteVisualPlannedSubtitle;
+
+  /// No description provided for @safeRouteVisualPlannedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'SCHEDULED'**
+  String get safeRouteVisualPlannedBadge;
+
+  /// No description provided for @safeRouteVisualActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Following the route'**
+  String get safeRouteVisualActiveTitle;
+
+  /// No description provided for @safeRouteVisualActiveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your child is inside the selected safe corridor.'**
+  String get safeRouteVisualActiveSubtitle;
+
+  /// No description provided for @safeRouteVisualActiveBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'SAFE'**
+  String get safeRouteVisualActiveBadge;
+
+  /// No description provided for @safeRouteErrorMaxAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'You should select at most 2 alternative routes per trip.'**
+  String get safeRouteErrorMaxAlternative;
+
+  /// No description provided for @safeRouteErrorNoCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'The child does not have a current location yet.'**
+  String get safeRouteErrorNoCurrentLocation;
+
+  /// No description provided for @safeRouteErrorNeedStartEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose point A and point B first.'**
+  String get safeRouteErrorNeedStartEnd;
+
+  /// No description provided for @safeRouteErrorLoadHistoryRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the route from history.'**
+  String get safeRouteErrorLoadHistoryRoute;
+
+  /// No description provided for @safeRouteErrorNeedRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose a safe route first.'**
+  String get safeRouteErrorNeedRoute;
+
+  /// No description provided for @safeRouteErrorLoginAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in again to start the trip.'**
+  String get safeRouteErrorLoginAgain;
+
+  /// No description provided for @safeRouteErrorSelectTimeForRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a time if you want the route to repeat by day.'**
+  String get safeRouteErrorSelectTimeForRepeat;
+
+  /// No description provided for @safeRouteUseCurrentLocationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current location'**
+  String get safeRouteUseCurrentLocationLabel;
+
+  /// No description provided for @safeRouteStartPointOfRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Route start point'**
+  String get safeRouteStartPointOfRoute;
+
+  /// No description provided for @safeRouteEndPointOfRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Route destination'**
+  String get safeRouteEndPointOfRoute;
+
+  /// No description provided for @safeRouteCancelledByParentReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled by parent'**
+  String get safeRouteCancelledByParentReason;
+
+  /// No description provided for @safeRouteSpeedValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} km/h'**
+  String safeRouteSpeedValue(Object value);
+
+  /// No description provided for @safeRoutePageSelectRouteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a safe route'**
+  String get safeRoutePageSelectRouteTitle;
+
+  /// No description provided for @safeRoutePageJourneyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe journey'**
+  String get safeRoutePageJourneyTitle;
+
+  /// No description provided for @safeRouteSnackbarAutoFollowEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto follow turned on'**
+  String get safeRouteSnackbarAutoFollowEnabled;
+
+  /// No description provided for @safeRouteSnackbarAutoFollowDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto follow turned off'**
+  String get safeRouteSnackbarAutoFollowDisabled;
+
+  /// No description provided for @safeRouteSearchStartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search starting point'**
+  String get safeRouteSearchStartTitle;
+
+  /// No description provided for @safeRouteSearchStartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for home, pickup point, or journey start.'**
+  String get safeRouteSearchStartHint;
+
+  /// No description provided for @safeRouteSearchEndTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search destination'**
+  String get safeRouteSearchEndTitle;
+
+  /// No description provided for @safeRouteSearchEndHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for a school, relative\'s house, or the destination to monitor.'**
+  String get safeRouteSearchEndHint;
+
+  /// No description provided for @safeRouteScheduledAutoActivationPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-activates on schedule · {summary}'**
+  String safeRouteScheduledAutoActivationPrefix(Object summary);
+
+  /// No description provided for @safeRouteTopSubtitleWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Off route'**
+  String get safeRouteTopSubtitleWarning;
+
+  /// No description provided for @safeRouteTopSubtitleDanger.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger alert'**
+  String get safeRouteTopSubtitleDanger;
+
+  /// No description provided for @safeRouteTopSubtitleReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Start and destination are ready'**
+  String get safeRouteTopSubtitleReady;
+
+  /// No description provided for @safeRouteTopSubtitleOnlyStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting point selected, now choose the destination'**
+  String get safeRouteTopSubtitleOnlyStart;
+
+  /// No description provided for @safeRouteTopSubtitleChoosePoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose start and destination on the map'**
+  String get safeRouteTopSubtitleChoosePoints;
+
+  /// No description provided for @safeRouteSelectScheduleDateHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the effective date'**
+  String get safeRouteSelectScheduleDateHelp;
+
+  /// No description provided for @safeRouteSelectScheduleTimeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the effective time'**
+  String get safeRouteSelectScheduleTimeTitle;
+
+  /// No description provided for @safeRouteArrivedDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Child arrived safely'**
+  String get safeRouteArrivedDialogTitle;
+
+  /// No description provided for @safeRouteArrivedDialogMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This journey has been completed. You can go back to choose a new route for your child.'**
+  String get safeRouteArrivedDialogMessage;
+
+  /// No description provided for @safeRouteArrivedDialogConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back and choose a route'**
+  String get safeRouteArrivedDialogConfirm;
+
+  /// No description provided for @safeRouteCancelPlannedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Safe Route schedule cancellation'**
+  String get safeRouteCancelPlannedTitle;
+
+  /// No description provided for @safeRouteCancelActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Safe Route cancellation'**
+  String get safeRouteCancelActiveTitle;
+
+  /// No description provided for @safeRouteCancelPlannedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This scheduled tracking will no longer start automatically. Are you sure you want to cancel it?'**
+  String get safeRouteCancelPlannedMessage;
+
+  /// No description provided for @safeRouteCancelActiveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The current safe route will stop tracking immediately. Are you sure you want to cancel it?'**
+  String get safeRouteCancelActiveMessage;
+
+  /// No description provided for @safeRouteCancelPlannedConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm schedule cancellation'**
+  String get safeRouteCancelPlannedConfirm;
+
+  /// No description provided for @safeRouteCancelActiveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm route cancellation'**
+  String get safeRouteCancelActiveConfirm;
+
+  /// No description provided for @safeRouteDialogBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get safeRouteDialogBack;
+
+  /// No description provided for @safeRouteTooltipFocusChild.
+  ///
+  /// In en, this message translates to:
+  /// **'Center the camera on the child'**
+  String get safeRouteTooltipFocusChild;
+
+  /// No description provided for @safeRouteTooltipDisableAutoFollow.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off Auto follow'**
+  String get safeRouteTooltipDisableAutoFollow;
+
+  /// No description provided for @safeRouteTooltipEnableAutoFollow.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Auto follow'**
+  String get safeRouteTooltipEnableAutoFollow;
+
+  /// No description provided for @safeRouteAutoFollowLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto follow'**
+  String get safeRouteAutoFollowLabel;
+
+  /// No description provided for @safeRouteTooltipHideHazards.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide danger zones'**
+  String get safeRouteTooltipHideHazards;
+
+  /// No description provided for @safeRouteTooltipShowHazards.
+  ///
+  /// In en, this message translates to:
+  /// **'Show danger zones'**
+  String get safeRouteTooltipShowHazards;
+
+  /// No description provided for @safeRouteTooltipMapType.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose map type'**
+  String get safeRouteTooltipMapType;
+
+  /// No description provided for @safeRouteMapHintPlaceStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on the map to place the starting point'**
+  String get safeRouteMapHintPlaceStart;
+
+  /// No description provided for @safeRouteMapHintPlaceEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on the map to place the destination'**
+  String get safeRouteMapHintPlaceEnd;
+
+  /// No description provided for @safeRouteMapHintTapStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on the map to choose the child\'s starting point.'**
+  String get safeRouteMapHintTapStart;
+
+  /// No description provided for @safeRouteMapHintTapEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on the map to choose the child\'s destination.'**
+  String get safeRouteMapHintTapEnd;
+
+  /// No description provided for @safeRouteSnackbarSelectedEndPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination selected on the map'**
+  String get safeRouteSnackbarSelectedEndPoint;
+
+  /// No description provided for @safeRouteSnackbarSelectedStartPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting point selected on the map'**
+  String get safeRouteSnackbarSelectedStartPoint;
+
+  /// No description provided for @safeRouteSelectSafeRouteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a safe route'**
+  String get safeRouteSelectSafeRouteTitle;
+
+  /// No description provided for @safeRouteSuggestedRoutesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested routes'**
+  String get safeRouteSuggestedRoutesTitle;
+
+  /// No description provided for @safeRouteSuggestedRoutesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prioritizes safety, easy monitoring, and fewer danger zones'**
+  String get safeRouteSuggestedRoutesSubtitle;
+
+  /// No description provided for @safeRouteHistoryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get safeRouteHistoryButton;
+
+  /// No description provided for @safeRouteRefreshingRoutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching...'**
+  String get safeRouteRefreshingRoutes;
+
+  /// No description provided for @safeRouteRefreshButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get safeRouteRefreshButton;
+
+  /// No description provided for @safeRouteConfirmingRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirming route...'**
+  String get safeRouteConfirmingRoute;
+
+  /// No description provided for @safeRouteFetchSuggestedRoutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Get route suggestions'**
+  String get safeRouteFetchSuggestedRoutes;
+
+  /// No description provided for @safeRouteHintSelectingStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on the map to choose the child\'s starting point.'**
+  String get safeRouteHintSelectingStart;
+
+  /// No description provided for @safeRouteHintSelectingEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on the map to choose the child\'s destination.'**
+  String get safeRouteHintSelectingEnd;
+
+  /// No description provided for @safeRouteHintMissingPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose point A and point B on the map, then review the suggested routes.'**
+  String get safeRouteHintMissingPoints;
+
+  /// No description provided for @safeRouteHintReadyChooseRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Start and destination are ready. You can now choose the safest route to begin monitoring.'**
+  String get safeRouteHintReadyChooseRoute;
+
+  /// No description provided for @safeRouteEmptyRoutesNeedPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose both the starting point and destination so the app can suggest safe routes.'**
+  String get safeRouteEmptyRoutesNeedPoints;
+
+  /// No description provided for @safeRouteEmptyRoutesRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap \"Refresh\" or the button below to request the route suggestions again.'**
+  String get safeRouteEmptyRoutesRefresh;
+
+  /// No description provided for @safeRoutePrimaryActionSaveSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Save route and schedule tracking'**
+  String get safeRoutePrimaryActionSaveSchedule;
+
+  /// No description provided for @safeRoutePrimaryActionStartSelectedRoutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Start tracking the selected routes'**
+  String get safeRoutePrimaryActionStartSelectedRoutes;
+
+  /// No description provided for @safeRoutePrimaryActionSelectThisRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Select this route and start tracking'**
+  String get safeRoutePrimaryActionSelectThisRoute;
+
+  /// No description provided for @safeRouteSelectedRoutesNeedPrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose 1 primary route and optionally add up to 2 alternatives.'**
+  String get safeRouteSelectedRoutesNeedPrimary;
+
+  /// No description provided for @safeRouteSelectedRoutesPrimaryOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'1 primary route selected. You can add up to 2 alternatives.'**
+  String get safeRouteSelectedRoutesPrimaryOnly;
+
+  /// No description provided for @safeRouteSelectedRoutesWithAlternatives.
+  ///
+  /// In en, this message translates to:
+  /// **'1 primary route and {count} alternative routes selected.'**
+  String safeRouteSelectedRoutesWithAlternatives(int count);
+
+  /// No description provided for @safeRouteActionStopTracking.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop tracking'**
+  String get safeRouteActionStopTracking;
+
+  /// No description provided for @safeRouteActionViewRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'View route'**
+  String get safeRouteActionViewRoute;
+
+  /// No description provided for @safeRouteActionMarkArrived.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as arrived'**
+  String get safeRouteActionMarkArrived;
+
+  /// No description provided for @safeRouteActionCancelSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel schedule'**
+  String get safeRouteActionCancelSchedule;
+
+  /// No description provided for @safeRouteActionChooseNewRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a new route'**
+  String get safeRouteActionChooseNewRoute;
+
+  /// No description provided for @safeRouteActionRouteDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Route details'**
+  String get safeRouteActionRouteDetails;
+
+  /// No description provided for @safeRouteStatusSubtitleActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Your child is closely following the selected route'**
+  String get safeRouteStatusSubtitleActive;
+
+  /// No description provided for @safeRouteStatusSubtitleTemporarilyDeviated.
+  ///
+  /// In en, this message translates to:
+  /// **'A slight deviation was detected. The system is still monitoring.'**
+  String get safeRouteStatusSubtitleTemporarilyDeviated;
+
+  /// No description provided for @safeRouteStatusSubtitleDeviated.
+  ///
+  /// In en, this message translates to:
+  /// **'Your child has left the safe corridor'**
+  String get safeRouteStatusSubtitleDeviated;
+
+  /// No description provided for @safeRouteStatusSubtitleCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The journey has been completed'**
+  String get safeRouteStatusSubtitleCompleted;
+
+  /// No description provided for @safeRouteStatusSubtitleCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'The parent stopped monitoring'**
+  String get safeRouteStatusSubtitleCancelled;
+
+  /// No description provided for @safeRouteStatusSubtitlePlanned.
+  ///
+  /// In en, this message translates to:
+  /// **'The route is waiting for its scheduled time to start'**
+  String get safeRouteStatusSubtitlePlanned;
+
+  /// No description provided for @safeRouteStatusSubtitleNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No tracking data yet'**
+  String get safeRouteStatusSubtitleNoData;
+
+  /// No description provided for @safeRouteSpeedStanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Standing still'**
+  String get safeRouteSpeedStanding;
+
+  /// No description provided for @safeRouteSpeedWalking.
+  ///
+  /// In en, this message translates to:
+  /// **'Walking'**
+  String get safeRouteSpeedWalking;
+
+  /// No description provided for @safeRouteSpeedCycling.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycling'**
+  String get safeRouteSpeedCycling;
+
+  /// No description provided for @safeRouteSpeedMoving.
+  ///
+  /// In en, this message translates to:
+  /// **'Moving'**
+  String get safeRouteSpeedMoving;
+
+  /// No description provided for @safeRouteMetricSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get safeRouteMetricSpeed;
+
+  /// No description provided for @safeRouteMetricOffRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Off route'**
+  String get safeRouteMetricOffRoute;
+
+  /// No description provided for @safeRouteMetricOffCorridor.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside corridor'**
+  String get safeRouteMetricOffCorridor;
+
+  /// No description provided for @safeRouteMetricEta.
+  ///
+  /// In en, this message translates to:
+  /// **'ETA'**
+  String get safeRouteMetricEta;
+
+  /// No description provided for @safeRouteMetricEtaEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimate'**
+  String get safeRouteMetricEtaEstimate;
+
+  /// No description provided for @safeRouteDangerCheckNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Check immediately'**
+  String get safeRouteDangerCheckNow;
+
+  /// No description provided for @safeRouteDeviceBatteryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Device battery'**
+  String get safeRouteDeviceBatteryLabel;
+
+  /// No description provided for @safeRouteProgressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Journey progress'**
+  String get safeRouteProgressTitle;
+
+  /// No description provided for @safeRouteProgressCompletedPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed {percent}%'**
+  String safeRouteProgressCompletedPercent(int percent);
+
+  /// No description provided for @safeRouteProgressTraveled.
+  ///
+  /// In en, this message translates to:
+  /// **'Traveled {traveled}/{total}'**
+  String safeRouteProgressTraveled(Object traveled, Object total);
+
+  /// No description provided for @safeRouteProgressRemainingPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining {percent}%'**
+  String safeRouteProgressRemainingPercent(int percent);
+
+  /// No description provided for @safeRouteProgressRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining {distance}'**
+  String safeRouteProgressRemaining(Object distance);
+
+  /// No description provided for @safeRouteFromLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get safeRouteFromLabel;
+
+  /// No description provided for @safeRouteToLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get safeRouteToLabel;
+
+  /// No description provided for @safeRouteSearchOrSelectStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Search or choose a starting point'**
+  String get safeRouteSearchOrSelectStart;
+
+  /// No description provided for @safeRouteSearchOrSelectEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Search or choose a destination'**
+  String get safeRouteSearchOrSelectEnd;
+
+  /// No description provided for @safeRouteScheduleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Route schedule'**
+  String get safeRouteScheduleTitle;
+
+  /// No description provided for @safeRouteScheduleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the date, time, and repeating days for this safe route.'**
+  String get safeRouteScheduleSubtitle;
+
+  /// No description provided for @safeRouteDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get safeRouteDateLabel;
+
+  /// No description provided for @safeRouteTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get safeRouteTimeLabel;
+
+  /// No description provided for @safeRouteRepeatByDayLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat by day'**
+  String get safeRouteRepeatByDayLabel;
+
+  /// No description provided for @safeRouteHistoryTripsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe route trip history'**
+  String get safeRouteHistoryTripsTitle;
+
+  /// No description provided for @safeRouteHistoryTripsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No trips have been saved for your child yet.'**
+  String get safeRouteHistoryTripsEmpty;
+
+  /// No description provided for @safeRouteHistoryTripsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap any trip to review the route and movement status.'**
+  String get safeRouteHistoryTripsSubtitle;
+
+  /// No description provided for @safeRouteHistoryPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Route history'**
+  String get safeRouteHistoryPageTitle;
+
+  /// No description provided for @safeRouteHistoryPageReviewSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Review all saved safe journeys'**
+  String get safeRouteHistoryPageReviewSaved;
+
+  /// No description provided for @safeRouteHistoryEmptyState.
+  ///
+  /// In en, this message translates to:
+  /// **'No safe routes have been saved in history yet.'**
+  String get safeRouteHistoryEmptyState;
+
+  /// No description provided for @safeRouteNoRepeatLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'No repeat'**
+  String get safeRouteNoRepeatLabel;
+
+  /// No description provided for @safeRouteBadgeSafest.
+  ///
+  /// In en, this message translates to:
+  /// **'Safest'**
+  String get safeRouteBadgeSafest;
+
+  /// No description provided for @safeRouteBadgeFewerHazards.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer hazards'**
+  String get safeRouteBadgeFewerHazards;
+
+  /// No description provided for @safeRouteBadgeFaster.
+  ///
+  /// In en, this message translates to:
+  /// **'Faster'**
+  String get safeRouteBadgeFaster;
+
+  /// No description provided for @safeRouteBadgeAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternative'**
+  String get safeRouteBadgeAlternative;
+
+  /// No description provided for @safeRouteRolePrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get safeRouteRolePrimary;
+
+  /// No description provided for @safeRouteRoleAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternative'**
+  String get safeRouteRoleAlternative;
+
+  /// No description provided for @safeRouteCorridorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{distance} corridor'**
+  String safeRouteCorridorLabel(Object distance);
+
+  /// No description provided for @safeRouteActionPrimarySelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary route selected'**
+  String get safeRouteActionPrimarySelected;
+
+  /// No description provided for @safeRouteActionSetPrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'Set as primary route'**
+  String get safeRouteActionSetPrimary;
+
+  /// No description provided for @safeRouteActionRemoveAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove alternative'**
+  String get safeRouteActionRemoveAlternative;
+
+  /// No description provided for @safeRouteActionSelectAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Select alternative'**
+  String get safeRouteActionSelectAlternative;
+
+  /// No description provided for @safeRouteActionAlternativeLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternative limit reached'**
+  String get safeRouteActionAlternativeLimitReached;
+
+  /// No description provided for @safeRouteRouteDescriptionStable.
+  ///
+  /// In en, this message translates to:
+  /// **'This route is quite stable and almost avoids danger zones.'**
+  String get safeRouteRouteDescriptionStable;
+
+  /// No description provided for @safeRouteRouteDescriptionOneHazard.
+  ///
+  /// In en, this message translates to:
+  /// **'There is 1 point to watch, but it is still suitable for safe monitoring.'**
+  String get safeRouteRouteDescriptionOneHazard;
+
+  /// No description provided for @safeRouteRouteDescriptionMoreHazards.
+  ///
+  /// In en, this message translates to:
+  /// **'This route is faster but needs more attention because it passes more warning zones.'**
+  String get safeRouteRouteDescriptionMoreHazards;
+
+  /// No description provided for @safeRouteHazardCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} danger zones'**
+  String safeRouteHazardCount(int count);
+
+  /// No description provided for @safeRouteAlternativeRouteCount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} alternatives'**
+  String safeRouteAlternativeRouteCount(int count);
+
   /// No description provided for @cupertinoTimePickerDoneButton.
   ///
   /// In en, this message translates to:
   /// **'Done'**
   String get cupertinoTimePickerDoneButton;
+
+  /// No description provided for @childLocationUpdatedOneHourAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated 1 hour ago'**
+  String get childLocationUpdatedOneHourAgo;
+
+  /// No description provided for @childLocationUpdatedHoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {hours} hours ago'**
+  String childLocationUpdatedHoursAgo(int hours);
+
+  /// No description provided for @validationPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a password'**
+  String get validationPasswordRequired;
+
+  /// No description provided for @validationPasswordMinLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get validationPasswordMinLength;
+
+  /// No description provided for @validationPasswordUppercaseRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must include at least 1 uppercase letter'**
+  String get validationPasswordUppercaseRequired;
+
+  /// No description provided for @validationPasswordLowercaseRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must include at least 1 lowercase letter'**
+  String get validationPasswordLowercaseRequired;
+
+  /// No description provided for @validationPasswordNumberRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must include at least 1 number'**
+  String get validationPasswordNumberRequired;
+
+  /// No description provided for @validationPasswordConfirmRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please re-enter the password'**
+  String get validationPasswordConfirmRequired;
+
+  /// No description provided for @firebaseAuthOperationNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Account creation is not enabled in Firebase Auth'**
+  String get firebaseAuthOperationNotAllowed;
+
+  /// No description provided for @userRepositoryCreateAccountFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create the account'**
+  String get userRepositoryCreateAccountFailed;
+
+  /// No description provided for @firestorePermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to write data'**
+  String get firestorePermissionDenied;
+
+  /// No description provided for @firestoreUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore is temporarily unavailable'**
+  String get firestoreUnavailable;
+
+  /// No description provided for @firestoreGenericError.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore error'**
+  String get firestoreGenericError;
+
+  /// No description provided for @userRepositoryCreateChildFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create the child account'**
+  String get userRepositoryCreateChildFailed;
+
+  /// No description provided for @mapPlaceSearchMissingAccessToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing Mapbox ACCESS_TOKEN for place search.'**
+  String get mapPlaceSearchMissingAccessToken;
+
+  /// No description provided for @mapPlaceSearchRequestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Place search failed ({statusCode}).'**
+  String mapPlaceSearchRequestFailed(int statusCode);
+
+  /// No description provided for @mapPlaceSearchInvalidResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'The response from Mapbox is invalid.'**
+  String get mapPlaceSearchInvalidResponse;
+
+  /// No description provided for @mapPlaceSearchTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Place search timed out. Please try again.'**
+  String get mapPlaceSearchTimeout;
+
+  /// No description provided for @mapPlaceSearchDecodeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the place data.'**
+  String get mapPlaceSearchDecodeFailed;
+
+  /// No description provided for @mapPlaceSearchUnexpectedError.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred while searching for a place.'**
+  String get mapPlaceSearchUnexpectedError;
+
+  /// No description provided for @mapPlaceSearchNoAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'No address available'**
+  String get mapPlaceSearchNoAddress;
+
+  /// No description provided for @mapPlaceSearchDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'Place'**
+  String get mapPlaceSearchDefaultName;
 }
 
 class _AppLocalizationsDelegate

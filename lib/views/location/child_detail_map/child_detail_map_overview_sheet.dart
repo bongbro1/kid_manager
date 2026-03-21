@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_recent_points_section.dart';
@@ -19,6 +20,7 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final orderedHistory = vm.orderedHistory;
     final groupedPoints = vm.visibleRecentHourGroups;
     final latestIndex = orderedHistory.indexWhere(
@@ -33,6 +35,7 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
       effectiveLatestTransport,
     );
     final transportLabel = LocationHistoryPresenter.transportLabel(
+      l10n,
       effectiveLatestTransport,
     );
     final latestSpeedKmh = latestIndex == -1
@@ -70,7 +73,9 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  vm.isToday ? 'Theo dõi trực tiếp' : 'Lịch sử đã chọn',
+                  vm.isToday
+                      ? l10n.childLocationLiveLabel
+                      : l10n.childLocationSelectedHistoryLabel,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -103,7 +108,9 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            vm.isToday ? 'Hành trình hiện tại' : 'Tóm tắt hành trình',
+            vm.isToday
+                ? l10n.childLocationCurrentJourneyTitle
+                : l10n.childLocationTravelHistoryTitle,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -113,7 +120,7 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Cập nhật gần nhất lúc ${latest.timeLabel}',
+            l10n.childLocationUpdatedAt(latest.timeLabel),
             style: TextStyle(
               fontSize: 13,
               height: 1.35,
@@ -125,9 +132,9 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: ChildDetailMapStatCard(
-                  title: 'Số điểm',
+                  title: l10n.childLocationPointCountTitle,
                   value: '${vm.cachedHistory.length}',
-                  unit: 'điểm',
+                  unit: l10n.childLocationPointCountUnit,
                   bg: const Color(0xFFF3F8FF),
                   fg: const Color(0xFF1565C0),
                   icon: Icons.scatter_plot_rounded,
@@ -136,7 +143,7 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: ChildDetailMapStatCard(
-                  title: 'GPS',
+                  title: l10n.childLocationGpsTitle,
                   value: latest.accuracy.toStringAsFixed(0),
                   unit: 'm',
                   bg: const Color(0xFFF1FBF4),
@@ -147,7 +154,7 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: ChildDetailMapStatCard(
-                  title: 'Tốc độ',
+                  title: l10n.childLocationSpeedLabel,
                   value: latestSpeedKmh.toStringAsFixed(1),
                   unit: 'km/h',
                   bg: const Color(0xFFFFF8F1),
@@ -168,8 +175,8 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Các điểm gần đây',
+                Text(
+                  l10n.childLocationRecentPointsTitle,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -198,7 +205,9 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            'Tải thêm ${vm.remainingRecentHourGroupsLabel}',
+                            l10n.childLocationLoadMoreRecentHours(
+                              vm.remainingRecentHourGroupsLabel,
+                            ),
                           ),
                         ),
                       ),
@@ -212,7 +221,7 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          child: const Text('Xem tất cả'),
+                          child: Text(l10n.childLocationViewAllButton),
                         ),
                       ),
                     ],

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 import 'package:kid_manager/models/location/map_place_search_result.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class MapboxPlaceSearchException implements Exception {
@@ -60,6 +61,7 @@ class MapboxPlaceSearchService {
     int? limit,
     String? language,
   }) async {
+    final l10n = runtimeL10n();
     final displayQuery = _normalizeWhitespace(rawQuery);
     if (displayQuery.length < minQueryLength) {
       return const [];
@@ -69,9 +71,7 @@ class MapboxPlaceSearchService {
 
     final accessToken = await MapboxOptions.getAccessToken();
     if (accessToken.isEmpty) {
-      throw const MapboxPlaceSearchException(
-        'Thiếu ACCESS_TOKEN Mapbox cho tìm kiếm địa điểm.',
-      );
+      throw MapboxPlaceSearchException(l10n.mapPlaceSearchMissingAccessToken);
     }
 
     final resolvedLimit = math.min(limit ?? defaultLimit, 10);
@@ -133,6 +133,7 @@ class MapboxPlaceSearchService {
     double? proximityLatitude,
     double? proximityLongitude,
   }) async {
+    final l10n = runtimeL10n();
     final queryParameters = <String, String>{
       'access_token': accessToken,
       'q': query,
@@ -171,15 +172,13 @@ class MapboxPlaceSearchService {
 
       if (response.statusCode != 200) {
         throw MapboxPlaceSearchException(
-          'Tìm kiếm địa điểm thất bại (${response.statusCode}).',
+          l10n.mapPlaceSearchRequestFailed(response.statusCode),
         );
       }
 
       final decoded = jsonDecode(response.body);
       if (decoded is! Map<String, dynamic>) {
-        throw const MapboxPlaceSearchException(
-          'Dữ liệu trả về từ Mapbox không hợp lệ.',
-        );
+        throw MapboxPlaceSearchException(l10n.mapPlaceSearchInvalidResponse);
       }
 
       final rawFeatures = decoded['features'];
@@ -195,18 +194,18 @@ class MapboxPlaceSearchService {
           .toList(growable: false);
     } on TimeoutException catch (error) {
       throw MapboxPlaceSearchException(
-        'Tìm kiếm địa điểm quá thời gian, vui lòng thử lại.',
+        l10n.mapPlaceSearchTimeout,
         cause: error,
       );
     } on FormatException catch (error) {
       throw MapboxPlaceSearchException(
-        'Không thể đọc dữ liệu địa điểm.',
+        l10n.mapPlaceSearchDecodeFailed,
         cause: error,
       );
     } catch (error) {
       if (error is MapboxPlaceSearchException) rethrow;
       throw MapboxPlaceSearchException(
-        'Có lỗi xảy ra khi tìm kiếm địa điểm.',
+        l10n.mapPlaceSearchUnexpectedError,
         cause: error,
       );
     } finally {
@@ -217,6 +216,7 @@ class MapboxPlaceSearchService {
   }
 
   _GeocodeCandidate? _fromFeature(Map<String, dynamic> feature) {
+    final l10n = runtimeL10n();
     final propertiesRaw = feature['properties'];
     final properties = propertiesRaw is Map
         ? Map<String, dynamic>.from(propertiesRaw)
@@ -284,7 +284,7 @@ class MapboxPlaceSearchService {
       if (placeFormatted != null && placeFormatted.isNotEmpty) {
         return placeFormatted;
       }
-      return 'Không có địa chỉ';
+      return l10n.mapPlaceSearchNoAddress;
     }();
 
     final relevance =
@@ -310,7 +310,9 @@ class MapboxPlaceSearchService {
           properties['mapbox_id']?.toString() ??
           feature['id']?.toString() ??
           '$latitude,$longitude',
-      name: (name == null || name.isEmpty) ? 'Địa điểm' : name,
+      name: (name == null || name.isEmpty)
+          ? l10n.mapPlaceSearchDefaultName
+          : name,
       fullAddress: fullAddress,
       latitude: latitude,
       longitude: longitude,

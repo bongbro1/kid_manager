@@ -13,7 +13,9 @@ import 'package:kid_manager/features/safe_route/domain/usecases/get_trip_history
 import 'package:kid_manager/features/safe_route/domain/usecases/start_trip_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/stream_live_location_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/update_trip_status_usecase.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class SafeRouteTrackingViewModel extends ChangeNotifier {
   SafeRouteTrackingViewModel({
@@ -25,6 +27,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     required GetActiveTripByChildIdUseCase getActiveTripByChildIdUseCase,
     required GetTripHistoryByChildIdUseCase getTripHistoryByChildIdUseCase,
     required GetRouteByIdUseCase getRouteByIdUseCase,
+    required AppLocalizations l10n,
     FirebaseAuth? auth,
   }) : _getSuggestedRoutesUseCase = getSuggestedRoutesUseCase,
        _startTripUseCase = startTripUseCase,
@@ -33,6 +36,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
        _getActiveTripByChildIdUseCase = getActiveTripByChildIdUseCase,
        _getTripHistoryByChildIdUseCase = getTripHistoryByChildIdUseCase,
        _getRouteByIdUseCase = getRouteByIdUseCase,
+       _l10n = l10n,
        _auth = auth ?? FirebaseAuth.instance,
        _state = SafeRouteTrackingState.initial(childId);
 
@@ -44,6 +48,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   final GetActiveTripByChildIdUseCase _getActiveTripByChildIdUseCase;
   final GetTripHistoryByChildIdUseCase _getTripHistoryByChildIdUseCase;
   final GetRouteByIdUseCase _getRouteByIdUseCase;
+  final AppLocalizations _l10n;
   final FirebaseAuth _auth;
 
   SafeRouteTrackingState _state;
@@ -65,23 +70,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
       _state.selectedRoute != null && !_state.isStartingTrip;
 
   String get safetyStatusLabel {
-    final status = _state.activeTrip?.status;
-    switch (status) {
-      case TripStatus.active:
-        return 'Đang an toàn';
-      case TripStatus.temporarilyDeviated:
-        return 'Tạm lệch tuyến';
-      case TripStatus.deviated:
-        return 'Lệch tuyến';
-      case TripStatus.completed:
-        return 'Đã hoàn thành';
-      case TripStatus.cancelled:
-        return 'Đã huỷ';
-      case TripStatus.planned:
-        return 'Đã lên lịch';
-      case null:
-        return 'Chưa có chuyến đi';
-    }
+    return _l10n.safeRouteTripStatusLabel(_state.activeTrip?.status);
   }
 
   void _log(String message) {
@@ -90,7 +79,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
 
   String get speedLabel {
     final speedKmh = (_state.liveLocation?.speedKmh ?? 0).toStringAsFixed(1);
-    return '$speedKmh km/h';
+    return _l10n.safeRouteSpeedValue(speedKmh);
   }
 
   String get batteryLabel {
@@ -178,7 +167,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
       if (next.length >= 2) {
         _setState(
           _state.copyWith(
-            errorMessage: 'Chỉ nên chọn tối đa 2 tuyến phụ cho mỗi chuyến.',
+            errorMessage: _l10n.safeRouteErrorMaxAlternative,
           ),
         );
         return;
@@ -362,9 +351,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   void useLiveLocationAsStart() {
     final liveLocation = _state.liveLocation;
     if (liveLocation == null) {
-      _setState(
-        _state.copyWith(errorMessage: 'Chưa có vị trí hiện tại của trẻ.'),
-      );
+      _setState(_state.copyWith(errorMessage: _l10n.safeRouteErrorNoCurrentLocation));
       return;
     }
 
@@ -375,7 +362,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
           longitude: liveLocation.longitude,
           sequence: 0,
         ),
-        selectedStartLabel: 'Vị trí hiện tại',
+        selectedStartLabel: _l10n.safeRouteUseCurrentLocationLabel,
         selectionMode: RouteSelectionMode.none,
         clearErrorMessage: true,
         suggestedRoutes: const [],
@@ -492,9 +479,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     final start = _state.selectedStart;
     final end = _state.selectedEnd;
     if (start == null || end == null) {
-      _setState(
-        _state.copyWith(errorMessage: 'Cần chọn điểm A và điểm B trước.'),
-      );
+      _setState(_state.copyWith(errorMessage: _l10n.safeRouteErrorNeedStartEnd));
       return;
     }
 
@@ -557,7 +542,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     if (route == null) {
       _setState(
         _state.copyWith(
-          errorMessage: 'Không tải được tuyến đường trong lịch sử.',
+          errorMessage: _l10n.safeRouteErrorLoadHistoryRoute,
         ),
       );
       return;
@@ -568,8 +553,8 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
       _state.copyWith(
         selectedStart: route.startPoint.copyWith(sequence: 0),
         selectedEnd: route.endPoint.copyWith(sequence: 1),
-        selectedStartLabel: 'Điểm bắt đầu của tuyến',
-        selectedEndLabel: 'Điểm kết thúc của tuyến',
+        selectedStartLabel: _l10n.safeRouteStartPointOfRoute,
+        selectedEndLabel: _l10n.safeRouteEndPointOfRoute,
         suggestedRoutes: [route],
         selectedRoute: route,
         selectedAlternativeRouteIds: trip.alternativeRouteIds,
@@ -596,15 +581,13 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     final route = _state.selectedRoute;
     final parentId = _auth.currentUser?.uid;
     if (route == null) {
-      _setState(
-        _state.copyWith(errorMessage: 'Cần chọn một tuyến đường an toàn.'),
-      );
+      _setState(_state.copyWith(errorMessage: _l10n.safeRouteErrorNeedRoute));
       return;
     }
     if (parentId == null || parentId.isEmpty) {
       _setState(
         _state.copyWith(
-          errorMessage: 'Bạn cần đăng nhập lại để bắt đầu chuyến đi.',
+          errorMessage: _l10n.safeRouteErrorLoginAgain,
         ),
       );
       return;
@@ -612,7 +595,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     if (_state.repeatWeekdays.isNotEmpty && _state.scheduledTime == null) {
       _setState(
         _state.copyWith(
-          errorMessage: 'Chọn giờ áp dụng nếu muốn lặp lại theo ngày.',
+          errorMessage: _l10n.safeRouteErrorSelectTimeForRepeat,
         ),
       );
       return;
@@ -694,7 +677,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     await _updateTripStatusUseCase(
       trip.id,
       TripStatus.cancelled,
-      reason: 'Đã hủy bởi phụ huynh',
+      reason: _l10n.safeRouteCancelledByParentReason,
     );
     await refreshActiveTrip();
   }

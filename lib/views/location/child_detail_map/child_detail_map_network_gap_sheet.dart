@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
 
@@ -15,6 +16,7 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final gapDuration = point.networkGapDuration ?? Duration.zero;
     final start = point.gapStartDateTime;
     final end = point.gapEndDateTime;
@@ -44,8 +46,8 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Mất mạng',
+                    Text(
+                      l10n.childLocationNetworkGapTitle,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -54,7 +56,9 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Bản đồ nối tạm 2 đầu vì dữ liệu bị ngắt trong ${LocationHistoryPresenter.formatDuration(gapDuration)}.',
+                      l10n.childLocationNetworkGapSubtitle(
+                        LocationHistoryPresenter.formatDuration(l10n, gapDuration),
+                      ),
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.35,
@@ -80,13 +84,13 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              const ChildDetailMapTagChip(
-                text: 'Mất kết nối',
+              ChildDetailMapTagChip(
+                text: l10n.childLocationNetworkGapChip,
                 backgroundColor: Color(0xFFFFF3E0),
                 foregroundColor: Color(0xFFF57C00),
               ),
               ChildDetailMapTagChip(
-                text: LocationHistoryPresenter.formatDuration(gapDuration),
+                text: LocationHistoryPresenter.formatDuration(l10n, gapDuration),
                 backgroundColor: const Color(0xFFF1F3F4),
                 foregroundColor: const Color(0xFF5F6368),
               ),
@@ -98,7 +102,7 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: ChildDetailMapInfoCard(
-                    label: 'Mất từ',
+                    label: l10n.childLocationNetworkGapFromLabel,
                     value: LocationHistoryPresenter.formatTime(start),
                     hint: point.dateLabel,
                   ),
@@ -106,7 +110,7 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ChildDetailMapInfoCard(
-                    label: 'Có lại lúc',
+                    label: l10n.childLocationNetworkGapToLabel,
                     value: LocationHistoryPresenter.formatTime(end),
                     hint: point.dateLabel,
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 
 class ChildDetailMapStatCard extends StatelessWidget {
@@ -142,6 +143,7 @@ class _ChildDetailMapTechSectionState extends State<ChildDetailMapTechSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
@@ -163,9 +165,9 @@ class _ChildDetailMapTechSectionState extends State<ChildDetailMapTechSection> {
                     color: Colors.grey.shade700,
                   ),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Chi tiết kỹ thuật',
+                      l10n.childLocationTechnicalDetailsTitle,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
@@ -193,20 +195,20 @@ class _ChildDetailMapTechSectionState extends State<ChildDetailMapTechSection> {
               child: Column(
                 children: [
                   ChildDetailMapDetailRow(
-                    label: 'Thời gian',
+                    label: l10n.childLocationDetailFullTimeLabel,
                     value: widget.point.fullLabel,
                   ),
                   ChildDetailMapDetailRow(
-                    label: 'Hướng di chuyển',
+                    label: l10n.childLocationDetailHeadingLabel,
                     value: '${widget.point.heading.toStringAsFixed(0)}°',
                   ),
                   ChildDetailMapDetailRow(
-                    label: 'Tọa độ',
+                    label: l10n.childLocationDetailCoordinatesLabel,
                     value:
                         '${widget.point.latitude.toStringAsFixed(6)}, ${widget.point.longitude.toStringAsFixed(6)}',
                   ),
                   ChildDetailMapDetailRow(
-                    label: 'Độ chính xác',
+                    label: l10n.childLocationDetailAccuracyLabel,
                     value: '${widget.point.accuracy.toStringAsFixed(0)} m',
                   ),
                 ],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/features/permissions/permission_step_scaffold.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class NotificationPermissionScreen extends StatelessWidget {
   const NotificationPermissionScreen({
@@ -30,14 +30,15 @@ class NotificationPermissionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PermissionStepScaffold(
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: 'Bật thông báo',
-      description: 'Để nhận SOS và cảnh báo an toàn ngay lập tức.',
-      primaryLabel: 'Cho phép',
-      settingsLabel: 'Mở cài đặt thông báo',
+      title: l10n.permissionOnboardingNotificationTitle,
+      description: l10n.permissionOnboardingNotificationSubtitle,
+      primaryLabel: l10n.permissionOnboardingNotificationPrimaryButton,
+      settingsLabel: l10n.permissionOnboardingNotificationSettingsButton,
       icon: Icons.notifications_active_rounded,
       color: const Color(0xFFE35D47),
       busy: busy,

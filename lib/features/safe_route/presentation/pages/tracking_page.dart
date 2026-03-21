@@ -1,7 +1,6 @@
 ﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/features/map_engine/controllers/camera_controller.dart';
@@ -17,11 +16,13 @@ import 'package:kid_manager/features/safe_route/domain/usecases/get_trip_history
 import 'package:kid_manager/features/safe_route/domain/usecases/start_trip_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/stream_live_location_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/update_trip_status_usecase.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_tracking_visuals.dart';
 import 'package:kid_manager/features/safe_route/presentation/pages/safe_route_history_page.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
 import 'package:kid_manager/features/safe_route/presentation/viewmodels/safe_route_tracking_view_model.dart';
 import 'package:kid_manager/features/safe_route/presentation/widgets/safe_route_bottom_panel.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/services/location/map_avatar_marker_factory.dart';
@@ -46,6 +47,7 @@ class TrackingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ChangeNotifierProvider(
       create: (_) {
         final repository = SafeRouteRepositoryImpl(
@@ -64,6 +66,7 @@ class TrackingPage extends StatelessWidget {
             repository,
           ),
           getRouteByIdUseCase: GetRouteByIdUseCase(repository),
+          l10n: l10n,
         );
 
         if (initialStartPoint != null) {
@@ -428,7 +431,8 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
 
     final visuals = resolveSafeRouteTrackingVisuals(
       state,
-      fallbackStatusLabel: 'Đang theo dõi',
+      l10n: AppLocalizations.of(context),
+      fallbackStatusLabel: AppLocalizations.of(context).safeRouteTripStatusActive,
     );
     final iconId = switch (visuals.severity) {
       SafeRouteTrackingSeverity.safe => _childMarkerSafeIconId,
@@ -677,19 +681,6 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
     }
 
     return coordinates;
-  }
-
-  List<LocationData> _routeAsLocationData(SafeRoute route) {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    return [
-      for (final point in route.points)
-        LocationData(
-          latitude: point.latitude,
-          longitude: point.longitude,
-          accuracy: 0,
-          timestamp: now,
-        ),
-    ];
   }
 
   List<SafeRoute> _visibleRoutes(SafeRouteTrackingState state) {
@@ -1034,8 +1025,8 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
     }
 
     final text = state.selectionMode == RouteSelectionMode.selectingStart
-        ? 'Chạm trên bản đồ để chọn điểm đi'
-        : 'Chạm trên bản đồ để chọn điểm đến';
+        ? AppLocalizations.of(context).safeRouteMapHintTapStart
+        : AppLocalizations.of(context).safeRouteMapHintTapEnd;
 
     return Positioned(
       top: MediaQuery.of(context).padding.top + 122,
@@ -1125,7 +1116,9 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
       SnackBar(
         duration: const Duration(milliseconds: 1200),
         content: Text(
-          nextValue ? 'Đã bật Auto follow' : 'Đã tắt Auto follow',
+          nextValue
+              ? AppLocalizations.of(context).safeRouteSnackbarAutoFollowEnabled
+              : AppLocalizations.of(context).safeRouteSnackbarAutoFollowDisabled,
         ),
       ),
     );
@@ -1136,17 +1129,14 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
     if (timestamp == null) return '--';
 
     final updatedAt = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    final diff = DateTime.now().difference(updatedAt);
-    if (diff.inSeconds < 5) return 'Vừa xong';
-    if (diff.inMinutes < 1) return '${diff.inSeconds}s';
-    if (diff.inHours < 1) return '${diff.inMinutes}p';
-    return '${updatedAt.hour.toString().padLeft(2, '0')}:${updatedAt.minute.toString().padLeft(2, '0')}';
+    return AppLocalizations.of(context).safeRouteUpdatedLabel(updatedAt);
   }
 
   String _topTitle(SafeRouteTrackingState state) {
+    final l10n = AppLocalizations.of(context);
     return state.activeTrip == null
-        ? 'Chọn tuyến an toàn'
-        : 'Hành trình an toàn';
+        ? l10n.safeRoutePageSelectRouteTitle
+        : l10n.safeRoutePageJourneyTitle;
   }
 
   Future<void> _moveCameraToPoint(RoutePoint point) async {
@@ -1166,8 +1156,8 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
   ) async {
     final result = await showMapPlaceSearchSheet(
       context: context,
-      title: 'Tìm điểm đi',
-      hintText: 'Tìm nhà, điểm đón hoặc vị trí bắt đầu hành trình.',
+      title: AppLocalizations.of(context).safeRouteSearchStartTitle,
+      hintText: AppLocalizations.of(context).safeRouteSearchStartHint,
       initialQuery: state.selectedStartLabel ?? '',
       proximityLatitude: state.liveLocation?.latitude,
       proximityLongitude: state.liveLocation?.longitude,
@@ -1194,8 +1184,8 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
 
     final result = await showMapPlaceSearchSheet(
       context: context,
-      title: 'Tìm điểm đến',
-      hintText: 'Tìm trường học, nhà người thân hoặc điểm đến cần theo dõi.',
+      title: AppLocalizations.of(context).safeRouteSearchEndTitle,
+      hintText: AppLocalizations.of(context).safeRouteSearchEndHint,
       initialQuery: state.selectedEndLabel ?? '',
       proximityLatitude: proximityLat,
       proximityLongitude: proximityLng,
@@ -1215,18 +1205,22 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
     SafeRouteTrackingState state,
     SafeRouteTrackingViewModel vm,
   ) {
+    final l10n = AppLocalizations.of(context);
     if (state.activeTrip != null) {
       if (state.activeTrip!.status == TripStatus.planned) {
-        return 'Tự kích hoạt theo lịch · ${_scheduleSummaryLabel(state)}';
+        return l10n.safeRouteScheduledAutoActivationPrefix(
+          _scheduleSummaryLabel(state),
+        );
       }
       final visuals = resolveSafeRouteTrackingVisuals(
         state,
+        l10n: l10n,
         fallbackStatusLabel: vm.safetyStatusLabel,
       );
       final prefix = switch (visuals.severity) {
         SafeRouteTrackingSeverity.safe => _currentRouteUsageLabel(state),
-        SafeRouteTrackingSeverity.warning => 'Đang lệch tuyến',
-        SafeRouteTrackingSeverity.danger => 'Cảnh báo nguy hiểm',
+        SafeRouteTrackingSeverity.warning => l10n.safeRouteTopSubtitleWarning,
+        SafeRouteTrackingSeverity.danger => l10n.safeRouteTopSubtitleDanger,
       };
       return '$prefix · ${_formatTime(DateTime.fromMillisecondsSinceEpoch(state.liveLocation?.timestamp ?? DateTime.now().millisecondsSinceEpoch))}';
     }
@@ -1234,32 +1228,33 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
     final start = state.selectedStart;
     final end = state.selectedEnd;
     if (start != null && end != null) {
-      return 'Điểm đi và điểm đến đã sẵn sàng';
+      return l10n.safeRouteTopSubtitleReady;
     }
     if (start != null) {
-      return 'Đã chọn điểm đi, tiếp tục chọn điểm đến';
+      return l10n.safeRouteTopSubtitleOnlyStart;
     }
-    return 'Chọn điểm đi và điểm đến theo phong cách bản đồ';
+    return l10n.safeRouteTopSubtitleChoosePoints;
   }
 
   String _dateChipLabel(SafeRouteTrackingState state) {
+    final l10n = AppLocalizations.of(context);
     if (state.activeTrip != null) {
       final startedAt = state.activeTrip!.startedAt;
       return '${startedAt.day.toString().padLeft(2, '0')}/${startedAt.month.toString().padLeft(2, '0')}/${startedAt.year}';
     }
     final scheduled = state.scheduledDate;
     if (scheduled == null) {
-      return 'Hôm nay';
+      return l10n.safeRouteTodayLabel;
     }
     final normalized = DateTime(scheduled.year, scheduled.month, scheduled.day);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
     if (normalized == today) {
-      return 'Hôm nay';
+      return l10n.safeRouteTodayLabel;
     }
     if (normalized == tomorrow) {
-      return 'Ngày mai';
+      return l10n.safeRouteTomorrowLabel;
     }
     return '${scheduled.day.toString().padLeft(2, '0')}/${scheduled.month.toString().padLeft(2, '0')}/${scheduled.year}';
   }
@@ -1280,59 +1275,24 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
   }
 
   String _scheduleSummaryLabel(SafeRouteTrackingState state) {
-    final pieces = <String>[];
-    final scheduledTime = state.scheduledTime;
-    if (scheduledTime != null) {
-      pieces.add(
-        '${scheduledTime.hour.toString().padLeft(2, '0')}:${scheduledTime.minute.toString().padLeft(2, '0')}',
-      );
-    }
-    if (state.repeatWeekdays.isNotEmpty) {
-      pieces.add(state.repeatWeekdays.map(_weekdayShortLabel).join(', '));
-    }
-    if (pieces.isEmpty) {
-      return 'Theo dõi ngay';
-    }
-    return pieces.join(' · ');
+    return AppLocalizations.of(context).safeRouteScheduleSummary(
+      state.scheduledTime,
+      state.repeatWeekdays,
+    );
   }
 
   String _currentRouteUsageLabel(SafeRouteTrackingState state) {
+    final l10n = AppLocalizations.of(context);
     final trip = state.activeTrip;
     final activeRoute = state.activeRoute;
     if (trip == null || activeRoute == null) {
-      return 'Cập nhật vừa xong';
+      return l10n.notificationJustNow;
     }
-
-    if (activeRoute.id == trip.routeId) {
-      return 'Đang đi trên tuyến chính';
-    }
-
-    final alternativeIndex = trip.alternativeRouteIds.indexOf(activeRoute.id);
-    if (alternativeIndex >= 0) {
-      return 'Đang đi trên tuyến phụ ${alternativeIndex + 1}';
-    }
-
-    return 'Đang đi trên tuyến phụ';
-  }
-
-  String _weekdayShortLabel(int weekday) {
-    switch (weekday) {
-      case 1:
-        return 'T2';
-      case 2:
-        return 'T3';
-      case 3:
-        return 'T4';
-      case 4:
-        return 'T5';
-      case 5:
-        return 'T6';
-      case 6:
-        return 'T7';
-      case 7:
-        return 'CN';
-    }
-    return '';
+    return l10n.safeRouteCurrentRouteUsageLabel(
+      activeRoute.id,
+      trip.routeId,
+      trip.alternativeRouteIds,
+    );
   }
 
   Future<void> _pickScheduleDate(
@@ -1345,9 +1305,9 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
       initialDate: state.scheduledDate ?? now,
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 1, 12, 31),
-      helpText: 'Chọn ngày áp dụng',
-      cancelText: 'Hủy',
-      confirmText: 'Xong',
+      helpText: AppLocalizations.of(context).safeRouteSelectScheduleDateHelp,
+      cancelText: AppLocalizations.of(context).cancelButton,
+      confirmText: AppLocalizations.of(context).confirmButton,
     );
     if (!mounted || picked == null) return;
     vm.setScheduledDate(picked);
@@ -1359,7 +1319,7 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
   ) async {
     final picked = await AppWheelTimePicker.show(
       context,
-      title: 'Chọn giờ áp dụng',
+      title: AppLocalizations.of(context).safeRouteSelectScheduleTimeTitle,
       initial: state.scheduledTime,
       primaryColor: const Color(0xFF1A73E8),
       minuteInterval: 1,
@@ -1385,10 +1345,9 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
     await NotificationDialog.show(
       context,
       type: DialogType.success,
-      title: 'Bé đã đến nơi an toàn',
-      message:
-          'Hành trình này đã được hoàn tất. Bạn có thể quay lại để chọn tuyến đường mới cho bé.',
-      confirmText: 'Quay lại chọn tuyến đường',
+      title: AppLocalizations.of(context).safeRouteArrivedDialogTitle,
+      message: AppLocalizations.of(context).safeRouteArrivedDialogMessage,
+      confirmText: AppLocalizations.of(context).safeRouteArrivedDialogConfirm,
       onConfirm: vm.returnToRouteSelection,
     );
   }
@@ -1418,13 +1377,16 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
     await NotificationDialog.show(
       context,
       type: DialogType.warning,
-      title:
-          isPlanned ? 'Xác nhận hủy lịch Safe Route' : 'Xác nhận hủy tuyến Safe Route',
+      title: isPlanned
+          ? AppLocalizations.of(context).safeRouteCancelPlannedTitle
+          : AppLocalizations.of(context).safeRouteCancelActiveTitle,
       message: isPlanned
-          ? 'Lịch theo dõi này sẽ không tự kích hoạt nữa. Bạn có chắc muốn hủy không?'
-          : 'Tuyến đường an toàn hiện tại sẽ dừng theo dõi ngay. Bạn có chắc muốn hủy không?',
-      confirmText: isPlanned ? 'Xác nhận hủy lịch' : 'Xác nhận hủy tuyến',
-      cancelText: 'Quay lại',
+          ? AppLocalizations.of(context).safeRouteCancelPlannedMessage
+          : AppLocalizations.of(context).safeRouteCancelActiveMessage,
+      confirmText: isPlanned
+          ? AppLocalizations.of(context).safeRouteCancelPlannedConfirm
+          : AppLocalizations.of(context).safeRouteCancelActiveConfirm,
+      cancelText: AppLocalizations.of(context).safeRouteDialogBack,
       onConfirm: () {
         unawaited(vm.cancelTrip());
       },
@@ -1437,6 +1399,7 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
   ) {
     final visuals = resolveSafeRouteTrackingVisuals(
       state,
+      l10n: AppLocalizations.of(context),
       fallbackStatusLabel: vm.safetyStatusLabel,
     );
     final isActiveTrip = state.activeTrip != null;
@@ -1612,7 +1575,7 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
           : Image.network(
               avatarUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(
+              errorBuilder: (_, _, _) => const Icon(
                 Icons.child_care_rounded,
                 size: 18,
                 color: Color(0xFF2563EB),
@@ -1663,7 +1626,8 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
   Widget _buildFloatingControls(SafeRouteTrackingState state) {
     final visuals = resolveSafeRouteTrackingVisuals(
       state,
-      fallbackStatusLabel: 'Đang theo dõi',
+      l10n: AppLocalizations.of(context),
+      fallbackStatusLabel: AppLocalizations.of(context).safeRouteTripStatusActive,
     );
     return Positioned(
       right: 14,
@@ -1673,7 +1637,7 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
           _buildMapFab(
             icon: Icons.my_location_rounded,
             onTap: () => _focusLiveLocation(state),
-            tooltip: 'Đưa camera tới bé',
+            tooltip: AppLocalizations.of(context).safeRouteTooltipFocusChild,
           ),
           const SizedBox(height: 10),
           _buildMapFab(
@@ -1681,9 +1645,9 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
             onTap: () => _toggleAutoFollow(state),
             active: _isAutoFollowEnabled,
             tooltip: _isAutoFollowEnabled
-                ? 'Tắt Auto follow'
-                : 'Bật Auto follow',
-            label: 'Auto follow',
+                ? AppLocalizations.of(context).safeRouteTooltipDisableAutoFollow
+                : AppLocalizations.of(context).safeRouteTooltipEnableAutoFollow,
+            label: AppLocalizations.of(context).safeRouteAutoFollowLabel,
             showLabel: true,
           ),
           const SizedBox(height: 10),
@@ -1693,14 +1657,14 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
             active: _showHazards,
             activeColor: visuals.accentColor,
             tooltip: _showHazards
-                ? 'Ẩn vùng nguy hiểm'
-                : 'Hiện vùng nguy hiểm',
+                ? AppLocalizations.of(context).safeRouteTooltipHideHazards
+                : AppLocalizations.of(context).safeRouteTooltipShowHazards,
           ),
           const SizedBox(height: 10),
           _buildMapFab(
             icon: Icons.layers_rounded,
             onTap: _mapViewController.showMapSelector,
-            tooltip: 'Chọn kiểu bản đồ',
+            tooltip: AppLocalizations.of(context).safeRouteTooltipMapType,
           ),
         ],
       ),
@@ -1775,8 +1739,8 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
     }
 
     final text = state.selectionMode == RouteSelectionMode.selectingStart
-        ? 'Chạm trên bản đồ để đặt điểm đi'
-        : 'Chạm trên bản đồ để đặt điểm đến';
+        ? AppLocalizations.of(context).safeRouteMapHintPlaceStart
+        : AppLocalizations.of(context).safeRouteMapHintPlaceEnd;
 
     return Positioned(
       left: 16,
@@ -1901,8 +1865,12 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
                       duration: const Duration(milliseconds: 1200),
                       content: Text(
                         mode == RouteSelectionMode.selectingEnd
-                            ? 'Đã chọn điểm đến trên bản đồ'
-                            : 'Đã chọn điểm đi trên bản đồ',
+                            ? AppLocalizations.of(
+                                context,
+                              ).safeRouteSnackbarSelectedEndPoint
+                            : AppLocalizations.of(
+                                context,
+                              ).safeRouteSnackbarSelectedStartPoint,
                       ),
                     ),
                   );

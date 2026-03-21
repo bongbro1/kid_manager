@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class PermissionStepScaffold extends StatelessWidget {
   const PermissionStepScaffold({
@@ -246,6 +247,8 @@ class _BottomActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
       child: Column(
@@ -297,7 +300,9 @@ class _BottomActions extends StatelessWidget {
           TextButton(
             onPressed: busy ? null : onSkip,
             child: Text(
-              optional ? 'Thiết lập sau' : 'Bỏ qua',
+              optional
+                  ? l10n.permissionLaterButton
+                  : l10n.permissionSkipButton,
               style: const TextStyle(fontSize: 14, color: Color(0xFF667085)),
             ),
           ),

@@ -38,12 +38,13 @@ class _ChildZonesBody extends StatelessWidget {
     final config = DialogConfig.from(type);
     final titleText = (title ?? '').trim();
     final messageText = (message ?? '').trim();
+    final l10n = AppLocalizations.of(context);
 
     await showGeneralDialog(
       context: context,
       useRootNavigator: true,
       barrierDismissible: true,
-      barrierLabel: 'notice',
+      barrierLabel: l10n.accessibilityNoticeBarrierLabel,
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (dialogContext, animation, secondaryAnimation) {

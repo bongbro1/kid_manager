@@ -193,7 +193,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
   }
 
   void _onVmChanged() {
-    _buildChart();
+    _buildChart(l10n: AppLocalizations.of(context));
     setState(() {});
   }
 
@@ -204,9 +204,15 @@ class _StatisticsTabState extends State<StatisticsTab> {
     if (_lastUsageVersion != widget.vm.usageVersion) {
       _lastUsageVersion = widget.vm.usageVersion;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _buildChart();
+        _buildChart(l10n: AppLocalizations.of(context));
       });
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _buildChart(l10n: AppLocalizations.of(context));
   }
 
   @override
@@ -223,7 +229,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
     return ChartMode.range;
   }
 
-  void _buildChart() {
+  void _buildChart({AppLocalizations? l10n}) {
     final mode = _resolveMode();
     final points = ChartDataHelper.generate(
       mode: mode,
@@ -231,6 +237,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
       hourlyMap: widget.vm.hourlyUsage,
       fromDate: fromDate,
       toDate: toDate,
+      l10n: l10n,
     );
 
     chartBars = ChartUiBuilder.build(points, mode);
@@ -273,7 +280,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
         toDate = end;
       });
 
-      _buildChart();
+      _buildChart(l10n: AppLocalizations.of(context));
     }
   }
 
@@ -395,7 +402,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                formatMinutes(totalMinutes),
+                                formatMinutes(totalMinutes, l10n: l10n),
                                 style: textTheme.headlineMedium?.copyWith(
                                   color: scheme.onSurface,
                                   fontSize: 30,
@@ -466,7 +473,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                       key: ValueKey('stats_${app.packageName}'),
                       appName: app.name,
                       app: app,
-                      usageTimeText: formatMinutes(row.minutes),
+                      usageTimeText: formatMinutes(row.minutes, l10n: l10n),
                       iconBase64: app.iconBase64,
                       showRightIcon: false,
                     ),
@@ -565,7 +572,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
   Widget _buildBarChart() {
     const maxChartHeight = 150.0;
-    final scheme = Theme.of(context).colorScheme;
 
     final maxMinutes = chartBars.isEmpty
         ? 0
@@ -657,7 +663,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
         onTap: () {
           setState(() {
             activeIndex = index;
-            _buildChart();
+            _buildChart(l10n: AppLocalizations.of(context));
           });
         },
         child: AnimatedContainer(

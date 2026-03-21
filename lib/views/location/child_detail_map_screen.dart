@@ -5,6 +5,7 @@ import 'package:kid_manager/features/map_engine/map_engine.dart';
 import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
 import 'package:kid_manager/features/safe_route/presentation/pages/tracking_page.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
@@ -301,7 +302,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       '${value.month.toString().padLeft(2, '0')}/'
       '${value.year}';
 
-  String _buildAppBarSubtitle(ChildDetailMapVm vm) {
+  String _buildAppBarSubtitle(AppLocalizations l10n, ChildDetailMapVm vm) {
     final latest = vm.latest;
     if (latest == null) {
       return '${_fmtDay(vm.selectedDay)} · ${vm.rangeLabel}';
@@ -309,10 +310,10 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
 
     final diff = DateTime.now().difference(latest.dateTime);
     final freshness = diff.inMinutes <= 0
-        ? 'Cập nhật vừa xong'
+        ? l10n.childLocationUpdatedJustNow
         : diff.inMinutes == 1
-        ? 'Cập nhật 1 phút trước'
-        : 'Cập nhật ${diff.inMinutes} phút trước';
+        ? l10n.childLocationUpdatedOneMinuteAgo
+        : l10n.childLocationUpdatedMinutesAgo(diff.inMinutes);
 
     return '$freshness · ${vm.rangeLabel}';
   }
@@ -400,6 +401,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   }
 
   PreferredSizeWidget _buildAppBar(ChildDetailMapVm vm) {
+    final l10n = AppLocalizations.of(context);
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -452,8 +454,8 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                       children: [
                         Text(
                           vm.isToday
-                              ? 'Hành trình hiện tại'
-                              : 'Lịch sử di chuyển',
+                              ? l10n.childLocationCurrentJourneyTitle
+                              : l10n.childLocationTravelHistoryTitle,
                           style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
@@ -462,7 +464,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _buildAppBarSubtitle(vm),
+                          _buildAppBarSubtitle(l10n, vm),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade700,
@@ -482,7 +484,9 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                   Expanded(
                     child: ChildDetailMapAppBarChip(
                       icon: Icons.calendar_today_rounded,
-                      label: vm.isToday ? 'Hôm nay' : _fmtDay(vm.selectedDay),
+                      label: vm.isToday
+                          ? l10n.childLocationTodayLabel
+                          : _fmtDay(vm.selectedDay),
                       onTap: _pickDay,
                       highlighted: true,
                     ),
@@ -505,6 +509,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   }
 
   Widget _buildFabColumn(ChildDetailMapVm vm) {
+    final l10n = AppLocalizations.of(context);
     final canOpenSafeRoute = _canOpenSafeRoute();
     final startPointSource = vm.selectedPoint ?? vm.latest;
     final startPoint = startPointSource == null
@@ -518,14 +523,16 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
     return Column(
       children: [
         ChildDetailMapFab(
-          tooltip: 'Ẩn điểm dừng/Hiện điểm dừng',
+          tooltip: vm.showDots
+              ? l10n.childLocationTooltipHideDots
+              : l10n.childLocationTooltipShowDots,
           icon: Icons.more_vert_rounded,
           active: vm.showDots,
           onTap: _toggleDots,
         ),
         const SizedBox(height: 10),
         ChildDetailMapFab(
-          tooltip: 'Quản lý vùng',
+          tooltip: l10n.childLocationTooltipManageZones,
           icon: Icons.hexagon_outlined,
           active: false,
           onTap: () => Navigator.push(
@@ -538,7 +545,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
         const SizedBox(height: 10),
         if (canOpenSafeRoute) ...[
           ChildDetailMapFab(
-            tooltip: 'Tuyến đường an toàn',
+            tooltip: l10n.childLocationTooltipSafeRoute,
             icon: Icons.route_rounded,
             active: false,
             onTap: () => Navigator.push(
@@ -555,7 +562,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
           const SizedBox(height: 10),
         ],
         ChildDetailMapFab(
-          tooltip: 'Chọn bản đồ',
+          tooltip: l10n.childLocationTooltipChooseMap,
           icon: Icons.layers_outlined,
           active: false,
           onTap: _mapViewController.showMapSelector,

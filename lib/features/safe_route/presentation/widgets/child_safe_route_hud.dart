@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/safe_route/presentation/child_safe_route_guidance.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/child_safe_route_state.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class ChildSafeRouteHud extends StatelessWidget {
   const ChildSafeRouteHud({
@@ -25,7 +27,7 @@ class ChildSafeRouteHud extends StatelessWidget {
     }
 
     final palette = _HudPalette.fromSeverity(guidance.severity);
-    final strings = _HudStrings(languageCode);
+    final strings = _HudStrings(runtimeL10n(languageCode));
 
     return IgnorePointer(
       ignoring: true,
@@ -325,25 +327,22 @@ class _HudPalette {
 }
 
 class _HudStrings {
-  _HudStrings(String languageCode)
-    : _isEnglish = languageCode.toLowerCase().startsWith('en');
-  final bool _isEnglish;
+  const _HudStrings(this.l10n);
+
+  final AppLocalizations l10n;
 
   String speedLabel(double speedKmh) {
-    return _isEnglish
-        ? '${speedKmh.toStringAsFixed(1)} km/h'
-        : '${speedKmh.toStringAsFixed(1)} km/h';
+    return '${speedKmh.toStringAsFixed(1)} km/h';
   }
 
   String updatedLabel(DateTime updatedAt) {
     final diff = DateTime.now().difference(updatedAt);
-    if (_isEnglish) {
-      if (diff.inSeconds < 60) return 'Updated just now';
-      if (diff.inMinutes < 60) return 'Updated ${diff.inMinutes}m ago';
-      return 'Updated ${diff.inHours}h ago';
+    if (diff.inSeconds < 60) return l10n.childLocationUpdatedJustNow;
+    if (diff.inMinutes == 1) return l10n.childLocationUpdatedOneMinuteAgo;
+    if (diff.inMinutes < 60) {
+      return l10n.childLocationUpdatedMinutesAgo(diff.inMinutes);
     }
-    if (diff.inSeconds < 60) return 'Vừa cập nhật';
-    if (diff.inMinutes < 60) return 'Cập nhật ${diff.inMinutes}p trước';
-    return 'Cập nhật ${diff.inHours}h trước';
+    if (diff.inHours == 1) return l10n.childLocationUpdatedOneHourAgo;
+    return l10n.childLocationUpdatedHoursAgo(diff.inHours);
   }
 }
