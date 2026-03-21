@@ -24,6 +24,8 @@ class _AppShellState extends State<AppShell> {
 
   late final AppShellConfig _config = widget.mode == AppMode.parent
       ? AppShellConfig.parent()
+      : widget.mode == AppMode.guardian
+      ? AppShellConfig.guardian()
       : AppShellConfig.child();
 
   int get _notificationTabIndex =>

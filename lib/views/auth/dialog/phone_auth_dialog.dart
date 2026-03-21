@@ -13,8 +13,8 @@ class PhoneAuthDialog {
       return '+84${phone.substring(1)}';
     }
 
-    if (!phone.startsWith('+')) {
-      return '+$phone';
+    if (!phone.startsWith("+")) {
+      return "+84$phone";
     }
 
     return phone;

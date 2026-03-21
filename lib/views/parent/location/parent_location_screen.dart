@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:kid_manager/core/location/map_focus_bus.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/services/schedule/schedule_service.dart';
@@ -100,7 +101,8 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
     if (childUid.isNotEmpty) {
       final canOpenSheet =
-          focus.openSheet && _userVm.children.any((child) => child.uid == childUid);
+          focus.openSheet &&
+          _userVm.locationMembers.any((member) => member.uid == childUid);
       await _focusChild(
         childId: childUid,
         openSheet: canOpenSheet,
@@ -149,9 +151,9 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   Future<void> _focusFirstChildOnce() async {
     if (_didInitialFocus) return;
     if (_map == null) return;
-    if (_userVm.children.isEmpty) return;
+    if (_userVm.locationMembers.isEmpty) return;
 
-    final firstChildId = _userVm.children.first.uid;
+    final firstChildId = _userVm.locationMembers.first.uid;
     final loc = _locationVm.childrenLocations[firstChildId];
     if (loc == null) return;
 
@@ -261,7 +263,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     final headings = <String, double>{};
     final names = <String, String>{};
 
-    final childMap = {for (final c in _userVm.children) c.uid: c};
+    final childMap = {for (final c in _userVm.locationMembers) c.uid: c};
 
     for (final entry in _locationVm.childrenLocations.entries) {
       final child = childMap[entry.key];
@@ -284,6 +286,18 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     required String childId,
     required DateTime date,
   }) async {
+    final viewer = _userVm.me;
+    AppUser? target;
+    for (final member in _userVm.locationMembers) {
+      if (member.uid == childId) {
+        target = member;
+        break;
+      }
+    }
+    if (viewer == null || !viewer.isParent || target == null || !target.isChild) {
+      return <Schedule>[];
+    }
+
     final parentUid = (_userVm.me?.uid ?? '').trim();
     if (parentUid.isEmpty) return <Schedule>[];
 
@@ -301,7 +315,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   }
 
   void _openChildInfo(String childId) async {
-    final child = _userVm.children.firstWhere((c) => c.uid == childId);
+    final child = _userVm.locationMembers.firstWhere((c) => c.uid == childId);
     final latest = _locationVm.childrenLocations[child.uid];
     final schedules = await _loadChildSchedulesByDate(
       childId: child.uid,
@@ -334,7 +348,11 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
           }
 
           try {
-            await _chatRepo.sendTextMessage(text: msg);
+            await _chatRepo.sendTextMessage(
+              familyId: familyId,
+              sender: me,
+              text: msg,
+            );
           } catch (e, st) {
             debugPrint('sendTextMessage error: $e');
             debugPrint('$st');
@@ -359,7 +377,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
       );
     }
 
-    final children = List.of(userVm.children);
+    final children = List.of(userVm.locationMembers);
 
     return Scaffold(
       body: Stack(
@@ -401,7 +419,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                     await _syncToMap();
                     await _focusFirstChildOnce();
 
-                    for (final c in _userVm.children) {
+                    for (final c in _userVm.locationMembers) {
                       unawaited(
                         _controller.setAvatarSmart(
                           childId: c.uid,

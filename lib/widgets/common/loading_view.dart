@@ -6,10 +6,12 @@ class LoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
-      color: const Color(0xB2686868),
+      color: scheme.scrim.withOpacity(0.6), // 👈 thay overlay màu xám
       child: Padding(
-        padding: const EdgeInsets.all(20), // 👈 cách mép màn hình 20
+        padding: const EdgeInsets.all(20),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(
@@ -18,7 +20,7 @@ class LoadingOverlay extends StatelessWidget {
             child: Container(
               height: 201,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: scheme.surface, // 👈 thay trắng
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Center(child: SvgLoading()),
@@ -58,12 +60,18 @@ class _SvgLoadingState extends State<SvgLoading>
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return RotationTransition(
       turns: _controller,
       child: SvgPicture.asset(
         'assets/icons/loading.svg',
         width: 60,
         height: 60,
+        colorFilter: ColorFilter.mode(
+          scheme.primary,
+          BlendMode.srcIn,
+        ),
       ),
     );
   }

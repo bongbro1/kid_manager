@@ -9,6 +9,8 @@ class NotificationDialog extends StatelessWidget {
   final DialogType type;
   final String title;
   final String message;
+  final String? confirmText;
+  final String? cancelText;
   final VoidCallback? onConfirm;
   final VoidCallback? onCancel;
 
@@ -17,6 +19,8 @@ class NotificationDialog extends StatelessWidget {
     required this.type,
     required this.title,
     required this.message,
+    this.confirmText,
+    this.cancelText,
     this.onConfirm,
     this.onCancel,
   });
@@ -26,6 +30,8 @@ class NotificationDialog extends StatelessWidget {
     required DialogType type,
     required String title,
     required String message,
+    String? confirmText,
+    String? cancelText,
     VoidCallback? onConfirm,
     VoidCallback? onCancel,
   }) {
@@ -37,6 +43,8 @@ class NotificationDialog extends StatelessWidget {
           type: type,
           title: title,
           message: message,
+          confirmText: confirmText,
+          cancelText: cancelText,
           onConfirm: onConfirm,
           onCancel: onCancel,
         ),
@@ -47,6 +55,9 @@ class NotificationDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = DialogConfig.from(type);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -56,17 +67,35 @@ class NotificationDialog extends StatelessWidget {
         children: [
           _IconSection(config: config),
           const SizedBox(height: 10),
+
+          /// TITLE
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
-          Text(message, textAlign: TextAlign.center),
+
+          /// MESSAGE
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: textTheme.bodyMedium?.copyWith(
+              color: theme.brightness == Brightness.dark
+                  ? colorScheme.onSurface.withOpacity(0.9)
+                  : colorScheme.onSurfaceVariant,
+            ),
+          ),
+
           const SizedBox(height: 24),
           _ActionSection(
             type: type,
             primaryColor: config.primary,
+            confirmText: confirmText,
+            cancelText: cancelText,
             onConfirm: onConfirm,
             onCancel: onCancel,
           ),
@@ -86,16 +115,19 @@ class _IconSection extends StatelessWidget {
     return Center(child: config.iconBuilder());
   }
 }
-
 class _ActionSection extends StatelessWidget {
   final DialogType type;
   final Color primaryColor;
+  final String? confirmText;
+  final String? cancelText;
   final VoidCallback? onConfirm;
   final VoidCallback? onCancel;
 
   const _ActionSection({
     required this.type,
     required this.primaryColor,
+    this.confirmText,
+    this.cancelText,
     this.onConfirm,
     this.onCancel,
   });
@@ -109,6 +141,10 @@ class _ActionSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final isWarning = type == DialogType.warning;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     if (isWarning) {
       return Column(
@@ -118,8 +154,8 @@ class _ActionSection extends StatelessWidget {
             height: 56,
             child: ElevatedButton(
               style: ButtonStyle(
-                backgroundColor: const MaterialStatePropertyAll(
-                  Color(0xFF2563EB),
+                backgroundColor: MaterialStatePropertyAll(
+                  isDark ? colorScheme.primary : const Color(0xFF2563EB),
                 ),
                 elevation: const MaterialStatePropertyAll(0),
                 overlayColor: const MaterialStatePropertyAll(
@@ -132,7 +168,7 @@ class _ActionSection extends StatelessWidget {
                 splashFactory: NoSplash.splashFactory,
                 shape: MaterialStatePropertyAll(
                   RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(30),
                   ),
                 ),
               ),
@@ -152,8 +188,8 @@ class _ActionSection extends StatelessWidget {
             height: 56,
             child: ElevatedButton(
               style: ButtonStyle(
-                backgroundColor: const MaterialStatePropertyAll(
-                  Color(0xFFF3F4F6),
+                backgroundColor: MaterialStatePropertyAll(
+                  isDark ? colorScheme.onSurface : const Color(0xFFF3F4F6),
                 ),
                 elevation: const MaterialStatePropertyAll(0),
                 overlayColor: const MaterialStatePropertyAll(
@@ -166,7 +202,7 @@ class _ActionSection extends StatelessWidget {
                 splashFactory: NoSplash.splashFactory,
                 shape: MaterialStatePropertyAll(
                   RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(30),
                   ),
                 ),
               ),
@@ -176,7 +212,7 @@ class _ActionSection extends StatelessWidget {
                 style: const TextStyle(
                   color: Color(0xFF111827),
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -189,7 +225,9 @@ class _ActionSection extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton(
         style: ButtonStyle(
-          backgroundColor: const MaterialStatePropertyAll(Color(0xFFF1F5F9)),
+          backgroundColor: MaterialStatePropertyAll(
+            isDark ? colorScheme.primary : const Color(0xFFF1F5F9),
+          ),
           elevation: const MaterialStatePropertyAll(0),
           overlayColor: const MaterialStatePropertyAll(Colors.transparent),
           shadowColor: const MaterialStatePropertyAll(Colors.transparent),
@@ -199,7 +237,7 @@ class _ActionSection extends StatelessWidget {
             EdgeInsets.symmetric(vertical: 14),
           ),
           shape: MaterialStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
           ),
         ),
         onPressed: () => _close(context, onConfirm),

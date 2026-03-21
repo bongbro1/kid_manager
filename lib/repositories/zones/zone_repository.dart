@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
@@ -17,29 +19,10 @@ class ZoneRepository {
   DatabaseReference _zonesRef(String childUid) => _db.ref("zonesByChild/$childUid");
   DatabaseReference _eventsRef(String childUid) => _db.ref("zoneEventsByChild/$childUid");
 
-  Stream<List<GeoZone>> watchZones(String childUid) {
-    return _zonesRef(childUid).onValue.map((e) {
-      if (!e.snapshot.exists || e.snapshot.value == null) return <GeoZone>[];
+  List<GeoZone> _parseZones(dynamic raw) {
+    if (raw is! Map) return <GeoZone>[];
 
-      final m = Map<dynamic, dynamic>.from(e.snapshot.value as Map);
-      final list = <GeoZone>[];
-
-      m.forEach((k, v) {
-        if (v is Map) {
-          list.add(GeoZone.fromJson(k.toString(), Map<String, dynamic>.from(v)));
-        }
-      });
-
-      list.sort((a, b) => a.name.compareTo(b.name));
-      return list;
-    });
-  }
-
-  Future<List<GeoZone>> getZonesOnce(String childUid) async {
-    final snap = await _zonesRef(childUid).get();
-    if (!snap.exists || snap.value == null) return [];
-
-    final m = Map<dynamic, dynamic>.from(snap.value as Map);
+    final m = Map<dynamic, dynamic>.from(raw);
     final list = <GeoZone>[];
 
     m.forEach((k, v) {
@@ -50,6 +33,73 @@ class ZoneRepository {
 
     list.sort((a, b) => a.name.compareTo(b.name));
     return list;
+  }
+
+  Future<List<GeoZone>> _fetchZonesViaCallable(String childUid) async {
+    final callable = _functions.httpsCallable('getChildZones');
+    final res = await callable.call({'childUid': childUid});
+    final data = Map<String, dynamic>.from(res.data as Map);
+    return _parseZones(data['zones']);
+  }
+
+  Stream<List<GeoZone>> watchZones(String childUid) {
+    final ctrl = StreamController<List<GeoZone>>();
+    StreamSubscription<DatabaseEvent>? rtdbSub;
+    Timer? pollTimer;
+    bool fallbackStarted = false;
+
+    Future<void> pollOnce() async {
+      try {
+        final list = await _fetchZonesViaCallable(childUid);
+        if (!ctrl.isClosed) {
+          ctrl.add(list);
+        }
+      } catch (e, st) {
+        debugPrint("watchZones(fn) error childUid=$childUid error=$e");
+        debugPrint("$st");
+      }
+    }
+
+    void startFallbackPolling() {
+      if (fallbackStarted) return;
+      fallbackStarted = true;
+      pollTimer?.cancel();
+      unawaited(pollOnce());
+      pollTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+        unawaited(pollOnce());
+      });
+    }
+
+    rtdbSub = _zonesRef(childUid).onValue.listen(
+      (event) {
+        if (!ctrl.isClosed) {
+          ctrl.add(_parseZones(event.snapshot.value));
+        }
+      },
+      onError: (Object e, StackTrace st) {
+        debugPrint("watchZones(rtdb) error childUid=$childUid error=$e");
+        debugPrint("$st");
+        unawaited(rtdbSub?.cancel());
+        rtdbSub = null;
+        startFallbackPolling();
+      },
+    );
+
+    ctrl.onCancel = () {
+      pollTimer?.cancel();
+      unawaited(rtdbSub?.cancel());
+    };
+
+    return ctrl.stream;
+  }
+
+  Future<List<GeoZone>> getZonesOnce(String childUid) async {
+    try {
+      final snap = await _zonesRef(childUid).get();
+      return _parseZones(snap.value);
+    } catch (_) {
+      return _fetchZonesViaCallable(childUid);
+    }
   }
 
   Future<String> createZone(String childUid, Map<String, dynamic> data) async {

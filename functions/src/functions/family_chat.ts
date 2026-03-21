@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { admin, db } from "../bootstrap";
 import { REGION } from "../config";
 import { mustString } from "../helpers";
@@ -7,9 +8,9 @@ import {
   groupInstallationsByToken,
   listInstallationsByFamilyId,
 } from "../services/fcmInstallations";
-import { getUserFamilyAndRole, requireFamilyMember } from "../services/user";
 
 const MAX_TEXT_LENGTH = 1000;
+const MAX_CLIENT_MESSAGE_ID_LENGTH = 120;
 const MULTICAST_LIMIT = 500;
 const TOKEN_MIN_LENGTH = 20;
 
@@ -134,6 +135,162 @@ async function sendFamilyChatPush(params: {
   await cleanupInvalidFamilyTokens(invalidTokens);
 }
 
+async function markPendingMessageFailed(params: {
+  ref: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
+  reason: string;
+}) {
+  await params.ref.set(
+    {
+      verifyState: "failed",
+      verifyError: params.reason,
+      verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+async function finalizePendingFamilyMessage(params: {
+  familyId: string;
+  messageId: string;
+  ref: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
+  data: FirebaseFirestore.DocumentData;
+}) {
+  const familyId = params.familyId;
+  const messageId = params.messageId;
+  const ref = params.ref;
+  const data = params.data ?? {};
+
+  const senderUid = (data.senderUid ?? "").toString().trim();
+  const senderRole = (data.senderRole ?? "").toString().trim();
+  const senderName = (data.senderName ?? "").toString().trim() || "Family member";
+  const text = (data.text ?? "").toString().trim();
+  const familyIdInDoc = (data.familyId ?? "").toString().trim();
+  const type = (data.type ?? "").toString().trim();
+
+  if (!senderUid || !senderRole || !text || !familyIdInDoc || type !== "text") {
+    await markPendingMessageFailed({
+      ref,
+      reason: "invalid_message_payload",
+    });
+    return;
+  }
+
+  if (familyIdInDoc !== familyId) {
+    await markPendingMessageFailed({
+      ref,
+      reason: "family_id_mismatch",
+    });
+    return;
+  }
+
+  const familyRef = db.doc(`families/${familyId}`);
+  const membersSnap = await familyRef.collection("members").get();
+  if (membersSnap.empty) {
+    await markPendingMessageFailed({
+      ref,
+      reason: "family_has_no_members",
+    });
+    return;
+  }
+
+  const senderMember = membersSnap.docs.find((memberDoc) => memberDoc.id === senderUid);
+  if (!senderMember) {
+    await markPendingMessageFailed({
+      ref,
+      reason: "sender_not_in_family",
+    });
+    return;
+  }
+
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  const batch = db.batch();
+
+  batch.set(
+    ref,
+    {
+      verifyState: "verified",
+      verifyError: admin.firestore.FieldValue.delete(),
+      verifiedAt: now,
+      createdAt: now,
+    },
+    { merge: true }
+  );
+
+  batch.set(
+    familyRef,
+    {
+      lastMessageAt: now,
+      lastMessageBy: senderUid,
+      lastMessageText: text,
+    },
+    { merge: true }
+  );
+
+  const recipientUids: string[] = [];
+
+  for (const memberDoc of membersSnap.docs) {
+    const memberUid = memberDoc.id;
+    const chatStateRef = familyRef.collection("chatStates").doc(memberUid);
+
+    if (memberUid === senderUid) {
+      batch.set(
+        chatStateRef,
+        {
+          uid: memberUid,
+          unreadCount: 0,
+          lastReadAt: now,
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+      continue;
+    }
+
+    recipientUids.push(memberUid);
+    batch.set(
+      chatStateRef,
+      {
+        uid: memberUid,
+        unreadCount: admin.firestore.FieldValue.increment(1),
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+
+    const chatNotifRef = db.doc(
+      `users/${memberUid}/chatNotifications/${messageId}`
+    );
+
+    batch.set(
+      chatNotifRef,
+      {
+        id: messageId,
+        type: "family_chat",
+        familyId,
+        messageId,
+        senderUid,
+        senderName,
+        body: text,
+        route: "family_group_chat",
+        isRead: false,
+        createdAt: now,
+      },
+      { merge: true }
+    );
+  }
+
+  await batch.commit();
+
+  await sendFamilyChatPush({
+    familyId,
+    senderUid,
+    senderName,
+    text,
+    messageId,
+    recipientUids,
+  });
+}
+
 export const sendFamilyMessage = onCall({ region: REGION }, async (req) => {
   if (!req.auth?.uid) {
     throw new HttpsError("unauthenticated", "Login required");
@@ -141,6 +298,10 @@ export const sendFamilyMessage = onCall({ region: REGION }, async (req) => {
 
   const uid = req.auth.uid;
   const text = mustString(req.data?.text, "text").trim();
+  const clientMessageId =
+    typeof req.data?.clientMessageId === "string"
+      ? req.data.clientMessageId.trim()
+      : "";
 
   if (text.length === 0) {
     throw new HttpsError("invalid-argument", "text is required");
@@ -153,32 +314,36 @@ export const sendFamilyMessage = onCall({ region: REGION }, async (req) => {
     );
   }
 
-  const { familyId, role } = await getUserFamilyAndRole(uid);
+  if (clientMessageId.length > MAX_CLIENT_MESSAGE_ID_LENGTH) {
+    throw new HttpsError(
+      "invalid-argument",
+      `clientMessageId must be <= ${MAX_CLIENT_MESSAGE_ID_LENGTH} characters`
+    );
+  }
+
+  const userSnap = await db.doc(`users/${uid}`).get();
+  const userData = userSnap.data() ?? {};
+  const familyId =
+    typeof userData.familyId === "string" ? userData.familyId.trim() : "";
+  const role = typeof userData.role === "string" ? userData.role.trim() : "";
+
+  if (!familyId) {
+    throw new HttpsError("failed-precondition", "Missing familyId on user profile");
+  }
+  if (!role) {
+    throw new HttpsError("failed-precondition", "Missing role on user profile");
+  }
+
   const familyRef = db.doc(`families/${familyId}`);
-
-  const memberValidationPromise = requireFamilyMember(familyId, uid);
-  const membersSnapPromise = familyRef.collection("members").get();
-  const userSnapPromise = db.doc(`users/${uid}`).get();
-
-  await memberValidationPromise;
-  const [membersSnap, userSnap] = await Promise.all([
-    membersSnapPromise,
-    userSnapPromise,
-  ]);
-
+  const membersSnap = await familyRef.collection("members").get();
   if (membersSnap.empty) {
     throw new HttpsError("failed-precondition", "Family has no members");
   }
 
-  const userData = userSnap.data() ?? {};
   const senderName =
     (typeof userData.displayName === "string" && userData.displayName.trim()) ||
     (typeof userData.email === "string" && userData.email.trim()) ||
     "Family member";
-
-  const recipientUids = membersSnap.docs
-    .map((memberDoc) => memberDoc.id)
-    .filter((memberUid) => memberUid !== uid);
 
   const messageRef = familyRef.collection("messages").doc();
   const now = admin.firestore.FieldValue.serverTimestamp();
@@ -192,6 +357,7 @@ export const sendFamilyMessage = onCall({ region: REGION }, async (req) => {
     senderUid: uid,
     senderRole: role,
     senderName,
+    ...(clientMessageId ? { clientMessageId } : {}),
     text,
     type: "text",
     createdAt: now,
@@ -258,26 +424,91 @@ export const sendFamilyMessage = onCall({ region: REGION }, async (req) => {
 
   await batch.commit();
 
-  try {
-    await sendFamilyChatPush({
-      familyId,
-      senderUid: uid,
-      senderName,
-      text,
-      messageId: messageRef.id,
-      recipientUids,
-    });
-  } catch (error) {
-    console.error("[sendFamilyMessage] push delivery failed", {
-      familyId,
-      messageId: messageRef.id,
-      error,
-    });
-  }
-
   return {
     ok: true,
     familyId,
     messageId: messageRef.id,
+    ...(clientMessageId ? { clientMessageId } : {}),
   };
 });
+
+export const onFamilyChatMessageCreated = onDocumentCreated(
+  {
+    region: REGION,
+    document: "families/{familyId}/messages/{messageId}",
+  },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const familyId = event.params.familyId;
+    const messageId = event.params.messageId;
+    const currentSnapshot = await snapshot.ref.get();
+    if (!currentSnapshot.exists) {
+      return;
+    }
+    const data = currentSnapshot.data() ?? {};
+    const verifyState = (data.verifyState ?? "").toString().trim();
+
+    if (verifyState === "pending") {
+      try {
+        await finalizePendingFamilyMessage({
+          familyId,
+          messageId,
+          ref: snapshot.ref,
+          data,
+        });
+      } catch (error) {
+        console.error("[onFamilyChatMessageCreated] finalize pending failed", {
+          familyId,
+          messageId,
+          error,
+        });
+        await markPendingMessageFailed({
+          ref: snapshot.ref,
+          reason: "processing_failed",
+        });
+      }
+      return;
+    }
+
+    if (verifyState === "failed") {
+      return;
+    }
+
+    const senderUid = (data.senderUid ?? "").toString().trim();
+    const senderName = (data.senderName ?? "Family member").toString().trim();
+    const text = (data.text ?? "").toString().trim();
+
+    if (!senderUid || !text) {
+      return;
+    }
+
+    try {
+      const membersSnap = await db
+        .collection("families")
+        .doc(familyId)
+        .collection("members")
+        .get();
+
+      const recipientUids = membersSnap.docs
+        .map((memberDoc) => memberDoc.id)
+        .filter((memberUid) => memberUid !== senderUid);
+
+      await sendFamilyChatPush({
+        familyId,
+        senderUid,
+        senderName: senderName || "Family member",
+        text,
+        messageId,
+        recipientUids,
+      });
+    } catch (error) {
+      console.error("[onFamilyChatMessageCreated] push delivery failed", {
+        familyId,
+        messageId,
+        error,
+      });
+    }
+  }
+);

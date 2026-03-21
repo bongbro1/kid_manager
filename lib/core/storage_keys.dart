@@ -11,6 +11,7 @@ class StorageKeys {
   static const themeColor = 'theme_color';
   static const isDarkMode = 'is_dark_mode';
   static const language = 'language';
+  static const permissionOnboardingSeenV1 = 'permission_onboarding_seen_v1';
 
   static String appRemovedNotified(String childId, String packageName) {
     return "removed_notified_${childId}_$packageName";

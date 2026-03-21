@@ -2,13 +2,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 
 Future<void> showImageModal(
   BuildContext context, {
   required List<ImageProvider> images,
   int initialIndex = 0,
-  Future<void> Function(int index, File file)? onReplace,
+  CropPhotoType cropType = CropPhotoType.cover,
+  Future<bool> Function(int index, File file)? onReplace,
 }) {
   assert(images.isNotEmpty);
   final safeIndex = initialIndex.clamp(0, images.length - 1);
@@ -23,6 +25,7 @@ Future<void> showImageModal(
       return _ImageModal(
         images: images,
         initialIndex: safeIndex,
+        cropType: cropType,
         onReplace: onReplace,
       );
     },
@@ -43,12 +46,14 @@ class _ImageModal extends StatefulWidget {
   const _ImageModal({
     required this.images,
     required this.initialIndex,
+    required this.cropType,
     this.onReplace,
   });
 
   final List<ImageProvider> images;
   final int initialIndex;
-  final Future<void> Function(int index, File file)? onReplace;
+  final CropPhotoType cropType;
+  final Future<bool> Function(int index, File file)? onReplace;
 
   @override
   State<_ImageModal> createState() => _ImageModalState();
@@ -94,6 +99,7 @@ class _ImageModalState extends State<_ImageModal> {
                 title: Text(l10n.appImageReplaceOption),
                 onTap: () async {
                   Navigator.of(ctx).pop();
+                  // await Future.delayed(const Duration(milliseconds: 120));
                   await _pickAndReplace();
                 },
               ),
@@ -109,30 +115,45 @@ class _ImageModalState extends State<_ImageModal> {
     );
   }
 
-  Future<void> _pickAndReplace() async {
-    if (_busy) return;
+  Future<bool> _pickAndReplace() async {
+    if (_busy) return false;
     setState(() => _busy = true);
 
     try {
       final XFile? xfile = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 90,
+        imageQuality: 82,
+        maxWidth: widget.cropType == CropPhotoType.avatar ? 1200 : 1600,
+        maxHeight: widget.cropType == CropPhotoType.avatar ? 1200 : 1600,
       );
-      if (xfile == null) return;
 
-      final file = File(xfile.path);
+      if (xfile == null) return false;
 
-      // Update UI ngay
-      setState(() {
-        _images[_index] = FileImage(file);
-      });
+      final rawFile = File(xfile.path);
 
-      // Gọi callback để bạn lưu/upload
-      if (widget.onReplace != null) {
-        await widget.onReplace!(_index, file);
+      // đóng image modal trước
+      if (mounted) {
+        Navigator.of(context).pop();
       }
+
+      final croppedFile = await Navigator.of(context, rootNavigator: true)
+          .push<File>(
+            MaterialPageRoute(
+              builder: (_) =>
+                  CropPhotoScreen(file: rawFile, type: widget.cropType),
+            ),
+          );
+
+      if (croppedFile == null) return false;
+
+      if (widget.onReplace != null) {
+        await widget.onReplace!(_index, croppedFile);
+      }
+      return true;
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -219,7 +240,6 @@ class _ImageModalState extends State<_ImageModal> {
   }
 }
 
-/// Ảnh có hỗ trợ pinch-to-zoom + pan (InteractiveViewer)
 class _ZoomableImage extends StatelessWidget {
   const _ZoomableImage({required this.image});
 
@@ -233,6 +253,10 @@ class _ZoomableImage extends StatelessWidget {
       child: Image(
         image: image,
         fit: BoxFit.contain,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const Center(child: CircularProgressIndicator());
+        },
         errorBuilder: (_, _, _) => const _ImageLoadFallback(),
       ),
     );

@@ -252,11 +252,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
         fromDate = a;
         toDate = null; // reset range cũ
       });
-
-      // debugPrint("🟡 NEW START");
-      // debugPrint("FROM: $fromDate");
-      // debugPrint("TO  : $toDate");
-
       return;
     }
 
@@ -310,6 +305,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Column(
       children: [
@@ -320,14 +318,14 @@ class _StatisticsTabState extends State<StatisticsTab> {
           width: double.infinity,
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.8),
+            color: scheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: const [
+            border: Border.all(color: scheme.outlineVariant),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x0C000000),
+                color: scheme.shadow.withValues(alpha: 0.08),
                 blurRadius: 2,
-                offset: Offset(0, 1),
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -364,14 +362,14 @@ class _StatisticsTabState extends State<StatisticsTab> {
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: scheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFF1F5F9)),
-                    boxShadow: const [
+                    border: Border.all(color: scheme.outline.withOpacity(0.2)),
+                    boxShadow: [
                       BoxShadow(
-                        color: Color(0x0C000000),
+                        color: scheme.shadow.withOpacity(0.08),
                         blurRadius: 2,
-                        offset: Offset(0, 1),
+                        offset: const Offset(0, 1),
                       ),
                     ],
                   ),
@@ -387,8 +385,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
                             children: [
                               Text(
                                 _totalTitle(l10n),
-                                style: const TextStyle(
-                                  color: Color(0xFF94A3B8),
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: scheme.onSurface.withOpacity(0.6),
                                   fontSize: 12,
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w700,
@@ -398,8 +396,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
                               const SizedBox(height: 4),
                               Text(
                                 formatMinutes(totalMinutes),
-                                style: const TextStyle(
-                                  color: Color(0xFF1E293B),
+                                style: textTheme.headlineMedium?.copyWith(
+                                  color: scheme.onSurface,
                                   fontSize: 30,
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w900,
@@ -415,7 +413,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                       SizedBox(
                         height: 200,
                         child: _resolveMode() == ChartMode.today
-                            ? _buildLineChart()
+                            ? _buildLineChart(context: context)
                             : _buildBarChart(),
                       ),
                     ],
@@ -429,8 +427,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
                     children: [
                       Text(
                         l10n.parentStatsAppDetailsTitle,
-                        style: const TextStyle(
-                          color: Color(0xFF1E293B),
+                        style: textTheme.titleMedium?.copyWith(
+                          color: scheme.onSurface,
                           fontSize: 18,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
@@ -445,8 +443,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
                           showAll
                               ? l10n.parentStatsCollapse
                               : l10n.parentStatsViewAll,
-                          style: const TextStyle(
-                            color: Color(0xFF3B82F6),
+                          style: textTheme.labelSmall?.copyWith(
+                            color: scheme.primary,
                             fontSize: 12,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w700,
@@ -482,7 +480,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
     );
   }
 
-  Widget _buildLineChart() {
+  Widget _buildLineChart({required BuildContext context}) {
+    final scheme = Theme.of(context).colorScheme;
     final maxMinutes = chartBars.fold<int>(
       0,
       (m, e) => e.minutes > m ? e.minutes : m,
@@ -516,6 +515,10 @@ class _StatisticsTabState extends State<StatisticsTab> {
                   bars: chartBars,
                   maxMinutes: maxMinutes,
                   selectedIndex: selectedDotIndex,
+                  lineColor: scheme.primary,
+                  pointColor: scheme.primary,
+                  selectedPointColor: scheme.tertiary,
+                  labelColor: scheme.onSurface.withOpacity(0.6),
                 ),
               ),
 
@@ -562,6 +565,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
   Widget _buildBarChart() {
     const maxChartHeight = 150.0;
+    final scheme = Theme.of(context).colorScheme;
 
     final maxMinutes = chartBars.isEmpty
         ? 0
@@ -587,7 +591,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
             children: List.generate(chartBars.length, (i) {
               final bar = chartBars[i];
 
-              /// chiều cao cột xám
               double greyHeight;
 
               if (bar.minutes == 0) {
@@ -598,7 +601,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
               greyHeight = greyHeight.clamp(40, maxChartHeight);
 
-              /// chiều cao thanh xanh
               double blueHeight = bar.minutes == 0 ? 4 : greyHeight * 0.7;
 
               final tooltipBottom = (blueHeight + 30).clamp(
@@ -618,7 +620,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                     clipBehavior: Clip.none,
                     alignment: Alignment.bottomCenter,
                     children: [
-                      /// BAR
                       BarWidget(
                         width: barWidth,
                         greyHeight: greyHeight,
@@ -628,7 +629,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                         faded: bar.isFuture,
                       ),
 
-                      /// TOOLTIP
                       if (selectedBarIndex == i)
                         Positioned(
                           bottom: tooltipBottom.toDouble(),
@@ -647,6 +647,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
   Widget buildSegment(String text, int index) {
     final isActive = activeIndex == index;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Expanded(
       child: GestureDetector(
@@ -663,23 +666,21 @@ class _StatisticsTabState extends State<StatisticsTab> {
           alignment: Alignment.center,
           decoration: isActive
               ? BoxDecoration(
-                  color: const Color(0xFFEFF8FF),
+                  color: scheme.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x0C000000),
+                      color: scheme.shadow.withOpacity(0.08),
                       blurRadius: 2,
-                      offset: Offset(0, 1),
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 )
               : null,
           child: Text(
             text,
-            style: TextStyle(
-              color: isActive
-                  ? const Color(0xFF3B82F6)
-                  : const Color(0xFF64748B),
+            style: textTheme.labelLarge?.copyWith(
+              color: isActive ? scheme.primary : scheme.onSurfaceVariant,
               fontSize: 14,
               fontFamily: 'Inter',
               fontWeight: FontWeight.w600,
@@ -697,10 +698,19 @@ class _LineChartPainter extends CustomPainter {
   final int maxMinutes;
   final int? selectedIndex;
 
+  final Color lineColor;
+  final Color pointColor;
+  final Color selectedPointColor;
+  final Color labelColor;
+
   _LineChartPainter({
     required this.bars,
     required this.maxMinutes,
     this.selectedIndex,
+    required this.lineColor,
+    required this.pointColor,
+    required this.selectedPointColor,
+    required this.labelColor,
   });
 
   @override
@@ -708,16 +718,16 @@ class _LineChartPainter extends CustomPainter {
     if (bars.isEmpty) return;
 
     final linePaint = Paint()
-      ..color = Colors.blue
+      ..color = lineColor
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
     final pointPaint = Paint()
-      ..color = Colors.blue
+      ..color = pointColor
       ..style = PaintingStyle.fill;
 
     final selectedPaint = Paint()
-      ..color = Colors.orange
+      ..color = selectedPointColor
       ..style = PaintingStyle.fill;
 
     final path = Path();
@@ -730,7 +740,6 @@ class _LineChartPainter extends CustomPainter {
 
     for (int i = 0; i < bars.length; i++) {
       final value = bars[i].minutes.toDouble();
-
       final normalized = maxMinutes == 0 ? 0 : value / maxMinutes;
 
       final x = i * stepX;
@@ -743,14 +752,16 @@ class _LineChartPainter extends CustomPainter {
       }
 
       final paint = i == selectedIndex ? selectedPaint : pointPaint;
-
       canvas.drawCircle(Offset(x, y), 4, paint);
 
-      /// DRAW HOUR LABEL
       final textPainter = TextPainter(
         text: TextSpan(
-          text: bars[i].label, // ví dụ "0h", "1h"
-          style: const TextStyle(fontSize: 10, color: Colors.grey),
+          text: bars[i].label,
+          style: TextStyle(
+            fontSize: 10,
+            color: labelColor,
+            fontFamily: 'Poppins',
+          ),
         ),
         textDirection: TextDirection.ltr,
       );
@@ -767,7 +778,15 @@ class _LineChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _LineChartPainter oldDelegate) {
+    return oldDelegate.bars != bars ||
+        oldDelegate.maxMinutes != maxMinutes ||
+        oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.pointColor != pointColor ||
+        oldDelegate.selectedPointColor != selectedPointColor ||
+        oldDelegate.labelColor != labelColor;
+  }
 }
 
 class _UsageAppRow {

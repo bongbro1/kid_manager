@@ -7,7 +7,4 @@ class LocationHelper {
     final last = DateTime.fromMillisecondsSinceEpoch(loc.timestamp);
     return DateTime.now().difference(last).inMinutes <= 5;
   }
-
-
-
 }

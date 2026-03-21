@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
+import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
@@ -13,7 +13,9 @@ import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
+import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
 import 'package:kid_manager/views/setting_pages/member_management_screen.dart';
+import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
@@ -35,9 +37,9 @@ class PersonalInfoScreen extends StatefulWidget {
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _genderCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
+  String? _selectedGender;
   bool allowLocationTracking = false;
   bool _initialized = false;
   int _age = 0;
@@ -45,43 +47,42 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authUid = FirebaseAuth.instance.currentUser?.uid;
-      context.read<UserVm>().loadProfile(
+      final vm = context.read<UserVm>();
+
+      final profile = await vm.loadProfile(
         uid: authUid,
         caller: 'PersonalInfoScreen',
       );
+
+      if (!mounted || profile == null || _initialized) return;
+
+      setState(() {
+        _fillForm(profile);
+      });
     });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    final vm = context.read<UserVm>();
-    final p = vm.profile;
-
-    if (p != null) {
-      _nameCtrl.text = p.name;
-      _phoneCtrl.text = p.phone;
-      _genderCtrl.text = p.gender;
-      _dobCtrl.text = p.dob;
-      _addressCtrl.text = p.address;
-
-      allowLocationTracking = p.allowTracking;
-
-      _age = calculateAgeFromDateString(p.dob);
-    }
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
-    _genderCtrl.dispose();
     _dobCtrl.dispose();
     _addressCtrl.dispose();
     super.dispose();
+  }
+
+  void _fillForm(UserProfile p) {
+    _nameCtrl.text = p.name;
+    _phoneCtrl.text = p.phone;
+    _selectedGender = p.gender.isNotEmpty ? p.gender : null;
+    _dobCtrl.text = p.dob;
+    _addressCtrl.text = p.address;
+    allowLocationTracking = p.allowTracking;
+    _age = calculateAgeFromDateString(p.dob);
+    _initialized = true;
   }
 
   Future<void> _updateUserInfo() async {
@@ -102,7 +103,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final ok = await vm.updateUserInfo(
       name: _nameCtrl.text,
       phone: _phoneCtrl.text,
-      gender: _genderCtrl.text,
+      gender: _selectedGender ?? "Nam",
       dob: _dobCtrl.text,
       address: _addressCtrl.text,
       allowTracking: allowLocationTracking,
@@ -111,10 +112,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     if (!mounted) return;
 
     if (ok) {
-      await context.read<BirthdayViewModel>().refreshFamilyBirthdays(
-        forceSync: true,
-      );
-
       if (!mounted) return;
 
       NotificationDialog.show(
@@ -124,9 +121,48 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         message: l10n.updateSuccessMessage,
       );
       vm.listenProfile();
+      context.read<BirthdayViewModel>().refreshFamilyBirthdays(forceSync: true);
     } else {
       debugPrint("Update FAIL: ${vm.error}");
       // show snackbar/dialog nếu muốn
+    }
+  }
+
+  Future<void> pickDate() async {
+    final now = DateTime.now();
+    DateTime initial = DateTime(now.year - 10, now.month, now.day);
+
+    final parsed = _parseDate(_dobCtrl.text);
+    if (parsed != null) {
+      initial = parsed;
+    }
+
+    final date = await showModalBottomSheet<DateTime>(
+      context: context,
+      builder: (_) => WheelDatePicker(initialDate: initial),
+    );
+
+    if (date != null) {
+      _dobCtrl.text = "${date.day}/${date.month}/${date.year}";
+    }
+  }
+
+  DateTime? _parseDate(String text) {
+    try {
+      if (text.isEmpty) return null;
+
+      final parts = text.split("/");
+      if (parts.length != 3) return null;
+
+      final day = int.tryParse(parts[0]);
+      final month = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[2]);
+
+      if (day == null || month == null || year == null) return null;
+
+      return DateTime(year, month, day);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -159,18 +195,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<UserVm>();
     final p = vm.profile;
-
-    if (p != null && !_initialized) {
-      _nameCtrl.text = p.name;
-      _phoneCtrl.text = p.phone;
-      _genderCtrl.text = p.gender;
-      _dobCtrl.text = p.dob;
-      _addressCtrl.text = p.address;
-      allowLocationTracking = p.allowTracking;
-      _age = calculateAgeFromDateString(p.dob);
-      _initialized = true;
-    }
-
     if (vm.loading) {
       return const LoadingOverlay();
     }
@@ -178,29 +202,36 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final isParent = p?.role.toString() == roleToString(UserRole.parent);
     final isChild = p?.role.toString() == roleToString(UserRole.child);
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
-      body: SafeArea(
-        child: Column(
-          children: [
-            /// ✅ HEADER (KHÔNG SCROLL)
-            Row(
+      backgroundColor: scheme.background,
+      extendBodyBehindAppBar: true,
+      body: Column(
+        children: [
+          /// HEADER
+          SafeArea(
+            bottom: false,
+            child: Row(
               children: [
                 InkWell(
                   onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      isScrollControlled: true,
-                      builder: (_) => const MoreActionSheet(),
+                    Navigator.of(context, rootNavigator: true).push(
+                      RawDialogRoute<void>(
+                        barrierDismissible: true,
+                        barrierLabel: 'Close',
+                        barrierColor: Colors.black.withOpacity(0.12),
+                        transitionDuration: const Duration(milliseconds: 280),
+                        pageBuilder: (_, __, ___) {
+                          return const MoreActionSheet();
+                        },
+                      ),
                     );
                   },
                   borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 14,
-                    ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
                     child: AppIcon(
                       path: "assets/icons/menu.svg",
                       type: AppIconType.svg,
@@ -208,243 +239,276 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     ),
                   ),
                 ),
+
                 const SizedBox(width: 8),
+
                 Expanded(
                   child: Center(
                     child: Text(
                       l10n.personalInfoTitle,
-                      style: TextStyle(
-                        color: Color(0xFF222B45),
-                        fontSize: 20,
-                        fontFamily: 'Poppins',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: scheme.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ),
+
                 const SizedBox(width: 40),
               ],
             ),
+          ),
 
-            /// ✅ PHẦN NÀY MỚI SCROLL
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _onRefresh,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 16),
-
-                      SizedBox(
-                        width: 500,
-                        height: 220,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 35,
-                              child: Center(
-                                child: tappablePhoto(
-                                  context: context,
-                                  vm: vm,
-                                  url: p?.coverUrl,
-                                  fallbackAsset: "assets/images/cover.png",
-                                  onReplace: (index, file) {
-                                    return vm.updateUserPhoto(
-                                      file: file,
-                                      type: UserPhotoType.cover,
-                                    );
-                                  },
-                                  child: _buildCoverPhoto(p?.coverUrl),
-                                ),
+          /// BODY
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: 500,
+                      height: 220,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 35,
+                            child: Center(
+                              child: tappablePhoto(
+                                context: context,
+                                vm: vm,
+                                url: p?.coverUrl,
+                                fallbackAsset: "assets/images/cover.png",
+                                cropType: CropPhotoType.cover,
+                                onReplace: (index, file) {
+                                  return vm.updateUserPhoto(
+                                    file: file,
+                                    type: UserPhotoType.cover,
+                                  );
+                                },
+                                child: _buildCoverPhoto(p?.coverUrl),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                              child: Align(
-                                alignment: Alignment.bottomCenter,
-                                child: Container(
-                                  height: 82,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 18,
-                                  ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Builder(
+                                builder: (context) {
+                                  return Container(
+                                    height: 82,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: scheme.surface,
+                                      borderRadius: BorderRadius.circular(18),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: scheme.shadow.withOpacity(
+                                            0.15,
+                                          ),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        tappablePhoto(
+                                          context: context,
+                                          vm: vm,
+                                          url: p?.avatarUrl,
+                                          fallbackAsset: "assets/images/u1.png",
+                                          cropType: CropPhotoType.avatar,
+                                          onReplace: (index, file) {
+                                            return vm.updateUserPhoto(
+                                              file: file,
+                                              type: UserPhotoType.avatar,
+                                            );
+                                          },
+                                          child: Container(
+                                            width: 60,
+                                            height: 60,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                width: 2,
+                                                color: scheme.primary,
+                                              ),
+                                            ),
+                                            child: ClipOval(
+                                              child: _buildAvatarPhoto(
+                                                p?.avatarUrl,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+
+                                        const SizedBox(width: 14),
+
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                p?.name ?? '',
+                                                style: theme
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      color: scheme.onSurface,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                l10n.yearsOld.replaceFirst(
+                                                  '%d',
+                                                  _age.toString(),
+                                                ),
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color: scheme
+                                                          .onSurfaceVariant,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        GestureDetector(
+                                          onTap: _updateUserInfo,
+                                          child: Icon(
+                                            Icons.edit,
+                                            size: 18,
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 18),
+
+                          AppLabeledTextField(
+                            label: l10n.fullNameLabel,
+                            hint: l10n.fullNameHint,
+                            controller: _nameCtrl,
+                          ),
+
+                          AppLabeledTextField(
+                            label: l10n.phoneLabel,
+                            hint: l10n.phoneHint,
+                            controller: _phoneCtrl,
+                          ),
+
+                          AppLabeledDropdownField<String>(
+                            label: l10n.genderLabel,
+                            hint: l10n.genderHint,
+                            value: _selectedGender,
+                            items: const [
+                              DropdownMenuEntry(value: 'Nam', label: 'Nam'),
+                              DropdownMenuEntry(value: 'Nữ', label: 'Nữ'),
+                              DropdownMenuEntry(value: 'Khác', label: 'Khác'),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedGender = value;
+                              });
+                            },
+                          ),
+                          AppLabeledTextField(
+                            label: l10n.birthDateLabel,
+                            hint: l10n.birthDateHint,
+                            controller: _dobCtrl,
+                            readOnly: true,
+                            onTap: pickDate,
+                            suffixIcon: const Icon(
+                              Icons.calendar_today,
+                              size: 18,
+                            ),
+                          ),
+
+                          AppLabeledTextField(
+                            label: l10n.addressLabel,
+                            hint: l10n.addressHint,
+                            controller: _addressCtrl,
+                          ),
+
+                          if (!isChild)
+                            AppLabeledCheckbox(
+                              label: l10n.locationTrackingLabel,
+                              text: l10n.allowLocationTrackingText,
+                              value: allowLocationTracking,
+                              onChanged: (v) {
+                                setState(() {
+                                  allowLocationTracking = v;
+                                });
+                                debugPrint("changed: $allowLocationTracking");
+                              },
+                            ),
+
+                          if (isParent) ...[
+                            const SizedBox(height: 10),
+                            Builder(
+                              builder: (context) {
+                                final theme = Theme.of(context);
+                                final scheme = theme.colorScheme;
+
+                                return Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: Color(0xFFFFFFFF),
-                                    borderRadius: BorderRadius.circular(18),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x3F000000),
-                                        blurRadius: 4,
-                                        offset: Offset(0, 0),
-                                      ),
-                                    ],
+                                    color: scheme.surface,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: scheme.outline.withOpacity(0.3),
+                                      width: 1,
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
-                                      tappablePhoto(
-                                        context: context,
-                                        vm: vm,
-                                        url: p?.avatarUrl,
-                                        fallbackAsset: "assets/images/u1.png",
-                                        onReplace: (index, file) {
-                                          return vm.updateUserPhoto(
-                                            file: file,
-                                            type: UserPhotoType.avatar,
-                                          );
-                                        },
-                                        child: Container(
-                                          width: 60,
-                                          height: 60,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              width: 2,
-                                              color: const Color(0xFF5EC8F2),
-                                            ),
-                                          ),
-                                          child: ClipOval(
-                                            child: _buildAvatarPhoto(
-                                              p?.avatarUrl,
-                                            ),
+                                      Container(
+                                        height: 40,
+                                        width: 40,
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: scheme.primary,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              p?.name ?? '',
-                                              style: TextStyle(
-                                                color: Color(0xFF212121),
-                                                fontSize: 18,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w700,
-                                                height: 1.11,
-                                                letterSpacing: -0.24,
-                                              ),
-                                            ),
-                                            SizedBox(height: 4),
-                                            Text(
-                                              l10n.yearsOld.replaceFirst(
-                                                '%d',
-                                                _age.toString(),
-                                              ),
-                                              style: TextStyle(
-                                                color: Color(0xFF212121),
-                                                fontSize: 13,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w500,
-                                                height: 1.69,
-                                                letterSpacing: -0.41,
-                                              ),
-                                            ),
-                                          ],
+                                        child: Icon(
+                                          Icons.manage_accounts,
+                                          color: scheme.onPrimary,
                                         ),
                                       ),
-                                      GestureDetector(
-                                        onTap: _updateUserInfo,
-                                        child: Image.asset(
-                                          "assets/images/source_edit.png",
-                                          width: 18,
-                                          height: 18,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 18),
 
-                            AppLabeledTextField(
-                              label: l10n.fullNameLabel,
-                              hint: l10n.fullNameHint,
-                              controller: _nameCtrl,
-                            ),
-
-                            AppLabeledTextField(
-                              label: l10n.phoneLabel,
-                              hint: l10n.phoneHint,
-                              controller: _phoneCtrl,
-                            ),
-
-                            AppLabeledTextField(
-                              label: l10n.genderLabel,
-                              hint: l10n.genderHint,
-                              controller: _genderCtrl,
-                            ),
-
-                            AppLabeledTextField(
-                              label: l10n.birthDateLabel,
-                              hint: l10n.birthDateHint,
-                              controller: _dobCtrl,
-                            ),
-
-                            AppLabeledTextField(
-                              label: l10n.addressLabel,
-                              hint: l10n.addressHint,
-                              controller: _addressCtrl,
-                            ),
-
-                            if (!isChild)
-                              AppLabeledCheckbox(
-                                label: l10n.locationTrackingLabel,
-                                text: l10n.allowLocationTrackingText,
-                                value: allowLocationTracking,
-                                onChanged: (v) {
-                                  setState(() {
-                                    allowLocationTracking = v;
-                                  });
-                                  debugPrint("changed: $allowLocationTracking");
-                                },
-                              ),
-
-                            if (isParent) ...[
-                              const SizedBox(height: 10),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: const Color(0xFFE5E5E5), // màu viền
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      height: 40,
-                                      width: 40,
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF2E90FA),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.manage_accounts,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-
-                                    const SizedBox(width: 12),
+                                      const SizedBox(width: 12),
 
                                     Expanded(
                                       child: Column(
@@ -532,11 +596,13 @@ class MoreActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     final role = context.watch<UserVm>().profile?.role;
     final isParent = roleFromString(role ?? 'child') == UserRole.parent;
 
     return AppOverlaySheet(
-      // height: 240,
       showHandle: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 26),
@@ -559,6 +625,7 @@ class MoreActionSheet extends StatelessWidget {
                 );
               },
             ),
+
             const SizedBox(height: 10),
 
             SettingItem(
@@ -573,7 +640,9 @@ class MoreActionSheet extends StatelessWidget {
                 );
               },
             ),
+
             const SizedBox(height: 10),
+
             SettingItem(
               title: AppLocalizations.of(context).logoutTitle,
               iconPath: "assets/icons/log_out.png",
@@ -581,8 +650,8 @@ class MoreActionSheet extends StatelessWidget {
               iconSize: 17,
               onTap: () {
                 Navigator.pop(context);
-                Future.delayed(const Duration(milliseconds: 100), () {
-                  if (!context.mounted) return;
+
+                Future.microtask(() {
                   showModalBottomSheet(
                     context: context,
                     backgroundColor: Colors.transparent,
@@ -592,6 +661,8 @@ class MoreActionSheet extends StatelessWidget {
                 });
               },
             ),
+
+            const SizedBox(height: 10),
           ],
         ),
       ),
@@ -605,6 +676,8 @@ class ConfirmLogoutSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     Future<void> logout() async {
       final authVM = context.read<AuthVM>();
@@ -629,7 +702,10 @@ class ConfirmLogoutSheet extends StatelessWidget {
 
     final vm = context.watch<AuthVM>();
     if (vm.error != null) {
-      return Text(vm.error!);
+      return Text(
+        vm.error!,
+        style: theme.textTheme.bodyMedium?.copyWith(color: scheme.error),
+      );
     }
 
     return Stack(
@@ -643,33 +719,30 @@ class ConfirmLogoutSheet extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 const SizedBox(height: 6),
+
+                /// divider
                 Container(
                   width: 345,
                   decoration: ShapeDecoration(
                     shape: RoundedRectangleBorder(
-                      side: BorderSide(
-                        width: 1,
-                        strokeAlign: BorderSide.strokeAlignCenter,
-                        color: const Color(0xFFEDF1F7),
-                      ),
+                      side: BorderSide(width: 1, color: scheme.outlineVariant),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 30),
+
                 Text(
                   l10n.confirmLogoutQuestion,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: const Color(0xFF212121),
-                    fontSize: 16,
-                    fontFamily: 'Inter',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: scheme.onSurface,
                     fontWeight: FontWeight.w500,
-                    height: 1.38,
-                    letterSpacing: -0.41,
                   ),
                 ),
+
                 const SizedBox(height: 30),
+
                 SizedBox(
                   width: double.infinity,
                   child: Row(
@@ -683,8 +756,8 @@ class ConfirmLogoutSheet extends StatelessWidget {
                           onPressed: () {
                             Navigator.pop(context);
                           },
-                          backgroundColor: const Color(0xFFE6F5FF),
-                          foregroundColor: const Color(0xFF3A7DFF),
+                          backgroundColor: scheme.primaryContainer,
+                          foregroundColor: scheme.primary,
                         ),
                       ),
 
@@ -699,8 +772,8 @@ class ConfirmLogoutSheet extends StatelessWidget {
                           onPressed: () async {
                             await logout();
                           },
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
+                          backgroundColor: scheme.primary,
+                          foregroundColor: scheme.onPrimary,
                         ),
                       ),
                     ],
@@ -710,7 +783,8 @@ class ConfirmLogoutSheet extends StatelessWidget {
             ),
           ),
         ),
-        if (vm.loading) LoadingOverlay(),
+
+        if (vm.loading) const LoadingOverlay(),
       ],
     );
   }
@@ -722,6 +796,7 @@ class SettingItem extends StatelessWidget {
   final AppIconType iconType;
   final double iconSize;
   final VoidCallback onTap;
+  final Color? iconColor;
 
   const SettingItem({
     super.key,
@@ -730,10 +805,14 @@ class SettingItem extends StatelessWidget {
     required this.iconType,
     required this.onTap,
     this.iconSize = 20,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -741,18 +820,21 @@ class SettingItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            AppIcon(path: iconPath, type: iconType, size: iconSize),
+            AppIcon(
+              path: iconPath,
+              type: iconType,
+              size: iconSize,
+              color: iconColor ?? scheme.onSurfaceVariant,
+            ),
+
             const SizedBox(width: 14),
+
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  color: Color(0xFF212121),
-                  fontSize: 16,
-                  fontFamily: 'Inter',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: scheme.onSurface,
                   fontWeight: FontWeight.w500,
-                  height: 1.2,
-                  letterSpacing: -0.41,
                 ),
               ),
             ),

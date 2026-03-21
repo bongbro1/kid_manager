@@ -33,8 +33,10 @@ class _NotificationModalState extends State<NotificationModal>
       duration: const Duration(milliseconds: 300),
     );
 
-    final curved =
-        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    final curved = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
 
     _fade = curved;
 
@@ -58,17 +60,24 @@ class _NotificationModalState extends State<NotificationModal>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Material(
       color: Colors.transparent,
       child: Stack(
         children: [
-          // Background
+          /// BACKGROUND OVERLAY
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: widget.onBackgroundTap ?? _close,
             child: FadeTransition(
               opacity: _fade,
-              child: Container(color: const Color(0x66000000)),
+              child: Container(
+                color: theme.brightness == Brightness.dark
+                    ? Colors.black.withOpacity(0.7)
+                    : Colors.black.withOpacity(0.4),
+              ),
             ),
           ),
 
@@ -84,10 +93,10 @@ class _NotificationModalState extends State<NotificationModal>
                       maxHeight: widget.maxHeight,
                     ),
                     child: Material(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(24),
                       clipBehavior: Clip.antiAlias,
-                      elevation: 16,
+                      elevation: theme.brightness == Brightness.light ? 16 : 0,
                       child: widget.child,
                     ),
                   ),

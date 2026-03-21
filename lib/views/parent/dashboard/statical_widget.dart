@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:table_calendar/table_calendar.dart';
-
 class BarWidget extends StatelessWidget {
   final double width;
   final double greyHeight;
@@ -11,6 +10,7 @@ class BarWidget extends StatelessWidget {
   final bool faded;
 
   const BarWidget({
+    super.key,
     required this.width,
     required this.greyHeight,
     required this.blueHeight,
@@ -21,31 +21,34 @@ class BarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final barColor = active
-        ? const Color(0xFF3B82F6)
-        : faded
-            ? const Color(0xFFE2E8F0)
-            : const Color(0x663B82F6);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
-    final labelColor =
-        active ? const Color(0xFF3B82F6) : const Color(0xFF94A3B8);
+    final barColor = active
+        ? scheme.primary
+        : faded
+            ? scheme.outline.withOpacity(0.35)
+            : scheme.primary.withOpacity(0.4);
+
+    final labelColor = active
+        ? scheme.primary
+        : scheme.onSurface.withOpacity(0.55);
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        /// GREY COLUMN
         Container(
           width: width,
           height: greyHeight,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.vertical(
+          decoration: BoxDecoration(
+            color: scheme.outline.withOpacity(0.16),
+            borderRadius: const BorderRadius.vertical(
               top: Radius.circular(8),
             ),
           ),
           child: Stack(
             children: [
-              /// BLUE VALUE
               Positioned(
                 left: 0,
                 right: 0,
@@ -66,10 +69,9 @@ class BarWidget extends StatelessWidget {
 
         const SizedBox(height: 8),
 
-        /// LABEL
         Text(
           label,
-          style: TextStyle(
+          style: textTheme.labelSmall?.copyWith(
             color: labelColor,
             fontSize: 10,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
@@ -80,27 +82,34 @@ class BarWidget extends StatelessWidget {
   }
 }
 
+
 class TooltipWidget extends StatelessWidget {
   final int value;
 
-  const TooltipWidget({required this.value});
+  const TooltipWidget({
+    super.key,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Material(
       color: Colors.transparent,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: const Color(0xFF3B82F6),
+          color: scheme.primary,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           formatMinutes(value),
-          style: const TextStyle(
+          style: textTheme.labelSmall?.copyWith(
             fontSize: 10,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: scheme.onPrimary,
           ),
         ),
       ),
@@ -140,13 +149,20 @@ class _CustomRangeCalendarState extends State<CustomRangeCalendar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: Colors.white,
+        color: scheme.surface,
         boxShadow: [
-          BoxShadow(blurRadius: 12, color: Colors.black.withOpacity(0.05)),
+          BoxShadow(
+            blurRadius: 12,
+            color: scheme.shadow.withOpacity(0.08),
+          ),
         ],
       ),
       child: TableCalendar(
@@ -160,13 +176,10 @@ class _CustomRangeCalendarState extends State<CustomRangeCalendar> {
           setState(() {
             _focusedDay = focusedDay;
 
-            // Case 1: chưa có start → chọn start
             if (_start == null || (_start != null && _end != null)) {
               _start = selectedDay;
               _end = null;
-            }
-            // Case 2: đã có start → chọn end
-            else {
+            } else {
               if (selectedDay.isBefore(_start!)) {
                 _end = _start;
                 _start = selectedDay;
@@ -179,25 +192,92 @@ class _CustomRangeCalendarState extends State<CustomRangeCalendar> {
           widget.onFromChanged(_start);
           widget.onToChanged(_end);
         },
-        headerStyle: const HeaderStyle(
+        headerStyle: HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
+          titleTextStyle: textTheme.titleMedium?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ) ??
+              TextStyle(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+          leftChevronIcon: Icon(
+            Icons.chevron_left,
+            color: scheme.onSurface,
+          ),
+          rightChevronIcon: Icon(
+            Icons.chevron_right,
+            color: scheme.onSurface,
+          ),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+          ),
+        ),
+        daysOfWeekStyle: DaysOfWeekStyle(
+          weekdayStyle: textTheme.bodySmall?.copyWith(
+                color: scheme.onSurface.withOpacity(0.7),
+              ) ??
+              TextStyle(
+                color: scheme.onSurface.withOpacity(0.7),
+              ),
+          weekendStyle: textTheme.bodySmall?.copyWith(
+                color: scheme.onSurface.withOpacity(0.7),
+              ) ??
+              TextStyle(
+                color: scheme.onSurface.withOpacity(0.7),
+              ),
         ),
         calendarStyle: CalendarStyle(
-          rangeHighlightColor: const Color(0xFFDBEAFE),
-          rangeStartDecoration: const BoxDecoration(
-            color: Color(0xFF3B82F6),
+          defaultTextStyle: textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface,
+              ) ??
+              TextStyle(color: scheme.onSurface),
+          weekendTextStyle: textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface,
+              ) ??
+              TextStyle(color: scheme.onSurface),
+          outsideTextStyle: textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface.withOpacity(0.35),
+              ) ??
+              TextStyle(color: scheme.onSurface.withOpacity(0.35)),
+          disabledTextStyle: textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface.withOpacity(0.25),
+              ) ??
+              TextStyle(color: scheme.onSurface.withOpacity(0.25)),
+          rangeHighlightColor: scheme.primary.withOpacity(0.16),
+          rangeStartDecoration: BoxDecoration(
+            color: scheme.primary,
             shape: BoxShape.circle,
           ),
-          rangeEndDecoration: const BoxDecoration(
-            color: Color(0xFF3B82F6),
+          rangeEndDecoration: BoxDecoration(
+            color: scheme.primary,
             shape: BoxShape.circle,
+          ),
+          withinRangeTextStyle: TextStyle(
+            color: scheme.onSurface,
+          ),
+          withinRangeDecoration: BoxDecoration(
+            color: scheme.primary.withOpacity(0.10),
+            shape: BoxShape.rectangle,
           ),
           todayDecoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFF3B82F6)),
+            border: Border.all(color: scheme.primary),
           ),
-          todayTextStyle: const TextStyle(color: Color(0xFF3B82F6)),
+          todayTextStyle: TextStyle(
+            color: scheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+          selectedDecoration: BoxDecoration(
+            color: scheme.primary,
+            shape: BoxShape.circle,
+          ),
+          selectedTextStyle: TextStyle(
+            color: scheme.onPrimary,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

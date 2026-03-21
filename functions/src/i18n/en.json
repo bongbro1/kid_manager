@@ -52,6 +52,24 @@
   "tracking.location_stale.child.body": "Your device has not sent a location update for more than 2 minutes.",
 
   "tracking.ok.child.title": "Location is working again",
-  "tracking.ok.child.body": "Your location is updating normally now."
+  "tracking.ok.child.body": "Your location is updating normally now.",
+
+  "tracking.safe_route_deviated.parent.title": "Child left the safe route",
+  "tracking.safe_route_deviated.parent.body": "{childName} is about {distanceFromRoute} away from {routeName}.",
+
+  "tracking.safe_route_back_on_route.parent.title": "Child is back on the safe route",
+  "tracking.safe_route_back_on_route.parent.body": "{childName} returned to {routeName}.",
+
+  "tracking.safe_route_returned_to_start.parent.title": "Child returned to the starting point",
+  "tracking.safe_route_returned_to_start.parent.body": "{childName} went back near the starting point of {routeName}.",
+
+  "tracking.safe_route_stationary.parent.title": "Child has stayed too long in one place",
+  "tracking.safe_route_stationary.parent.body": "{childName} has stayed near the same spot for more than {stationaryDuration} minutes on {routeName}.",
+
+  "tracking.safe_route_arrived.parent.title": "Child arrived safely",
+  "tracking.safe_route_arrived.parent.body": "{childName} has arrived at the destination on {routeName}.",
+
+  "tracking.safe_route_danger_zone.parent.title": "Child entered a danger area",
+  "tracking.safe_route_danger_zone.parent.body": "{childName} entered {hazardName} while following {routeName}."
 }
 

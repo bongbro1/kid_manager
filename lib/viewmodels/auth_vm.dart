@@ -52,7 +52,6 @@ class AuthVM extends ChangeNotifier {
 
       final uid = user.uid;
 
-      /// ðŸ”Ž Ä‘á»c user document
       final userInfo = await _userRepo.getUserById(uid);
 
       if (userInfo == null) {
@@ -60,13 +59,11 @@ class AuthVM extends ChangeNotifier {
         throw Exception("accountNotFound");
       }
 
-      // /// âŒ chÆ°a verify OTP
       if (userInfo.isActive != true) {
         await _authRepo.logout();
         throw Exception("accountNotActivated");
       }
 
-      ///  há»£p lá»‡
       _user = user;
       debugPrint("User : $_user");
       notifyListeners();

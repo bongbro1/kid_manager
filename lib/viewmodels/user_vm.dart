@@ -33,13 +33,21 @@ class UserVm extends ChangeNotifier {
   StreamSubscription<UserProfile?>? _profileSubscription;
   StreamSubscription<List<AppUser>>? _childrenSub;
   StreamSubscription<List<AppUser>>? _familySub;
+  StreamSubscription<List<AppUser>>? _locationMembersSub;
 
   final List<AppUser> _children = [];
   List<AppUser> get children => _children;
 
   final List<AppUser> _familyMembers = [];
   List<AppUser> get familyMembers => _familyMembers;
+  final List<AppUser> _locationMembers = [];
+  List<AppUser> get locationMembers => _locationMembers;
   List<String> get childrenIds => _children.map((c) => c.uid).toList();
+  List<String> get locationMemberIds =>
+      _locationMembers.map((member) => member.uid).toList();
+
+  String? _currentWatchedUid;
+  String? _currentProfileUid;
 
   void _setError(String msg) {
     _error = msg;
@@ -48,7 +56,7 @@ class UserVm extends ChangeNotifier {
 
   Future<void> setCurrentUser(String uid) async {
     if (uid.isEmpty) return;
-
+    if (_currentWatchedUid == uid && _currentProfileUid == uid) return;
     _error = null;
     watchMe(uid);
     listenProfile(uid: uid);
@@ -56,10 +64,14 @@ class UserVm extends ChangeNotifier {
 
   Future<void> clear() async {
     await _childrenSub?.cancel();
+    await _familySub?.cancel();
+    await _locationMembersSub?.cancel();
     await _profileSubscription?.cancel();
     await _meSub?.cancel();
 
     _childrenSub = null;
+    _familySub = null;
+    _locationMembersSub = null;
     _profileSubscription = null;
     _meSub = null;
 
@@ -68,6 +80,8 @@ class UserVm extends ChangeNotifier {
     profile = null;
     me = null;
     _children.clear();
+    _familyMembers.clear();
+    _locationMembers.clear();
 
     notifyListeners();
   }
@@ -90,8 +104,10 @@ class UserVm extends ChangeNotifier {
   List<UserItem> users = [];
 
   void watchMe(String uid) {
-    _meSub?.cancel();
+    if (_currentWatchedUid == uid && _meSub != null) return;
+    _currentWatchedUid = uid;
 
+    _meSub?.cancel();
     _meSub = _userRepo
         .watchUserById(uid)
         .listen(
@@ -171,9 +187,12 @@ class UserVm extends ChangeNotifier {
 
       profile = await _userRepo.getUserProfile(resolvedUid);
 
-      // Quan trọng: bind luôn AppUser realtime cho phiên hiện tại
-      watchMe(resolvedUid);
-      listenProfile(uid: resolvedUid);
+      if (_currentWatchedUid != resolvedUid) {
+        watchMe(resolvedUid);
+      }
+      if (_currentProfileUid != resolvedUid) {
+        listenProfile(uid: resolvedUid);
+      }
 
       return profile;
     } catch (e) {
@@ -189,12 +208,15 @@ class UserVm extends ChangeNotifier {
     final storageUid = _storage.getString(StorageKeys.uid);
     final authUid = FirebaseAuth.instance.currentUser?.uid;
     final resolvedUid = uid ?? storageUid ?? authUid;
-
     if (resolvedUid == null || resolvedUid.isEmpty) {
       _error = runtimeL10n().userVmUserIdNotFound;
       notifyListeners();
       return;
     }
+
+    if (_currentProfileUid == resolvedUid && _profileSubscription != null)
+      return;
+    _currentProfileUid = resolvedUid;
 
     _profileSubscription?.cancel();
     _profileSubscription = _userRepo
@@ -292,7 +314,6 @@ class UserVm extends ChangeNotifier {
         url: url,
         type: type,
       );
-
       if (!success) {
         _error = runtimeL10n().userVmUpdatePhotoFailed;
         return false;
@@ -336,7 +357,6 @@ class UserVm extends ChangeNotifier {
       if (parentUid == null) {
         throw Exception(runtimeL10n().sessionExpiredLoginAgain);
       }
-
       await _userRepo.createChildAccount(
         parentUid: parentUid,
         email: email,
@@ -361,6 +381,8 @@ class UserVm extends ChangeNotifier {
   @override
   void dispose() {
     _childrenSub?.cancel();
+    _familySub?.cancel();
+    _locationMembersSub?.cancel();
     _profileSubscription?.cancel();
     _meSub?.cancel();
     super.dispose();

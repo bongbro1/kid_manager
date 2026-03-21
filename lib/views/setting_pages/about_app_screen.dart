@@ -8,14 +8,16 @@ class AboutAppScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             /// ===== HEADER =====
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -30,6 +32,8 @@ class AboutAppScreen extends StatelessWidget {
                         path: 'assets/icons/back.svg',
                         type: AppIconType.svg,
                         size: 16,
+                        // nếu AppIcon hỗ trợ color thì thêm dòng này
+                        // color: colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -37,11 +41,9 @@ class AboutAppScreen extends StatelessWidget {
                     child: Center(
                       child: Text(
                         l10n.aboutAppTitle,
-                        style: const TextStyle(
-                          color: Color(0xFF222B45),
-                          fontSize: 20,
-                          fontFamily: 'Poppins',
+                        style: textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -62,39 +64,46 @@ class AboutAppScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 16),
+
                     Text(
                       l10n.aboutAppName,
-                      style: const TextStyle(
-                        fontSize: 22,
+                      style: textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                     ),
+
                     const SizedBox(height: 8),
+
                     Text(
                       l10n.aboutAppVersionLabel('1.0.0'),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF4C4C4C),
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
+
                     const SizedBox(height: 20),
+
                     Text(
                       l10n.aboutAppDescription,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: textTheme.bodyLarge?.copyWith(
                         height: 1.4,
+                        color: colorScheme.onSurface,
                       ),
                     ),
+
                     const Spacer(),
+
                     Center(
                       child: Text(
                         l10n.aboutAppCopyright,
-                        style: const TextStyle(
-                          color: Color(0xFF9E9E9E),
-                          fontSize: 14,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.outline,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
+
                     const SizedBox(height: 24),
                   ],
                 ),

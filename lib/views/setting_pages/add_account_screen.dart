@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/utils/date_utils.dart';
+import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -66,7 +68,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
     final date = await showModalBottomSheet<DateTime>(
       context: context,
-      builder: (_) => _WheelDatePicker(initialDate: initial),
+      builder: (_) => WheelDatePicker(initialDate: initial),
     );
 
     if (date != null) {
@@ -114,9 +116,9 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   Future<void> _onAddAccount() async {
     final l10n = AppLocalizations.of(context);
     final name = _nameCtrl.text.trim();
-    final dob = parseDateFromText(_dobCtrl.text);
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
+    final dobText = _dobCtrl.text;
 
     if (name.isEmpty) {
       AlertService.showSnack(l10n.addAccountNameRequired, isError: true);
@@ -133,9 +135,12 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       return;
     }
 
-    if (dob == null) {
-      debugPrint('ChildADD: invalid birth date');
-      AlertService.showSnack(l10n.invalidBirthDate, isError: true);
+    // ✅ Parse DOB
+    DateTime dob;
+    try {
+      dob = DateFormat('dd/MM/yyyy').parseStrict(dobText);
+    } catch (_) {
+      AlertService.showSnack('Ngày sinh không hợp lệ', isError: true);
       return;
     }
 
@@ -221,11 +226,13 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                       AppLabeledTextField(
                         label: l10n.authEmailLabel,
                         hint: l10n.authEnterEmailHint,
+                        hint: l10n.authEnterEmailHint,
                         controller: _emailCtrl,
                       ),
                       const SizedBox(height: 16),
                       AppLabeledTextField(
                         label: l10n.authPasswordLabel,
+                        hint: l10n.authEnterPasswordHint,
                         hint: l10n.authEnterPasswordHint,
                         controller: _passwordCtrl,
                         obscureText: hidePassword,

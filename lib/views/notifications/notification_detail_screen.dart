@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/core/location/map_focus_bus.dart';
+import 'package:kid_manager/features/safe_route/presentation/pages/tracking_page.dart';
 import 'package:kid_manager/helpers/phone/phone_helps.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
@@ -8,6 +9,7 @@ import 'package:kid_manager/models/notifications/notification_detail_model.dart'
 import 'package:kid_manager/services/notifications/tracking_notification_style.dart';
 import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/notifications/notification_detail_body.dart';
 import 'package:kid_manager/widgets/notifications/notification_text_resolver.dart';
@@ -151,6 +153,67 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     return Icons.location_on_outlined;
   }
 
+
+  void _handleZoneViewMap(NotificationDetailModel detail) {
+    _openZoneOnMainMap(detail);
+  }
+
+  Future<void> _handleOpenSafeRouteTracking(NotificationDetailModel detail) async {
+    final childId = (detail.data['childUid'] ?? detail.data['childId'] ?? '')
+        .toString()
+        .trim();
+
+    if (childId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy thông tin hành trình của bé'),
+        ),
+      );
+      return;
+    }
+
+    final childAvatarUrl = _resolveChildAvatarUrl(detail, childId);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TrackingPage(
+          childId: childId,
+          childAvatarUrl: childAvatarUrl,
+        ),
+      ),
+    );
+  }
+
+  String? _resolveChildAvatarUrl(
+    NotificationDetailModel detail,
+    String childId,
+  ) {
+    final fromPayload =
+        (detail.data['childAvatarUrl'] ?? detail.data['avatarUrl'] ?? '')
+            .toString()
+            .trim();
+    if (fromPayload.isNotEmpty) {
+      return fromPayload;
+    }
+
+    try {
+      final userVm = context.read<UserVm>();
+      for (final member in <dynamic>[
+        ...userVm.locationMembers,
+        ...userVm.children,
+        ...userVm.familyMembers,
+      ]) {
+        if (member.uid == childId) {
+          final avatarUrl = member.avatarUrl?.trim() ?? '';
+          return avatarUrl.isEmpty ? null : avatarUrl;
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
   Future<void> _handleZonePhone(NotificationDetailModel detail) async {
     final l10n = AppLocalizations.of(context);
     final childId = (detail.data['childUid'] ?? '').toString().trim();
@@ -207,22 +270,28 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<NotificationVM>();
     final detail = vm.notificationDetail;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     if (detail == null) return LoadingOverlay();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
         centerTitle: true,
         title: Text(
           l10n.notificationDetailTitle,
-          style: const TextStyle(
-            color: Color(0xFF0F172A),
+          style: textTheme.titleMedium?.copyWith(
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.w700,
+            fontSize: 20,
+            height: 1.56,
           ),
         ),
-        iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
+        iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
       body: vm.loading
           ? const Center(child: CircularProgressIndicator())
@@ -233,7 +302,13 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
-                    decoration: const BoxDecoration(color: Colors.white),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: colorScheme.outline.withOpacity(0.15),
+                      ),
+                    ),
                     child: Column(
                       children: [
                         Container(
@@ -253,28 +328,31 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                         Text(
                           _buildDisplayTitle(detail),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xFF0F172A),
-                            fontSize: 24,
+                          style: textTheme.headlineSmall?.copyWith(
+                            color: colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                             height: 1.3,
+                            fontSize: 20
                           ),
                         ),
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.access_time_rounded,
                               size: 16,
-                              color: Color(0xFF94A3B8),
+                              color: theme.brightness == Brightness.dark
+                                  ? colorScheme.onSurface.withOpacity(0.7)
+                                  : colorScheme.outline,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               detail.formatTimeDisplay(l10n),
-                              style: const TextStyle(
-                                color: Color(0xFF64748B),
-                                fontSize: 14,
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: theme.brightness == Brightness.dark
+                                    ? colorScheme.onSurface.withOpacity(0.8)
+                                    : colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -287,21 +365,25 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFF0F0F0)),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x07000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                        BoxShadow(
-                          color: Color(0x0C000000),
-                          blurRadius: 6,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
+                      border: Border.all(
+                        color: colorScheme.outline.withOpacity(0.15),
+                      ),
+                      boxShadow: theme.brightness == Brightness.light
+                          ? const [
+                              BoxShadow(
+                                color: Color(0x07000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                              BoxShadow(
+                                color: Color(0x0C000000),
+                                blurRadius: 6,
+                                offset: Offset(0, 4),
+                              ),
+                            ]
+                          : [],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,9 +392,10 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                           padding: const EdgeInsets.only(left: 3),
                           child: Text(
                             l10n.notificationDetailSectionTitle,
-                            style: const TextStyle(
-                              color: Color(0xFF94A3B8),
-                              fontSize: 12,
+                            style: textTheme.labelMedium?.copyWith(
+                              color: theme.brightness == Brightness.dark
+                                  ? colorScheme.onSurface
+                                  : colorScheme.outline,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.6,
                             ),
@@ -329,6 +412,10 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                               detail.notificationType == NotificationType.zone
                               ? () => _handleZonePhone(detail)
                               : null,
+                          onOpenSafeRouteTracking:
+                              detail.notificationType == NotificationType.tracking
+                                  ? () => _handleOpenSafeRouteTracking(detail)
+                                  : null,
                         ),
                       ],
                     ),

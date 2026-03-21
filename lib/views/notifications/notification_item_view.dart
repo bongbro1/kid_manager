@@ -38,6 +38,10 @@ class NotificationItemView extends StatelessWidget {
       return BirthdayNotificationCard(item: item, onTap: onTap);
     }
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     final style = item.notificationType == NotificationType.tracking
         ? resolveTrackingNotificationStyle(
             title: item.title,
@@ -45,6 +49,7 @@ class NotificationItemView extends StatelessWidget {
             fallback: item.notificationType.style,
           )
         : item.notificationType.style;
+
     final titleText = _displayTitle(context, item);
     final bodyText = _displayBody(context, item);
 
@@ -58,16 +63,20 @@ class NotificationItemView extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFF3F4F6)),
+              color: colorScheme.surface,
+              border: Border.all(
+                color: colorScheme.outline.withOpacity(0.18),
+              ),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0C000000),
-                  blurRadius: 2,
-                  offset: Offset(0, 1),
-                ),
-              ],
+              boxShadow: theme.brightness == Brightness.light
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x0C000000),
+                        blurRadius: 2,
+                        offset: Offset(0, 1),
+                      ),
+                    ]
+                  : [],
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,7 +90,11 @@ class NotificationItemView extends StatelessWidget {
                     border: Border.all(color: style.borderColor),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Icon(style.icon, color: style.iconColor, size: 22),
+                  child: Icon(
+                    style.icon,
+                    color: style.iconColor,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 12),
 
@@ -100,9 +113,8 @@ class NotificationItemView extends StatelessWidget {
                               titleText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF111827),
-                                fontSize: 16,
+                              style: textTheme.titleMedium?.copyWith(
+                                color: colorScheme.onSurface,
                                 fontWeight: FontWeight.w700,
                                 height: 1.25,
                               ),
@@ -115,9 +127,8 @@ class NotificationItemView extends StatelessWidget {
                               child: Text(
                                 _timeAgo(context, item.createdAt),
                                 textAlign: TextAlign.right,
-                                style: const TextStyle(
-                                  color: Color(0xFF0D59F2),
-                                  fontSize: 12,
+                                style: textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.primary,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -130,9 +141,10 @@ class NotificationItemView extends StatelessWidget {
                       /// MESSAGE
                       Text(
                         bodyText,
-                        style: const TextStyle(
-                          color: Color(0xFF4B5563),
-                          fontSize: 14,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: theme.brightness == Brightness.dark
+                              ? colorScheme.onSurface.withOpacity(0.9)
+                              : colorScheme.onSurfaceVariant,
                           height: 1.5,
                         ),
                       ),
@@ -150,13 +162,13 @@ class NotificationItemView extends StatelessWidget {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D59F2),
+                  color: colorScheme.primary,
                   shape: BoxShape.circle,
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x4C0D59F2),
+                      color: colorScheme.primary.withOpacity(0.3),
                       blurRadius: 2,
-                      offset: Offset(0, 1),
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 ),

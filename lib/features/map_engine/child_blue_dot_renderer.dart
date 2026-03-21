@@ -1,20 +1,31 @@
 import 'dart:convert';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/services/location/map_avatar_marker_factory.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class ChildBlueDotRenderer {
-  final MapboxMap map;
-  ChildBlueDotRenderer(this.map);
+  ChildBlueDotRenderer(this.map, {this.avatarUrl});
 
-  static const _srcId = "blue-dot-source";
-  static const _accLayerId = "blue-dot-accuracy";
-  static const _dotLayerId = "blue-dot-dot";
-  static const _haloLayerId = "blue-dot-halo";
+  final MapboxMap map;
+  final String? avatarUrl;
+
+  static const _srcId = 'blue-dot-source';
+  static const _accLayerId = 'blue-dot-accuracy';
+  static const _haloLayerId = 'blue-dot-halo';
+  static const _markerLayerId = 'blue-dot-marker';
+  static const _markerIconProperty = 'marker_icon_id';
+  static const _defaultMarkerIconId = 'blue-dot-default-icon';
+  static const _avatarMarkerIconId = 'blue-dot-avatar-icon';
+
   LocationData? _last;
+  String _resolvedMarkerIconId = _defaultMarkerIconId;
+
   Future<void> init() async {
     final style = map.style;
 
-    // source: 1 point
     await style.addSource(
       GeoJsonSource(
         id: _srcId,
@@ -22,29 +33,28 @@ class ChildBlueDotRenderer {
       ),
     );
 
-    // 1) Accuracy circle (radius theo accuracy meters)
-    // Mapbox CircleLayer radius tính theo pixel, nhưng có thể dùng circleRadiusExpression
-    // dùng Expression.interpolate theo zoom để scale (đơn giản, nhìn giống GG)
     await style.addLayer(
       CircleLayer(
         id: _accLayerId,
         sourceId: _srcId,
-        circleColor: 0x332196F3, // xanh nhạt (alpha ~ 0x33)
+        circleColor: 0x332196F3,
         circleStrokeColor: 0x552196F3,
         circleStrokeWidth: 1.0,
         circleOpacity: 1.0,
         circleRadiusExpression: [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          12, ["*", ["get", "acc"], 0.10], // zoom 12: acc*0.10 px
-          16, ["*", ["get", "acc"], 0.25], // zoom 16: acc*0.25 px
-          18, ["*", ["get", "acc"], 0.35], // zoom 18
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          12,
+          ['*', ['get', 'acc'], 0.10],
+          16,
+          ['*', ['get', 'acc'], 0.25],
+          18,
+          ['*', ['get', 'acc'], 0.35],
         ],
       ),
     );
 
-    // 2) Halo
     await style.addLayer(
       CircleLayer(
         id: _haloLayerId,
@@ -55,40 +65,92 @@ class ChildBlueDotRenderer {
       ),
     );
 
-    // 3) Blue dot (chấm xanh + viền trắng)
+    await _addMarkerStyleImage(
+      _defaultMarkerIconId,
+      photoUrlOrData: null,
+    );
+
+    final trimmedAvatarUrl = avatarUrl?.trim() ?? '';
+    if (trimmedAvatarUrl.isNotEmpty) {
+      await _addMarkerStyleImage(
+        _avatarMarkerIconId,
+        photoUrlOrData: trimmedAvatarUrl,
+      );
+      _resolvedMarkerIconId = _avatarMarkerIconId;
+    }
+
     await style.addLayer(
-      CircleLayer(
-        id: _dotLayerId,
+      SymbolLayer(
+        id: _markerLayerId,
         sourceId: _srcId,
-        circleColor: 0xFF2196F3,
-        circleRadius: 7.0,
-        circleStrokeColor: 0xFFFFFFFF,
-        circleStrokeWidth: 2.0,
+        iconImageExpression: ['get', _markerIconProperty],
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+        iconAnchor: IconAnchor.CENTER,
+        iconSize: 1.0,
       ),
     );
   }
 
+  Future<void> _addMarkerStyleImage(
+    String iconId, {
+    required String? photoUrlOrData,
+  }) async {
+    final markerImage = await MapAvatarMarkerFactory.build(
+      photoUrlOrData: photoUrlOrData,
+      accentColor: const Color(0xFF2196F3),
+      size: 68,
+    );
+    try {
+      await map.style.addStyleImage(
+        iconId,
+        1.0,
+        MbxImage(
+          width: markerImage.width,
+          height: markerImage.height,
+          data: markerImage.bytes,
+        ),
+        false,
+        [],
+        [],
+        null,
+      );
+    } catch (error) {
+      if (error is! PlatformException ||
+          !(error.message?.contains('already exists') ?? false)) {
+        rethrow;
+      }
+    }
+  }
+
   Future<void> update(LocationData loc) async {
-    // bỏ update nếu gần như không đổi (giảm rung)
     final last = _last;
     if (last != null) {
-      final distM = last.distanceTo(loc) * 1000.0;
-      final accDelta = (last.accuracy - loc.accuracy).abs();
-      if (distM < 1.5 && accDelta < 2) return; // ngưỡng tuỳ bạn
+      final distMeters = last.distanceTo(loc) * 1000.0;
+      final accuracyDelta = (last.accuracy - loc.accuracy).abs();
+      if (distMeters < 1.5 && accuracyDelta < 2) {
+        return;
+      }
     }
     _last = loc;
 
     final feature = {
-      "type": "Feature",
-      "properties": {"acc": loc.accuracy.clamp(0, 200)},
-      "geometry": {
-        "type": "Point",
-        "coordinates": [loc.longitude, loc.latitude],
-      }
+      'type': 'Feature',
+      'properties': {
+        'acc': loc.accuracy.clamp(0, 200),
+        _markerIconProperty: _resolvedMarkerIconId,
+      },
+      'geometry': {
+        'type': 'Point',
+        'coordinates': [loc.longitude, loc.latitude],
+      },
     };
 
-    final geo = {"type": "FeatureCollection", "features": [feature]};
+    final geoJson = {
+      'type': 'FeatureCollection',
+      'features': [feature],
+    };
     final source = await map.style.getSource(_srcId) as GeoJsonSource;
-    await source.updateGeoJSON(jsonEncode(geo));
+    await source.updateGeoJSON(jsonEncode(geoJson));
   }
 }
