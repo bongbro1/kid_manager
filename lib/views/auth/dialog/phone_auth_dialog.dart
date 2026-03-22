@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/alert_service.dart';
-import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
-import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:provider/provider.dart';
 
 class PhoneAuthDialog {
@@ -15,7 +13,7 @@ class PhoneAuthDialog {
     }
 
     if (!phone.startsWith("+")) {
-      return "+$phone";
+      return "+84$phone";
     }
 
     return phone;
