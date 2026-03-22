@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class MapSearchBar extends StatelessWidget {
   final TextEditingController controller;
@@ -16,6 +17,8 @@ class MapSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Positioned(
       top: topOffset,
       left: 12,
@@ -40,8 +43,8 @@ class MapSearchBar extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: controller,
-                decoration: const InputDecoration(
-                  hintText: 'Tìm kiếm',
+                decoration: InputDecoration(
+                  hintText: l10n.locationSearchHint,
                   border: InputBorder.none,
                   isDense: true,
                 ),

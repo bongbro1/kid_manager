@@ -130,12 +130,15 @@ class _NotificationScreenState extends State<NotificationScreen>
   Widget build(BuildContext context) {
     final vm = context.watch<NotificationVM>();
     final notifications = _buildVisibleNotifications(vm.notifications);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         body: SafeArea(
           child: Column(
             children: [
@@ -145,7 +148,11 @@ class _NotificationScreenState extends State<NotificationScreen>
                 activeFilter: vm.activeFilter,
                 onFilterChanged: _onFilterChanged,
               ),
-              const Divider(height: 2, thickness: 2, color: Color(0xFFF1F5F9)),
+              Divider(
+                height: 2,
+                thickness: 2,
+                color: colorScheme.outline.withOpacity(0.2),
+              ),
               Expanded(
                 child: vm.loading
                     ? const Center(child: CircularProgressIndicator())
@@ -156,9 +163,8 @@ class _NotificationScreenState extends State<NotificationScreen>
                           child: Text(
                             vm.error!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.error,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -235,6 +241,10 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   Widget _buildDateHeader(DateTime date) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     final now = DateTime.now();
     final yesterday = now.subtract(const Duration(days: 1));
 
@@ -251,9 +261,8 @@ class _NotificationScreenState extends State<NotificationScreen>
       width: double.infinity,
       child: Text(
         text,
-        style: const TextStyle(
-          color: Color(0xFF6B7280),
-          fontSize: 12,
+        style: textTheme.labelMedium?.copyWith(
+          color: colorScheme.onSurface,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
         ),
@@ -314,6 +323,10 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
 
   void _showFilter() {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     final filters = [
       (NotificationFilter.all, l10n.notificationFilterAll, Icons.notifications),
       (
@@ -336,10 +349,15 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final sheetTheme = Theme.of(context);
+        final sheetColorScheme = sheetTheme.colorScheme;
+        final sheetTextTheme = sheetTheme.textTheme;
+
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -347,9 +365,9 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
               const SizedBox(height: 12),
               Text(
                 l10n.notificationFilterTitle,
-                style: const TextStyle(
-                  fontSize: 18,
+                style: sheetTextTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: sheetColorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -359,12 +377,26 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
                   final filter = f.$1;
                   final label = f.$2;
                   final icon = f.$3;
+                  final isSelected = widget.activeFilter == filter;
 
                   return ListTile(
-                    leading: Icon(icon),
-                    title: Text(label),
-                    trailing: widget.activeFilter == filter
-                        ? const Icon(Icons.check, color: Colors.blue)
+                    leading: Icon(
+                      icon,
+                      color: isSelected
+                          ? sheetColorScheme.primary
+                          : sheetColorScheme.onSurface,
+                    ),
+                    title: Text(
+                      label,
+                      style: sheetTextTheme.bodyLarge?.copyWith(
+                        color: sheetColorScheme.onSurface,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? Icon(Icons.check, color: sheetColorScheme.primary)
                         : null,
                     onTap: () {
                       Navigator.pop(context);
@@ -408,6 +440,12 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
 
   Widget _buildNormalHeader() {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    final hasFilter = widget.activeFilter != NotificationFilter.all;
+    final hasSearch = widget.searchKeyword.isNotEmpty;
 
     return Stack(
       key: const ValueKey('normal'),
@@ -416,7 +454,11 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
         Center(
           child: Text(
             l10n.notificationScreenTitle,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+              fontSize: 20
+            ),
           ),
         ),
         Row(
@@ -424,14 +466,12 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
           children: [
             _CircleIconButton(
               icon: Icons.tune,
-              color: widget.activeFilter == NotificationFilter.all
-                  ? Colors.black
-                  : Colors.blue,
+              color: hasFilter ? colorScheme.primary : colorScheme.onSurface,
               onTap: _showFilter,
             ),
             _CircleIconButton(
               icon: Icons.search,
-              color: widget.searchKeyword.isEmpty ? Colors.black : Colors.blue,
+              color: hasSearch ? colorScheme.primary : colorScheme.onSurface,
               onTap: () {
                 setState(() {
                   _isSearching = true;
@@ -450,6 +490,9 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
 
   Widget _buildSearchBox() {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Padding(
       key: const ValueKey('search'),
@@ -462,12 +505,12 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
               height: 44,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
                   color: _isFocused
-                      ? const Color(0xFF2563EB)
-                      : const Color(0xFFE5E7EB),
+                      ? colorScheme.primary
+                      : colorScheme.outline.withOpacity(0.5),
                   width: 1,
                 ),
               ),
@@ -482,17 +525,16 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
                         controller: _controller,
                         focusNode: _focusNode,
                         autofocus: true,
-                        cursorColor: const Color(0xFF2563EB),
-                        style: const TextStyle(
-                          fontSize: 15,
+                        cursorColor: colorScheme.primary,
+                        style: textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF111827),
+                          color: colorScheme.onSurface,
                         ),
                         onChanged: _onSearch,
                         decoration: InputDecoration(
                           hintText: l10n.notificationSearchHint,
-                          hintStyle: const TextStyle(
-                            color: Color(0xFF9CA3AF),
+                          hintStyle: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.outline,
                             fontWeight: FontWeight.w400,
                           ),
                           border: InputBorder.none,
@@ -514,10 +556,10 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
                       _onSearch(_controller.text);
                       FocusScope.of(context).unfocus();
                     },
-                    child: const Icon(
+                    child: Icon(
                       Icons.search,
                       size: 20,
-                      color: Color(0xFF6B7280),
+                      color: colorScheme.outline,
                     ),
                   ),
                 ],

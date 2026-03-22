@@ -1,30 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
-import '../../viewmodels/auth_vm.dart';
 import '../../core/alert_service.dart';
+import '../../viewmodels/auth_vm.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   Future<void> _logout(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final authVm = context.read<AuthVM>();
     final confirm = await AlertService.confirm(
-      title: 'Đăng xuất',
-      message: 'Bạn có chắc muốn đăng xuất không?',
+      title: l10n.logoutTitle,
+      message: l10n.confirmLogoutQuestion,
     );
 
     if (!confirm) return;
 
-    await context.read<AuthVM>().logout();
+    await authVm.logout();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final authVM = context.watch<AuthVM>();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trang chủ'),
+        title: Text(l10n.homeTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -39,19 +43,17 @@ class HomeScreen extends StatelessWidget {
             const Icon(Icons.child_care, size: 64),
             const SizedBox(height: 16),
             Text(
-              'Xin chào 👋',
+              '${l10n.homeGreeting} 👋',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            if (authVM.user?.email != null)
-              Text(authVM.user!.email!),
+            if (authVM.user?.email != null) Text(authVM.user!.email!),
             const SizedBox(height: 24),
-
             ElevatedButton(
               onPressed: () {
                 // TODO: navigate to child list screen
               },
-              child: const Text('Quản lý con'),
+              child: Text(l10n.homeManageChildButton),
             ),
           ],
         ),

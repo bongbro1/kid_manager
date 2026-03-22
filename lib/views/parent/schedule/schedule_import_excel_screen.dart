@@ -114,6 +114,8 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     if (resolved == null) return;
 
     _session = resolved;
+    // Phase 2: Handle owner mapping for guardian. Import must always write
+    // into the parent-owned schedule namespace resolved by the session.
     scheduleVm.setScheduleOwnerUid(_session!.ownerParentUid);
 
     final selectedChildId = _session?.selectedChildId;
@@ -134,6 +136,8 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     if (_session == null || _isChildMode) return;
 
     final importVm = context.read<ScheduleImportVM>();
+    // Phase 2: The dropdown child list is already watched by ownerParentUid in
+    // ScheduleSessionResolver, so guardian sees the same children as parent.
     final children = context.read<UserVm>().children;
 
     if (importVm.selectedChildId != null || children.isEmpty) return;

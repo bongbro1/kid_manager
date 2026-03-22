@@ -1,5 +1,7 @@
-import 'dart:async';
+﻿import 'dart:async';
+import 'dart:ui';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/location/motion_detector.dart';
@@ -9,16 +11,17 @@ import 'package:kid_manager/core/location/tracking_state.dart';
 import 'package:kid_manager/core/zones/zone_monitor.dart';
 import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
 import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
+import 'package:kid_manager/utils/app_localizations_loader.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
-
-import 'package:flutter_activity_recognition/models/activity.dart';
 
 class ChildLocationViewModel extends ChangeNotifier {
   ChildLocationViewModel(
@@ -49,7 +52,8 @@ class ChildLocationViewModel extends ChangeNotifier {
   String? _lastTrackingStatus;
   int _lastStatusHeartbeatAtMs = 0;
   int _lastCurrentSentAtMs = 0;
-  int _lastBadAccCurrentSentAtMs = 0;
+  int _lastCurrentFailureAtMs = 0;
+  int _lastHistoryFailureAtMs = 0;
   bool _sentInitialCurrent = false;
   // ===== STATE =====
   LocationData? _currentLocation;
@@ -91,11 +95,37 @@ class ChildLocationViewModel extends ChangeNotifier {
   StreamSubscription<LocationData>? _gpsSub;
 
   bool _restarting = false;
+  Future<AppLocalizations>? _l10nFuture;
+  String? _l10nUid;
+
+  AppLocalizations _fallbackL10n() {
+    final lang = PlatformDispatcher.instance.locale.languageCode.toLowerCase();
+    return lookupAppLocalizations(Locale(lang == 'en' ? 'en' : 'vi'));
+  }
+
+  Future<AppLocalizations> _getL10n() {
+    final uid = _auth.currentUser?.uid;
+    if (_l10nFuture != null && _l10nUid == uid) {
+      return _l10nFuture!;
+    }
+
+    final fallbackLang =
+        PlatformDispatcher.instance.locale.languageCode.toLowerCase() == 'en'
+        ? 'en'
+        : 'vi';
+    _l10nUid = uid;
+    _l10nFuture = AppLocalizationsLoader.loadForUser(
+      userRepository: UserRepository.background(FirebaseFirestore.instance),
+      uid: uid,
+      fallbackLang: fallbackLang,
+    );
+    return _l10nFuture!;
+  }
 
   String _requireUid() {
     final uid = _auth.currentUser?.uid;
     if (uid == null || uid.isEmpty) {
-      throw Exception("Chua dang nhap -> khong the chia se vi tri");
+      throw Exception(_fallbackL10n().authLoginRequired);
     }
     return uid;
   }
@@ -119,6 +149,8 @@ class ChildLocationViewModel extends ChangeNotifier {
     _zonesInited = false;
     _activitySub = null;
     _lastActivity = null;
+    _l10nFuture = null;
+    _l10nUid = null;
   }
 
   bool _isJumpTooLarge(LocationData? prev, LocationData next) {
@@ -176,6 +208,7 @@ class ChildLocationViewModel extends ChangeNotifier {
 
     _healthTimer = Timer.periodic(const Duration(seconds: 20), (_) async {
       try {
+        final l10n = await _getL10n();
         final serviceEnabled = await _locationService.isServiceEnabled();
         final permissionGranted = await _locationService.hasLocationPermission(
           requireBackground: _requireBackground,
@@ -189,7 +222,7 @@ class ChildLocationViewModel extends ChangeNotifier {
         if (!serviceEnabled) {
           await _reportTrackingStatusIfChanged(
             'location_service_off',
-            message: 'Thiết bị đã tắt GPS/vị trí',
+            message: l10n.trackingStatusLocationServiceOffMessage,
           );
           notifyListeners();
           return;
@@ -199,8 +232,8 @@ class ChildLocationViewModel extends ChangeNotifier {
           await _reportTrackingStatusIfChanged(
             'location_permission_denied',
             message: preciseGranted
-                ? 'Thiet bi da tat quyen vi tri'
-                : 'Thiet bi chua cap vi tri chinh xac (Precise location)',
+                ? l10n.trackingStatusLocationPermissionDeniedMessage
+                : l10n.trackingStatusPreciseLocationDeniedMessage,
           );
           notifyListeners();
           return;
@@ -211,7 +244,7 @@ class ChildLocationViewModel extends ChangeNotifier {
           if (!bgEnabled) {
             await _reportTrackingStatusIfChanged(
               'background_disabled',
-              message: 'Da tat chia se vi tri nen',
+              message: l10n.trackingStatusBackgroundDisabledMessage,
             );
             notifyListeners();
             return;
@@ -226,7 +259,7 @@ class ChildLocationViewModel extends ChangeNotifier {
           _lastStatusHeartbeatAtMs = nowMs;
           await _reportTrackingStatusIfChanged(
             'ok',
-            message: 'Dinh vi hoat dong binh thuong',
+            message: l10n.trackingStatusOkMessage,
             force: true,
           );
         }
@@ -236,6 +269,43 @@ class ChildLocationViewModel extends ChangeNotifier {
         debugPrint('health monitor error: $e');
       }
     });
+  }
+
+  bool _canAttemptSend({
+    required int nowMs,
+    required int lastSuccessAtMs,
+    required int lastFailureAtMs,
+    required Duration minSuccessInterval,
+    Duration failureBackoff = const Duration(seconds: 5),
+  }) {
+    final nextAfterSuccess =
+        lastSuccessAtMs + minSuccessInterval.inMilliseconds;
+    final nextAfterFailure = lastFailureAtMs + failureBackoff.inMilliseconds;
+    return nowMs >= nextAfterSuccess && nowMs >= nextAfterFailure;
+  }
+
+  Duration? _currentSendInterval({
+    required MotionState motion,
+    required double accuracy,
+    required bool shouldSendInitialCurrent,
+  }) {
+    if (accuracy > 100) return null;
+    if (shouldSendInitialCurrent) return Duration.zero;
+
+    switch (motion) {
+      case MotionState.moving:
+        if (accuracy <= 20) return const Duration(seconds: 3);
+        if (accuracy <= 50) return const Duration(seconds: 8);
+        return const Duration(seconds: 30);
+      case MotionState.idle:
+        if (accuracy <= 20) return const Duration(seconds: 15);
+        if (accuracy <= 50) return const Duration(seconds: 25);
+        return const Duration(seconds: 45);
+      case MotionState.stationary:
+        if (accuracy <= 20) return const Duration(seconds: 30);
+        if (accuracy <= 50) return const Duration(seconds: 45);
+        return const Duration(minutes: 1);
+    }
   }
 
   /// Stop sharing (clearData=false if paused, true on logout)
@@ -249,7 +319,8 @@ class ChildLocationViewModel extends ChangeNotifier {
     _lastTrackingStatus = null;
     _lastStatusHeartbeatAtMs = 0;
     _lastCurrentSentAtMs = 0;
-    _lastBadAccCurrentSentAtMs = 0;
+    _lastCurrentFailureAtMs = 0;
+    _lastHistoryFailureAtMs = 0;
     _sentInitialCurrent = false;
 
     _isSharing = false;
@@ -272,6 +343,8 @@ class ChildLocationViewModel extends ChangeNotifier {
   Future<void> startLocationSharing({bool background = true}) async {
     if (_isSharing) return;
 
+    final l10n = await _getL10n();
+
     try {
       _requireUid(); // validate
     } catch (e) {
@@ -289,6 +362,8 @@ class ChildLocationViewModel extends ChangeNotifier {
     try {
       ok = await _locationService.ensureServiceAndPermission(
         requireBackground: _requireBackground,
+        notificationTitle: l10n.locationForegroundServiceTitle,
+        notificationSubtitle: l10n.locationForegroundServiceSubtitle,
       );
     } catch (e, st) {
       debugPrint('ensureServiceAndPermission error: $e');
@@ -324,26 +399,26 @@ class ChildLocationViewModel extends ChangeNotifier {
       if (!serviceEnabled) {
         await _reportTrackingStatusIfChanged(
           'location_service_off',
-          message: 'Thiet bi da tat GPS/vi tri',
+          message: l10n.trackingStatusLocationServiceOffMessage,
         );
-        _error = 'Vui long bat GPS/vi tri tren thiet bi.';
+        _error = l10n.trackingErrorEnableLocationService;
       } else {
         final preciseGranted = await _locationService
             .hasPreciseLocationPermission();
         if (!preciseGranted) {
           await _reportTrackingStatusIfChanged(
             'location_permission_denied',
-            message: 'Thiet bi chua cap vi tri chinh xac (Precise location)',
+            message: l10n.trackingStatusPreciseLocationDeniedMessage,
           );
-          _error = 'Vui long bat vi tri chinh xac (Precise location).';
+          _error = l10n.trackingErrorEnablePreciseLocation;
         } else if (_requireBackground) {
           final bgEnabled = await _locationService.isBackgroundModeEnabled();
           if (!bgEnabled) {
             await _reportTrackingStatusIfChanged(
               'background_disabled',
-              message: 'Da tat chia se vi tri nen',
+              message: l10n.trackingStatusBackgroundDisabledMessage,
             );
-            _error = 'Vui long bat chia se vi tri nen (Allow all the time).';
+            _error = l10n.trackingErrorEnableBackgroundLocation;
           }
         }
       }
@@ -366,7 +441,11 @@ class ChildLocationViewModel extends ChangeNotifier {
     _gpsSub = _locationService.getLocationStream().listen((raw) async {
       debugPrint('GPS RAW: acc=${raw.accuracy}');
 
-      final result = _engine.process(raw, _lastActivity);
+      final result = _engine.process(
+        raw,
+        _lastActivity,
+        previousReference: _currentLocation,
+      );
       final filtered = result.filteredLocation;
       final acc = filtered.accuracy;
 
@@ -409,7 +488,7 @@ class ChildLocationViewModel extends ChangeNotifier {
       );
 
       // =========================
-      // 1) Update CURRENT when moving, and allow one initial current fix.
+      // 1) Update CURRENT with keep-alive even when child is idle/stationary.
       // =========================
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final rejectVeryBadAcc = acc > 100;
@@ -418,61 +497,73 @@ class ChildLocationViewModel extends ChangeNotifier {
       final shouldSendInitialCurrent =
           !_sentInitialCurrent && !rejectVeryBadAcc;
 
-      try {
-        bool sentCurrentToServer = false;
+      var sentCurrentToServer = false;
+      var sentHistoryToServer = false;
+      Object? locationError;
 
-        if ((isMoving || shouldSendInitialCurrent) && !rejectVeryBadAcc) {
-          if (acc <= 20) {
-            if (nowMs - _lastCurrentSentAtMs >= 3000) {
-              _lastCurrentSentAtMs = nowMs;
-              await _locationRepository.updateMyCurrent(payload);
-              sentCurrentToServer = true;
-            }
-          } else if (acc <= 50) {
-            if (nowMs - _lastCurrentSentAtMs >= 8000) {
-              _lastCurrentSentAtMs = nowMs;
-              await _locationRepository.updateMyCurrent(payload);
-              sentCurrentToServer = true;
-            }
-          } else {
-            if (nowMs - _lastBadAccCurrentSentAtMs >= 30000) {
-              _lastBadAccCurrentSentAtMs = nowMs;
-              await _locationRepository.updateMyCurrent(payload);
-              sentCurrentToServer = true;
-            }
-          }
-        }
+      final currentInterval = _currentSendInterval(
+        motion: result.motion,
+        accuracy: acc,
+        shouldSendInitialCurrent: shouldSendInitialCurrent,
+      );
 
-        if (sentCurrentToServer) {
+      if (currentInterval != null &&
+          _canAttemptSend(
+            nowMs: nowMs,
+            lastSuccessAtMs: _lastCurrentSentAtMs,
+            lastFailureAtMs: _lastCurrentFailureAtMs,
+            minSuccessInterval: currentInterval,
+          )) {
+        try {
+          await _locationRepository.updateMyCurrent(payload);
+          _lastCurrentSentAtMs = nowMs;
+          _lastCurrentFailureAtMs = 0;
           _sentInitialCurrent = true;
+          sentCurrentToServer = true;
+        } catch (e) {
+          _lastCurrentFailureAtMs = nowMs;
+          locationError = e;
+          debugPrint('ERROR CURRENT LOCATION: $e');
         }
+      }
 
-        // =========================
-        // 2) Append HISTORY only when policy allows and moving
-        // =========================
-        if (isMoving && result.shouldSend && goodHistoryAcc) {
+      // =========================
+      // 2) Append HISTORY only when policy allows and moving
+      // =========================
+      if (isMoving &&
+          result.shouldSend &&
+          goodHistoryAcc &&
+          _canAttemptSend(
+            nowMs: nowMs,
+            lastSuccessAtMs: 0,
+            lastFailureAtMs: _lastHistoryFailureAtMs,
+            minSuccessInterval: Duration.zero,
+          )) {
+        try {
           await _locationRepository.appendMyHistory(payload);
+          _lastHistoryFailureAtMs = 0;
+          _engine.acknowledgeHistorySent(filtered, result.motion);
+          sentHistoryToServer = true;
+        } catch (e) {
+          _lastHistoryFailureAtMs = nowMs;
+          locationError ??= e;
+          debugPrint('ERROR HISTORY LOCATION: $e');
         }
+      }
 
         // Keep status reporting separate from health monitor.
         // Only report "ok" when current was sent successfully.
         if (sentCurrentToServer) {
           await _reportTrackingStatusIfChanged(
             'ok',
-            message: 'Dinh vi hoat dong binh thuong',
+            message: l10n.trackingStatusOkMessage,
           );
         }
 
-        debugPrint(
-          'OK -> lat=${result.filteredLocation.latitude}, '
-          'lng=${result.filteredLocation.longitude}, '
-          'motion=${result.motion}, '
-          'transport=${_transport.name}, '
-          'acc=${acc.toStringAsFixed(1)}',
-        );
-      } catch (e) {
-        debugPrint("ERROR LOCATIONS: $e");
-        _setError(e);
+      if (locationError != null) {
+        _setError(locationError);
+      } else if (_error != null) {
+        _error = null;
       }
 
       if (acc <= 30) {
@@ -481,14 +572,16 @@ class ChildLocationViewModel extends ChangeNotifier {
       notifyListeners();
     });
   }
-
   /// Android 11+: request background permission (usually opens Settings)
   Future<void> enableBackgroundSharing() async {
     _requireBackground = true;
     notifyListeners();
 
+    final l10n = await _getL10n();
     final ok = await _locationService.ensureServiceAndPermission(
       requireBackground: true,
+      notificationTitle: l10n.locationForegroundServiceTitle,
+      notificationSubtitle: l10n.locationForegroundServiceSubtitle,
     );
 
     if (!ok) return;
@@ -498,7 +591,6 @@ class ChildLocationViewModel extends ChangeNotifier {
       await _restartSharing(delay: const Duration(milliseconds: 300));
     }
   }
-
   // SOS
 
   Future<void> _restartSharing({
@@ -517,6 +609,9 @@ class ChildLocationViewModel extends ChangeNotifier {
       await _gpsSub?.cancel();
       _gpsSub = null;
       _engine.reset();
+      _lastCurrentSentAtMs = 0;
+      _lastCurrentFailureAtMs = 0;
+      _lastHistoryFailureAtMs = 0;
       _sentInitialCurrent = false;
 
       _isSharing = false;
@@ -551,7 +646,6 @@ class ChildLocationViewModel extends ChangeNotifier {
     ) {
       _lastActivity = activity;
       // Activity stream is used internally; no continuous UI notify needed.
-      debugPrint(" activity=${activity.type} conf=${activity.confidence}");
     }, onError: (e) => debugPrint("Activity stream error: $e"));
   }
 
@@ -602,8 +696,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     DateTime day, {
     int? fromTs,
     int? toTs,
-  }
-  ) async {
+  }) async {
     try {
       // If repo interface does not include this, call impl directly.
       final history = await _locationRepository.getLocationHistoryByDay(
@@ -636,9 +729,6 @@ class ChildLocationViewModel extends ChangeNotifier {
     }
   }
 
-  int _lastTrailTs = 0;
-  double _lastTrailHeading = 0;
-
   double _turnDelta(double a, double b) {
     var d = (a - b).abs();
     if (d > 180) d = 360 - d;
@@ -648,8 +738,6 @@ class ChildLocationViewModel extends ChangeNotifier {
   void _appendTrail(LocationData loc) {
     if (_trail.isEmpty) {
       _trail.add(loc);
-      _lastTrailTs = loc.timestamp;
-      _lastTrailHeading = loc.heading;
       return;
     }
 
@@ -676,3 +764,5 @@ class ChildLocationViewModel extends ChangeNotifier {
     super.dispose();
   }
 }
+
+

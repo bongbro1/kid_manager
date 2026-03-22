@@ -1,8 +1,20 @@
+import 'dart:ui' show Locale, PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class LocalNotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
+
+  static Future<AppLocalizations> _loadL10n([String? lang]) {
+    final normalized =
+        (lang ?? PlatformDispatcher.instance.locale.languageCode).toLowerCase();
+    return AppLocalizations.delegate.load(
+      Locale(normalized.startsWith('en') ? 'en' : 'vi'),
+    );
+  }
+
   static Future<void> init() async {
     // debugPrint('STEP INIT START');
     // ✅ Tạo notification channel cho Android 8+
@@ -10,12 +22,13 @@ class LocalNotificationService {
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
+    final l10n = await _loadL10n();
 
     await androidPlugin?.createNotificationChannel(
-      const AndroidNotificationChannel(
+      AndroidNotificationChannel(
         'default_channel',
-        'Default',
-        description: 'Default notifications',
+        l10n.notificationsLocalChannelName,
+        description: l10n.notificationsLocalChannelDescription,
         importance: Importance.max,
       ),
     );
@@ -35,16 +48,17 @@ class LocalNotificationService {
     // debugPrint("PAYLOAD: $payload");
 
     try {
-      const androidDetails = AndroidNotificationDetails(
+      final l10n = await _loadL10n();
+      final androidDetails = AndroidNotificationDetails(
         'default_channel',
-        'Default',
-        channelDescription: 'Default notifications',
+        l10n.notificationsLocalChannelName,
+        channelDescription: l10n.notificationsLocalChannelDescription,
         importance: Importance.max,
         priority: Priority.high,
         category: AndroidNotificationCategory.message,
       );
 
-      const details = NotificationDetails(android: androidDetails);
+      final details = NotificationDetails(android: androidDetails);
 
       final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 

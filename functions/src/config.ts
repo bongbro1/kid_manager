@@ -14,6 +14,7 @@ export const REMIND_INTERVAL_SEC = 10;
 export const REMIND_MAX_SECONDS = 30 * 60;
 
 export const SOS_REMINDER_WORKER_URL = defineString("SOS_REMINDER_WORKER_URL");
+export const MAPBOX_ACCESS_TOKEN = defineSecret("MAPBOX_ACCESS_TOKEN");
 
 // thêm để send email
 export const RESEND_API_KEY = defineSecret("RESEND_API_KEY");

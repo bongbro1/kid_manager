@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class OtpVM extends ChangeNotifier {
   final OtpRepository repo;
@@ -141,21 +142,21 @@ class OtpVM extends ChangeNotifier {
           break;
 
         case OtpResendResult.cooldown:
-          error = "Vui lòng chờ trước khi gửi lại mã";
+          error = runtimeL10n().otpResendCooldownError;
           break;
 
         case OtpResendResult.locked:
-          error = "Bạn đã gửi OTP quá nhiều lần. Vui lòng thử lại sau";
+          error = runtimeL10n().otpResendLockedError;
           await syncCooldown(uid);
           break;
 
         case OtpResendResult.maxResend:
-          error = "Bạn đã gửi OTP quá nhiều lần";
+          error = runtimeL10n().otpResendMaxError;
           await syncCooldown(uid);
           break;
 
         case OtpResendResult.notFound:
-          error = "Không tìm thấy OTP";
+          error = runtimeL10n().otpRequestNotFound;
           break;
       }
 

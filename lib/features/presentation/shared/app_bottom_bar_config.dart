@@ -15,6 +15,7 @@ class BottomTabConfig {
   final bool showBadge;
   final bool isNotificationTab;
   final bool isMapTab;
+  final bool isScheduleTab;
 
   final Stream<int> Function(BuildContext context)? badgeCountStreamBuilder;
   const BottomTabConfig({
@@ -24,8 +25,7 @@ class BottomTabConfig {
     this.showBadge = false,
     this.isNotificationTab = false,
     this.isMapTab = false,
+    this.isScheduleTab = false,
   });
-
-
 }
 

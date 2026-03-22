@@ -1,7 +1,10 @@
+﻿import 'dart:ui';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:kid_manager/api/sos_api.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class SosViewModel extends ChangeNotifier {
   SosViewModel({SosApi? api}) : _api = api ?? SosApi();
@@ -17,23 +20,28 @@ class SosViewModel extends ChangeNotifier {
   String? _lastSosId;
   String? get lastSosId => _lastSosId;
 
+  AppLocalizations _fallbackL10n() {
+    final lang = PlatformDispatcher.instance.locale.languageCode.toLowerCase();
+    return lookupAppLocalizations(Locale(lang == 'en' ? 'en' : 'vi'));
+  }
+
   Future<String?> triggerSos({
     required double lat,
     required double lng,
     double? acc,
-    required String createdByName
-
+    required String createdByName,
   }) async {
-    final u = FirebaseAuth.instance.currentUser;
+    final l10n = _fallbackL10n();
+    final user = FirebaseAuth.instance.currentUser;
 
-    if (u == null) {
-      _error = 'Chưa đăng nhập';
+    if (user == null) {
+      _error = l10n.authLoginRequired;
       notifyListeners();
       return null;
     }
-    final name = (createdByName.trim().isNotEmpty == true)
+    final name = createdByName.trim().isNotEmpty
         ? createdByName.trim()
-        : (u.email ?? 'Unknown');
+        : (user.email ?? l10n.parentLocationUnknownUser);
 
     if (_sending) return null;
 
@@ -42,18 +50,22 @@ class SosViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await _api.createSos(lat: lat, lng: lng, acc: acc,createdByName:name);
-
+      final res = await _api.createSos(
+        lat: lat,
+        lng: lng,
+        acc: acc,
+        createdByName: name,
+      );
 
       _lastSosId = res.sosId;
       return res.sosId;
     } on FirebaseFunctionsException catch (e) {
-      debugPrint("CODE: ${e.code}");
-      debugPrint("CODE: ${e.message}");
-      debugPrint("DETAILS: ${e.details}");
+      debugPrint('CODE: ${e.code}');
+      debugPrint('CODE: ${e.message}');
+      debugPrint('DETAILS: ${e.details}');
       return null;
     } catch (e) {
-      print("ERROR SOS : ${e}");
+      debugPrint('ERROR SOS: $e');
       _error = e.toString();
       return null;
     } finally {

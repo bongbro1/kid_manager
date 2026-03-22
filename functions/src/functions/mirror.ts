@@ -1,18 +1,45 @@
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { admin } from "../bootstrap";
 import { REGION } from "../config";
 
-export const mirrorUserToRtdb = onDocumentCreated(
-{ document: "users/{uid}", region: REGION },
-async (event) => {
-    const snap = event.data;
-    if (!snap) return;
-
-    const data = snap.data() as any;
+export const mirrorUserToRtdb = onDocumentWritten(
+  { document: "users/{uid}", region: REGION },
+  async (event) => {
     const uid = event.params.uid;
-    const parentUid = data.parentUid || null;
+    const after = event.data?.after;
+    const targetRef = admin.database().ref(`users/${uid}`);
 
-    await admin.database().ref(`users/${uid}`).set({ parentUid });
-    console.log(`Mirrored user ${uid} → RTDB`);
+    if (!after?.exists) {
+      await targetRef.remove();
+      console.log(`[mirrorUserToRtdb] removed RTDB mirror for uid=${uid}`);
+      return;
+    }
+
+    const data = after.data() as Record<string, unknown>;
+    const parentUid =
+      typeof data.parentUid === "string" && data.parentUid.trim()
+        ? data.parentUid.trim()
+        : null;
+    const familyId =
+      typeof data.familyId === "string" && data.familyId.trim()
+        ? data.familyId.trim()
+        : null;
+    const role =
+      typeof data.role === "string" && data.role.trim()
+        ? data.role.trim()
+        : null;
+    const allowTracking = data.allowTracking === true;
+
+    await targetRef.set({
+      parentUid,
+      familyId,
+      role,
+      allowTracking,
+      mirroredAt: admin.database.ServerValue.TIMESTAMP,
+    });
+
+    console.log(
+      `[mirrorUserToRtdb] mirrored uid=${uid} parentUid=${parentUid} familyId=${familyId} role=${role} allowTracking=${allowTracking}`
+    );
   }
 );

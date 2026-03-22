@@ -90,8 +90,25 @@ class ScheduleSessionResolver {
       );
     }
 
+    var ownerParentUid = currentUid;
+
+    // Guardian reuses the parent-owned schedule namespace, so we must resolve
+    // the actual owner parent uid instead of treating guardian as the owner.
+    if (role == 'guardian') {
+      if (userVm.profile == null || userVm.profile!.id != currentUid) {
+        await userVm.loadProfile(
+          uid: currentUid,
+          caller: 'schedule_session_resolver_guardian',
+        );
+      }
+
+      final resolvedOwnerUid = userVm.profile?.parentUid?.trim() ?? '';
+      if (resolvedOwnerUid.isEmpty) return null;
+      ownerParentUid = resolvedOwnerUid;
+    }
+
     if (watchChildrenForParent) {
-      userVm.watchChildren(currentUid);
+      userVm.watchChildren(ownerParentUid);
     }
 
     final children = List<AppUser>.unmodifiable(userVm.children);
@@ -100,7 +117,7 @@ class ScheduleSessionResolver {
       currentUid: currentUid,
       role: role,
       isChildMode: false,
-      ownerParentUid: currentUid,
+      ownerParentUid: ownerParentUid,
       familyId: userVm.familyId,
       selectedChildId: resolveDefaultChildId(
         initialChildId: initialChildId,

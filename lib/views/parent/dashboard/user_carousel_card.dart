@@ -61,29 +61,37 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
     final users = vm.children;
     final selectedId = vm.selectedChildId;
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     final pageCount = (users.length / 3).ceil();
+
     if (vm.error != null) {
-      return Center(child: Text(vm.error!));
+      return Center(
+        child: Text(
+          vm.error!,
+          style: textTheme.bodyMedium?.copyWith(color: scheme.error),
+        ),
+      );
     }
 
     return Container(
-      // width: 380,
       height: 190,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x26000000),
+            color: scheme.shadow.withOpacity(0.15),
             blurRadius: 3,
-            offset: Offset(0, 1),
+            offset: const Offset(0, 1),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: Color(0x4C000000),
+            color: scheme.shadow.withOpacity(0.25),
             blurRadius: 2,
-            offset: Offset(0, 1),
-            spreadRadius: 0,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -92,14 +100,12 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
         children: [
           Row(
             children: [
-              // Left arrow
               _ArrowBtn(
                 asset: 'assets/icons/chevron_left.svg',
                 enabled: _page > 0,
                 onTap: _goPrev,
               ),
 
-              // 3 users in the middle (paged)
               Expanded(
                 child: SizedBox(
                   height: 120,
@@ -118,7 +124,9 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                           if (i >= slice.length) {
                             return const SizedBox(width: 70);
                           }
+
                           final user = slice[i];
+
                           return SizedBox(
                             width: 70,
                             child: GestureDetector(
@@ -129,9 +137,9 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                                 widget.onTapApps();
                               },
                               child: UserItemWidget(
-                                name: slice[i].name,
-                                avatarUrl: slice[i].avatarUrl,
-                                isOnline: slice[i].isOnline,
+                                name: user.name,
+                                avatarUrl: user.avatarUrl,
+                                isOnline: user.isOnline,
                                 isSelected: selectedId == user.id,
                               ),
                             ),
@@ -142,7 +150,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   ),
                 ),
               ),
-              // Right arrow
+
               _ArrowBtn(
                 asset: 'assets/icons/chevron_right.svg',
                 enabled: _page < pageCount - 1,
@@ -150,19 +158,15 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
               ),
             ],
           ),
+
           Container(
             width: 301,
-            decoration: ShapeDecoration(
-              shape: RoundedRectangleBorder(
-                side: BorderSide(
-                  width: 1,
-                  strokeAlign: BorderSide.strokeAlignCenter,
-                  color: const Color(0xFFF2F2F7),
-                ),
-              ),
-            ),
+            height: 1,
+            color: theme.dividerTheme.color ?? scheme.outline.withOpacity(0.3),
           ),
+
           const SizedBox(height: 12),
+
           SizedBox(
             width: 300,
             child: Row(
@@ -176,11 +180,9 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   fontWeight: FontWeight.w700,
                   onPressed: widget.onTapApps,
                   backgroundColor: widget.currentIndex == 0
-                      ? AppColors.primary
-                      : const Color(0xFFE8DEF8),
-                  foregroundColor: widget.currentIndex == 0
-                      ? Colors.white
-                      : const Color(0xFF4A4459),
+                      ? scheme.primary
+                      : scheme.primary.withOpacity(0.12),
+                  foregroundColor: scheme.onSurface,
                   fontFamily: 'Roboto',
                   lineHeight: 1.43,
                   letterSpacing: 0.10,
@@ -202,11 +204,9 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   fontWeight: FontWeight.w700,
                   onPressed: widget.onTapStats,
                   backgroundColor: widget.currentIndex == 1
-                      ? AppColors.primary
-                      : const Color(0xFFE8DEF8),
-                  foregroundColor: widget.currentIndex == 1
-                      ? Colors.white
-                      : const Color(0xFF4A4459),
+                      ? scheme.primary
+                      : scheme.primary.withOpacity(0.12),
+                  foregroundColor: scheme.onSurface,
                   fontFamily: 'Roboto',
                   lineHeight: 1.43,
                   letterSpacing: 0.10,
@@ -242,15 +242,25 @@ class _ArrowBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    final iconColor = enabled
+        ? scheme.onSurface
+        : scheme.onSurface.withOpacity(0.3);
+
     return InkWell(
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(999),
-      child: Opacity(
-        opacity: enabled ? 1 : 0.3,
-        child: SizedBox(
-          width: 32,
-          height: 32,
-          child: Center(child: SvgPicture.asset(asset, width: 18, height: 18)),
+      child: SizedBox(
+        width: 32,
+        height: 32,
+        child: Center(
+          child: SvgPicture.asset(
+            asset,
+            width: 18,
+            height: 18,
+            colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+          ),
         ),
       ),
     );
@@ -275,6 +285,8 @@ class UserItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final trimmedAvatar = avatarUrl.trim();
     final hasAvatar = trimmedAvatar.isNotEmpty;
 
@@ -294,9 +306,7 @@ class UserItemWidget extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(
                   width: 2,
-                  color: isSelected
-                      ? const Color(0xFF3A7DFF)
-                      : Colors.transparent,
+                  color: isSelected ? scheme.primary : Colors.transparent,
                 ),
               ),
               child: ClipOval(
@@ -354,8 +364,8 @@ class UserItemWidget extends StatelessWidget {
               height: 1.2,
               forceStrutHeight: true,
             ),
-            style: const TextStyle(
-              color: Color(0xFF4A4A4A),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 13,
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,

@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class MapTopBar extends StatelessWidget {
-  final String title;
+  final String? title;
   final VoidCallback onMenuTap;
   final VoidCallback onAvatarTap;
 
   const MapTopBar({
     super.key,
-    this.title = 'Vị trí',
+    this.title,
     required this.onMenuTap,
     required this.onAvatarTap,
   });
@@ -15,6 +16,7 @@ class MapTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
+    final displayTitle = title ?? AppLocalizations.of(context).mapTopBarTitle;
 
     return Container(
       height: topInset + 48,
@@ -39,7 +41,7 @@ class MapTopBar extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  title,
+                  displayTitle,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,

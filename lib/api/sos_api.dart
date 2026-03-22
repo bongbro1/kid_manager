@@ -1,6 +1,9 @@
+﻿import 'dart:ui';
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:uuid/uuid.dart';
 
 class SosApi {
@@ -10,12 +13,16 @@ class SosApi {
 
   final FirebaseFunctions _functions;
 
+  AppLocalizations _fallbackL10n() {
+    final lang = PlatformDispatcher.instance.locale.languageCode.toLowerCase();
+    return lookupAppLocalizations(Locale(lang == 'en' ? 'en' : 'vi'));
+  }
+
   Future<CreateSosResult> createSos({
     required double lat,
     required double lng,
     double? acc,
     required String createdByName,
-
   }) async {
     final eventId = const Uuid().v4();
     final fn = _functions.httpsCallable('createSos');
@@ -26,15 +33,15 @@ class SosApi {
       'acc': acc,
       'createdByName': createdByName,
     });
-    debugPrint("created: ${res}");
+    debugPrint('created: $res');
 
-    final d = Map<String, dynamic>.from(res.data as Map);
+    final data = Map<String, dynamic>.from(res.data as Map);
 
     return CreateSosResult(
-      ok: d['ok'] == true,
-      sosId: (d['sosId'] ?? eventId).toString(),
-      created: d['created'] == true,
-      familyId: (d['familyId'] ?? '').toString(),
+      ok: data['ok'] == true,
+      sosId: (data['sosId'] ?? eventId).toString(),
+      created: data['created'] == true,
+      familyId: (data['familyId'] ?? '').toString(),
     );
   }
 
@@ -42,12 +49,13 @@ class SosApi {
     required String familyId,
     required String sosId,
   }) async {
-    final u = FirebaseAuth.instance.currentUser;
-    if (u == null)
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
       throw FirebaseFunctionsException(
         code: 'unauthenticated',
-        message: 'Chưa đăng nhập',
+        message: _fallbackL10n().authLoginRequired,
       );
+    }
 
     final fn = _functions.httpsCallable('resolveSos');
     await fn.call({'familyId': familyId, 'sosId': sosId});

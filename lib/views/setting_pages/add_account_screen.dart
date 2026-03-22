@@ -1,11 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/utils/date_utils.dart';
+import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -24,7 +25,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final _passwordCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
 
-  String role = "child";
+  String role = 'child';
   bool hidePassword = true;
 
   final String localeString =
@@ -35,11 +36,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final String timezone = DateTime.now().timeZoneName.isNotEmpty
       ? DateTime.now().timeZoneName
       : 'Asia/Ho_Chi_Minh';
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -56,7 +52,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
   Future<void> pickDate() async {
     final now = DateTime.now();
-    DateTime initial = DateTime(now.year - 10, now.month, now.day);
+    var initial = DateTime(now.year - 10, now.month, now.day);
 
     final parsed = _parseDate(_dobCtrl.text);
     if (parsed != null) {
@@ -65,11 +61,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
     final date = await showModalBottomSheet<DateTime>(
       context: context,
-      builder: (_) => _WheelDatePicker(initialDate: initial),
+      builder: (_) => WheelDatePicker(initialDate: initial),
     );
 
     if (date != null) {
-      _dobCtrl.text = "${date.day}/${date.month}/${date.year}";
+      _dobCtrl.text = '${date.day}/${date.month}/${date.year}';
     }
   }
 
@@ -77,7 +73,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     try {
       if (text.isEmpty) return null;
 
-      final parts = text.split("/");
+      final parts = text.split('/');
       if (parts.length != 3) return null;
 
       final day = int.tryParse(parts[0]);
@@ -101,9 +97,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       label: Text(label),
       selected: role == value,
       onSelected: (_) {
-        setState(() {
-          role = value;
-        });
+        setState(() => role = value);
       },
     );
   }
@@ -115,27 +109,30 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   Future<void> _onAddAccount() async {
     final l10n = AppLocalizations.of(context);
     final name = _nameCtrl.text.trim();
-    final dob = parseDateFromText(_dobCtrl.text);
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
+    final dobText = _dobCtrl.text;
 
     if (name.isEmpty) {
-      AlertService.showSnack('Vui lòng nhập tên', isError: true);
+      AlertService.showSnack(l10n.addAccountNameRequired, isError: true);
       return;
     }
 
     if (!Validators.isValidEmail(email)) {
-      AlertService.showSnack('Email không hợp lệ', isError: true);
+      AlertService.showSnack(l10n.emailInvalid, isError: true);
       return;
     }
 
     if (password.length < 6) {
-      AlertService.showSnack('Mật khẩu phải ít nhất 6 ký tự', isError: true);
+      AlertService.showSnack(l10n.weakPassword, isError: true);
       return;
     }
 
-    if (dob == null) {
-      debugPrint('ChildADD: invalid birth date');
+    // ✅ Parse DOB
+    DateTime dob;
+    try {
+      dob = DateFormat('dd/MM/yyyy').parseStrict(dobText);
+    } catch (_) {
       AlertService.showSnack(l10n.invalidBirthDate, isError: true);
       return;
     }
@@ -176,11 +173,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final vm = context.watch<UserVm>();
+
     return Stack(
       children: [
         Scaffold(
           backgroundColor: scheme.background,
-
           appBar: AppBar(
             elevation: 0,
             backgroundColor: scheme.surface,
@@ -194,7 +191,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             ),
             iconTheme: IconThemeData(color: scheme.onSurface),
           ),
-
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -219,20 +215,16 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         hint: l10n.fullNameHint,
                         controller: _nameCtrl,
                       ),
-
                       const SizedBox(height: 16),
-
                       AppLabeledTextField(
                         label: l10n.authEmailLabel,
-                hint: l10n.authEnterEmailHint,
+                        hint: l10n.authEnterEmailHint,
                         controller: _emailCtrl,
                       ),
-
                       const SizedBox(height: 16),
-
                       AppLabeledTextField(
                         label: l10n.authPasswordLabel,
-                hint: l10n.authEnterPasswordHint,
+                        hint: l10n.authEnterPasswordHint,
                         controller: _passwordCtrl,
                         obscureText: hidePassword,
                         suffixIcon: IconButton(
@@ -245,48 +237,40 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                             size: 18,
                           ),
                           onPressed: () {
-                            setState(() {
-                              hidePassword = !hidePassword;
-                            });
+                            setState(() => hidePassword = !hidePassword);
                           },
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       AppLabeledTextField(
                         label: l10n.birthDateLabel,
-                hint: l10n.birthDateHint,
+                        hint: l10n.birthDateHint,
                         controller: _dobCtrl,
                         readOnly: true,
                         onTap: pickDate,
                         suffixIcon: const Icon(Icons.calendar_today, size: 18),
                       ),
-
                       const SizedBox(height: 20),
 
                       /// ROLE
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          "Quyền truy cập",
+                          l10n.addAccountAccessLabel,
                           style: Theme.of(context).textTheme.labelMedium,
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       Wrap(
                         spacing: 10,
                         children: [
-                          roleChip("child", "Con"),
-                          roleChip("guardian", "Phụ huynh"),
+                          roleChip('child', l10n.addAccountRoleChild),
+                          roleChip('guardian', l10n.addAccountRoleGuardian),
                         ],
                       ),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
 
                 /// BUTTON
@@ -314,7 +298,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             ),
           ),
         ),
-        if (vm.loading) LoadingOverlay(),
+        if (vm.loading) const LoadingOverlay(),
       ],
     );
   }
@@ -343,7 +327,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
     year = widget.initialDate.year;
   }
 
-  List<int> years = List.generate(60, (i) => 1970 + i);
+  final List<int> years = List.generate(60, (i) => 1970 + i);
 
   int daysInMonth(int year, int month) {
     final date = DateTime(year, month + 1, 0);
@@ -352,6 +336,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final maxDay = daysInMonth(year, month);
@@ -361,7 +346,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -375,17 +360,14 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-
           Text(
-            "Chọn ngày sinh",
+            l10n.addAccountSelectBirthDateTitle,
             style: theme.textTheme.titleMedium?.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
-
           const SizedBox(height: 20),
-
           Expanded(
             child: Row(
               children: [
@@ -403,7 +385,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
                     },
                     children: List.generate(
                       maxDay,
-                      (i) => Center(child: Text("${i + 1}")),
+                      (i) => Center(child: Text('${i + 1}')),
                     ),
                   ),
                 ),
@@ -426,7 +408,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
                     },
                     children: List.generate(
                       12,
-                      (i) => Center(child: Text("${i + 1}")),
+                      (i) => Center(child: Text('${i + 1}')),
                     ),
                   ),
                 ),
@@ -448,16 +430,14 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
                       });
                     },
                     children: years
-                        .map((y) => Center(child: Text("$y")))
+                        .map((value) => Center(child: Text('$value')))
                         .toList(),
                   ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -474,7 +454,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
                 elevation: 0,
               ),
               child: Text(
-                "Chọn",
+                l10n.addAccountSelectButton,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: scheme.onPrimary,
                   fontWeight: FontWeight.w600,

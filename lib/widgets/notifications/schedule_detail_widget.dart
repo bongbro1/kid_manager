@@ -3,9 +3,7 @@ import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../../../../core/app_colors.dart';
 
-import '../../core/storage_keys.dart';
 import '../../models/notifications/notification_detail_model.dart';
-import '../../services/storage_service.dart';
 import '../../viewmodels/schedule/schedule_vm.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 
@@ -155,8 +153,6 @@ class ScheduleDetailWidget extends StatelessWidget {
                       if (targetDate == null) return;
 
                       final scheduleVm = context.read<ScheduleViewModel>();
-                      final storage = context.read<StorageService>();
-                      final role = storage.getString(StorageKeys.role);
 
                       await scheduleVm.openFromNotification(
                         ownerParentUid: ownerParentUid,
@@ -167,7 +163,7 @@ class ScheduleDetailWidget extends StatelessWidget {
                       if (!context.mounted) return;
 
                       Navigator.of(context).popUntil((route) => route.isFirst);
-                      activeTabNotifier.value = role == 'child' ? 3 : 4;
+                      activeTabNotifier.value = scheduleTabIndexNotifier.value;
                     }
                   : null,
               icon: const Icon(Icons.calendar_today_rounded, size: 18),

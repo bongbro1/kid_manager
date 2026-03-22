@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class SosConfirmedCard extends StatelessWidget {
   final DateTime? createdAt;
@@ -26,28 +27,39 @@ class SosConfirmedCard extends StatelessWidget {
     return '$dd/$mm/$yy $hh:$mi';
   }
 
-  String _roleLabel(String? r) {
-    switch (r) {
+  String _roleLabel(AppLocalizations l10n, String? role) {
+    switch (role) {
       case 'parent':
-        return 'Phụ huynh';
+        return l10n.sosConfirmedRoleParent;
       case 'child':
-        return 'Trẻ';
+        return l10n.sosConfirmedRoleChild;
       default:
-        return (r == null || r.trim().isEmpty) ? '--' : r;
+        return (role == null || role.trim().isEmpty) ? '--' : role;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     final rows = <_InfoRow>[
       if (createdByName != null && createdByName!.trim().isNotEmpty)
-        _InfoRow(label: 'Tên', value: createdByName!.trim()),
-      _InfoRow(label: 'Người gửi', value: _roleLabel(createdByRole)),
-      _InfoRow(label: 'Gửi lúc', value: _fmt(createdAt)),
-      _InfoRow(label: 'Xác nhận lúc', value: _fmt(resolvedAt)),
-      if (acc != null) _InfoRow(label: 'Độ chính xác', value: '${acc!.toStringAsFixed(0)} m'),
+        _InfoRow(label: l10n.sosConfirmedNameLabel, value: createdByName!.trim()),
+      _InfoRow(
+        label: l10n.sosConfirmedSenderLabel,
+        value: _roleLabel(l10n, createdByRole),
+      ),
+      _InfoRow(label: l10n.sosConfirmedSentAtLabel, value: _fmt(createdAt)),
+      _InfoRow(
+        label: l10n.sosConfirmedConfirmedAtLabel,
+        value: _fmt(resolvedAt),
+      ),
+      if (acc != null)
+        _InfoRow(
+          label: l10n.sosConfirmedAccuracyLabel,
+          value: '${acc!.toStringAsFixed(0)} m',
+        ),
     ];
 
     return Padding(
@@ -55,14 +67,13 @@ class SosConfirmedCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header
           Row(
             children: [
               const Icon(Icons.check_circle, color: Colors.green, size: 40),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Đã xác nhận SOS',
+                  l10n.sosConfirmedTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -75,38 +86,38 @@ class SosConfirmedCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 10),
           Divider(color: Colors.grey.shade300, height: 1),
           const SizedBox(height: 12),
-
-          // Body (scroll an toàn nếu nội dung dài)
-          // Body (tự co giãn, không overflow)
           Flexible(
             child: SingleChildScrollView(
               child: Column(
                 children: rows
-                    .map((r) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: _RowLine(label: r.label, value: r.value),
-                ))
+                    .map(
+                      (row) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: _RowLine(label: row.label, value: row.value),
+                      ),
+                    )
                     .toList(),
               ),
             ),
           ),
-
           const SizedBox(height: 14),
-
-          // Footer button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () => Navigator.pop(context),
-              child: const Text('ĐÓNG', style: TextStyle(fontWeight: FontWeight.w700)),
+              child: Text(
+                l10n.sosConfirmedCloseButton,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ],
@@ -118,6 +129,7 @@ class SosConfirmedCard extends StatelessWidget {
 class _InfoRow {
   final String label;
   final String value;
+
   _InfoRow({required this.label, required this.value});
 }
 

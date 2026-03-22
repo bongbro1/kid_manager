@@ -19,14 +19,16 @@ class AppIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final iconColor = color ?? scheme.onSurfaceVariant;
+
     switch (type) {
       case AppIconType.svg:
         return SvgPicture.asset(
           path,
           width: size,
           height: size,
-          colorFilter:
-              color != null ? ColorFilter.mode(color!, BlendMode.srcIn) : null,
+          colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
         );
 
       case AppIconType.png:
@@ -35,6 +37,8 @@ class AppIcon extends StatelessWidget {
           width: size,
           height: size,
           fit: BoxFit.contain,
+          color: iconColor,
+          colorBlendMode: BlendMode.srcIn,
         );
     }
   }

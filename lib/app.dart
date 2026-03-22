@@ -50,6 +50,7 @@ import 'repositories/schedule_repository.dart';
 import 'viewmodels/schedule/schedule_vm.dart';
 
 import 'package:kid_manager/repositories/memory_day_repository.dart';
+import 'package:kid_manager/services/memory_day/memory_day_reminder_sync_service.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
@@ -182,6 +183,12 @@ class _MyAppState extends State<MyApp> {
           create: (context) =>
               ScheduleNotificationService(context.read<UserRepository>()),
         ),
+        Provider<MemoryDayReminderSyncService>(
+          create: (context) => MemoryDayReminderSyncService(
+            FirebaseFirestore.instance,
+            context.read<UserRepository>(),
+          ),
+        ),
         Provider<LocationServiceInterface>(
           create: (_) => LocationServiceImpl(),
         ),
@@ -210,6 +217,7 @@ class _MyAppState extends State<MyApp> {
             memoryRepo,
             context.read<AuthVM>(),
             context.read<ScheduleNotificationService>(),
+            context.read<MemoryDayReminderSyncService>(),
           ),
         ),
 
@@ -218,7 +226,6 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(
           create: (context) => ScheduleHistoryViewModel(
             context.read<ScheduleRepository>(),
-            context.read<AuthVM>(),
           ),
         ),
 

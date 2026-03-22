@@ -466,9 +466,9 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                               color: Color(0xFF991B1B),
                                             ),
                                             children: [
-                                              const TextSpan(
-                                                text: "Đang chồng lên: ",
-                                                style: TextStyle(
+                                              TextSpan(
+                                                text: l10n.zonesOverlappingPrefix,
+                                                style: const TextStyle(
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                               ),

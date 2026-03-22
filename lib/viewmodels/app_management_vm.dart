@@ -8,6 +8,7 @@ import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
 
 class AppManagementVM extends ChangeNotifier {
@@ -109,7 +110,7 @@ class AppManagementVM extends ChangeNotifier {
       debugPrint("❌ loadApps ERROR: $e");
       debugPrint("STACK: $stack");
 
-      _error = 'Không thể đồng bộ ứng dụng';
+      _error = runtimeL10n().appManagementSyncFailed;
     } finally {
       _setLoading(false);
     }
@@ -186,7 +187,7 @@ class AppManagementVM extends ChangeNotifier {
       }
 
       if (userId == null) {
-        _error = "UserId not found";
+        _error = runtimeL10n().appManagementUserIdNotFound;
         _setLoading(false);
         return;
       }

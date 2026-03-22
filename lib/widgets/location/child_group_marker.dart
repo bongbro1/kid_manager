@@ -1,5 +1,5 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/widgets/common/stacked_avatars.dart';
 
@@ -15,6 +15,8 @@ class ChildGroupMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -32,7 +34,7 @@ class ChildGroupMarker extends StatelessWidget {
               ],
             ),
             child: Text(
-              '${children.length} trẻ',
+              l10n.childGroupMarkerCount(children.length),
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,

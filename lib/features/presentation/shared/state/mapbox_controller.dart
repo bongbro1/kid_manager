@@ -43,6 +43,8 @@ class MapboxController extends ChangeNotifier {
   bool _bubbleReady = false;
   bool _bubbleImageAdded = false;
   Future<void> _styleQueue = Future.value();
+  Future<void>? _styleInitInFlight;
+  int? _styleInitSession;
   int _mapSession = 0;
 
   bool _isSessionActive(int session) => _map != null && _mapSession == session;
@@ -60,6 +62,12 @@ class MapboxController extends ChangeNotifier {
     final message = (error.message ?? '').toLowerCase();
     return message.contains('is not present in style') ||
         message.contains('cannot remove');
+  }
+
+  bool _isStyleAlreadyExistsError(Object error) {
+    if (error is! PlatformException) return false;
+    final message = (error.message ?? '').toLowerCase();
+    return message.contains('already exists');
   }
 
   Future<T?> _runStyleQuery<T>({
@@ -107,6 +115,8 @@ class MapboxController extends ChangeNotifier {
     _bubbleReady = false;
     _bubbleImageAdded = false;
     _bubbleCacheKey = null;
+    _styleInitInFlight = null;
+    _styleInitSession = null;
   }
 
   void detach() {
@@ -118,6 +128,8 @@ class MapboxController extends ChangeNotifier {
     _bubbleCacheKey = null;
     _addedStyleImages.clear();
     _styleQueue = Future.value();
+    _styleInitInFlight = null;
+    _styleInitSession = null;
     _map = null;
     notifyListeners();
   }
@@ -407,10 +419,51 @@ class MapboxController extends ChangeNotifier {
   }
   // ================= STYLE =================
 
-  Future<void> onStyleLoaded() async {
+  Future<bool> _runStyleCreate({
+    required int session,
+    required String label,
+    required Future<void>? Function() call,
+  }) async {
+    try {
+      return await _runStyleWrite(
+        session: session,
+        label: label,
+        call: call,
+      );
+    } catch (e) {
+      if (_isStyleAlreadyExistsError(e)) {
+        debugPrint("Skip duplicate style create: $label");
+        return true;
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> onStyleLoaded() {
     final map = _map;
     final session = _mapSession;
-    if (map == null) return;
+    if (map == null) return Future.value();
+
+    final inFlight = _styleInitInFlight;
+    if (inFlight != null && _styleInitSession == session) {
+      return inFlight;
+    }
+
+    final future = _onStyleLoadedImpl(map: map, session: session);
+    _styleInitInFlight = future;
+    _styleInitSession = session;
+    return future.whenComplete(() {
+      if (_styleInitSession == session && identical(_styleInitInFlight, future)) {
+        _styleInitInFlight = null;
+        _styleInitSession = null;
+      }
+    });
+  }
+
+  Future<void> _onStyleLoadedImpl({
+    required mbx.MapboxMap map,
+    required int session,
+  }) async {
 
     _addedStyleImages.clear();
     _bubbleImageAdded = false;
@@ -423,7 +476,7 @@ class MapboxController extends ChangeNotifier {
     if (!_isSessionActive(session) || !identical(_map, map)) return;
     if (hasChildrenSource == null) return;
     if (!hasChildrenSource) {
-      final added = await _runStyleWrite(
+      final added = await _runStyleCreate(
         session: session,
         label: "addSource:children-source",
         call: () => map.style.addSource(
@@ -447,7 +500,7 @@ class MapboxController extends ChangeNotifier {
     if (!_isSessionActive(session) || !identical(_map, map)) return;
     if (hasChildrenLayer == null) return;
     if (!hasChildrenLayer) {
-      final added = await _runStyleWrite(
+      final added = await _runStyleCreate(
         session: session,
         label: "addLayer:children-layer",
         call: () => map.style.addLayer(
@@ -499,7 +552,7 @@ class MapboxController extends ChangeNotifier {
         textOffset: [0, -2.6],
       );
 
-      final added = await _runStyleWrite(
+      final added = await _runStyleCreate(
         session: session,
         label: "addLayerAt:name-layer",
         call: () => map.style.addLayerAt(
@@ -518,7 +571,7 @@ class MapboxController extends ChangeNotifier {
     if (!_isSessionActive(session) || !identical(_map, map)) return;
     if (hasBubbleSource == null) return;
     if (!hasBubbleSource) {
-      final added = await _runStyleWrite(
+      final added = await _runStyleCreate(
         session: session,
         label: "addSource:focus-bubble-source",
         call: () => map.style.addSource(
@@ -571,7 +624,7 @@ class MapboxController extends ChangeNotifier {
       ],
     );
 
-    final bubbleAdded = await _runStyleWrite(
+    final bubbleAdded = await _runStyleCreate(
       session: session,
       label: "addLayerAt:focus-bubble-layer",
       call: () => map.style.addLayerAt(

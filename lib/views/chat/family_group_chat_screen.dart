@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -9,29 +11,6 @@ import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
-
-class LocalPendingChatMessage {
-  final String localId;
-  final String text;
-  final DateTime createdAt;
-  final bool failed;
-
-  const LocalPendingChatMessage({
-    required this.localId,
-    required this.text,
-    required this.createdAt,
-    this.failed = false,
-  });
-
-  LocalPendingChatMessage copyWith({bool? failed}) {
-    return LocalPendingChatMessage(
-      localId: localId,
-      text: text,
-      createdAt: createdAt,
-      failed: failed ?? this.failed,
-    );
-  }
-}
 
 class FamilyGroupChatScreen extends StatefulWidget {
   final String? initialFamilyId;
@@ -53,7 +32,6 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
   final FamilyChatRepository _repo = FamilyChatRepository();
   final NotificationRepository _notificationRepo = NotificationRepository();
   final TextEditingController _textController = TextEditingController();
-  final List<LocalPendingChatMessage> _pendingMessages = [];
 
   bool _clearedChatNotification = false;
   bool _appliedInitialComposerText = false;
@@ -69,7 +47,6 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
 
   void _resetLocalState() {
     _textController.clear();
-    _pendingMessages.clear();
     _appliedInitialComposerText = false;
   }
 
@@ -127,52 +104,57 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
     }
   }
 
+  Future<bool> _sendMessageText(String text) async {
+    final me = context.read<UserVm>().me;
+    final familyId = _activeFamilyId;
+    if (me == null || familyId == null || familyId.isEmpty) {
+      return false;
+    }
+
+    final clientMessageId =
+        DateTime.now().microsecondsSinceEpoch.toString();
+
+    try {
+      await _repo.sendTextMessage(
+        familyId: familyId,
+        sender: me,
+        text: text,
+        clientMessageId: clientMessageId,
+      );
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).familyChatSendFailed('$e'),
+          ),
+        ),
+      );
+      return false;
+    }
+  }
+
+  Future<void> _retryMessage(FamilyChatMessage message) async {
+    await _sendMessageText(message.text);
+  }
+
   void _sendMessage() {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
     _textController.clear();
+    unawaited(() async {
+      final sent = await _sendMessageText(text);
+      if (sent || !mounted || _textController.text.trim().isNotEmpty) {
+        return;
+      }
 
-    final pending = LocalPendingChatMessage(
-      localId: DateTime.now().microsecondsSinceEpoch.toString(),
-      text: text,
-      createdAt: DateTime.now(),
-    );
-
-    setState(() {
-      _pendingMessages.insert(0, pending);
-    });
-
-    _repo
-        .sendTextMessage(text: text)
-        .then((_) {
-          if (!mounted) return;
-          setState(() {
-            _pendingMessages.removeWhere((m) => m.localId == pending.localId);
-          });
-        })
-        .catchError((e) {
-          if (!mounted) return;
-
-          setState(() {
-            final index = _pendingMessages.indexWhere(
-              (m) => m.localId == pending.localId,
-            );
-            if (index != -1) {
-              _pendingMessages[index] = _pendingMessages[index].copyWith(
-                failed: true,
-              );
-            }
-          });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context).familyChatSendFailed('$e'),
-              ),
-            ),
-          );
-        });
+      _textController.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }());
   }
 
   @override
@@ -237,8 +219,8 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
                 child: _MessagesView(
                   messagesStream: messagesStream,
                   myUid: me.uid,
-                  pendingMessages: _pendingMessages,
                   memberNamesByUid: memberNamesByUid,
+                  onRetryMessage: _retryMessage,
                 ),
               ),
               _Composer(controller: _textController, onSend: _sendMessage),
@@ -468,14 +450,31 @@ class _MessagesView extends StatelessWidget {
   const _MessagesView({
     required this.messagesStream,
     required this.myUid,
-    required this.pendingMessages,
     required this.memberNamesByUid,
+    required this.onRetryMessage,
   });
 
   final Stream<List<FamilyChatMessage>> messagesStream;
   final String myUid;
-  final List<LocalPendingChatMessage> pendingMessages;
   final Map<String, String> memberNamesByUid;
+  final ValueChanged<FamilyChatMessage> onRetryMessage;
+
+  bool _shouldDisplayMessage(FamilyChatMessage message) {
+    if (message.text.trim().isEmpty) {
+      return false;
+    }
+
+    final verifyState = message.verifyState.trim();
+    if (verifyState == 'failed') {
+      return message.senderUid == myUid;
+    }
+
+    if (verifyState == 'pending') {
+      return message.senderUid == myUid;
+    }
+
+    return true;
+  }
 
   String _resolveSenderName(FamilyChatMessage message, AppLocalizations l10n) {
     final currentName = memberNamesByUid[message.senderUid]?.trim();
@@ -507,8 +506,10 @@ class _MessagesView extends StatelessWidget {
           );
         }
 
-        final messages = snapshot.data ?? const <FamilyChatMessage>[];
-        final hasAny = messages.isNotEmpty || pendingMessages.isNotEmpty;
+        final messages = (snapshot.data ?? const <FamilyChatMessage>[])
+            .where(_shouldDisplayMessage)
+            .toList(growable: false);
+        final hasAny = messages.isNotEmpty;
 
         if (!hasAny) {
           return Center(
@@ -519,27 +520,12 @@ class _MessagesView extends StatelessWidget {
           );
         }
 
-        final pendingCount = pendingMessages.length;
-        final totalCount = pendingCount + messages.length;
-
         return ListView.builder(
           reverse: true,
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-          itemCount: totalCount,
+          itemCount: messages.length,
           itemBuilder: (context, index) {
-            if (index < pendingCount) {
-              final localMessage = pendingMessages[index];
-              return Padding(
-                key: ValueKey('local-${localMessage.localId}'),
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: _LocalPendingBubble(message: localMessage),
-                ),
-              );
-            }
-
-            final message = messages[index - pendingCount];
+            final message = messages[index];
             final isMine = message.senderUid == myUid;
 
             return Padding(
@@ -553,6 +539,9 @@ class _MessagesView extends StatelessWidget {
                   message: message,
                   isMine: isMine,
                   displaySenderName: _resolveSenderName(message, l10n),
+                  onRetry: isMine && message.verifyState == 'failed'
+                      ? () => onRetryMessage(message)
+                      : null,
                 ),
               ),
             );
@@ -563,19 +552,47 @@ class _MessagesView extends StatelessWidget {
   }
 }
 
-class _LocalPendingBubble extends StatelessWidget {
-  const _LocalPendingBubble({required this.message});
+class _MessageBubble extends StatelessWidget {
+  const _MessageBubble({
+    required this.message,
+    required this.isMine,
+    required this.displaySenderName,
+    required this.onRetry,
+  });
 
-  final LocalPendingChatMessage message;
+  final FamilyChatMessage message;
+  final bool isMine;
+  final String displaySenderName;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final statusText = message.failed
+    final createdAtText = message.createdAt == null
+        ? '--:--'
+        : DateFormat('HH:mm').format(message.createdAt!.toLocal());
+    final isPending = isMine && message.hasPendingWrites;
+    final isFailed = isMine && message.verifyState == 'failed';
+    final bubbleColor = isFailed
+        ? const Color(0xFFFEF2F2)
+        : isPending
+        ? const Color(0xFFEFF6FF)
+        : isMine
+        ? const Color(0xFFDCFCE7)
+        : Colors.white;
+    final borderColor = isFailed
+        ? const Color(0xFFFECACA)
+        : isPending
+        ? const Color(0xFFBFDBFE)
+        : isMine
+        ? const Color(0xFFBBF7D0)
+        : const Color(0xFFE2E8F0);
+    final statusText = isFailed
         ? l10n.familyChatStatusFailed
-        : l10n.familyChatStatusSending;
-
-    final statusColor = message.failed
+        : isPending
+        ? l10n.familyChatStatusSending
+        : null;
+    final statusColor = isFailed
         ? const Color(0xFFDC2626)
         : const Color(0xFF64748B);
 
@@ -584,70 +601,14 @@ class _LocalPendingBubble extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFE0F2FE),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(4),
-          ),
-          border: Border.all(color: const Color(0xFFBAE6FD)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              message.text,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontSize: 15,
-                height: 1.35,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              statusText,
-              style: TextStyle(color: statusColor, fontSize: 11),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({
-    required this.message,
-    required this.isMine,
-    required this.displaySenderName,
-  });
-
-  final FamilyChatMessage message;
-  final bool isMine;
-  final String displaySenderName;
-
-  @override
-  Widget build(BuildContext context) {
-    final createdAtText = message.createdAt == null
-        ? '--:--'
-        : DateFormat('HH:mm').format(message.createdAt!.toLocal());
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 300),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isMine ? const Color(0xFFDCFCE7) : Colors.white,
+          color: bubbleColor,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
             bottomLeft: Radius.circular(isMine ? 16 : 4),
             bottomRight: Radius.circular(isMine ? 4 : 16),
           ),
-          border: Border.all(
-            color: isMine ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0),
-          ),
+          border: Border.all(color: borderColor),
           boxShadow: const [
             BoxShadow(
               color: Color(0x0A000000),
@@ -681,9 +642,59 @@ class _MessageBubble extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              createdAtText,
-              style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  createdAtText,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 11,
+                  ),
+                ),
+                if (statusText != null) ...[
+                  const SizedBox(width: 8),
+                  if (isFailed)
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 14,
+                      color: Color(0xFFDC2626),
+                    )
+                  else
+                    const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.8,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
+                  const SizedBox(width: 6),
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                if (isFailed && onRetry != null) ...[
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: onRetry,
+                    borderRadius: BorderRadius.circular(999),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.refresh_rounded,
+                        size: 16,
+                        color: Color(0xFFDC2626),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
@@ -710,56 +721,80 @@ class _Composer extends StatelessWidget {
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSend(),
-                style: const TextStyle(color: Color(0xFF0F172A)),
-                minLines: 1,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  hintText: l10n.familyChatTypeMessageHint,
-                  hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFF60A5FA)),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              height: 48,
-              width: 48,
-              child: FilledButton(
-                onPressed: onSend,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+        child: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            final canSend = value.text.trim().isNotEmpty;
+
+            return Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => canSend ? onSend() : null,
+                    style: const TextStyle(color: Color(0xFF0F172A)),
+                    minLines: 1,
+                    maxLines: 5,
+                    decoration: InputDecoration(
+                      hintText: l10n.familyChatTypeMessageHint,
+                      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFF60A5FA)),
+                      ),
+                    ),
                   ),
                 ),
-                child: const Icon(Icons.send_rounded, color: Colors.white),
-              ),
-            ),
-          ],
+                const SizedBox(width: 8),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  height: 48,
+                  width: 48,
+                  decoration: BoxDecoration(
+                    color: canSend
+                        ? const Color(0xFF2563EB)
+                        : const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: canSend
+                        ? const [
+                            BoxShadow(
+                              color: Color(0x332563EB),
+                              blurRadius: 14,
+                              offset: Offset(0, 6),
+                            ),
+                          ]
+                        : const [],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: canSend ? onSend : null,
+                      borderRadius: BorderRadius.circular(16),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

@@ -6,6 +6,8 @@ import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
+
 import '../models/app_user.dart';
 
 class UserItem {
@@ -27,6 +29,7 @@ class UserRepository {
   // ignore: unused_field
   final FirebaseAuth? _auth;
   final SecondaryAuthService? _secondaryAuth;
+
   UserRepository(this._db, this._auth, this._secondaryAuth);
 
   factory UserRepository.background(FirebaseFirestore db) {
@@ -131,6 +134,7 @@ class UserRepository {
       await batch.commit();
       return;
     }
+
     final familyId = _db.collection('families').doc().id;
     final batch = _db.batch();
     batch.set(
@@ -217,11 +221,48 @@ class UserRepository {
         .map((qs) => qs.docs.map(AppUser.fromDoc).toList());
   }
 
+  Stream<List<AppUser>> watchTrackableLocationMembers(
+    String familyId, {
+    String? excludeUid,
+  }) {
+    return _users
+        .where('familyId', isEqualTo: familyId)
+        .snapshots()
+        .map((qs) {
+          final list = qs.docs
+              .map(AppUser.fromDoc)
+              .where((user) {
+                if (excludeUid != null &&
+                    excludeUid.isNotEmpty &&
+                    user.uid == excludeUid) {
+                  return false;
+                }
+
+                if (user.role == UserRole.child) {
+                  return true;
+                }
+
+                return user.role == UserRole.guardian && user.allowTracking;
+              })
+              .toList();
+
+          list.sort((a, b) {
+            final roleScoreA = a.role == UserRole.child ? 0 : 1;
+            final roleScoreB = b.role == UserRole.child ? 0 : 1;
+            final roleCompare = roleScoreA.compareTo(roleScoreB);
+            if (roleCompare != 0) return roleCompare;
+            final nameA = (a.displayName ?? a.email ?? '').trim().toLowerCase();
+            final nameB = (b.displayName ?? b.email ?? '').trim().toLowerCase();
+            return nameA.compareTo(nameB);
+          });
+
+          return list;
+        });
+  }
+
   Future<String?> getFamilyId(String uid) async {
     final snap = await userRef(uid).get();
-
     if (!snap.exists) return null;
-
     return snap.data()?['familyId'] as String?;
   }
 
@@ -235,13 +276,15 @@ class UserRepository {
     required String locale,
     required String timezone,
   }) async {
+    final l10n = runtimeL10n();
+
     try {
       /// 1️⃣ Lấy familyId của parent
       final parentSnap = await userRef(parentUid).get();
       final familyId = parentSnap.data()?['familyId'];
 
       if (familyId == null || (familyId is String && familyId.isEmpty)) {
-        throw "Parent missing familyId";
+        throw 'Parent missing familyId';
       }
 
       /// 2️⃣ Tạo Auth user
@@ -275,11 +318,9 @@ class UserRepository {
       );
 
       batch.set(
-        _db
-            .collection('families')
-            .doc(familyId)
-            .collection('members')
-            .doc(childUid),
+        _db.collection('families').doc(familyId).collection('members').doc(
+          childUid,
+        ),
         {
           ..._familyMemberPublicFields(
             uid: childUid,
@@ -301,52 +342,44 @@ class UserRepository {
     on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'email-already-in-use':
-          throw "Email đã được sử dụng";
-
+          throw l10n.emailInUse;
         case 'invalid-email':
-          throw "Email không hợp lệ";
-
+          throw l10n.emailInvalid;
         case 'weak-password':
-          throw "Mật khẩu quá yếu";
-
+          throw l10n.weakPassword;
         case 'operation-not-allowed':
-          throw "Chức năng tạo tài khoản chưa bật trong Firebase Auth";
-
+          throw l10n.firebaseAuthOperationNotAllowed;
         default:
-          throw e.message ?? "Lỗi tạo tài khoản";
+          throw e.message ?? l10n.userRepositoryCreateAccountFailed;
       }
     }
     /// 🔥 Firestore errors
     on FirebaseException catch (e) {
       switch (e.code) {
         case 'permission-denied':
-          throw "Không đủ quyền ghi dữ liệu";
-
+          throw l10n.firestorePermissionDenied;
         case 'unavailable':
-          throw "Firestore tạm thời không khả dụng";
-
+          throw l10n.firestoreUnavailable;
         default:
-          throw e.message ?? "Lỗi Firestore";
+          throw e.message ?? l10n.firestoreGenericError;
       }
     }
     /// 🔥 Logic error
     on StateError catch (e) {
       throw e.message;
-    }
-    /// 🔥 Unknown
-    catch (e) {
-      throw "Tạo tài khoản con thất bại";
+    } catch (e) {
+      throw l10n.userRepositoryCreateChildFailed;
     }
   }
 
   Future<void> updateUserProfile(UserProfile profile) async {
-    await _db.collection("users").doc(profile.id).set({
+    await _db.collection('users').doc(profile.id).set({
       ...profile.toMap(),
     }, SetOptions(merge: true));
   }
 
   Future<UserProfile?> getUserProfile(String uid) async {
-    final doc = await _db.collection("users").doc(uid).get();
+    final doc = await _db.collection('users').doc(uid).get();
 
     if (!doc.exists) return null;
     return UserProfile.fromMap(uid, doc.data()!);
@@ -354,15 +387,14 @@ class UserRepository {
 
   Future<UserProfile?> getUserByEmail(String email) async {
     final snap = await _db
-        .collection("users")
-        .where("email", isEqualTo: email.trim())
+        .collection('users')
+        .where('email', isEqualTo: email.trim())
         .limit(1)
         .get();
 
     if (snap.docs.isEmpty) return null;
 
     final doc = snap.docs.first;
-
     return UserProfile.fromMap(doc.id, doc.data());
   }
 
@@ -385,10 +417,10 @@ class UserRepository {
           .where('parentUid', isEqualTo: parentUid)
           .get();
 
-      debugPrint("===== CHILD QUERY DEBUG =====");
-      debugPrint("Parent UID: $parentUid");
-      debugPrint("Children found: ${snapshot.docs.length}");
-      debugPrint("=============================");
+      debugPrint('===== CHILD QUERY DEBUG =====');
+      debugPrint('Parent UID: $parentUid');
+      debugPrint('Children found: ${snapshot.docs.length}');
+      debugPrint('=============================');
 
       final now = DateTime.now();
 
@@ -397,7 +429,7 @@ class UserRepository {
 
         final lastActive = (data['lastActiveAt'] as Timestamp?)?.toDate();
 
-        bool isOnline = false;
+        var isOnline = false;
         if (lastActive != null) {
           final diff = now.difference(lastActive).inMinutes;
           isOnline = diff <= 2; // online nếu hoạt động trong 2 phút
@@ -411,7 +443,7 @@ class UserRepository {
         );
       }).toList();
     } catch (e) {
-      debugPrint("❌ ERROR getChildrenByParentUid: $e");
+      debugPrint('❌ERROR getChildrenByParentUid: $e');
       rethrow;
     }
   }
@@ -426,8 +458,8 @@ class UserRepository {
 
   Stream<List<AppUser>> watchChildrenByParentUid(String parentUid) {
     return _db
-        .collection("users")
-        .where("parentUid", isEqualTo: parentUid)
+        .collection('users')
+        .where('parentUid', isEqualTo: parentUid)
         .snapshots()
         .map((snap) {
           return snap.docs.map((d) => AppUser.fromDoc(d)).toList();
@@ -459,7 +491,22 @@ class UserRepository {
         );
       }).toList();
     } catch (e) {
-      debugPrint("❌ getChildUsers error: $e");
+      debugPrint('❌ getChildUsers error: $e');
+      return [];
+    }
+  }
+
+  Future<List<AppUser>> getGuardiansByParentUid(String parentUid) async {
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'guardian')
+          .where('parentUid', isEqualTo: parentUid)
+          .get();
+
+      return snapshot.docs.map((doc) => AppUser.fromDoc(doc)).toList();
+    } catch (e) {
+      debugPrint('getGuardiansByParentUid error: $e');
       return [];
     }
   }

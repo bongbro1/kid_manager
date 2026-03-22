@@ -173,7 +173,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         watchChildrenForParent: true,
       );
 
-      if (session == null || session.isChildMode || session.role != 'parent') {
+      // Guardian shares the same schedule screen as parent, but reads data
+      // through the resolved ownerParentUid from the session resolver.
+      final isParentLikeRole =
+          session != null &&
+          !session.isChildMode &&
+          (session.role == 'parent' || session.role == 'guardian');
+
+      if (!isParentLikeRole) {
         _clearBoundScheduleStateIfNeeded();
         return;
       }

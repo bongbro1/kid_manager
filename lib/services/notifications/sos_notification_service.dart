@@ -1,9 +1,11 @@
-import 'dart:convert';
+﻿import 'dart:convert';
+import 'dart:ui' show Locale, PlatformDispatcher;
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class SosNotificationService {
   SosNotificationService._();
@@ -13,14 +15,27 @@ class SosNotificationService {
   final FlutterLocalNotificationsPlugin _fln =
       FlutterLocalNotificationsPlugin();
 
-  static const _androidChannel = AndroidNotificationChannel(
-    'sos_channel_v2',
-    'SOS Alerts',
-    description: 'Emergency SOS alerts',
-    importance: Importance.max,
-    playSound: true,
-    sound: RawResourceAndroidNotificationSound('sos'),
-  );
+  static const String _channelId = 'sos_channel_v2';
+
+  Future<AppLocalizations> _loadL10n([String? lang]) {
+    final normalized =
+        (lang ?? PlatformDispatcher.instance.locale.languageCode).toLowerCase();
+    return AppLocalizations.delegate.load(
+      Locale(normalized.startsWith('en') ? 'en' : 'vi'),
+    );
+  }
+
+  Future<AndroidNotificationChannel> _buildAndroidChannel([String? lang]) async {
+    final l10n = await _loadL10n(lang);
+    return AndroidNotificationChannel(
+      _channelId,
+      l10n.sosChannelName,
+      description: l10n.sosChannelDescription,
+      importance: Importance.max,
+      playSound: true,
+      sound: const RawResourceAndroidNotificationSound('sos'),
+    );
+  }
 
   Future<void> _resolveFromAction(Map<String, dynamic> data) async {
     final familyId = data['familyId']?.toString();
@@ -42,18 +57,19 @@ class SosNotificationService {
     _initialized = true;
     debugPrint('SosNotificationService.init()');
 
+    final l10n = await _loadL10n();
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     final iosInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestSoundPermission: true,
-      requestBadgePermission: true,
+      requestAlertPermission: false,
+      requestSoundPermission: false,
+      requestBadgePermission: false,
       notificationCategories: [
         DarwinNotificationCategory(
           'sos_category',
           actions: [
             DarwinNotificationAction.plain(
               'RESOLVE_SOS',
-              'XÁC NHẬN',
+              l10n.incomingSosConfirmButton,
               options: {DarwinNotificationActionOption.authenticationRequired},
             ),
           ],
@@ -82,7 +98,7 @@ class SosNotificationService {
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
-    await android?.createNotificationChannel(_androidChannel);
+    await android?.createNotificationChannel(await _buildAndroidChannel());
 
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
       alert: true,
@@ -115,22 +131,24 @@ class SosNotificationService {
     final type = msg.data['type']?.toString();
     if (type != 'SOS') return;
 
-    final title = msg.notification?.title ?? 'SOS KHẨN CẤP';
-    final body = msg.notification?.body ?? 'Có thành viên đang cầu cứu.';
+    final l10n = await _loadL10n(data['lang']?.toString());
+    final androidChannel = await _buildAndroidChannel(data['lang']?.toString());
+    final title = msg.notification?.title ?? l10n.sosFallbackTitle;
+    final body = msg.notification?.body ?? l10n.sosFallbackBody;
 
     final androidDetails = AndroidNotificationDetails(
-      _androidChannel.id,
-      _androidChannel.name,
-      channelDescription: _androidChannel.description,
+      androidChannel.id,
+      androidChannel.name,
+      channelDescription: androidChannel.description,
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
       sound: const RawResourceAndroidNotificationSound('sos'),
       visibility: NotificationVisibility.public,
-      actions: const [
+      actions: [
         AndroidNotificationAction(
           'RESOLVE_SOS',
-          'XÁC NHẬN',
+          l10n.incomingSosConfirmButton,
           showsUserInterface: false,
         ),
       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -32,6 +33,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
@@ -42,7 +44,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         backgroundColor: scheme.surface,
         centerTitle: true,
         title: Text(
-          "Quản lý thành viên",
+          l10n.memberManagementTitle,
           style: theme.textTheme.titleLarge?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w700,
@@ -78,7 +80,6 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                         color: scheme.primary,
                       ),
                     ),
-
                     const SizedBox(width: 12),
 
                     /// TEXT
@@ -87,7 +88,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Thêm thành viên",
+                            l10n.memberManagementAddMemberTitle,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: scheme.onSurface,
@@ -95,7 +96,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            "Kết nối thiết bị mới của con",
+                            l10n.memberManagementAddMemberSubtitle,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: scheme.onSurfaceVariant,
                             ),
@@ -124,7 +125,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          "Thêm ngay",
+                          l10n.memberManagementAddNowButton,
                           style: theme.textTheme.labelLarge?.copyWith(
                             color: scheme.onPrimary,
                             fontWeight: FontWeight.w600,
@@ -135,28 +136,25 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
 
               /// LABEL
               Text(
-                'THÀNH VIÊN GIA ĐÌNH',
+                l10n.memberManagementFamilyMembersLabel,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.7,
                 ),
               ),
-
               const SizedBox(height: 12),
-
               Expanded(
                 child: Consumer<UserVm>(
                   builder: (context, vm, _) {
-                    final members = vm.familyMembers; // list trong VM
+                    final members = vm.familyMembers;
 
                     if (members.isEmpty) {
-                      return const Center(child: Text("Chưa có thành viên"));
+                      return Center(child: Text(l10n.memberManagementEmpty));
                     }
 
                     return ListView.builder(
@@ -168,7 +166,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                           name: user.displayName!,
                           role: user.role.text,
                           avatar: user.avatarUrl ?? "assets/images/u1.png",
-                          online: user.isActive ?? false,
+                          online: user.isActive,
                         );
                       },
                     );
@@ -213,15 +211,31 @@ class _MemberItemState extends State<MemberItem> {
   Widget _buildAvatarPhoto(String? avatarUrl) {
     return SmartNetworkImage(
       imageUrl: avatarUrl,
-      fallbackAsset: "assets/images/u1.png",
+      fallbackAsset: 'assets/images/u1.png',
       width: 60,
       height: 60,
       fit: BoxFit.cover,
     );
   }
 
+  String _localizedRole(AppLocalizations l10n, String role) {
+    switch (role) {
+      case 'child':
+      case 'Con':
+        return l10n.userRoleChild;
+      case 'guardian':
+      case 'Người giám hộ':
+        return l10n.userRoleGuardian;
+      case 'parent':
+      case 'Phụ huynh':
+      default:
+        return l10n.userRoleParent;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
@@ -258,7 +272,6 @@ class _MemberItemState extends State<MemberItem> {
                       ),
                     ),
                   ),
-
                   if (isOnline)
                     Positioned(
                       right: 0,
@@ -275,7 +288,6 @@ class _MemberItemState extends State<MemberItem> {
                     ),
                 ],
               ),
-
               const SizedBox(width: 16),
 
               /// NAME + STATUS
@@ -292,7 +304,8 @@ class _MemberItemState extends State<MemberItem> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "${widget.role} • ${isOnline ? "Đang trực tuyến" : "Ngoại tuyến"}",
+                      '${_localizedRole(l10n, widget.role)} • '
+                      '${isOnline ? l10n.memberManagementOnline : l10n.memberManagementOffline}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -305,15 +318,12 @@ class _MemberItemState extends State<MemberItem> {
               Switch(
                 value: isOnline,
                 activeColor: scheme.primary,
-                onChanged: (v) {
-                  setState(() {
-                    isOnline = v;
-                  });
+                onChanged: (value) {
+                  setState(() => isOnline = value);
                 },
               ),
             ],
           ),
-
           const SizedBox(height: 16),
 
           /// ACTION BUTTONS
@@ -336,7 +346,7 @@ class _MemberItemState extends State<MemberItem> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        "Nhắn tin",
+                        l10n.memberManagementMessageButton,
                         style: theme.textTheme.labelLarge?.copyWith(
                           color: scheme.onSurface,
                         ),
@@ -345,9 +355,7 @@ class _MemberItemState extends State<MemberItem> {
                   ),
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -365,7 +373,7 @@ class _MemberItemState extends State<MemberItem> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        "Vị trí",
+                        l10n.memberManagementLocationButton,
                         style: theme.textTheme.labelLarge?.copyWith(
                           color: scheme.onSurface,
                         ),

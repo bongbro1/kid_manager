@@ -24,10 +24,9 @@ class _AppShellState extends State<AppShell> {
 
   late final AppShellConfig _config = widget.mode == AppMode.parent
       ? AppShellConfig.parent()
+      : widget.mode == AppMode.guardian
+      ? AppShellConfig.guardian()
       : AppShellConfig.child();
-
-  int get _notificationTabIndex =>
-      _config.tabs.indexWhere((t) => t.isNotificationTab);
 
   late final List<GlobalKey<NavigatorState>> _navKeys = List.generate(
     _config.tabs.length,
@@ -53,6 +52,9 @@ class _AppShellState extends State<AppShell> {
       (t) => t.isNotificationTab,
     );
     mapTabIndexNotifier.value = _config.tabs.indexWhere((t) => t.isMapTab);
+    scheduleTabIndexNotifier.value = _config.tabs.indexWhere(
+      (t) => t.isScheduleTab,
+    );
 
     activeTabNotifier.addListener(_syncTabFromNotifier);
   }

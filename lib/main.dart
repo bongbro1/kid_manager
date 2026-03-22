@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kid_manager/core/storage_keys.dart';
@@ -85,19 +86,6 @@ Future<void> _runDeferredStartupTasks() async {
   }
 
   try {
-    final settings = await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    if (kDebugMode) {
-      debugPrint('FCM permission=${settings.authorizationStatus}');
-    }
-  } catch (e) {
-    debugPrint('FCM permission request failed: $e');
-  }
-
-  try {
     final token = await FirebaseMessaging.instance.getToken();
     if (kDebugMode) {
       debugPrint('FCM token=${_maskToken(token)}');
@@ -138,6 +126,17 @@ Future<void> main() async {
 
   final colorValue =
       storageService.getInt(StorageKeys.themeColor) ?? 0xFF2E90FA;
+
+
+  // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+  // SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+  //   statusBarColor: Colors.transparent,
+  //   systemNavigationBarColor: Colors.transparent,
+  //   statusBarIconBrightness: Brightness.dark,
+  //   statusBarBrightness: Brightness.light,
+  // ));
+
 
   runApp(
     MultiProvider(

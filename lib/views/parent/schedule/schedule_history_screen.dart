@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import '../../../models/schedule.dart';
 import '../../../models/schedule_history.dart';
+import '../../../services/schedule/schedule_notification_service.dart';
+import '../../../viewmodels/auth_vm.dart';
 import '../../../viewmodels/schedule/schedule_history_vm.dart';
 import '../../../viewmodels/schedule/schedule_vm.dart';
 import '../../../widgets/app/app_notification_dialog.dart';
@@ -27,11 +29,11 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
   void initState() {
     super.initState();
     _historyVm = context.read<ScheduleHistoryViewModel>();
+    _historyVm.setScheduleOwnerUid(widget.schedule.parentUid);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await _historyVm.loadHistories(
-        parentUid: widget.schedule.parentUid,
         scheduleId: widget.schedule.id,
       );
     });
@@ -114,6 +116,8 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
 
     final historyVm = context.read<ScheduleHistoryViewModel>();
     final scheduleVm = context.read<ScheduleViewModel>();
+    final authVm = context.read<AuthVM>();
+    final notificationService = context.read<ScheduleNotificationService>();
     final pageNavigator = Navigator.of(context);
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     final rootContext = rootNavigator.context;
@@ -146,17 +150,30 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
 
     try {
       await historyVm.restoreHistory(
-        parentUid: widget.schedule.parentUid,
         scheduleId: widget.schedule.id,
         historyId: item.id,
       );
+
+      final actorUid = authVm.user?.uid;
+      if (actorUid != null && actorUid.isNotEmpty) {
+        // Phase 4: Restore now participates in the same cross-role
+        // notification contract as other schedule CRUD actions.
+        await notificationService.notifyRestored(
+          actorUid: actorUid,
+          scheduleOwnerUid: widget.schedule.parentUid,
+          schedule: item.toSchedule(
+            currentScheduleId: widget.schedule.id,
+            editCount: widget.schedule.editCount + 1,
+            updatedAt: DateTime.now(),
+          ),
+        );
+      }
 
       if (!mounted) return;
       await scheduleVm.loadMonth();
 
       if (!mounted) return;
       await historyVm.loadHistories(
-        parentUid: widget.schedule.parentUid,
         scheduleId: widget.schedule.id,
       );
 

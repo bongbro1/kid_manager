@@ -10,6 +10,7 @@ import 'package:kid_manager/repositories/otp_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 import '../repositories/auth_repository.dart';
 
 class AuthVM extends ChangeNotifier {
@@ -51,7 +52,6 @@ class AuthVM extends ChangeNotifier {
 
       final uid = user.uid;
 
-      /// ðŸ”Ž Ä‘á»c user document
       final userInfo = await _userRepo.getUserById(uid);
 
       if (userInfo == null) {
@@ -59,13 +59,11 @@ class AuthVM extends ChangeNotifier {
         throw Exception("accountNotFound");
       }
 
-      // /// âŒ chÆ°a verify OTP
       if (userInfo.isActive != true) {
         await _authRepo.logout();
         throw Exception("accountNotActivated");
       }
 
-      ///  há»£p lá»‡
       _user = user;
       debugPrint("User : $_user");
       notifyListeners();
@@ -132,7 +130,10 @@ class AuthVM extends ChangeNotifier {
   }) async {
     await _runAuthAction(() async {
       /// validate password rule
-      final passError = Validators.validatePassword(newPassword);
+      final passError = Validators.validatePassword(
+        newPassword,
+        l10n: runtimeL10n(),
+      );
       if (passError != null) {
         throw Exception(passError);
       }
@@ -141,6 +142,7 @@ class AuthVM extends ChangeNotifier {
       final confirmError = Validators.validateConfirmPassword(
         newPassword,
         confirmPassword,
+        l10n: runtimeL10n(),
       );
       if (confirmError != null) {
         throw Exception(confirmError);
@@ -231,7 +233,7 @@ class AuthVM extends ChangeNotifier {
     } catch (e) {
       debugPrint("AUTH ERROR (Unknown): $e");
 
-      _error = 'CÃ³ lá»—i xáº£y ra. Vui lÃ²ng thá»­ láº¡i.';
+      _error = runtimeL10n().authGenericError;
       return null;
     } finally {
       _setLoading(false);
@@ -329,7 +331,7 @@ class AuthVM extends ChangeNotifier {
       _setError(null);
 
       await _authRepo.sendOtpSms(phone, (verificationId) {
-        print("[AUTH_PHONE] OTP sent: $verificationId");
+        debugPrint("[AUTH_PHONE] OTP sent: $verificationId");
       });
     } catch (e) {
       _setError(e.toString());
@@ -357,7 +359,7 @@ class AuthVM extends ChangeNotifier {
 
   Future<void> _handleUser(AppUser? user) async {
     if (user == null) {
-      _setError("Login cancelled");
+      _setError(runtimeL10n().authLoginCancelled);
       return;
     }
     try {

@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/schedule.dart';
@@ -51,12 +52,12 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã gửi tin nhắn')),
+        SnackBar(content: Text(AppLocalizations.of(context).locationMessageSent)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gửi thất bại: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).familyChatSendFailed('$e'))),
       );
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -92,25 +93,28 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
 
   String _formatScheduleTime(DateTime startAt, DateTime endAt) {
     String two(int v) => v.toString().padLeft(2, '0');
-    final start = '${two(startAt.hour)}h${two(startAt.minute)}p';
-    final end = '${two(endAt.hour)}h${two(endAt.minute)}p';
-    return '$start – $end';
+    final start = '${two(startAt.hour)}:${two(startAt.minute)}';
+    final end = '${two(endAt.hour)}:${two(endAt.minute)}';
+    return '$start - $end';
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final child = widget.child;
     final latest = widget.latest;
 
-    final name = child.displayName!.isNotEmpty ? child.displayName : child.email;
-    final initial = name!.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    final name = (child.displayName?.isNotEmpty ?? false)
+        ? child.displayName!
+        : (child.email ?? '');
     final  double circularBorder =49;
     final schedules = List<Schedule>.from(widget.daySchedules)
       ..sort((a, b) => a.startAt.compareTo(b.startAt));
     final shownSchedules = schedules.take(4).toList();
+    
     // ✅ TODO: thay bằng dữ liệu thật từ widget.child hoặc widget.latest
     const int batteryLevel = 20; // thử thay 90, 45, 15 để thấy màu thay đổi
-    const statusText = 'Đang học';
+    final statusText = l10n.locationStatusStudying;
 
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
@@ -144,8 +148,8 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        'Thông tin',
+                      Text(
+                        l10n.locationChildInfoTitle,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 20,
@@ -193,8 +197,8 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      const Text(
-                                        'Online',
+                                      Text(
+                                        l10n.memberManagementOnline,
                                         style: TextStyle(color: Colors.grey, fontSize: 12),
                                       ),
                                     ],
@@ -240,8 +244,8 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                           children: [
                             TextField(
                               controller: _msgCtl,
-                              decoration: const InputDecoration(
-                                hintText: 'Gửi tin nhắn nhanh...',
+                              decoration: InputDecoration(
+                                hintText: l10n.locationQuickMessageHint,
                                 hintStyle: TextStyle(
                                   fontSize: 14,
                                   color: Color(0xFF9CA3AF),
@@ -314,13 +318,13 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                         width: 1,
                                       ),
                                     ),
-                                    child: const Row(
+                                    child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.calendar_month, size: 16),
-                                        SizedBox(width: 6),
+                                        const Icon(Icons.calendar_month, size: 16),
+                                        const SizedBox(width: 6),
                                         Text(
-                                          'Lịch trình',
+                                          l10n.scheduleScreenTitle,
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
@@ -331,8 +335,8 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                   ),
                                   const SizedBox(height: 12),
                                   if (shownSchedules.isEmpty)
-                                    const Text(
-                                      'Không có lịch trong ngày',
+                                    Text(
+                                      l10n.scheduleNoEventsInDay,
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: Color(0xFF6B7280),
@@ -530,7 +534,9 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                     "assets/icons/gps.svg",
                                     fit: BoxFit.contain,
                                   ),
-                                  label: widget.isSearching ? 'Tắt tìm kiếm' : 'Tìm kiếm',
+                                  label: widget.isSearching
+                                      ? l10n.locationStopSearching
+                                      : l10n.locationSearchHint,
                                   onTap: widget.onToggleSearch,
                                 ),
                               ],
@@ -542,7 +548,10 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                       if (latest != null) ...[
                         const SizedBox(height: 10),
                         Text(
-                          'Lat ${latest.latitude.toStringAsFixed(4)} • Lng ${latest.longitude.toStringAsFixed(4)}',
+                          l10n.locationCoordinatesSummary(
+                            latest.latitude.toStringAsFixed(4),
+                            latest.longitude.toStringAsFixed(4),
+                          ),
                           style: const TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ],
@@ -615,17 +624,14 @@ class _RightPill extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  final Color backgroundColor;
-  final Color foregroundColor;
-
   static const double circularBorder = 49;
+  static const Color _backgroundColor = Color(0xFF2563EB);
+  static const Color _foregroundColor = Colors.white;
 
   const _RightPill({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.backgroundColor = const Color(0xFF2563EB), // nền xanh
-    this.foregroundColor = Colors.white,            // chữ + icon trắng
   });
 
   @override
@@ -637,10 +643,10 @@ class _RightPill extends StatelessWidget {
         width: 156,
         height: 48,
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: _backgroundColor,
           borderRadius: BorderRadius.circular(circularBorder),
           border: Border.all(
-            color: backgroundColor, // viền cùng màu nền
+            color: _backgroundColor, // viền cùng màu nền
             width: 1,
           ),
         ),
@@ -649,7 +655,7 @@ class _RightPill extends StatelessWidget {
           children: [
             IconTheme(
               data: IconThemeData(
-                color: foregroundColor,
+                color: _foregroundColor,
                 size: 18,
               ),
               child: icon,
@@ -659,7 +665,7 @@ class _RightPill extends StatelessWidget {
               label,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: foregroundColor,
+                color: _foregroundColor,
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
                 fontFamily: 'Poppins'

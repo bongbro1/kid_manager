@@ -17,13 +17,18 @@ class ScheduleImportDetailWidget extends StatelessWidget {
         .trim();
     final importCount = (data['importCount'] ?? '').toString().trim();
     final actorRole = (data['actorRole'] ?? '').toString().toLowerCase();
-    final actorChildName = (data['actorChildName'] ?? '').toString().trim();
+    final actorDisplayName = ((data['actorDisplayName'] ?? data['actorChildName'])
+            ?? '')
+        .toString()
+        .trim();
 
     final actorText = actorRole == 'parent'
         ? l10n.notificationsActorParent
-        : (actorChildName.isEmpty
-              ? l10n.notificationsActorChild
-              : actorChildName);
+        : (actorDisplayName.isEmpty
+              ? (actorRole == 'guardian'
+                    ? l10n.notificationsActorParent
+                    : l10n.notificationsActorChild)
+              : actorDisplayName);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

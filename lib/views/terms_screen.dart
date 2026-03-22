@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/terms_vm.dart';
 import 'package:provider/provider.dart';
 
@@ -14,12 +15,14 @@ class _TermsScreenScreenState extends State<TermsScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      if (!mounted) return;
       context.read<TermsVM>().loadTerms();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = context.watch<TermsVM>();
 
     return Scaffold(
@@ -28,16 +31,14 @@ class _TermsScreenScreenState extends State<TermsScreen> {
         child: vm.isLoading
             ? const Center(child: CircularProgressIndicator())
             : vm.terms == null
-            ? const Center(child: Text("Không có dữ liệu"))
+            ? Center(child: Text(l10n.termsNoData))
             : Column(
                 children: [
-                  /// HEADER
                   SizedBox(
                     height: 48,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        /// back button
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
@@ -49,11 +50,11 @@ class _TermsScreenScreenState extends State<TermsScreen> {
                             ),
                           ),
                         ),
-
+                        
                         /// title
-                        const Text(
-                          "Điều khoản",
-                          style: TextStyle(
+                        Text(
+                          l10n.termsTitle,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
                           ),
@@ -61,7 +62,6 @@ class _TermsScreenScreenState extends State<TermsScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 20),
 
                   /// CONTENT
@@ -80,7 +80,6 @@ class _TermsScreenScreenState extends State<TermsScreen> {
                               letterSpacing: -0.2,
                             ),
                           ),
-
                           const SizedBox(height: 8),
 
                           /// last updated
@@ -93,7 +92,7 @@ class _TermsScreenScreenState extends State<TermsScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                "Cập nhật lần cuối: ${vm.terms!.lastUpdated}",
+                                l10n.termsLastUpdated(vm.terms!.lastUpdated),
                                 style: const TextStyle(
                                   color: Color(0xFF6C7278),
                                   fontSize: 13,
@@ -101,15 +100,12 @@ class _TermsScreenScreenState extends State<TermsScreen> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 16),
-
-                          /// divider
-                          Container(height: 1, color: const Color(0xFFEDEDED)),
-
+                          Container(
+                            height: 1,
+                            color: const Color(0xFFEDEDED),
+                          ),
                           const SizedBox(height: 16),
-
-                          /// content
                           Expanded(
                             child: SingleChildScrollView(
                               child: Text(
