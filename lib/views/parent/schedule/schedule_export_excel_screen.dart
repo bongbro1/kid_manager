@@ -270,26 +270,30 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
   String _ddMmYyyy(DateTime d) => '${_two(d.day)}/${_two(d.month)}/${d.year}';
 
   String _yyyyMmDd(DateTime d) => '${d.year}-${_two(d.month)}-${_two(d.day)}';
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
     final children = context.select<UserVm, List<AppUser>>(
       (vm) => List<AppUser>.unmodifiable(vm.children),
     );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: scheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
         title: Text(
           l10n.scheduleExportTitle,
-          style: AppTextStyles.scheduleAppBarTitle,
+          style: AppTextStyles.scheduleAppBarTitle.copyWith(
+            color: scheme.onSurface,
+          ),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.darkText),
+          icon: Icon(Icons.arrow_back, color: scheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -300,7 +304,10 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.scheduleSelectChildLabel, style: AppTextStyles.body),
+                Text(
+                  l10n.scheduleSelectChildLabel,
+                  style: AppTextStyles.body.copyWith(color: scheme.onSurface),
+                ),
                 const SizedBox(height: 10),
                 _isChildMode
                     ? ScheduleTransferLockedChildBox(
@@ -320,7 +327,7 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                 const SizedBox(height: 14),
                 Text(
                   l10n.scheduleExportDateRangeLabel,
-                  style: AppTextStyles.body,
+                  style: AppTextStyles.body.copyWith(color: scheme.onSurface),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -331,11 +338,11 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                         onTap: _loading ? null : _pickFromDate,
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Icon(
                         Icons.arrow_forward,
-                        color: AppColors.secondaryText,
+                        color: scheme.onSurface.withOpacity(0.65),
                         size: 20,
                       ),
                     ),
@@ -352,12 +359,15 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F8FF),
+                    color: scheme.primary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: scheme.primary.withOpacity(0.18)),
                   ),
                   child: Text(
                     l10n.scheduleExportColumnsHint,
-                    style: AppTextStyles.scheduleItemTime,
+                    style: AppTextStyles.scheduleItemTime.copyWith(
+                      color: scheme.onSurface.withOpacity(0.75),
+                    ),
                   ),
                 ),
               ],

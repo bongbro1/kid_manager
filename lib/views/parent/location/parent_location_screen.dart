@@ -591,11 +591,14 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 class _MapLoadingPlaceholder extends StatelessWidget {
   const _MapLoadingPlaceholder();
 
-  Widget _fakeMarker({
+  Widget _fakeMarker(
+    BuildContext context, {
     required double top,
     required double left,
     double size = 18,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Positioned(
       top: top,
       left: left,
@@ -603,7 +606,7 @@ class _MapLoadingPlaceholder extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
+          color: colorScheme.surface.withOpacity(0.9),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -613,7 +616,7 @@ class _MapLoadingPlaceholder extends StatelessWidget {
             ),
           ],
           border: Border.all(
-            color: const Color(0xFF4F46E5).withOpacity(0.18),
+            color: colorScheme.primary.withOpacity(0.18),
             width: 1.5,
           ),
         ),
@@ -621,8 +624,8 @@ class _MapLoadingPlaceholder extends StatelessWidget {
           child: Container(
             width: size * 0.42,
             height: size * 0.42,
-            decoration: const BoxDecoration(
-              color: Color(0xFF4F46E5),
+            decoration: BoxDecoration(
+              color: colorScheme.primary,
               shape: BoxShape.circle,
             ),
           ),
@@ -634,6 +637,9 @@ class _MapLoadingPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -653,9 +659,9 @@ class _MapLoadingPlaceholder extends StatelessWidget {
           ),
         ),
 
-        _fakeMarker(top: 160, left: 72),
-        _fakeMarker(top: 240, left: 250, size: 20),
-        _fakeMarker(top: 380, left: 140, size: 16),
+        _fakeMarker(context, top: 160, left: 72),
+        _fakeMarker(context, top: 240, left: 250, size: 20),
+        _fakeMarker(context, top: 380, left: 140, size: 16),
 
         Align(
           alignment: Alignment.center,
@@ -664,7 +670,7 @@ class _MapLoadingPlaceholder extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             constraints: const BoxConstraints(maxWidth: 270),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.94),
+              color: colorScheme.surface.withOpacity(0.94),
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
@@ -673,14 +679,18 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                   offset: const Offset(0, 8),
                 ),
               ],
+              border: Border.all(color: colorScheme.outline),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(
+                SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -690,18 +700,18 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                     children: [
                       Text(
                         l10n.parentLocationMapLoadingTitle,
-                        style: const TextStyle(
+                        style: textTheme.titleMedium?.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         l10n.parentLocationMapLoadingSubtitle,
-                        style: const TextStyle(
+                        style: textTheme.bodySmall?.copyWith(
                           fontSize: 12.5,
-                          color: Color(0xFF6B7280),
+                          color: colorScheme.onSurfaceVariant,
                           height: 1.35,
                         ),
                       ),

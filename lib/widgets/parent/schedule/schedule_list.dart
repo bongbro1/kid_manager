@@ -17,10 +17,12 @@ enum _ScheduleMemoryAction { edit, delete }
 
 class ScheduleList extends StatelessWidget {
   const ScheduleList({super.key});
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     final isScheduleLoading = context.select<ScheduleViewModel, bool>(
       (vm) => vm.isLoading,
     );
@@ -49,6 +51,7 @@ class ScheduleList extends StatelessWidget {
       birthdayListSnapshot,
     );
     const actions = ScheduleTimelineActions();
+
     final state = ScheduleListStateData.fromData(
       l10n: l10n,
       isScheduleLoading: isScheduleLoading,
@@ -63,21 +66,35 @@ class ScheduleList extends StatelessWidget {
     );
 
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: scheme.primary));
     }
 
     if (state.error != null) {
-      return Center(child: Text(state.error!));
+      return Center(
+        child: Text(
+          state.error!,
+          style: textTheme.bodyMedium?.copyWith(
+            color: scheme.error,
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
     }
 
     if (state.emptyMessage != null) {
       return Center(
-        child: Text(state.emptyMessage!, style: AppTextStyles.body),
+        child: Text(
+          state.emptyMessage!,
+          style: AppTextStyles.body.copyWith(
+            color: scheme.onSurface.withOpacity(0.7),
+          ),
+          textAlign: TextAlign.center,
+        ),
       );
     }
-
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: state.items.length,
       itemBuilder: (_, index) {
         final item = state.items[index];
@@ -549,6 +566,8 @@ class ScheduleItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     String two(int n) => n.toString().padLeft(2, '0');
 
     final duration =
@@ -558,11 +577,12 @@ class ScheduleItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outline.withOpacity(0.6)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: scheme.shadow.withOpacity(0.08),
             blurRadius: 30,
             offset: const Offset(0, 3),
           ),
@@ -583,7 +603,12 @@ class ScheduleItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(duration, style: AppTextStyles.scheduleItemTimeRange),
+              Text(
+                duration,
+                style: AppTextStyles.scheduleItemTimeRange.copyWith(
+                  color: scheme.onSurface,
+                ),
+              ),
               const Spacer(),
               if (schedule.editCount > 0) ...[
                 _ActionIcon(
@@ -603,10 +628,20 @@ class ScheduleItem extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(schedule.title, style: AppTextStyles.scheduleItemTitle),
+          Text(
+            schedule.title,
+            style: AppTextStyles.scheduleItemTitle.copyWith(
+              color: scheme.onSurface,
+            ),
+          ),
           if ((schedule.description ?? '').isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(schedule.description!, style: AppTextStyles.scheduleItemTime),
+            Text(
+              schedule.description!,
+              style: AppTextStyles.scheduleItemTime.copyWith(
+                color: scheme.onSurface.withOpacity(0.7),
+              ),
+            ),
           ],
         ],
       ),
@@ -856,18 +891,27 @@ class _ActionIcon extends StatelessWidget {
     required this.onTap,
     this.width = 22,
     this.height = 22,
+    this.color,
   });
 
   final String asset;
   final double width;
   final double height;
   final VoidCallback? onTap;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    final iconColor = color ?? scheme.onSurface.withOpacity(0.8);
+
     return GestureDetector(
       onTap: onTap,
-      child: Image.asset(asset, width: width, height: height),
+      child: ColorFiltered(
+        colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+        child: Image.asset(asset, width: width, height: height),
+      ),
     );
   }
 }

@@ -359,10 +359,17 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: const Color(0xFFE4E9F2),
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline,
                                     ),
                                   ),
-                                  child: const Icon(Icons.add),
+                                  child: Icon(
+                                    Icons.add,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                  ),
                                 ),
                               ),
                           ],
@@ -566,10 +573,28 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
     required VoidCallback onPickEnd,
     required VoidCallback onDelete,
   }) {
+    final scheme = Theme.of(context).colorScheme;
+
     String fmt(int m) =>
         '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
 
     Widget timeBox(String text, VoidCallback? onTap) {
+      final boxColor = enabled
+          ? scheme.surface
+          : scheme.surface.withOpacity(0.45);
+
+      final textColor = enabled
+          ? scheme.onSurface
+          : scheme.onSurface.withOpacity(0.45);
+
+      final borderColor = enabled
+          ? scheme.outline
+          : scheme.outline.withOpacity(0.6);
+
+      final iconColor = enabled
+          ? scheme.onSurface
+          : scheme.onSurface.withOpacity(0.45);
+
       return Expanded(
         child: InkWell(
           onTap: enabled ? onTap : null,
@@ -578,9 +603,9 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
             height: 52,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: enabled ? Colors.white : const Color(0xFFF5F7FA),
+              color: boxColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE4E9F2)),
+              border: Border.all(color: borderColor),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -588,13 +613,13 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                 Text(
                   text,
                   style: TextStyle(
-                    color: enabled ? const Color(0xFF222B45) : Colors.grey,
+                    color: textColor,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Icon(Icons.access_time, size: 16),
+                Icon(Icons.access_time, size: 16, color: iconColor),
               ],
             ),
           ),
@@ -607,18 +632,21 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
       child: Row(
         children: [
           timeBox(fmt(window.startMin), onPickStart),
-
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            child: Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Icon(
+              Icons.arrow_forward,
+              size: 16,
+              color: scheme.onSurface.withOpacity(0.5),
+            ),
           ),
-
           timeBox(fmt(window.endMin), onPickEnd),
         ],
       ),
     );
   }
 }
+
 Future<DayOverrideOption?> showDayOverrideModal({
   required BuildContext context,
   required DateTime date,
@@ -973,6 +1001,7 @@ Widget _monthNavButton({
     ),
   );
 }
+
 Widget _dayCell({
   required BuildContext context,
   required String label,
@@ -988,9 +1017,7 @@ Widget _dayCell({
 
   final textColor = selected
       ? scheme.onPrimary
-      : (inMonth
-          ? scheme.onSurface
-          : scheme.onSurface.withOpacity(0.5));
+      : (inMonth ? scheme.onSurface : scheme.onSurface.withOpacity(0.5));
 
   return InkWell(
     onTap: onTap,
@@ -1028,10 +1055,9 @@ Widget _dayCell({
                   width: 4,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: dotColorMap[dot] ??
-                        (dot == DotType.block
-                            ? scheme.error
-                            : scheme.primary),
+                    color:
+                        dotColorMap[dot] ??
+                        (dot == DotType.block ? scheme.error : scheme.primary),
                     shape: BoxShape.circle,
                   ),
                 ),

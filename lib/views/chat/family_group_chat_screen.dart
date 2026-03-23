@@ -136,8 +136,7 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
       return false;
     }
 
-    final clientMessageId =
-        DateTime.now().microsecondsSinceEpoch.toString();
+    final clientMessageId = DateTime.now().microsecondsSinceEpoch.toString();
 
     try {
       await _repo.sendTextMessage(
@@ -184,6 +183,8 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     final me = context.select<UserVm, AppUser?>((vm) => vm.me);
     final vmFamilyId = context.select<UserVm, String?>((vm) => vm.familyId);
     final familyId = widget.initialFamilyId ?? vmFamilyId;
@@ -191,10 +192,10 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
     if (me == null || familyId == null || familyId.isEmpty) {
       _resetLocalState();
       return Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: scheme.background,
         appBar: AppBar(
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF0F172A),
+          backgroundColor: scheme.surface,
+          foregroundColor: scheme.onSurface,
           elevation: 0.5,
           title: Text(AppLocalizations.of(context).familyChatLoadingTitle),
         ),
@@ -221,10 +222,10 @@ class _FamilyGroupChatScreenState extends State<FamilyGroupChatScreen> {
         };
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: scheme.background,
           appBar: AppBar(
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF0F172A),
+            backgroundColor: scheme.surface,
+            foregroundColor: scheme.onSurface,
             elevation: 0.5,
             titleSpacing: 12,
             title: _ChatHeader(
@@ -303,6 +304,7 @@ class _ChatHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final countLabel = _memberCountLabel(l10n);
+    final scheme = Theme.of(context).colorScheme;
 
     return Row(
       children: [
@@ -310,14 +312,10 @@ class _ChatHeader extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFFDBEAFE),
+            color: scheme.primary.withOpacity(0.12),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(
-            Icons.groups_rounded,
-            color: Color(0xFF1D4ED8),
-            size: 20,
-          ),
+          child: Icon(Icons.groups_rounded, color: scheme.primary, size: 20),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -330,7 +328,7 @@ class _ChatHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
+                  color: scheme.onSurface,
                 ),
               ),
               const SizedBox(height: 2),
@@ -338,9 +336,9 @@ class _ChatHeader extends StatelessWidget {
                 _memberSummary(l10n),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF64748B),
+                  color: scheme.onSurface.withOpacity(0.65),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -351,15 +349,15 @@ class _ChatHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
+              color: scheme.primary.withOpacity(0.10),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
+              border: Border.all(color: scheme.primary.withOpacity(0.25)),
             ),
             child: Text(
               countLabel,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF1D4ED8),
+                color: scheme.primary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -393,6 +391,7 @@ class _MembersBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     if (isLoading && members.isEmpty) {
       return const SizedBox(
@@ -413,7 +412,7 @@ class _MembersBar extends StatelessWidget {
 
     return Container(
       height: 64,
-      color: Colors.white,
+      color: scheme.surface,
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
@@ -423,23 +422,26 @@ class _MembersBar extends StatelessWidget {
         itemBuilder: (_, index) {
           final member = members[index];
           final isMe = member.uid == myUid;
+
           final roleColor = member.role == 'parent'
-              ? const Color(0xFFF59E0B)
-              : const Color(0xFF38BDF8);
+              ? Colors.amber.shade700
+              : scheme.primary;
 
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: isMe ? const Color(0xFFDBEAFE) : const Color(0xFFF8FAFC),
+              color: isMe
+                  ? scheme.primary.withOpacity(0.12)
+                  : scheme.background,
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: scheme.outline),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 CircleAvatar(
                   radius: 11,
-                  backgroundColor: roleColor.withAlpha(30),
+                  backgroundColor: roleColor.withOpacity(0.14),
                   child: Text(
                     _initialOf(member.displayName, l10n),
                     style: TextStyle(
@@ -454,8 +456,8 @@ class _MembersBar extends StatelessWidget {
                   isMe
                       ? l10n.familyChatYou
                       : _safeDisplayName(member.displayName, l10n),
-                  style: const TextStyle(
-                    color: Color(0xFF0F172A),
+                  style: TextStyle(
+                    color: scheme.onSurface,
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
                   ),
@@ -735,14 +737,15 @@ class _Composer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return SafeArea(
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          border: Border(top: BorderSide(color: scheme.outline)),
         ),
         child: ValueListenableBuilder<TextEditingValue>(
           valueListenable: controller,
@@ -756,29 +759,31 @@ class _Composer extends StatelessWidget {
                     controller: controller,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => canSend ? onSend() : null,
-                    style: const TextStyle(color: Color(0xFF0F172A)),
+                    style: TextStyle(color: scheme.onSurface),
                     minLines: 1,
                     maxLines: 5,
                     decoration: InputDecoration(
                       hintText: l10n.familyChatTypeMessageHint,
-                      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      hintStyle: TextStyle(
+                        color: scheme.onSurface.withOpacity(0.5),
+                      ),
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: scheme.background,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 12,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: BorderSide(color: scheme.outline),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: BorderSide(color: scheme.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Color(0xFF60A5FA)),
+                        borderSide: BorderSide(color: scheme.primary),
                       ),
                     ),
                   ),
@@ -790,15 +795,15 @@ class _Composer extends StatelessWidget {
                   width: 48,
                   decoration: BoxDecoration(
                     color: canSend
-                        ? const Color(0xFF2563EB)
-                        : const Color(0xFFCBD5E1),
+                        ? scheme.primary
+                        : scheme.outline.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: canSend
-                        ? const [
+                        ? [
                             BoxShadow(
-                              color: Color(0x332563EB),
+                              color: scheme.primary.withOpacity(0.2),
                               blurRadius: 14,
-                              offset: Offset(0, 6),
+                              offset: const Offset(0, 6),
                             ),
                           ]
                         : const [],
@@ -808,9 +813,11 @@ class _Composer extends StatelessWidget {
                     child: InkWell(
                       onTap: canSend ? onSend : null,
                       borderRadius: BorderRadius.circular(16),
-                      child: const Icon(
+                      child: Icon(
                         Icons.send_rounded,
-                        color: Colors.white,
+                        color: canSend
+                            ? scheme.onPrimary
+                            : scheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ),

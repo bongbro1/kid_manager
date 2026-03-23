@@ -126,6 +126,8 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
     final selectedDate = context.select<ScheduleViewModel, DateTime>(
       (vm) => vm.selectedDate,
     );
@@ -148,9 +150,9 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
         );
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
@@ -185,27 +187,33 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
             daysOfWeekHeight: 40,
             calendarStyle: CalendarStyle(
               isTodayHighlighted: false,
-              selectedDecoration: const BoxDecoration(
-                color: AppColors.calendarSelection,
+              selectedDecoration: BoxDecoration(
+                color: scheme.primary,
                 shape: BoxShape.circle,
               ),
-              selectedTextStyle: const TextStyle(
-                color: Colors.white,
+              selectedTextStyle: TextStyle(
+                color: scheme.onPrimary,
                 fontFamily: 'Poppins',
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
-              defaultTextStyle: AppTextStyles.scheduleDayNumber,
-              weekendTextStyle: AppTextStyles.scheduleDayNumber,
-              outsideTextStyle: const TextStyle(
-                color: Color(0xFFBCC1CD),
-                fontFamily: 'Poppins',
-                fontSize: 15,
+              defaultTextStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                color: scheme.onSurface,
+              ),
+              weekendTextStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                color: scheme.onSurface,
+              ),
+              outsideTextStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                color: scheme.onSurface.withOpacity(0.35),
               ),
             ),
-            daysOfWeekStyle: const DaysOfWeekStyle(
-              weekdayStyle: AppTextStyles.scheduleDayName,
-              weekendStyle: AppTextStyles.scheduleDayName,
+            daysOfWeekStyle: DaysOfWeekStyle(
+              weekdayStyle: AppTextStyles.scheduleDayName.copyWith(
+                color: scheme.onSurface.withOpacity(0.5),
+              ),
+              weekendStyle: AppTextStyles.scheduleDayName.copyWith(
+                color: scheme.onSurface.withOpacity(0.5),
+              ),
             ),
             calendarBuilders: CalendarBuilders(
               selectedBuilder: (context, day, focusedDay) {
@@ -214,18 +222,20 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   isSelected: true,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
                   hasBirthday: _hasEntriesForDay(monthBirthdays, day),
-                  textStyle: AppTextStyles.scheduleDayNumber,
+                  textStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                    color: scheme.onPrimary,
+                  ),
                 );
               },
-
-              // ✅ thêm ngay dưới selectedBuilder
               defaultBuilder: (context, day, focusedDay) {
                 return _buildDayCell(
                   day: day,
                   isSelected: false,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
                   hasBirthday: _hasEntriesForDay(monthBirthdays, day),
-                  textStyle: AppTextStyles.scheduleDayNumber,
+                  textStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                    color: scheme.onSurface,
+                  ),
                 );
               },
               outsideBuilder: (context, day, focusedDay) {
@@ -234,23 +244,19 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   isSelected: false,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
                   hasBirthday: _hasEntriesForDay(monthBirthdays, day),
-                  textStyle: const TextStyle(
-                    color: Color(0xFFBCC1CD),
-                    fontFamily: 'Poppins',
-                    fontSize: 15,
+                  textStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                    color: scheme.onSurface.withOpacity(0.35),
                   ),
                 );
               },
-
               dowBuilder: (context, day) => Center(
                 child: Text(
                   _weekdayShortName(day, l10n),
                   style: AppTextStyles.scheduleDayName.copyWith(
-                    color: const Color(0xFFBCC1CD),
+                    color: scheme.onSurface.withOpacity(0.5),
                   ),
                 ),
               ),
-
               markerBuilder: (_, date, _) {
                 final key = DateTime(date.year, date.month, date.day);
                 final daySchedules = monthSchedules[key] ?? const [];
@@ -308,7 +314,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   width: 32,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0E0E0),
+                    color: scheme.outline.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -400,6 +406,7 @@ class _CalendarHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -408,20 +415,27 @@ class _CalendarHeader extends StatelessWidget {
         children: [
           IconButton(
             onPressed: onPreviousMonth,
-            icon: const Icon(Icons.chevron_left, color: AppColors.darkText),
+            icon: Icon(Icons.chevron_left, color: scheme.onSurface),
           ),
           Column(
             children: [
               Text(
                 l10n.scheduleCalendarMonthLabel(focusedMonth.month),
-                style: AppTextStyles.scheduleMonthYear,
+                style: AppTextStyles.scheduleMonthYear.copyWith(
+                  color: scheme.onSurface,
+                ),
               ),
-              Text('${focusedMonth.year}', style: AppTextStyles.scheduleYear),
+              Text(
+                '${focusedMonth.year}',
+                style: AppTextStyles.scheduleYear.copyWith(
+                  color: scheme.onSurface.withOpacity(0.7),
+                ),
+              ),
             ],
           ),
           IconButton(
             onPressed: onNextMonth,
-            icon: const Icon(Icons.chevron_right, color: AppColors.darkText),
+            icon: Icon(Icons.chevron_right, color: scheme.onSurface),
           ),
         ],
       ),
