@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/features/permissions/permission_onboarding_flow.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
@@ -17,7 +18,7 @@ class FlashScreen extends StatefulWidget {
 
 class _FlashScreenState extends State<FlashScreen> {
   bool _showPermissionFlow = false;
-  bool _permissionsDone = false;
+  bool _permissionsChecked = false;
 
   void _onContinue() {
     context.read<SessionVM>().finishSplash();
@@ -34,30 +35,32 @@ class _FlashScreenState extends State<FlashScreen> {
   Future<void> _init() async {
     final appVM = context.read<AppManagementVM>();
     final storage = context.read<StorageService>();
+    final permissionService = context.read<PermissionService>();
 
     appVM.loadAndSeedApp();
 
     final hasSeenPermissionFlow =
         storage.getBool(StorageKeys.permissionOnboardingSeenV1) ?? false;
+    final permissionResults = await permissionService.checkAllPermissions();
+    final hasMissingPermissions = permissionResults.values.any((granted) => !granted);
 
     if (!mounted) return;
     setState(() {
-      _showPermissionFlow = !hasSeenPermissionFlow;
-      _permissionsDone = hasSeenPermissionFlow;
+      _showPermissionFlow = !hasSeenPermissionFlow || hasMissingPermissions;
+      _permissionsChecked = true;
     });
   }
 
   Future<void> _finishPermissionFlow(
-    PermissionOnboardingCompletion completion,
+    PermissionOnboardingCompletion _completion,
   ) async {
     await context.read<StorageService>().setBool(
       StorageKeys.permissionOnboardingSeenV1,
-      completion.allPermissionsGranted,
+      true,
     );
 
     if (!mounted) return;
     setState(() {
-      _permissionsDone = true;
       _showPermissionFlow = false;
     });
   }
@@ -67,11 +70,11 @@ class _FlashScreenState extends State<FlashScreen> {
     final appVM = context.watch<AppManagementVM>();
     final l10n = AppLocalizations.of(context);
 
-    if (appVM.loading) {
+    if (appVM.loading || !_permissionsChecked) {
       return LoadingOverlay();
     }
 
-    if (_showPermissionFlow && !_permissionsDone) {
+    if (_showPermissionFlow) {
       return PermissionOnboardingFlow(
         onFinished: _finishPermissionFlow,
       );
