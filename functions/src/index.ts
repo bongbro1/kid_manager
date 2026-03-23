@@ -19,6 +19,7 @@ export * from "./functions/send_email";
 export * from "./functions/user_auth";
 export * from "./functions/subscription_triggers";
 export * from "./functions/detect_offline_child";
+export * from "./functions/schedule_cleanup";
 export { sendFamilyMessage, onFamilyChatMessageCreated } from "./functions/family_chat";
 export { markFamilyChatRead } from "./functions/family_chat_read";
 export { reportTrackingStatus } from "./functions/tracking/reportTrackingStatus";
