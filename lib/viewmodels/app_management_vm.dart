@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_item_model.dart';
@@ -30,7 +32,6 @@ class AppManagementVM extends ChangeNotifier {
   Map<DateTime, int> _usageMap = {};
   Map<DateTime, int> get usageMap => _usageMap;
 
-  // cho từng app
   Map<String, Map<DateTime, int>> _appUsageMap = {};
   Map<String, Map<DateTime, int>> get appUsageMap => _appUsageMap;
 
@@ -47,124 +48,162 @@ class AppManagementVM extends ChangeNotifier {
   int get usageVersion => _usageVersion;
 
   StreamSubscription<List<AppUser>>? _childrenSub;
+  int _childrenWatchGeneration = 0;
+  int _loadGeneration = 0;
+
+  void _resetLoadedData() {
+    _apps = [];
+    _usageMap = {};
+    _appUsageMap = {};
+    _hourlyUsage = {};
+    _usageVersion++;
+  }
+
+  bool _isStaleLoad(int generation, String childId) {
+    return generation != _loadGeneration || _selectedChildId != childId;
+  }
 
   Future<void> selectChild(String uid) async {
-    if (_selectedChildId == uid) return;
+    final normalizedUid = uid.trim();
+    if (normalizedUid.isEmpty || _selectedChildId == normalizedUid) return;
 
-    _selectedChildId = uid;
+    _selectedChildId = normalizedUid;
+    _error = null;
     notifyListeners();
     await loadAppsForSelectedChild();
   }
 
   Future<void> watchChildren(String parentUid) async {
-    _childrenSub?.cancel();
+    _childrenWatchGeneration++;
+    _loadGeneration++;
+    final watchGeneration = _childrenWatchGeneration;
+    await _childrenSub?.cancel();
+    _childrenSub = null;
 
     _loading = true;
+    _error = null;
+    _resetLoadedData();
     notifyListeners();
 
-    _childrenSub = _userRepo
-        .watchChildrenByParentUid(parentUid)
-        .listen(
-          (list) async {
-            // 🔹 filter bỏ guardian
-            final filtered = list.where((u) => roleToString(u.role) != roleToString(UserRole.guardian)).toList();
+    _childrenSub = _userRepo.watchChildrenByParentUid(parentUid).listen(
+      (list) async {
+        if (watchGeneration != _childrenWatchGeneration) return;
 
-            children = filtered.map(ChildItem.fromUser).toList();
+        final filtered = list
+            .where(
+              (u) =>
+                  roleToString(u.role) != roleToString(UserRole.guardian),
+            )
+            .toList();
 
-            await autoSelectFirstChild();
+        children = filtered.map(ChildItem.fromUser).toList();
 
-            _loading = false;
-            notifyListeners();
-          },
-          onError: (e) {
-            _error = e.toString();
-            _loading = false;
-            notifyListeners();
-          },
-        );
+        if (children.isEmpty) {
+          _selectedChildId = null;
+          _error = null;
+          _resetLoadedData();
+          _loading = false;
+          notifyListeners();
+          return;
+        }
+
+        final shouldReselect =
+            _selectedChildId == null ||
+            !children.any((c) => c.id == _selectedChildId);
+
+        if (shouldReselect) {
+          _selectedChildId = children.first.id;
+          notifyListeners();
+          await loadAppsForSelectedChild();
+          if (watchGeneration != _childrenWatchGeneration) return;
+        }
+
+        _loading = false;
+        notifyListeners();
+      },
+      onError: (e) {
+        if (watchGeneration != _childrenWatchGeneration) return;
+        _error = e.toString();
+        _selectedChildId = null;
+        _resetLoadedData();
+        _loading = false;
+        notifyListeners();
+      },
+    );
   }
 
   Future<void> loadAppsForSelectedChild() async {
-    if (_selectedChildId == null) {
-      _apps = [];
+    final childId = _selectedChildId?.trim();
+    final loadGeneration = ++_loadGeneration;
+
+    if (childId == null || childId.isEmpty) {
+      _error = null;
+      _resetLoadedData();
       _loading = false;
       notifyListeners();
       return;
     }
-    await loadApps(_selectedChildId!);
-    await loadUsageHistory(_selectedChildId!);
-  }
 
-  /// Load + seed + sync usage
-  Future<void> loadApps(String userId) async {
-    _setLoading(true);
+    _loading = true;
     _error = null;
+    notifyListeners();
 
     try {
-      // await _repo.migrateLegacyTimeRange(userId)
+      final loadedApps = await _repo.loadAppsFromFirestore(childId);
+      if (_isStaleLoad(loadGeneration, childId)) return;
 
-      _apps = await _repo.loadAppsFromFirestore(userId);
-      notifyListeners();
-      // await _repo.syncTodayUsage(userId: userId);
+      final usageResult = await _repo.loadUsageHistory(childId);
+      if (_isStaleLoad(loadGeneration, childId)) return;
+
+      _apps = loadedApps;
+      _usageMap = usageResult.totalUsage;
+      _appUsageMap = usageResult.perAppUsage;
+      _hourlyUsage = usageResult.hourlyUsage;
+      _usageVersion++;
+    } on FirebaseException catch (e, stack) {
+      debugPrint('loadApps ERROR: $e');
+      debugPrint('STACK: $stack');
+
+      if (_isStaleLoad(loadGeneration, childId)) return;
+      _resetLoadedData();
+      _error = runtimeL10n().appManagementSyncFailed;
     } catch (e, stack) {
-      debugPrint("❌ loadApps ERROR: $e");
-      debugPrint("STACK: $stack");
+      debugPrint('loadApps ERROR: $e');
+      debugPrint('STACK: $stack');
 
+      if (_isStaleLoad(loadGeneration, childId)) return;
+      _resetLoadedData();
       _error = runtimeL10n().appManagementSyncFailed;
     } finally {
-      _setLoading(false);
+      if (_isStaleLoad(loadGeneration, childId)) return;
+      _loading = false;
+      notifyListeners();
     }
   }
 
-  /// Chỉ sync usage (khi app đã seed)
-  // Future<void> syncUsageOnly(String userId) async {
-  //   _setLoading(true);
-  //   _error = null;
+  Future<void> loadApps(String userId) async {
+    final normalizedUid = userId.trim();
+    _selectedChildId = normalizedUid.isEmpty ? null : normalizedUid;
+    await loadAppsForSelectedChild();
+  }
 
-  //   try {
-  //     await _repo.syncTodayUsage(userId: userId);
-  //   } catch (e) {
-  //     _error = 'Không thể cập nhật usage';
-  //   } finally {
-  //     _setLoading(false);
-  //   }
-  // }
-
-  // Future<void> loadChildren() async {
-  //   _loading = true;
-  //   _error = null;
-  //   notifyListeners();
-
-  //   try {
-  //     final uid = _storage.getString(StorageKeys.uid);
-
-  //     if (uid == null) {
-  //       _error = "Không tìm thấy userId";
-  //       _loading = false;
-  //       notifyListeners();
-  //       return;
-  //     }
-
-  //     children = await _userRepo.getChildrenByParentUid(uid);
-  //     autoSelectFirstChild();
-  //   } catch (e) {
-  //     _error = e.toString();
-  //   }
-
-  //   _loading = false;
-  //   notifyListeners();
-  // }
   Future<void> autoSelectFirstChild() async {
-    if (children.isEmpty) return;
-
-    if (_selectedChildId == null) {
-      if (!children.any((c) => c.id == _selectedChildId)) {
-        _selectedChildId = children.first.id;
-      }
-
-      await loadAppsForSelectedChild();
-
+    if (children.isEmpty) {
+      _selectedChildId = null;
+      _error = null;
+      _resetLoadedData();
       notifyListeners();
+      return;
+    }
+
+    final shouldReselect =
+        _selectedChildId == null ||
+        !children.any((c) => c.id == _selectedChildId);
+
+    if (shouldReselect) {
+      _selectedChildId = children.first.id;
+      notifyListeners();
+      await loadAppsForSelectedChild();
     }
   }
 
@@ -195,8 +234,8 @@ class AppManagementVM extends ChangeNotifier {
       await _repo.loadAndSeedAppToFirebase(userId);
     } catch (e, s) {
       _error = e.toString();
-      debugPrint("❌ loadAndSeedApp error: $e");
-      debugPrint("$s");
+      debugPrint('loadAndSeedApp error: $e');
+      debugPrint('$s');
     }
 
     _setLoading(false);
@@ -217,7 +256,7 @@ class AppManagementVM extends ChangeNotifier {
         rule: rule,
       );
     } catch (e) {
-      debugPrint("❌ Save rule failed: $e");
+      debugPrint('Save rule failed: $e');
       rethrow;
     } finally {
       _loading = false;
@@ -235,44 +274,39 @@ class AppManagementVM extends ChangeNotifier {
   Future<void> loadUsageHistory(String selectedChildId) async {
     try {
       final result = await _repo.loadUsageHistory(selectedChildId);
+      if (_selectedChildId != selectedChildId) return;
 
       _usageMap = result.totalUsage;
       _appUsageMap = result.perAppUsage;
-
-      /// NEW
       _hourlyUsage = result.hourlyUsage;
-
       _usageVersion++;
       notifyListeners();
     } catch (e, stack) {
-      debugPrint("❌ loadUsageHistory ERROR: $e");
-      debugPrint("STACK: $stack");
+      debugPrint('loadUsageHistory ERROR: $e');
+      debugPrint('STACK: $stack');
     }
   }
 
   Future<void> clear() async {
+    _childrenWatchGeneration++;
+    _loadGeneration++;
     await _childrenSub?.cancel();
     _childrenSub = null;
 
     _loading = false;
     _error = null;
-    _apps = [];
-    _usageMap = {};
-    _appUsageMap = {};
+    _resetLoadedData();
     children = [];
     _selectedChildId = null;
-    _usageVersion = 0;
 
     notifyListeners();
   }
 
   @override
   void dispose() {
+    _childrenWatchGeneration++;
+    _loadGeneration++;
     _childrenSub?.cancel();
     super.dispose();
   }
-
-  // Future<void> rebuildUsageFlat(String selectedChildId) async {
-  //   await _repo.rebuildUsageDailyFlat(selectedChildId);
-  // }
 }

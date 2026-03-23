@@ -47,27 +47,21 @@ class FamilyChatRepository {
         return <FamilyChatMember>[];
       }
 
-      final userReads = await Future.wait(
-        membersSnapshot.docs.map((memberDoc) {
-          return _db.collection('users').doc(memberDoc.id).get();
-        }),
-      );
-
       final members = <FamilyChatMember>[];
-      for (var i = 0; i < membersSnapshot.docs.length; i++) {
-        final memberDoc = membersSnapshot.docs[i];
+      for (final memberDoc in membersSnapshot.docs) {
         final memberData = memberDoc.data();
-        final userData = userReads[i].data() ?? <String, dynamic>{};
-
-        final displayNameRaw =
-            userData['displayName'] ?? userData['email'] ?? memberDoc.id;
+        final displayName = (memberData['displayName'] ?? '').toString().trim();
+        final email = (memberData['email'] ?? '').toString().trim();
+        final displayNameRaw = displayName.isNotEmpty
+            ? displayName
+            : email;
 
         members.add(
           FamilyChatMember(
             uid: memberDoc.id,
             role: (memberData['role'] ?? 'member').toString(),
             displayName: displayNameRaw.toString(),
-            avatarUrl: (userData['avatarUrl'] ?? '').toString(),
+            avatarUrl: (memberData['avatarUrl'] ?? '').toString(),
           ),
         );
       }

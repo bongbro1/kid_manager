@@ -12,6 +12,31 @@ import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
 
+bool _looksLikeOpaqueIdentifier(String raw) {
+  final text = raw.trim();
+  if (text.isEmpty || text.contains('@') || text.contains(' ')) {
+    return false;
+  }
+
+  final normalized = text.replaceAll(RegExp(r'[-_]'), '');
+  if (normalized.length < 16) {
+    return false;
+  }
+
+  final hasLetter = RegExp(r'[A-Za-z]').hasMatch(normalized);
+  final hasDigit = RegExp(r'\d').hasMatch(normalized);
+  final onlyKeyChars = RegExp(r'^[A-Za-z0-9]+$').hasMatch(normalized);
+  return hasLetter && hasDigit && onlyKeyChars;
+}
+
+String _sanitizeMemberLabel(String raw, AppLocalizations l10n) {
+  final text = raw.trim();
+  if (text.isEmpty || _looksLikeOpaqueIdentifier(text)) {
+    return l10n.familyChatMemberFallback;
+  }
+  return text;
+}
+
 class FamilyGroupChatScreen extends StatefulWidget {
   final String? initialFamilyId;
   final String? initialMessageId;
@@ -245,8 +270,7 @@ class _ChatHeader extends StatelessWidget {
 
   String _safeDisplayName(FamilyChatMember member, AppLocalizations l10n) {
     if (member.uid == myUid) return l10n.familyChatYou;
-    final text = member.displayName.trim();
-    return text.isEmpty ? l10n.familyChatMemberFallback : text;
+    return _sanitizeMemberLabel(member.displayName, l10n);
   }
 
   String _memberSummary(AppLocalizations l10n) {
@@ -357,12 +381,11 @@ class _MembersBar extends StatelessWidget {
   final bool isLoading;
 
   String _safeDisplayName(String rawName, AppLocalizations l10n) {
-    final text = rawName.trim();
-    return text.isEmpty ? l10n.familyChatMemberFallback : text;
+    return _sanitizeMemberLabel(rawName, l10n);
   }
 
-  String _initialOf(String rawName) {
-    final text = rawName.trim();
+  String _initialOf(String rawName, AppLocalizations l10n) {
+    final text = _sanitizeMemberLabel(rawName, l10n);
     if (text.isEmpty) return '?';
     return text.substring(0, 1).toUpperCase();
   }
@@ -418,7 +441,7 @@ class _MembersBar extends StatelessWidget {
                   radius: 11,
                   backgroundColor: roleColor.withAlpha(30),
                   child: Text(
-                    _initialOf(member.displayName),
+                    _initialOf(member.displayName, l10n),
                     style: TextStyle(
                       color: roleColor,
                       fontSize: 10,
@@ -479,12 +502,12 @@ class _MessagesView extends StatelessWidget {
   String _resolveSenderName(FamilyChatMessage message, AppLocalizations l10n) {
     final currentName = memberNamesByUid[message.senderUid]?.trim();
     if (currentName != null && currentName.isNotEmpty) {
-      return currentName;
+      return _sanitizeMemberLabel(currentName, l10n);
     }
 
     final fallback = message.senderName.trim();
     if (fallback.isNotEmpty) {
-      return fallback;
+      return _sanitizeMemberLabel(fallback, l10n);
     }
 
     return l10n.familyChatMemberFallback;
