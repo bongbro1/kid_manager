@@ -107,9 +107,10 @@ class LocationServiceImpl implements LocationServiceInterface {
 
     await _location.changeSettings(
       accuracy: loc.LocationAccuracy.high,
-      // Keep receiving updates even when standing still.
-      distanceFilter: 0,
-      interval: 3000,
+      // Balance responsiveness with battery/noise. Software filtering still
+      // handles indoor drift and standing-still suppression on top of this.
+      distanceFilter: 6,
+      interval: 5000,
     );
 
     return true;

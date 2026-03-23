@@ -291,9 +291,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
             'type': 'Point',
             'coordinates': [live.longitude, live.latitude],
           },
-          'properties': {
-            _liveMarkerIconProperty: _liveMarkerIconId,
-          },
+          'properties': {_liveMarkerIconProperty: _liveMarkerIconId},
         },
       ],
     };
@@ -407,10 +405,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
       _endSourceId,
       _pointCollection(state.selectedRoute?.endPoint),
     );
-    await _updateGeoJsonSource(
-      _liveSourceId,
-      _liveLocationCollection(state),
-    );
+    await _updateGeoJsonSource(_liveSourceId, _liveLocationCollection(state));
     await _fitToRoutesIfNeeded(state);
   }
 
@@ -518,7 +513,9 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          AppLocalizations.of(context).safeRouteHistoryPageTitle,
+                          AppLocalizations.of(
+                            context,
+                          ).safeRouteHistoryPageTitle,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
@@ -528,8 +525,12 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                         const SizedBox(height: 4),
                         Text(
                           state.trips.isEmpty
-                              ? AppLocalizations.of(context).safeRouteHistoryTripsEmpty
-                              : AppLocalizations.of(context).safeRouteHistoryPageReviewSaved,
+                              ? AppLocalizations.of(
+                                  context,
+                                ).safeRouteHistoryTripsEmpty
+                              : AppLocalizations.of(
+                                  context,
+                                ).safeRouteHistoryPageReviewSaved,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF667085),
@@ -655,10 +656,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white,
-        border: Border.all(
-          color: const Color(0xFFDBEAFE),
-          width: 1.6,
-        ),
+        border: Border.all(color: const Color(0xFFDBEAFE), width: 1.6),
       ),
       child: avatarUrl.isEmpty
           ? const Icon(
@@ -806,6 +804,7 @@ class _SelectedTripSummaryCard extends StatelessWidget {
     return parts.join(' · ');
   }
 }
+
 class _HistoryTripCard extends StatelessWidget {
   const _HistoryTripCard({
     required this.trip,
@@ -900,6 +899,7 @@ class _HistoryTripCard extends StatelessWidget {
     return parts.join(' · ');
   }
 }
+
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status});
 
@@ -968,6 +968,7 @@ class _StatusBadge extends StatelessWidget {
     }
   }
 }
+
 class _InfoChip extends StatelessWidget {
   const _InfoChip({required this.icon, required this.label});
 
@@ -1017,11 +1018,16 @@ class _EmptyHistoryPageState extends StatelessWidget {
       ),
       child: Text(
         AppLocalizations.of(context).safeRouteHistoryEmptyState,
-        style: const TextStyle(fontSize: 12, color: Color(0xFF667085), height: 1.35),
+        style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFF667085),
+          height: 1.35,
+        ),
       ),
     );
   }
 }
+
 class _HistoryBadgeStyle {
   const _HistoryBadgeStyle({
     required this.label,
@@ -1033,11 +1039,3 @@ class _HistoryBadgeStyle {
   final Color background;
   final Color foreground;
 }
-
-
-
-
-
-
-
-

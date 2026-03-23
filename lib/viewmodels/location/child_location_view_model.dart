@@ -335,17 +335,17 @@ class ChildLocationViewModel extends ChangeNotifier {
 
     switch (motion) {
       case MotionState.moving:
-        if (accuracy <= 20) return const Duration(seconds: 3);
-        if (accuracy <= 50) return const Duration(seconds: 8);
-        return const Duration(seconds: 30);
+        if (accuracy <= 20) return const Duration(seconds: 5);
+        if (accuracy <= 50) return const Duration(seconds: 10);
+        return const Duration(seconds: 20);
       case MotionState.idle:
-        if (accuracy <= 20) return const Duration(seconds: 15);
-        if (accuracy <= 50) return const Duration(seconds: 25);
-        return const Duration(seconds: 45);
+        if (accuracy <= 20) return const Duration(seconds: 45);
+        if (accuracy <= 50) return const Duration(minutes: 1);
+        return const Duration(minutes: 2);
       case MotionState.stationary:
-        if (accuracy <= 20) return const Duration(seconds: 30);
-        if (accuracy <= 50) return const Duration(seconds: 45);
-        return const Duration(minutes: 1);
+        if (accuracy <= 20) return const Duration(minutes: 2);
+        if (accuracy <= 50) return const Duration(minutes: 3);
+        return const Duration(minutes: 5);
     }
   }
 
@@ -853,9 +853,12 @@ class ChildLocationViewModel extends ChangeNotifier {
     final dtMs = loc.timestamp - prev.timestamp;
     final dKm = prev.distanceTo(loc);
     final turn = _turnDelta(loc.heading, prev.heading);
+    final movedEnough = dKm >= 0.006;
 
     final shouldAdd =
-        dtMs >= 10000 || dKm >= 0.012 || turn >= 25; // 10s / 12m / cua
+        dKm >= 0.012 ||
+        (movedEnough && dtMs >= 20000) ||
+        (movedEnough && turn >= 25); // 12m / 20s+6m / cua khi co di chuyen
     if (shouldAdd) {
       _trail.add(loc);
     }

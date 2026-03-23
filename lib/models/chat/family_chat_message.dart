@@ -9,6 +9,11 @@ class FamilyChatMessage {
   final String? clientMessageId;
   final String text;
   final String type;
+  final String? stickerId;
+  final String? imageUrl;
+  final String? imagePath;
+  final int? imageWidth;
+  final int? imageHeight;
   final DateTime? createdAt;
   final String verifyState;
   final String? verifyError;
@@ -23,6 +28,11 @@ class FamilyChatMessage {
     required this.clientMessageId,
     required this.text,
     required this.type,
+    required this.stickerId,
+    required this.imageUrl,
+    required this.imagePath,
+    required this.imageWidth,
+    required this.imageHeight,
     required this.createdAt,
     required this.verifyState,
     required this.verifyError,
@@ -44,6 +54,11 @@ class FamilyChatMessage {
       clientMessageId: data['clientMessageId']?.toString(),
       text: (data['text'] ?? '').toString(),
       type: (data['type'] ?? 'text').toString(),
+      stickerId: data['stickerId']?.toString(),
+      imageUrl: data['imageUrl']?.toString(),
+      imagePath: data['imagePath']?.toString(),
+      imageWidth: (data['imageWidth'] as num?)?.toInt(),
+      imageHeight: (data['imageHeight'] as num?)?.toInt(),
       createdAt:
           (data['createdAt'] as Timestamp?)?.toDate() ??
           (data['clientCreatedAt'] as Timestamp?)?.toDate(),

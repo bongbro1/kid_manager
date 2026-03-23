@@ -58,8 +58,16 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   Timer? _tripRefreshTimer;
   bool _isRefreshingTrip = false;
   String? _dismissedCompletedTripId;
+  bool _disposed = false;
+  int _lifecycleGeneration = 0;
 
   static const Duration _tripRefreshInterval = Duration(seconds: 5);
+
+  int _captureLifecycle() => _lifecycleGeneration;
+
+  bool _isStaleLifecycle(int generation) {
+    return _disposed || generation != _lifecycleGeneration;
+  }
 
   bool get canFetchSuggestions =>
       _state.selectedStart != null &&
@@ -227,21 +235,30 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
+    if (_disposed) return;
+    final generation = _captureLifecycle();
     _setState(_state.copyWith(isLoading: true, clearErrorMessage: true));
     await _bindLiveLocation();
+    if (_isStaleLifecycle(generation)) return;
     await refreshActiveTrip();
+    if (_isStaleLifecycle(generation)) return;
     _tripRefreshTimer?.cancel();
     _tripRefreshTimer = Timer.periodic(_tripRefreshInterval, (_) {
+      if (_disposed) return;
       unawaited(refreshActiveTrip());
     });
+    if (_isStaleLifecycle(generation)) return;
     _setState(_state.copyWith(isLoading: false));
   }
 
   Future<void> refreshActiveTrip() async {
+    if (_disposed) return;
     if (_isRefreshingTrip) return;
+    final generation = _captureLifecycle();
     _isRefreshingTrip = true;
     try {
       var trip = await _getActiveTripByChildIdUseCase(childId);
+      if (_isStaleLifecycle(generation)) return;
       if (trip?.status == TripStatus.completed &&
           trip?.id == _dismissedCompletedTripId) {
         trip = null;
@@ -252,6 +269,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
       List<SafeRoute> alternativeRoutes = const [];
       if (trip != null) {
         final routeGroup = await _loadRouteGroupForTrip(trip);
+        if (_isStaleLifecycle(generation)) return;
         route = routeGroup.primaryRoute;
         alternativeRoutes = routeGroup.alternativeRoutes;
       }
@@ -307,13 +325,17 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   Future<void> _bindLiveLocation() async {
+    final generation = _captureLifecycle();
     await _liveLocationSub?.cancel();
+    if (_isStaleLifecycle(generation)) return;
     _liveLocationSub = _streamLiveLocationUseCase(childId).listen(
       (location) {
+        if (_disposed) return;
         debugPrint('Live location updated: $location');
         _setState(_state.copyWith(liveLocation: location));
       },
       onError: (error) {
+        if (_disposed) return;
         debugPrint('Error occurred while streaming live location: $error');
         _setState(_state.copyWith(errorMessage: error.toString()));
       },
@@ -494,12 +516,14 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     );
 
     try {
+      final generation = _captureLifecycle();
       final routes = await _getSuggestedRoutesUseCase(
         start,
         end,
         childId: childId,
         travelMode: _state.selectedTravelMode,
       );
+      if (_isStaleLifecycle(generation)) return;
       _setState(
         _state.copyWith(
           isFetchingSuggestions: false,
@@ -538,7 +562,9 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   Future<void> previewTripHistory(Trip trip) async {
+    final generation = _captureLifecycle();
     final route = await _getRouteByIdUseCase(trip.routeId);
+    if (_isStaleLifecycle(generation)) return;
     if (route == null) {
       _setState(
         _state.copyWith(
@@ -578,6 +604,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   Future<void> startTrip() async {
+    if (_disposed) return;
     final route = _state.selectedRoute;
     final parentId = _auth.currentUser?.uid;
     if (route == null) {
@@ -604,6 +631,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     _setState(_state.copyWith(isStartingTrip: true, clearErrorMessage: true));
 
     try {
+      final generation = _captureLifecycle();
       _dismissedCompletedTripId = null;
       final scheduledStartAt = _buildScheduledStartAt();
       final createdTrip = await _startTripUseCase(
@@ -626,6 +654,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
           lastLocation: null,
         ),
       );
+      if (_isStaleLifecycle(generation)) return;
 
       _setState(
         _state.copyWith(
@@ -663,22 +692,28 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   Future<void> completeTrip() async {
+    if (_disposed) return;
     final trip = _state.activeTrip;
     if (trip == null) return;
+    final generation = _captureLifecycle();
     _dismissedCompletedTripId = null;
     await _updateTripStatusUseCase(trip.id, TripStatus.completed);
+    if (_isStaleLifecycle(generation)) return;
     await refreshActiveTrip();
   }
 
   Future<void> cancelTrip() async {
+    if (_disposed) return;
     final trip = _state.activeTrip;
     if (trip == null) return;
+    final generation = _captureLifecycle();
     _dismissedCompletedTripId = null;
     await _updateTripStatusUseCase(
       trip.id,
       TripStatus.cancelled,
       reason: _l10n.safeRouteCancelledByParentReason,
     );
+    if (_isStaleLifecycle(generation)) return;
     await refreshActiveTrip();
   }
 
@@ -749,7 +784,14 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   Future<_ResolvedRouteGroup> _loadRouteGroupForTrip(Trip trip) async {
+    final generation = _captureLifecycle();
     final primaryRoute = await _getRouteByIdUseCase(trip.routeId);
+    if (_isStaleLifecycle(generation)) {
+      return const _ResolvedRouteGroup(
+        primaryRoute: null,
+        alternativeRoutes: [],
+      );
+    }
     if (primaryRoute == null) {
       return const _ResolvedRouteGroup(
         primaryRoute: null,
@@ -764,6 +806,12 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     final alternativeRoutes = (await Future.wait(
       alternativeRouteIds.map((routeId) => _getRouteByIdUseCase(routeId)),
     )).whereType<SafeRoute>().toList(growable: false);
+    if (_isStaleLifecycle(generation)) {
+      return const _ResolvedRouteGroup(
+        primaryRoute: null,
+        alternativeRoutes: [],
+      );
+    }
 
     final currentRouteId = trip.currentRouteId;
     if (currentRouteId == null || currentRouteId == primaryRoute.id) {
@@ -800,6 +848,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   void _setState(SafeRouteTrackingState next) {
+    if (_disposed) return;
     _log(
       'state change: '
       'mode ${_state.selectionMode} -> ${next.selectionMode}, '
@@ -807,7 +856,9 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
       'end ${_state.selectedEndLabel} -> ${next.selectedEndLabel}',
     );
     _state = next;
-    notifyListeners();
+    if (!_disposed) {
+      notifyListeners();
+    }
   }
 
   String _formatPointLabel(RoutePoint point) {
@@ -816,6 +867,8 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _lifecycleGeneration++;
     _liveLocationSub?.cancel();
     _tripRefreshTimer?.cancel();
     super.dispose();
