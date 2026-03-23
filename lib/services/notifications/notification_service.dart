@@ -12,6 +12,7 @@ import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
+import 'package:kid_manager/services/notifications/sos_tap_router.dart';
 import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
@@ -106,15 +107,14 @@ class NotificationService {
       return;
     }
 
-    final navigator = AppNavigator.navigatorKey.currentState;
-    if (navigator == null) {
-      debugPrint('🔔 Navigator is null, cannot navigate');
+    if (type == 'sos') {
+      await SosTapRouter.handleTap(data);
       return;
     }
 
-    if (type == 'sos') {
-      debugPrint('🔔 Navigate to SOS screen');
-      // TODO: push SOS screen here
+    final navigator = AppNavigator.navigatorKey.currentState;
+    if (navigator == null) {
+      debugPrint('🔔 Navigator is null, cannot navigate');
       return;
     }
 

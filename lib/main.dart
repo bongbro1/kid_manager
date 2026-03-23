@@ -67,7 +67,6 @@ Future<void> _runDeferredStartupTasks() async {
   try {
     await LocalNotificationService.init();
     await NotificationService.init();
-    await NotificationService.handleInitialMessage();
   } catch (e) {
     debugPrint('Notification bootstrap failed: $e');
   }

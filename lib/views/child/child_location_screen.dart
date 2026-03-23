@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
 import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -54,8 +53,11 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChildLocationViewModel>().startLocationSharing(
-        background: true,
+      if (!mounted) return;
+      unawaited(
+        context.read<ChildLocationViewModel>().startLocationSharing(
+          background: true,
+        ),
       );
     });
   }
@@ -221,23 +223,28 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final vm = context.watch<ChildLocationViewModel>();
-    final familyId = context.watch<UserVm>().familyId;
+    final familyId = context.select<UserVm, String?>((userVm) => userVm.familyId);
     final myUid = context.select<UserVm, String?>((userVm) => userVm.me?.uid);
-    final localeCode = context.watch<LocaleVm>().locale.languageCode;
+    final localeCode = context.select<LocaleVm, String>(
+      (localeVm) => localeVm.locale.languageCode,
+    );
+    final childError = context.select<ChildLocationViewModel, String?>(
+      (vm) => vm.error,
+    );
     final hasSosOverlay = familyId != null && myUid != null;
+    final currentLocation = _vm.currentLocation;
 
     if (myUid != null) {
       _ensureSafeRouteVm(
         childId: myUid,
         languageCode: localeCode,
-        initialLocation: vm.currentLocation,
+        initialLocation: currentLocation,
       );
     }
 
     final safeRouteState =
         _safeRouteVm?.state ?? ChildSafeRouteState.initial(myUid ?? '');
-    final combinedError = vm.error ?? safeRouteState.errorMessage;
+    final combinedError = childError ?? safeRouteState.errorMessage;
 
     return Stack(
       children: [
@@ -322,7 +329,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
             child: MapBottomControls(
               children: const [],
               onMyLocation: () {
-                final loc = vm.currentLocation;
+                final loc = _vm.currentLocation;
                 if (loc == null) return;
 
                 _autoFollow = true;
@@ -347,8 +354,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
             top: false,
             child: SosCircleButton(
               onPressed: () async {
-                final vm = context.read<ChildLocationViewModel>();
-                final loc = vm.currentLocation;
+                final loc = _vm.currentLocation;
                 final displayName =
                     context.read<UserVm>().me?.displayName ??
                     l10n.parentLocationUnknownUser;
@@ -412,18 +418,6 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
             right: 16,
             bottom: hasSosOverlay ? 260 : 150,
             child: _ErrorBanner(message: combinedError),
-          ),
-
-        if (familyId != null && myUid != null)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 110,
-            child: IncomingSosOverlay(
-              key: ValueKey('sos-$familyId'),
-              familyId: familyId,
-              myUid: myUid,
-            ),
           ),
       ],
     );

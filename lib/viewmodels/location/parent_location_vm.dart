@@ -215,12 +215,7 @@ class ParentLocationVm extends ChangeNotifier {
         fromTs: fromTs,
         toTs: toTs,
       );
-      final valid = history.where(_isValidLocation).toList();
-
-      _childrenTrails[childUid] = valid;
-      if (valid.isNotEmpty) _childrenLocations[childUid] = valid.last;
-      notifyListeners();
-      return valid;
+      return history.where(_isValidLocation).toList();
     } catch (e) {
       _setError(l10n.parentLocationHistoryLoadError('$e'));
       return [];

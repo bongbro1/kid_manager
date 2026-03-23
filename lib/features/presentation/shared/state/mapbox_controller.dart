@@ -80,7 +80,9 @@ class MapboxController extends ChangeNotifier {
       return await call();
     } catch (e) {
       if (_isDetachedChannelError(e) || !_isSessionActive(session)) {
-        debugPrint("Skip map style query after detach: $label");
+        if (kDebugMode) {
+          debugPrint("Skip map style query after detach: $label");
+        }
         return null;
       }
       rethrow;
@@ -101,7 +103,9 @@ class MapboxController extends ChangeNotifier {
       return true;
     } catch (e) {
       if (_isDetachedChannelError(e) || !_isSessionActive(session)) {
-        debugPrint("Skip map style write after detach: $label");
+        if (kDebugMode) {
+          debugPrint("Skip map style write after detach: $label");
+        }
         return false;
       }
       rethrow;
@@ -177,7 +181,9 @@ class MapboxController extends ChangeNotifier {
         if (!completer.isCompleted) completer.complete();
       } catch (e, st) {
         if (_isDetachedChannelError(e) || !_isSessionActive(session)) {
-          debugPrint("Skip queued style task after detach");
+          if (kDebugMode) {
+            debugPrint("Skip queued style task after detach");
+          }
           if (!completer.isCompleted) completer.complete();
           return;
         }

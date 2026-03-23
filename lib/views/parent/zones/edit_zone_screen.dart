@@ -125,7 +125,6 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     final hit = findOverlappingZone(
       candidate: tmp,
       existing: widget.existingZones,
-      bufferM: 1.0,
     );
 
     _isOverlapping = hit != null;
@@ -178,6 +177,7 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                     _renderer = ZoneMapRenderer(map);
                   },
                   onStyleLoadedListener: (_) async {
+                    if (!mounted) return;
                     _styleReady = true;
 
                     _safeIcon ??= await MarkerIconFactory.makeCircleIcon(
@@ -192,17 +192,25 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                       fg: Colors.white,
                       size: avatarSize,
                     );
+                    if (!mounted) return;
 
-                    await _renderer!.ensureLayers();
+                    final map = _map;
+                    final renderer = _renderer ??= map == null
+                        ? null
+                        : ZoneMapRenderer(map);
+                    if (renderer == null) return;
+
+                    await renderer.ensureLayers();
                     final zonesForMap = widget.existingZones
                         .where((z) => z.id != widget.zone?.id)
                         .toList();
-                    await _renderer!.syncZoneCircles(zonesForMap);
-                    await _renderer!.syncZoneIcons(
+                    await renderer.syncZoneCircles(zonesForMap);
+                    await renderer.syncZoneIcons(
                       zones: zonesForMap,
                       safeIcon: _safeIcon!,
                       dangerIcon: _dangerIcon!,
                     );
+                    if (!mounted) return;
 
                     if (!_didInitialFocus && _isEditing) {
                       _didInitialFocus = true;

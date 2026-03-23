@@ -3,7 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
-import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
@@ -37,6 +36,20 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordCtrl = TextEditingController();
   bool rememberPassword = false;
 
+  String _resolveLoginErrorMessage(
+    AppLocalizations l10n,
+    String? errorKey,
+  ) {
+    switch (errorKey) {
+      case 'accountNotFound':
+        return l10n.accountNotFound;
+      case 'accountNotActivated':
+        return l10n.accountNotActivated;
+      default:
+        return l10n.authInvalidCredentials;
+    }
+  }
+
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -48,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _loadRememberedLogin();
     });
   }
@@ -79,12 +93,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final cred = await authVM.login(email, password);
+      if (!mounted) return;
       if (cred == null) {
-        NotificationDialog.show(
+        await NotificationDialog.show(
           context,
           type: DialogType.error,
           title: l10n.updateErrorTitle,
-          message: l10n.authInvalidCredentials,
+          message: _resolveLoginErrorMessage(l10n, authVM.error),
         );
         return;
       }
@@ -94,8 +109,9 @@ class _LoginScreenState extends State<LoginScreen> {
       await storage.setString(StorageKeys.uid, uid);
 
       final profile = await userVM.loadProfile(uid: uid, caller: 'LoginScreen');
+      if (!mounted) return;
       if (profile == null) {
-        NotificationDialog.show(
+        await NotificationDialog.show(
           context,
           type: DialogType.error,
           title: l10n.updateErrorTitle,
@@ -122,23 +138,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
       debugPrint("🚀 Running role: ${profile.role}");
 
-      if (roleFromString(profile.role!) == UserRole.child) {
+      if (role == UserRole.child) {
+        if (parentId.trim().isEmpty) {
+          if (!mounted) return;
+          await NotificationDialog.show(
+            context,
+            type: DialogType.error,
+            title: l10n.updateErrorTitle,
+            message: l10n.authUserProfileLoadFailed,
+          );
+          return;
+        }
         AuthRuntimeManager.start(
-          parentId: profile.parentUid!,
+          parentId: parentId,
           displayName: profile.name,
         );
         await appVM.loadAndSeedApp();
+        if (!mounted) return;
       } else {
         await AuthRuntimeManager.stop();
+        if (!mounted) return;
       }
 
-      if (!mounted) return;
-
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const SessionGuard()),
-        (route) => false,
-      );
+      FocusScope.of(context).unfocus();
     } catch (e, st) {
       debugPrint('Login error: $e');
       debugPrintStack(stackTrace: st);

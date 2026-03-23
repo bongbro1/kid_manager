@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
@@ -707,11 +706,9 @@ class ConfirmLogoutSheet extends StatelessWidget {
       await userVm.clear();
       await appManagementVm.clear();
       await authVM.logout();
-
-      rootNav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const SessionGuard()),
-        (_) => false,
-      );
+      if (rootNav.mounted && rootNav.canPop()) {
+        rootNav.pop();
+      }
     }
 
     final vm = context.watch<AuthVM>();

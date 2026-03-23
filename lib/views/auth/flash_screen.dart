@@ -47,10 +47,12 @@ class _FlashScreenState extends State<FlashScreen> {
     });
   }
 
-  Future<void> _finishPermissionFlow() async {
+  Future<void> _finishPermissionFlow(
+    PermissionOnboardingCompletion completion,
+  ) async {
     await context.read<StorageService>().setBool(
       StorageKeys.permissionOnboardingSeenV1,
-      true,
+      completion.allPermissionsGranted,
     );
 
     if (!mounted) return;

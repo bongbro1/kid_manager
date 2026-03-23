@@ -30,11 +30,6 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     _tabController.addListener(() {
       setState(() {});
     });
-
-    Future.microtask(() async {
-      final vm = context.read<AppManagementVM>();
-      await vm.loadAppsForSelectedChild();
-    });
   }
 
   @override

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/app_colors.dart';
-import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -90,10 +89,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       await Future.delayed(const Duration(milliseconds: 1000));
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const SessionGuard()),
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       AlertService.showSnack(e.toString(), isError: true);
     }

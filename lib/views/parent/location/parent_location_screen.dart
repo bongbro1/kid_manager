@@ -187,10 +187,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
         bearing: 0,
       );
       if (animate) {
-        await _map!.easeTo(
-          camera,
-          mbx.MapAnimationOptions(duration: 700),
-        );
+        await _map!.easeTo(camera, mbx.MapAnimationOptions(duration: 700));
       } else {
         await _map!.setCamera(camera);
       }
@@ -294,7 +291,10 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
         break;
       }
     }
-    if (viewer == null || !viewer.isParent || target == null || !target.isChild) {
+    if (viewer == null ||
+        !viewer.isParent ||
+        target == null ||
+        !target.isChild) {
       return <Schedule>[];
     }
 
@@ -315,7 +315,16 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   }
 
   void _openChildInfo(String childId) async {
-    final child = _userVm.locationMembers.firstWhere((c) => c.uid == childId);
+    AppUser? foundChild;
+    for (final member in _userVm.locationMembers) {
+      if (member.uid == childId) {
+        foundChild = member;
+        break;
+      }
+    }
+    if (foundChild == null) return;
+
+    final child = foundChild; // non-null local
     final latest = _locationVm.childrenLocations[child.uid];
     final schedules = await _loadChildSchedulesByDate(
       childId: child.uid,
@@ -469,23 +478,29 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
               ),
             ),
           ),
-
-            Positioned(
-              left: 12,
-              top: 90,
-              child: SafeArea(
-                child: SosCircleButton(
-                  onPressed: () async {
-                    final sosVm = context.read<SosViewModel>();
-                    final myLocation = _locationVm.myLocation;
-                    debugPrint('Vo denn day');
-                    final displayName =
-                        context.read<UserVm>().me?.displayName ??
-                        l10n.parentLocationUnknownUser;
+          Positioned(
+            left: 12,
+            top: 90,
+            child: SafeArea(
+              child: SosCircleButton(
+                onPressed: () async {
+                  final sosVm = context.read<SosViewModel>();
+                  var myLocation = _locationVm.myLocation;
+                  debugPrint('Vo denn day');
+                  final displayName =
+                      context.read<UserVm>().me?.displayName ??
+                      l10n.parentLocationUnknownUser;
 
                   debugPrint('myLocation=$myLocation');
                   debugPrint('sending=${sosVm.sending}');
-                  if (myLocation == null) return;
+                  myLocation ??= await _locationVm.getMyLocationOnce();
+                  if (!context.mounted) return;
+                  if (myLocation == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.currentLocationError)),
+                    );
+                    return;
+                  }
                   if (sosVm.sending) return;
 
                   final sosId = await sosVm.triggerSos(
@@ -495,20 +510,20 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                     createdByName: displayName,
                   );
 
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          sosId != null
-                              ? l10n.parentLocationSosSent
-                              : l10n.parentLocationSosFailed,
-                        ),
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        sosId != null
+                            ? l10n.parentLocationSosSent
+                            : l10n.parentLocationSosFailed,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             ),
+          ),
 
           Positioned(
             left: 12,

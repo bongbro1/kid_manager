@@ -109,7 +109,7 @@ class LocationServiceImpl implements LocationServiceInterface {
       accuracy: loc.LocationAccuracy.high,
       // Keep receiving updates even when standing still.
       distanceFilter: 0,
-      interval: 10000,
+      interval: 3000,
     );
 
     return true;
@@ -124,7 +124,7 @@ class LocationServiceImpl implements LocationServiceInterface {
         accuracy: (l.accuracy ?? 0).toDouble(),
         speed: (l.speed ?? 0).toDouble(),
         heading: (l.heading ?? 0).toDouble(),
-        timestamp: DateTime.now().millisecondsSinceEpoch,
+        timestamp: l.time?.round() ?? DateTime.now().millisecondsSinceEpoch,
       );
     });
   }
