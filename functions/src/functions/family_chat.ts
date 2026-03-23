@@ -10,6 +10,8 @@ import {
 } from "../services/fcmInstallations";
 
 const MAX_TEXT_LENGTH = 1000;
+const MAX_LEGACY_STICKER_TEXT_LENGTH = 32;
+const MAX_STICKER_ID_LENGTH = 64;
 const MAX_CLIENT_MESSAGE_ID_LENGTH = 120;
 const MULTICAST_LIMIT = 500;
 const TOKEN_MIN_LENGTH = 20;
@@ -135,6 +137,50 @@ async function sendFamilyChatPush(params: {
   await cleanupInvalidFamilyTokens(invalidTokens);
 }
 
+function resolveMessagePreviewText(type: string, text: string): string {
+  switch (type) {
+  case "image":
+    return "[Photo]";
+  case "sticker":
+    return "[Sticker]";
+  default:
+    return text;
+  }
+}
+
+function isValidTextPayload(text: string): boolean {
+  return text.length > 0 && text.length <= MAX_TEXT_LENGTH;
+}
+
+function isValidStickerPayload(data: FirebaseFirestore.DocumentData): boolean {
+  const stickerId = (data.stickerId ?? "").toString().trim();
+  const legacyText = (data.text ?? "").toString().trim();
+
+  if (stickerId) {
+    return stickerId.length <= MAX_STICKER_ID_LENGTH;
+  }
+
+  return (
+    legacyText.length > 0 &&
+    legacyText.length <= MAX_LEGACY_STICKER_TEXT_LENGTH
+  );
+}
+
+function isValidImagePayload(data: FirebaseFirestore.DocumentData): boolean {
+  const imageUrl = (data.imageUrl ?? "").toString().trim();
+  const imageWidth = Number(data.imageWidth ?? 0);
+  const imageHeight = Number(data.imageHeight ?? 0);
+
+  return (
+    imageUrl.length > 0 &&
+    imageUrl.length <= 2048 &&
+    Number.isFinite(imageWidth) &&
+    Number.isFinite(imageHeight) &&
+    imageWidth > 0 &&
+    imageHeight > 0
+  );
+}
+
 async function markPendingMessageFailed(params: {
   ref: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
   reason: string;
@@ -166,8 +212,19 @@ async function finalizePendingFamilyMessage(params: {
   const text = (data.text ?? "").toString().trim();
   const familyIdInDoc = (data.familyId ?? "").toString().trim();
   const type = (data.type ?? "").toString().trim();
+  const previewText = resolveMessagePreviewText(type, text);
 
-  if (!senderUid || !senderRole || !text || !familyIdInDoc || type !== "text") {
+  const isValidPayload =
+    !!senderUid &&
+    !!senderRole &&
+    !!familyIdInDoc &&
+    (
+      (type === "text" && isValidTextPayload(text)) ||
+      (type === "image" && isValidImagePayload(data)) ||
+      (type === "sticker" && isValidStickerPayload(data))
+    );
+
+  if (!isValidPayload) {
     await markPendingMessageFailed({
       ref,
       reason: "invalid_message_payload",
@@ -221,7 +278,7 @@ async function finalizePendingFamilyMessage(params: {
     {
       lastMessageAt: now,
       lastMessageBy: senderUid,
-      lastMessageText: text,
+      lastMessageText: previewText,
     },
     { merge: true }
   );
@@ -270,7 +327,7 @@ async function finalizePendingFamilyMessage(params: {
         messageId,
         senderUid,
         senderName,
-        body: text,
+        body: previewText,
         route: "family_group_chat",
         isRead: false,
         createdAt: now,
@@ -285,7 +342,7 @@ async function finalizePendingFamilyMessage(params: {
     familyId,
     senderUid,
     senderName,
-    text,
+    text: previewText,
     messageId,
     recipientUids,
   });
@@ -479,8 +536,10 @@ export const onFamilyChatMessageCreated = onDocumentCreated(
     const senderUid = (data.senderUid ?? "").toString().trim();
     const senderName = (data.senderName ?? "Family member").toString().trim();
     const text = (data.text ?? "").toString().trim();
+    const type = (data.type ?? "text").toString().trim();
+    const previewText = resolveMessagePreviewText(type, text);
 
-    if (!senderUid || !text) {
+    if (!senderUid || !previewText) {
       return;
     }
 
@@ -499,7 +558,7 @@ export const onFamilyChatMessageCreated = onDocumentCreated(
         familyId,
         senderUid,
         senderName: senderName || "Family member",
-        text,
+        text: previewText,
         messageId,
         recipientUids,
       });

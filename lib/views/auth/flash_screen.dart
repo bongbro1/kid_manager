@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/features/permissions/permission_onboarding_flow.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
@@ -18,7 +18,7 @@ class FlashScreen extends StatefulWidget {
 
 class _FlashScreenState extends State<FlashScreen> {
   bool _showPermissionFlow = false;
-  bool _permissionsDone = false;
+  bool _permissionsChecked = false;
 
   void _onContinue() {
     context.read<SessionVM>().finishSplash();
@@ -35,30 +35,34 @@ class _FlashScreenState extends State<FlashScreen> {
   Future<void> _init() async {
     final appVM = context.read<AppManagementVM>();
     final storage = context.read<StorageService>();
+    final permissionService = context.read<PermissionService>();
 
     appVM.loadAndSeedApp();
 
     final hasSeenPermissionFlow =
         storage.getBool(StorageKeys.permissionOnboardingSeenV1) ?? false;
-
-    if (!mounted) return;
-    setState(() {
-      _showPermissionFlow = !hasSeenPermissionFlow;
-      _permissionsDone = hasSeenPermissionFlow;
-    });
-  }
-
-  Future<void> _finishPermissionFlow(
-    PermissionOnboardingCompletion completion,
-  ) async {
-    await context.read<StorageService>().setBool(
-      StorageKeys.permissionOnboardingSeenV1,
-      completion.allPermissionsGranted,
+    final permissionResults = await permissionService.checkAllPermissions();
+    final hasMissingPermissions = permissionResults.values.any(
+      (granted) => !granted,
     );
 
     if (!mounted) return;
     setState(() {
-      _permissionsDone = true;
+      _showPermissionFlow = !hasSeenPermissionFlow || hasMissingPermissions;
+      _permissionsChecked = true;
+    });
+  }
+
+  Future<void> _finishPermissionFlow(
+    PermissionOnboardingCompletion _completion,
+  ) async {
+    await context.read<StorageService>().setBool(
+      StorageKeys.permissionOnboardingSeenV1,
+      true,
+    );
+
+    if (!mounted) return;
+    setState(() {
       _showPermissionFlow = false;
     });
   }
@@ -67,19 +71,20 @@ class _FlashScreenState extends State<FlashScreen> {
   Widget build(BuildContext context) {
     final appVM = context.watch<AppManagementVM>();
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
-    if (appVM.loading) {
-      return LoadingOverlay();
+    if (appVM.loading || !_permissionsChecked) {
+      return const LoadingOverlay();
     }
 
-    if (_showPermissionFlow && !_permissionsDone) {
-      return PermissionOnboardingFlow(
-        onFinished: _finishPermissionFlow,
-      );
+    if (_showPermissionFlow) {
+      return PermissionOnboardingFlow(onFinished: _finishPermissionFlow);
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -96,8 +101,8 @@ class _FlashScreenState extends State<FlashScreen> {
                       child: Text(
                         l10n.flashWelcomeTitle,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color(0xFF2D2B2E),
+                        style: textTheme.headlineSmall?.copyWith(
+                          color: colorScheme.onSurface,
                           fontSize: 24,
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.w600,
@@ -112,8 +117,8 @@ class _FlashScreenState extends State<FlashScreen> {
                       child: Text(
                         l10n.flashWelcomeSubtitle,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color(0xFF2D2B2E),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurface.withOpacity(0.8),
                           fontSize: 14,
                           fontFamily: 'DM Sans',
                           fontWeight: FontWeight.w400,
@@ -137,8 +142,8 @@ class _FlashScreenState extends State<FlashScreen> {
                     child: Text(
                       l10n.flashNext,
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        color: Color(0xFF2D2B2E),
+                      style: textTheme.titleMedium?.copyWith(
+                        color: colorScheme.primary,
                         fontSize: 18,
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w600,

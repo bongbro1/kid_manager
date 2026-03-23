@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_activity_recognition/models/activity.dart';
 import 'package:kid_manager/core/location/kalman_filter.dart';
 import 'package:kid_manager/core/location/motion_detector.dart';
@@ -30,21 +32,30 @@ class TrackingPipeline {
   }) {
     _kalman ??= Kalman2D(raw.latitude, raw.longitude);
 
-    final filtered = EffectiveSpeedEstimator.resolveIncomingLocation(
+    final resolved = EffectiveSpeedEstimator.resolveIncomingLocation(
       _kalman!.filter(raw),
       previous: previousReference,
+    );
+    final filtered = _stabilizeIndoorDrift(
+      raw: raw,
+      previous: previousReference,
+      next: resolved,
     );
     final now = DateTime.now();
     final transport = transportDetector.update(filtered, act);
 
     final lastHistoryPoint = _state.lastSent;
     final distanceKm = lastHistoryPoint?.distanceTo(filtered) ?? 0.0;
+    final motionReference = previousReference ?? lastHistoryPoint;
+    final observedDistanceKm = motionReference?.distanceTo(filtered) ?? 0.0;
 
     final nextMotion = motionDetector.detect(
       _state.motion,
-      distanceKm,
+      observedDistanceKm,
       now,
       _state.lastMoveAt,
+      speedMps: filtered.speed,
+      accuracyM: filtered.accuracy,
     );
 
     _state = _state.copyWith(
@@ -109,5 +120,45 @@ class TrackingPipeline {
   void reset() {
     _state = const TrackingState(motion: MotionState.moving);
     _kalman = null;
+  }
+
+  LocationData _stabilizeIndoorDrift({
+    required LocationData raw,
+    required LocationData next,
+    LocationData? previous,
+  }) {
+    if (previous == null) {
+      return next;
+    }
+
+    final dtMs = (next.timestamp - previous.timestamp).abs();
+    if (dtMs <= 0 || dtMs > 30000) {
+      return next;
+    }
+
+    final distanceMeters = previous.distanceTo(next) * 1000.0;
+    final combinedAccuracy = math.max(previous.accuracy, next.accuracy);
+    final rawSpeed = raw.speed.isFinite ? raw.speed : 0.0;
+    final resolvedSpeed = next.speed.isFinite ? next.speed : 0.0;
+
+    final noiseRadiusMeters = combinedAccuracy <= 12
+        ? 8.0
+        : math.min(65.0, math.max(12.0, combinedAccuracy * 0.8));
+
+    final likelyIndoorDrift =
+        rawSpeed <= 0.8 &&
+        resolvedSpeed <= 1.6 &&
+        distanceMeters <= noiseRadiusMeters;
+
+    if (!likelyIndoorDrift) {
+      return next;
+    }
+
+    return next.copyWith(
+      latitude: previous.latitude,
+      longitude: previous.longitude,
+      heading: previous.heading,
+      speed: 0,
+    );
   }
 }

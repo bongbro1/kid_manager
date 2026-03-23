@@ -318,7 +318,7 @@ class PhoneAuthDialog {
                               color: colorScheme.onSurface.withOpacity(0.4),
                             ),
                             filled: true,
-                            fillColor: colorScheme.surfaceContainerHighest,
+                            fillColor: colorScheme.surface,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
