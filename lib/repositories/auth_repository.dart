@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -165,29 +167,43 @@ class AuthRepository {
 
   Future<void> sendOtpSms(
     String phone,
-    Function(String verificationId) codeSent,
+    Function(String verificationId) onCodeSent,
   ) async {
+    final completer = Completer<void>();
+
     await _auth.verifyPhoneNumber(
       phoneNumber: phone,
+      timeout: const Duration(seconds: 60),
 
-      verificationCompleted: (credential) async {
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        debugPrint("PHONE verificationCompleted");
         await _auth.signInWithCredential(credential);
       },
 
       verificationFailed: (FirebaseAuthException e) {
-        debugPrint("FirebaseAuthException: ${e.code} - ${e.message}");
-        throw Exception(e.message);
+        debugPrint("PHONE verificationFailed: ${e.code} - ${e.message}");
+        if (!completer.isCompleted) {
+          completer.completeError(Exception("${e.code}: ${e.message}"));
+        }
       },
 
-      codeSent: (verificationId, resendToken) {
+      codeSent: (String verificationId, int? resendToken) {
+        debugPrint("PHONE codeSent: $verificationId");
         _verificationId = verificationId;
-        codeSent(verificationId);
+        onCodeSent(verificationId);
+
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
       },
 
-      codeAutoRetrievalTimeout: (verificationId) {
+      codeAutoRetrievalTimeout: (String verificationId) {
+        debugPrint("PHONE timeout: $verificationId");
         _verificationId = verificationId;
       },
     );
+
+    return completer.future;
   }
 
   /// verify OTP
