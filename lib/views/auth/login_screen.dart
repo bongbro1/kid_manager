@@ -36,10 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordCtrl = TextEditingController();
   bool rememberPassword = false;
 
-  String _resolveLoginErrorMessage(
-    AppLocalizations l10n,
-    String? errorKey,
-  ) {
+  String _resolveLoginErrorMessage(AppLocalizations l10n, String? errorKey) {
     switch (errorKey) {
       case 'accountNotFound':
         return l10n.accountNotFound;
@@ -149,10 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
           return;
         }
-        AuthRuntimeManager.start(
-          parentId: parentId,
-          displayName: profile.name,
-        );
+        AuthRuntimeManager.start(parentId: parentId, displayName: profile.name);
         await appVM.loadAndSeedApp();
         if (!mounted) return;
       } else {
@@ -197,16 +191,18 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AuthVM>();
     final l10n = AppLocalizations.of(context);
-    // Theo spec bạn đưa:
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: AppColors.surface, // #FFFFFF
+          backgroundColor: theme.scaffoldBackgroundColor,
           body: SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -218,25 +214,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const SizedBox(height: 30),
-                        Container(
+                        SizedBox(
                           width: 216.85,
                           height: 203.40,
-                          alignment: Alignment.center,
-                          child: SvgPicture.asset(
-                            'assets/icons/Illustration.svg',
-                            width: 203.40,
-                            height: 203.40,
+                          child: Center(
+                            child: SvgPicture.asset(
+                              'assets/icons/Illustration.svg',
+                              width: 203.40,
+                              height: 203.40,
+                            ),
                           ),
                         ),
 
                         const SizedBox(height: 21),
+
                         SizedBox(
                           width: 266,
                           child: Text(
                             l10n.authWelcomeBackTitle,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Color(0xFF1A1A1A),
+                            style: textTheme.headlineSmall?.copyWith(
+                              color: colorScheme.onSurface,
                               fontSize: 24,
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w600,
@@ -245,13 +243,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
+
                         SizedBox(
                           width: 266,
                           child: Text(
                             l10n.authLoginNowSubtitle,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Color(0xFF1A1A1A),
+                            style: textTheme.titleMedium?.copyWith(
+                              color: colorScheme.onSurface,
                               fontSize: 16,
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w500,
@@ -289,43 +288,42 @@ class _LoginScreenState extends State<LoginScreen> {
                                 rememberPassword = !rememberPassword;
                               });
                             },
-                            behavior: HitTestBehavior
-                                .opaque, // 👈 vẫn bấm được cả vùng
+                            behavior: HitTestBehavior.opaque,
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Checkbox
                                 Container(
                                   width: 18,
                                   height: 18,
                                   decoration: BoxDecoration(
                                     color: rememberPassword
-                                        ? const Color(0xFF3A7DFF)
+                                        ? colorScheme.primary
                                         : Colors.transparent,
                                     border: Border.all(
                                       width: 2,
                                       color: rememberPassword
-                                          ? const Color(0xFF3A7DFF)
-                                          : const Color(0xFF49454F),
+                                          ? colorScheme.primary
+                                          : colorScheme.outline,
                                     ),
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                   child: rememberPassword
-                                      ? const Icon(
+                                      ? Icon(
                                           Icons.check,
                                           size: 12,
-                                          color: Colors.white,
+                                          color: colorScheme.onPrimary,
                                         )
                                       : null,
                                 ),
 
                                 const SizedBox(width: 12),
 
-                                // Text
                                 Text(
                                   l10n.authRememberPassword,
-                                  style: TextStyle(
-                                    color: Color(0xFF6C7278),
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurface.withOpacity(
+                                      0.7,
+                                    ),
                                     fontSize: 12,
                                     fontFamily: 'Poppins',
                                     fontWeight: FontWeight.w500,
@@ -337,8 +335,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
 
-                          const Spacer(), // 👈 đẩy text phải ra mép
-                          // Text phải
+                          const Spacer(),
+
                           GestureDetector(
                             onTap: () {
                               Navigator.push(
@@ -350,8 +348,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                             child: Text(
                               l10n.authForgotPassword,
-                              style: TextStyle(
-                                color: Color(0xFF3A7DFF),
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.primary,
                                 fontSize: 12,
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w600,
@@ -363,9 +361,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 24.17),
 
-                    // Actions
                     Align(
                       alignment: Alignment.bottomCenter,
                       child: Column(
@@ -378,9 +376,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             onPressed: _onLoginPressed,
-                            // Primary
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
                           ),
                         ],
                       ),
@@ -390,27 +387,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Divider(
-                            color: Color(0x331A1A1A),
+                            color: colorScheme.outline.withOpacity(0.4),
                             thickness: 0.83,
                           ),
                         ),
                         Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             l10n.authOr,
-                            style: TextStyle(
-                              color: Color(0xFF1A1A1A),
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurface,
                               fontSize: 13,
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                        const Expanded(
+                        Expanded(
                           child: Divider(
-                            color: Color(0x331A1A1A),
+                            color: colorScheme.outline.withOpacity(0.4),
                             thickness: 0.83,
                           ),
                         ),
@@ -452,14 +449,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
                     const SizedBox(height: 61),
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           l10n.authNoAccount,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: const Color(0xFF1A1A1A),
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: colorScheme.onSurface,
                             fontSize: 15,
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w500,
@@ -476,8 +474,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           child: Text(
                             l10n.authSignUpInline,
-                            style: TextStyle(
-                              color: const Color(0xFF3A7DFF),
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: colorScheme.primary,
                               fontSize: 15,
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w600,

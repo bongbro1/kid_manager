@@ -70,6 +70,8 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
+    final radius = BorderRadius.circular(20);
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -143,6 +145,11 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () => Navigator.pop(context),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: radius,
+                                    ),
+                                  ),
                                   child: Text(l10n.cancelButton),
                                 ),
                               ),
@@ -153,6 +160,11 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
                                     setState(() => _isCropping = true);
                                     _controller.crop();
                                   },
+                                  style: FilledButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: radius,
+                                    ),
+                                  ),
                                   child: Text(l10n.confirmButton),
                                 ),
                               ),

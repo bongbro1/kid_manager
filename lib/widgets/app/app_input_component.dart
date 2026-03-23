@@ -63,7 +63,7 @@ class AppLabeledTextField extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
+                  color: scheme.onSurfaceVariant.withOpacity(0.4),
                 ),
 
                 prefixIcon: prefixIcon,

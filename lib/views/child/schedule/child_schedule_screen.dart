@@ -193,6 +193,9 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheduleVm = context.watch<ScheduleViewModel>();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -206,17 +209,20 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         onImportSuccess: _reloadSchedulesAfterImport,
       ),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu, color: AppColors.darkText),
+            icon: Icon(Icons.menu, color: colorScheme.onSurface),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
         title: Text(
           l10n.scheduleScreenTitle,
-          style: AppTextStyles.scheduleAppBarTitle,
+          style: textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
         ),
         centerTitle: true,
       ),
@@ -224,10 +230,16 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         children: [
           const ScheduleCalendar(),
           const SizedBox(height: 16),
+
           if (scheduleVm.selectedChildId == null)
-            const Expanded(child: Center(child: CircularProgressIndicator()))
+            Expanded(
+              child: Center(
+                child: CircularProgressIndicator(color: colorScheme.primary),
+              ),
+            )
           else
             const Expanded(child: ScheduleList()),
+
           CreateScheduleButton(
             onTap: () {
               final childId = scheduleVm.selectedChildId;
@@ -240,6 +252,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
               );
             },
           ),
+
           const SizedBox(height: 16),
         ],
       ),

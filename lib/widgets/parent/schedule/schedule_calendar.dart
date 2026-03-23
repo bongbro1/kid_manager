@@ -8,8 +8,6 @@ import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
-
-import '../../../../../core/app_colors.dart';
 import '../../../../../core/app_text_styles.dart';
 import '../../../viewmodels/schedule/schedule_vm.dart';
 
@@ -66,12 +64,15 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
   }
 
   Widget _buildDayCell({
+    required BuildContext context,
     required DateTime day,
     required bool isSelected,
     required bool hasMemory,
     required bool hasBirthday,
     required TextStyle textStyle,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -80,43 +81,48 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
               ? Container(
                   width: _selectedCircleSize,
                   height: _selectedCircleSize,
-                  decoration: const BoxDecoration(
-                    color: AppColors.calendarSelection,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     '${day.day}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colorScheme.onPrimary,
                       fontFamily: 'Poppins',
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 )
-              : Text('${day.day}', style: textStyle),
+              : Text(
+                  '${day.day}',
+                  style: textStyle.copyWith(
+                    color: textStyle.color ?? colorScheme.onSurface,
+                  ),
+                ),
         ),
-        // ✅ chấm đỏ góc trái nếu có sinh nhật
+
         if (hasBirthday)
-          const Positioned(
+          Positioned(
             top: 3,
             left: 7,
             child: _CalendarCornerBadge(
               icon: Icons.cake_rounded,
-              iconColor: Color(0xFFDB2777),
-              backgroundColor: Color(0xFFFFE5F2),
+              iconColor: Colors.pink.shade700,
+              backgroundColor: Colors.pink.shade50,
             ),
           ),
-        // ✅ chấm vàng góc phải nếu có memory
+
         if (hasMemory)
-          const Positioned(
+          Positioned(
             top: 3,
             right: 7,
             child: _CalendarCornerBadge(
               icon: Icons.star_rounded,
-              iconColor: Color(0xFFE59A00),
-              backgroundColor: Color(0xFFFFF5CF),
+              iconColor: Colors.amber.shade700,
+              backgroundColor: Colors.amber.shade100,
             ),
           ),
       ],
@@ -151,7 +157,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
 
     return Container(
       decoration: BoxDecoration(
-        color: scheme.surface,
+        color: scheme.background,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
@@ -218,6 +224,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
             calendarBuilders: CalendarBuilders(
               selectedBuilder: (context, day, focusedDay) {
                 return _buildDayCell(
+                  context: context,
                   day: day,
                   isSelected: true,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
@@ -229,6 +236,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
               },
               defaultBuilder: (context, day, focusedDay) {
                 return _buildDayCell(
+                  context: context,
                   day: day,
                   isSelected: false,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
@@ -240,6 +248,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
               },
               outsideBuilder: (context, day, focusedDay) {
                 return _buildDayCell(
+                  context: context,
                   day: day,
                   isSelected: false,
                   hasMemory: _hasEntriesForDay(monthMemories, day),

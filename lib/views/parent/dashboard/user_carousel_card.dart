@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -182,7 +181,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   backgroundColor: widget.currentIndex == 0
                       ? scheme.primary
                       : scheme.primary.withOpacity(0.12),
-                  foregroundColor: scheme.onSurface,
+                  foregroundColor: widget.currentIndex == 0 ? scheme.onPrimary : scheme.onSurface,
                   fontFamily: 'Roboto',
                   lineHeight: 1.43,
                   letterSpacing: 0.10,
@@ -206,7 +205,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   backgroundColor: widget.currentIndex == 1
                       ? scheme.primary
                       : scheme.primary.withOpacity(0.12),
-                  foregroundColor: scheme.onSurface,
+                  foregroundColor: widget.currentIndex == 1 ? scheme.onPrimary : scheme.onSurface,
                   fontFamily: 'Roboto',
                   lineHeight: 1.43,
                   letterSpacing: 0.10,

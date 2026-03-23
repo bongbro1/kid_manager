@@ -99,10 +99,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     final vm = context.watch<AuthVM>();
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: theme.scaffoldBackgroundColor,
           resizeToAvoidBottomInset: true,
           body: SafeArea(
             child: SingleChildScrollView(
@@ -123,10 +127,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(left: 8),
-                        child: SvgPicture.asset(
-                          'assets/icons/back.svg',
-                          width: 17,
-                          height: 12.5,
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: SvgPicture.asset(
+                              'assets/icons/back.svg',
+                              width: 17,
+                              height: 12.5,
+                              colorFilter: ColorFilter.mode(
+                                colorScheme.onSurface,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
 
@@ -141,19 +156,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             children: [
                               Text(
                                 l10n.resetPasswordTitle,
-                                style: TextStyle(
+                                style: textTheme.headlineSmall?.copyWith(
                                   fontSize: 24,
                                   fontFamily: 'Poppins',
                                   fontWeight: FontWeight.w600,
                                   height: 1.42,
                                   letterSpacing: -0.19,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 l10n.resetPasswordSubtitle,
-                                style: TextStyle(
-                                  color: Color(0xFF4A4A4A),
+                                style: textTheme.bodyLarge?.copyWith(
+                                  color: colorScheme.onSurface.withOpacity(
+                                    0.75,
+                                  ),
                                   fontSize: 15,
                                   fontFamily: 'Poppins',
                                   fontWeight: FontWeight.w500,
@@ -195,18 +213,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           vertical: 14,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFFFFF),
+                          color: colorScheme.surface,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE5E5EA)),
+                          border: Border.all(
+                            color: colorScheme.outline.withOpacity(0.6),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               l10n.resetPasswordRuleTitle,
-                              style: TextStyle(
+                              style: textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
+                                color: colorScheme.onSurface,
                               ),
                             ),
 
@@ -240,8 +261,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         onPressed: _isPasswordValid ? _resetPassword : null,
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                       ),
 
                       const SizedBox(height: 24),
@@ -258,41 +279,52 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   Widget _buildRule(bool valid, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              color: valid ? const Color(0xFF22C55E) : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: valid
-                    ? const Color(0xFF22C55E)
-                    : const Color(0xFFD1D5DB),
+    return Builder(
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
+
+        const successColor = Color(0xFF22C55E);
+        final inactiveColor = colorScheme.outline;
+        final inactiveTextColor = colorScheme.onSurface.withOpacity(0.65);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: valid ? successColor : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: valid ? successColor : inactiveColor,
+                  ),
+                ),
+                child: valid
+                    ? Icon(Icons.check, size: 12, color: colorScheme.onPrimary)
+                    : null,
               ),
-            ),
-            child: valid
-                ? const Icon(Icons.check, size: 12, color: Colors.white)
-                : null,
-          ),
 
-          const SizedBox(width: 10),
+              const SizedBox(width: 10),
 
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
-            style: TextStyle(
-              fontSize: 13,
-              color: valid ? const Color(0xFF22C55E) : const Color(0xFF6B7280),
-              fontWeight: valid ? FontWeight.w500 : FontWeight.w400,
-            ),
-            child: Text(text),
+              Expanded(
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: (textTheme.bodySmall ?? const TextStyle()).copyWith(
+                    fontSize: 13,
+                    color: valid ? successColor : inactiveTextColor,
+                    fontWeight: valid ? FontWeight.w500 : FontWeight.w400,
+                  ),
+                  child: Text(text),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

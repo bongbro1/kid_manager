@@ -39,11 +39,16 @@ class PhoneAuthDialog {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) {
         final vm = sheetContext.watch<AuthVM>();
+        final theme = Theme.of(sheetContext);
+        final colorScheme = theme.colorScheme;
+        final textTheme = theme.textTheme;
+
         return StatefulBuilder(
           builder: (context, setState) {
             return Padding(
@@ -61,28 +66,41 @@ class PhoneAuthDialog {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
+                      color: colorScheme.outline.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   Text(
                     l10n.phoneAuthTitle,
-                    style: const TextStyle(
+                    style: textTheme.titleLarge?.copyWith(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 20),
                   TextField(
                     controller: phoneController,
                     keyboardType: TextInputType.phone,
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
                     decoration: InputDecoration(
                       hintText: '973564344',
+                      hintStyle: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface.withOpacity(0.45),
+                      ),
+
                       prefixIcon: Padding(
                         padding: const EdgeInsets.only(left: 12, right: 8),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<Country>(
                             value: selectedCountry,
+                            dropdownColor: colorScheme.surface,
+                            iconEnabledColor: colorScheme.onSurface,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurface,
+                            ),
                             onChanged: (Country? value) {
                               if (value != null) {
                                 setState(() {
@@ -106,12 +124,42 @@ class PhoneAuthDialog {
                           ),
                         ),
                       ),
+
                       prefixIconConstraints: const BoxConstraints(
                         minWidth: 0,
                         minHeight: 0,
                       ),
+
+                      filled: true,
+                      fillColor: colorScheme.surface, // 👈 sáng hơn
+
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: colorScheme.primary,
+                          width: 1.4,
+                        ),
+                      ),
+
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: colorScheme.primary,
+                          width: 1.4,
+                        ),
+                      ),
+
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: colorScheme.primary,
+                          width: 1.4,
+                        ),
                       ),
                     ),
                   ),
@@ -121,12 +169,12 @@ class PhoneAuthDialog {
                     height: 50,
                     child: ElevatedButton.icon(
                       icon: vm.isSendingOtp
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: colorScheme.onPrimary,
                               ),
                             )
                           : const Icon(Icons.sms_outlined),
@@ -134,17 +182,19 @@ class PhoneAuthDialog {
                         vm.isSendingOtp
                             ? 'Đang gửi...'
                             : l10n.phoneAuthSendOtpButton,
-                        style: const TextStyle(
+                        style: textTheme.titleMedium?.copyWith(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: colorScheme.onPrimary,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         elevation: 0,
-                        disabledBackgroundColor: Colors.blue,
-                        disabledForegroundColor: Colors.white,
+                        disabledBackgroundColor: colorScheme.primary
+                            .withOpacity(0.6),
+                        disabledForegroundColor: colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -153,7 +203,6 @@ class PhoneAuthDialog {
                           ? null
                           : () async {
                               try {
-                                debugPrint('STEP 1');
                                 var phone = phoneController.text.trim();
 
                                 if (phone.isEmpty) {
@@ -171,25 +220,16 @@ class PhoneAuthDialog {
                                   selectedCountry.dialCode,
                                 );
 
-                                debugPrint('PHONE_NORMALIZED = $phone');
-                                debugPrint('STEP 2 before sendOtpSms');
-
                                 await vm.sendOtpSms(phone);
-
-                                debugPrint('STEP 3 after sendOtpSms');
 
                                 if (context.mounted) {
                                   Navigator.of(context).pop();
-                                  debugPrint('STEP 4 after pop');
                                 }
 
                                 Future.microtask(() {
-                                  debugPrint('STEP 5 show otp dialog');
                                   showOtpDialog(parentContext);
                                 });
                               } catch (e) {
-                                debugPrint('STEP ERROR: $e');
-
                                 NotificationDialog.show(
                                   parentContext,
                                   type: DialogType.error,
@@ -218,11 +258,16 @@ class PhoneAuthDialog {
       context: context,
       builder: (sheetContext) {
         final vm = sheetContext.watch<AuthVM>();
+        final theme = Theme.of(sheetContext);
+        final colorScheme = theme.colorScheme;
+        final textTheme = theme.textTheme;
+
         return Stack(
           children: [
             StatefulBuilder(
               builder: (context, setState) {
                 return Dialog(
+                  backgroundColor: colorScheme.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -231,24 +276,23 @@ class PhoneAuthDialog {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.lock_outline,
-                          size: 42,
-                          color: Colors.green,
-                        ),
+                        Icon(Icons.lock_outline, size: 42, color: Colors.green),
                         const SizedBox(height: 10),
                         Text(
                           l10n.phoneAuthOtpTitle,
-                          style: const TextStyle(
+                          style: textTheme.titleMedium?.copyWith(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           l10n.phoneAuthOtpInstruction,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.grey),
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface.withOpacity(0.65),
+                          ),
                         ),
                         const SizedBox(height: 20),
                         TextField(
@@ -262,15 +306,37 @@ class PhoneAuthDialog {
                             FilteringTextInputFormatter.digitsOnly,
                             LengthLimitingTextInputFormatter(6),
                           ],
-                          style: const TextStyle(
+                          style: textTheme.titleLarge?.copyWith(
                             letterSpacing: 6,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
                           ),
                           decoration: InputDecoration(
                             hintText: '••••••',
+                            hintStyle: textTheme.titleMedium?.copyWith(
+                              color: colorScheme.onSurface.withOpacity(0.4),
+                            ),
+                            filled: true,
+                            fillColor: colorScheme.surfaceContainerHighest,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: colorScheme.outline.withOpacity(0.4),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: colorScheme.outline.withOpacity(0.4),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: colorScheme.primary,
+                                width: 1.2,
+                              ),
                             ),
                           ),
                         ),
@@ -280,7 +346,21 @@ class PhoneAuthDialog {
                             Expanded(
                               child: OutlinedButton(
                                 onPressed: () => Navigator.pop(context),
-                                child: Text(l10n.cancelButton),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: colorScheme.onSurface,
+                                  side: BorderSide(
+                                    color: colorScheme.outline.withOpacity(0.5),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  l10n.cancelButton,
+                                  style: textTheme.labelLarge?.copyWith(
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -303,7 +383,20 @@ class PhoneAuthDialog {
                                         }
                                       }
                                     : null,
-                                child: Text(l10n.confirmButton),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  l10n.confirmButton,
+                                  style: textTheme.labelLarge?.copyWith(
+                                    color: colorScheme.onPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -314,7 +407,7 @@ class PhoneAuthDialog {
                 );
               },
             ),
-            if (vm.isSendingOtp) LoadingOverlay(),
+            if (vm.isSendingOtp) const LoadingOverlay(),
           ],
         );
       },
