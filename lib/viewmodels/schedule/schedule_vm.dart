@@ -155,6 +155,12 @@ class ScheduleViewModel extends ChangeNotifier {
     final createdSchedule = normalized.copyWith(id: createdId);
 
     await _safeNotifyCreated(createdSchedule);
+    focusedMonth = DateTime(
+      createdSchedule.date.year,
+      createdSchedule.date.month,
+      1,
+    );
+    selectedDate = _normalize(createdSchedule.date);
     await loadMonth();
   }
 
@@ -189,6 +195,8 @@ class ScheduleViewModel extends ChangeNotifier {
     final normalized = s.copyWith(parentUid: scheduleOwnerUid);
     await _repo.updateSchedule(scheduleOwnerUid, normalized);
     await _safeNotifyUpdated(normalized);
+    focusedMonth = DateTime(normalized.date.year, normalized.date.month, 1);
+    selectedDate = _normalize(normalized.date);
     await loadMonth();
   }
 

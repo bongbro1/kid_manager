@@ -85,6 +85,8 @@ class ZoneRepository {
       },
     );
 
+    unawaited(pollOnce());
+
     ctrl.onCancel = () {
       pollTimer?.cancel();
       unawaited(rtdbSub?.cancel());
@@ -121,9 +123,22 @@ class ZoneRepository {
         'zoneId': zone.id,
         ...zone.toJson(),
       });
-      debugPrint("✅ callable upsertChildZone OK childUid=$childUid zoneId=${zone.id}");
+      debugPrint(
+        '[ZoneRepository] upsertChildZone OK childUid=$childUid zoneId=${zone.id}',
+      );
     } on FirebaseFunctionsException catch (e) {
-      debugPrint("❌ callable upsertChildZone failed: code=${e.code} message=${e.message}");
+      final isQuotaLimit =
+          e.code == 'resource-exhausted' &&
+          (e.message ?? '').contains('FREE_PLAN_ZONE_LIMIT_REACHED');
+      if (isQuotaLimit) {
+        debugPrint(
+          '[ZoneRepository] upsertChildZone quota limit reached childUid=$childUid zoneId=${zone.id}',
+        );
+      } else {
+        debugPrint(
+          '[ZoneRepository] upsertChildZone failed: code=${e.code} message=${e.message}',
+        );
+      }
       rethrow;
     }
   }

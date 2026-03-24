@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:provider/provider.dart';
-
 import '../../../core/app_colors.dart';
 import '../../../core/app_text_styles.dart';
 import '../../../viewmodels/schedule/schedule_vm.dart';
@@ -178,7 +178,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final isParentLikeRole =
           session != null &&
           !session.isChildMode &&
-          (session.role == 'parent' || session.role == 'guardian');
+          (session.role == UserRole.parent ||
+              session.role == UserRole.guardian);
 
       if (!isParentLikeRole) {
         _clearBoundScheduleStateIfNeeded();
@@ -289,6 +290,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final userVm = context.watch<UserVm>();
     final l10n = AppLocalizations.of(context);
     final children = userVm.children;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       drawer: ScheduleMenuDrawer(
@@ -297,17 +299,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         onImportSuccess: _reloadSchedulesAfterImport,
       ),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu, color: AppColors.darkText),
+            icon: Icon(Icons.menu, color: scheme.onSurface),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
         title: Text(
           l10n.scheduleScreenTitle,
-          style: AppTextStyles.scheduleAppBarTitle,
+          style: AppTextStyles.scheduleAppBarTitle.copyWith(
+            color: scheme.onSurface,
+          ),
         ),
         centerTitle: true,
         actions: [
@@ -317,10 +322,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: Text(l10n.scheduleNoChild),
+                      child: Text(
+                        l10n.scheduleNoChild,
+                        style: TextStyle(
+                          color: scheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
                     ),
                   )
                 : PopupMenuButton<String>(
+                    color: scheme.surface,
                     onSelected: (childUid) {
                       scheduleVm.setChild(childUid);
                       _syncCalendarCompanions();
@@ -328,7 +339,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     itemBuilder: (_) => children.map((c) {
                       final avatar = (c.avatarUrl ?? '').trim();
 
-                      return PopupMenuItem(
+                      return PopupMenuItem<String>(
                         value: c.uid,
                         child: Row(
                           children: [
@@ -340,16 +351,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               onForegroundImageError: avatar.isNotEmpty
                                   ? (_, _) {}
                                   : null,
+                              backgroundColor: scheme.primary.withOpacity(0.12),
                               child: Text(
                                 _nameInitial(c),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w600,
+                                  color: scheme.primary,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
-                              child: Text(c.displayName ?? c.email ?? c.uid),
+                              child: Text(
+                                c.displayName ?? c.email ?? c.uid,
+                                style: TextStyle(color: scheme.onSurface),
+                              ),
                             ),
                           ],
                         ),
@@ -368,6 +384,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           const ScheduleCalendar(),
           const SizedBox(height: 16),
           const Expanded(child: ScheduleList()),
+          const SizedBox(height: 16),
           CreateScheduleButton(
             onTap: () {
               final selectedChildId = scheduleVm.selectedChildId;

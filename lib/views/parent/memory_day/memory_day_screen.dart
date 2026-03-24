@@ -39,7 +39,7 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.3),
+      barrierColor: Colors.black.withOpacity(0.3),
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.63,
         child: Padding(
@@ -57,7 +57,7 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.3),
+      barrierColor: Colors.black.withOpacity(0.3),
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.63,
         child: Padding(
@@ -74,6 +74,9 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<MemoryDayViewModel>();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     final all = vm.allMemories.toList()
       ..sort(
@@ -86,22 +89,43 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
       appBar: AppBar(
         title: Text(
           l10n.memoryDayTitle,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.add, color: colorScheme.onSurface),
             onPressed: () => _openAddSheet(context),
           ),
         ],
       ),
       body: vm.isAllLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                color: colorScheme.primary,
+              ),
+            )
           : vm.allError != null
-          ? Center(child: Text(vm.allError!))
+          ? Center(
+              child: Text(
+                vm.allError!,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.error,
+                ),
+              ),
+            )
           : all.isEmpty
-          ? Center(child: Text(l10n.memoryDayEmpty))
+          ? Center(
+              child: Text(
+                l10n.memoryDayEmpty,
+                style: textTheme.bodyLarge?.copyWith(
+                  color: colorScheme.onSurface.withOpacity(0.75),
+                ),
+              ),
+            )
           : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               itemCount: all.length,
@@ -173,6 +197,9 @@ class _MemoryDayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     final dateText = DateFormat('dd/MM/yyyy').format(memory.date);
     final noteText = (memory.note ?? '').trim();
     final countdownText = daysLeft < 0
@@ -180,19 +207,23 @@ class _MemoryDayCard extends StatelessWidget {
         : daysLeft == 0
         ? l10n.memoryDayToday
         : l10n.memoryDayDaysLeft(daysLeft);
-    final badgeStyle = _badgeStyleFor(daysLeft);
+
+    final badgeStyle = _badgeStyleFor(context, daysLeft);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: const Border(
-          left: BorderSide(color: Color(0xFFE2B53B), width: 3),
+        border: Border(
+          left: BorderSide(
+            color: colorScheme.primary,
+            width: 3,
+          ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
@@ -208,14 +239,14 @@ class _MemoryDayCard extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7DE),
+                  color: colorScheme.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Icons.star_rounded,
                   size: 18,
-                  color: Color(0xFFE2B53B),
+                  color: colorScheme.primary,
                 ),
               ),
               const SizedBox(width: 10),
@@ -226,9 +257,9 @@ class _MemoryDayCard extends StatelessWidget {
                     memory.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1F2937),
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -237,7 +268,7 @@ class _MemoryDayCard extends StatelessWidget {
                 tooltip: '',
                 position: PopupMenuPosition.under,
                 elevation: 6,
-                color: theme.colorScheme.surface,
+                color: colorScheme.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -253,17 +284,17 @@ class _MemoryDayCard extends StatelessWidget {
                     value: _MemoryDayCardAction.edit,
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.edit_outlined,
                           size: 18,
-                          color: Color(0xFF2563EB),
+                          color: colorScheme.primary,
                         ),
                         const SizedBox(width: 10),
                         Text(
                           l10n.memoryDayEditAction,
-                          style: theme.textTheme.bodyMedium?.copyWith(
+                          style: textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF1F2937),
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -273,17 +304,17 @@ class _MemoryDayCard extends StatelessWidget {
                     value: _MemoryDayCardAction.delete,
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.delete_outline,
                           size: 18,
-                          color: Colors.red,
+                          color: colorScheme.error,
                         ),
                         const SizedBox(width: 10),
                         Text(
                           l10n.memoryDayDeleteAction,
-                          style: theme.textTheme.bodyMedium?.copyWith(
+                          style: textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: Colors.red,
+                            color: colorScheme.error,
                           ),
                         ),
                       ],
@@ -295,15 +326,17 @@ class _MemoryDayCard extends StatelessWidget {
                   height: 36,
                   margin: const EdgeInsets.only(left: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    border: Border.all(
+                      color: colorScheme.outline.withOpacity(0.5),
+                    ),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(
+                  child: Icon(
                     Icons.more_vert_rounded,
                     size: 18,
-                    color: Color(0xFF6B7280),
+                    color: colorScheme.onSurface.withOpacity(0.65),
                   ),
                 ),
               ),
@@ -320,7 +353,7 @@ class _MemoryDayCard extends StatelessWidget {
               countdownText,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
+              style: textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.1,
                 color: badgeStyle.textColor,
@@ -332,10 +365,10 @@ class _MemoryDayCard extends StatelessWidget {
             memory.repeatYearly
                 ? l10n.memoryDayDateRepeatText(dateText)
                 : l10n.memoryDayDateText(dateText),
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: textTheme.bodySmall?.copyWith(
               fontSize: 12.5,
               height: 1.3,
-              color: const Color(0xFF6B7280),
+              color: colorScheme.onSurface.withOpacity(0.65),
             ),
           ),
           if (noteText.isNotEmpty) ...[
@@ -344,10 +377,10 @@ class _MemoryDayCard extends StatelessWidget {
               noteText,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: textTheme.bodySmall?.copyWith(
                 fontSize: 12.5,
                 height: 1.35,
-                color: const Color(0xFF9CA3AF),
+                color: colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
           ],
@@ -356,11 +389,13 @@ class _MemoryDayCard extends StatelessWidget {
     );
   }
 
-  _MemoryDayBadgeStyle _badgeStyleFor(int daysLeft) {
+  _MemoryDayBadgeStyle _badgeStyleFor(BuildContext context, int daysLeft) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (daysLeft < 0) {
-      return const _MemoryDayBadgeStyle(
-        backgroundColor: Color(0xFFF3F4F6),
-        textColor: Color(0xFF6B7280),
+      return _MemoryDayBadgeStyle(
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        textColor: colorScheme.onSurface.withOpacity(0.65),
       );
     }
 

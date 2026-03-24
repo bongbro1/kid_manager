@@ -28,6 +28,7 @@ class AppIcon extends StatelessWidget {
           path,
           width: size,
           height: size,
+          fit: BoxFit.contain,
           colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
         );
 

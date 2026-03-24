@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class SafeRouteRouteSelector extends StatelessWidget {
   const SafeRouteRouteSelector({
@@ -77,6 +78,7 @@ class _RouteTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final safetyScore = _buildSafetyScore(route);
     final roleLabel = isPrimary
         ? l10n.safeRouteRolePrimary
@@ -86,10 +88,13 @@ class _RouteTile extends StatelessWidget {
 
     return Material(
       color: isPrimary
-          ? const Color(0xFFEDF4FF)
+          ? locationPanelHighlightColor(scheme)
           : isAlternative
-          ? const Color(0xFFF2FBF6)
-          : const Color(0xFFF8FAFC),
+          ? Color.alphaBlend(
+              Colors.green.withOpacity(0.08),
+              locationPanelMutedColor(scheme),
+            )
+          : locationPanelMutedColor(scheme),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onSelectPrimary,
@@ -101,10 +106,10 @@ class _RouteTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: isPrimary
-                  ? const Color(0xFFBFDBFE)
+                  ? locationPanelBorderColor(scheme)
                   : isAlternative
                   ? const Color(0xFFBBF7D0)
-                  : const Color(0xFFE7EDF4),
+                  : locationPanelBorderColor(scheme),
               width: isPrimary || isAlternative ? 1.4 : 1,
             ),
           ),
@@ -150,9 +155,9 @@ class _RouteTile extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           '${l10n.safeRouteDistanceLabel(route.distanceMeters)} · ${l10n.safeRouteHazardCount(route.hazards.length)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF627287),
+                            color: scheme.onSurfaceVariant,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -211,9 +216,9 @@ class _RouteTile extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 _routeDescription(l10n, route),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF526074),
+                  color: scheme.onSurfaceVariant,
                   height: 1.35,
                 ),
               ),
@@ -341,26 +346,27 @@ class _MetaPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: locationPanelColor(scheme),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF1A73E8)),
+          Icon(icon, size: 14, color: scheme.primary),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF526074),
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),

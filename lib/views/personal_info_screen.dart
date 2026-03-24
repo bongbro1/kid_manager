@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
@@ -203,66 +202,56 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       return const LoadingOverlay();
     }
 
-    final isParent = p?.role.toString() == roleToString(UserRole.parent);
-    final isChild = p?.role.toString() == roleToString(UserRole.child);
+    final isAdultManager = p?.isAdultManager == true;
+    final isChild = p?.role == UserRole.child;
 
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
     return Scaffold(
       backgroundColor: scheme.background,
-      extendBodyBehindAppBar: true,
-      body: Column(
-        children: [
-          /// HEADER
-          SafeArea(
-            bottom: false,
-            child: Row(
-              children: [
-                InkWell(
-                  onTap: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      RawDialogRoute<void>(
-                        barrierDismissible: true,
-                        barrierLabel: l10n.birthdayCloseButton,
-                        barrierColor: Colors.black.withOpacity(0.12),
-                        transitionDuration: const Duration(milliseconds: 280),
-                        pageBuilder: (routeContext, animation, secondaryAnimation) {
-                          return const MoreActionSheet();
-                        },
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                    child: AppIcon(
-                      path: "assets/icons/menu.svg",
-                      type: AppIconType.svg,
-                      size: 30,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      l10n.personalInfoTitle,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: scheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 40),
-              ],
+      appBar: AppBar(
+        backgroundColor: scheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        leadingWidth: 60,
+        leading: InkWell(
+          onTap: () {
+            Navigator.of(context, rootNavigator: true).push(
+              RawDialogRoute<void>(
+                barrierDismissible: true,
+                barrierLabel: l10n.birthdayCloseButton,
+                barrierColor: Colors.black.withOpacity(0.12),
+                transitionDuration: const Duration(milliseconds: 280),
+                pageBuilder: (routeContext, animation, secondaryAnimation) {
+                  return const MoreActionSheet();
+                },
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+            child: AppIcon(
+              path: "assets/icons/menu.svg",
+              type: AppIconType.svg,
+              size: 20,
             ),
           ),
-
+        ),
+        title: Text(
+          l10n.personalInfoTitle,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.w600,
+            fontSize: 20
+          ),
+        ),
+        actions: const [SizedBox(width: 60)],
+      ),
+      body: Column(
+        children: [
           /// BODY
           Expanded(
             child: RefreshIndicator(
@@ -274,7 +263,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     const SizedBox(height: 16),
                     SizedBox(
                       width: 500,
-                      height: 220,
+                      height: 210,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -485,7 +474,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                               },
                             ),
 
-                          if (isParent) ...[
+                          if (isAdultManager) ...[
                             const SizedBox(height: 10),
                             Builder(
                               builder: (context) {
@@ -523,64 +512,63 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
                                       const SizedBox(width: 12),
 
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            l10n.personalInfoManageAccountsTitle,
-                                            style: TextStyle(
-                                              color: Color(0xFF3E3E3E),
-                                              fontSize: 16,
-                                              fontFamily: 'Public Sans',
-                                              fontWeight: FontWeight.w700,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              l10n.personalInfoManageAccountsTitle,
+                                              style: TextStyle(
+                                                color: scheme.onSurface,
+                                                fontSize: 16,
+                                                fontFamily: 'Public Sans',
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
-                                          ),
-                                          SizedBox(height: 2),
-                                          Text(
-                                            l10n
-                                                .personalInfoManageAccountsSubtitle,
-                                            style: TextStyle(
-                                              color: Color(0xFF3E3E3E),
-                                              fontSize: 12,
-                                              fontFamily: 'Public Sans',
+                                            SizedBox(height: 2),
+                                            Text(
+                                              l10n.personalInfoManageAccountsSubtitle,
+                                              style: TextStyle(
+                                                color: scheme.onSurface,
+                                                fontSize: 12,
+                                                fontFamily: 'Public Sans',
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
-                                    ),
 
-                                    InkWell(
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const MemberManagementScreen(),
+                                      InkWell(
+                                        borderRadius: BorderRadius.circular(8),
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const MemberManagementScreen(),
+                                            ),
+                                          );
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
                                           ),
-                                        );
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF2E90FA),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
+                                          decoration: BoxDecoration(
+                                            color: scheme.primary,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
-                                        ),
-                                        child: Text(
-                                          l10n.personalInfoDetailsButton,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontFamily: 'Poppins',
-                                            fontWeight: FontWeight.w600,
-),
+                                          child: Text(
+                                            l10n.personalInfoDetailsButton,
+                                            style: TextStyle(
+                                              color: scheme.onPrimary,
+                                              fontSize: 14,
+                                              fontFamily: 'Poppins',
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -657,18 +645,19 @@ class MoreActionSheet extends StatelessWidget {
               iconType: AppIconType.png,
               iconSize: 17,
               onTap: () {
-                final rootNavigator = Navigator.of(context, rootNavigator: true);
+                final rootNavigator = Navigator.of(
+                  context,
+                  rootNavigator: true,
+                );
                 rootNavigator.pushReplacement(
                   RawDialogRoute<void>(
                     barrierDismissible: true,
-                    barrierLabel: AppLocalizations.of(context).birthdayCloseButton,
+                    barrierLabel: AppLocalizations.of(
+                      context,
+                    ).birthdayCloseButton,
                     barrierColor: Colors.transparent,
                     transitionDuration: const Duration(milliseconds: 280),
-                    pageBuilder: (
-                      routeContext,
-                      animation,
-                      secondaryAnimation,
-                    ) {
+                    pageBuilder: (routeContext, animation, secondaryAnimation) {
                       return const ConfirmLogoutSheet();
                     },
                   ),
@@ -707,11 +696,9 @@ class ConfirmLogoutSheet extends StatelessWidget {
       await userVm.clear();
       await appManagementVm.clear();
       await authVM.logout();
-
-      rootNav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const SessionGuard()),
-        (_) => false,
-      );
+      if (rootNav.mounted && rootNav.canPop()) {
+        rootNav.pop();
+      }
     }
 
     final vm = context.watch<AuthVM>();
@@ -738,7 +725,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
                   width: 345,
                   decoration: ShapeDecoration(
                     shape: RoundedRectangleBorder(
-                      side: BorderSide(width: 1, color: scheme.outlineVariant),
+                      side: BorderSide(width: 1, color: scheme.outline),
                     ),
                   ),
                 ),

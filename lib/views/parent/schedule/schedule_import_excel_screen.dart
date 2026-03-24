@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
+import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -364,12 +366,20 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     _needReload = true;
 
     if (!mounted) return;
-    await showScheduleTransferSuccessDialog(
+    // await showScheduleTransferSuccessDialog(
+    //   context,
+    //   title: l10n.updateSuccessTitle,
+    //   message: l10n.scheduleImportSuccessMessage,
+    //   confirmText: l10n.authContinueButton,
+    // );
+
+    NotificationDialog.show(
       context,
+      type: DialogType.success,
       title: l10n.updateSuccessTitle,
       message: l10n.scheduleImportSuccessMessage,
-      confirmText: l10n.authContinueButton,
     );
+
     if (!mounted) return;
 
     _resetPickedFile();
@@ -382,6 +392,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
     final children = context.select<UserVm, List<AppUser>>(
       (vm) => List<AppUser>.unmodifiable(vm.children),
     );
+    final scheme = Theme.of(context).colorScheme;
 
     final hasPreview = !importVm.loading && importVm.preview != null;
     final canImport = hasPreview && importVm.preview!.okCount > 0;
@@ -392,17 +403,20 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
         return false;
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: scheme.background,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: scheme.surface,
+          foregroundColor: scheme.onSurface,
           elevation: 0,
           title: Text(
             l10n.scheduleImportTitle,
-            style: AppTextStyles.scheduleAppBarTitle,
+            style: AppTextStyles.scheduleAppBarTitle.copyWith(
+              color: scheme.onSurface,
+            ),
           ),
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.darkText),
+            icon: Icon(Icons.arrow_back, color: scheme.onSurface),
             onPressed: () => Navigator.pop(context, _needReload),
           ),
         ),
@@ -410,7 +424,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
             ? SafeArea(
                 top: false,
                 child: Container(
-                  color: AppColors.background,
+                  color: scheme.background,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   child: ScheduleTransferPrimaryButton(
                     text: l10n.scheduleImportAddCount(
@@ -433,7 +447,9 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                     children: [
                       Text(
                         l10n.scheduleSelectChildLabel,
-                        style: AppTextStyles.body,
+                        style: AppTextStyles.body.copyWith(
+                          color: scheme.onSurface,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       _isChildMode
@@ -483,7 +499,9 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                               l10n.scheduleImportSelectedFile(
                                 _pickedName ?? '',
                               ),
-                              style: AppTextStyles.scheduleItemTime,
+                              style: AppTextStyles.scheduleItemTime.copyWith(
+                                color: scheme.onSurface.withOpacity(0.7),
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -491,7 +509,10 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                             onPressed: importVm.loading
                                 ? null
                                 : _resetPickedFile,
-                            child: Text(l10n.scheduleImportChangeFileButton),
+                            child: Text(
+                              l10n.scheduleImportChangeFileButton,
+                              style: TextStyle(color: scheme.primary),
+                            ),
                           ),
                         ],
                       ),
@@ -500,11 +521,11 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                 ),
                 const SizedBox(height: 14),
                 if (importVm.loading)
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Padding(
-                        padding: EdgeInsets.all(18),
-                        child: CircularProgressIndicator(),
+                        padding: const EdgeInsets.all(18),
+                        child: CircularProgressIndicator(color: scheme.primary),
                       ),
                     ),
                   )
@@ -513,7 +534,7 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
                     child: ScheduleTransferSectionCard(
                       child: Text(
                         importVm.error!,
-                        style: const TextStyle(color: AppColors.error),
+                        style: TextStyle(color: scheme.error),
                       ),
                     ),
                   )
@@ -598,11 +619,16 @@ class _PreviewList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
     return ScheduleTransferSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.scheduleImportPreviewTitle, style: AppTextStyles.title),
+          Text(
+            l10n.scheduleImportPreviewTitle,
+            style: AppTextStyles.title.copyWith(color: scheme.onSurface),
+          ),
           const SizedBox(height: 10),
           if (preview.warning != null) ...[
             Container(
@@ -610,13 +636,13 @@ class _PreviewList extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF7D6),
+                color: scheme.tertiary.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: scheme.outline),
               ),
               child: Text(
                 preview.warning!,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF8A6D00)),
+                style: TextStyle(fontSize: 13, color: scheme.tertiary),
               ),
             ),
           ],
@@ -643,15 +669,24 @@ class _PreviewRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    Color bg = const Color.fromARGB(255, 172, 255, 176);
-    String status = l10n.scheduleImportStatusOk;
+    final scheme = Theme.of(context).colorScheme;
+
+    late final Color bg;
+    late final Color accent;
+    late final String status;
 
     if (r.error != null) {
-      bg = const Color(0xFFFFE8E8);
+      bg = scheme.error.withOpacity(0.10);
+      accent = scheme.error;
       status = l10n.scheduleImportStatusError;
     } else if (r.isDuplicateInFile || r.isDuplicateInDb) {
-      bg = const Color(0xFFFFF7D6);
+      bg = scheme.tertiary.withOpacity(0.12);
+      accent = scheme.tertiary;
       status = l10n.scheduleImportStatusDuplicate;
+    } else {
+      bg = scheme.primary.withOpacity(0.10);
+      accent = scheme.primary;
+      status = l10n.scheduleImportStatusOk;
     }
 
     final s = r.schedule;
@@ -662,7 +697,7 @@ class _PreviewRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: scheme.outline),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,14 +705,15 @@ class _PreviewRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: scheme.surface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: scheme.outline),
             ),
             child: Text(
               status,
               style: AppTextStyles.scheduleItemTime.copyWith(
                 fontWeight: FontWeight.w700,
+                color: accent,
               ),
             ),
           ),
@@ -686,47 +722,47 @@ class _PreviewRow extends StatelessWidget {
             child: r.error != null
                 ? Text(
                     l10n.scheduleImportRowError(r.rowIndex, r.error ?? ''),
-                    style: AppTextStyles.body,
+                    style: AppTextStyles.body.copyWith(color: scheme.onSurface),
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         l10n.scheduleImportRowTitle(r.rowIndex, s!.title),
-                        style: AppTextStyles.scheduleItemTitle,
+                        style: AppTextStyles.scheduleItemTitle.copyWith(
+                          color: scheme.onSurface,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${_fmtDate(s.date)}  ${_fmtTime(s.startAt)}-${_fmtTime(s.endAt)}',
-                        style: AppTextStyles.scheduleItemTime,
+                        style: AppTextStyles.scheduleItemTime.copyWith(
+                          color: scheme.onSurface.withOpacity(0.75),
+                        ),
                       ),
                       if ((s.description ?? '').isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
                           s.description!,
-                          style: AppTextStyles.scheduleItemTime,
+                          style: AppTextStyles.scheduleItemTime.copyWith(
+                            color: scheme.onSurface.withOpacity(0.75),
+                          ),
                         ),
                       ],
                       if (r.isDuplicateInDb)
                         Padding(
-                          padding: EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.only(top: 4),
                           child: Text(
                             l10n.scheduleImportDuplicateInSystem,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF8A6D00),
-                            ),
+                            style: TextStyle(fontSize: 13, color: accent),
                           ),
                         ),
                       if (r.isDuplicateInFile)
                         Padding(
-                          padding: EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.only(top: 4),
                           child: Text(
                             l10n.scheduleImportDuplicateInFile,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF8A6D00),
-                            ),
+                            style: TextStyle(fontSize: 13, color: accent),
                           ),
                         ),
                     ],

@@ -74,12 +74,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthVM>();
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: colorScheme.background,
           body: SafeArea(
-            child: Padding(
+            child: 
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,15 +99,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         'assets/icons/back.svg',
                         width: 17,
                         height: 12.5,
+                        colorFilter: ColorFilter.mode(
+                          colorScheme.onSurface,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 22),
 
-                  // Title + description
                   Padding(
-                    padding: EdgeInsets.only(left: 14),
+                    padding: const EdgeInsets.only(left: 14),
                     child: SizedBox(
                       width: 289,
                       child: Column(
@@ -110,19 +118,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         children: [
                           Text(
                             l10n.authForgotPasswordTitle,
-                            style: TextStyle(
+                            style: textTheme.headlineSmall?.copyWith(
                               fontSize: 24,
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w600,
                               height: 1.42,
                               letterSpacing: -0.19,
+                              color: colorScheme.onSurface,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
                             l10n.authForgotPasswordSubtitle,
-                            style: TextStyle(
-                              color: Color(0xFF4A4A4A),
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: colorScheme.onSurface.withOpacity(0.75),
                               fontSize: 15,
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w500,
@@ -135,13 +144,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Label
                   Padding(
-                    padding: EdgeInsets.only(left: 14, bottom: 8),
+                    padding: const EdgeInsets.only(left: 14, bottom: 8),
                     child: Text(
                       l10n.authEnterYourEmailLabel,
-                      style: TextStyle(
-                        color: Color(0xFF4A4A4A),
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurface.withOpacity(0.75),
                         fontSize: 15,
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w500,
@@ -149,7 +157,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                   ),
 
-                  // Email input
                   AuthTextField(
                     controller: _emailController,
                     hintText: l10n.authEnterEmailHint,
@@ -159,15 +166,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                   const Spacer(),
 
-                  // Button bottom
                   AppButton(
                     height: 60,
                     text: l10n.authContinueButton,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     onPressed: _sendOtp,
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                   ),
 
                   const SizedBox(height: 24),

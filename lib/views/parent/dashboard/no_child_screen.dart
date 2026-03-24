@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
+import 'package:provider/provider.dart';
 
 class NoChildScreen extends StatelessWidget {
   const NoChildScreen({super.key});
@@ -8,9 +12,15 @@ class NoChildScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final actor = context.select<UserVm, AppUser?>((vm) => vm.actorSnapshot);
+    final canAddAccount = actor != null &&
+        context.read<AccessControlService>().canAddManagedAccounts(actor: actor);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -18,55 +28,79 @@ class NoChildScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 32),
+
+              /// TITLE
               Text(
                 l10n.parentDashboardNoDeviceTitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                style: textTheme.titleLarge?.copyWith(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
               ),
+
               const SizedBox(height: 12),
+
+              /// SUBTITLE
               Text(
                 l10n.parentDashboardNoDeviceSubtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: textTheme.bodyMedium?.copyWith(
                   fontSize: 15,
-                  color: Colors.black54,
+                  color: colorScheme.onSurface.withOpacity(0.7),
                   height: 1.4,
                 ),
               ),
+
               const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A7DFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AddAccountScreen(),
+
+              if (canAddAccount) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AddAccountScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                    );
-                  },
-                  child: Text(
-                    l10n.parentDashboardAddDeviceButton,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFFFFFFFF),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      l10n.parentDashboardAddDeviceButton,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onPrimary,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
+
+              /// TEXT BUTTON
               TextButton(
                 onPressed: () {
                   Navigator.pushNamed(context, '/how-it-works');
                 },
-                child: Text(l10n.parentDashboardHowItWorksButton),
+                child: Text(
+                  l10n.parentDashboardHowItWorksButton,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),

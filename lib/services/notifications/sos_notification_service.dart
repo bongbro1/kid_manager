@@ -17,6 +17,10 @@ class SosNotificationService {
 
   static const String _channelId = 'sos_channel_v2';
 
+  bool _isSosData(Map<String, dynamic> data) {
+    return (data['type']?.toString() ?? '').toLowerCase() == 'sos';
+  }
+
   Future<AppLocalizations> _loadL10n([String? lang]) {
     final normalized =
         (lang ?? PlatformDispatcher.instance.locale.languageCode).toLowerCase();
@@ -90,6 +94,7 @@ class SosNotificationService {
           return;
         }
 
+        if (!_isSosData(data)) return;
         onTapSos(data);
       },
     );
@@ -112,12 +117,14 @@ class SosNotificationService {
 
     FirebaseMessaging.onMessageOpenedApp.listen((msg) {
       final data = Map<String, dynamic>.from(msg.data);
+      if (!_isSosData(data)) return;
       onTapSos(data);
     });
 
     final initialMsg = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMsg != null) {
       final data = Map<String, dynamic>.from(initialMsg.data);
+      if (!_isSosData(data)) return;
       onTapSos(data);
     }
   }

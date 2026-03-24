@@ -30,11 +30,6 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     _tabController.addListener(() {
       setState(() {});
     });
-
-    Future.microtask(() async {
-      final vm = context.read<AppManagementVM>();
-      await vm.loadAppsForSelectedChild();
-    });
   }
 
   @override
@@ -155,6 +150,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                         style: textTheme.titleMedium?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w500,
+                          fontSize: 18,
                           height: 1.33,
                           letterSpacing: 0.5,
                         ),

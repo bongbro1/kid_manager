@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:kid_manager/core/enums/enums.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/map/map_ornaments.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -10,6 +11,7 @@ class AppMapView extends StatefulWidget {
   final void Function(MapContentGestureContext context)? onTapListener;
   final AppMapViewController? controller;
   final bool showInternalMapTypeButton;
+  final bool followThemeForStreetStyle;
 
   const AppMapView({
     super.key,
@@ -18,6 +20,7 @@ class AppMapView extends StatefulWidget {
     this.onTapListener,
     this.controller,
     this.showInternalMapTypeButton = true,
+    this.followThemeForStreetStyle = true,
   });
 
   @override
@@ -77,7 +80,8 @@ class _AppMapViewState extends State<AppMapView> {
   String get _styleUri {
     switch (_type) {
       case AppMapType.street:
-        return Theme.of(context).brightness == Brightness.dark
+        return widget.followThemeForStreetStyle &&
+                Theme.of(context).brightness == Brightness.dark
             ? 'mapbox://styles/mapbox/dark-v11'
             : 'mapbox://styles/mapbox/streets-v12';
       case AppMapType.satellite:
@@ -89,6 +93,7 @@ class _AppMapViewState extends State<AppMapView> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Stack(
       children: [
         MapWidget(
@@ -130,9 +135,10 @@ class _AppMapViewState extends State<AppMapView> {
             bottom: 120,
             child: FloatingActionButton(
               mini: true,
-              backgroundColor: Colors.white,
+              backgroundColor: locationPanelColor(scheme),
+              foregroundColor: scheme.primary,
               onPressed: _showMapSelector,
-              child: const Icon(Icons.layers, color: Colors.black),
+              child: const Icon(Icons.layers),
             ),
           ),
 
@@ -141,10 +147,11 @@ class _AppMapViewState extends State<AppMapView> {
   }
 
   Future<void> _showMapSelector() async {
+    final scheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: locationPanelColor(scheme),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -215,6 +222,7 @@ class _AppMapViewState extends State<AppMapView> {
     required AppMapType type,
     required Widget preview,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     final selected = _type == type;
 
     return InkWell(
@@ -244,7 +252,9 @@ class _AppMapViewState extends State<AppMapView> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: selected ? const Color(0xFF1A73E8) : Colors.transparent,
+                color: selected
+                    ? scheme.primary
+                    : locationPanelBorderColor(scheme),
                 width: 2,
               ),
             ),
@@ -263,7 +273,7 @@ class _AppMapViewState extends State<AppMapView> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              color: selected ? const Color(0xFF1A73E8) : null,
+              color: selected ? scheme.primary : scheme.onSurface,
             ),
           ),
         ],

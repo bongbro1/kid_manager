@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:kid_manager/features/map_engine/services/history_gap_detector.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -11,13 +13,15 @@ class NetworkGapRenderer {
   Future<void> init() async {
     final style = map.style;
 
-    await style.addSource(
+    await _addSourceIfNeeded(
+      style,
       GeoJsonSource(
         id: 'network-gap-line-source',
         data: '{"type":"FeatureCollection","features":[]}',
       ),
     );
-    await style.addLayer(
+    await _addLayerIfNeeded(
+      style,
       LineLayer(
         id: 'network-gap-line-layer',
         sourceId: 'network-gap-line-source',
@@ -27,13 +31,15 @@ class NetworkGapRenderer {
       ),
     );
 
-    await style.addSource(
+    await _addSourceIfNeeded(
+      style,
       GeoJsonSource(
         id: 'network-gap-marker-source',
         data: '{"type":"FeatureCollection","features":[]}',
       ),
     );
-    await style.addLayer(
+    await _addLayerIfNeeded(
+      style,
       CircleLayer(
         id: 'network-gap-marker-layer',
         sourceId: 'network-gap-marker-source',
@@ -46,10 +52,14 @@ class NetworkGapRenderer {
   }
 
   Future<void> render(List<HistoryGap> gaps) async {
-    final lineSource =
-        await map.style.getSource('network-gap-line-source') as GeoJsonSource;
-    final markerSource =
-        await map.style.getSource('network-gap-marker-source') as GeoJsonSource;
+    final lineSource = await _getGeoJsonSource('network-gap-line-source');
+    final markerSource = await _getGeoJsonSource('network-gap-marker-source');
+    if (lineSource == null || markerSource == null) {
+      if (kDebugMode) {
+        debugPrint('Skip network gap render: style source not ready');
+      }
+      return;
+    }
 
     if (gaps.isEmpty) {
       await lineSource.updateGeoJSON('{"type":"FeatureCollection","features":[]}');
@@ -105,4 +115,79 @@ class NetworkGapRenderer {
   }
 
   Future<void> clear() => render(const []);
+
+  Future<void> _addSourceIfNeeded(StyleManager style, GeoJsonSource source) async {
+    try {
+      final exists = await style.styleSourceExists(source.id);
+      if (!exists) {
+        await style.addSource(source);
+      }
+    } catch (error) {
+      if (_isAlreadyExistsError(error) || _isDetachedChannelError(error)) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _addLayerIfNeeded(StyleManager style, Layer layer) async {
+    try {
+      final exists = await style.styleLayerExists(layer.id);
+      if (!exists) {
+        await style.addLayer(layer);
+      }
+    } catch (error) {
+      if (_isAlreadyExistsError(error) || _isDetachedChannelError(error)) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  Future<GeoJsonSource?> _getGeoJsonSource(String sourceId) async {
+    try {
+      final styleLoaded = await map.style.isStyleLoaded();
+      if (!styleLoaded) {
+        return null;
+      }
+      final exists = await map.style.styleSourceExists(sourceId);
+      if (!exists) {
+        return null;
+      }
+      final source = await map.style.getSource(sourceId);
+      return source is GeoJsonSource ? source : null;
+    } catch (error) {
+      if (_isDetachedChannelError(error) || _isMissingSourceError(error)) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  bool _isAlreadyExistsError(Object error) {
+    if (error is! PlatformException) {
+      return false;
+    }
+    final message = (error.message ?? '').toLowerCase();
+    return message.contains('already exists');
+  }
+
+  bool _isDetachedChannelError(Object error) {
+    if (error is! PlatformException) {
+      return false;
+    }
+    final code = error.code.toLowerCase();
+    final message = (error.message ?? '').toLowerCase();
+    return code.contains('channel-error') ||
+        message.contains('unable to establish connection on channel');
+  }
+
+  bool _isMissingSourceError(Object error) {
+    if (error is! PlatformException) {
+      return false;
+    }
+    final message = (error.message ?? '').toLowerCase();
+    return message.contains('is not in style') ||
+        message.contains('source') && message.contains('not found');
+  }
 }

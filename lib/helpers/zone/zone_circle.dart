@@ -30,6 +30,7 @@ List<List<double>> circlePolygon({
 
 /// meters/pixel at given zoom + latitude (WebMercator)
 double metersPerPixelFromZoomLat({required double zoom, required double lat}) {
-  final mpp = 156543.03392 * cos(lat * pi / 180.0) / pow(2.0, zoom);
+  // Mapbox uses a 512px world size for zoom calculations.
+  final mpp = 78271.51696402048 * cos(lat * pi / 180.0) / pow(2.0, zoom);
   return max(0.01, mpp);
 }

@@ -15,6 +15,12 @@ import 'package:kid_manager/services/permission_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
+class PermissionOnboardingCompletion {
+  const PermissionOnboardingCompletion({required this.allPermissionsGranted});
+
+  final bool allPermissionsGranted;
+}
+
 class PermissionOnboardingFlow extends StatefulWidget {
   const PermissionOnboardingFlow({
     super.key,
@@ -22,7 +28,8 @@ class PermissionOnboardingFlow extends StatefulWidget {
     this.mediaBuilder,
   });
 
-  final Future<void> Function() onFinished;
+  final Future<void> Function(PermissionOnboardingCompletion completion)
+  onFinished;
   final Widget Function(
     BuildContext context,
     PermissionOnboardingStepType step,
@@ -133,7 +140,7 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
       }
     }
 
-    await widget.onFinished();
+    await _finishFlow();
   }
 
   Future<bool> _isGranted(PermissionOnboardingStepType type) {
@@ -234,7 +241,23 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
       }
     }
 
-    await widget.onFinished();
+    await _finishFlow();
+  }
+
+  Future<void> _finishFlow() async {
+    var allPermissionsGranted = true;
+    for (final step in _steps) {
+      if (!await _isGranted(step)) {
+        allPermissionsGranted = false;
+        break;
+      }
+    }
+
+    await widget.onFinished(
+      PermissionOnboardingCompletion(
+        allPermissionsGranted: allPermissionsGranted,
+      ),
+    );
   }
 
   bool _isSettingsOnlyStep(PermissionOnboardingStepType step) {

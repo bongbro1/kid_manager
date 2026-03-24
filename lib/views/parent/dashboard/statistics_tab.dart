@@ -182,12 +182,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
   void initState() {
     super.initState();
 
-    _chartScrollController.addListener(() {
-      if (selectedBarIndex != null) {
-        setState(() {});
-      }
-    });
-
     widget.vm.addListener(_onVmChanged);
     _buildChart();
   }
@@ -217,6 +211,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
   @override
   void dispose() {
+    _chartScrollController.dispose();
     widget.vm.removeListener(_onVmChanged);
     super.dispose();
   }

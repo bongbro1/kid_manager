@@ -10,8 +10,8 @@ import {
 } from "../config";
 import { mustNumber, mustString } from "../helpers";
 import {
-  requireParentOfChild,
-  requireParentOrChildSelf,
+  requireAdultManagerOfChild,
+  requireParentGuardianOrChildSelf,
 } from "../services/child";
 import { buildSuggestedSafeRoutes } from "../services/safeRouteDirectionsService";
 import {
@@ -23,6 +23,12 @@ import {
   parseLiveLocationRecord,
 } from "../services/safeRouteMonitoringService";
 import { listDangerZoneHazardsForChild } from "../services/safeRouteZonesService";
+import {
+  enforceQuota,
+  FREE_SAFE_ROUTE_LIMIT,
+  getRemainingQuota,
+  SAFE_ROUTE_LIMIT_ERROR,
+} from "../services/subscriptionQuota";
 import { haversineMeters } from "../utils/safeRouteGeo";
 import {
   RoutePointRecord,
@@ -503,24 +509,46 @@ export const getSuggestedSafeRoutes = onCall(
     secrets: [MAPBOX_ACCESS_TOKEN],
   },
   async (request) => {
-    const parentUid = request.auth?.uid;
-    if (!parentUid) {
+    const requesterUid = request.auth?.uid;
+    if (!requesterUid) {
       throw new HttpsError("unauthenticated", "Login required");
     }
 
     const childId = mustString(request.data?.childId, "childId");
-    await requireParentOfChild(parentUid, childId);
+    const access = await requireAdultManagerOfChild(requesterUid, childId);
+    const ownerParentUid = access.ownerParentUid;
 
     const start = parseRoutePoint(request.data?.start, "start", 0);
     const end = parseRoutePoint(request.data?.end, "end", 1);
     const travelMode = parseSafeRouteTravelMode(request.data?.travelMode);
+    const existingRoutesSnap = await db
+      .collection("routes")
+      .where("childId", "==", childId)
+      .where("parentId", "==", ownerParentUid)
+      .get();
+    const currentRouteCount = existingRoutesSnap.size;
+
+    await enforceQuota({
+      ownerUid: ownerParentUid,
+      currentCount: currentRouteCount,
+      limit: FREE_SAFE_ROUTE_LIMIT,
+      errorMessage: SAFE_ROUTE_LIMIT_ERROR,
+      feature: "safe_route",
+    });
+
+    const quota = await getRemainingQuota({
+      ownerUid: ownerParentUid,
+      currentCount: currentRouteCount,
+      limit: FREE_SAFE_ROUTE_LIMIT,
+    });
 
     const routes = await buildSuggestedSafeRoutes({
       childId,
-      parentId: parentUid,
+      parentId: ownerParentUid,
       start,
       end,
       travelMode,
+      maxRoutes: quota.unlimited ? undefined : quota.remaining,
     });
 
     return {
@@ -535,8 +563,8 @@ export const startSafeRouteTrip = onCall(
     region: REGION,
   },
   async (request) => {
-    const parentUid = request.auth?.uid;
-    if (!parentUid) {
+    const requesterUid = request.auth?.uid;
+    if (!requesterUid) {
       throw new HttpsError("unauthenticated", "Login required");
     }
 
@@ -545,9 +573,10 @@ export const startSafeRouteTrip = onCall(
       "routeId"
     );
     const route = await loadRouteOrThrow(routeId);
-    await requireParentOfChild(parentUid, route.childId);
+    const access = await requireAdultManagerOfChild(requesterUid, route.childId);
+    const ownerParentUid = access.ownerParentUid;
 
-    if (route.parentId != null && route.parentId !== parentUid) {
+    if (route.parentId != null && route.parentId !== ownerParentUid) {
       throw new HttpsError(
         "permission-denied",
         "You cannot start a trip on this route"
@@ -562,7 +591,7 @@ export const startSafeRouteTrip = onCall(
     const scheduledStartAt =
       scheduledStartAtRaw == null ? null : Number(scheduledStartAtRaw);
     const alternativeRouteIds = await validateAlternativeRoutes({
-      parentUid,
+      parentUid: ownerParentUid,
       childId: route.childId,
       primaryRoute: route,
       candidateRouteIds: parseRouteIdList(
@@ -580,7 +609,7 @@ export const startSafeRouteTrip = onCall(
     const trip = {
       id: tripRef.id,
       childId: route.childId,
-      parentId: parentUid,
+      parentId: ownerParentUid,
       routeId: route.id,
       alternativeRouteIds,
       currentRouteId: route.id,
@@ -634,7 +663,7 @@ export const getSafeRouteTripHistoryByChildId = onCall(
     }
 
     const childId = mustString(request.data?.childId, "childId");
-    await requireParentOrChildSelf(requesterUid, childId);
+    await requireParentGuardianOrChildSelf(requesterUid, childId);
 
     const snap = await db
       .collection("trips")
@@ -659,8 +688,8 @@ export const updateSafeRouteTripStatus = onCall(
     region: REGION,
   },
   async (request) => {
-    const parentUid = request.auth?.uid;
-    if (!parentUid) {
+    const requesterUid = request.auth?.uid;
+    if (!requesterUid) {
       throw new HttpsError("unauthenticated", "Login required");
     }
 
@@ -674,7 +703,7 @@ export const updateSafeRouteTripStatus = onCall(
     if (!trip) {
       throw new HttpsError("not-found", "Trip not found");
     }
-    await requireParentOfChild(parentUid, trip.childId);
+    await requireAdultManagerOfChild(requesterUid, trip.childId);
 
     await tripRef.set(
       {
@@ -700,7 +729,7 @@ export const getActiveSafeRouteTripByChildId = onCall(
     }
 
     const childId = mustString(request.data?.childId, "childId");
-    await requireParentOrChildSelf(requesterUid, childId);
+    await requireParentGuardianOrChildSelf(requesterUid, childId);
 
     const trip =
       requesterUid === childId
@@ -738,7 +767,7 @@ export const getSafeRouteById = onCall(
 
     const routeId = mustString(request.data?.routeId, "routeId");
     const route = await loadRouteOrThrow(routeId);
-    await requireParentOrChildSelf(requesterUid, route.childId);
+    await requireParentGuardianOrChildSelf(requesterUid, route.childId);
 
     return {
       ok: true,

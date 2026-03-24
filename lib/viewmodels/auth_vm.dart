@@ -325,9 +325,14 @@ class AuthVM extends ChangeNotifier {
     // }
   }
 
+  bool _isSendingOtp = false;
+  bool get isSendingOtp => _isSendingOtp;
+
   Future<void> sendOtpSms(String phone) async {
     try {
-      _setLoading(true);
+      _isSendingOtp = true;
+      notifyListeners();
+
       _setError(null);
 
       await _authRepo.sendOtpSms(phone, (verificationId) {
@@ -337,23 +342,26 @@ class AuthVM extends ChangeNotifier {
       _setError(e.toString());
       rethrow;
     } finally {
-      _setLoading(false);
+      _isSendingOtp = false;
+      notifyListeners();
     }
   }
 
   Future<void> verifyOtpSmS(String code) async {
     try {
-      _setLoading(true);
+      _isSendingOtp = true;
+      notifyListeners();
+
       _setError(null);
 
       final user = await _authRepo.verifyOtpSms(code);
-
       await _handleUser(user);
     } catch (e) {
       _setError(e.toString());
       rethrow;
     } finally {
-      _setLoading(false);
+      _isSendingOtp = false;
+      notifyListeners();
     }
   }
 

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
 import 'package:kid_manager/models/chat/family_chat_message.dart';
@@ -26,6 +26,60 @@ class FamilyChatRepository {
     return _db.collection('families').doc(familyId).collection('chatStates').doc(uid);
   }
 
+  String _resolveSenderName(AppUser sender) {
+    return sender.displayName?.trim().isNotEmpty == true
+        ? sender.displayName!.trim()
+        : sender.email?.trim().isNotEmpty == true
+            ? sender.email!.trim()
+            : 'Family member';
+  }
+
+  Future<Map<String, dynamic>> _createPendingMessage({
+    required String familyId,
+    required AppUser sender,
+    required String type,
+    required String text,
+    required String messageId,
+    String? stickerId,
+    String? imageUrl,
+    String? imagePath,
+    int? imageWidth,
+    int? imageHeight,
+  }) async {
+    final resolvedFamilyId = familyId.trim();
+    if (resolvedFamilyId.isEmpty) {
+      throw ArgumentError.value(familyId, 'familyId', 'familyId is required');
+    }
+
+    final clientCreatedAt = Timestamp.now();
+
+    await _messageCollection(resolvedFamilyId).doc(messageId).set({
+      'id': messageId,
+      'familyId': resolvedFamilyId,
+      'senderUid': sender.uid,
+      'senderRole': roleToString(sender.role),
+      'senderName': _resolveSenderName(sender),
+      'clientMessageId': messageId,
+      'text': text,
+      'type': type,
+      'stickerId': stickerId,
+      'imageUrl': imageUrl,
+      'imagePath': imagePath,
+      'imageWidth': imageWidth,
+      'imageHeight': imageHeight,
+      'verifyState': 'pending',
+      'clientCreatedAt': clientCreatedAt,
+      'createdAt': clientCreatedAt,
+    }..removeWhere((key, value) => value == null));
+
+    return <String, dynamic>{
+      'ok': true,
+      'familyId': resolvedFamilyId,
+      'messageId': messageId,
+      'clientMessageId': messageId,
+    };
+  }
+
   Stream<List<FamilyChatMessage>> watchMessages(String familyId, {int limit = 200}) {
     return _messageCollection(familyId)
         .orderBy('createdAt', descending: true)
@@ -47,34 +101,36 @@ class FamilyChatRepository {
         return <FamilyChatMember>[];
       }
 
-      final userReads = await Future.wait(
-        membersSnapshot.docs.map((memberDoc) {
-          return _db.collection('users').doc(memberDoc.id).get();
-        }),
-      );
-
       final members = <FamilyChatMember>[];
-      for (var i = 0; i < membersSnapshot.docs.length; i++) {
-        final memberDoc = membersSnapshot.docs[i];
+      for (final memberDoc in membersSnapshot.docs) {
         final memberData = memberDoc.data();
-        final userData = userReads[i].data() ?? <String, dynamic>{};
-
-        final displayNameRaw =
-            userData['displayName'] ?? userData['email'] ?? memberDoc.id;
+        final displayName = (memberData['displayName'] ?? '').toString().trim();
+        final email = (memberData['email'] ?? '').toString().trim();
+        final displayNameRaw = displayName.isNotEmpty
+            ? displayName
+            : email;
 
         members.add(
           FamilyChatMember(
             uid: memberDoc.id,
-            role: (memberData['role'] ?? 'member').toString(),
+            role: UserRole.fromValue(memberData['role']),
             displayName: displayNameRaw.toString(),
-            avatarUrl: (userData['avatarUrl'] ?? '').toString(),
+            avatarUrl: (memberData['avatarUrl'] ?? '').toString(),
           ),
         );
       }
 
       members.sort((a, b) {
-        final roleScoreA = a.role == 'parent' ? 0 : 1;
-        final roleScoreB = b.role == 'parent' ? 0 : 1;
+        final roleScoreA = switch (a.role) {
+          UserRole.parent => 0,
+          UserRole.guardian => 1,
+          UserRole.child => 2,
+        };
+        final roleScoreB = switch (b.role) {
+          UserRole.parent => 0,
+          UserRole.guardian => 1,
+          UserRole.child => 2,
+        };
         final roleCompare = roleScoreA.compareTo(roleScoreB);
         if (roleCompare != 0) return roleCompare;
         return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
@@ -118,21 +174,9 @@ class FamilyChatRepository {
     }
 
     final resolvedFamilyId = familyId.trim();
-    if (resolvedFamilyId.isEmpty) {
-      throw ArgumentError.value(familyId, 'familyId', 'familyId is required');
-    }
-
-    final resolvedSenderName =
-        sender.displayName?.trim().isNotEmpty == true
-            ? sender.displayName!.trim()
-            : sender.email?.trim().isNotEmpty == true
-            ? sender.email!.trim()
-            : 'Family member';
-
     final messageId = (clientMessageId?.trim().isNotEmpty == true)
         ? clientMessageId!.trim()
         : _messageCollection(resolvedFamilyId).doc().id;
-    final clientCreatedAt = Timestamp.now();
 
     debugPrint(
       '[FamilyChatRepository] sendTextMessage direct '
@@ -140,31 +184,156 @@ class FamilyChatRepository {
     );
 
     try {
-      await _messageCollection(resolvedFamilyId).doc(messageId).set({
-        'id': messageId,
-        'familyId': resolvedFamilyId,
-        'senderUid': sender.uid,
-        'senderRole': roleToString(sender.role),
-        'senderName': resolvedSenderName,
-        'clientMessageId': messageId,
-        'text': normalized,
-        'type': 'text',
-        'verifyState': 'pending',
-        'clientCreatedAt': clientCreatedAt,
-        'createdAt': clientCreatedAt,
-      });
-
-      return <String, dynamic>{
-        'ok': true,
-        'familyId': resolvedFamilyId,
-        'messageId': messageId,
-        'clientMessageId': messageId,
-      };
+      return _createPendingMessage(
+        familyId: resolvedFamilyId,
+        sender: sender,
+        type: 'text',
+        text: normalized,
+        messageId: messageId,
+      );
     } catch (e, st) {
       debugPrint('[FamilyChatRepository] direct sendTextMessage error: $e');
       debugPrintStack(stackTrace: st);
       rethrow;
     }
+  }
+
+  Future<Map<String, dynamic>> sendImageMessage({
+    required String familyId,
+    required AppUser sender,
+    required String imageUrl,
+    required String imagePath,
+    required int imageWidth,
+    required int imageHeight,
+    String? clientMessageId,
+    String text = '',
+  }) async {
+    final resolvedFamilyId = familyId.trim();
+    if (resolvedFamilyId.isEmpty) {
+      throw ArgumentError.value(familyId, 'familyId', 'familyId is required');
+    }
+
+    final normalizedImageUrl = imageUrl.trim();
+    if (normalizedImageUrl.isEmpty) {
+      throw ArgumentError.value(imageUrl, 'imageUrl', 'imageUrl is required');
+    }
+
+    final normalizedText = text.trim();
+    if (normalizedText.length > 140) {
+      throw ArgumentError.value(
+        normalizedText.length,
+        'text',
+        'Image caption too long (>140 chars)',
+      );
+    }
+    final messageId = (clientMessageId?.trim().isNotEmpty == true)
+        ? clientMessageId!.trim()
+        : _messageCollection(resolvedFamilyId).doc().id;
+
+    debugPrint(
+      '[FamilyChatRepository] sendImageMessage direct '
+      'familyId=$resolvedFamilyId messageId=$messageId imageWidth=$imageWidth imageHeight=$imageHeight',
+    );
+
+    return _createPendingMessage(
+      familyId: resolvedFamilyId,
+      sender: sender,
+      type: 'image',
+      text: normalizedText,
+      messageId: messageId,
+      imageUrl: normalizedImageUrl,
+      imagePath: imagePath.trim(),
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+    );
+  }
+
+  Future<Map<String, dynamic>> sendStickerMessage({
+    required String familyId,
+    required AppUser sender,
+    required String stickerId,
+    String? clientMessageId,
+  }) async {
+    final normalized = stickerId.trim();
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(
+        stickerId,
+        'stickerId',
+        'stickerId is required',
+      );
+    }
+
+    if (normalized.length > 64) {
+      throw ArgumentError.value(
+        normalized.length,
+        'stickerId',
+        'Sticker id too long (>64 chars)',
+      );
+    }
+
+    final resolvedFamilyId = familyId.trim();
+    if (resolvedFamilyId.isEmpty) {
+      throw ArgumentError.value(familyId, 'familyId', 'familyId is required');
+    }
+
+    final messageId = (clientMessageId?.trim().isNotEmpty == true)
+        ? clientMessageId!.trim()
+        : _messageCollection(resolvedFamilyId).doc().id;
+
+    debugPrint(
+      '[FamilyChatRepository] sendStickerMessage direct '
+      'familyId=$resolvedFamilyId messageId=$messageId stickerId="$normalized"',
+    );
+
+    return _createPendingMessage(
+      familyId: resolvedFamilyId,
+      sender: sender,
+      type: 'sticker',
+      text: '',
+      messageId: messageId,
+      stickerId: normalized,
+    );
+  }
+
+  Future<Map<String, dynamic>> sendLegacyStickerMessage({
+    required String familyId,
+    required AppUser sender,
+    required String legacyText,
+    String? clientMessageId,
+  }) async {
+    final normalized = legacyText.trim();
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(
+        legacyText,
+        'legacyText',
+        'legacyText is required',
+      );
+    }
+
+    if (normalized.length > 32) {
+      throw ArgumentError.value(
+        normalized.length,
+        'legacyText',
+        'Legacy sticker payload too long (>32 chars)',
+      );
+    }
+
+    final resolvedFamilyId = familyId.trim();
+    if (resolvedFamilyId.isEmpty) {
+      throw ArgumentError.value(familyId, 'familyId', 'familyId is required');
+    }
+
+    final messageId = (clientMessageId?.trim().isNotEmpty == true)
+        ? clientMessageId!.trim()
+        : _messageCollection(resolvedFamilyId).doc().id;
+
+    return _createPendingMessage(
+      familyId: resolvedFamilyId,
+      sender: sender,
+      type: 'sticker',
+      text: normalized,
+      messageId: messageId,
+    );
   }
 
   Future<void> markAsRead() async {

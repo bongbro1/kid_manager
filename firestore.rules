@@ -1,0 +1,648 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ================================
+    // COMMON HELPERS
+    // ================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function userExists(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function hasRole(uid, role) {
+      return userExists(uid) && userDoc(uid).data.role == role;
+    }
+
+    function isChildUser(uid) {
+      return hasRole(uid, 'child');
+    }
+
+    function isParentUser(uid) {
+      return hasRole(uid, 'parent');
+    }
+
+    function isGuardianUser(uid) {
+      return hasRole(uid, 'guardian');
+    }
+
+    function isFamilyMember(familyId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
+    }
+
+    function isParentOfChild() {
+      return isSignedIn()
+        && request.resource.data.parentUid == request.auth.uid;
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function hasSameFamilyAsParent(parentUid) {
+      return isSignedIn()
+        && isParentUser(parentUid)
+        && userExists(request.auth.uid)
+        && userDoc(request.auth.uid).data.familyId == userDoc(parentUid).data.familyId;
+    }
+
+    function isGuardianOfParent(parentUid) {
+      return isSignedIn()
+        && isGuardianUser(request.auth.uid)
+        && userDoc(request.auth.uid).data.parentUid == parentUid
+        && hasSameFamilyAsParent(parentUid);
+    }
+
+    function isAdultManagerOfParent(parentUid) {
+      return isSelf(parentUid) || isGuardianOfParent(parentUid);
+    }
+
+    function isChildOfParent(childUid, parentUid) {
+      return isChildUser(childUid)
+        && isParentUser(parentUid)
+        && userDoc(childUid).data.parentUid == parentUid
+        && userDoc(childUid).data.familyId == userDoc(parentUid).data.familyId;
+    }
+
+    function isParentManagingGuardianAssignments(uid) {
+      return isSignedIn()
+        && resource != null
+        && resource.data.role == "guardian"
+        && resource.data.parentUid == request.auth.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.parentUid == resource.data.parentUid
+        && request.resource.data.familyId == resource.data.familyId
+        && request.resource.data.diff(resource.data)
+          .changedKeys()
+          .hasOnly(["managedChildIds", "lastActiveAt"])
+        && (
+          !("managedChildIds" in request.resource.data)
+          || request.resource.data.managedChildIds is list
+        )
+        && (
+          !("managedChildIds" in request.resource.data)
+          || request.resource.data.managedChildIds.size() <= 50
+        );
+    }
+
+    // ================================
+    // USERS
+    // ================================
+
+    match /users/{uid} {
+      allow get: if isSelf(uid)
+        || (resource != null && resource.data.parentUid == request.auth.uid)
+        || (
+          resource != null
+          && isSignedIn()
+          && userExists(request.auth.uid)
+          && resource.data.familyId == userDoc(request.auth.uid).data.familyId
+        );
+
+      allow list: if isSignedIn() || request.query.limit <= 1;
+
+      allow create: if isSignedIn() && (
+        (isSelf(uid) && request.resource.data.role == "parent")
+
+        ||
+
+        (
+          request.resource.data.role in ["child", "guardian"]
+          && request.auth.uid == request.resource.data.parentUid
+        )
+      );
+      allow update: if isSelf(uid)
+        || isParentManagingGuardianAssignments(uid)
+        || request.resource.data.diff(resource.data)
+          .changedKeys()
+          .hasOnly(["isActive"]);
+
+      allow delete: if isSelf(uid);
+    }
+
+    // ================================
+    // USER FCM TOKENS
+    // ================================
+
+    match /users/{uid}/fcmTokens/{tokenHash} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /users/{userId}/chatNotifications/{notificationId} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if false;
+    }
+
+    // ================================
+    // FAMILIES
+    // ================================
+
+    match /families/{familyId} {
+      // CREATE family
+      allow create: if isSignedIn();
+
+      // READ only member
+      allow read: if isFamilyMember(familyId);
+
+      // Client được update metadata cuối cùng của chat
+      allow update: if isFamilyMember(familyId)
+        && request.resource.data.diff(resource.data).changedKeys()
+          .hasOnly(["lastMessageAt", "lastMessageBy", "lastMessageText"])
+        && request.resource.data.lastMessageBy == request.auth.uid
+        && request.resource.data.lastMessageText is string
+        && request.resource.data.lastMessageText.size() > 0
+        && request.resource.data.lastMessageText.size() <= 1000;
+
+      allow delete: if false;
+      
+      
+      match /members/{memberId} {
+
+        // family member đọc danh sách
+        allow read: if isFamilyMember(familyId);
+
+        // parent thêm member mới
+        allow create: if isSignedIn();
+
+        // member tự cập nhật role metadata nếu cần
+        allow update: if isSignedIn();
+
+        allow delete: if false;
+      }
+      
+      match /chatStates/{uid} {
+        allow get, list: if isFamilyMember(familyId);
+
+        allow update: if isSignedIn()
+          && request.auth.uid == uid
+          && isFamilyMember(familyId)
+          && request.resource.data.uid == uid
+          && request.resource.data.diff(resource.data)
+            .changedKeys()
+            .hasOnly(['unreadCount', 'lastReadAt', 'updatedAt']);
+
+        allow create: if isSignedIn()
+          && request.auth.uid == uid
+          && isFamilyMember(familyId)
+          && request.resource.data.uid == uid
+          && request.resource.data.unreadCount == 0
+          && request.resource.data.lastReadAt is timestamp
+          && request.resource.data.updatedAt is timestamp;
+
+        allow delete: if false;
+      }
+
+
+      // ============================
+      // MESSAGES
+      // ============================
+
+      match /messages/{messageId} {
+        allow get, list: if isFamilyMember(familyId);
+
+        // Cho client tạo message pending
+        allow create: if isFamilyMember(familyId)
+          && request.resource.data.id == messageId
+          && request.resource.data.familyId == familyId
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.senderRole is string
+          && request.resource.data.senderName is string
+          && request.resource.data.verifyState == "pending"
+          && request.resource.data.clientCreatedAt is timestamp
+          && (
+            (
+              request.resource.data.type == "text"
+              && request.resource.data.text is string
+              && request.resource.data.text.size() > 0
+              && request.resource.data.text.size() <= 1000
+            )
+            || (
+              request.resource.data.type == "image"
+              && request.resource.data.text is string
+              && request.resource.data.text.size() <= 140
+              && request.resource.data.imageUrl is string
+              && request.resource.data.imageUrl.size() > 0
+              && request.resource.data.imageUrl.size() <= 2048
+              && request.resource.data.imageWidth is int
+              && request.resource.data.imageWidth > 0
+              && request.resource.data.imageHeight is int
+              && request.resource.data.imageHeight > 0
+            )
+            || (
+              request.resource.data.type == "sticker"
+              && request.resource.data.text is string
+              && (
+                (
+                  request.resource.data.stickerId is string
+                  && request.resource.data.stickerId.size() > 0
+                  && request.resource.data.stickerId.size() <= 64
+                  && request.resource.data.text.size() <= 32
+                )
+                || (
+                  request.resource.data.text.size() > 0
+                  && request.resource.data.text.size() <= 32
+                )
+              )
+            )
+          );
+
+        // Không cho client tự sửa verify / sender / text sau khi tạo
+        allow update, delete: if false;
+      }
+
+      // ============================
+      // MEMBERS
+      // ============================
+
+      match /members/{uid} {
+        allow create: if isSignedIn() && (
+          // Parent thêm chính mình lúc setup
+          (isSelf(uid) && request.resource.data.role == "parent")
+          ||
+          // Parent thêm child
+          (request.resource.data.role == "child"
+            && request.resource.data.uid == uid
+            && request.resource.data.familyId == familyId
+            && userDoc(request.auth.uid).data.familyId == familyId)
+        );
+
+        allow read: if isFamilyMember(familyId);
+        allow update, delete: if false;
+      }
+
+      // ============================
+      // SOS
+      // ============================
+
+      match /sos/{sosId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+      }
+
+      // ============================
+      // RATE LIMITS
+      // ============================
+
+      match /rateLimits/{docId} {
+        allow read, write: if false;
+      }
+
+      // ============================
+      // FAMILY FCM TOKENS
+      // ============================
+
+      match /fcmTokens/{tokenHash} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+      }
+
+      // ============================
+      // OTHER SUBCOLLECTIONS
+      // ============================
+
+      match /{document=**} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+      }
+    }
+
+    // ================================
+    // BLOCKED ITEMS
+    // ================================
+
+//     match /blocked_items/{docId} {
+//       allow read, write: if isSignedIn();
+
+//       match /apps/{appId} {
+//         allow read, write: if isSignedIn();
+
+//         match /{subCollection}/{docId} {
+//           allow read, write: if isSignedIn();
+//         }
+//       }
+
+//       match /usage_daily_flat {
+//         allow read, write: if isSignedIn();
+//       }
+
+//       match /usage_daily_flat/{date} {
+//         allow read, write: if isSignedIn();
+//       }
+//     }
+
+//     match /{path=**}/usage_daily/{doc} {
+//       allow get: if isSignedIn()
+//         && resource.data.userId == request.auth.uid;
+
+//       allow list: if isSignedIn()
+//         && request.auth.uid != null;
+//     }
+
+    match /blocked_items/{userId} {
+
+      allow read, write: if request.auth != null;
+
+      match /{sub=**} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    // ================================
+    // NOTIFICATIONS
+    // ================================
+
+    match /notifications/{notificationId} {
+      allow create: if request.auth != null
+        && request.resource.data.receiverId is string
+        && request.resource.data.senderId is string
+        && request.resource.data.type is string
+        && request.resource.data.title is string
+        && request.resource.data.body is string
+        && request.resource.data.isRead == false
+        && request.resource.data.status == "pending";
+
+      allow read: if request.auth != null
+        && resource.data.receiverId == request.auth.uid;
+
+      allow update: if request.auth != null
+        && resource.data.receiverId == request.auth.uid
+        && request.resource.data.receiverId == resource.data.receiverId
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead']);
+
+      allow delete: if request.auth != null
+        && resource.data.receiverId == request.auth.uid;
+    }
+
+    match /users/{uid}/notifications/{notifId} {
+      allow get, list: if request.auth != null
+        && (
+          request.auth.uid == uid
+          || userDoc(uid).data.parentUid == request.auth.uid
+        );
+
+      allow update: if request.auth != null
+        && (
+          request.auth.uid == uid
+          || userDoc(uid).data.parentUid == request.auth.uid
+        )
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead']);
+
+      allow delete: if request.auth != null
+        && (
+          request.auth.uid == uid
+          || userDoc(uid).data.parentUid == request.auth.uid
+        );
+
+      allow create: if false;
+    }
+
+    // ================================
+    // PARENT SCHEDULES
+    // ================================
+
+    match /parents/{parentUid}/schedules/{scheduleId} {
+
+      function isParent() {
+        return isSelf(parentUid) && isParentUser(parentUid);
+      }
+
+      function isGuardianOfThisParent() {
+        return isGuardianOfParent(parentUid);
+      }
+
+      function isParentOrGuardian() {
+        // Phase 5: Guardian gets parent-like access only when bound to this
+        // owner parent and still belongs to the same family.
+        return isAdultManagerOfParent(parentUid);
+      }
+
+      function isChild() {
+        return isSignedIn() && isChildUser(request.auth.uid);
+      }
+
+      function isChildOfThisParent() {
+        return isChild() && isChildOfParent(request.auth.uid, parentUid);
+      }
+
+      function isOwnSchedule() {
+        return resource.data.childId == request.auth.uid;
+      }
+
+      function isOwnCreate() {
+        return request.resource.data.childId == request.auth.uid;
+      }
+
+      function childIdUnchanged() {
+        return request.resource.data.childId == resource.data.childId;
+      }
+
+      function scheduleResourceMatchesPath() {
+        return (resource.data.parentUid == null || resource.data.parentUid == parentUid)
+          && resource.data.childId is string
+          && isChildOfParent(resource.data.childId, parentUid);
+      }
+
+      function scheduleRequestMatchesPath() {
+        return request.resource.data.parentUid == parentUid
+          && request.resource.data.childId is string
+          && isChildOfParent(request.resource.data.childId, parentUid);
+      }
+
+      // Parent / Guardian
+      allow read: if isParentOrGuardian();
+      allow create: if isParentOrGuardian()
+        && scheduleRequestMatchesPath()
+        && request.resource.data.startAt is timestamp
+        && request.resource.data.endAt is timestamp;
+      allow update: if isParentOrGuardian()
+        && scheduleRequestMatchesPath()
+        && scheduleResourceMatchesPath();
+      allow delete: if isParentOrGuardian();
+
+      // Child read
+      allow get, list: if isChildOfThisParent()
+        && resource.data.childId == request.auth.uid;
+
+      // Child create
+      allow create: if isChildOfThisParent()
+        && isOwnCreate()
+        && request.resource.data.parentUid == parentUid
+        && isChildOfParent(request.auth.uid, parentUid)
+        && request.resource.data.startAt is timestamp;
+
+      // Child update
+      allow update: if isChildOfThisParent()
+        && isOwnSchedule()
+        && resource.data.parentUid == parentUid
+        && request.resource.data.parentUid == parentUid
+        && childIdUnchanged();
+
+      // Child delete
+      allow delete: if isParentOrGuardian()
+        || (isChildOfThisParent() && isOwnSchedule());
+      
+      
+    // ================================
+    // HISTORY_EDIT_SCHEDULE
+    // ================================
+
+    match /histories/{historyId} {
+
+      function scheduleBelongsToChild() {
+        return get(
+          /databases/$(database)/documents/parents/$(parentUid)/schedules/$(scheduleId)
+        ).data.childId == request.auth.uid;
+      }
+
+      function childCanAccessHistory() {
+        return isChildOfThisParent() && scheduleBelongsToChild();
+      }
+
+      function historyResourceMatchesPath() {
+        return resource.data.scheduleId == scheduleId
+          && (resource.data.parentUid == null || resource.data.parentUid == parentUid)
+          && resource.data.childId is string
+          && isChildOfParent(resource.data.childId, parentUid);
+      }
+
+      function historyRequestMatchesPath() {
+        return request.resource.data.scheduleId == scheduleId
+          && request.resource.data.parentUid == parentUid
+          && request.resource.data.childId is string
+          && isChildOfParent(request.resource.data.childId, parentUid);
+      }
+
+      // Parent / Guardian
+      allow get, list: if isParentOrGuardian();
+      allow create, update: if isParentOrGuardian() && historyRequestMatchesPath();
+      allow delete: if isParentOrGuardian();
+
+      // Child
+      allow get, list: if childCanAccessHistory() && historyResourceMatchesPath();
+      allow create, update: if childCanAccessHistory()
+        && historyRequestMatchesPath()
+        && request.resource.data.childId == request.auth.uid;
+      allow delete: if childCanAccessHistory();
+    }
+  }
+
+    // ================================
+    // MEMORY_DAYS
+    // ================================
+
+    match /parents/{parentUid}/memories/{memoryId} {
+
+      function isParent() {
+        return isSelf(parentUid) && isParentUser(parentUid);
+      }
+
+      function isGuardianOfThisParent() {
+        return isGuardianOfParent(parentUid);
+      }
+
+      function isParentOrGuardian() {
+        return isAdultManagerOfParent(parentUid);
+      }
+
+      function isChild() {
+        return isSignedIn() && isChildUser(request.auth.uid);
+      }
+
+      function isChildOfThisParent() {
+        return isChild() && isChildOfParent(request.auth.uid, parentUid);
+      }
+
+      function memoryResourceMatchesPath() {
+        return resource.data.ownerParentUid == null
+          || resource.data.ownerParentUid == parentUid;
+      }
+
+      function memoryRequestMatchesPath() {
+        return request.resource.data.ownerParentUid == parentUid;
+      }
+
+      // Phase 5: Child read should follow the parent-owned namespace instead of
+      // requiring every legacy memory document to already store ownerParentUid.
+      // Some older docs can miss or store stale ownerParentUid values, which
+      // would make the whole month query fail for child accounts.
+      allow get, list: if isParentOrGuardian() || isChildOfThisParent();
+      allow create, update: if (isParentOrGuardian() || isChildOfThisParent())
+        && memoryRequestMatchesPath();
+      allow delete: if isParentOrGuardian() || isChildOfThisParent();
+    }
+    
+    // ================================
+    // MEMORY DAY REMINDER META
+    // ================================
+
+    match /parents/{parentUid}/memoryReminderMeta/{memoryId} {
+
+      function isParent() {
+        return isSelf(parentUid) && isParentUser(parentUid);
+      }
+
+      function isGuardianOfThisParent() {
+        return isGuardianOfParent(parentUid);
+      }
+
+      function isParentOrGuardian() {
+        return isAdultManagerOfParent(parentUid);
+      }
+
+      function isChild() {
+        return isSignedIn() && isChildUser(request.auth.uid);
+      }
+
+      function isChildOfThisParent() {
+        return isChild() && isChildOfParent(request.auth.uid, parentUid);
+      }
+
+      function reminderMetaResourceMatchesPath() {
+        return (resource.data.ownerParentUid == null || resource.data.ownerParentUid == parentUid)
+          && (resource.data.familyId == null || resource.data.familyId == userDoc(parentUid).data.familyId);
+      }
+
+      function reminderMetaRequestMatchesPath() {
+        return request.resource.data.ownerParentUid == parentUid
+          && request.resource.data.familyId == userDoc(parentUid).data.familyId;
+      }
+
+      allow get, list: if isParentOrGuardian()
+        || (isChildOfThisParent() && reminderMetaResourceMatchesPath());
+      allow create, update: if (isParentOrGuardian() || isChildOfThisParent())
+        && reminderMetaRequestMatchesPath();
+      allow delete: if isParentOrGuardian() || isChildOfThisParent();
+    }
+
+
+    // ================================
+    // EMAIL OTP
+    // ================================
+
+    match /email_otps/{uid} {
+      allow create: if true;
+      allow get: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    // ================================
+    // MAIL QUEUE
+    // ================================
+
+    match /mail_queue/{docId} {
+      allow create: if true;
+    }
+  }
+}

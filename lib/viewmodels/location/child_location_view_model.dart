@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:kid_manager/core/location/motion_detector.dart';
 import 'package:kid_manager/core/location/send_policy.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
@@ -31,12 +32,16 @@ class ChildLocationViewModel extends ChangeNotifier {
     TrackingStatusService? trackingStatusService,
   }) : _auth = auth ?? FirebaseAuth.instance,
        _trackingStatusService =
-           trackingStatusService ?? TrackingStatusService();
+           trackingStatusService ?? TrackingStatusService() {
+    _authStateSub = _auth.authStateChanges().listen(_handleAuthStateChanged);
+  }
 
   final LocationRepository _locationRepository;
   final LocationServiceInterface _locationService;
   final FirebaseAuth _auth;
   final TrackingStatusService _trackingStatusService;
+  StreamSubscription<User?>? _authStateSub;
+  bool _disposed = false;
 
   Timer? _healthTimer;
 
@@ -68,9 +73,10 @@ class ChildLocationViewModel extends ChangeNotifier {
   StreamSubscription<Activity>? _activitySub;
   Activity? _lastActivity;
 
-  late final ZoneMonitor _zoneMonitor;
+  ZoneMonitor? _zoneMonitor;
   StreamSubscription<List<GeoZone>>? _zonesSub;
   bool _zonesInited = false;
+  String? _zoneMonitorUid;
 
   TransportMode _transport = TransportMode.unknown;
   TransportMode get transport => _transport;
@@ -95,6 +101,7 @@ class ChildLocationViewModel extends ChangeNotifier {
   StreamSubscription<LocationData>? _gpsSub;
 
   bool _restarting = false;
+  String? _activeSharingUid;
   Future<AppLocalizations>? _l10nFuture;
   String? _l10nUid;
 
@@ -122,8 +129,32 @@ class ChildLocationViewModel extends ChangeNotifier {
     return _l10nFuture!;
   }
 
+  String? _currentUidOrNull() {
+    final uid = _auth.currentUser?.uid?.trim();
+    if (uid == null || uid.isEmpty) {
+      return null;
+    }
+    return uid;
+  }
+
+  void _handleAuthStateChanged(User? user) {
+    if (_disposed) return;
+    final nextUid = user?.uid?.trim();
+    final activeSharingUid = _activeSharingUid;
+    if (activeSharingUid == null || nextUid == activeSharingUid) {
+      return;
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        'Child location sharing stopped because auth session changed.',
+      );
+    }
+    unawaited(stopSharingOnLogout());
+  }
+
   String _requireUid() {
-    final uid = _auth.currentUser?.uid;
+    final uid = _currentUidOrNull();
     if (uid == null || uid.isEmpty) {
       throw Exception(_fallbackL10n().authLoginRequired);
     }
@@ -131,22 +162,27 @@ class ChildLocationViewModel extends ChangeNotifier {
   }
 
   void _setError(Object? e) {
+    if (_disposed) return;
     _error = e?.toString();
     notifyListeners();
   }
 
   void clearError() {
+    if (_disposed) return;
     _error = null;
     notifyListeners();
   }
 
   // used on LOGOUT (clear state)
   Future<void> stopSharingOnLogout() async {
+    if (_disposed) return;
     await stopSharing(clearData: true);
     await _activitySub?.cancel();
     await _zonesSub?.cancel();
     _zonesSub = null;
     _zonesInited = false;
+    _zoneMonitorUid = null;
+    _activeSharingUid = null;
     _activitySub = null;
     _lastActivity = null;
     _l10nFuture = null;
@@ -166,19 +202,20 @@ class ChildLocationViewModel extends ChangeNotifier {
     return speedMps > 45;
   }
 
-  Future<void> _ensureZoneMonitor() async {
-    if (_zonesInited) return;
+  Future<void> _ensureZoneMonitor(String uid) async {
+    if (_disposed) return;
+    if (_zonesInited && _zoneMonitorUid == uid) return;
 
-    final uid = _requireUid();
     final repo = ZoneRepository();
 
-    _zoneMonitor = ZoneMonitor(repo: repo, childUid: uid);
-
     await _zonesSub?.cancel();
+    if (_disposed) return;
+    _zoneMonitor = ZoneMonitor(repo: repo, childUid: uid);
+    _zoneMonitorUid = uid;
     _zonesSub = repo
         .watchZones(uid)
         .listen(
-          (zones) => _zoneMonitor.updateZones(zones),
+          (zones) => _zoneMonitor?.updateZones(zones),
           onError: (e) => debugPrint("zones watch error: $e"),
         );
 
@@ -204,17 +241,21 @@ class ChildLocationViewModel extends ChangeNotifier {
   }
 
   Future<void> _startHealthMonitor() async {
+    if (_disposed) return;
     _healthTimer?.cancel();
 
     _healthTimer = Timer.periodic(const Duration(seconds: 20), (_) async {
+      if (_disposed) return;
       try {
         final l10n = await _getL10n();
+        if (_disposed) return;
         final serviceEnabled = await _locationService.isServiceEnabled();
         final permissionGranted = await _locationService.hasLocationPermission(
           requireBackground: _requireBackground,
         );
         final preciseGranted = await _locationService
             .hasPreciseLocationPermission();
+        if (_disposed) return;
 
         _locationServiceEnabled = serviceEnabled;
         _locationPermissionGranted = permissionGranted && preciseGranted;
@@ -294,17 +335,17 @@ class ChildLocationViewModel extends ChangeNotifier {
 
     switch (motion) {
       case MotionState.moving:
-        if (accuracy <= 20) return const Duration(seconds: 3);
-        if (accuracy <= 50) return const Duration(seconds: 8);
-        return const Duration(seconds: 30);
+        if (accuracy <= 20) return const Duration(seconds: 5);
+        if (accuracy <= 50) return const Duration(seconds: 10);
+        return const Duration(seconds: 20);
       case MotionState.idle:
-        if (accuracy <= 20) return const Duration(seconds: 15);
-        if (accuracy <= 50) return const Duration(seconds: 25);
-        return const Duration(seconds: 45);
+        if (accuracy <= 20) return const Duration(seconds: 45);
+        if (accuracy <= 50) return const Duration(minutes: 1);
+        return const Duration(minutes: 2);
       case MotionState.stationary:
-        if (accuracy <= 20) return const Duration(seconds: 30);
-        if (accuracy <= 50) return const Duration(seconds: 45);
-        return const Duration(minutes: 1);
+        if (accuracy <= 20) return const Duration(minutes: 2);
+        if (accuracy <= 50) return const Duration(minutes: 3);
+        return const Duration(minutes: 5);
     }
   }
 
@@ -313,6 +354,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     await _gpsSub?.cancel();
     _gpsSub = null;
     _engine.reset();
+    _activeSharingUid = null;
 
     _isSharing = false;
     _restarting = false;
@@ -336,17 +378,21 @@ class ChildLocationViewModel extends ChangeNotifier {
       _error = null;
     }
 
+    if (_disposed) return;
     notifyListeners();
   }
 
   /// Start sharing with background mode by default so tracking keeps running.
   Future<void> startLocationSharing({bool background = true}) async {
+    if (_disposed) return;
     if (_isSharing) return;
 
     final l10n = await _getL10n();
+    if (_disposed) return;
+    late final String sharingUid;
 
     try {
-      _requireUid(); // validate
+      sharingUid = _requireUid();
     } catch (e) {
       _setError(e);
       return;
@@ -370,6 +416,7 @@ class ChildLocationViewModel extends ChangeNotifier {
       debugPrint('$st');
       ok = false;
     }
+    if (_disposed) return;
 
     // Background permission is often denied on first run.
     // Fall back to foreground tracking so location can still be sent.
@@ -392,9 +439,11 @@ class ChildLocationViewModel extends ChangeNotifier {
         ok = true;
       }
     }
+    if (_disposed) return;
 
     if (!ok) {
       final serviceEnabled = await _locationService.isServiceEnabled();
+      if (_disposed) return;
       _locationServiceEnabled = serviceEnabled;
       if (!serviceEnabled) {
         await _reportTrackingStatusIfChanged(
@@ -428,17 +477,43 @@ class ChildLocationViewModel extends ChangeNotifier {
       return;
     }
 
+    final currentUid = _currentUidOrNull();
+    if (currentUid == null || currentUid != sharingUid) {
+      _setError(_fallbackL10n().authLoginRequired);
+      return;
+    }
+
     _sentInitialCurrent = false;
+    _activeSharingUid = sharingUid;
     _isSharing = true;
     _motionState = MotionState.moving;
     await _startHealthMonitor();
+    if (_disposed) return;
 
     notifyListeners();
 
     // listen GPS stream
     await _startActivityRecognition();
-    await _ensureZoneMonitor();
+    if (_disposed) return;
+    await _ensureZoneMonitor(sharingUid);
+    if (_disposed) return;
     _gpsSub = _locationService.getLocationStream().listen((raw) async {
+      if (_disposed) return;
+      final activeSharingUid = _activeSharingUid;
+      final currentUid = _currentUidOrNull();
+      if (!_isSharing ||
+          activeSharingUid == null ||
+          currentUid == null ||
+          currentUid != activeSharingUid) {
+        if (kDebugMode) {
+          debugPrint(
+            'Drop child location update because auth session is no longer valid.',
+          );
+        }
+        unawaited(stopSharingOnLogout());
+        return;
+      }
+
       debugPrint('GPS RAW: acc=${raw.accuracy}');
 
       final result = _engine.process(
@@ -446,6 +521,7 @@ class ChildLocationViewModel extends ChangeNotifier {
         _lastActivity,
         previousReference: _currentLocation,
       );
+      if (_disposed) return;
       final filtered = result.filteredLocation;
       final acc = filtered.accuracy;
 
@@ -470,7 +546,7 @@ class ChildLocationViewModel extends ChangeNotifier {
           debugPrint(
             "Checking zones for location: lat=${filtered.latitude} lng=${filtered.longitude}",
           );
-          await _zoneMonitor.onLocation(filtered);
+          await _zoneMonitor?.onLocation(filtered);
         }
       } catch (e) {
         debugPrint("zoneMonitor error: $e");
@@ -479,9 +555,8 @@ class ChildLocationViewModel extends ChangeNotifier {
       _motionState = result.motion;
 
       // build payload once
-      final uid = _requireUid();
       final payload = TrackingPayload(
-        deviceId: uid,
+        deviceId: activeSharingUid,
         location: filtered,
         motion: result.motion.name,
         transport: _transport.name,
@@ -574,16 +649,19 @@ class ChildLocationViewModel extends ChangeNotifier {
   }
   /// Android 11+: request background permission (usually opens Settings)
   Future<void> enableBackgroundSharing() async {
+    if (_disposed) return;
     _requireBackground = true;
     notifyListeners();
 
     final l10n = await _getL10n();
+    if (_disposed) return;
     final ok = await _locationService.ensureServiceAndPermission(
       requireBackground: true,
       notificationTitle: l10n.locationForegroundServiceTitle,
       notificationSubtitle: l10n.locationForegroundServiceSubtitle,
     );
 
+    if (_disposed) return;
     if (!ok) return;
 
     // If already sharing, restart once to bind new permission state.
@@ -596,6 +674,7 @@ class ChildLocationViewModel extends ChangeNotifier {
   Future<void> _restartSharing({
     Duration delay = const Duration(seconds: 1),
   }) async {
+    if (_disposed) return;
     if (_restarting) return;
     _restarting = true;
 
@@ -618,6 +697,7 @@ class ChildLocationViewModel extends ChangeNotifier {
       notifyListeners();
 
       await Future.delayed(delay);
+      if (_disposed) return;
 
       // Start again with current mode.
       await startLocationSharing(background: _requireBackground);
@@ -627,23 +707,47 @@ class ChildLocationViewModel extends ChangeNotifier {
   }
 
   Future<void> _startActivityRecognition() async {
-    ActivityPermission permission = await FlutterActivityRecognition.instance
-        .checkPermission();
+    if (_disposed) return;
+    try {
+      ActivityPermission permission = await FlutterActivityRecognition.instance
+          .checkPermission();
 
-    if (permission == ActivityPermission.DENIED) {
-      permission = await FlutterActivityRecognition.instance
-          .requestPermission();
-    }
+      if (permission == ActivityPermission.DENIED) {
+        permission = await FlutterActivityRecognition.instance
+            .requestPermission();
+      }
 
-    if (permission != ActivityPermission.GRANTED) {
-      debugPrint(" Activity permission not granted");
+      if (permission != ActivityPermission.GRANTED) {
+        debugPrint("Activity permission not granted");
+        _lastActivity = null;
+        return;
+      }
+    } on PlatformException catch (e, st) {
+      final code = e.code.toUpperCase();
+      if (code == 'ACTIVITY_PERMISSION_REQUEST_CANCELLED') {
+        debugPrint(
+          'Activity permission request cancelled; continue without motion recognition.',
+        );
+        _lastActivity = null;
+        return;
+      }
+      debugPrint('Activity permission error: ${e.code} ${e.message}');
+      debugPrint('$st');
+      _lastActivity = null;
+      return;
+    } catch (e, st) {
+      debugPrint('Unexpected activity permission error: $e');
+      debugPrint('$st');
+      _lastActivity = null;
       return;
     }
 
     await _activitySub?.cancel();
+    if (_disposed) return;
     _activitySub = FlutterActivityRecognition.instance.activityStream.listen((
       activity,
     ) {
+      if (_disposed) return;
       _lastActivity = activity;
       // Activity stream is used internally; no continuous UI notify needed.
     }, onError: (e) => debugPrint("Activity stream error: $e"));
@@ -652,11 +756,12 @@ class ChildLocationViewModel extends ChangeNotifier {
   Future<void> replayHistory({
     Duration step = const Duration(milliseconds: 800),
   }) async {
+    if (_disposed) return;
     if (_trail.length < 2) return;
     _mode = LocationPlayMode.replay;
     notifyListeners();
     for (final loc in _trail) {
-      if (_mode != LocationPlayMode.replay) break;
+      if (_disposed || _mode != LocationPlayMode.replay) break;
 
       _currentLocation = loc;
       notifyListeners();
@@ -674,6 +779,7 @@ class ChildLocationViewModel extends ChangeNotifier {
         childId,
         DateTime.now(),
       );
+      if (_disposed) return history;
 
       _trail
         ..clear()
@@ -705,6 +811,7 @@ class ChildLocationViewModel extends ChangeNotifier {
         fromTs: fromTs,
         toTs: toTs,
       );
+      if (_disposed) return history;
 
       _trail
         ..clear()
@@ -723,6 +830,7 @@ class ChildLocationViewModel extends ChangeNotifier {
   }
 
   void stopReplay() {
+    if (_disposed) return;
     if (_mode == LocationPlayMode.replay) {
       _mode = LocationPlayMode.live;
       notifyListeners();
@@ -745,20 +853,45 @@ class ChildLocationViewModel extends ChangeNotifier {
     final dtMs = loc.timestamp - prev.timestamp;
     final dKm = prev.distanceTo(loc);
     final turn = _turnDelta(loc.heading, prev.heading);
+    final movedEnough = dKm >= 0.006;
 
     final shouldAdd =
-        dtMs >= 10000 || dKm >= 0.012 || turn >= 25; // 10s / 12m / cua
+        dKm >= 0.012 ||
+        (movedEnough && dtMs >= 20000) ||
+        (movedEnough && turn >= 25); // 12m / 20s+6m / cua khi co di chuyen
     if (shouldAdd) {
       _trail.add(loc);
     }
   }
 
   @override
+  void addListener(VoidCallback listener) {
+    if (_disposed) return;
+    super.addListener(listener);
+  }
+
+  @override
+  void removeListener(VoidCallback listener) {
+    if (_disposed) return;
+    super.removeListener(listener);
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _authStateSub?.cancel();
     _gpsSub?.cancel();
     _activitySub?.cancel();
     _zonesSub?.cancel();
     _healthTimer?.cancel();
+    _authStateSub = null;
     _activitySub = null;
     _lastActivity = null;
     super.dispose();

@@ -50,6 +50,7 @@ class StorageService {
       StorageKeys.role,
       StorageKeys.email,
       StorageKeys.parentId,
+      StorageKeys.managedChildIds,
       StorageKeys.displayName,
       StorageKeys.isLoggedIn,
     ];

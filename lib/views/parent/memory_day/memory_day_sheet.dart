@@ -158,19 +158,23 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
 
   Future<void> _pickReminder() async {
     final l10n = AppLocalizations.of(context);
+
     final selected = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.28),
+      barrierColor: Colors.black.withOpacity(0.28),
       builder: (sheetContext) {
         final theme = Theme.of(sheetContext);
+        final colorScheme = theme.colorScheme;
+        final textTheme = theme.textTheme;
 
         Widget optionTile({
           required int value,
           required String label,
           required IconData icon,
-          Color iconColor = const Color(0xFF3F7CFF),
+          Color? iconColor,
         }) {
+          final effectiveIconColor = iconColor ?? colorScheme.primary;
           final isSelected = value == _selectedReminderOffset;
 
           return InkWell(
@@ -180,13 +184,13 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFFEAF1FF)
-                    : theme.colorScheme.surface,
+                    ? colorScheme.primary.withOpacity(0.12)
+                    : colorScheme.surface,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF3F7CFF)
-                      : const Color(0xFFE5E7EB),
+                      ? colorScheme.primary
+                      : colorScheme.outline.withOpacity(0.5),
                 ),
               ),
               child: Row(
@@ -195,28 +199,28 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: iconColor.withValues(alpha: 0.10),
+                      color: effectiveIconColor.withOpacity(0.10),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     alignment: Alignment.center,
-                    child: Icon(icon, size: 18, color: iconColor),
+                    child: Icon(icon, size: 18, color: effectiveIconColor),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       label,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF0F172A),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                   ),
                   AnimatedOpacity(
                     duration: const Duration(milliseconds: 160),
                     opacity: isSelected ? 1 : 0,
-                    child: const Icon(
+                    child: Icon(
                       Icons.check_circle_rounded,
-                      color: Color(0xFF3F7CFF),
+                      color: colorScheme.primary,
                     ),
                   ),
                 ],
@@ -229,13 +233,13 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
           top: false,
           child: Container(
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
+              color: colorScheme.surface,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(28),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
+                  color: Colors.black.withOpacity(0.12),
                   blurRadius: 24,
                   offset: const Offset(0, -8),
                 ),
@@ -250,15 +254,16 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
                     width: 44,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD1D5DB),
+                      color: colorScheme.outline.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                   const SizedBox(height: 14),
                   Text(
                     l10n.memoryDayReminderLabel,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -266,7 +271,7 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
                     value: _noReminderValue,
                     label: l10n.memoryDayReminderNone,
                     icon: Icons.notifications_off_outlined,
-                    iconColor: const Color(0xFF64748B),
+                    iconColor: colorScheme.onSurface.withOpacity(0.65),
                   ),
                   const SizedBox(height: 10),
                   optionTile(
@@ -332,6 +337,7 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _input(
+                          context: context,
                           controller: _titleCtrl,
                           label: l10n.memoryDayFormTitleLabel,
                           maxLength: 50,
@@ -339,12 +345,14 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
                         ),
                         const SizedBox(height: 12),
                         _readonlyField(
+                          context: context,
                           label: l10n.memoryDayFormDateLabel,
                           value: dateText,
                           onTap: _pickDate,
                         ),
                         const SizedBox(height: 12),
                         _input(
+                          context: context,
                           controller: _noteCtrl,
                           label: l10n.memoryDayFormNoteLabel,
                           minLines: 2,
@@ -400,12 +408,13 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
   Widget _repeatYearlyField(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F6F8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.transparent),
+        border: Border.all(color: colorScheme.outline.withOpacity(0.4)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Row(
@@ -413,15 +422,16 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
           Expanded(
             child: Text(
               l10n.memoryDayRepeatYearlyLabel,
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF0F172A),
+                color: colorScheme.onSurface,
               ),
             ),
           ),
           Switch(
             value: _repeatYearly,
             onChanged: (value) => setState(() => _repeatYearly = value),
+            activeColor: colorScheme.primary,
           ),
         ],
       ),
@@ -431,14 +441,20 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
   Widget _reminderDropdown(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: _pickReminder,
       child: InputDecorator(
         decoration: _fieldDecoration(
+          context: context,
           label: l10n.memoryDayReminderLabel,
-          suffixIcon: const Icon(Icons.expand_more_rounded),
+          suffixIcon: Icon(
+            Icons.expand_more_rounded,
+            color: colorScheme.onSurface.withOpacity(0.7),
+          ),
         ),
         child: Row(
           children: [
@@ -446,23 +462,23 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
               width: 30,
               height: 30,
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF1FF),
+                color: colorScheme.primary.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
-              child: const Icon(
+              child: Icon(
                 Icons.notifications_none_rounded,
                 size: 16,
-                color: Color(0xFF3F7CFF),
+                color: colorScheme.primary,
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 _reminderLabel(l10n, _selectedReminderOffset),
-                style: theme.textTheme.bodyMedium?.copyWith(
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0F172A),
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),
@@ -474,6 +490,9 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
 
   Widget _submit(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -553,11 +572,14 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
                 }
               : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF3F7CFF),
-            disabledBackgroundColor: Colors.grey.shade300,
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+            disabledBackgroundColor: colorScheme.outline.withOpacity(0.25),
+            disabledForegroundColor: colorScheme.onSurface.withOpacity(0.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(26),
             ),
+            elevation: 0,
           ),
           child: Text(
             _submitting
@@ -565,9 +587,11 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
                 : _isEdit
                 ? l10n.memoryDaySaveChangesButton
                 : l10n.memoryDayAddButton,
-            style: const TextStyle(
+            style: textTheme.titleMedium?.copyWith(
               fontFamily: 'Poppins',
-              color: Colors.white,
+              color: (_isValid && !_submitting)
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurface.withOpacity(0.5),
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -578,6 +602,7 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
   }
 
   Widget _input({
+    required BuildContext context,
     required TextEditingController controller,
     required String label,
     int minLines = 1,
@@ -585,13 +610,19 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
     int? maxLength,
     ValueChanged<String>? onChanged,
   }) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+
     return TextField(
       controller: controller,
       minLines: minLines,
       maxLines: maxLines,
       maxLength: maxLength,
       onChanged: onChanged,
+      style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
       decoration: _fieldDecoration(
+        context: context,
         label: label,
         counterText: '',
         alignLabelWithHint: maxLines > 1,
@@ -600,24 +631,33 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
   }
 
   Widget _readonlyField({
+    required BuildContext context,
     required String label,
     required String value,
     VoidCallback? onTap,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: InputDecorator(
         decoration: _fieldDecoration(
+          context: context,
           label: label,
-          suffixIcon: const Icon(Icons.calendar_month),
+          suffixIcon: Icon(
+            Icons.calendar_month,
+            color: colorScheme.onSurface.withOpacity(0.7),
+          ),
         ),
         child: Text(
           value,
-          style: const TextStyle(
+          style: textTheme.bodyMedium?.copyWith(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF0F172A),
+            color: colorScheme.onSurface,
           ),
         ),
       ),
@@ -625,30 +665,43 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
   }
 
   InputDecoration _fieldDecoration({
+    required BuildContext context,
     required String label,
     Widget? suffixIcon,
     String? counterText,
     bool alignLabelWithHint = false,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return InputDecoration(
       labelText: label,
       alignLabelWithHint: alignLabelWithHint,
       floatingLabelBehavior: FloatingLabelBehavior.auto,
       filled: true,
-      fillColor: const Color(0xFFF5F6F8),
+      fillColor: colorScheme.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+
+      labelStyle: textTheme.bodyMedium?.copyWith(
+        color: colorScheme.onSurface.withOpacity(0.7),
+      ),
+
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
+        borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.5)),
       ),
+
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
+        borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.5)),
       ),
+
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFF3F7CFF), width: 1.2),
+        borderSide: BorderSide(color: colorScheme.primary, width: 1.2),
       ),
+
       suffixIcon: suffixIcon,
       counterText: counterText,
     );

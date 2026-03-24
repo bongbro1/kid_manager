@@ -31,13 +31,13 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
   Future<void> _loadTheme() async {
     final storage = context.read<StorageService>();
     final savedColorValue =
-        storage.getInt(StorageKeys.themeColor) ?? colors[0].value;
+        storage.getInt(StorageKeys.themeColor) ?? colors[colors.length-1].value;
     final savedDark = storage.getBool(StorageKeys.isDarkMode) ?? false;
 
     final index = colors.indexWhere((c) => c.value == savedColorValue);
 
     setState(() {
-      selectedColor = index != -1 ? index : 0;
+      selectedColor = index != -1 ? index : colors.length-1;
       isDark = savedDark;
     });
   }

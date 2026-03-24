@@ -115,6 +115,7 @@ class _IconSection extends StatelessWidget {
     return Center(child: config.iconBuilder());
   }
 }
+
 class _ActionSection extends StatelessWidget {
   final DialogType type;
   final Color primaryColor;
@@ -175,8 +176,11 @@ class _ActionSection extends StatelessWidget {
               onPressed: () => _close(context, onConfirm),
               child: Text(
                 l10n.confirmButton,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: isDark
+                      ? colorScheme
+                            .onPrimary // nền primary → text onPrimary
+                      : colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -243,8 +247,8 @@ class _ActionSection extends StatelessWidget {
         onPressed: () => _close(context, onConfirm),
         child: Text(
           l10n.continueButton,
-          style: const TextStyle(
-            color: Color(0xFF0F172A),
+          style: TextStyle(
+            color: colorScheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),

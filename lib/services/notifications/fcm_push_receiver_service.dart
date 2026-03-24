@@ -61,6 +61,15 @@ class FcmPushReceiverService {
 
       debugPrint('[FcmPushReceiverService] registerFcmToken success uid=$uid');
     } on FirebaseFunctionsException catch (e, st) {
+      if (e.code == 'failed-precondition' &&
+          (e.message ?? '').contains('User profile not found')) {
+        if (kDebugMode) {
+          debugPrint(
+            '[FcmPushReceiverService] registerFcmToken skipped: user profile not ready for uid=$uid',
+          );
+        }
+        return;
+      }
       debugPrint(
         '[FcmPushReceiverService] registerFcmToken fail '
         'code=${e.code} message=${e.message} details=${e.details}',

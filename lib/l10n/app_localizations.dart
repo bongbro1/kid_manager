@@ -4110,13 +4110,13 @@ abstract class AppLocalizations {
   /// No description provided for @trackingStatusLocationServiceOffMessage.
   ///
   /// In en, this message translates to:
-  /// **'Device turned off GPS/location'**
+  /// **'Please turn on GPS or Location Services on the device so location updates can continue.'**
   String get trackingStatusLocationServiceOffMessage;
 
   /// No description provided for @trackingStatusLocationPermissionDeniedMessage.
   ///
   /// In en, this message translates to:
-  /// **'Device turned off location permission'**
+  /// **'Please allow location permission for the app on the device so location updates can continue.'**
   String get trackingStatusLocationPermissionDeniedMessage;
 
   /// No description provided for @trackingStatusPreciseLocationDeniedMessage.
@@ -4344,7 +4344,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingAccessibilityPrimaryButton.
   ///
   /// In en, this message translates to:
-  /// **'Go to settings'**
+  /// **'Allow'**
   String get permissionOnboardingAccessibilityPrimaryButton;
 
   /// No description provided for @permissionOnboardingAccessibilitySettingsButton.
@@ -4392,7 +4392,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingBatteryPrimaryButton.
   ///
   /// In en, this message translates to:
-  /// **'Go to settings'**
+  /// **'Allow'**
   String get permissionOnboardingBatteryPrimaryButton;
 
   /// No description provided for @permissionOnboardingBatterySettingsButton.
@@ -4488,7 +4488,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingUsagePrimaryButton.
   ///
   /// In en, this message translates to:
-  /// **'Go to settings'**
+  /// **'Allow'**
   String get permissionOnboardingUsagePrimaryButton;
 
   /// No description provided for @permissionOnboardingUsageSettingsButton.

@@ -3,14 +3,22 @@ import 'package:flutter/foundation.dart';
 import 'package:kid_manager/helpers/zone/zone_overlap.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
+import 'package:kid_manager/repositories/user/profile_repository.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ParentZonesVm extends ChangeNotifier {
   final ZoneRepository _repo;
   final FirebaseAuth _auth;
+  final ProfileRepository _profileRepository;
+  final AccessControlService _accessControl;
 
-  ParentZonesVm(this._repo, {FirebaseAuth? auth})
-      : _auth = auth ?? FirebaseAuth.instance;
+  ParentZonesVm(
+    this._repo,
+    this._profileRepository,
+    this._accessControl, {
+    FirebaseAuth? auth,
+  }) : _auth = auth ?? FirebaseAuth.instance;
 
   StreamSubscription<List<GeoZone>>? _sub;
 
@@ -39,38 +47,73 @@ class ParentZonesVm extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _reloadZones(String childUid) async {
+    final latest = await _repo.getZonesOnce(childUid);
+    _zones = latest;
+    _error = null;
+    notifyListeners();
+  }
+
+  Future<void> _ensureCanManageChild(String childUid) async {
+    final actorUid = _auth.currentUser?.uid?.trim();
+    if (actorUid == null || actorUid.isEmpty) {
+      throw StateError('Unauthenticated');
+    }
+
+    final actor = await _profileRepository.getUserById(actorUid);
+    final child = await _profileRepository.getUserById(childUid);
+    if (actor == null ||
+        child == null ||
+        !_accessControl.canManageChild(
+          actor: actor,
+          childUid: childUid,
+          child: child,
+        )) {
+      throw StateError('Access denied');
+    }
+  }
+
   Future<void> bind(String childUid) async {
-    await _sub?.cancel();
-    _sub = _repo.watchZones(childUid).listen((list) {
-      debugPrint("zones length = ${list.length}");
-      _zones = list;
-      _error = null;
-      notifyListeners();
-    }, onError: (e) {
-      debugPrint("watchZones error: $e");
+    try {
+      await _ensureCanManageChild(childUid);
+      await _sub?.cancel();
+      _sub = _repo.watchZones(childUid).listen((list) {
+        debugPrint("zones length = ${list.length}");
+        _zones = list;
+        _error = null;
+        notifyListeners();
+      }, onError: (e) {
+        debugPrint("watchZones error: $e");
+        _setError(e);
+      });
+    } catch (e) {
       _setError(e);
-    });
+    }
   }
 
   Future<void> toggleEnabled(String childUid, GeoZone zone, bool enabled) async {
     try {
       clearError();
+      await _ensureCanManageChild(childUid);
       final now = DateTime.now().millisecondsSinceEpoch;
       await _repo.upsertZone(
         childUid,
         zone.copyWith(enabled: enabled, updatedAt: now),
       );
+      await _reloadZones(childUid);
     } catch (e) {
-      _setError(e);
+      debugPrint('toggle zone failed: $e');
     }
   }
 
   Future<void> delete(String childUid, String zoneId) async {
     try {
       clearError();
+      await _ensureCanManageChild(childUid);
       await _repo.deleteZone(childUid, zoneId);
+      await _reloadZones(childUid);
     } catch (e) {
-      _setError(e);
+      debugPrint('delete zone failed: $e');
       rethrow;
     }
   }
@@ -79,10 +122,10 @@ class ParentZonesVm extends ChangeNotifier {
     _setLoading(true);
     clearError();
     try {
+      await _ensureCanManageChild(childUid);
       final uid = _auth.currentUser?.uid;
-      print("UID PARENT ZONE : ${uid}");
       if (uid == null || uid.isEmpty) {
-        throw Exception("Unauthenticated");
+        throw StateError("Unauthenticated");
       }
       // check overlap bằng list đang có trong VM
       final hit = findOverlappingZone(candidate: zone, existing: _zones);
@@ -99,8 +142,9 @@ class ParentZonesVm extends ChangeNotifier {
       );
 
       await _repo.upsertZone(childUid, fixed);
+      await _reloadZones(childUid);
     } catch (e) {
-      _setError(e);
+      debugPrint('save zone failed: $e');
       rethrow;
     } finally {
       _setLoading(false);

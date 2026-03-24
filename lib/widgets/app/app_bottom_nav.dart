@@ -68,7 +68,7 @@ class AppBottomNav extends StatelessWidget {
       width: 24,
       height: 24,
       colorFilter: ColorFilter.mode(
-        isActive ? scheme.primary : scheme.onSurface.withOpacity(0.6),
+        isActive ? scheme.primary : scheme.onSurface,
         BlendMode.srcIn,
       ),
     );

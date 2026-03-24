@@ -57,6 +57,15 @@ class SendPolicy {
         break;
     }
 
+    if (transport == TransportMode.still || transport == TransportMode.unknown) {
+      if (accuracyM >= 30) {
+        movingMinInterval = const Duration(seconds: 20);
+        movingMinDistanceKm = 0.025;
+      } else if (movingMinDistanceKm < 0.018) {
+        movingMinDistanceKm = 0.018;
+      }
+    }
+
     switch (motion) {
       case MotionState.moving:
         if (distanceKm >= movingMinDistanceKm) return true;
@@ -66,11 +75,11 @@ class SendPolicy {
       case MotionState.idle:
       // idle: gửi thưa hơn, nhưng vẫn keep-alive để parent biết online
         if (distanceKm >= 0.02) return true; // 20m
-        return sinceLast >= const Duration(minutes: 1);
+        return sinceLast >= const Duration(minutes: 2);
 
       case MotionState.stationary:
       // stationary: keep-alive 2-5 phút
-        return sinceLast >= const Duration(minutes: 3);
+        return sinceLast >= const Duration(minutes: 5);
     }
   }
 }

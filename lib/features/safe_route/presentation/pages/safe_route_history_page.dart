@@ -17,6 +17,7 @@ import 'package:kid_manager/features/safe_route/presentation/viewmodels/safe_rou
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/services/location/map_avatar_marker_factory.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -291,9 +292,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
             'type': 'Point',
             'coordinates': [live.longitude, live.latitude],
           },
-          'properties': {
-            _liveMarkerIconProperty: _liveMarkerIconId,
-          },
+          'properties': {_liveMarkerIconProperty: _liveMarkerIconId},
         },
       ],
     };
@@ -407,10 +406,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
       _endSourceId,
       _pointCollection(state.selectedRoute?.endPoint),
     );
-    await _updateGeoJsonSource(
-      _liveSourceId,
-      _liveLocationCollection(state),
-    );
+    await _updateGeoJsonSource(_liveSourceId, _liveLocationCollection(state));
     await _fitToRoutesIfNeeded(state);
   }
 
@@ -441,15 +437,17 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
         final state = vm.state;
         _scheduleSync(state);
         _maybeShowError(vm);
+        final scheme = Theme.of(context).colorScheme;
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: scheme.background,
           body: Stack(
             children: [
               Positioned.fill(
                 child: AppMapView(
                   controller: _mapViewController,
                   showInternalMapTypeButton: false,
+                  followThemeForStreetStyle: false,
                   onMapCreated: (map) {
                     _map = map;
                     _camera = CameraController(map);
@@ -490,7 +488,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                 builder: (context, scrollController) {
                   return DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.97),
+                      color: locationPanelColor(scheme).withOpacity(0.97),
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(30),
                       ),
@@ -511,28 +509,34 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                             width: 40,
                             height: 4,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFD3DCE7),
+                              color: locationPanelBorderColor(scheme),
                               borderRadius: BorderRadius.circular(999),
                             ),
                           ),
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          AppLocalizations.of(context).safeRouteHistoryPageTitle,
-                          style: const TextStyle(
+                          AppLocalizations.of(
+                            context,
+                          ).safeRouteHistoryPageTitle,
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF111827),
+                            color: scheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           state.trips.isEmpty
-                              ? AppLocalizations.of(context).safeRouteHistoryTripsEmpty
-                              : AppLocalizations.of(context).safeRouteHistoryPageReviewSaved,
-                          style: const TextStyle(
+                              ? AppLocalizations.of(
+                                  context,
+                                ).safeRouteHistoryTripsEmpty
+                              : AppLocalizations.of(
+                                  context,
+                                ).safeRouteHistoryPageReviewSaved,
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF667085),
+                            color: scheme.onSurfaceVariant,
                             height: 1.35,
                           ),
                         ),
@@ -568,7 +572,9 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                 Positioned.fill(
                   child: Container(
                     color: Colors.black26,
-                    child: const Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: CircularProgressIndicator(color: scheme.primary),
+                    ),
                   ),
                 ),
             ],
@@ -583,6 +589,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
     SafeRouteHistoryViewModel vm,
   ) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final selectedTrip = state.selectedTrip;
     return Positioned(
       top: MediaQuery.of(context).padding.top + 8,
@@ -591,7 +598,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.92),
+          color: locationPanelColor(scheme).withOpacity(0.94),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -614,10 +621,10 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                 children: [
                   Text(
                     l10n.safeRouteHistoryPageTitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
+                      color: scheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -627,10 +634,10 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                         : '${_statusLabel(context, selectedTrip.status)} · ${_updatedLabel(context, selectedTrip.updatedAt)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A73E8),
+                      color: scheme.primary,
                     ),
                   ),
                 ],
@@ -647,6 +654,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
   }
 
   Widget _buildChildAvatarBadge() {
+    final scheme = Theme.of(context).colorScheme;
     final avatarUrl = widget.childAvatarUrl?.trim() ?? '';
     return Container(
       width: 34,
@@ -654,25 +662,22 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(
-          color: const Color(0xFFDBEAFE),
-          width: 1.6,
-        ),
+        color: locationPanelColor(scheme),
+        border: Border.all(color: locationPanelBorderColor(scheme), width: 1.6),
       ),
       child: avatarUrl.isEmpty
-          ? const Icon(
+          ? Icon(
               Icons.child_care_rounded,
               size: 18,
-              color: Color(0xFF2563EB),
+              color: scheme.primary,
             )
           : Image.network(
               avatarUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const Icon(
+              errorBuilder: (_, _, _) => Icon(
                 Icons.child_care_rounded,
                 size: 18,
-                color: Color(0xFF2563EB),
+                color: scheme.primary,
               ),
             ),
     );
@@ -695,8 +700,9 @@ class _CircleActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: Colors.white,
+      color: locationPanelColor(scheme),
       shape: const CircleBorder(),
       child: InkWell(
         onTap: onTap,
@@ -704,7 +710,7 @@ class _CircleActionButton extends StatelessWidget {
         child: SizedBox(
           width: 36,
           height: 36,
-          child: Icon(icon, size: 18, color: const Color(0xFF334155)),
+          child: Icon(icon, size: 18, color: scheme.onSurfaceVariant),
         ),
       ),
     );
@@ -727,14 +733,15 @@ class _SelectedTripSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -746,10 +753,10 @@ class _SelectedTripSummaryCard extends StatelessWidget {
                   trip.routeName?.trim().isNotEmpty == true
                       ? trip.routeName!
                       : l10n.safeRouteSelectedRouteFallbackName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF111827),
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
@@ -782,9 +789,9 @@ class _SelectedTripSummaryCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             _scheduleSummary(l10n, trip),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.5,
-              color: Color(0xFF667085),
+              color: scheme.onSurfaceVariant,
               height: 1.3,
             ),
           ),
@@ -806,6 +813,7 @@ class _SelectedTripSummaryCard extends StatelessWidget {
     return parts.join(' · ');
   }
 }
+
 class _HistoryTripCard extends StatelessWidget {
   const _HistoryTripCard({
     required this.trip,
@@ -820,9 +828,12 @@ class _HistoryTripCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Material(
-      color: selected ? const Color(0xFFEAF2FF) : const Color(0xFFF8FAFC),
+      color: selected
+          ? locationPanelHighlightColor(scheme)
+          : locationPanelMutedColor(scheme),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -832,9 +843,7 @@ class _HistoryTripCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selected
-                  ? const Color(0xFFBFDBFE)
-                  : const Color(0xFFE7EDF4),
+              color: locationPanelBorderColor(scheme),
             ),
           ),
           child: Row(
@@ -844,13 +853,13 @@ class _HistoryTripCard extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   color: selected
-                      ? const Color(0xFFDCEBFF)
-                      : const Color(0xFFFFFFFF),
+                      ? locationPanelHighlightColor(scheme)
+                      : locationPanelColor(scheme),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.alt_route_rounded,
-                  color: Color(0xFF1A73E8),
+                  color: scheme.primary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -862,10 +871,10 @@ class _HistoryTripCard extends StatelessWidget {
                       trip.routeName?.trim().isNotEmpty == true
                           ? trip.routeName!
                           : l10n.safeRouteRouteFallbackName(trip.routeId),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
+                        color: scheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -873,9 +882,9 @@ class _HistoryTripCard extends StatelessWidget {
                       _subtitle(l10n, trip),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: Color(0xFF667085),
+                        color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),
                     ),
@@ -900,6 +909,7 @@ class _HistoryTripCard extends StatelessWidget {
     return parts.join(' · ');
   }
 }
+
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status});
 
@@ -968,6 +978,7 @@ class _StatusBadge extends StatelessWidget {
     }
   }
 }
+
 class _InfoChip extends StatelessWidget {
   const _InfoChip({required this.icon, required this.label});
 
@@ -976,24 +987,25 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: locationPanelColor(scheme),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF526074)),
+          Icon(icon, size: 14, color: scheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF526074),
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -1007,21 +1019,27 @@ class _EmptyHistoryPageState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Text(
         AppLocalizations.of(context).safeRouteHistoryEmptyState,
-        style: const TextStyle(fontSize: 12, color: Color(0xFF667085), height: 1.35),
+        style: TextStyle(
+          fontSize: 12,
+          color: scheme.onSurfaceVariant,
+          height: 1.35,
+        ),
       ),
     );
   }
 }
+
 class _HistoryBadgeStyle {
   const _HistoryBadgeStyle({
     required this.label,
@@ -1033,11 +1051,3 @@ class _HistoryBadgeStyle {
   final Color background;
   final Color foreground;
 }
-
-
-
-
-
-
-
-

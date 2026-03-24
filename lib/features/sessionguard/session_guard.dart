@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/features/sessions/sessionstatus.dart';
+import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
+import 'package:kid_manager/services/notifications/sos_tap_router.dart';
 import 'package:kid_manager/services/notifications/sos_notification_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
@@ -111,41 +113,121 @@ class _SessionGuardState extends State<SessionGuard> {
             final userVm = context.read<UserVm>();
             final storage = context.read<StorageService>();
             final appManagementVm = context.read<AppManagementVM>();
+            final notificationVm = context.read<NotificationVM>();
 
             final profile = await userVm.loadProfile(
               uid: uid,
               caller: 'SessionGuard',
             );
 
-            await storage.setString(StorageKeys.uid, uid);
+            if (!mounted) return;
 
-            final resolvedRole = roleFromString(
-              profile?.role ?? session.user?.role.name ?? 'child',
-            );
-            final resolvedDisplayName =
-                (profile?.name ?? session.user?.displayName ?? '').trim();
-            final resolvedParentId = resolvedRole == UserRole.child
-                ? (profile?.parentUid ?? session.user?.parentUid ?? '').trim()
-                : uid;
-
-            if (profile != null) {
-              await storage.setString(StorageKeys.role, profile.role ?? '');
-              await storage.setString(StorageKeys.displayName, profile.name);
+            final currentSession = context.read<SessionVM>();
+            if (currentSession.status != SessionStatus.authenticated ||
+                currentSession.user?.uid != uid) {
+              return;
             }
 
-            await storage.setString(StorageKeys.parentId, resolvedParentId);
+            final sessionUser = currentSession.user;
+            final hasResolvedSessionIdentity =
+                (sessionUser?.familyId?.trim().isNotEmpty ?? false) ||
+                (sessionUser?.parentUid?.trim().isNotEmpty ?? false);
+
+            if (profile == null && !hasResolvedSessionIdentity) {
+              debugPrint(
+                '[SessionGuard] skip bootstrap until profile is available '
+                'uid=$uid',
+              );
+              return;
+            }
+
+            await notificationVm.bindUser(
+              uid: uid,
+              sources: const [
+                NotificationSource.global,
+                NotificationSource.userInbox,
+              ],
+            );
+
+            if (_pushInitedForUid != uid && profile != null) {
+              _pushInitedForUid = uid;
+              await FcmPushReceiverService.init(uid);
+              if (!mounted) return;
+              await SosNotificationService.instance.init(
+                onTapSos: SosTapRouter.handleTap,
+              );
+            }
+
+            if (!mounted) return;
+
+            final verifiedSession = context.read<SessionVM>();
+            if (verifiedSession.status != SessionStatus.authenticated ||
+                verifiedSession.user?.uid != uid) {
+              return;
+            }
+
+            await storage.setString(StorageKeys.uid, uid);
+
+            final resolvedRole =
+                profile?.role ?? sessionUser?.role ?? UserRole.child;
+            final resolvedDisplayName =
+                (profile?.name ?? sessionUser?.displayName ?? '').trim();
+            final resolvedParentOwnerUid = resolvedRole == UserRole.parent
+                ? uid
+                : (profile?.parentUid ?? sessionUser?.parentUid ?? '').trim();
+            final managedOwnerUid = resolvedRole == UserRole.guardian
+                ? resolvedParentOwnerUid
+                : uid;
+            final managedChildIds =
+                <String>{
+                      ...?profile?.managedChildIds,
+                      ...?sessionUser?.managedChildIds,
+                    }
+                    .map((item) => item.trim())
+                    .where((item) => item.isNotEmpty)
+                    .toList(growable: false);
+
+            await storage.setString(
+              StorageKeys.role,
+              roleToString(resolvedRole),
+            );
+            if (resolvedDisplayName.isNotEmpty) {
+              await storage.setString(
+                StorageKeys.displayName,
+                resolvedDisplayName,
+              );
+            } else {
+              await storage.remove(StorageKeys.displayName);
+            }
+
+            if (resolvedParentOwnerUid.isNotEmpty) {
+              await storage.setString(
+                StorageKeys.parentId,
+                resolvedParentOwnerUid,
+              );
+            } else {
+              await storage.remove(StorageKeys.parentId);
+            }
+            if (managedChildIds.isNotEmpty) {
+              await storage.setStringList(
+                StorageKeys.managedChildIds,
+                managedChildIds,
+              );
+            } else {
+              await storage.remove(StorageKeys.managedChildIds);
+            }
 
             if (resolvedRole == UserRole.child) {
-              if (resolvedParentId.isNotEmpty &&
+              if (resolvedParentOwnerUid.isNotEmpty &&
                   resolvedDisplayName.isNotEmpty) {
                 AuthRuntimeManager.start(
-                  parentId: resolvedParentId,
+                  parentId: resolvedParentOwnerUid,
                   displayName: resolvedDisplayName,
                 );
               } else {
                 debugPrint(
                   '[SessionGuard] skip native watcher config '
-                  'uid=$uid parentId="$resolvedParentId" '
+                  'uid=$uid parentId="$resolvedParentOwnerUid" '
                   'displayName="$resolvedDisplayName"',
                 );
               }
@@ -154,8 +236,13 @@ class _SessionGuardState extends State<SessionGuard> {
             }
 
             userVm.watchMe(uid);
-            if (resolvedRole == UserRole.parent) {
-              appManagementVm.watchChildren(uid);
+            final resolvedFamilyId =
+                (profile?.familyId ?? sessionUser?.familyId ?? '').trim();
+
+            if ((resolvedRole == UserRole.parent ||
+                    resolvedRole == UserRole.guardian) &&
+                managedOwnerUid.isNotEmpty) {
+              appManagementVm.watchChildren(managedOwnerUid);
             }
           });
         }
@@ -173,8 +260,12 @@ class _SessionGuardState extends State<SessionGuard> {
               normalizedFamilyId,
               excludeUid: currentUid,
             );
-            if (isParent == true) {
-              userVm.watchChildren(currentUid);
+            final managedOwnerUid = isGuardian == true
+                ? (session.user?.parentUid?.trim() ?? '')
+                : currentUid;
+            if ((isParent == true || isGuardian == true) &&
+                managedOwnerUid.isNotEmpty) {
+              userVm.watchChildren(managedOwnerUid);
             }
           });
         }
@@ -192,40 +283,21 @@ class _SessionGuardState extends State<SessionGuard> {
               return const FlashScreen();
             }
 
-            if (_pushInitedForUid != uid) {
-              _pushInitedForUid = uid;
+            final hasResolvedSessionIdentity =
+                (session.user?.familyId?.trim().isNotEmpty ?? false) ||
+                (session.user?.parentUid?.trim().isNotEmpty ?? false);
 
-              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                if (!mounted) return;
-                await FcmPushReceiverService.init(uid);
-                if (!mounted) return;
-                await SosNotificationService.instance.init(onTapSos: (data) {});
-              });
+            if (!hasResolvedSessionIdentity) {
+              return const FlashScreen();
             }
 
             if (isParent == true) {
-              return MultiProvider(
-                providers: [
-                  ChangeNotifierProvider(
-                    create: (context) => ParentLocationVm(
-                      context.read<LocationRepository>(),
-                      context.read<LocationServiceInterface>(),
-                    ),
-                  ),
-                ],
-                child: const _ParentWarmupShell(),
-              );
+              return const _ParentWarmupShell();
             }
 
             if (isGuardian == true) {
               return MultiProvider(
                 providers: [
-                  ChangeNotifierProvider(
-                    create: (context) => ParentLocationVm(
-                      context.read<LocationRepository>(),
-                      context.read<LocationServiceInterface>(),
-                    ),
-                  ),
                   ChangeNotifierProvider(
                     create: (context) => ChildLocationViewModel(
                       context.read<LocationRepository>(),
@@ -259,6 +331,7 @@ class _SessionGuardState extends State<SessionGuard> {
     await appManagementVm.clear();
     await parentLocationVm.stopWatchingAllChildren();
     await parentLocationVm.stopMyLocation();
+    await AuthRuntimeManager.stop();
     scheduleVm.resetForNewSession();
     memoryVm.resetForNewSession();
     birthdayVm.resetForNewSession();
@@ -295,6 +368,7 @@ class _ParentWarmupShellState extends State<_ParentWarmupShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       _syncChildrenWatch();
+      unawaited(_locationVm.startMyLocation());
     });
   }
 
@@ -364,6 +438,7 @@ class _GuardianWarmupShellState extends State<_GuardianWarmupShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       _syncWatching();
+      unawaited(_locationVm.startMyLocation());
       await _syncSelfTracking();
     });
   }
@@ -393,16 +468,15 @@ class _GuardianWarmupShellState extends State<_GuardianWarmupShell> {
     final shouldShare = me?.isGuardian == true && me?.allowTracking == true;
 
     if (shouldShare && !_selfTrackingActive) {
-      final hasForegroundPermission =
-          await _locationService.hasLocationPermission(
-            requireBackground: false,
-          );
+      final hasForegroundPermission = await _locationService
+          .hasLocationPermission(requireBackground: false);
       final serviceEnabled = await _locationService.isServiceEnabled();
       if (!hasForegroundPermission || !serviceEnabled) {
         return;
       }
 
-      final hasBackgroundMode = await _locationService.isBackgroundModeEnabled();
+      final hasBackgroundMode = await _locationService
+          .isBackgroundModeEnabled();
       await _childLocationVm.startLocationSharing(
         background: hasBackgroundMode,
       );

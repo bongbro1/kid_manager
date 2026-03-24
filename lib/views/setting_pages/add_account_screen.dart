@@ -4,7 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
+import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
@@ -25,7 +28,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final _passwordCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
 
-  String role = 'child';
+  UserRole role = UserRole.child;
   bool hidePassword = true;
 
   final String localeString =
@@ -92,7 +95,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   // ROLE CHIP
   // -------------------------
 
-  Widget roleChip(String value, String label) {
+  Widget roleChip(UserRole value, String label) {
     return ChoiceChip(
       label: Text(label),
       selected: role == value,
@@ -108,6 +111,15 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
   Future<void> _onAddAccount() async {
     final l10n = AppLocalizations.of(context);
+    final actor = context.read<UserVm>().actorSnapshot;
+    if (actor == null ||
+        !context.read<AccessControlService>().canAddManagedAccounts(
+          actor: actor,
+        )) {
+      AlertService.showSnack(l10n.firestorePermissionDenied, isError: true);
+      return;
+    }
+
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
@@ -173,6 +185,40 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final vm = context.watch<UserVm>();
+    final actor = context.select<UserVm, AppUser?>((value) => value.actorSnapshot);
+    final canAddAccount = actor != null &&
+        context.read<AccessControlService>().canAddManagedAccounts(actor: actor);
+
+    if (!canAddAccount) {
+      return Scaffold(
+        backgroundColor: scheme.background,
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: scheme.surface,
+          centerTitle: true,
+          title: Text(
+            l10n.addAccountTitle,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+          iconTheme: IconThemeData(color: scheme.onSurface),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              l10n.firestorePermissionDenied,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Stack(
       children: [
@@ -264,8 +310,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                       Wrap(
                         spacing: 10,
                         children: [
-                          roleChip('child', l10n.addAccountRoleChild),
-                          roleChip('guardian', l10n.addAccountRoleGuardian),
+                          roleChip(UserRole.child, l10n.addAccountRoleChild),
+                          roleChip(
+                            UserRole.guardian,
+                            l10n.addAccountRoleGuardian,
+                          ),
                         ],
                       ),
                     ],

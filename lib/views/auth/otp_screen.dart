@@ -147,8 +147,12 @@ class _OtpScreenState extends State<OtpScreen> {
   Widget build(BuildContext context) {
     final vm = context.watch<OtpVM>();
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           SafeArea(
@@ -161,10 +165,11 @@ class _OtpScreenState extends State<OtpScreen> {
                     child: Text(
                       l10n.otpTitle,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: textTheme.headlineSmall?.copyWith(
                         fontSize: 24,
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -175,8 +180,8 @@ class _OtpScreenState extends State<OtpScreen> {
                     child: Text(
                       l10n.otpInstruction,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF4A4A4A),
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface.withOpacity(0.75),
                         fontSize: 14,
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w500,
@@ -184,6 +189,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
+
                   GestureDetector(
                     onTap: () {
                       FocusScope.of(context).requestFocus(_otpFocus);
@@ -191,7 +197,6 @@ class _OtpScreenState extends State<OtpScreen> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        /// INPUT THẬT (ẨN)
                         Opacity(
                           opacity: 0,
                           child: SizedBox(
@@ -206,7 +211,6 @@ class _OtpScreenState extends State<OtpScreen> {
                           ),
                         ),
 
-                        /// UI OTP BOX
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: List.generate(4, (index) {
@@ -216,7 +220,7 @@ class _OtpScreenState extends State<OtpScreen> {
                               char = _otp[index];
                             }
 
-                            bool isActive = index == _otp.length;
+                            final isActive = index == _otp.length;
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(
@@ -227,21 +231,24 @@ class _OtpScreenState extends State<OtpScreen> {
                                 height: 59,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
+                                  color: colorScheme.surface,
                                   borderRadius: BorderRadius.circular(18),
                                   border: Border.all(
                                     width: 1.6,
                                     color: isActive
-                                        ? const Color(0xFF3A7DFF)
-                                        : const Color(0xFFDDDDDD),
+                                        ? colorScheme.primary
+                                        : colorScheme.outline.withOpacity(0.7),
                                   ),
                                 ),
                                 child: Text(
                                   char,
-                                  style: const TextStyle(
+                                  style: textTheme.titleLarge?.copyWith(
                                     fontSize: 24,
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF757575),
+                                    color: colorScheme.onSurface.withOpacity(
+                                      0.7,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -253,6 +260,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
 
                   const SizedBox(height: 20),
+
                   GestureDetector(
                     onTap: () async {
                       if (vm.loading || !vm.canResend) return;
@@ -275,16 +283,17 @@ class _OtpScreenState extends State<OtpScreen> {
                       vm.countdown > 0
                           ? l10n.otpResendIn(vm.countdown)
                           : l10n.otpResend,
-                      style: TextStyle(
+                      style: textTheme.bodyMedium?.copyWith(
                         color: vm.countdown > 0
-                            ? Colors.grey
-                            : const Color(0xFF3A7DFF),
+                            ? colorScheme.onSurface.withOpacity(0.5)
+                            : colorScheme.primary,
                         fontSize: 14,
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 20),
 
                   AppButton(
@@ -298,7 +307,6 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
           ),
 
-          // 👇 Overlay loading
           if (vm.loading) const LoadingOverlay(),
         ],
       ),

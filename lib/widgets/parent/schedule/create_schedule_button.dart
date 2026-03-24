@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 
-import '../../../../../core/app_colors.dart';
-import '../../../../../core/app_text_styles.dart';
-
 class CreateScheduleButton extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -12,6 +9,9 @@ class CreateScheduleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: SizedBox(
@@ -20,7 +20,8 @@ class CreateScheduleButton extends StatelessWidget {
         child: ElevatedButton(
           onPressed: onTap,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.calendarSelection,
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -28,7 +29,10 @@ class CreateScheduleButton extends StatelessWidget {
           ),
           child: Text(
             l10n.scheduleCreateButtonAddEvent,
-            style: AppTextStyles.scheduleCreateButton,
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onPrimary,
+            ),
           ),
         ),
       ),

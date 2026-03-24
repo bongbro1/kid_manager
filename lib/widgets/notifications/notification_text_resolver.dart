@@ -1,5 +1,6 @@
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 
 String resolveNotificationTitle({
   required AppLocalizations l10n,
@@ -119,7 +120,7 @@ String _scheduleBody({
   required String fallbackBody,
 }) {
   final action = _read(data, 'action').toLowerCase();
-  final actorRole = _read(data, 'actorRole').toLowerCase();
+  final actorRole = tryParseUserRole(data['actorRole']);
   final childName = _childName(l10n, data);
   final actorDisplayName = _actorDisplayName(l10n, data);
   final title = _titleOrFallback(l10n, _read(data, 'scheduleTitle'));
@@ -128,7 +129,7 @@ String _scheduleBody({
   final endAt = _read(data, 'endAt');
   final time = startAt.isEmpty || endAt.isEmpty ? '' : '$startAt - $endAt';
 
-  if (actorRole == 'parent') {
+  if (actorRole?.isAdultManager == true) {
     switch (action) {
       case 'created':
         return _hasDateAndTime(date, time)
@@ -176,7 +177,7 @@ String _memoryDayBody({
   required String fallbackBody,
 }) {
   final action = _read(data, 'action').toLowerCase();
-  final actorRole = _read(data, 'actorRole').toLowerCase();
+  final actorRole = tryParseUserRole(data['actorRole']);
   final title = _titleOrFallback(l10n, _read(data, 'memoryDayTitle'));
   final date = _read(data, 'date');
   final daysUntil = int.tryParse(_read(data, 'daysUntil')) ?? 0;
@@ -189,7 +190,7 @@ String _memoryDayBody({
         : l10n.memoryDayNotifyBodyReminderInDays(title, daysUntil, date);
   }
 
-  if (actorRole == 'parent') {
+  if (actorRole?.isAdultManager == true) {
     switch (action) {
       case 'created':
         return l10n.memoryDayNotifyBodyParentCreated(title);
@@ -223,16 +224,16 @@ String _scheduleImportBody({
   required Map<String, dynamic> data,
   required String fallbackBody,
 }) {
-  final actorRole = _read(data, 'actorRole').toLowerCase();
+  final actorRole = tryParseUserRole(data['actorRole']);
   final childName = _childName(l10n, data);
   final actorDisplayName = _actorDisplayName(l10n, data);
   final importCount = int.tryParse(_read(data, 'importCount')) ?? 0;
 
-  if (actorRole == 'parent') {
+  if (actorRole?.isAdultManager == true) {
     return l10n.scheduleImportNotifyBodyParent(importCount, childName);
   }
 
-  if (actorRole == 'child' || actorRole == 'guardian') {
+  if (actorRole == UserRole.child || actorRole == UserRole.guardian) {
     return l10n.scheduleImportNotifyBodyChild(actorDisplayName, importCount);
   }
 
@@ -249,14 +250,14 @@ String _titleOrFallback(AppLocalizations l10n, String title) {
 }
 
 String _actorDisplayName(AppLocalizations l10n, Map<String, dynamic> data) {
-  final actorRole = _read(data, 'actorRole').toLowerCase();
+  final actorRole = tryParseUserRole(data['actorRole']);
   final actorDisplayName = _read(data, 'actorDisplayName');
   final legacyActorName = _read(data, 'actorChildName');
 
   if (actorDisplayName.isNotEmpty) return actorDisplayName;
   if (legacyActorName.isNotEmpty) return legacyActorName;
-  if (actorRole == 'parent') return l10n.notificationsActorParent;
-  if (actorRole == 'guardian') return l10n.notificationsActorParent;
+  if (actorRole?.isAdultManager == true) return l10n.notificationsActorParent;
+  if (actorRole == UserRole.guardian) return l10n.notificationsActorParent;
   return l10n.notificationsActorChild;
 }
 

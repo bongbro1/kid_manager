@@ -8,8 +8,6 @@ import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
-
-import '../../../../../core/app_colors.dart';
 import '../../../../../core/app_text_styles.dart';
 import '../../../viewmodels/schedule/schedule_vm.dart';
 
@@ -66,12 +64,15 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
   }
 
   Widget _buildDayCell({
+    required BuildContext context,
     required DateTime day,
     required bool isSelected,
     required bool hasMemory,
     required bool hasBirthday,
     required TextStyle textStyle,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -80,43 +81,48 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
               ? Container(
                   width: _selectedCircleSize,
                   height: _selectedCircleSize,
-                  decoration: const BoxDecoration(
-                    color: AppColors.calendarSelection,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     '${day.day}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colorScheme.onPrimary,
                       fontFamily: 'Poppins',
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 )
-              : Text('${day.day}', style: textStyle),
+              : Text(
+                  '${day.day}',
+                  style: textStyle.copyWith(
+                    color: textStyle.color ?? colorScheme.onSurface,
+                  ),
+                ),
         ),
-        // ✅ chấm đỏ góc trái nếu có sinh nhật
+
         if (hasBirthday)
-          const Positioned(
+          Positioned(
             top: 3,
             left: 7,
             child: _CalendarCornerBadge(
               icon: Icons.cake_rounded,
-              iconColor: Color(0xFFDB2777),
-              backgroundColor: Color(0xFFFFE5F2),
+              iconColor: Colors.pink.shade700,
+              backgroundColor: Colors.pink.shade50,
             ),
           ),
-        // ✅ chấm vàng góc phải nếu có memory
+
         if (hasMemory)
-          const Positioned(
+          Positioned(
             top: 3,
             right: 7,
             child: _CalendarCornerBadge(
               icon: Icons.star_rounded,
-              iconColor: Color(0xFFE59A00),
-              backgroundColor: Color(0xFFFFF5CF),
+              iconColor: Colors.amber.shade700,
+              backgroundColor: Colors.amber.shade100,
             ),
           ),
       ],
@@ -126,6 +132,8 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
     final selectedDate = context.select<ScheduleViewModel, DateTime>(
       (vm) => vm.selectedDate,
     );
@@ -148,9 +156,9 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
         );
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: scheme.background,
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
@@ -185,72 +193,79 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
             daysOfWeekHeight: 40,
             calendarStyle: CalendarStyle(
               isTodayHighlighted: false,
-              selectedDecoration: const BoxDecoration(
-                color: AppColors.calendarSelection,
+              selectedDecoration: BoxDecoration(
+                color: scheme.primary,
                 shape: BoxShape.circle,
               ),
-              selectedTextStyle: const TextStyle(
-                color: Colors.white,
+              selectedTextStyle: TextStyle(
+                color: scheme.onPrimary,
                 fontFamily: 'Poppins',
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
-              defaultTextStyle: AppTextStyles.scheduleDayNumber,
-              weekendTextStyle: AppTextStyles.scheduleDayNumber,
-              outsideTextStyle: const TextStyle(
-                color: Color(0xFFBCC1CD),
-                fontFamily: 'Poppins',
-                fontSize: 15,
+              defaultTextStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                color: scheme.onSurface,
+              ),
+              weekendTextStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                color: scheme.onSurface,
+              ),
+              outsideTextStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                color: scheme.onSurface.withOpacity(0.35),
               ),
             ),
-            daysOfWeekStyle: const DaysOfWeekStyle(
-              weekdayStyle: AppTextStyles.scheduleDayName,
-              weekendStyle: AppTextStyles.scheduleDayName,
+            daysOfWeekStyle: DaysOfWeekStyle(
+              weekdayStyle: AppTextStyles.scheduleDayName.copyWith(
+                color: scheme.onSurface.withOpacity(0.5),
+              ),
+              weekendStyle: AppTextStyles.scheduleDayName.copyWith(
+                color: scheme.onSurface.withOpacity(0.5),
+              ),
             ),
             calendarBuilders: CalendarBuilders(
               selectedBuilder: (context, day, focusedDay) {
                 return _buildDayCell(
+                  context: context,
                   day: day,
                   isSelected: true,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
                   hasBirthday: _hasEntriesForDay(monthBirthdays, day),
-                  textStyle: AppTextStyles.scheduleDayNumber,
+                  textStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                    color: scheme.onPrimary,
+                  ),
                 );
               },
-
-              // ✅ thêm ngay dưới selectedBuilder
               defaultBuilder: (context, day, focusedDay) {
                 return _buildDayCell(
+                  context: context,
                   day: day,
                   isSelected: false,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
                   hasBirthday: _hasEntriesForDay(monthBirthdays, day),
-                  textStyle: AppTextStyles.scheduleDayNumber,
+                  textStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                    color: scheme.onSurface,
+                  ),
                 );
               },
               outsideBuilder: (context, day, focusedDay) {
                 return _buildDayCell(
+                  context: context,
                   day: day,
                   isSelected: false,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
                   hasBirthday: _hasEntriesForDay(monthBirthdays, day),
-                  textStyle: const TextStyle(
-                    color: Color(0xFFBCC1CD),
-                    fontFamily: 'Poppins',
-                    fontSize: 15,
+                  textStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                    color: scheme.onSurface.withOpacity(0.35),
                   ),
                 );
               },
-
               dowBuilder: (context, day) => Center(
                 child: Text(
                   _weekdayShortName(day, l10n),
                   style: AppTextStyles.scheduleDayName.copyWith(
-                    color: const Color(0xFFBCC1CD),
+                    color: scheme.onSurface.withOpacity(0.5),
                   ),
                 ),
               ),
-
               markerBuilder: (_, date, _) {
                 final key = DateTime(date.year, date.month, date.day);
                 final daySchedules = monthSchedules[key] ?? const [];
@@ -308,7 +323,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   width: 32,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0E0E0),
+                    color: scheme.outline.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -400,6 +415,7 @@ class _CalendarHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -408,20 +424,27 @@ class _CalendarHeader extends StatelessWidget {
         children: [
           IconButton(
             onPressed: onPreviousMonth,
-            icon: const Icon(Icons.chevron_left, color: AppColors.darkText),
+            icon: Icon(Icons.chevron_left, color: scheme.onSurface),
           ),
           Column(
             children: [
               Text(
                 l10n.scheduleCalendarMonthLabel(focusedMonth.month),
-                style: AppTextStyles.scheduleMonthYear,
+                style: AppTextStyles.scheduleMonthYear.copyWith(
+                  color: scheme.onSurface,
+                ),
               ),
-              Text('${focusedMonth.year}', style: AppTextStyles.scheduleYear),
+              Text(
+                '${focusedMonth.year}',
+                style: AppTextStyles.scheduleYear.copyWith(
+                  color: scheme.onSurface.withOpacity(0.7),
+                ),
+              ),
             ],
           ),
           IconButton(
             onPressed: onNextMonth,
-            icon: const Icon(Icons.chevron_right, color: AppColors.darkText),
+            icon: Icon(Icons.chevron_right, color: scheme.onSurface),
           ),
         ],
       ),
