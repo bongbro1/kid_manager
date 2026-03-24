@@ -1,6 +1,8 @@
+import 'package:kid_manager/models/user/user_types.dart';
+
 class FamilyChatMember {
   final String uid;
-  final String role;
+  final UserRole role;
   final String displayName;
   final String avatarUrl;
 
@@ -10,4 +12,6 @@ class FamilyChatMember {
     required this.displayName,
     required this.avatarUrl,
   });
+
+  String get roleKey => roleToString(role);
 }

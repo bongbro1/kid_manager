@@ -2341,11 +2341,11 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get trackingStatusLocationServiceOffMessage =>
-      'Thiết bị đã tắt GPS/vị trí';
+      'Vui lòng bật GPS hoặc Dịch vụ vị trí trên thiết bị để tiếp tục cập nhật vị trí.';
 
   @override
   String get trackingStatusLocationPermissionDeniedMessage =>
-      'Thiết bị đã tắt quyền vị trí';
+      'Vui lòng cấp quyền vị trí cho ứng dụng trên thiết bị để tiếp tục cập nhật vị trí.';
 
   @override
   String get trackingStatusPreciseLocationDeniedMessage =>
@@ -2488,7 +2488,7 @@ class AppLocalizationsVi extends AppLocalizations {
       'Cần cho một số tính năng bảo vệ trên Android.';
 
   @override
-  String get permissionOnboardingAccessibilityPrimaryButton => 'Đến cài đặt';
+  String get permissionOnboardingAccessibilityPrimaryButton => 'Cho phép';
 
   @override
   String get permissionOnboardingAccessibilitySettingsButton =>
@@ -2517,7 +2517,7 @@ class AppLocalizationsVi extends AppLocalizations {
       'Để app không bị dừng khi chạy nền.';
 
   @override
-  String get permissionOnboardingBatteryPrimaryButton => 'Đến cài đặt';
+  String get permissionOnboardingBatteryPrimaryButton => 'Cho phép';
 
   @override
   String get permissionOnboardingBatterySettingsButton => 'Mở cài đặt chung';
@@ -2531,7 +2531,7 @@ class AppLocalizationsVi extends AppLocalizations {
       'Nếu không, app sẽ không thể theo dõi vị trí.';
 
   @override
-  String get permissionOnboardingLocationPrimaryButton => 'Đến cài đặt';
+  String get permissionOnboardingLocationPrimaryButton => 'Cho phép';
 
   @override
   String get permissionOnboardingLocationSettingsButton =>
@@ -2572,7 +2572,7 @@ class AppLocalizationsVi extends AppLocalizations {
       'Để quản lý thời gian dùng app trên Android.';
 
   @override
-  String get permissionOnboardingUsagePrimaryButton => 'Đến cài đặt';
+  String get permissionOnboardingUsagePrimaryButton => 'Cho phép';
 
   @override
   String get permissionOnboardingUsageSettingsButton => 'Mở cài đặt chung';

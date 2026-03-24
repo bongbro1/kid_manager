@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
+import 'package:provider/provider.dart';
 
 class NoChildScreen extends StatelessWidget {
   const NoChildScreen({super.key});
@@ -11,6 +15,9 @@ class NoChildScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final actor = context.select<UserVm, AppUser?>((vm) => vm.actorSnapshot);
+    final canAddAccount = actor != null &&
+        context.read<AccessControlService>().canAddManagedAccounts(actor: actor);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -48,39 +55,39 @@ class NoChildScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              /// BUTTON
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AddAccountScreen(),
+              if (canAddAccount) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AddAccountScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      elevation: 0,
                     ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    l10n.parentDashboardAddDeviceButton,
-                    style: textTheme.titleMedium?.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onPrimary,
+                    child: Text(
+                      l10n.parentDashboardAddDeviceButton,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onPrimary,
+                      ),
                     ),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
 
               /// TEXT BUTTON
               TextButton(

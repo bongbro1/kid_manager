@@ -1,5 +1,6 @@
 ﻿import 'dart:async';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
@@ -15,7 +16,13 @@ import 'package:kid_manager/features/safe_route/domain/usecases/stream_live_loca
 import 'package:kid_manager/features/safe_route/domain/usecases/update_trip_status_usecase.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
+import 'package:kid_manager/features/subscription/subscription_quota_gate.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/app_user.dart';
+import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/repositories/user/profile_repository.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
+import 'package:kid_manager/services/access_control/feature_policy.dart';
 
 class SafeRouteTrackingViewModel extends ChangeNotifier {
   SafeRouteTrackingViewModel({
@@ -28,6 +35,8 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     required GetTripHistoryByChildIdUseCase getTripHistoryByChildIdUseCase,
     required GetRouteByIdUseCase getRouteByIdUseCase,
     required AppLocalizations l10n,
+    required ProfileRepository profileRepository,
+    required AccessControlService accessControl,
     FirebaseAuth? auth,
   }) : _getSuggestedRoutesUseCase = getSuggestedRoutesUseCase,
        _startTripUseCase = startTripUseCase,
@@ -37,6 +46,8 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
        _getTripHistoryByChildIdUseCase = getTripHistoryByChildIdUseCase,
        _getRouteByIdUseCase = getRouteByIdUseCase,
        _l10n = l10n,
+       _profileRepository = profileRepository,
+       _accessControl = accessControl,
        _auth = auth ?? FirebaseAuth.instance,
        _state = SafeRouteTrackingState.initial(childId);
 
@@ -49,6 +60,8 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   final GetTripHistoryByChildIdUseCase _getTripHistoryByChildIdUseCase;
   final GetRouteByIdUseCase _getRouteByIdUseCase;
   final AppLocalizations _l10n;
+  final ProfileRepository _profileRepository;
+  final AccessControlService _accessControl;
   final FirebaseAuth _auth;
 
   SafeRouteTrackingState _state;
@@ -94,6 +107,77 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     final battery = _state.liveLocation?.batteryLevel;
     if (battery == null) return '--';
     return '${battery.round()}%';
+  }
+
+  bool get _isVietnamese => _l10n.localeName.toLowerCase().startsWith('vi');
+
+  String get _accessDeniedMessage => _isVietnamese
+      ? 'Bạn không có quyền thao tác với bé này.'
+      : 'You do not have permission to manage this child.';
+
+  String get _locationDeniedMessage => _isVietnamese
+      ? 'Bạn không có quyền xem vị trí của bé này.'
+      : 'You do not have permission to view this child location.';
+
+  Future<_AuthorizedSafeRouteContext?> _resolveAuthorizedContext({
+    required AppFeature feature,
+    required bool requireManageChild,
+    bool requireViewLocation = false,
+  }) async {
+    final actorUid = _auth.currentUser?.uid?.trim();
+    if (actorUid == null || actorUid.isEmpty) {
+      _setState(
+        _state.copyWith(
+          errorMessage: _l10n.safeRouteErrorLoginAgain,
+        ),
+      );
+      return null;
+    }
+
+    final actor = await _profileRepository.getUserById(actorUid);
+    final child = await _profileRepository.getUserById(childId);
+
+    if (actor == null ||
+        child == null ||
+        !_accessControl.canUseFeature(feature: feature, actor: actor)) {
+      _setState(_state.copyWith(errorMessage: _accessDeniedMessage));
+      return null;
+    }
+
+    if (requireManageChild &&
+        !_accessControl.canManageChild(
+          actor: actor,
+          childUid: childId,
+          child: child,
+        )) {
+      _setState(_state.copyWith(errorMessage: _accessDeniedMessage));
+      return null;
+    }
+
+    if (requireViewLocation &&
+        !_accessControl.canViewLocation(
+          actor: actor,
+          childUid: childId,
+          childAllowsTracking: child.allowTracking,
+          child: child,
+        )) {
+      _setState(_state.copyWith(errorMessage: _locationDeniedMessage));
+      return null;
+    }
+
+    final ownerParentUid = actor.role == UserRole.guardian
+        ? (actor.parentUid ?? '').trim()
+        : actor.uid;
+    if (ownerParentUid.isEmpty) {
+      _setState(_state.copyWith(errorMessage: _accessDeniedMessage));
+      return null;
+    }
+
+    return _AuthorizedSafeRouteContext(
+      actor: actor,
+      child: child,
+      ownerParentUid: ownerParentUid,
+    );
   }
 
   void setScheduledDate(DateTime? value) {
@@ -238,6 +322,15 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     if (_disposed) return;
     final generation = _captureLifecycle();
     _setState(_state.copyWith(isLoading: true, clearErrorMessage: true));
+    final context = await _resolveAuthorizedContext(
+      feature: AppFeature.safeRoute,
+      requireManageChild: true,
+      requireViewLocation: true,
+    );
+    if (context == null || _isStaleLifecycle(generation)) {
+      _setState(_state.copyWith(isLoading: false));
+      return;
+    }
     await _bindLiveLocation();
     if (_isStaleLifecycle(generation)) return;
     await refreshActiveTrip();
@@ -254,6 +347,11 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   Future<void> refreshActiveTrip() async {
     if (_disposed) return;
     if (_isRefreshingTrip) return;
+    final access = await _resolveAuthorizedContext(
+      feature: AppFeature.safeRoute,
+      requireManageChild: true,
+    );
+    if (access == null) return;
     final generation = _captureLifecycle();
     _isRefreshingTrip = true;
     try {
@@ -325,6 +423,12 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   Future<void> _bindLiveLocation() async {
+    final access = await _resolveAuthorizedContext(
+      feature: AppFeature.locationViewing,
+      requireManageChild: false,
+      requireViewLocation: true,
+    );
+    if (access == null) return;
     final generation = _captureLifecycle();
     await _liveLocationSub?.cancel();
     if (_isStaleLifecycle(generation)) return;
@@ -498,6 +602,11 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchSuggestedRoutes() async {
+    final access = await _resolveAuthorizedContext(
+      feature: AppFeature.safeRoute,
+      requireManageChild: true,
+    );
+    if (access == null) return;
     final start = _state.selectedStart;
     final end = _state.selectedEnd;
     if (start == null || end == null) {
@@ -532,6 +641,18 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
           selectedAlternativeRouteIds: const [],
         ),
       );
+    } on FirebaseFunctionsException catch (error) {
+      final quota = SubscriptionQuotaGate.resolve(error);
+      _setState(
+        _state.copyWith(
+          isFetchingSuggestions: false,
+          errorMessage: quota == null
+              ? error.toString()
+              : SubscriptionQuotaGate.encode(quota),
+        ),
+      );
+
+      debugPrint("fetchSuggestedRoutes $error");
     } catch (error) {
       _setState(
         _state.copyWith(
@@ -558,10 +679,26 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   }
 
   Future<List<Trip>> loadTripHistory() {
+    return _loadAuthorizedTripHistory();
+  }
+
+  Future<List<Trip>> _loadAuthorizedTripHistory() async {
+    final access = await _resolveAuthorizedContext(
+      feature: AppFeature.safeRoute,
+      requireManageChild: true,
+    );
+    if (access == null) {
+      return <Trip>[];
+    }
     return _getTripHistoryByChildIdUseCase(childId);
   }
 
   Future<void> previewTripHistory(Trip trip) async {
+    final access = await _resolveAuthorizedContext(
+      feature: AppFeature.safeRoute,
+      requireManageChild: true,
+    );
+    if (access == null) return;
     final generation = _captureLifecycle();
     final route = await _getRouteByIdUseCase(trip.routeId);
     if (_isStaleLifecycle(generation)) return;
@@ -605,8 +742,13 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
 
   Future<void> startTrip() async {
     if (_disposed) return;
+    final access = await _resolveAuthorizedContext(
+      feature: AppFeature.safeRoute,
+      requireManageChild: true,
+    );
+    if (access == null) return;
     final route = _state.selectedRoute;
-    final parentId = _auth.currentUser?.uid;
+    final parentId = access.ownerParentUid;
     if (route == null) {
       _setState(_state.copyWith(errorMessage: _l10n.safeRouteErrorNeedRoute));
       return;
@@ -693,6 +835,11 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
 
   Future<void> completeTrip() async {
     if (_disposed) return;
+    final access = await _resolveAuthorizedContext(
+      feature: AppFeature.safeRoute,
+      requireManageChild: true,
+    );
+    if (access == null) return;
     final trip = _state.activeTrip;
     if (trip == null) return;
     final generation = _captureLifecycle();
@@ -704,6 +851,11 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
 
   Future<void> cancelTrip() async {
     if (_disposed) return;
+    final access = await _resolveAuthorizedContext(
+      feature: AppFeature.safeRoute,
+      requireManageChild: true,
+    );
+    if (access == null) return;
     final trip = _state.activeTrip;
     if (trip == null) return;
     final generation = _captureLifecycle();
@@ -883,4 +1035,16 @@ class _ResolvedRouteGroup {
 
   final SafeRoute? primaryRoute;
   final List<SafeRoute> alternativeRoutes;
+}
+
+class _AuthorizedSafeRouteContext {
+  const _AuthorizedSafeRouteContext({
+    required this.actor,
+    required this.child,
+    required this.ownerParentUid,
+  });
+
+  final AppUser actor;
+  final AppUser child;
+  final String ownerParentUid;
 }

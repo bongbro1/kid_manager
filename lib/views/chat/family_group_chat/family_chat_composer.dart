@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/views/chat/family_chat_assets.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_messages_view.dart';
+import 'package:kid_manager/views/chat/family_group_chat/family_chat_ui_utils.dart';
 
 class FamilyChatComposer extends StatelessWidget {
   const FamilyChatComposer({
@@ -27,15 +28,21 @@ class FamilyChatComposer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const accentColor = Color(0xFF1877F2);
+    final scheme = Theme.of(context).colorScheme;
+    final accentColor = scheme.primary;
+    final inputBorderColor = familyChatBorderColor(scheme);
+    final focusedInputBorderColor = Color.alphaBlend(
+      accentColor.withAlpha(scheme.brightness == Brightness.dark ? 120 : 90),
+      inputBorderColor,
+    );
 
     return SafeArea(
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+        decoration: BoxDecoration(
+          color: familyChatSurfaceColor(scheme),
+          border: Border(top: BorderSide(color: familyChatBorderColor(scheme))),
         ),
         child: ValueListenableBuilder<TextEditingValue>(
           valueListenable: controller,
@@ -72,7 +79,7 @@ class FamilyChatComposer extends StatelessWidget {
                         width: 20,
                         height: 20,
                         fit: BoxFit.contain,
-                        colorFilter: const ColorFilter.mode(
+                        colorFilter: ColorFilter.mode(
                           accentColor,
                           BlendMode.srcIn,
                         ),
@@ -84,7 +91,7 @@ class FamilyChatComposer extends StatelessWidget {
                         constraints: const BoxConstraints(minHeight: 44),
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0F2F5),
+                            color: familyChatInputFillColor(scheme),
                             borderRadius: BorderRadius.circular(22),
                           ),
                           child: TextField(
@@ -92,8 +99,8 @@ class FamilyChatComposer extends StatelessWidget {
                             focusNode: focusNode,
                             textInputAction: TextInputAction.send,
                             onSubmitted: (_) => canSend ? onSend() : null,
-                            style: const TextStyle(
-                              color: Color(0xFF0F172A),
+                            style: TextStyle(
+                              color: scheme.onSurface,
                               fontSize: 14,
                               height: 1.25,
                             ),
@@ -102,8 +109,8 @@ class FamilyChatComposer extends StatelessWidget {
                             textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               hintText: 'Aa',
-                              hintStyle: const TextStyle(
-                                color: Color(0xFF7C8797),
+                              hintStyle: TextStyle(
+                                color: scheme.onSurfaceVariant,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -126,7 +133,7 @@ class FamilyChatComposer extends StatelessWidget {
                                   splashRadius: 18,
                                   iconSize: 20,
                                   onPressed: onPickEmoji,
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.emoji_emotions_rounded,
                                     color: accentColor,
                                   ),
@@ -134,15 +141,18 @@ class FamilyChatComposer extends StatelessWidget {
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(22),
-                                borderSide: BorderSide.none,
+                                borderSide: BorderSide(color: inputBorderColor),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(22),
-                                borderSide: BorderSide.none,
+                                borderSide: BorderSide(color: inputBorderColor),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(22),
-                                borderSide: BorderSide.none,
+                                borderSide: BorderSide(
+                                  color: focusedInputBorderColor,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
@@ -159,7 +169,7 @@ class FamilyChatComposer extends StatelessWidget {
                         width: 20,
                         height: 20,
                         fit: BoxFit.contain,
-                        colorFilter: const ColorFilter.mode(
+                        colorFilter: ColorFilter.mode(
                           accentColor,
                           BlendMode.srcIn,
                         ),
@@ -215,6 +225,7 @@ class FamilyChatEmojiPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
@@ -231,9 +242,9 @@ class FamilyChatEmojiPickerSheet extends StatelessWidget {
                     height: 52,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: familyChatBackgroundColor(scheme),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: familyChatBorderColor(scheme)),
                     ),
                     child: Text(emoji, style: const TextStyle(fontSize: 26)),
                   ),

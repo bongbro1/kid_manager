@@ -9,6 +9,7 @@ import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/services/schedule/schedule_service.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
@@ -22,6 +23,7 @@ import 'package:kid_manager/features/presentation/shared/state/mapbox_controller
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/location/child_info_sheet.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 
 class ParentAllChildrenMapScreen extends StatefulWidget {
@@ -284,6 +286,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     required DateTime date,
   }) async {
     final viewer = _userVm.me;
+    final accessControl = context.read<AccessControlService>();
     AppUser? target;
     for (final member in _userVm.locationMembers) {
       if (member.uid == childId) {
@@ -291,14 +294,21 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
         break;
       }
     }
-    if (viewer == null ||
-        !viewer.isParent ||
-        target == null ||
-        !target.isChild) {
+    if (viewer == null || target == null || !target.isChild) {
       return <Schedule>[];
     }
 
-    final parentUid = (_userVm.me?.uid ?? '').trim();
+    if (!accessControl.canManageChild(
+      actor: viewer,
+      childUid: childId,
+      child: target,
+    )) {
+      return <Schedule>[];
+    }
+
+    final parentUid = viewer.isGuardian
+        ? (viewer.parentUid ?? '').trim()
+        : viewer.uid.trim();
     if (parentUid.isEmpty) return <Schedule>[];
 
     try {
@@ -375,13 +385,14 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final userVm = context.watch<UserVm>();
     final me = userVm.me;
     if (me == null) {
-      return const Scaffold(
+      return Scaffold(
         body: ColoredBox(
-          color: Color(0xFFF5F5F5),
-          child: Center(child: CircularProgressIndicator()),
+          color: locationPanelMutedColor(scheme),
+          child: const Center(child: CircularProgressIndicator()),
         ),
       );
     }
@@ -397,6 +408,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
               opacity: _isMapVisualReady ? 1 : 0,
               duration: const Duration(milliseconds: 250),
               child: AppMapView(
+                followThemeForStreetStyle: false,
                 onMapCreated: (map) {
                   _map = map;
                   _controller.attach(map);

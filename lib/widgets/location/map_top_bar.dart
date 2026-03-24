@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class MapTopBar extends StatelessWidget {
   final String? title;
@@ -17,10 +18,16 @@ class MapTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
     final displayTitle = title ?? AppLocalizations.of(context).mapTopBarTitle;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       height: topInset + 48,
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: locationPanelColor(scheme),
+        border: Border(
+          bottom: BorderSide(color: locationPanelBorderColor(scheme)),
+        ),
+      ),
       child: Column(
         children: [
           SizedBox(height: topInset),
@@ -34,17 +41,22 @@ class MapTopBar extends StatelessWidget {
                   child: InkWell(
                     onTap: onMenuTap,
                     borderRadius: BorderRadius.circular(12),
-                    child: const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Icon(Icons.menu, size: 22),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Icon(
+                        Icons.menu,
+                        size: 22,
+                        color: scheme.onSurface,
+                      ),
                     ),
                   ),
                 ),
                 Text(
                   displayTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
                   ),
                 ),
                 Align(
@@ -57,10 +69,14 @@ class MapTopBar extends StatelessWidget {
                       height: 34,
                       margin: const EdgeInsets.only(right: 10),
                       decoration: BoxDecoration(
-                        color: Colors.grey,
+                        color: locationPanelHighlightColor(scheme),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(Icons.person, size: 18),
+                      child: Icon(
+                        Icons.person,
+                        size: 18,
+                        color: scheme.primary,
+                      ),
                     ),
                   ),
                 ),

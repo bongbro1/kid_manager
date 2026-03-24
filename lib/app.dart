@@ -14,6 +14,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kid_manager/repositories/subscription_repository.dart';
 import 'package:kid_manager/repositories/terms_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/repositories/user/family_repository.dart';
+import 'package:kid_manager/repositories/user/membership_repository.dart';
+import 'package:kid_manager/repositories/user/profile_repository.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/services/app_state_local_service.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/app_installed_service.dart';
@@ -77,6 +81,10 @@ class _MyAppState extends State<MyApp> {
   late final PermissionService _permissionService;
   late final AppInstalledService _appInstalledService;
   late final UsageSyncService _usageService;
+  late final AccessControlService _accessControlService;
+  late final ProfileRepository _profileRepo;
+  late final FamilyRepository _familyRepo;
+  late final MembershipRepository _membershipRepo;
   late final UserRepository _userRepo;
   late final AuthRepository _authRepo;
   late final OtpRepository _otpRepo;
@@ -105,10 +113,20 @@ class _MyAppState extends State<MyApp> {
     _permissionService = PermissionService();
     _appInstalledService = AppInstalledService();
     _usageService = UsageSyncService(FirebaseFirestore.instance);
+    _accessControlService = AccessControlService();
+    _profileRepo = ProfileRepository(FirebaseFirestore.instance);
+    _membershipRepo = MembershipRepository(
+      FirebaseFirestore.instance,
+      _secondaryAuthService,
+    );
+    _familyRepo = FamilyRepository(FirebaseFirestore.instance, _profileRepo);
     _userRepo = UserRepository(
       FirebaseFirestore.instance,
       FirebaseAuth.instance,
       _secondaryAuthService,
+      profileRepository: _profileRepo,
+      familyRepository: _familyRepo,
+      membershipRepository: _membershipRepo,
     );
     _authRepo = AuthRepository(_authService, _userRepo);
     _otpRepo = OtpRepository(FirebaseFirestore.instance);
@@ -158,7 +176,11 @@ class _MyAppState extends State<MyApp> {
         Provider.value(value: _permissionService),
         Provider.value(value: _appInstalledService),
         Provider.value(value: _usageService),
+        Provider.value(value: _accessControlService),
 
+        Provider.value(value: _profileRepo),
+        Provider.value(value: _familyRepo),
+        Provider.value(value: _membershipRepo),
         Provider.value(value: _userRepo),
         Provider.value(value: _authRepo),
         Provider.value(value: _appRepo),
@@ -182,7 +204,12 @@ class _MyAppState extends State<MyApp> {
           create: (_) => AppInitVM(_storageService, _permissionService),
         ),
         ChangeNotifierProvider(
-          create: (_) => AppManagementVM(_appRepo, _userRepo, _storageService),
+          create: (_) => AppManagementVM(
+            _appRepo,
+            _userRepo,
+            _storageService,
+            _accessControlService,
+          ),
         ),
 
         ChangeNotifierProvider(create: (_) => OtpVM(_otpRepo)),
@@ -192,7 +219,10 @@ class _MyAppState extends State<MyApp> {
         Provider<ScheduleRepository>.value(value: _scheduleRepo),
 
         Provider<ScheduleNotificationService>(
-          create: (_) => ScheduleNotificationService(_userRepo),
+          create: (_) => ScheduleNotificationService(
+            _userRepo,
+            _accessControlService,
+          ),
         ),
         Provider<MemoryDayReminderSyncService>(
           create: (_) => MemoryDayReminderSyncService(
@@ -242,7 +272,11 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider.value(value: _sosVm),
 
         ChangeNotifierProvider<UserVm>(
-          create: (_) => UserVm(_userRepo, _storageService),
+          create: (_) => UserVm(
+            _userRepo,
+            _storageService,
+            _accessControlService,
+          ),
         ),
 
         ChangeNotifierProxyProvider<UserVm, LocaleVm>(

@@ -202,8 +202,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       return const LoadingOverlay();
     }
 
-    final isParent = p?.role.toString() == roleToString(UserRole.parent);
-    final isChild = p?.role.toString() == roleToString(UserRole.child);
+    final isAdultManager = p?.isAdultManager == true;
+    final isChild = p?.role == UserRole.child;
 
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -474,7 +474,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                               },
                             ),
 
-                          if (isParent) ...[
+                          if (isAdultManager) ...[
                             const SizedBox(height: 10),
                             Builder(
                               builder: (context) {

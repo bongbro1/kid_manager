@@ -6,18 +6,23 @@ class ZoneHandleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: const Color(0xFF111111),
+        color: scheme.primary,
         borderRadius: BorderRadius.circular(999),
-        boxShadow: const [
-          BoxShadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
-      child: const Center(
-        child: Icon(Icons.edit, size: 18, color: Colors.white),
+      child: Center(
+        child: Icon(Icons.edit, size: 18, color: scheme.onPrimary),
       ),
     );
   }

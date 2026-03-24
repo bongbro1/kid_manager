@@ -14,6 +14,7 @@ import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_cards.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_controls.dart';
 import 'package:kid_manager/views/parent/zones/child_zones_screen.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
 import 'package:provider/provider.dart';
 
@@ -278,15 +279,20 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       initialDate: _vm.selectedDay,
       firstDate: DateTime(2024, 1, 1),
       lastDate: DateTime.now(),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: Theme.of(ctx).colorScheme.primary,
-            onSurface: Colors.black87,
+      builder: (ctx, child) {
+        final theme = Theme.of(ctx);
+        final scheme = theme.colorScheme;
+        return Theme(
+          data: theme.copyWith(
+            colorScheme: scheme.copyWith(
+              primary: scheme.primary,
+              onSurface: scheme.onSurface,
+              surface: locationPanelColor(scheme),
+            ),
           ),
-        ),
-        child: child!,
-      ),
+          child: child!,
+        );
+      },
     );
     if (picked == null) return;
     await _loadForDay(picked);
@@ -347,10 +353,17 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   bool _canOpenSafeRoute() {
     final viewer = context.read<UserVm>().me;
     final target = _resolveTrackedMember();
-    return viewer?.isParent == true && target?.isChild == true;
+    return viewer?.isAdultManager == true && target?.isChild == true;
+  }
+
+  bool _canManageZones() {
+    final viewer = context.read<UserVm>().me;
+    final target = _resolveTrackedMember();
+    return viewer?.isAdultManager == true && target?.isChild == true;
   }
 
   Widget _buildAvatarBadge() {
+    final scheme = Theme.of(context).colorScheme;
     final avatarUrl = widget.childAvatarUrl?.trim() ?? '';
     return Container(
       width: 36,
@@ -358,7 +371,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF4CAF7D),
+        color: locationPanelHighlightColor(scheme),
       ),
       child: ClipOval(
         child: avatarUrl.isEmpty
@@ -402,6 +415,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
 
   PreferredSizeWidget _buildAppBar(ChildDetailMapVm vm) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -414,9 +428,9 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.86),
+            color: locationPanelColor(scheme).withOpacity(0.92),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.90)),
+            border: Border.all(color: locationPanelBorderColor(scheme)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.10),
@@ -436,14 +450,14 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                     child: Ink(
                       width: 34,
                       height: 34,
-                      decoration: const BoxDecoration(
-                        color: Color(0x1A2196F3),
+                      decoration: BoxDecoration(
+                        color: locationPanelHighlightColor(scheme),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_ios_new_rounded,
                         size: 16,
-                        color: Color(0xFF2196F3),
+                        color: scheme.primary,
                       ),
                     ),
                   ),
@@ -456,10 +470,10 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                           vm.isToday
                               ? l10n.childLocationCurrentJourneyTitle
                               : l10n.childLocationTravelHistoryTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: Colors.black87,
+                            color: scheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -467,7 +481,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                           _buildAppBarSubtitle(l10n, vm),
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade700,
+                            color: scheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -511,6 +525,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   Widget _buildFabColumn(ChildDetailMapVm vm) {
     final l10n = AppLocalizations.of(context);
     final canOpenSafeRoute = _canOpenSafeRoute();
+    final canManageZones = _canManageZones();
     final startPointSource = vm.selectedPoint ?? vm.latest;
     final startPoint = startPointSource == null
         ? null
@@ -530,19 +545,20 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
           active: vm.showDots,
           onTap: _toggleDots,
         ),
-        const SizedBox(height: 10),
-        ChildDetailMapFab(
-          tooltip: l10n.childLocationTooltipManageZones,
-          icon: Icons.hexagon_outlined,
-          active: false,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ChildZonesScreen(childId: widget.childId),
+        if (canManageZones) ...[
+          const SizedBox(height: 10),
+          ChildDetailMapFab(
+            tooltip: l10n.childLocationTooltipManageZones,
+            icon: Icons.hexagon_outlined,
+            active: false,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChildZonesScreen(childId: widget.childId),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
+        ],
         if (canOpenSafeRoute) ...[
           ChildDetailMapFab(
             tooltip: l10n.childLocationTooltipSafeRoute,
@@ -645,6 +661,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       body: Stack(
         children: [
           AppMapView(
+            followThemeForStreetStyle: false,
             controller: _mapViewController,
             showInternalMapTypeButton: false,
             onMapCreated: (_) {},

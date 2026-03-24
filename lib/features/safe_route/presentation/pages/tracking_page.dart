@@ -26,12 +26,16 @@ import 'package:kid_manager/features/safe_route/presentation/safe_route_tracking
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
 import 'package:kid_manager/features/safe_route/presentation/viewmodels/safe_route_tracking_view_model.dart';
 import 'package:kid_manager/features/safe_route/presentation/widgets/safe_route_bottom_panel.dart';
+import 'package:kid_manager/features/subscription/subscription_quota_gate.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
+import 'package:kid_manager/repositories/user/profile_repository.dart';
 import 'package:kid_manager/services/location/map_avatar_marker_factory.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/utils/cupertino_time_picker.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
 import 'package:kid_manager/widgets/map/map_place_search_sheet.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -75,6 +79,8 @@ class TrackingPage extends StatelessWidget {
           ),
           getRouteByIdUseCase: GetRouteByIdUseCase(repository),
           l10n: l10n,
+          profileRepository: context.read<ProfileRepository>(),
+          accessControl: context.read<AccessControlService>(),
         );
 
         if (initialStartPoint != null) {
@@ -276,6 +282,7 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
               AppMapView(
                 controller: _mapViewController,
                 showInternalMapTypeButton: false,
+                followThemeForStreetStyle: false,
                 onMapCreated: (map) {
                   _attachMap(map);
                 },
@@ -386,7 +393,11 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
                 Positioned.fill(
                   child: Container(
                     color: Colors.black26,
-                    child: const Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
                   ),
                 ),
             ],

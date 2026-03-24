@@ -11,6 +11,7 @@ import 'package:kid_manager/views/chat/family_chat_assets.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_composer.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_header.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_messages_view.dart';
+import 'package:kid_manager/views/chat/family_group_chat/family_chat_ui_utils.dart';
 import 'package:provider/provider.dart';
 
 class FamilyGroupChatScreen extends StatelessWidget {
@@ -291,6 +292,8 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final chatBackground = familyChatBackgroundColor(scheme);
+    final chatSurface = familyChatSurfaceColor(scheme);
 
     final me = context.select<UserVm, AppUser?>((vm) => vm.me);
     final vmFamilyId = context.select<UserVm, String?>((vm) => vm.familyId);
@@ -334,9 +337,9 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
         };
 
         return Scaffold(
-          backgroundColor: scheme.background,
+          backgroundColor: chatBackground,
           appBar: AppBar(
-            backgroundColor: scheme.surface,
+            backgroundColor: chatSurface,
             foregroundColor: scheme.onSurface,
             elevation: 0.5,
             titleSpacing: 12,
@@ -387,11 +390,12 @@ class _FamilyChatLoadingScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: familyChatBackgroundColor(scheme),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        backgroundColor: familyChatSurfaceColor(scheme),
+        foregroundColor: scheme.onSurface,
         elevation: 0.5,
         title: Text(title),
       ),

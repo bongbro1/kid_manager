@@ -77,6 +77,27 @@ service cloud.firestore {
         && userDoc(childUid).data.familyId == userDoc(parentUid).data.familyId;
     }
 
+    function isParentManagingGuardianAssignments(uid) {
+      return isSignedIn()
+        && resource != null
+        && resource.data.role == "guardian"
+        && resource.data.parentUid == request.auth.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.parentUid == resource.data.parentUid
+        && request.resource.data.familyId == resource.data.familyId
+        && request.resource.data.diff(resource.data)
+          .changedKeys()
+          .hasOnly(["managedChildIds", "lastActiveAt"])
+        && (
+          !("managedChildIds" in request.resource.data)
+          || request.resource.data.managedChildIds is list
+        )
+        && (
+          !("managedChildIds" in request.resource.data)
+          || request.resource.data.managedChildIds.size() <= 50
+        );
+    }
+
     // ================================
     // USERS
     // ================================
@@ -104,6 +125,7 @@ service cloud.firestore {
         )
       );
       allow update: if isSelf(uid)
+        || isParentManagingGuardianAssignments(uid)
         || request.resource.data.diff(resource.data)
           .changedKeys()
           .hasOnly(["isActive"]);

@@ -9,6 +9,8 @@ import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
+import 'package:kid_manager/services/access_control/feature_policy.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
@@ -17,8 +19,9 @@ class AppManagementVM extends ChangeNotifier {
   final AppManagementRepository _repo;
   final UserRepository _userRepo;
   final StorageService _storage;
+  final AccessControlService _accessControl;
 
-  AppManagementVM(this._repo, this._userRepo, this._storage);
+  AppManagementVM(this._repo, this._userRepo, this._storage, this._accessControl);
 
   bool _loading = false;
   bool get loading => _loading;
@@ -50,6 +53,54 @@ class AppManagementVM extends ChangeNotifier {
   StreamSubscription<List<AppUser>>? _childrenSub;
   int _childrenWatchGeneration = 0;
   int _loadGeneration = 0;
+
+  Future<AppUser?> _resolveActor() async {
+    final uid = _storage.getString(StorageKeys.uid)?.trim();
+    if (uid == null || uid.isEmpty) {
+      return null;
+    }
+    return _userRepo.getUserById(uid);
+  }
+
+  Future<AppUser?> _resolveActorSnapshot() async {
+    final actor = await _resolveActor();
+    if (actor != null) {
+      return actor;
+    }
+
+    final uid = _storage.getString(StorageKeys.uid)?.trim();
+    if (uid == null || uid.isEmpty) {
+      return null;
+    }
+
+    final role = roleFromString(
+      _storage.getString(StorageKeys.role),
+      fallback: UserRole.child,
+    );
+    if (!role.isAdultManager) {
+      return null;
+    }
+
+    final parentUid = _storage.getString(StorageKeys.parentId)?.trim();
+    final managedChildIds =
+        _storage.getStringList(StorageKeys.managedChildIds) ??
+        const <String>[];
+
+    return AppUser(
+      uid: uid,
+      role: role,
+      parentUid: parentUid == null || parentUid.isEmpty ? null : parentUid,
+      managedChildIds: managedChildIds
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toSet()
+          .toList(growable: false),
+    );
+  }
+
+  Future<AppUser?> _resolveManagedChild(String childId) async {
+    return _userRepo.getUserById(childId);
+  }
 
   void _resetLoadedData() {
     _apps = [];
@@ -88,13 +139,25 @@ class AppManagementVM extends ChangeNotifier {
     _childrenSub = _userRepo.watchChildrenByParentUid(parentUid).listen(
       (list) async {
         if (watchGeneration != _childrenWatchGeneration) return;
+        final actor = await _resolveActorSnapshot();
 
-        final filtered = list
-            .where(
-              (u) =>
-                  roleToString(u.role) != roleToString(UserRole.guardian),
-            )
-            .toList();
+        final filtered = actor == null
+            ? <AppUser>[
+                if (roleFromString(
+                      _storage.getString(StorageKeys.role),
+                      fallback: UserRole.child,
+                    ).isAdultManager)
+                  ...list,
+              ]
+            : list
+                .where(
+                  (user) => _accessControl.canManageChild(
+                    actor: actor,
+                    childUid: user.uid,
+                    child: user,
+                  ),
+                )
+                .toList(growable: false);
 
         children = filtered.map(ChildItem.fromUser).toList();
 
@@ -135,6 +198,7 @@ class AppManagementVM extends ChangeNotifier {
   Future<void> loadAppsForSelectedChild() async {
     final childId = _selectedChildId?.trim();
     final loadGeneration = ++_loadGeneration;
+    final actor = await _resolveActorSnapshot();
 
     if (childId == null || childId.isEmpty) {
       _error = null;
@@ -149,6 +213,23 @@ class AppManagementVM extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final child = await _resolveManagedChild(childId);
+      if (actor == null ||
+          child == null ||
+          !_accessControl.canUseFeature(
+            feature: AppFeature.appManagement,
+            actor: actor,
+          ) ||
+          !_accessControl.canManageChild(
+            actor: actor,
+            childUid: childId,
+            child: child,
+          )) {
+        _resetLoadedData();
+        _error = runtimeL10n().appManagementSyncFailed;
+        return;
+      }
+
       final loadedApps = await _repo.loadAppsFromFirestore(childId);
       if (_isStaleLoad(loadGeneration, childId)) return;
 
@@ -220,7 +301,7 @@ class AppManagementVM extends ChangeNotifier {
       final role = _storage.getString(StorageKeys.role);
       final userId = _storage.getString(StorageKeys.uid);
 
-      if (role != 'child') {
+      if (roleFromString(role, fallback: UserRole.child) != UserRole.child) {
         _setLoading(false);
         return;
       }

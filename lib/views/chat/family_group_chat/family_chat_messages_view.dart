@@ -59,6 +59,7 @@ class FamilyChatMessagesView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return StreamBuilder<List<FamilyChatMessage>>(
       stream: messagesStream,
@@ -67,7 +68,7 @@ class FamilyChatMessagesView extends StatelessWidget {
           return Center(
             child: Text(
               l10n.familyChatCannotLoadMessages,
-              style: const TextStyle(color: Color(0xFFDC2626)),
+              style: TextStyle(color: scheme.error),
             ),
           );
         }
@@ -80,7 +81,7 @@ class FamilyChatMessagesView extends StatelessWidget {
           return Center(
             child: Text(
               l10n.familyChatNoMessagesYet,
-              style: const TextStyle(color: Color(0xFF64748B)),
+              style: TextStyle(color: scheme.onSurfaceVariant),
             ),
           );
         }

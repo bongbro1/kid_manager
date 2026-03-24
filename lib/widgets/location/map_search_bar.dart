@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class MapSearchBar extends StatelessWidget {
   final TextEditingController controller;
@@ -18,6 +19,7 @@ class MapSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Positioned(
       top: topOffset,
@@ -26,8 +28,9 @@ class MapSearchBar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: locationPanelColor(scheme),
           borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: locationPanelBorderColor(scheme)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -38,16 +41,18 @@ class MapSearchBar extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.search, color: Colors.black54, size: 20),
+            Icon(Icons.search, color: scheme.onSurfaceVariant, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
                 controller: controller,
                 decoration: InputDecoration(
                   hintText: l10n.locationSearchHint,
+                  hintStyle: TextStyle(color: scheme.onSurfaceVariant),
                   border: InputBorder.none,
                   isDense: true,
                 ),
+                style: TextStyle(color: scheme.onSurface),
                 textInputAction: TextInputAction.search,
                 onSubmitted: onSubmitted,
               ),
@@ -60,11 +65,11 @@ class MapSearchBar extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: locationPanelMutedColor(scheme),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: locationPanelBorderColor(scheme)),
                 ),
-                child: const Icon(Icons.tune, size: 18),
+                child: Icon(Icons.tune, size: 18, color: scheme.primary),
               ),
             ),
           ],

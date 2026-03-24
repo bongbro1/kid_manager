@@ -3,6 +3,7 @@ import 'package:kid_manager/features/safe_route/presentation/child_safe_route_gu
 import 'package:kid_manager/features/safe_route/presentation/states/child_safe_route_state.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class ChildSafeRouteHud extends StatelessWidget {
   const ChildSafeRouteHud({
@@ -71,9 +72,10 @@ class _TopInstructionBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.94),
+        color: locationPanelColor(scheme).withOpacity(0.94),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: palette.borderColor),
         boxShadow: const [
@@ -107,10 +109,10 @@ class _TopInstructionBanner extends StatelessWidget {
                     guidance.primaryInstruction,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827),
+                      color: scheme.onSurface,
                       height: 1.15,
                     ),
                   ),
@@ -141,9 +143,9 @@ class _TopInstructionBanner extends StatelessWidget {
               guidance.secondaryInstruction,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF4B5563),
+                color: scheme.onSurfaceVariant,
                 height: 1.35,
               ),
             ),
@@ -172,9 +174,9 @@ class _TopInstructionBanner extends StatelessWidget {
                 const Spacer(),
                 Text(
                   updatedLabel,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF6B7280),
+                    color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -195,22 +197,23 @@ class _TopMetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF4B5563)),
+          Icon(icon, size: 14, color: scheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF111827),
+              color: scheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -233,9 +236,10 @@ class _BottomStatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.96),
+        color: locationPanelColor(scheme).withOpacity(0.96),
         borderRadius: BorderRadius.circular(22),
         boxShadow: const [
           BoxShadow(
@@ -244,7 +248,7 @@ class _BottomStatusPill extends StatelessWidget {
             offset: Offset(0, 8),
           ),
         ],
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -255,21 +259,25 @@ class _BottomStatusPill extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               guidance.statusLabel,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF111827),
+                color: scheme.onSurface,
               ),
             ),
             const SizedBox(width: 10),
-            Container(width: 1, height: 16, color: const Color(0xFFE5E7EB)),
+            Container(
+              width: 1,
+              height: 16,
+              color: locationPanelBorderColor(scheme),
+            ),
             const SizedBox(width: 10),
             Text(
               speedLabel,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF4B5563),
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],

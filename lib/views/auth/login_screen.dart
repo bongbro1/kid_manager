@@ -117,13 +117,35 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      await storage.setString(StorageKeys.role, profile.role ?? '');
+      await storage.setString(
+        StorageKeys.role,
+        profile.roleKey,
+      );
       await storage.setString(StorageKeys.displayName, profile.name);
 
-      final role = roleFromString(profile.role ?? 'child');
-      final parentId = role == UserRole.child ? (profile.parentUid ?? '') : uid;
+      final role = profile.role;
+      final parentOwnerUid = role == UserRole.parent
+          ? uid
+          : (profile.parentUid ?? '').trim();
 
-      await storage.setString(StorageKeys.parentId, parentId);
+      if (parentOwnerUid.isNotEmpty) {
+        await storage.setString(StorageKeys.parentId, parentOwnerUid);
+      } else {
+        await storage.remove(StorageKeys.parentId);
+      }
+      final managedChildIds = profile.managedChildIds
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toSet()
+          .toList(growable: false);
+      if (managedChildIds.isNotEmpty) {
+        await storage.setStringList(
+          StorageKeys.managedChildIds,
+          managedChildIds,
+        );
+      } else {
+        await storage.remove(StorageKeys.managedChildIds);
+      }
 
       if (rememberPassword) {
         final session = LoginSession(email: email, uid: uid, remember: true);
@@ -133,10 +155,12 @@ class _LoginScreenState extends State<LoginScreen> {
         await storage.remove(StorageKeys.login_preference);
       }
 
-      debugPrint("🚀 Running role: ${profile.role}");
+      debugPrint(
+        'Running role: ${profile.roleKey}',
+      );
 
       if (role == UserRole.child) {
-        if (parentId.trim().isEmpty) {
+        if (parentOwnerUid.isEmpty) {
           if (!mounted) return;
           await NotificationDialog.show(
             context,
@@ -146,7 +170,10 @@ class _LoginScreenState extends State<LoginScreen> {
           );
           return;
         }
-        AuthRuntimeManager.start(parentId: parentId, displayName: profile.name);
+        AuthRuntimeManager.start(
+          parentId: parentOwnerUid,
+          displayName: profile.name,
+        );
         await appVM.loadAndSeedApp();
         if (!mounted) return;
       } else {

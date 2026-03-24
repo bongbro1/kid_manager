@@ -1,5 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 
 class SosConfirmedCard extends StatelessWidget {
   final DateTime? createdAt;
@@ -28,12 +29,15 @@ class SosConfirmedCard extends StatelessWidget {
   }
 
   String _roleLabel(AppLocalizations l10n, String? role) {
-    switch (role) {
-      case 'parent':
+    final parsedRole = tryParseUserRole(role);
+    switch (parsedRole) {
+      case UserRole.parent:
         return l10n.sosConfirmedRoleParent;
-      case 'child':
+      case UserRole.guardian:
+        return l10n.sosConfirmedRoleParent;
+      case UserRole.child:
         return l10n.sosConfirmedRoleChild;
-      default:
+      case null:
         return (role == null || role.trim().isEmpty) ? '--' : role;
     }
   }

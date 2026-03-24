@@ -2344,11 +2344,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trackingStatusLocationServiceOffMessage =>
-      'Device turned off GPS/location';
+      'Please turn on GPS or Location Services on the device so location updates can continue.';
 
   @override
   String get trackingStatusLocationPermissionDeniedMessage =>
-      'Device turned off location permission';
+      'Please allow location permission for the app on the device so location updates can continue.';
 
   @override
   String get trackingStatusPreciseLocationDeniedMessage =>
@@ -2492,7 +2492,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Needed for some protection features on Android.';
 
   @override
-  String get permissionOnboardingAccessibilityPrimaryButton => 'Go to settings';
+  String get permissionOnboardingAccessibilityPrimaryButton => 'Allow';
 
   @override
   String get permissionOnboardingAccessibilitySettingsButton =>
@@ -2522,7 +2522,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'So the app is not stopped while running in the background.';
 
   @override
-  String get permissionOnboardingBatteryPrimaryButton => 'Go to settings';
+  String get permissionOnboardingBatteryPrimaryButton => 'Allow';
 
   @override
   String get permissionOnboardingBatterySettingsButton =>
@@ -2576,7 +2576,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'To manage app usage time on Android.';
 
   @override
-  String get permissionOnboardingUsagePrimaryButton => 'Go to settings';
+  String get permissionOnboardingUsagePrimaryButton => 'Allow';
 
   @override
   String get permissionOnboardingUsageSettingsButton => 'Open general settings';

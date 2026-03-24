@@ -4,6 +4,12 @@ import { admin } from "../bootstrap";
 import { REGION } from "../config";
 import { mustString, mustNumber, validateLatLng } from "../helpers";
 import { requireLocationViewerAccess } from "../services/locationAccess";
+import {
+  enforceQuota,
+  FREE_ZONE_LIMIT,
+  getQuotaOwnerUidForChild,
+  ZONE_LIMIT_ERROR,
+} from "../services/subscriptionQuota";
 
 // upsertChildZone
 export const upsertChildZone = onCall({ region: REGION }, async (req) => {
@@ -13,9 +19,30 @@ export const upsertChildZone = onCall({ region: REGION }, async (req) => {
   const childUid = mustString(req.data?.childUid, "childUid");
   await requireLocationViewerAccess(viewerUid, childUid);
 
+  const zonesRef = admin.database().ref(`zonesByChild/${childUid}`);
+  const existingZonesSnap = await zonesRef.get();
+  const existingZones =
+    existingZonesSnap.exists() &&
+    typeof existingZonesSnap.val() === "object" &&
+    existingZonesSnap.val() !== null
+      ? (existingZonesSnap.val() as Record<string, unknown>)
+      : {};
+
   const zoneIdRaw = req.data?.zoneId;
   const zoneId =
     typeof zoneIdRaw === "string" && zoneIdRaw.trim() ? zoneIdRaw.trim() : randomUUID();
+  const isCreatingNewZone = existingZones[zoneId] == null;
+
+  if (isCreatingNewZone) {
+    const ownerUid = await getQuotaOwnerUidForChild(childUid, viewerUid);
+    await enforceQuota({
+      ownerUid,
+      currentCount: Object.keys(existingZones).length,
+      limit: FREE_ZONE_LIMIT,
+      errorMessage: ZONE_LIMIT_ERROR,
+      feature: "zone",
+    });
+  }
 
   const name = mustString(req.data?.name, "name").slice(0, 60);
   const type = mustString(req.data?.type, "type"); // safe|danger
@@ -47,7 +74,7 @@ export const upsertChildZone = onCall({ region: REGION }, async (req) => {
     updatedAt: nowMs,
   };
 
-  await admin.database().ref(`zonesByChild/${childUid}/${zoneId}`).update(zone);
+  await zonesRef.child(zoneId).update(zone);
   return { ok: true, childUid, zoneId };
 });
 

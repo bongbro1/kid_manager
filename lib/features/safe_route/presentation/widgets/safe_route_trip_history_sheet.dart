@@ -3,6 +3,7 @@ import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums
 import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class SafeRouteTripHistorySheet extends StatelessWidget {
   const SafeRouteTripHistorySheet({
@@ -17,11 +18,12 @@ class SafeRouteTripHistorySheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return SafeArea(
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: locationPanelColor(scheme),
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
@@ -32,7 +34,7 @@ class SafeRouteTripHistorySheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFD3DCE7),
+                color: locationPanelBorderColor(scheme),
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
@@ -47,18 +49,18 @@ class SafeRouteTripHistorySheet extends StatelessWidget {
                       children: [
                         Text(
                           l10n.safeRouteHistoryTripsTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF111827),
+                            color: scheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           l10n.safeRouteHistoryTripsSubtitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF667085),
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -115,9 +117,10 @@ class _TripHistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final statusStyle = _statusStyle(l10n);
+    final scheme = Theme.of(context).colorScheme;
 
     return Material(
-      color: const Color(0xFFF8FAFC),
+      color: locationPanelMutedColor(scheme),
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
         onTap: onTap,
@@ -126,7 +129,7 @@ class _TripHistoryTile extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: const Color(0xFFE7EDF4)),
+            border: Border.all(color: locationPanelBorderColor(scheme)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,10 +141,10 @@ class _TripHistoryTile extends StatelessWidget {
                       trip.routeName?.trim().isNotEmpty == true
                           ? trip.routeName!
                           : l10n.safeRouteRouteFallbackName(trip.routeId),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
+                        color: scheme.onSurface,
                       ),
                     ),
                   ),
@@ -251,24 +254,25 @@ class _HistoryMetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: locationPanelColor(scheme),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF526074)),
+          Icon(icon, size: 14, color: scheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF526074),
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -282,19 +286,20 @@ class _EmptyHistoryState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Text(
         AppLocalizations.of(context).safeRouteHistoryTripsEmpty,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Color(0xFF667085),
+          color: scheme.onSurfaceVariant,
           height: 1.35,
         ),
       ),

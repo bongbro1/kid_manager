@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
@@ -177,7 +178,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final isParentLikeRole =
           session != null &&
           !session.isChildMode &&
-          (session.role == 'parent' || session.role == 'guardian');
+          (session.role == UserRole.parent ||
+              session.role == UserRole.guardian);
 
       if (!isParentLikeRole) {
         _clearBoundScheduleStateIfNeeded();

@@ -5,6 +5,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
     SafeRouteTrackingState state,
     SafeRouteTrackingViewModel vm,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     if (state.selectionMode == RouteSelectionMode.none) {
       return const SizedBox.shrink();
     }
@@ -20,7 +21,10 @@ extension _TrackingPageUi on _TrackingPageBodyState {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A73E8).withOpacity(0.96),
+          color: Color.alphaBlend(
+            scheme.primary.withOpacity(0.86),
+            locationPanelColor(scheme),
+          ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -32,13 +36,13 @@ extension _TrackingPageUi on _TrackingPageBodyState {
         ),
         child: Row(
           children: [
-            const Icon(Icons.touch_app_rounded, color: Colors.white),
+            Icon(Icons.touch_app_rounded, color: scheme.onPrimary),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: scheme.onPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -46,17 +50,17 @@ extension _TrackingPageUi on _TrackingPageBodyState {
             ),
             const SizedBox(width: 8),
             Material(
-              color: Colors.white.withOpacity(0.14),
+              color: scheme.onPrimary.withOpacity(0.14),
               borderRadius: BorderRadius.circular(999),
               child: InkWell(
                 onTap: vm.cancelSelection,
                 borderRadius: BorderRadius.circular(999),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(6),
                   child: Icon(
                     Icons.close_rounded,
                     size: 16,
-                    color: Colors.white,
+                    color: scheme.onPrimary,
                   ),
                 ),
               ),
@@ -179,6 +183,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
     SafeRouteTrackingState state,
     SafeRouteTrackingViewModel vm,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     final visuals = resolveSafeRouteTrackingVisuals(
       state,
       l10n: AppLocalizations.of(context),
@@ -196,12 +201,15 @@ extension _TrackingPageUi on _TrackingPageBodyState {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(isActiveTrip ? 0.94 : 0.90),
+              color: (isActiveTrip
+                      ? visuals.bannerColor
+                      : locationPanelColor(scheme))
+                  .withOpacity(0.96),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: isActiveTrip
                     ? visuals.borderColor.withOpacity(0.82)
-                    : Colors.white.withOpacity(0.55),
+                    : locationPanelBorderColor(scheme),
               ),
               boxShadow: [
                 BoxShadow(
@@ -231,7 +239,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
                               visuals.severity ==
                                   SafeRouteTrackingSeverity.danger
                               ? const Color(0xFF991B1B)
-                              : const Color(0xFF0F172A),
+                              : scheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -283,24 +291,28 @@ extension _TrackingPageUi on _TrackingPageBodyState {
               _buildHeaderChip(
                 icon: Icons.calendar_today_rounded,
                 label: _dateChipLabel(state),
-                tint: isActiveTrip ? visuals.softColor : Colors.white,
+                tint: isActiveTrip
+                    ? visuals.softColor
+                    : locationPanelColor(scheme),
                 foregroundColor: isActiveTrip
                     ? visuals.accentColor
-                    : const Color(0xFF475467),
+                    : scheme.onSurfaceVariant,
                 borderColor: isActiveTrip
                     ? visuals.borderColor.withOpacity(0.72)
-                    : const Color(0xFFE5E7EB),
+                    : locationPanelBorderColor(scheme),
               ),
               _buildHeaderChip(
                 icon: Icons.schedule_rounded,
                 label: _timeChipLabel(state),
-                tint: isActiveTrip ? visuals.softColor : Colors.white,
+                tint: isActiveTrip
+                    ? visuals.softColor
+                    : locationPanelColor(scheme),
                 foregroundColor: isActiveTrip
                     ? visuals.accentColor
-                    : const Color(0xFF475467),
+                    : scheme.onSurfaceVariant,
                 borderColor: isActiveTrip
                     ? visuals.borderColor.withOpacity(0.72)
-                    : const Color(0xFFE5E7EB),
+                    : locationPanelBorderColor(scheme),
               ),
             ],
           ),
@@ -315,8 +327,9 @@ extension _TrackingPageUi on _TrackingPageBodyState {
     Color? tint,
     Color? iconColor,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: tint ?? Colors.white,
+      color: tint ?? locationPanelColor(scheme),
       shape: const CircleBorder(),
       child: InkWell(
         onTap: onTap,
@@ -327,7 +340,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
           child: Icon(
             icon,
             size: 18,
-            color: iconColor ?? const Color(0xFF334155),
+            color: iconColor ?? scheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -335,6 +348,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
   }
 
   Widget _buildChildAvatarBadge() {
+    final scheme = Theme.of(context).colorScheme;
     final avatarUrl = widget.childAvatarUrl?.trim() ?? '';
     return Container(
       width: 34,
@@ -342,22 +356,22 @@ extension _TrackingPageUi on _TrackingPageBodyState {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFDBEAFE), width: 1.6),
+        color: locationPanelColor(scheme),
+        border: Border.all(color: locationPanelBorderColor(scheme), width: 1.6),
       ),
       child: avatarUrl.isEmpty
-          ? const Icon(
+          ? Icon(
               Icons.child_care_rounded,
               size: 18,
-              color: Color(0xFF2563EB),
+              color: scheme.primary,
             )
           : Image.network(
               avatarUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const Icon(
+              errorBuilder: (_, _, _) => Icon(
                 Icons.child_care_rounded,
                 size: 18,
-                color: Color(0xFF2563EB),
+                color: scheme.primary,
               ),
             ),
     );
@@ -461,6 +475,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
     String? label,
     bool showLabel = false,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Tooltip(
       message: tooltip,
       waitDuration: const Duration(milliseconds: 400),
@@ -468,7 +483,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
         mainAxisSize: MainAxisSize.min,
         children: [
           Material(
-            color: active ? activeColor : Colors.white,
+            color: active ? activeColor : locationPanelColor(scheme),
             borderRadius: BorderRadius.circular(16),
             elevation: 3,
             child: InkWell(
@@ -479,7 +494,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
                 height: 44,
                 child: Icon(
                   icon,
-                  color: active ? Colors.white : const Color(0xFF334155),
+                  color: active ? Colors.white : scheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -489,7 +504,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.94),
+                color: locationPanelColor(scheme).withOpacity(0.94),
                 borderRadius: BorderRadius.circular(999),
                 boxShadow: [
                   BoxShadow(
@@ -504,7 +519,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
                 style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
-                  color: active ? activeColor : const Color(0xFF475569),
+                  color: active ? activeColor : scheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -515,6 +530,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
   }
 
   Widget _buildMapSelectionBottomHint(SafeRouteTrackingState state) {
+    final scheme = Theme.of(context).colorScheme;
     if (state.selectionMode == RouteSelectionMode.none) {
       return const SizedBox.shrink();
     }
@@ -531,7 +547,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.92),
+            color: locationPanelColor(scheme).withOpacity(0.94),
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
@@ -543,15 +559,15 @@ extension _TrackingPageUi on _TrackingPageBodyState {
           ),
           child: Row(
             children: [
-              const Icon(Icons.map_rounded, size: 18, color: Color(0xFF1A73E8)),
+              Icon(Icons.map_rounded, size: 18, color: scheme.primary),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   text,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
+                    color: scheme.onSurface,
                   ),
                 ),
               ),

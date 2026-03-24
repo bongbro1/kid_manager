@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/models/notifications/removed_app_data.dart';
+import 'package:kid_manager/models/user/user_subscription.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
@@ -151,7 +152,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
     }
   }
 
-  Future<void> _testSubscription(String status) async {
+  Future<void> _testSubscription(SubscriptionStatus status) async {
     if (_selectedReceiverId == null) return;
 
     setState(() => _loading = true);
@@ -162,13 +163,13 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
           .doc(_selectedReceiverId)
           .set({
             'subscription': {
-              'plan': 'pro',
-              'status': status,
+              'plan': SubscriptionPlan.pro.wireValue,
+              'status': status.wireValue,
               'startAt': Timestamp.fromDate(DateTime.now()),
               'endAt': Timestamp.fromDate(
                 DateTime.now().add(const Duration(days: 30)),
               ),
-              'isTrial': status == 'trial',
+              'isTrial': status == SubscriptionStatus.trial,
               'autoRenew': true,
               'productId': 'pro_monthly',
               'platform': 'android',
@@ -329,27 +330,28 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
               const SizedBox(height: 10),
 
               ElevatedButton(
-                onPressed: () => _testSubscription("trial"),
+                onPressed: () => _testSubscription(SubscriptionStatus.trial),
                 child: const Text("🧪 Start Trial"),
               ),
 
               ElevatedButton(
-                onPressed: () => _testSubscription("active"),
+                onPressed: () => _testSubscription(SubscriptionStatus.active),
                 child: const Text("✅ Activate Subscription"),
               ),
 
               ElevatedButton(
-                onPressed: () => _testSubscription("expired"),
+                onPressed: () => _testSubscription(SubscriptionStatus.expired),
                 child: const Text("⛔ Expire Subscription"),
               ),
 
               ElevatedButton(
-                onPressed: () => _testSubscription("canceled"),
+                onPressed: () => _testSubscription(SubscriptionStatus.canceled),
                 child: const Text("🚫 Cancel Subscription"),
               ),
 
               ElevatedButton(
-                onPressed: () => _testSubscription("payment_failed"),
+                onPressed: () =>
+                    _testSubscription(SubscriptionStatus.paymentFailed),
                 child: const Text("💳 Payment Failed"),
               ),
             ],

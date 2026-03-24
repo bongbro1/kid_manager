@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 
 class ScheduleImportDetailWidget extends StatelessWidget {
   final NotificationDetailModel detail;
@@ -16,19 +17,26 @@ class ScheduleImportDetailWidget extends StatelessWidget {
         .toString()
         .trim();
     final importCount = (data['importCount'] ?? '').toString().trim();
-    final actorRole = (data['actorRole'] ?? '').toString().toLowerCase();
+    final actorRole = tryParseUserRole(data['actorRole']);
     final actorDisplayName =
         ((data['actorDisplayName'] ?? data['actorChildName']) ?? '')
             .toString()
             .trim();
 
-    final actorText = actorRole == 'parent'
-        ? l10n.notificationsActorParent
-        : (actorDisplayName.isEmpty
-              ? (actorRole == 'guardian'
-                    ? l10n.notificationsActorParent
-                    : l10n.notificationsActorChild)
-              : actorDisplayName);
+    final actorText = switch (actorRole) {
+      UserRole.parent => l10n.notificationsActorParent,
+      UserRole.guardian =>
+        actorDisplayName.isEmpty
+            ? l10n.notificationsActorParent
+            : actorDisplayName,
+      UserRole.child =>
+        actorDisplayName.isEmpty
+            ? l10n.notificationsActorChild
+            : actorDisplayName,
+      null => actorDisplayName.isEmpty
+          ? l10n.notificationsActorChild
+          : actorDisplayName,
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

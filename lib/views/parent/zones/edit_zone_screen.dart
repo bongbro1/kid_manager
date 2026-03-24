@@ -6,6 +6,7 @@ import 'package:kid_manager/helpers/zone/zone_circle.dart';
 import 'package:kid_manager/helpers/zone/zone_overlap.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/map/marker_icon_factory.dart';
 import 'package:kid_manager/widgets/map/map_ornaments.dart';
 import 'package:kid_manager/widgets/map/zone_map_renderer.dart';
@@ -134,13 +135,17 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final baseColor = _type == ZoneType.danger ? Colors.red : Colors.green;
     final circleColor = _isOverlapping ? Colors.red : baseColor;
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: locationPanelColor(scheme),
+        foregroundColor: scheme.onSurface,
         title: Text(
           _isEditing ? l10n.zonesEditTitle : l10n.zonesAddAddressTitle,
+          style: TextStyle(color: scheme.onSurface),
         ),
       ),
       body: LayoutBuilder(
@@ -182,7 +187,7 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
 
                     _safeIcon ??= await MarkerIconFactory.makeCircleIcon(
                       icon: Icons.home,
-                      bg: const Color(0xFF1E88E5),
+                      bg: scheme.primary,
                       fg: Colors.white,
                       size: avatarSize,
                     );
@@ -336,11 +341,11 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                   return Container(
                     margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: locationPanelColor(scheme),
                       borderRadius: BorderRadius.circular(18),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
-                          color: Color(0x16000000),
+                          color: Colors.black.withOpacity(0.12),
                           blurRadius: 14,
                           offset: Offset(0, 6),
                         ),
@@ -360,13 +365,15 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                 height: 5,
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
-                                  color: const Color(0x22000000),
+                                  color: locationPanelBorderColor(scheme),
                                   borderRadius: BorderRadius.circular(99),
                                 ),
                               ),
                               TextField(
                                 decoration: InputDecoration(
                                   labelText: l10n.zonesNameFieldLabel,
+                                  filled: true,
+                                  fillColor: locationPanelMutedColor(scheme),
                                   border: const OutlineInputBorder(),
                                 ),
                                 controller: _nameCtrl,
@@ -392,6 +399,8 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                 },
                                 decoration: InputDecoration(
                                   labelText: l10n.zonesTypeFieldLabel,
+                                  filled: true,
+                                  fillColor: locationPanelMutedColor(scheme),
                                   border: const OutlineInputBorder(),
                                 ),
                               ),
@@ -449,7 +458,10 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                     vertical: 10,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF2F2),
+                                    color: Color.alphaBlend(
+                                      Colors.red.withOpacity(0.08),
+                                      locationPanelColor(scheme),
+                                    ),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: const Color(0xFFFECACA),

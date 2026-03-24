@@ -50,16 +50,6 @@ Future<void> _activateFirebaseAppCheck({required bool background}) async {
       'AppCheck debug provider enabled. '
       'Add debug secret from Android logcat to Firebase Console allowlist.',
     );
-    unawaited(
-      FirebaseAppCheck.instance
-          .getToken(false)
-          .then((token) {
-            debugPrint('AppCheck token=${_maskToken(token)}');
-          })
-          .catchError((error) {
-            debugPrint('AppCheck token not ready yet: $error');
-          }),
-    );
   }
 }
 

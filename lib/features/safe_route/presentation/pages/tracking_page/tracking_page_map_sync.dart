@@ -923,11 +923,19 @@ extension _TrackingPageMapSync on _TrackingPageBodyState {
     final error = vm.state.errorMessage;
     if (error == null || error == _lastErrorMessage) return;
     _lastErrorMessage = error;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error)));
+      final quota = SubscriptionQuotaGate.resolve(error);
+      if (quota?.feature == SubscriptionQuotaFeature.safeRoute) {
+        await SubscriptionQuotaGate.showVipUpgradeDialog(
+          context,
+          quota: quota!,
+        );
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
+      }
       vm.clearError();
     });
   }

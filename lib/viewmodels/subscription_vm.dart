@@ -94,7 +94,7 @@ class SubscriptionVM extends ChangeNotifier {
 
   Future<void> activatePlan({
     required String uid,
-    required String plan,
+    required SubscriptionPlan plan,
     DateTime? startAt,
     DateTime? endAt,
   }) async {
@@ -166,19 +166,7 @@ class SubscriptionVM extends ChangeNotifier {
   }
 
   bool _computeIsActive(SubscriptionInfo? sub) {
-    if (sub == null) return false;
-
-    final now = DateTime.now();
-
-    if (sub.status != 'active' && sub.status != 'trial') {
-      return false;
-    }
-
-    if (sub.endAt != null && sub.endAt!.isBefore(now)) {
-      return false;
-    }
-
-    return true;
+    return sub?.isActiveNow ?? false;
   }
 
   @override

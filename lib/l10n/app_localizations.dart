@@ -4344,7 +4344,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingAccessibilityPrimaryButton.
   ///
   /// In en, this message translates to:
-  /// **'Go to settings'**
+  /// **'Allow'**
   String get permissionOnboardingAccessibilityPrimaryButton;
 
   /// No description provided for @permissionOnboardingAccessibilitySettingsButton.
@@ -4392,7 +4392,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingBatteryPrimaryButton.
   ///
   /// In en, this message translates to:
-  /// **'Go to settings'**
+  /// **'Allow'**
   String get permissionOnboardingBatteryPrimaryButton;
 
   /// No description provided for @permissionOnboardingBatterySettingsButton.
@@ -4488,7 +4488,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingUsagePrimaryButton.
   ///
   /// In en, this message translates to:
-  /// **'Go to settings'**
+  /// **'Allow'**
   String get permissionOnboardingUsagePrimaryButton;
 
   /// No description provided for @permissionOnboardingUsageSettingsButton.

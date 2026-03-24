@@ -8,6 +8,7 @@ import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/models/user/child_item.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/utils/app_localizations_loader.dart';
 
@@ -19,12 +20,13 @@ class _ResolvedActorContext {
   });
 
   final String uid;
-  final String role;
+  final UserRole role;
   final String displayName;
 
-  bool get isParent => role == 'parent';
-  bool get isGuardian => role == 'guardian';
-  bool get isChild => role == 'child';
+  bool get isParent => role == UserRole.parent;
+  bool get isGuardian => role == UserRole.guardian;
+  bool get isChild => role == UserRole.child;
+  bool get isAdultManager => role.isAdultManager;
 }
 
 class _NotificationAudience {
@@ -46,8 +48,9 @@ class _NotificationAudience {
 
 class ScheduleNotificationService {
   final UserRepository _userRepo;
+  final AccessControlService _accessControl;
 
-  ScheduleNotificationService(this._userRepo);
+  ScheduleNotificationService(this._userRepo, this._accessControl);
 
   Future<void> notifyCreated({
     required String actorUid,
@@ -152,11 +155,11 @@ class ScheduleNotificationService {
         'childName': childName,
         'ownerParentUid': scheduleOwnerUid,
         'actorUid': actorUid,
-        'actorRole': actor.role,
+        'actorRole': roleToString(actor.role),
         'actorDisplayName': actor.displayName,
-        'actorChildName': actor.isParent ? '' : actor.displayName,
+        'actorChildName': actor.isAdultManager ? '' : actor.displayName,
         'receiverId': receiverId,
-        'receiverRole': receiverRole,
+        'receiverRole': receiverRole == null ? 'unknown' : roleToString(receiverRole),
         'scheduleTitle': schedule.title,
         'date': DateFormat('dd/MM/yyyy').format(schedule.date),
         'startAt': _hhmm(schedule.startAt),
@@ -255,7 +258,7 @@ class ScheduleNotificationService {
           : _resolveChildName(targetChild?.name, l10n);
 
       final title = l10n.scheduleImportNotifyTitle;
-      final body = actor.isParent
+      final body = actor.isAdultManager
           ? l10n.scheduleImportNotifyBodyParent(importCount, resolvedChildName)
           : l10n.scheduleImportNotifyBodyChild(
               _actorDisplayNameForMessage(actor, l10n),
@@ -266,14 +269,14 @@ class ScheduleNotificationService {
         'entity': 'schedule_import',
         'action': 'imported',
         'actorUid': actorUid,
-        'actorRole': actor.role,
+        'actorRole': roleToString(actor.role),
         'actorDisplayName': actor.displayName,
-        'actorChildName': actor.isParent ? '' : actor.displayName,
+        'actorChildName': actor.isAdultManager ? '' : actor.displayName,
         'ownerParentUid': ownerParentUid,
         'childId': childId,
         'childName': resolvedChildName,
         'receiverId': receiverId,
-        'receiverRole': receiverRole,
+        'receiverRole': receiverRole == null ? 'unknown' : roleToString(receiverRole),
         'importCount': importCount.toString(),
       };
 
@@ -330,9 +333,9 @@ class ScheduleNotificationService {
         'entity': 'memory_day',
         'action': action,
         'actorUid': actorUid,
-        'actorRole': actor.role,
+        'actorRole': roleToString(actor.role),
         'actorDisplayName': actor.displayName,
-        'actorChildName': actor.isParent ? '' : actor.displayName,
+        'actorChildName': actor.isAdultManager ? '' : actor.displayName,
         'ownerParentUid': ownerParentUid,
         'memoryDayId': memoryDay.id,
         'memoryDayTitle': memoryDay.title,
@@ -341,7 +344,7 @@ class ScheduleNotificationService {
         'repeatYearly': memoryDay.repeatYearly.toString(),
         'note': (memoryDay.note ?? '').trim(),
         'receiverId': receiverId,
-        'receiverRole': receiverRole,
+        'receiverRole': receiverRole == null ? 'unknown' : roleToString(receiverRole),
         'childId': receiverChild?.id ?? '',
         'childName': receiverChild == null
             ? ''
@@ -380,7 +383,7 @@ class ScheduleNotificationService {
 
   String _buildMemoryDayBody({
     required String action,
-    required String actorRole,
+    required UserRole actorRole,
     required String actorDisplayName,
     required MemoryDay memoryDay,
     required AppLocalizations l10n,
@@ -389,7 +392,7 @@ class ScheduleNotificationService {
         ? l10n.notificationsNoTitle
         : memoryDay.title.trim();
 
-    if (actorRole == 'parent') {
+    if (actorRole.isAdultManager) {
       switch (action) {
         case 'created':
           return l10n.memoryDayNotifyBodyParentCreated(title);
@@ -431,7 +434,7 @@ class ScheduleNotificationService {
 
   String _buildBody({
     required String action,
-    required String actorRole,
+    required UserRole actorRole,
     required String actorDisplayName,
     required String childName,
     required Schedule schedule,
@@ -443,7 +446,7 @@ class ScheduleNotificationService {
     final date = DateFormat('dd/MM/yyyy').format(schedule.date);
     final time = '${_hhmm(schedule.startAt)} - ${_hhmm(schedule.endAt)}';
 
-    if (actorRole == 'parent') {
+    if (actorRole.isAdultManager) {
       switch (action) {
         case 'created':
           return l10n.scheduleNotifyBodyParentCreated(
@@ -493,10 +496,10 @@ class ScheduleNotificationService {
   }) async {
     final actorUser = await _userRepo.getUserById(actorUid);
     final role = switch (actorUser?.role) {
-      UserRole.parent => 'parent',
-      UserRole.guardian => 'guardian',
-      UserRole.child => 'child',
-      null => actorUid == ownerParentUid ? 'parent' : 'child',
+      UserRole.parent => UserRole.parent,
+      UserRole.guardian => UserRole.guardian,
+      UserRole.child => UserRole.child,
+      null => actorUid == ownerParentUid ? UserRole.parent : UserRole.child,
     };
 
     final displayName = _resolveActorDisplayName(actorUser);
@@ -519,22 +522,29 @@ class ScheduleNotificationService {
     required String targetChildId,
     required List<AppUser> guardians,
   }) {
+    final eligibleGuardians = guardians.where((guardian) {
+      return _accessControl.canManageChild(
+        actor: guardian,
+        childUid: targetChildId,
+        childParentUid: ownerParentUid,
+      );
+    }).toList(growable: false);
     final receiverIds = <String>{};
 
     switch (actor.role) {
-      case 'parent':
+      case UserRole.parent:
         receiverIds.add(targetChildId);
-        receiverIds.addAll(guardians.map((guardian) => guardian.uid));
+        receiverIds.addAll(eligibleGuardians.map((guardian) => guardian.uid));
         break;
-      case 'guardian':
+      case UserRole.guardian:
         receiverIds.add(targetChildId);
         receiverIds.add(ownerParentUid);
-        receiverIds.addAll(guardians.map((guardian) => guardian.uid));
+        receiverIds.addAll(eligibleGuardians.map((guardian) => guardian.uid));
         break;
-      case 'child':
+      case UserRole.child:
       default:
         receiverIds.add(ownerParentUid);
-        receiverIds.addAll(guardians.map((guardian) => guardian.uid));
+        receiverIds.addAll(eligibleGuardians.map((guardian) => guardian.uid));
         break;
     }
 
@@ -551,16 +561,16 @@ class ScheduleNotificationService {
     final receiverIds = <String>{};
 
     switch (actor.role) {
-      case 'parent':
+      case UserRole.parent:
         receiverIds.addAll(audience.children.map((child) => child.id));
         receiverIds.addAll(audience.guardians.map((guardian) => guardian.uid));
         break;
-      case 'guardian':
+      case UserRole.guardian:
         receiverIds.add(ownerParentUid);
         receiverIds.addAll(audience.children.map((child) => child.id));
         receiverIds.addAll(audience.guardians.map((guardian) => guardian.uid));
         break;
-      case 'child':
+      case UserRole.child:
       default:
         receiverIds.add(ownerParentUid);
         receiverIds.addAll(audience.guardians.map((guardian) => guardian.uid));
@@ -572,20 +582,20 @@ class ScheduleNotificationService {
     return receiverIds.toList();
   }
 
-  String _resolveReceiverRole({
+  UserRole? _resolveReceiverRole({
     required String receiverId,
     required String ownerParentUid,
     required List<AppUser> guardians,
     String? childId,
   }) {
-    if (receiverId == ownerParentUid) return 'parent';
-    if (childId != null && receiverId == childId) return 'child';
+    if (receiverId == ownerParentUid) return UserRole.parent;
+    if (childId != null && receiverId == childId) return UserRole.child;
 
     for (final guardian in guardians) {
-      if (guardian.uid == receiverId) return 'guardian';
+      if (guardian.uid == receiverId) return UserRole.guardian;
     }
 
-    return 'unknown';
+    return null;
   }
 
   String _resolveActorDisplayName(AppUser? actorUser) {

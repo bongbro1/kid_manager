@@ -1,4 +1,43 @@
+import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+
+bool _isDarkScheme(ColorScheme scheme) =>
+    scheme.brightness == Brightness.dark;
+
+Color familyChatBackgroundColor(ColorScheme scheme) {
+  return Color.alphaBlend(
+    scheme.primary.withAlpha(_isDarkScheme(scheme) ? 24 : 14),
+    scheme.background,
+  );
+}
+
+Color familyChatSurfaceColor(ColorScheme scheme) {
+  return Color.alphaBlend(
+    scheme.primary.withAlpha(_isDarkScheme(scheme) ? 18 : 8),
+    scheme.surface,
+  );
+}
+
+Color familyChatHighlightColor(ColorScheme scheme) {
+  return Color.alphaBlend(
+    scheme.primary.withAlpha(_isDarkScheme(scheme) ? 42 : 24),
+    scheme.surface,
+  );
+}
+
+Color familyChatInputFillColor(ColorScheme scheme) {
+  return Color.alphaBlend(
+    scheme.primary.withAlpha(_isDarkScheme(scheme) ? 20 : 10),
+    scheme.surface,
+  );
+}
+
+Color familyChatBorderColor(ColorScheme scheme) {
+  return Color.alphaBlend(
+    scheme.primary.withAlpha(_isDarkScheme(scheme) ? 52 : 18),
+    scheme.outline,
+  );
+}
 
 bool looksLikeOpaqueIdentifier(String raw) {
   final text = raw.trim();

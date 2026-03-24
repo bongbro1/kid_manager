@@ -249,6 +249,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     return Stack(
       children: [
         AppMapView(
+          followThemeForStreetStyle: false,
           onMapCreated: (map) {
             _map = map;
           },

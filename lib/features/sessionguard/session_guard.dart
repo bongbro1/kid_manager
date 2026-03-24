@@ -168,14 +168,21 @@ class _SessionGuardState extends State<SessionGuard> {
 
             await storage.setString(StorageKeys.uid, uid);
 
-            final resolvedRole = profile != null
-                ? roleFromString(profile.role ?? sessionUser?.role.name ?? 'child')
-                : sessionUser!.role;
+            final resolvedRole = profile?.role ?? sessionUser?.role ?? UserRole.child;
             final resolvedDisplayName =
                 (profile?.name ?? sessionUser?.displayName ?? '').trim();
-            final resolvedParentId = resolvedRole == UserRole.child
-                ? (profile?.parentUid ?? sessionUser?.parentUid ?? '').trim()
+            final resolvedParentOwnerUid = resolvedRole == UserRole.parent
+                ? uid
+                : (profile?.parentUid ?? sessionUser?.parentUid ?? '').trim();
+            final managedOwnerUid = resolvedRole == UserRole.guardian
+                ? resolvedParentOwnerUid
                 : uid;
+            final managedChildIds = <String>{
+              ...?profile?.managedChildIds,
+              ...?sessionUser?.managedChildIds,
+            }.map((item) => item.trim()).where((item) => item.isNotEmpty).toList(
+              growable: false,
+            );
 
             await storage.setString(StorageKeys.role, roleToString(resolvedRole));
             if (resolvedDisplayName.isNotEmpty) {
@@ -187,19 +194,34 @@ class _SessionGuardState extends State<SessionGuard> {
               await storage.remove(StorageKeys.displayName);
             }
 
-            await storage.setString(StorageKeys.parentId, resolvedParentId);
+            if (resolvedParentOwnerUid.isNotEmpty) {
+              await storage.setString(
+                StorageKeys.parentId,
+                resolvedParentOwnerUid,
+              );
+            } else {
+              await storage.remove(StorageKeys.parentId);
+            }
+            if (managedChildIds.isNotEmpty) {
+              await storage.setStringList(
+                StorageKeys.managedChildIds,
+                managedChildIds,
+              );
+            } else {
+              await storage.remove(StorageKeys.managedChildIds);
+            }
 
             if (resolvedRole == UserRole.child) {
-              if (resolvedParentId.isNotEmpty &&
+              if (resolvedParentOwnerUid.isNotEmpty &&
                   resolvedDisplayName.isNotEmpty) {
                 AuthRuntimeManager.start(
-                  parentId: resolvedParentId,
+                  parentId: resolvedParentOwnerUid,
                   displayName: resolvedDisplayName,
                 );
               } else {
                 debugPrint(
                   '[SessionGuard] skip native watcher config '
-                  'uid=$uid parentId="$resolvedParentId" '
+                  'uid=$uid parentId="$resolvedParentOwnerUid" '
                   'displayName="$resolvedDisplayName"',
                 );
               }
@@ -208,8 +230,11 @@ class _SessionGuardState extends State<SessionGuard> {
             }
 
             userVm.watchMe(uid);
-            if (resolvedRole == UserRole.parent) {
-              appManagementVm.watchChildren(uid);
+            if ((resolvedRole == UserRole.parent ||
+                    resolvedRole == UserRole.guardian) &&
+                managedOwnerUid.isNotEmpty) {
+              userVm.watchChildren(managedOwnerUid);
+              appManagementVm.watchChildren(managedOwnerUid);
             }
           });
         }
@@ -227,8 +252,13 @@ class _SessionGuardState extends State<SessionGuard> {
               normalizedFamilyId,
               excludeUid: currentUid,
             );
-            if (isParent == true) {
-              userVm.watchChildren(currentUid);
+            if (isLocationViewer == true) {
+              final managedOwnerUid = isGuardian == true
+                  ? (session.user?.parentUid?.trim() ?? '')
+                  : currentUid;
+              if (managedOwnerUid.isNotEmpty) {
+                userVm.watchChildren(managedOwnerUid);
+              }
             }
           });
         }

@@ -1,5 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/user/user_profile_patch.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/widgets/parent/phone/pick_child_phone_screen.dart';
 import 'package:provider/provider.dart';
@@ -34,11 +35,9 @@ class _AddChildPhoneScreenState extends State<AddChildPhoneScreen> {
 
     setState(() => _saving = true);
     try {
-      await userRepository.updateUserProfileByUid(
+      await userRepository.patchUserProfile(
         uid: widget.childId,
-        data: {
-          'phone': phone.trim(),
-        },
+        patch: UserProfilePatch(phone: phone.trim()),
       );
 
       if (!mounted) return;

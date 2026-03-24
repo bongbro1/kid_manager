@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_ui_utils.dart';
 
 class FamilyChatHeader extends StatelessWidget {
@@ -59,6 +60,7 @@ class FamilyChatHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final countLabel = _memberCountLabel(l10n);
 
     return Row(
@@ -67,12 +69,12 @@ class FamilyChatHeader extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFFDBEAFE),
+            color: familyChatHighlightColor(scheme),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.groups_rounded,
-            color: Color(0xFF1D4ED8),
+            color: scheme.primary,
             size: 20,
           ),
         ),
@@ -84,10 +86,10 @@ class FamilyChatHeader extends StatelessWidget {
             children: [
               Text(
                 l10n.familyChatTitleLarge,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
+                  color: scheme.onSurface,
                 ),
               ),
               const SizedBox(height: 2),
@@ -95,9 +97,9 @@ class FamilyChatHeader extends StatelessWidget {
                 _memberSummary(l10n),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF64748B),
+                  color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -108,15 +110,15 @@ class FamilyChatHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
+              color: familyChatHighlightColor(scheme),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
+              border: Border.all(color: familyChatBorderColor(scheme)),
             ),
             child: Text(
               countLabel,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF1D4ED8),
+                color: scheme.primary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -153,6 +155,7 @@ class FamilyChatMembersBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     if (isLoading && members.isEmpty) {
       return const SizedBox(
@@ -173,7 +176,7 @@ class FamilyChatMembersBar extends StatelessWidget {
 
     return Container(
       height: 64,
-      color: Colors.white,
+      color: familyChatSurfaceColor(scheme),
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
@@ -183,16 +186,20 @@ class FamilyChatMembersBar extends StatelessWidget {
         itemBuilder: (_, index) {
           final member = members[index];
           final isMe = member.uid == myUid;
-          final roleColor = member.role == 'parent'
-              ? const Color(0xFFF59E0B)
-              : const Color(0xFF38BDF8);
+          final roleColor = switch (member.role) {
+            UserRole.parent => const Color(0xFFF59E0B),
+            UserRole.guardian => const Color(0xFF38BDF8),
+            UserRole.child => const Color(0xFF22C55E),
+          };
 
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: isMe ? const Color(0xFFDBEAFE) : const Color(0xFFF8FAFC),
+              color: isMe
+                  ? familyChatHighlightColor(scheme)
+                  : familyChatBackgroundColor(scheme),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: familyChatBorderColor(scheme)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -214,8 +221,8 @@ class FamilyChatMembersBar extends StatelessWidget {
                   isMe
                       ? l10n.familyChatYou
                       : _safeDisplayName(member.displayName, l10n),
-                  style: const TextStyle(
-                    color: Color(0xFF0F172A),
+                  style: TextStyle(
+                    color: scheme.onSurface,
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
                   ),

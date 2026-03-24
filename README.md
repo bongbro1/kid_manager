@@ -1080,3 +1080,284 @@ Nếu chỉ được chọn một nhánh việc để làm trước, tôi sẽ x
 3. tách live tracking khỏi history state,
 4. siết lại background sync và permission gating,
 5. làm sạch copy + Firebase production config.
+
+## Cap nhat mo hinh RBAC, guardian va subscription
+
+Ngay cap nhat: 2026-03-23
+
+### Muc tieu
+
+Dot refactor nay dua cac quy tac quyen vao mot mo hinh ro rang hon:
+
+- `parent`: quan ly toan bo child cua chinh minh
+- `guardian`: co cung quyen quan ly nhu `parent` tren child thuoc `parentUid` chu quan, nhung khong duoc them tai khoan
+- `child`: chi duoc truy cap du lieu ca nhan duoc phep
+
+Subscription duoc chuan hoa theo:
+
+- `plan`: `free`, `pro`
+- `status`: `trial`, `active`, `expired`, `canceled`, `payment_failed`
+
+### Mo hinh domain hien tai
+
+#### 1. Role enum
+
+File chinh:
+
+- `lib/models/user/user_types.dart`
+
+`UserRole` da duoc enum-hoa va bo string magic trong phan lon codebase. Role co helper:
+
+- `isAdultManager`: dung chung cho `parent` va `guardian`
+- `roleToString(...)` / `roleFromString(...)`: giu tuong thich Firestore
+
+#### 2. Subscription enum
+
+File chinh:
+
+- `lib/models/user/user_subscription.dart`
+
+Subscription khong con phu thuoc string roi rac. Plan va status deu parse/serialize qua enum, nhung van doc duoc du lieu Firestore cu.
+
+#### 3. Feature policy
+
+File chinh:
+
+- `lib/services/access_control/feature_policy.dart`
+
+`AppFeature` la enum trung tam cho quyen va quota. Hien tai da co cac feature nhu:
+
+- `accountProvisioning`
+- `safeZone`
+- `dangerZone`
+- `safeRoute`
+- `locationSharing`
+- `locationViewing`
+- `familyChat`
+- `sos`
+- `notifications`
+- `appManagement`
+
+`FeaturePolicyCatalog.defaults` la noi khai bao:
+
+- role nao duoc dung feature nao
+- plan nao duoc dung feature nao
+- feature nao bi gioi han quota
+
+#### 4. Access control service
+
+File chinh:
+
+- `lib/services/access_control/access_control_service.dart`
+
+Service nay la diem kiem quyen dung chung. Cac ham chinh:
+
+- `canUseFeature(...)`
+- `canAddManagedAccounts(...)`
+- `canAccessChild(...)`
+- `canManageChild(...)`
+- `canViewLocation(...)`
+
+Rule hien tai:
+
+- `parent` duoc quan ly child co `child.parentUid == parent.uid`
+- `guardian` duoc quan ly child co `child.parentUid == guardian.parentUid`
+- `guardian` khong duoc dung `accountProvisioning`
+- `child` khong duoc quan ly child khac
+
+### Giai thich mo hinh ownerParentUid
+
+Day la diem quan trong de code guardian chay dung.
+
+Trong cac namespace du lieu quan ly nhu:
+
+- schedule
+- safe route
+- zone quota
+- app management
+
+du lieu van thuoc ve `parent` goc, khong thuoc guardian. Vi vay can tach 2 khái niệm:
+
+- `requesterUid`: uid cua nguoi dang thao tac
+- `ownerParentUid`: uid cua parent chu quan so huu namespace du lieu
+
+Quy uoc hien tai:
+
+- neu actor la `parent` => `ownerParentUid = actor.uid`
+- neu actor la `guardian` => `ownerParentUid = actor.parentUid`
+- neu actor la `child` => `ownerParentUid = child.parentUid`
+
+Mau nay da duoc ap trong:
+
+- `lib/features/sessionguard/session_guard.dart`
+- `lib/views/auth/login_screen.dart`
+- `lib/features/safe_route/presentation/viewmodels/safe_route_tracking_view_model.dart`
+- `functions/src/triggers/safeRoute.ts`
+
+### Nhung thay doi chinh da ap vao code
+
+#### A. Refactor model va repository
+
+Da tach va chuan hoa:
+
+- `lib/models/user/user_profile.dart`
+- `lib/models/user/user_profile_patch.dart`
+- `lib/models/app_user.dart`
+- `lib/repositories/user/profile_repository.dart`
+- `lib/repositories/user/family_repository.dart`
+- `lib/repositories/user/membership_repository.dart`
+- `lib/repositories/user_repository.dart`
+
+Loi logic da sua:
+
+- khong con nguy co overwrite role sai khi update profile partial
+- guardian va child doc Firestore qua enum thay vi string magic
+- `managedChildIds` van duoc doc tu du lieu cu neu backend da tung dung `assignedChildIds` hoac `childIds`
+
+#### B. Guardian dung chung shell voi parent
+
+File chinh:
+
+- `lib/widgets/app/app_sell_config.dart`
+
+`AppShellConfig.parent()` va `AppShellConfig.guardian()` hien dung chung `_adultManager()`.
+
+Y nghia:
+
+- khong con 2 bo tab bi duplicate
+- parent va guardian dung chung map/dashboard/chat/notification/schedule/profile
+- thay doi tab cua nhom quan ly chi can sua mot noi
+
+#### C. Guardian co quyen parent-like, tru them tai khoan
+
+Da ap gate moi o:
+
+- `lib/services/access_control/access_control_service.dart`
+- `lib/views/setting_pages/member_management_screen.dart`
+- `lib/views/setting_pages/add_account_screen.dart`
+- `lib/views/parent/dashboard/no_child_screen.dart`
+- `lib/views/personal_info_screen.dart`
+- `lib/views/location/child_detail_map_screen.dart`
+
+Behavior hien tai:
+
+- guardian vao duoc map, zones, safe route, schedule, app management, chat
+- guardian thay duoc child va du lieu theo `parentUid` chu quan
+- guardian khong thay CTA them tai khoan
+- neu mo truc tiep `AddAccountScreen` thi van bi chan o man hinh va o ViewModel
+
+#### D. Session va storage da duoc dong bo lai
+
+File chinh:
+
+- `lib/features/sessionguard/session_guard.dart`
+- `lib/views/auth/login_screen.dart`
+- `lib/core/storage_keys.dart`
+- `lib/services/storage_service.dart`
+
+Session login hien se persist:
+
+- `uid`
+- `role`
+- `parentId`
+- `managedChildIds`
+- `displayName`
+
+Muc dich:
+
+- guardian co du `parentId` de resolve owner namespace ngay ca khi Firestore profile chua load xong
+- fallback actor snapshot trong cac VM khong con bi deny sai trong luc bootstrap
+
+#### E. App management da ho tro guardian dung cach
+
+File chinh:
+
+- `lib/viewmodels/app_management_vm.dart`
+
+Da sua:
+
+- fallback actor snapshot khong con parent-only
+- guardian duoc auto watch child dung owner parent
+- khi actor chua resolve kip van khong bi mat child list neu role la adult manager
+
+#### F. Safe route da duoc sua o ca client va backend
+
+Client:
+
+- `lib/features/safe_route/presentation/viewmodels/safe_route_tracking_view_model.dart`
+
+Backend:
+
+- `functions/src/services/child.ts`
+- `functions/src/triggers/safeRoute.ts`
+
+Loi da sua:
+
+- callable safe route truoc do chi cho `parent` hoac `child self`
+- guardian bi `permission-denied` khi refresh active trip, load history, start trip, update trip
+
+Sau khi sua:
+
+- backend resolve `ownerParentUid` dung cho guardian
+- guardian duoc truy cap active trip, history, route va quota cua child thuoc parent chu quan
+
+### Deploy can thiet cho backend safe route
+
+Sau khi cap nhat guardian access o safe route, can deploy lai cac function sau:
+
+```bash
+firebase deploy --only functions:getSuggestedSafeRoutes,functions:startSafeRouteTrip,functions:getSafeRouteTripHistoryByChildId,functions:updateSafeRouteTripStatus,functions:getActiveSafeRouteTripByChildId,functions:getSafeRouteById
+```
+
+Neu muon build truoc khi deploy:
+
+```bash
+cmd /c npm --prefix functions run build
+```
+
+### Checklist test nhanh sau refactor
+
+#### Parent
+
+- vao map all children
+- vao app management
+- tao zone thu 1 -> 4 de check quota
+- tao safe route, start trip, complete trip
+- tao schedule, import schedule
+
+#### Guardian
+
+- login lai sau full restart
+- vao dashboard/app management
+- vao child detail map
+- quan ly zone cua child
+- vao `TrackingPage` va refresh active trip
+- start/cancel safe route
+- vao schedule va thao tac tren child cua parent chu quan
+- khong duoc thay/man mo chuc nang them tai khoan
+
+#### Child
+
+- van xem duoc du lieu ca nhan cua minh
+- khong vao duoc flow quan ly child cua nguoi khac
+
+### Ghi chu thiet ke
+
+Mau quyen hien tai uu tien:
+
+- khong dung string magic trong business rule
+- de mo rong them plan moi hoac feature moi
+- gom gate quyen ve service chung thay vi if/else roi rac trong UI
+- giu tuong thich Firestore cu trong `toMap/fromMap`
+
+Neu sau nay them plan moi, thong thuong chi can sua:
+
+- `lib/models/user/user_subscription.dart`
+- `lib/services/access_control/feature_policy.dart`
+- cac function quota trong `functions/src/services/subscriptionQuota.ts`
+
+Neu sau nay them feature moi, thong thuong chi can:
+
+1. them `AppFeature`
+2. khai bao policy trong `FeaturePolicyCatalog.defaults`
+3. goi `canUseFeature(...)` hoac `canManageChild(...)` o VM/service phu hop

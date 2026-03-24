@@ -140,14 +140,19 @@ export async function buildSuggestedSafeRoutes(params: {
   start: RoutePointRecord;
   end: RoutePointRecord;
   travelMode: SafeRouteTravelMode;
+  maxRoutes?: number;
 }) {
   const routes = await fetchDirections(params.start, params.end, params.travelMode);
   if (!routes.length) return [] as SafeRouteRecord[];
 
   const builtRoutes: SafeRouteRecord[] = [];
   const modeLabel = toTravelModeLabel(params.travelMode);
+  const routeLimit = Math.max(
+    0,
+    Math.min(MAX_SUGGESTED_ROUTES, params.maxRoutes ?? MAX_SUGGESTED_ROUTES)
+  );
 
-  for (let index = 0; index < routes.length && index < MAX_SUGGESTED_ROUTES; index += 1) {
+  for (let index = 0; index < routes.length && index < routeLimit; index += 1) {
     const route = routes[index];
     const coordinates = route.geometry?.coordinates ?? [];
     if (coordinates.length < 2) continue;

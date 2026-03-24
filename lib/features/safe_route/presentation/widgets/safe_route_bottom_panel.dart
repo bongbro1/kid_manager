@@ -8,6 +8,7 @@ import 'package:kid_manager/features/safe_route/presentation/safe_route_tracking
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
 import 'package:kid_manager/features/safe_route/presentation/widgets/safe_route_route_selector.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class SafeRouteBottomPanel extends StatelessWidget {
   const SafeRouteBottomPanel({
@@ -74,6 +75,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final trackingVisuals = resolveSafeRouteTrackingVisuals(
       state,
       l10n: l10n,
@@ -84,7 +86,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
       children: [
         DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.95),
+            color: locationPanelColor(scheme).withOpacity(0.95),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
             boxShadow: [
               BoxShadow(
@@ -110,7 +112,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
                           height: 4,
                           margin: const EdgeInsets.only(bottom: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD3DCE7),
+                            color: locationPanelBorderColor(scheme),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -234,24 +236,25 @@ class _RouteSelectionContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           l10n.safeRouteSelectSafeRouteTitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
+            color: scheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           _hintText(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF667085),
+            color: scheme.onSurfaceVariant,
             height: 1.35,
           ),
         ),
@@ -316,17 +319,18 @@ class _RouteSelectionContent extends StatelessWidget {
                 children: [
                   Text(
                     l10n.safeRouteSuggestedRoutesTitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
+                      color: scheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     l10n.safeRouteSuggestedRoutesSubtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF667085),
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -359,15 +363,15 @@ class _RouteSelectionContent extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F9FC),
+              color: locationPanelMutedColor(scheme),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE7EDF4)),
+              border: Border.all(color: locationPanelBorderColor(scheme)),
             ),
             child: Text(
               _emptyRoutesText(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFF617182),
+                color: scheme.onSurfaceVariant,
                 height: 1.35,
               ),
             ),
@@ -379,10 +383,10 @@ class _RouteSelectionContent extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
                 _selectedRoutesSummary(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF526074),
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -402,8 +406,8 @@ class _RouteSelectionContent extends StatelessWidget {
                 ? onStartTrip
                 : (_canFetch ? onFetchSuggestedRoutes : null),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF1A73E8),
-              foregroundColor: Colors.white,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
               minimumSize: const Size.fromHeight(50),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
@@ -516,6 +520,7 @@ class _TrackingStatusContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final visuals = resolveSafeRouteTrackingVisuals(
       state,
       l10n: l10n,
@@ -559,18 +564,18 @@ class _TrackingStatusContent extends StatelessWidget {
                   children: [
                     Text(
                       visuals.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
+                        color: scheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       visuals.subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: Color(0xFF667085),
+                        color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),
                     ),
@@ -656,9 +661,9 @@ class _TrackingStatusContent extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: locationPanelMutedColor(scheme),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE7EDF4)),
+              border: Border.all(color: locationPanelBorderColor(scheme)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -668,10 +673,10 @@ class _TrackingStatusContent extends StatelessWidget {
                     Expanded(
                       child: Text(
                         state.activeRoute!.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF111827),
+                          color: scheme.onSurface,
                         ),
                       ),
                     ),
@@ -1105,6 +1110,7 @@ class _TrackingMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       constraints: const BoxConstraints(minHeight: 88),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -1118,10 +1124,10 @@ class _TrackingMetricCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF6B7280),
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -1130,15 +1136,15 @@ class _TrackingMetricCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: valueColor ?? const Color(0xFF111827),
+              color: valueColor ?? scheme.onSurface,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10.5,
-              color: Color(0xFF667085),
+              color: scheme.onSurfaceVariant,
               height: 1.25,
             ),
           ),
@@ -1158,32 +1164,33 @@ class _RouteProgressSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: locationPanelColor(scheme),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.timeline_rounded,
                 size: 16,
-                color: Color(0xFF1A73E8),
+                color: scheme.primary,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   l10n.safeRouteProgressTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
@@ -1192,10 +1199,10 @@ class _RouteProgressSummary extends StatelessWidget {
                 l10n.safeRouteProgressCompletedPercent(
                   (details.progress * 100).round(),
                 ),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A73E8),
+                  color: scheme.primary,
                 ),
               ),
             ],
@@ -1221,10 +1228,10 @@ class _RouteProgressSummary extends StatelessWidget {
                     l10n.safeRouteDistanceCompactLabel(details.traveledMeters),
                     l10n.safeRouteDistanceCompactLabel(details.totalMeters),
                   ),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
@@ -1233,10 +1240,10 @@ class _RouteProgressSummary extends StatelessWidget {
                 l10n.safeRouteProgressRemainingPercent(
                   ((1 - details.progress).clamp(0.0, 1.0) * 100).round(),
                 ),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -1250,9 +1257,9 @@ class _RouteProgressSummary extends StatelessWidget {
                     .toDouble(),
               ),
             ),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10.5,
-              color: Color(0xFF64748B),
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -1299,6 +1306,7 @@ class _BatteryMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final normalized = batteryLabel.replaceAll('%', '').trim();
     final value = double.tryParse(normalized) ?? 0;
     final progress = (value / 100).clamp(0.0, 1.0).toDouble();
@@ -1309,17 +1317,17 @@ class _BatteryMetricCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: tint,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             AppLocalizations.of(context).safeRouteDeviceBatteryLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF6B7280),
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
@@ -1335,10 +1343,10 @@ class _BatteryMetricCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             batteryLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF111827),
+              color: scheme.onSurface,
             ),
           ),
         ],
@@ -1430,12 +1438,13 @@ class _LocationPickerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Stack(
         children: [
@@ -1444,7 +1453,7 @@ class _LocationPickerCard extends StatelessWidget {
               right: 12,
               top: 50,
               child: Material(
-                color: Colors.white,
+                color: locationPanelColor(scheme),
                 borderRadius: BorderRadius.circular(12),
                 child: InkWell(
                   onTap: onSwapTap,
@@ -1454,14 +1463,14 @@ class _LocationPickerCard extends StatelessWidget {
                     height: 34,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE7EDF4)),
+                      border: Border.all(color: locationPanelBorderColor(scheme)),
                     ),
                     child: Icon(
                       Icons.swap_vert_rounded,
                       size: 20,
                       color: onSwapTap == null
                           ? const Color(0xFFB0BDC9)
-                          : const Color(0xFF526074),
+                          : scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -1533,8 +1542,9 @@ class _LocationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: selected ? const Color(0xFFEFF5FF) : Colors.transparent,
+      color: selected ? locationPanelHighlightColor(scheme) : Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -1565,10 +1575,10 @@ class _LocationRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF7B8799),
+                        color: scheme.onSurfaceVariant,
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -1588,26 +1598,26 @@ class _LocationRow extends StatelessWidget {
               const SizedBox(width: 8),
               if (onClearTap != null)
                 Material(
-                  color: Colors.white,
+                  color: locationPanelColor(scheme),
                   borderRadius: BorderRadius.circular(999),
                   child: InkWell(
                     onTap: onClearTap,
                     borderRadius: BorderRadius.circular(999),
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.all(6),
                       child: Icon(
                         Icons.close_rounded,
                         size: 16,
-                        color: Color(0xFF94A3B8),
+                        color: scheme.onSurfaceVariant.withOpacity(0.8),
                       ),
                     ),
                   ),
                 )
               else
-                const Icon(
+                Icon(
                   Icons.search_rounded,
                   size: 18,
-                  color: Color(0xFF94A3B8),
+                  color: scheme.onSurfaceVariant.withOpacity(0.8),
                 ),
             ],
           ),
@@ -1677,8 +1687,9 @@ class _ModeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: active ? Colors.white : const Color(0xFFF4F7FB),
+      color: active ? locationPanelColor(scheme) : locationPanelMutedColor(scheme),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -1689,7 +1700,7 @@ class _ModeChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: active ? const Color(0xFFCEE0FA) : const Color(0xFFE7EDF4),
+              color: locationPanelBorderColor(scheme),
             ),
             boxShadow: active
                 ? [
@@ -1707,7 +1718,7 @@ class _ModeChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 16,
-                color: active ? const Color(0xFF1A73E8) : const Color(0xFF607182),
+                color: active ? scheme.primary : scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
@@ -1715,7 +1726,7 @@ class _ModeChip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: active ? const Color(0xFF1A73E8) : const Color(0xFF607182),
+                  color: active ? scheme.primary : scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -1748,14 +1759,15 @@ class _ScheduleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1769,18 +1781,18 @@ class _ScheduleCard extends StatelessWidget {
                   children: [
                     Text(
                       l10n.safeRouteScheduleTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
+                        color: scheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       l10n.safeRouteScheduleSubtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: Color(0xFF667085),
+                        color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),
                     ),
@@ -1820,10 +1832,10 @@ class _ScheduleCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             l10n.safeRouteRepeatByDayLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF526074),
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -1835,7 +1847,7 @@ class _ScheduleCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
                   child: Material(
-                    color: selected ? const Color(0xFF1A73E8) : Colors.white,
+                    color: selected ? scheme.primary : locationPanelColor(scheme),
                     borderRadius: BorderRadius.circular(10),
                     child: InkWell(
                       onTap: () => onToggleWeekday(weekday),
@@ -1847,8 +1859,8 @@ class _ScheduleCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: selected
-                                ? const Color(0xFF1A73E8)
-                                : const Color(0xFFE7EDF4),
+                                ? scheme.primary
+                                : locationPanelBorderColor(scheme),
                           ),
                         ),
                         child: Text(
@@ -1858,7 +1870,7 @@ class _ScheduleCard extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             color: selected
                                 ? Colors.white
-                                : const Color(0xFF607182),
+                                : scheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -1871,9 +1883,9 @@ class _ScheduleCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             l10n.safeRouteRepeatSummary(repeatWeekdays),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: Color(0xFF667085),
+              color: scheme.onSurfaceVariant,
               height: 1.3,
             ),
           ),
@@ -1897,8 +1909,9 @@ class _ScheduleSelectorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: Colors.white,
+      color: locationPanelColor(scheme),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -1907,7 +1920,7 @@ class _ScheduleSelectorTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE7EDF4)),
+            border: Border.all(color: locationPanelBorderColor(scheme)),
           ),
           child: Row(
             children: [
@@ -1915,13 +1928,13 @@ class _ScheduleSelectorTile extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF2FF),
+                  color: locationPanelHighlightColor(scheme),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
                   size: 17,
-                  color: const Color(0xFF1A73E8),
+                  color: scheme.primary,
                 ),
               ),
               const SizedBox(width: 10),
@@ -1931,19 +1944,19 @@ class _ScheduleSelectorTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF667085),
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       value,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
+                        color: scheme.onSurface,
                       ),
                     ),
                   ],
@@ -1972,8 +1985,11 @@ class _QuickActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: highlighted ? const Color(0xFFEAF2FF) : const Color(0xFFF4F7FB),
+      color: highlighted
+          ? locationPanelHighlightColor(scheme)
+          : locationPanelMutedColor(scheme),
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -1986,9 +2002,7 @@ class _QuickActionChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 15,
-                color: highlighted
-                    ? const Color(0xFF1A73E8)
-                    : const Color(0xFF526074),
+                color: highlighted ? scheme.primary : scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
@@ -1997,8 +2011,8 @@ class _QuickActionChip extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: highlighted
-                      ? const Color(0xFF1A73E8)
-                      : const Color(0xFF526074),
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -2022,11 +2036,12 @@ class _GhostButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFF1A73E8),
-        side: const BorderSide(color: Color(0xFFDCE8F8)),
+        foregroundColor: scheme.primary,
+        side: BorderSide(color: locationPanelBorderColor(scheme)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
@@ -2061,22 +2076,24 @@ class _InlineChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F7FB),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF1A73E8)),
+          Icon(icon, size: 14, color: scheme.primary),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
             ),
           ),
         ],

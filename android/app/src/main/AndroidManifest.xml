@@ -33,6 +33,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="33">
         <activity
             android:name=".MainActivity"

@@ -1,11 +1,12 @@
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_user.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 
 class ScheduleSessionState {
   final String currentUid;
-  final String? role;
+  final UserRole? role;
   final bool isChildMode;
   final String ownerParentUid;
   final String? familyId;
@@ -26,7 +27,7 @@ class ScheduleSessionState {
 
   ScheduleSessionState copyWith({
     String? currentUid,
-    String? role,
+    UserRole? role,
     bool? isChildMode,
     String? ownerParentUid,
     String? familyId,
@@ -62,11 +63,14 @@ class ScheduleSessionResolver {
     bool watchChildrenForParent = false,
   }) async {
     final currentUid = storage.getString(StorageKeys.uid);
-    final role = storage.getString(StorageKeys.role);
+    final role = roleFromString(
+      storage.getString(StorageKeys.role),
+      fallback: UserRole.child,
+    );
 
     if (currentUid == null || currentUid.isEmpty) return null;
 
-    final isChildMode = lockChildSelection || role == 'child';
+    final isChildMode = lockChildSelection || role == UserRole.child;
 
     if (isChildMode) {
       if (userVm.profile == null || userVm.profile!.id != currentUid) {
@@ -94,7 +98,7 @@ class ScheduleSessionResolver {
 
     // Guardian reuses the parent-owned schedule namespace, so we must resolve
     // the actual owner parent uid instead of treating guardian as the owner.
-    if (role == 'guardian') {
+    if (role == UserRole.guardian) {
       if (userVm.profile == null || userVm.profile!.id != currentUid) {
         await userVm.loadProfile(
           uid: currentUid,

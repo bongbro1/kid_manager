@@ -113,7 +113,7 @@ class FamilyChatRepository {
         members.add(
           FamilyChatMember(
             uid: memberDoc.id,
-            role: (memberData['role'] ?? 'member').toString(),
+            role: UserRole.fromValue(memberData['role']),
             displayName: displayNameRaw.toString(),
             avatarUrl: (memberData['avatarUrl'] ?? '').toString(),
           ),
@@ -121,8 +121,16 @@ class FamilyChatRepository {
       }
 
       members.sort((a, b) {
-        final roleScoreA = a.role == 'parent' ? 0 : 1;
-        final roleScoreB = b.role == 'parent' ? 0 : 1;
+        final roleScoreA = switch (a.role) {
+          UserRole.parent => 0,
+          UserRole.guardian => 1,
+          UserRole.child => 2,
+        };
+        final roleScoreB = switch (b.role) {
+          UserRole.parent => 0,
+          UserRole.guardian => 1,
+          UserRole.child => 2,
+        };
         final roleCompare = roleScoreA.compareTo(roleScoreB);
         if (roleCompare != 0) return roleCompare;
         return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
