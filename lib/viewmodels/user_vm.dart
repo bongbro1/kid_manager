@@ -219,13 +219,10 @@ class UserVm extends ChangeNotifier {
   }
 
   void _recomputeFamilyMembers({bool notify = true}) {
-    final myUid = _storage.getString(StorageKeys.uid)?.trim();
     final filtered = _filterFamilyMembersByAccess(_allFamilyMembers);
     _familyMembers
       ..clear()
-      ..addAll(
-        filtered.where((member) => myUid == null || member.uid != myUid),
-      );
+      ..addAll(filtered);
     if (notify) {
       notifyListeners();
     }

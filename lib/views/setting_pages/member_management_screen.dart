@@ -511,17 +511,48 @@ class MemberItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: scheme.onSurface,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: online
+                                ? scheme.primary.withOpacity(.12)
+                                : scheme.surfaceVariant,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            online
+                                ? l10n.memberManagementOnline
+                                : l10n.memberManagementOffline,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: online
+                                  ? scheme.primary
+                                  : scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${_localizedRole(l10n)} • '
-                      '${online ? l10n.memberManagementOnline : l10n.memberManagementOffline}',
+                      _localizedRole(l10n),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -540,6 +571,7 @@ class MemberItem extends StatelessWidget {
                 ),
               ),
               if (onManageAssignments != null) ...[
+                const SizedBox(width: 8),
                 IconButton(
                   tooltip: 'Chon be theo doi',
                   onPressed: onManageAssignments,
@@ -548,26 +580,7 @@ class MemberItem extends StatelessWidget {
                     color: scheme.primary,
                   ),
                 ),
-                const SizedBox(width: 4),
               ],
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: online
-                      ? scheme.primary.withOpacity(.12)
-                      : scheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  online
-                      ? l10n.memberManagementOnline
-                      : l10n.memberManagementOffline,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: online ? scheme.primary : scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 16),
