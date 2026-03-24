@@ -12,12 +12,14 @@ class ChildSafeRouteHud extends StatelessWidget {
     required this.languageCode,
     this.topOffset = 88,
     this.bottomOffset = 96,
+    this.showBottomStatusPill = true,
   });
 
   final ChildSafeRouteState state;
   final String languageCode;
   final double topOffset;
   final double bottomOffset;
+  final bool showBottomStatusPill;
 
   @override
   Widget build(BuildContext context) {
@@ -44,15 +46,20 @@ class ChildSafeRouteHud extends StatelessWidget {
               updatedLabel: strings.updatedLabel(location.dateTime),
             ),
           ),
-          Positioned(
-            left: 16,
-            bottom: bottomOffset,
-            child: _BottomStatusPill(
-              palette: palette,
-              guidance: guidance,
-              speedLabel: strings.speedLabel(location.speedKmh),
+          if (showBottomStatusPill)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: bottomOffset,
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: _BottomStatusPill(
+                  palette: palette,
+                  guidance: guidance,
+                  speedLabel: strings.speedLabel(location.speedKmh),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -73,6 +80,7 @@ class _TopInstructionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: locationPanelColor(scheme).withOpacity(0.94),
@@ -93,6 +101,7 @@ class _TopInstructionBanner extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   width: 34,
@@ -117,26 +126,13 @@ class _TopInstructionBanner extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: palette.badgeColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    guidance.statusLabel,
-                    style: TextStyle(
-                      color: palette.iconColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
               ],
+            ),
+            const SizedBox(height: 8),
+            _StatusChip(
+              label: guidance.statusLabel,
+              foregroundColor: palette.iconColor,
+              backgroundColor: palette.badgeColor,
             ),
             const SizedBox(height: 10),
             Text(
@@ -153,27 +149,30 @@ class _TopInstructionBanner extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(999),
               child: LinearProgressIndicator(
-                value: guidance.progress,
+                value: guidance.progress.clamp(0.0, 1.0),
                 minHeight: 5,
                 backgroundColor: const Color(0xFFE5E7EB),
                 valueColor: AlwaysStoppedAnimation<Color>(palette.iconColor),
               ),
             ),
             const SizedBox(height: 8),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 _TopMetaChip(
                   icon: Icons.route_rounded,
                   label: guidance.remainingDistanceLabel,
                 ),
-                const SizedBox(width: 8),
                 _TopMetaChip(
                   icon: Icons.schedule_rounded,
                   label: guidance.etaLabel,
                 ),
-                const Spacer(),
                 Text(
                   updatedLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
                     color: scheme.onSurfaceVariant,
@@ -189,6 +188,43 @@ class _TopInstructionBanner extends StatelessWidget {
   }
 }
 
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.label,
+    required this.foregroundColor,
+    required this.backgroundColor,
+  });
+
+  final String label;
+  final Color foregroundColor;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 180),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+          style: TextStyle(
+            color: foregroundColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TopMetaChip extends StatelessWidget {
   const _TopMetaChip({required this.icon, required this.label});
 
@@ -198,26 +234,35 @@ class _TopMetaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: locationPanelMutedColor(scheme),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: scheme.onSurface,
-              fontWeight: FontWeight.w700,
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 150),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: locationPanelMutedColor(scheme),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -237,50 +282,58 @@ class _BottomStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: locationPanelColor(scheme).withOpacity(0.96),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 16,
-            offset: Offset(0, 8),
-          ),
-        ],
-        border: Border.all(color: locationPanelBorderColor(scheme)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(palette.icon, size: 18, color: palette.iconColor),
-            const SizedBox(width: 8),
-            Text(
-              guidance.statusLabel,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              width: 1,
-              height: 16,
-              color: locationPanelBorderColor(scheme),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              speedLabel,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: scheme.onSurfaceVariant,
-              ),
+    final maxWidth = MediaQuery.of(context).size.width - 32;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: locationPanelColor(scheme).withOpacity(0.96),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 16,
+              offset: Offset(0, 8),
             ),
           ],
+          border: Border.all(color: locationPanelBorderColor(scheme)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Icon(palette.icon, size: 18, color: palette.iconColor),
+              Text(
+                guidance.statusLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: scheme.onSurface,
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 16,
+                color: locationPanelBorderColor(scheme),
+              ),
+              Text(
+                speedLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

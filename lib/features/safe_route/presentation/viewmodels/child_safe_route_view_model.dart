@@ -31,27 +31,29 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   Timer? _refreshTimer;
   String _languageCode = 'vi';
   DateTime? _lastArrivalRefreshAt;
-  bool _isDisposed = false;
-  int _refreshRequestId = 0;
+  bool _disposed = false;
+  int _lifecycleGeneration = 0;
 
   void initialize({
     required String languageCode,
     LocationData? initialLocation,
   }) {
-    if (_isDisposed) return;
+    if (_disposed) return;
+    final generation = ++_lifecycleGeneration;
     _languageCode = languageCode;
     if (initialLocation != null) {
       _state = _state.copyWith(currentLocation: initialLocation);
     }
-    unawaited(refreshActiveTrip());
+    unawaited(refreshActiveTrip(generation: generation));
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(_refreshInterval, (_) {
-      unawaited(refreshActiveTrip());
+      if (!_isActiveGeneration(generation)) return;
+      unawaited(refreshActiveTrip(generation: generation));
     });
   }
 
   void updateLanguageCode(String value) {
-    if (_isDisposed) return;
+    if (_disposed) return;
     final normalized = value.trim().toLowerCase();
     if (_languageCode == normalized) return;
     _languageCode = normalized;
@@ -59,7 +61,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   }
 
   void updateCurrentLocation(LocationData? location) {
-    if (_isDisposed || location == null) return;
+    if (_disposed || location == null) return;
     final current = _state.currentLocation;
     if (current != null &&
         current.timestamp == location.timestamp &&
@@ -85,17 +87,21 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshActiveTrip() async {
-    if (_isDisposed) return;
-    final requestId = ++_refreshRequestId;
+  Future<void> refreshActiveTrip({int? generation}) async {
+    if (!_isActiveGeneration(generation)) return;
     _setState(_state.copyWith(isLoading: true, clearErrorMessage: true));
 
     try {
       final trip = await _getActiveTripByChildIdUseCase(childId);
+      if (!_isActiveGeneration(generation)) return;
       SafeRoute? route;
       List<SafeRoute> alternativeRoutes = const [];
       if (trip != null) {
-        final routeGroup = await _loadRouteGroupForTrip(trip);
+        final routeGroup = await _loadRouteGroupForTrip(
+          trip,
+          generation: generation,
+        );
+        if (!_isActiveGeneration(generation)) return;
         route = routeGroup.primaryRoute;
         alternativeRoutes = routeGroup.alternativeRoutes;
       }
@@ -114,7 +120,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
       );
       _recomputeGuidance(notify: true);
     } catch (error) {
-      if (!_canApplyResult(requestId)) return;
+      if (!_isActiveGeneration(generation)) return;
       _setState(
         _state.copyWith(isLoading: false, errorMessage: error.toString()),
       );
@@ -122,7 +128,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   }
 
   void _recomputeGuidance({bool notify = false}) {
-    if (_isDisposed) return;
+    if (_disposed) return;
     final trip = _state.activeTrip;
     final route = _resolveGuidanceRoute();
     final location = _state.currentLocation;
@@ -130,7 +136,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
     if (trip == null || route == null || location == null) {
       _state = _state.copyWith(clearGuidance: true);
       if (notify) {
-        _notifyListenersSafely();
+        _notifySafely();
       }
       return;
     }
@@ -144,23 +150,14 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
 
     _state = _state.copyWith(guidance: guidance, clearErrorMessage: true);
     if (notify) {
-      _notifyListenersSafely();
+      _notifySafely();
     }
   }
 
   void _setState(ChildSafeRouteState next) {
-    if (_isDisposed) return;
+    if (_disposed) return;
     _state = next;
-    _notifyListenersSafely();
-  }
-
-  bool _canApplyResult(int requestId) {
-    return !_isDisposed && requestId == _refreshRequestId;
-  }
-
-  void _notifyListenersSafely() {
-    if (_isDisposed) return;
-    notifyListeners();
+    _notifySafely();
   }
 
   SafeRoute? _resolveGuidanceRoute() {
@@ -185,8 +182,17 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
     return primaryRoute;
   }
 
-  Future<_ChildResolvedRouteGroup> _loadRouteGroupForTrip(Trip trip) async {
+  Future<_ChildResolvedRouteGroup> _loadRouteGroupForTrip(
+    Trip trip, {
+    int? generation,
+  }) async {
     final primaryRoute = await _getRouteByIdUseCase(trip.routeId);
+    if (!_isActiveGeneration(generation)) {
+      return const _ChildResolvedRouteGroup(
+        primaryRoute: null,
+        alternativeRoutes: [],
+      );
+    }
     if (primaryRoute == null) {
       return const _ChildResolvedRouteGroup(
         primaryRoute: null,
@@ -200,6 +206,12 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
     final alternativeRoutes = (await Future.wait(
       alternativeRouteIds.map((routeId) => _getRouteByIdUseCase(routeId)),
     )).whereType<SafeRoute>().toList(growable: false);
+    if (!_isActiveGeneration(generation)) {
+      return const _ChildResolvedRouteGroup(
+        primaryRoute: null,
+        alternativeRoutes: [],
+      );
+    }
 
     final currentRouteId = trip.currentRouteId;
     if (currentRouteId == null || currentRouteId == primaryRoute.id) {
@@ -235,11 +247,22 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    if (_isDisposed) return;
-    _isDisposed = true;
-    _refreshRequestId++;
+    _disposed = true;
+    _lifecycleGeneration++;
     _refreshTimer?.cancel();
+    _refreshTimer = null;
     super.dispose();
+  }
+
+  bool _isActiveGeneration(int? generation) {
+    if (_disposed) return false;
+    if (generation == null) return true;
+    return generation == _lifecycleGeneration;
+  }
+
+  void _notifySafely() {
+    if (_disposed) return;
+    notifyListeners();
   }
 }
 
