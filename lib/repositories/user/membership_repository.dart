@@ -35,12 +35,41 @@ class MembershipRepository {
     String familyId, {
     String? excludeUid,
   }) {
-    return _users
-        .where('familyId', isEqualTo: familyId)
+    final membersRef = _db
+        .collection('families')
+        .doc(familyId)
+        .collection('members');
+
+    return membersRef
         .snapshots()
-        .map((qs) {
-          final list = qs.docs
-              .map(AppUser.fromDoc)
+        .asyncMap((qs) async {
+          final memberDocs = qs.docs;
+          final parentUid = _inferFamilyParentUid(memberDocs);
+
+          final users = await Future.wait(
+            memberDocs.map((memberDoc) async {
+              final uid = (memberDoc.data()['uid'] ?? memberDoc.id).toString();
+              final userSnap = await userRef(uid).get();
+              if (userSnap.exists) {
+                final user = AppUser.fromDoc(userSnap);
+                return _normalizeLegacyLocationMember(
+                  user,
+                  familyId: familyId,
+                  inferredParentUid: parentUid,
+                );
+              }
+
+              final data = memberDoc.data();
+              return _fallbackLocationMember(
+                uid: uid,
+                data: data,
+                familyId: familyId,
+                inferredParentUid: parentUid,
+              );
+            }),
+          );
+
+          final list = users
               .where((user) {
                 if (excludeUid != null &&
                     excludeUid.isNotEmpty &&
@@ -70,6 +99,86 @@ class MembershipRepository {
 
           return list;
         });
+  }
+
+  String? _inferFamilyParentUid(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> memberDocs,
+  ) {
+    for (final memberDoc in memberDocs) {
+      final data = memberDoc.data();
+      final role = UserRole.fromValue(data['role']);
+      if (role == UserRole.parent) {
+        final uid = (data['uid'] ?? memberDoc.id).toString().trim();
+        if (uid.isNotEmpty) {
+          return uid;
+        }
+      }
+    }
+    return null;
+  }
+
+  AppUser _normalizeLegacyLocationMember(
+    AppUser user, {
+    required String familyId,
+    required String? inferredParentUid,
+  }) {
+    final normalizedFamilyId = (user.familyId ?? '').trim().isEmpty
+        ? familyId
+        : user.familyId;
+
+    final normalizedParentUid =
+        (user.parentUid ?? '').trim().isEmpty &&
+            (user.role == UserRole.child || user.role == UserRole.guardian)
+        ? inferredParentUid
+        : user.parentUid;
+
+    if (normalizedFamilyId == user.familyId &&
+        normalizedParentUid == user.parentUid) {
+      return user;
+    }
+
+    return AppUser(
+      uid: user.uid,
+      role: user.role,
+      phone: user.phone,
+      email: user.email,
+      displayName: user.displayName,
+      coverUrl: user.coverUrl,
+      avatarUrl: user.avatarUrl,
+      locale: user.locale,
+      timezone: user.timezone,
+      createdAt: user.createdAt,
+      lastActiveAt: user.lastActiveAt,
+      familyId: normalizedFamilyId,
+      isActive: user.isActive,
+      allowTracking: user.allowTracking,
+      parentUid: normalizedParentUid,
+      subscription: user.subscription,
+      managedChildIds: user.managedChildIds,
+    );
+  }
+
+  AppUser _fallbackLocationMember({
+    required String uid,
+    required Map<String, dynamic> data,
+    required String familyId,
+    required String? inferredParentUid,
+  }) {
+    final role = UserRole.fromValue(data['role']);
+    final fallbackParentUid =
+        (role == UserRole.child || role == UserRole.guardian)
+        ? inferredParentUid
+        : null;
+
+    return AppUser(
+      uid: uid,
+      role: role,
+      familyId: familyId,
+      displayName: data['displayName']?.toString(),
+      avatarUrl: data['avatarUrl']?.toString(),
+      allowTracking: role == UserRole.child,
+      parentUid: fallbackParentUid,
+    );
   }
 
   Future<String> createManagedAccount({

@@ -32,6 +32,7 @@ class ChildLocationScreen extends StatefulWidget {
   @override
   State<ChildLocationScreen> createState() => _ChildLocationScreenState();
 }
+
 class _ChildLocationScreenState extends State<ChildLocationScreen> {
   MapboxMap? _map;
   MapEngine? _engine;
@@ -46,6 +47,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   ChildSafeRouteSeverity? _lastSafeRouteSeverity;
   String? _transientSafeRouteBanner;
   Timer? _transientSafeRouteBannerTimer;
+  bool _disposed = false;
 
   late ChildLocationViewModel _vm;
 
@@ -70,18 +72,22 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
   @override
   void dispose() {
+    _disposed = true;
     if (_vmListener != null) {
       _vm.removeListener(_vmListener!);
+      _vmListener = null;
     }
     _disposeSafeRouteVm();
     super.dispose();
   }
 
   void _disposeSafeRouteVm() {
-    if (_safeRouteVm != null && _safeRouteListener != null) {
-      _safeRouteVm!.removeListener(_safeRouteListener!);
+    final vm = _safeRouteVm;
+    final listener = _safeRouteListener;
+    if (vm != null && listener != null) {
+      vm.removeListener(listener);
     }
-    _safeRouteVm?.dispose();
+    vm?.dispose();
     _safeRouteVm = null;
     _safeRouteListener = null;
     _safeRouteChildId = null;
@@ -111,6 +117,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     required String languageCode,
     LocationData? initialLocation,
   }) {
+    if (_disposed) return;
     if (_safeRouteVm != null && _safeRouteChildId == childId) {
       if (_safeRouteLanguageCode != languageCode) {
         _safeRouteLanguageCode = languageCode;
@@ -134,6 +141,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     _safeRouteChildId = childId;
     _safeRouteLanguageCode = languageCode;
     _safeRouteListener = () {
+      if (_disposed || !mounted || !identical(_safeRouteVm, viewModel)) {
+        return;
+      }
       final nextSeverity = viewModel.state.guidance?.severity;
       final recoveredToRoute =
           _lastSafeRouteSeverity == ChildSafeRouteSeverity.offRoute &&
@@ -158,6 +168,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   }
 
   Future<void> _syncSafeRouteOverlay() async {
+    if (_disposed) return;
     final engine = _engine;
     final route = _safeRouteVm?.state.activeRoute;
     if (engine == null) return;
@@ -167,6 +178,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
       await engine.route.renderRoad(const []);
       await engine.route.renderStraightSegments(const []);
       await engine.startEndMarkers.clear();
+      if (_disposed) return;
       _renderedSafeRouteId = null;
       return;
     }
@@ -186,6 +198,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
       _routePointToLocation(points.last, 1),
     ];
     await engine.startEndMarkers.render(markers);
+    if (_disposed) return;
 
     final fitPoints = points
         .asMap()
@@ -194,6 +207,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         .toList(growable: false);
     if (fitPoints.length >= 2) {
       await engine.camera.fitToRoute(fitPoints);
+      if (_disposed) return;
     }
 
     _renderedSafeRouteId = route.id;
@@ -223,7 +237,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final familyId = context.select<UserVm, String?>((userVm) => userVm.familyId);
+    final familyId = context.select<UserVm, String?>(
+      (userVm) => userVm.familyId,
+    );
     final myUid = context.select<UserVm, String?>((userVm) => userVm.me?.uid);
     final localeCode = context.select<LocaleVm, String>(
       (localeVm) => localeVm.locale.languageCode,
@@ -233,6 +249,8 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     );
     final hasSosOverlay = familyId != null && myUid != null;
     final currentLocation = _vm.currentLocation;
+    final safeRouteState =
+        _safeRouteVm?.state ?? ChildSafeRouteState.initial(myUid ?? '');
 
     if (myUid != null) {
       _ensureSafeRouteVm(
@@ -242,185 +260,206 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
       );
     }
 
-    final safeRouteState =
-        _safeRouteVm?.state ?? ChildSafeRouteState.initial(myUid ?? '');
     final combinedError = childError ?? safeRouteState.errorMessage;
 
-    return Stack(
-      children: [
-        AppMapView(
-          followThemeForStreetStyle: false,
-          onMapCreated: (map) {
-            _map = map;
-          },
-          onStyleLoaded: (map) async {
-            _engine = MapEngine(map, enableChildDot: true);
-            await _engine!.init();
-            if (!mounted) return;
-            _renderedSafeRouteId = null;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight;
+        final compactLayout = availableHeight < 760;
+        final ultraCompactLayout = availableHeight < 680;
+        final safeRouteHudBottomOffset = hasSosOverlay
+            ? (compactLayout ? 138.0 : 190.0)
+            : (compactLayout ? 80.0 : 96.0);
+        final errorBannerBottom = hasSosOverlay
+            ? (compactLayout ? 196.0 : 260.0)
+            : (compactLayout ? 110.0 : 150.0);
+        final sosButtonTop = safeRouteState.guidance != null
+            ? (compactLayout ? 152.0 : 196.0)
+            : 90.0;
 
-            final vm = _vm;
+        return Stack(
+          children: [
+            AppMapView(
+              followThemeForStreetStyle: false,
+              onMapCreated: (map) {
+                _map = map;
+              },
+              onStyleLoaded: (map) async {
+                if (_disposed) return;
+                _engine = MapEngine(map, enableChildDot: true);
+                await _engine!.init();
+                if (!mounted || _disposed) return;
+                _renderedSafeRouteId = null;
 
-            if (_vmListener != null) {
-              vm.removeListener(_vmListener!);
-            }
+                final vm = _vm;
 
-            _vmListener = () {
-              final loc = vm.currentLocation;
-              if (loc == null) return;
+                if (_vmListener != null) {
+                  vm.removeListener(_vmListener!);
+                }
 
-              _safeRouteVm?.updateCurrentLocation(loc);
-              _engine?.updateChildRealtime(loc);
+                _vmListener = () {
+                  if (_disposed) return;
+                  final loc = vm.currentLocation;
+                  if (loc == null) return;
 
-              if (_autoFollow) {
-                _map?.easeTo(
-                  CameraOptions(
-                    center: Point(
-                      coordinates: Position(loc.longitude, loc.latitude),
+                  _safeRouteVm?.updateCurrentLocation(loc);
+                  _engine?.updateChildRealtime(loc);
+
+                  if (_autoFollow) {
+                    _map?.easeTo(
+                      CameraOptions(
+                        center: Point(
+                          coordinates: Position(loc.longitude, loc.latitude),
+                        ),
+                        zoom: 16,
+                      ),
+                      MapAnimationOptions(duration: 600),
+                    );
+                  }
+                };
+
+                vm.addListener(_vmListener!);
+
+                final loc = vm.currentLocation;
+                if (loc != null) {
+                  _safeRouteVm?.updateCurrentLocation(loc);
+                  await _engine!.updateChildRealtime(loc);
+                  if (_disposed) return;
+                }
+                await _syncSafeRouteOverlay();
+              },
+            ),
+
+            MapTopBar(onMenuTap: () {}, onAvatarTap: () {}),
+
+            if (_transientSafeRouteBanner != null)
+              Positioned(
+                left: 20,
+                right: 20,
+                top: 54,
+                child: SafeArea(
+                  bottom: false,
+                  child: IgnorePointer(
+                    child: _SafeRouteNoticeBanner(
+                      message: _transientSafeRouteBanner!,
                     ),
-                    zoom: 16,
                   ),
-                  MapAnimationOptions(duration: 600),
-                );
-              }
-            };
+                ),
+              ),
 
-            vm.addListener(_vmListener!);
+            if (safeRouteState.guidance != null)
+              ChildSafeRouteHud(
+                state: safeRouteState,
+                languageCode: localeCode,
+                topOffset: 88,
+                bottomOffset: safeRouteHudBottomOffset,
+                showBottomStatusPill: !ultraCompactLayout,
+              ),
 
-            final loc = vm.currentLocation;
-            if (loc != null) {
-              _safeRouteVm?.updateCurrentLocation(loc);
-              await _engine!.updateChildRealtime(loc);
-            }
-            await _syncSafeRouteOverlay();
-          },
-        ),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: SafeArea(
+                top: false,
+                child: MapBottomControls(
+                  children: const [],
+                  onMyLocation: () {
+                    final loc = _vm.currentLocation;
+                    if (loc == null) return;
 
-        MapTopBar(onMenuTap: () {}, onAvatarTap: () {}),
+                    _autoFollow = true;
 
-        if (_transientSafeRouteBanner != null)
-          Positioned(
-            left: 20,
-            right: 20,
-            top: 54,
-            child: SafeArea(
-              bottom: false,
-              child: IgnorePointer(
-                child: _SafeRouteNoticeBanner(
-                  message: _transientSafeRouteBanner!,
+                    _map?.easeTo(
+                      CameraOptions(
+                        center: Point(
+                          coordinates: Position(loc.longitude, loc.latitude),
+                        ),
+                        zoom: 16,
+                      ),
+                      MapAnimationOptions(duration: 600),
+                    );
+                  },
                 ),
               ),
             ),
-          ),
+            Positioned(
+              left: 12,
+              top: sosButtonTop,
+              child: SafeArea(
+                top: false,
+                child: SosCircleButton(
+                  onPressed: () async {
+                    final loc = _vm.currentLocation;
+                    final displayName =
+                        context.read<UserVm>().me?.displayName ??
+                        l10n.parentLocationUnknownUser;
+                    final sosVm = context.read<SosViewModel>();
 
-        if (safeRouteState.guidance != null)
-          ChildSafeRouteHud(
-            state: safeRouteState,
-            languageCode: localeCode,
-            topOffset: 88,
-            bottomOffset: hasSosOverlay ? 190 : 96,
-          ),
+                    debugPrint('SOS child tapped');
+                    debugPrint('SOS loc=$loc');
+                    debugPrint('SOS sending=${sosVm.sending}');
+                    debugPrint('SOS familyId=${context.read<UserVm>().familyId}');
+                    debugPrint('SOS uid=${context.read<UserVm>().me?.uid}');
 
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: 16,
-          child: SafeArea(
-            top: false,
-            child: MapBottomControls(
-              children: const [],
-              onMyLocation: () {
-                final loc = _vm.currentLocation;
-                if (loc == null) return;
+                    if (loc == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.currentLocationError)),
+                      );
+                      return;
+                    }
 
-                _autoFollow = true;
+                    if (sosVm.sending) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.childLocationSosSending)),
+                      );
+                      return;
+                    }
 
-                _map?.easeTo(
-                  CameraOptions(
-                    center: Point(
-                      coordinates: Position(loc.longitude, loc.latitude),
-                    ),
-                    zoom: 16,
-                  ),
-                  MapAnimationOptions(duration: 600),
-                );
-              },
+                    try {
+                      final sosId = await sosVm.triggerSos(
+                        lat: loc.latitude,
+                        lng: loc.longitude,
+                        acc: loc.accuracy,
+                        createdByName: displayName,
+                      );
+
+                      if (!context.mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            sosId != null
+                                ? l10n.parentLocationSosSent
+                                : l10n.parentLocationSosFailed,
+                          ),
+                        ),
+                      );
+                    } catch (error, stackTrace) {
+                      debugPrint('triggerSos error: $error');
+                      debugPrint('$stackTrace');
+
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.childLocationSosError('$error')),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
             ),
-          ),
-        ),
-        Positioned(
-          left: 12,
-          top: safeRouteState.guidance != null ? 196 : 90,
-          child: SafeArea(
-            top: false,
-            child: SosCircleButton(
-              onPressed: () async {
-                final loc = _vm.currentLocation;
-                final displayName =
-                    context.read<UserVm>().me?.displayName ??
-                    l10n.parentLocationUnknownUser;
-                final sosVm = context.read<SosViewModel>();
-
-                debugPrint('SOS child tapped');
-                debugPrint('SOS loc=$loc');
-                debugPrint('SOS sending=${sosVm.sending}');
-                debugPrint('SOS familyId=${context.read<UserVm>().familyId}');
-                debugPrint('SOS uid=${context.read<UserVm>().me?.uid}');
-
-                if (loc == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.currentLocationError)),
-                  );
-                  return;
-                }
-
-                if (sosVm.sending) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.childLocationSosSending)),
-                  );
-                  return;
-                }
-
-                try {
-                  final sosId = await sosVm.triggerSos(
-                    lat: loc.latitude,
-                    lng: loc.longitude,
-                    acc: loc.accuracy,
-                    createdByName: displayName,
-                  );
-
-                  if (!context.mounted) return;
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        sosId != null
-                            ? l10n.parentLocationSosSent
-                            : l10n.parentLocationSosFailed,
-                      ),
-                    ),
-                  );
-                } catch (error, stackTrace) {
-                  debugPrint('triggerSos error: $error');
-                  debugPrint('$stackTrace');
-
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.childLocationSosError('$error'))),
-                  );
-                }
-              },
-            ),
-          ),
-        ),
-        if (combinedError != null)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: hasSosOverlay ? 260 : 150,
-            child: _ErrorBanner(message: combinedError),
-          ),
-      ],
+            if (combinedError != null)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: errorBannerBottom,
+                child: _ErrorBanner(message: combinedError),
+              ),
+          ],
+        );
+      },
     );
   }
 }
