@@ -33,13 +33,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get phoneLabel => 'Số điện thoại';
 
   @override
-  String get phoneHint => '+84 012345678';
+  String get phoneHint => 'ví dụ: +84 012345678';
 
   @override
   String get genderLabel => 'Giới tính';
 
   @override
-  String get genderHint => 'Nam';
+  String get genderHint => 'Chọn giới tính';
 
   @override
   String get genderMaleOption => 'Nam';
@@ -54,13 +54,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get birthDateLabel => 'Ngày sinh';
 
   @override
-  String get birthDateHint => '12/12/2003';
+  String get birthDateHint => 'Nhập ngày sinh';
 
   @override
   String get addressLabel => 'Địa chỉ';
 
   @override
-  String get addressHint => 'Xã Điềm Thụy, Tỉnh Thái Nguyên';
+  String get addressHint => 'Nhập địa chỉ';
 
   @override
   String get locationTrackingLabel => 'Quyền theo dõi';

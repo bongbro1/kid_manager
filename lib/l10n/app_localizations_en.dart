@@ -33,13 +33,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get phoneLabel => 'Phone number';
 
   @override
-  String get phoneHint => '+84 012345678';
+  String get phoneHint => 'example: +84 012345678';
 
   @override
   String get genderLabel => 'Gender';
 
   @override
-  String get genderHint => 'Male';
+  String get genderHint => 'Select gender';
 
   @override
   String get genderMaleOption => 'Male';
@@ -54,13 +54,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get birthDateLabel => 'Birth date';
 
   @override
-  String get birthDateHint => '12/12/2003';
+  String get birthDateHint => 'Enter date of birth';
 
   @override
   String get addressLabel => 'Address';
 
   @override
-  String get addressHint => 'Diem Thuy commune, Thai Nguyen province';
+  String get addressHint => 'Enter address';
 
   @override
   String get locationTrackingLabel => 'Location tracking';

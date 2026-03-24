@@ -31,11 +31,14 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   Timer? _refreshTimer;
   String _languageCode = 'vi';
   DateTime? _lastArrivalRefreshAt;
+  bool _isDisposed = false;
+  int _refreshRequestId = 0;
 
   void initialize({
     required String languageCode,
     LocationData? initialLocation,
   }) {
+    if (_isDisposed) return;
     _languageCode = languageCode;
     if (initialLocation != null) {
       _state = _state.copyWith(currentLocation: initialLocation);
@@ -48,6 +51,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   }
 
   void updateLanguageCode(String value) {
+    if (_isDisposed) return;
     final normalized = value.trim().toLowerCase();
     if (_languageCode == normalized) return;
     _languageCode = normalized;
@@ -55,7 +59,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   }
 
   void updateCurrentLocation(LocationData? location) {
-    if (location == null) return;
+    if (_isDisposed || location == null) return;
     final current = _state.currentLocation;
     if (current != null &&
         current.timestamp == location.timestamp &&
@@ -82,6 +86,8 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   }
 
   Future<void> refreshActiveTrip() async {
+    if (_isDisposed) return;
+    final requestId = ++_refreshRequestId;
     _setState(_state.copyWith(isLoading: true, clearErrorMessage: true));
 
     try {
@@ -93,6 +99,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
         route = routeGroup.primaryRoute;
         alternativeRoutes = routeGroup.alternativeRoutes;
       }
+      if (!_canApplyResult(requestId)) return;
 
       _state = _state.copyWith(
         isLoading: false,
@@ -107,6 +114,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
       );
       _recomputeGuidance(notify: true);
     } catch (error) {
+      if (!_canApplyResult(requestId)) return;
       _setState(
         _state.copyWith(isLoading: false, errorMessage: error.toString()),
       );
@@ -114,6 +122,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   }
 
   void _recomputeGuidance({bool notify = false}) {
+    if (_isDisposed) return;
     final trip = _state.activeTrip;
     final route = _resolveGuidanceRoute();
     final location = _state.currentLocation;
@@ -121,7 +130,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
     if (trip == null || route == null || location == null) {
       _state = _state.copyWith(clearGuidance: true);
       if (notify) {
-        notifyListeners();
+        _notifyListenersSafely();
       }
       return;
     }
@@ -135,12 +144,22 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
 
     _state = _state.copyWith(guidance: guidance, clearErrorMessage: true);
     if (notify) {
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
   void _setState(ChildSafeRouteState next) {
+    if (_isDisposed) return;
     _state = next;
+    _notifyListenersSafely();
+  }
+
+  bool _canApplyResult(int requestId) {
+    return !_isDisposed && requestId == _refreshRequestId;
+  }
+
+  void _notifyListenersSafely() {
+    if (_isDisposed) return;
     notifyListeners();
   }
 
@@ -216,6 +235,9 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    _refreshRequestId++;
     _refreshTimer?.cancel();
     super.dispose();
   }

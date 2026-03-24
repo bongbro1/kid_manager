@@ -149,7 +149,7 @@ abstract class AppLocalizations {
   /// No description provided for @phoneHint.
   ///
   /// In en, this message translates to:
-  /// **'+84 012345678'**
+  /// **'example: +84 012345678'**
   String get phoneHint;
 
   /// No description provided for @genderLabel.
@@ -161,7 +161,7 @@ abstract class AppLocalizations {
   /// No description provided for @genderHint.
   ///
   /// In en, this message translates to:
-  /// **'Male'**
+  /// **'Select gender'**
   String get genderHint;
 
   /// No description provided for @genderMaleOption.
@@ -191,7 +191,7 @@ abstract class AppLocalizations {
   /// No description provided for @birthDateHint.
   ///
   /// In en, this message translates to:
-  /// **'12/12/2003'**
+  /// **'Enter date of birth'**
   String get birthDateHint;
 
   /// No description provided for @addressLabel.
@@ -203,7 +203,7 @@ abstract class AppLocalizations {
   /// No description provided for @addressHint.
   ///
   /// In en, this message translates to:
-  /// **'Diem Thuy commune, Thai Nguyen province'**
+  /// **'Enter address'**
   String get addressHint;
 
   /// No description provided for @locationTrackingLabel.
