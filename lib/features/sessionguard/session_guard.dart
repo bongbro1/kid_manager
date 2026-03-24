@@ -241,8 +241,8 @@ class _SessionGuardState extends State<SessionGuard> {
 
             if ((resolvedRole == UserRole.parent ||
                     resolvedRole == UserRole.guardian) &&
-                resolvedFamilyId.isNotEmpty) {
-              appManagementVm.watchChildren(resolvedFamilyId);
+                managedOwnerUid.isNotEmpty) {
+              appManagementVm.watchChildren(managedOwnerUid);
             }
           });
         }
@@ -260,9 +260,12 @@ class _SessionGuardState extends State<SessionGuard> {
               normalizedFamilyId,
               excludeUid: currentUid,
             );
+            final managedOwnerUid = isGuardian == true
+                ? (session.user?.parentUid?.trim() ?? '')
+                : currentUid;
             if ((isParent == true || isGuardian == true) &&
-                normalizedFamilyId.isNotEmpty) {
-              userVm.watchChildren(normalizedFamilyId);
+                managedOwnerUid.isNotEmpty) {
+              userVm.watchChildren(managedOwnerUid);
             }
           });
         }
