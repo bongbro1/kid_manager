@@ -725,7 +725,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
                   width: 345,
                   decoration: ShapeDecoration(
                     shape: RoundedRectangleBorder(
-                      side: BorderSide(width: 1, color: scheme.outlineVariant),
+                      side: BorderSide(width: 1, color: scheme.outline),
                     ),
                   ),
                 ),

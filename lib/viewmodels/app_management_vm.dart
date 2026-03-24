@@ -6,7 +6,6 @@ import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/child_item.dart';
-import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/access_control/access_control_service.dart';
@@ -21,7 +20,12 @@ class AppManagementVM extends ChangeNotifier {
   final StorageService _storage;
   final AccessControlService _accessControl;
 
-  AppManagementVM(this._repo, this._userRepo, this._storage, this._accessControl);
+  AppManagementVM(
+    this._repo,
+    this._userRepo,
+    this._storage,
+    this._accessControl,
+  );
 
   bool _loading = false;
   bool get loading => _loading;
@@ -83,8 +87,7 @@ class AppManagementVM extends ChangeNotifier {
 
     final parentUid = _storage.getString(StorageKeys.parentId)?.trim();
     final managedChildIds =
-        _storage.getStringList(StorageKeys.managedChildIds) ??
-        const <String>[];
+        _storage.getStringList(StorageKeys.managedChildIds) ?? const <String>[];
 
     return AppUser(
       uid: uid,
@@ -136,63 +139,65 @@ class AppManagementVM extends ChangeNotifier {
     _resetLoadedData();
     notifyListeners();
 
-    _childrenSub = _userRepo.watchChildrenByParentUid(parentUid).listen(
-      (list) async {
-        if (watchGeneration != _childrenWatchGeneration) return;
-        final actor = await _resolveActorSnapshot();
+    _childrenSub = _userRepo
+        .watchChildrenByParentUid(parentUid)
+        .listen(
+          (list) async {
+            if (watchGeneration != _childrenWatchGeneration) return;
+            final actor = await _resolveActorSnapshot();
 
-        final filtered = actor == null
-            ? <AppUser>[
-                if (roleFromString(
+            final filtered = actor == null
+                ? <AppUser>[
+                    if (roleFromString(
                       _storage.getString(StorageKeys.role),
                       fallback: UserRole.child,
                     ).isAdultManager)
-                  ...list,
-              ]
-            : list
-                .where(
-                  (user) => _accessControl.canManageChild(
-                    actor: actor,
-                    childUid: user.uid,
-                    child: user,
-                  ),
-                )
-                .toList(growable: false);
+                      ...list,
+                  ]
+                : list
+                      .where(
+                        (user) => _accessControl.canManageChild(
+                          actor: actor,
+                          childUid: user.uid,
+                          child: user,
+                        ),
+                      )
+                      .toList(growable: false);
 
-        children = filtered.map(ChildItem.fromUser).toList();
+            children = filtered.map(ChildItem.fromUser).toList();
 
-        if (children.isEmpty) {
-          _selectedChildId = null;
-          _error = null;
-          _resetLoadedData();
-          _loading = false;
-          notifyListeners();
-          return;
-        }
+            if (children.isEmpty) {
+              _selectedChildId = null;
+              _error = null;
+              _resetLoadedData();
+              _loading = false;
+              notifyListeners();
+              return;
+            }
 
-        final shouldReselect =
-            _selectedChildId == null ||
-            !children.any((c) => c.id == _selectedChildId);
+            final shouldReselect =
+                _selectedChildId == null ||
+                !children.any((c) => c.id == _selectedChildId);
 
-        if (shouldReselect) {
-          _selectedChildId = children.first.id;
-          notifyListeners();
-          await loadAppsForSelectedChild();
-          if (watchGeneration != _childrenWatchGeneration) return;
-        }
+            if (shouldReselect) {
+              _selectedChildId = children.first.id;
+              notifyListeners();
+              await loadAppsForSelectedChild();
+              if (watchGeneration != _childrenWatchGeneration) return;
+            }
 
-        _loading = false;
-        notifyListeners();
-      },
-      onError: (e) {
-        if (watchGeneration != _childrenWatchGeneration) return;
-        _error = e.toString();
-        _selectedChildId = null;
-        _resetLoadedData();
-        _loading = false;
-        notifyListeners();
-      },
-    );
+            _loading = false;
+            notifyListeners();
+          },
+          onError: (e) {
+            if (watchGeneration != _childrenWatchGeneration) return;
+            _error = e.toString();
+            _selectedChildId = null;
+            _resetLoadedData();
+            _loading = false;
+            notifyListeners();
+          },
+        );
   }
 
   Future<void> loadAppsForSelectedChild() async {

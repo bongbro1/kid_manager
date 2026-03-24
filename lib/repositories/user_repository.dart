@@ -152,6 +152,17 @@ class UserRepository {
     return _profileRepository.patchUserProfile(uid: uid, patch: patch);
   }
 
+  Stream<List<AppUser>> watchChildrenByFamilyId(String familyId) {
+    return _db
+        .collection('users')
+        .where('familyId', isEqualTo: familyId)
+        .where('role', isEqualTo: roleToString(UserRole.child))
+        .snapshots()
+        .map((snap) {
+          return snap.docs.map((d) => AppUser.fromDoc(d)).toList();
+        });
+  }
+
   Future<List<ChildItem>> getChildrenByParentUid(String parentUid) =>
       _membershipRepository.getChildrenByParentUid(parentUid);
 

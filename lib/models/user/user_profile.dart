@@ -2,6 +2,21 @@ import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 
 class UserProfile {
+  final String id;
+  final String name;
+  final String phone;
+  final String gender;
+  final String dob;
+  final String address;
+  final bool allowTracking;
+  final UserRole role;
+  final String? parentUid;
+  final String? familyId;
+  final String? avatarUrl;
+  final String? coverUrl;
+  final String? locale;
+  final List<String> managedChildIds;
+
   UserProfile({
     required this.id,
     required this.name,
@@ -15,22 +30,9 @@ class UserProfile {
     this.coverUrl,
     this.parentUid,
     this.locale,
+    this.familyId,
     this.managedChildIds = const <String>[],
   });
-
-  final String id;
-  final String name;
-  final String phone;
-  final String gender;
-  final String dob;
-  final String address;
-  final bool allowTracking;
-  final UserRole role;
-  final String? parentUid;
-  final String? avatarUrl;
-  final String? coverUrl;
-  final String? locale;
-  final List<String> managedChildIds;
 
   bool get isParent => role == UserRole.parent;
   bool get isChild => role == UserRole.child;
@@ -47,14 +49,15 @@ class UserProfile {
       if (parsedDob != null)
         ...buildBirthdayStorageFields(parsedDob)
       else
-        'dob': dob,
-      'address': address,
-      'allowTracking': allowTracking,
+        "dob": dob,
+      "address": address,
+      "allowTracking": allowTracking,
       'role': roleKey,
-      'avatarUrl': avatarUrl,
-      'coverUrl': coverUrl,
-      'parentUid': parentUid,
-      'locale': locale,
+      "avatarUrl": avatarUrl,
+      "coverUrl": coverUrl,
+      "parentUid": parentUid,
+      "locale": locale,
+      "familyId": familyId,
       if (managedChildIds.isNotEmpty) 'managedChildIds': managedChildIds,
     };
 
@@ -74,6 +77,7 @@ class UserProfile {
     String? avatarUrl,
     String? coverUrl,
     String? parentUid,
+    String? familyId,
     String? locale,
     List<String>? managedChildIds,
   }) {
@@ -89,6 +93,7 @@ class UserProfile {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       coverUrl: coverUrl ?? this.coverUrl,
       parentUid: parentUid ?? this.parentUid,
+      familyId: familyId ?? this.familyId,
       locale: locale ?? this.locale ?? 'vi',
       managedChildIds: managedChildIds ?? this.managedChildIds,
     );
@@ -118,6 +123,7 @@ class UserProfile {
       coverUrl: data['coverUrl']?.toString(),
       parentUid: data['parentUid']?.toString(),
       locale: data['locale']?.toString() ?? 'vi',
+      familyId: data["familyId"]?.toString(),
       managedChildIds: _readManagedChildIds(data),
     );
   }

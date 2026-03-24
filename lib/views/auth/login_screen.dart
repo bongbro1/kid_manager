@@ -106,7 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
       await storage.setString(StorageKeys.uid, uid);
 
       final profile = await userVM.loadProfile(uid: uid, caller: 'LoginScreen');
-      if (!mounted) return;
       if (profile == null) {
         await NotificationDialog.show(
           context,
