@@ -146,6 +146,10 @@ class AppShellConfig {
       ),
     ),
     BottomTabConfig(
+      iconAsset: 'assets/icons/dashboard.svg',
+      root: const AppManagementScreen(),
+    ),
+    BottomTabConfig(
       iconAsset: 'assets/icons/sms.svg',
       root: const FamilyGroupChatScreen(),
       showBadge: true,

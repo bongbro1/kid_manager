@@ -6,7 +6,6 @@ import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/child_item.dart';
-import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/storage_service.dart';
@@ -73,7 +72,7 @@ class AppManagementVM extends ChangeNotifier {
     await loadAppsForSelectedChild();
   }
 
-  Future<void> watchChildren(String parentUid) async {
+  Future<void> watchChildren(String familyId) async {
     _childrenWatchGeneration++;
     _loadGeneration++;
     final watchGeneration = _childrenWatchGeneration;
@@ -85,51 +84,46 @@ class AppManagementVM extends ChangeNotifier {
     _resetLoadedData();
     notifyListeners();
 
-    _childrenSub = _userRepo.watchChildrenByParentUid(parentUid).listen(
-      (list) async {
-        if (watchGeneration != _childrenWatchGeneration) return;
+    _childrenSub = _userRepo
+        .watchChildrenByFamilyId(familyId)
+        .listen(
+          (list) async {
+            if (watchGeneration != _childrenWatchGeneration) return;
 
-        final filtered = list
-            .where(
-              (u) =>
-                  roleToString(u.role) != roleToString(UserRole.guardian),
-            )
-            .toList();
+            children = list.map(ChildItem.fromUser).toList();
 
-        children = filtered.map(ChildItem.fromUser).toList();
+            if (children.isEmpty) {
+              _selectedChildId = null;
+              _error = null;
+              _resetLoadedData();
+              _loading = false;
+              notifyListeners();
+              return;
+            }
 
-        if (children.isEmpty) {
-          _selectedChildId = null;
-          _error = null;
-          _resetLoadedData();
-          _loading = false;
-          notifyListeners();
-          return;
-        }
+            final shouldReselect =
+                _selectedChildId == null ||
+                !children.any((c) => c.id == _selectedChildId);
 
-        final shouldReselect =
-            _selectedChildId == null ||
-            !children.any((c) => c.id == _selectedChildId);
+            if (shouldReselect) {
+              _selectedChildId = children.first.id;
+              notifyListeners();
+              await loadAppsForSelectedChild();
+              if (watchGeneration != _childrenWatchGeneration) return;
+            }
 
-        if (shouldReselect) {
-          _selectedChildId = children.first.id;
-          notifyListeners();
-          await loadAppsForSelectedChild();
-          if (watchGeneration != _childrenWatchGeneration) return;
-        }
-
-        _loading = false;
-        notifyListeners();
-      },
-      onError: (e) {
-        if (watchGeneration != _childrenWatchGeneration) return;
-        _error = e.toString();
-        _selectedChildId = null;
-        _resetLoadedData();
-        _loading = false;
-        notifyListeners();
-      },
-    );
+            _loading = false;
+            notifyListeners();
+          },
+          onError: (e) {
+            if (watchGeneration != _childrenWatchGeneration) return;
+            _error = e.toString();
+            _selectedChildId = null;
+            _resetLoadedData();
+            _loading = false;
+            notifyListeners();
+          },
+        );
   }
 
   Future<void> loadAppsForSelectedChild() async {

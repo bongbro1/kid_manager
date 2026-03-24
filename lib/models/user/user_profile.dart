@@ -10,6 +10,7 @@ class UserProfile {
   final bool allowTracking;
   final String? role;
   final String? parentUid;
+  final String? familyId;
   final String? avatarUrl;
   final String? coverUrl;
   final String? locale;
@@ -27,6 +28,7 @@ class UserProfile {
     this.coverUrl,
     this.parentUid,
     this.locale,
+    this.familyId,
   });
 
   Map<String, dynamic> toMap() {
@@ -46,6 +48,7 @@ class UserProfile {
       "coverUrl": coverUrl,
       "parentUid": parentUid,
       "locale": locale,
+      "familyId": familyId,
     };
 
     data.removeWhere((key, value) => value == null);
@@ -64,6 +67,7 @@ class UserProfile {
     String? avatarUrl,
     String? coverUrl,
     String? parentUid,
+    String? familyId,
     String? locale,
   }) {
     return UserProfile(
@@ -78,6 +82,7 @@ class UserProfile {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       coverUrl: coverUrl ?? this.coverUrl,
       parentUid: parentUid ?? this.parentUid,
+      familyId: familyId ?? this.familyId,
       locale: locale ?? this.locale ?? 'vi',
     );
   }
@@ -104,6 +109,7 @@ class UserProfile {
       avatarUrl: data["avatarUrl"]?.toString(),
       coverUrl: data["coverUrl"]?.toString(),
       parentUid: data["parentUid"]?.toString(),
+      familyId: data["familyId"]?.toString(),
       locale: data["locale"]?.toString() ?? 'vi',
     );
   }

@@ -530,8 +530,8 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                       child: AppButton(
                         text: l10n.cancelButton,
                         height: 50,
-                        backgroundColor: scheme.primaryContainer, // 👈 nền nhẹ
-                        foregroundColor: scheme.primary, // 👈 chữ primary
+                        backgroundColor: scheme.primaryContainer,
+                        foregroundColor: scheme.primary,
                         fontSize: 16,
                         lineHeight: 1.38,
                         fontWeight: FontWeight.w700,
@@ -545,9 +545,9 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                       child: AppButton(
                         text: l10n.saveButton,
                         height: 50,
-                        backgroundColor: scheme.primary, // 👈 nút chính
+                        backgroundColor: scheme.primary,
                         foregroundColor:
-                            scheme.onPrimary, // 👈 chữ trên nền primary
+                            scheme.onPrimary,
                         fontSize: 16,
                         lineHeight: 1.38,
                         fontWeight: FontWeight.w700,

@@ -225,39 +225,33 @@ class UserRepository {
     String familyId, {
     String? excludeUid,
   }) {
-    return _users
-        .where('familyId', isEqualTo: familyId)
-        .snapshots()
-        .map((qs) {
-          final list = qs.docs
-              .map(AppUser.fromDoc)
-              .where((user) {
-                if (excludeUid != null &&
-                    excludeUid.isNotEmpty &&
-                    user.uid == excludeUid) {
-                  return false;
-                }
+    return _users.where('familyId', isEqualTo: familyId).snapshots().map((qs) {
+      final list = qs.docs.map(AppUser.fromDoc).where((user) {
+        if (excludeUid != null &&
+            excludeUid.isNotEmpty &&
+            user.uid == excludeUid) {
+          return false;
+        }
 
-                if (user.role == UserRole.child) {
-                  return true;
-                }
+        if (user.role == UserRole.child) {
+          return true;
+        }
 
-                return user.role == UserRole.guardian && user.allowTracking;
-              })
-              .toList();
+        return user.role == UserRole.guardian && user.allowTracking;
+      }).toList();
 
-          list.sort((a, b) {
-            final roleScoreA = a.role == UserRole.child ? 0 : 1;
-            final roleScoreB = b.role == UserRole.child ? 0 : 1;
-            final roleCompare = roleScoreA.compareTo(roleScoreB);
-            if (roleCompare != 0) return roleCompare;
-            final nameA = (a.displayName ?? a.email ?? '').trim().toLowerCase();
-            final nameB = (b.displayName ?? b.email ?? '').trim().toLowerCase();
-            return nameA.compareTo(nameB);
-          });
+      list.sort((a, b) {
+        final roleScoreA = a.role == UserRole.child ? 0 : 1;
+        final roleScoreB = b.role == UserRole.child ? 0 : 1;
+        final roleCompare = roleScoreA.compareTo(roleScoreB);
+        if (roleCompare != 0) return roleCompare;
+        final nameA = (a.displayName ?? a.email ?? '').trim().toLowerCase();
+        final nameB = (b.displayName ?? b.email ?? '').trim().toLowerCase();
+        return nameA.compareTo(nameB);
+      });
 
-          return list;
-        });
+      return list;
+    });
   }
 
   Future<String?> getFamilyId(String uid) async {
@@ -318,9 +312,11 @@ class UserRepository {
       );
 
       batch.set(
-        _db.collection('families').doc(familyId).collection('members').doc(
-          childUid,
-        ),
+        _db
+            .collection('families')
+            .doc(familyId)
+            .collection('members')
+            .doc(childUid),
         {
           ..._familyMemberPublicFields(
             uid: childUid,
@@ -456,10 +452,11 @@ class UserRepository {
     await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
   }
 
-  Stream<List<AppUser>> watchChildrenByParentUid(String parentUid) {
+  Stream<List<AppUser>> watchChildrenByFamilyId(String familyId) {
     return _db
         .collection('users')
-        .where('parentUid', isEqualTo: parentUid)
+        .where('familyId', isEqualTo: familyId)
+        .where('role', isEqualTo: roleToString(UserRole.child))
         .snapshots()
         .map((snap) {
           return snap.docs.map((d) => AppUser.fromDoc(d)).toList();

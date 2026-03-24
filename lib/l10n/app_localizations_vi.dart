@@ -18,7 +18,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get aboutAppTitle => 'Về ứng dụng';
 
   @override
-  String get addAccountTitle => 'Thêm tài khoản con';
+  String get addAccountTitle => 'Thêm tài khoản';
 
   @override
   String get logoutTitle => 'Đăng xuất';

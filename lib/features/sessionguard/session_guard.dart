@@ -169,7 +169,9 @@ class _SessionGuardState extends State<SessionGuard> {
             await storage.setString(StorageKeys.uid, uid);
 
             final resolvedRole = profile != null
-                ? roleFromString(profile.role ?? sessionUser?.role.name ?? 'child')
+                ? roleFromString(
+                    profile.role ?? sessionUser?.role.name ?? 'child',
+                  )
                 : sessionUser!.role;
             final resolvedDisplayName =
                 (profile?.name ?? sessionUser?.displayName ?? '').trim();
@@ -177,7 +179,10 @@ class _SessionGuardState extends State<SessionGuard> {
                 ? (profile?.parentUid ?? sessionUser?.parentUid ?? '').trim()
                 : uid;
 
-            await storage.setString(StorageKeys.role, roleToString(resolvedRole));
+            await storage.setString(
+              StorageKeys.role,
+              roleToString(resolvedRole),
+            );
             if (resolvedDisplayName.isNotEmpty) {
               await storage.setString(
                 StorageKeys.displayName,
@@ -208,8 +213,13 @@ class _SessionGuardState extends State<SessionGuard> {
             }
 
             userVm.watchMe(uid);
-            if (resolvedRole == UserRole.parent) {
-              appManagementVm.watchChildren(uid);
+            final resolvedFamilyId =
+                (profile?.familyId ?? sessionUser?.familyId ?? '').trim();
+
+            if ((resolvedRole == UserRole.parent ||
+                    resolvedRole == UserRole.guardian) &&
+                resolvedFamilyId.isNotEmpty) {
+              appManagementVm.watchChildren(resolvedFamilyId);
             }
           });
         }
@@ -227,8 +237,9 @@ class _SessionGuardState extends State<SessionGuard> {
               normalizedFamilyId,
               excludeUid: currentUid,
             );
-            if (isParent == true) {
-              userVm.watchChildren(currentUid);
+            if ((isParent == true || isGuardian == true) &&
+                normalizedFamilyId.isNotEmpty) {
+              userVm.watchChildren(normalizedFamilyId);
             }
           });
         }
@@ -431,16 +442,15 @@ class _GuardianWarmupShellState extends State<_GuardianWarmupShell> {
     final shouldShare = me?.isGuardian == true && me?.allowTracking == true;
 
     if (shouldShare && !_selfTrackingActive) {
-      final hasForegroundPermission =
-          await _locationService.hasLocationPermission(
-            requireBackground: false,
-          );
+      final hasForegroundPermission = await _locationService
+          .hasLocationPermission(requireBackground: false);
       final serviceEnabled = await _locationService.isServiceEnabled();
       if (!hasForegroundPermission || !serviceEnabled) {
         return;
       }
 
-      final hasBackgroundMode = await _locationService.isBackgroundModeEnabled();
+      final hasBackgroundMode = await _locationService
+          .isBackgroundModeEnabled();
       await _childLocationVm.startLocationSharing(
         background: hasBackgroundMode,
       );
