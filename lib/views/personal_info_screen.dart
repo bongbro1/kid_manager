@@ -14,6 +14,7 @@ import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
 import 'package:kid_manager/views/setting_pages/member_management_screen.dart';
+import 'package:kid_manager/views/notifications/notification_debug_screen.dart';
 import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
@@ -245,7 +246,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: theme.textTheme.titleLarge?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 20
+            fontSize: 20,
           ),
         ),
         actions: const [SizedBox(width: 60)],
@@ -598,6 +599,9 @@ class MoreActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final profile = context.watch<UserVm>().profile;
+    final showNotificationDebug = profile?.role == UserRole.parent;
+
     return AppOverlaySheet(
       showHandle: true,
       child: Padding(

@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/validators.dart';
+import 'package:kid_manager/helpers/mail_helper.dart';
+import 'package:kid_manager/models/auth/password_validator.dart';
 import 'package:kid_manager/views/auth/dialog/phone_auth_dialog.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
 import 'package:kid_manager/views/terms_screen.dart';
@@ -38,11 +40,12 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _onSignUpPressed() async {
     final vm = context.read<AuthVM>();
     final l10n = AppLocalizations.of(context);
+
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text.trim();
     final confirm = _confirmCtrl.text.trim();
-    // Validate
-    if (email.isEmpty || password.isEmpty) {
+
+    if (email.isEmpty || password.isEmpty || confirm.isEmpty || !agreeClause) {
       AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
     }
@@ -52,22 +55,29 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    if (email.isEmpty || password.isEmpty || confirm.isEmpty || !agreeClause) {
-      AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
-      return;
-    }
     if (password != confirm) {
       AlertService.showSnack(l10n.authPasswordMismatch, isError: true);
       return;
     }
 
+
+    final passwordResult = PasswordValidator.validate(password);
+    if (!passwordResult.isValid) {
+      AlertService.showSnack(
+        'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.',
+        isError: true,
+      );
+      return;
+    }
     final ok = await vm.register(email, password);
 
     if (!ok) {
       AlertService.error(message: vm.error ?? l10n.authSignupFailed);
       return;
     }
+
     if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(

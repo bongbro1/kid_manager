@@ -29,8 +29,8 @@ class NotificationService {
   static final NotificationRepository _repo = NotificationRepository();
 
   static Future<AppLocalizations> _loadL10n([String? lang]) {
-    final normalized =
-        (lang ?? PlatformDispatcher.instance.locale.languageCode).toLowerCase();
+    final normalized = (lang ?? PlatformDispatcher.instance.locale.languageCode)
+        .toLowerCase();
     return AppLocalizations.delegate.load(
       Locale(normalized.startsWith('en') ? 'en' : 'vi'),
     );
@@ -353,6 +353,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.generalChannelId,
     );
   }
 
@@ -377,6 +378,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.generalChannelId,
     );
   }
 
@@ -403,6 +405,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.chatChannelId,
     );
   }
 

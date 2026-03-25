@@ -15,6 +15,10 @@ const MAX_STICKER_ID_LENGTH = 64;
 const MAX_CLIENT_MESSAGE_ID_LENGTH = 120;
 const MULTICAST_LIMIT = 500;
 const TOKEN_MIN_LENGTH = 20;
+const MAX_IMAGE_URL_LENGTH = 2048;
+const MAX_IMAGE_PATH_LENGTH = 512;
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const FAMILY_CHAT_IMAGE_CONTENT_TYPE = "image/jpeg";
 
 type FamilyTokenRecord = {
   installationId: string;
@@ -148,6 +152,150 @@ function resolveMessagePreviewText(type: string, text: string): string {
   }
 }
 
+function expectedFamilyChatImagePath(params: {
+  familyId: string;
+  senderUid: string;
+  messageId: string;
+}) {
+  return `families/${params.familyId}/chat/${params.senderUid}/${params.messageId}.jpg`;
+}
+
+function buildFirebaseStorageDownloadUrl(params: {
+  bucketName: string;
+  storagePath: string;
+  token: string;
+}) {
+  return (
+    `https://firebasestorage.googleapis.com/v0/b/${params.bucketName}/o/` +
+    `${encodeURIComponent(params.storagePath)}?alt=media&token=${encodeURIComponent(params.token)}`
+  );
+}
+
+function looksLikeStorageUrlForPath(imageUrl: string, storagePath: string) {
+  const normalizedUrl = imageUrl.trim();
+  if (!normalizedUrl) return false;
+
+  const encodedPath = encodeURIComponent(storagePath);
+  return normalizedUrl.includes(encodedPath) || normalizedUrl.includes(storagePath);
+}
+
+function resolveDownloadTokens(metadata: any): string[] {
+  const rawValue =
+    metadata?.metadata?.firebaseStorageDownloadTokens ??
+    metadata?.firebaseStorageDownloadTokens ??
+    "";
+
+  return String(rawValue)
+    .split(",")
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0);
+}
+
+async function verifyFamilyChatImagePayload(params: {
+  familyId: string;
+  senderUid: string;
+  messageId: string;
+  data: FirebaseFirestore.DocumentData;
+}) {
+  const imageUrl = (params.data.imageUrl ?? "").toString().trim();
+  const imagePath = (params.data.imagePath ?? "").toString().trim();
+  const imageWidth = Number(params.data.imageWidth ?? 0);
+  const imageHeight = Number(params.data.imageHeight ?? 0);
+
+  if (!imageUrl || imageUrl.length > MAX_IMAGE_URL_LENGTH) {
+    return { ok: false, reason: "invalid_image_url" } as const;
+  }
+
+  if (!imagePath || imagePath.length > MAX_IMAGE_PATH_LENGTH) {
+    return { ok: false, reason: "invalid_image_path" } as const;
+  }
+
+  if (
+    !Number.isFinite(imageWidth) ||
+    !Number.isFinite(imageHeight) ||
+    imageWidth <= 0 ||
+    imageHeight <= 0
+  ) {
+    return { ok: false, reason: "invalid_image_dimensions" } as const;
+  }
+
+  const expectedPath = expectedFamilyChatImagePath({
+    familyId: params.familyId,
+    senderUid: params.senderUid,
+    messageId: params.messageId,
+  });
+
+  if (imagePath !== expectedPath) {
+    return { ok: false, reason: "image_path_mismatch" } as const;
+  }
+
+  const bucket = admin.storage().bucket();
+  const file = bucket.file(imagePath);
+
+  try {
+    const [metadata] = await file.getMetadata();
+    const contentType = String(metadata.contentType ?? "").trim().toLowerCase();
+    const size = Number(metadata.size ?? 0);
+    const customMetadata = metadata.metadata ?? {};
+
+    if (!contentType.startsWith("image/")) {
+      return { ok: false, reason: "invalid_image_content_type" } as const;
+    }
+
+    if (contentType !== FAMILY_CHAT_IMAGE_CONTENT_TYPE) {
+      return { ok: false, reason: "unexpected_image_encoding" } as const;
+    }
+
+    if (!Number.isFinite(size) || size <= 0 || size > MAX_IMAGE_BYTES) {
+      return { ok: false, reason: "invalid_image_size" } as const;
+    }
+
+    if (String(customMetadata.familyId ?? "").trim() !== params.familyId) {
+      return { ok: false, reason: "image_family_mismatch" } as const;
+    }
+
+    if (String(customMetadata.senderUid ?? "").trim() !== params.senderUid) {
+      return { ok: false, reason: "image_sender_mismatch" } as const;
+    }
+
+    if (String(customMetadata.messageId ?? "").trim() !== params.messageId) {
+      return { ok: false, reason: "image_message_mismatch" } as const;
+    }
+
+    const downloadTokens = resolveDownloadTokens(metadata);
+    const canonicalImageUrl = downloadTokens.length > 0
+      ? buildFirebaseStorageDownloadUrl({
+        bucketName: bucket.name,
+        storagePath: imagePath,
+        token: downloadTokens[0],
+      })
+      : looksLikeStorageUrlForPath(imageUrl, imagePath)
+        ? imageUrl
+        : "";
+
+    if (!canonicalImageUrl) {
+      return { ok: false, reason: "missing_image_download_token" } as const;
+    }
+
+    return {
+      ok: true,
+      imageUrl: canonicalImageUrl,
+      imagePath,
+      imageWidth,
+      imageHeight,
+    } as const;
+  } catch (error) {
+    console.error("[family_chat] verifyFamilyChatImagePayload failed", {
+      familyId: params.familyId,
+      senderUid: params.senderUid,
+      messageId: params.messageId,
+      imagePath,
+      error,
+    });
+    return { ok: false, reason: "image_object_not_found" } as const;
+  }
+}
+
 function isValidTextPayload(text: string): boolean {
   return text.length > 0 && text.length <= MAX_TEXT_LENGTH;
 }
@@ -168,12 +316,15 @@ function isValidStickerPayload(data: FirebaseFirestore.DocumentData): boolean {
 
 function isValidImagePayload(data: FirebaseFirestore.DocumentData): boolean {
   const imageUrl = (data.imageUrl ?? "").toString().trim();
+  const imagePath = (data.imagePath ?? "").toString().trim();
   const imageWidth = Number(data.imageWidth ?? 0);
   const imageHeight = Number(data.imageHeight ?? 0);
 
   return (
     imageUrl.length > 0 &&
-    imageUrl.length <= 2048 &&
+    imageUrl.length <= MAX_IMAGE_URL_LENGTH &&
+    imagePath.length > 0 &&
+    imagePath.length <= MAX_IMAGE_PATH_LENGTH &&
     Number.isFinite(imageWidth) &&
     Number.isFinite(imageHeight) &&
     imageWidth > 0 &&
@@ -207,22 +358,10 @@ async function finalizePendingFamilyMessage(params: {
   const data = params.data ?? {};
 
   const senderUid = (data.senderUid ?? "").toString().trim();
-  const senderRole = (data.senderRole ?? "").toString().trim();
-  const senderName = (data.senderName ?? "").toString().trim() || "Family member";
   const text = (data.text ?? "").toString().trim();
   const familyIdInDoc = (data.familyId ?? "").toString().trim();
   const type = (data.type ?? "").toString().trim();
-  const previewText = resolveMessagePreviewText(type, text);
-
-  const isValidPayload =
-    !!senderUid &&
-    !!senderRole &&
-    !!familyIdInDoc &&
-    (
-      (type === "text" && isValidTextPayload(text)) ||
-      (type === "image" && isValidImagePayload(data)) ||
-      (type === "sticker" && isValidStickerPayload(data))
-    );
+  const isValidPayload = !!senderUid && !!familyIdInDoc;
 
   if (!isValidPayload) {
     await markPendingMessageFailed({
@@ -259,6 +398,87 @@ async function finalizePendingFamilyMessage(params: {
     return;
   }
 
+  const senderMemberData = senderMember.data() ?? {};
+  const senderRole =
+    (senderMemberData.role ?? data.senderRole ?? "").toString().trim();
+  const senderName =
+    (senderMemberData.displayName ??
+      senderMemberData.email ??
+      data.senderName ??
+      "Family member")
+      .toString()
+      .trim() ||
+    "Family member";
+
+  if (!senderRole) {
+    await markPendingMessageFailed({
+      ref,
+      reason: "missing_sender_role",
+    });
+    return;
+  }
+
+  let normalizedText = text;
+  let normalizedStickerId: string | undefined;
+  let normalizedImageUrl: string | undefined;
+  let normalizedImagePath: string | undefined;
+  let normalizedImageWidth: number | undefined;
+  let normalizedImageHeight: number | undefined;
+
+  if (type === "text") {
+    if (!isValidTextPayload(normalizedText)) {
+      await markPendingMessageFailed({
+        ref,
+        reason: "invalid_message_payload",
+      });
+      return;
+    }
+  } else if (type === "sticker") {
+    if (!isValidStickerPayload(data)) {
+      await markPendingMessageFailed({
+        ref,
+        reason: "invalid_message_payload",
+      });
+      return;
+    }
+    normalizedStickerId = (data.stickerId ?? "").toString().trim();
+  } else if (type === "image") {
+    if (!isValidImagePayload(data)) {
+      await markPendingMessageFailed({
+        ref,
+        reason: "invalid_message_payload",
+      });
+      return;
+    }
+
+    const verifiedImage = await verifyFamilyChatImagePayload({
+      familyId,
+      senderUid,
+      messageId,
+      data,
+    });
+    if (!verifiedImage.ok) {
+      await markPendingMessageFailed({
+        ref,
+        reason: verifiedImage.reason,
+      });
+      return;
+    }
+
+    normalizedImageUrl = verifiedImage.imageUrl;
+    normalizedImagePath = verifiedImage.imagePath;
+    normalizedImageWidth = verifiedImage.imageWidth;
+    normalizedImageHeight = verifiedImage.imageHeight;
+  } else {
+    await markPendingMessageFailed({
+      ref,
+      reason: "unsupported_message_type",
+    });
+    return;
+  }
+
+  const previewText = resolveMessagePreviewText(type, normalizedText);
+
   const now = admin.firestore.FieldValue.serverTimestamp();
   const batch = db.batch();
 
@@ -269,6 +489,14 @@ async function finalizePendingFamilyMessage(params: {
       verifyError: admin.firestore.FieldValue.delete(),
       verifiedAt: now,
       createdAt: now,
+      senderRole,
+      senderName,
+      text: normalizedText,
+      stickerId: normalizedStickerId ?? admin.firestore.FieldValue.delete(),
+      imageUrl: normalizedImageUrl ?? admin.firestore.FieldValue.delete(),
+      imagePath: normalizedImagePath ?? admin.firestore.FieldValue.delete(),
+      imageWidth: normalizedImageWidth ?? admin.firestore.FieldValue.delete(),
+      imageHeight: normalizedImageHeight ?? admin.firestore.FieldValue.delete(),
     },
     { merge: true }
   );
@@ -397,7 +625,23 @@ export const sendFamilyMessage = onCall({ region: REGION }, async (req) => {
     throw new HttpsError("failed-precondition", "Family has no members");
   }
 
+  const senderMember = membersSnap.docs.find((memberDoc) => memberDoc.id === uid);
+  if (!senderMember) {
+    throw new HttpsError(
+      "permission-denied",
+      "Sender is not an active member of this family"
+    );
+  }
+
+  const senderMemberData = senderMember.data() ?? {};
+  const senderRole =
+    (typeof senderMemberData.role === "string" && senderMemberData.role.trim()) ||
+    role;
   const senderName =
+    (typeof senderMemberData.displayName === "string" &&
+      senderMemberData.displayName.trim()) ||
+    (typeof senderMemberData.email === "string" &&
+      senderMemberData.email.trim()) ||
     (typeof userData.displayName === "string" && userData.displayName.trim()) ||
     (typeof userData.email === "string" && userData.email.trim()) ||
     "Family member";
@@ -412,7 +656,7 @@ export const sendFamilyMessage = onCall({ region: REGION }, async (req) => {
     id: messageRef.id,
     familyId,
     senderUid: uid,
-    senderRole: role,
+    senderRole,
     senderName,
     ...(clientMessageId ? { clientMessageId } : {}),
     text,

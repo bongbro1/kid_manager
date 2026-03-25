@@ -17,49 +17,72 @@ class NotificationRepository {
   final int _maxCountInPage = 20;
   static const int _maxBatchDeleteSize = 450;
 
-  Stream<int> watchUnreadCount(String uid) {
-    final globalStream = _fs
-        .collection('notifications')
-        .where('receiverId', isEqualTo: uid)
-        .where('isRead', isEqualTo: false)
-        .snapshots()
-        .map((snap) => snap.size);
-
-    final inboxStream = _fs
-        .collection('users')
-        .doc(uid)
-        .collection('notifications')
-        .where('isRead', isEqualTo: false)
-        .snapshots()
-        .map((snap) => snap.size);
-
+  Stream<int> watchUnreadCount(
+    String uid, {
+    List<NotificationSource> sources = const [NotificationSource.global],
+  }) {
     return Stream<int>.multi((controller) {
-      var globalUnread = 0;
-      var inboxUnread = 0;
+      final subs = <StreamSubscription<Set<String>>>[];
+      var globalUnread = <String>{};
+      var inboxUnread = <String>{};
+      var chatUnread = <String>{};
 
       void emit() {
-        controller.add(globalUnread + inboxUnread);
+        controller.add({...globalUnread, ...inboxUnread, ...chatUnread}.length);
       }
 
-      final globalSub = globalStream.listen(
-        (value) {
-          globalUnread = value;
-          emit();
-        },
-        onError: controller.addError,
-      );
+      if (sources.contains(NotificationSource.global)) {
+        final globalStream = _fs
+            .collection('notifications')
+            .where('receiverId', isEqualTo: uid)
+            .where('isRead', isEqualTo: false)
+            .snapshots()
+            .map((snap) => snap.docs.map((doc) => doc.id).toSet());
+        subs.add(globalStream.listen(
+          (value) {
+            globalUnread = value;
+            emit();
+          },
+          onError: controller.addError,
+        ));
+      }
 
-      final inboxSub = inboxStream.listen(
-        (value) {
-          inboxUnread = value;
-          emit();
-        },
-        onError: controller.addError,
-      );
+      if (sources.contains(NotificationSource.userInbox)) {
+        final inboxStream = _fs
+            .collection('users')
+            .doc(uid)
+            .collection('notifications')
+            .where('isRead', isEqualTo: false)
+            .snapshots()
+            .map((snap) => snap.docs.map((doc) => doc.id).toSet());
+        subs.add(inboxStream.listen(
+          (value) {
+            inboxUnread = value;
+            emit();
+          },
+          onError: controller.addError,
+        ));
+      }
+
+      if (sources.contains(NotificationSource.chatInbox)) {
+        final chatStream = _fs
+            .collection('users')
+            .doc(uid)
+            .collection('chatNotifications')
+            .where('isRead', isEqualTo: false)
+            .snapshots()
+            .map((snap) => snap.docs.map((doc) => doc.id).toSet());
+        subs.add(chatStream.listen(
+          (value) {
+            chatUnread = value;
+            emit();
+          },
+          onError: controller.addError,
+        ));
+      }
 
       controller.onCancel = () async {
-        await globalSub.cancel();
-        await inboxSub.cancel();
+        await Future.wait(subs.map((sub) => sub.cancel()));
       };
     });
   }

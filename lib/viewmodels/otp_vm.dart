@@ -66,7 +66,7 @@ class OtpVM extends ChangeNotifier {
         case MailType.resetPassword:
           final response = await repo.verifyPasswordResetOtp(
             email: email,
-            inputCode: code,
+            inputCode: code
           );
           resetSessionToken = response.resetSessionToken;
           if (response.result == OtpVerifyResult.tooManyAttempts) {

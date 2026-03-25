@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/core/app_colors.dart';
+import 'package:kid_manager/models/auth/password_validator.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -37,6 +39,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     _passwordController.addListener(_validatePassword);
   }
 
+  PasswordValidationResult _validation = const PasswordValidationResult(
+    hasMinLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+  );
+
   void _validatePassword() {
     final password = _passwordController.text;
 
@@ -45,11 +54,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _hasUppercase = RegExp(r'[A-Z]').hasMatch(password);
       _hasLowercase = RegExp(r'[a-z]').hasMatch(password);
       _hasNumber = RegExp(r'[0-9]').hasMatch(password);
+
+      _validation = PasswordValidator.validate(password);
     });
   }
 
-  bool get _isPasswordValid =>
-      _hasMinLength && _hasUppercase && _hasLowercase && _hasNumber;
+  bool get _isPasswordValid => _validation.isValid;
 
   @override
   void dispose() {

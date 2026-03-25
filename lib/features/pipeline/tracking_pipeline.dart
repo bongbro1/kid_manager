@@ -19,6 +19,7 @@ class TrackingPipeline {
 
   TrackingState _state = const TrackingState(motion: MotionState.moving);
   Kalman2D? _kalman;
+  LocationData? _stableAnchor;
 
   TrackingPipeline({
     required this.motionDetector,
@@ -29,6 +30,7 @@ class TrackingPipeline {
     LocationData raw,
     Activity? act, {
     LocationData? previousReference,
+    DateTime? now,
   }) {
     _kalman ??= Kalman2D(raw.latitude, raw.longitude);
 
@@ -40,19 +42,20 @@ class TrackingPipeline {
       raw: raw,
       previous: previousReference,
       next: resolved,
+      act: act,
     );
-    final now = DateTime.now();
+    final resolvedNow = now ?? DateTime.now();
     final transport = transportDetector.update(filtered, act);
 
     final lastHistoryPoint = _state.lastSent;
     final distanceKm = lastHistoryPoint?.distanceTo(filtered) ?? 0.0;
-    final motionReference = previousReference ?? lastHistoryPoint;
+    final motionReference = previousReference ?? _stableAnchor ?? lastHistoryPoint;
     final observedDistanceKm = motionReference?.distanceTo(filtered) ?? 0.0;
 
     final nextMotion = motionDetector.detect(
       _state.motion,
       observedDistanceKm,
-      now,
+      resolvedNow,
       _state.lastMoveAt,
       speedMps: filtered.speed,
       accuracyM: filtered.accuracy,
@@ -60,8 +63,10 @@ class TrackingPipeline {
 
     _state = _state.copyWith(
       motion: nextMotion,
-      lastMoveAt: nextMotion == MotionState.moving ? now : _state.lastMoveAt,
+      lastMoveAt:
+          nextMotion == MotionState.moving ? resolvedNow : _state.lastMoveAt,
     );
+    _updateStableAnchor(filtered, nextMotion);
 
     if (filtered.accuracy > 50) {
       return TrackingResult(
@@ -84,13 +89,13 @@ class TrackingPipeline {
 
     final sinceLast = _state.lastSentAt == null
         ? const Duration(days: 1)
-        : now.difference(_state.lastSentAt!);
+        : resolvedNow.difference(_state.lastSentAt!);
 
     final shouldSend = sendPolicy.shouldSend(
       motion: nextMotion,
       distanceKm: distanceKm,
       sinceLast: sinceLast,
-      isNight: now.hour >= 22 || now.hour < 6,
+      isNight: resolvedNow.hour >= 22 || resolvedNow.hour < 6,
       accuracyM: filtered.accuracy,
       transport: transport,
     );
@@ -115,50 +120,117 @@ class TrackingPipeline {
       lastSentAt: now,
       lastMoveAt: motion == MotionState.moving ? now : _state.lastMoveAt,
     );
+    _updateStableAnchor(location, motion);
   }
 
   void reset() {
     _state = const TrackingState(motion: MotionState.moving);
     _kalman = null;
+    _stableAnchor = null;
   }
 
   LocationData _stabilizeIndoorDrift({
     required LocationData raw,
     required LocationData next,
     LocationData? previous,
+    Activity? act,
   }) {
-    if (previous == null) {
+    final reference = _stableAnchor ?? previous;
+    if (reference == null) {
       return next;
     }
 
-    final dtMs = (next.timestamp - previous.timestamp).abs();
+    final dtMs = (next.timestamp - reference.timestamp).abs();
     if (dtMs <= 0 || dtMs > 30000) {
       return next;
     }
 
-    final distanceMeters = previous.distanceTo(next) * 1000.0;
-    final combinedAccuracy = math.max(previous.accuracy, next.accuracy);
+    final distanceMeters = reference.distanceTo(next) * 1000.0;
+    final combinedAccuracy = math.max(reference.accuracy, next.accuracy);
     final rawSpeed = raw.speed.isFinite ? raw.speed : 0.0;
     final resolvedSpeed = next.speed.isFinite ? next.speed : 0.0;
+    final activitySuggestsRealMovement = _activitySuggestsRealMovement(act);
 
-    final noiseRadiusMeters = combinedAccuracy <= 12
-        ? 8.0
-        : math.min(65.0, math.max(12.0, combinedAccuracy * 0.8));
+    final strictNoiseRadiusMeters = math.max(6.0, combinedAccuracy * 1.25);
+    final stickyNoiseRadiusMeters = switch (_state.motion) {
+      MotionState.moving => strictNoiseRadiusMeters,
+      MotionState.idle => math.max(18.0, combinedAccuracy * 1.6),
+      MotionState.stationary => math.max(24.0, combinedAccuracy * 2.0),
+    };
 
-    final likelyIndoorDrift =
-        rawSpeed <= 0.8 &&
-        resolvedSpeed <= 1.6 &&
-        distanceMeters <= noiseRadiusMeters;
+    final likelyAccuracyEnvelopeDrift =
+        !activitySuggestsRealMovement &&
+        combinedAccuracy >= 12 &&
+        rawSpeed <= 0.55 &&
+        distanceMeters <= strictNoiseRadiusMeters;
 
-    if (!likelyIndoorDrift) {
+    final likelyStickyStationaryDrift =
+        !activitySuggestsRealMovement &&
+        _stableAnchor != null &&
+        _state.motion != MotionState.moving &&
+        rawSpeed <= 0.35 &&
+        resolvedSpeed <= 2.2 &&
+        distanceMeters <= stickyNoiseRadiusMeters;
+
+    if (!likelyAccuracyEnvelopeDrift && !likelyStickyStationaryDrift) {
       return next;
     }
 
     return next.copyWith(
-      latitude: previous.latitude,
-      longitude: previous.longitude,
-      heading: previous.heading,
+      latitude: reference.latitude,
+      longitude: reference.longitude,
+      heading: reference.heading,
       speed: 0,
     );
+  }
+
+  bool _activitySuggestsRealMovement(Activity? act) {
+    if (act == null) {
+      return false;
+    }
+
+    final type = act.type.name.toLowerCase();
+    final confidence = act.confidence.name.toLowerCase();
+    final confidentEnough = confidence == 'medium' || confidence == 'high';
+    if (!confidentEnough) {
+      return false;
+    }
+
+    return type == 'walking' ||
+        type == 'running' ||
+        type == 'on_bicycle' ||
+        type == 'in_vehicle';
+  }
+
+  void _updateStableAnchor(LocationData filtered, MotionState motion) {
+    if (motion == MotionState.moving) {
+      _stableAnchor = null;
+      return;
+    }
+
+    final currentAnchor = _stableAnchor;
+    if (currentAnchor == null) {
+      _stableAnchor = filtered.copyWith(speed: 0);
+      return;
+    }
+
+    final distanceFromAnchorMeters = currentAnchor.distanceTo(filtered) * 1000.0;
+    final maxAnchorDriftMeters = switch (motion) {
+      MotionState.moving => 0.0,
+      MotionState.idle => math.max(15.0, filtered.accuracy * 1.4),
+      MotionState.stationary => math.max(20.0, filtered.accuracy * 1.8),
+    };
+
+    if (distanceFromAnchorMeters <= maxAnchorDriftMeters) {
+      _stableAnchor = currentAnchor.copyWith(
+        timestamp: filtered.timestamp,
+        accuracy: math.min(currentAnchor.accuracy, filtered.accuracy),
+        heading: filtered.heading,
+        speed: 0,
+      );
+      return;
+    }
+
+    _stableAnchor = filtered.copyWith(speed: 0);
   }
 }

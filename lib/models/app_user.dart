@@ -84,11 +84,17 @@ class AppUser {
   }
 
   factory AppUser.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? <String, dynamic>{};
+    return AppUser.fromMap(doc.data() ?? <String, dynamic>{}, docId: doc.id);
+  }
+
+  factory AppUser.fromMap(
+    Map<String, dynamic> data, {
+    String? docId,
+  }) {
     final role = UserRole.fromValue(data['role']);
 
     return AppUser(
-      uid: (data['uid'] ?? doc.id).toString(),
+      uid: (data['uid'] ?? docId ?? '').toString(),
       role: role,
       familyId: data['familyId']?.toString(),
       email: data['email']?.toString(),
@@ -123,6 +129,7 @@ class AppUser {
     DateTime? lastActiveAt,
     SubscriptionInfo? subscription,
     String? familyId,
+    String? parentUid,
     bool? isActive,
     bool? allowTracking,
     List<String>? managedChildIds,
@@ -140,7 +147,7 @@ class AppUser {
       timezone: timezone ?? this.timezone,
       createdAt: createdAt,
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
-      parentUid: parentUid,
+      parentUid: parentUid ?? this.parentUid,
       isActive: isActive ?? this.isActive,
       allowTracking: allowTracking ?? this.allowTracking,
       subscription: subscription ?? this.subscription,

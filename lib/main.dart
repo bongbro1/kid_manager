@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kid_manager/background/background_tracking_entrypoint.dart'
+    as tracking_background;
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
@@ -87,13 +89,32 @@ Future<void> _runDeferredStartupTasks() async {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (kDebugMode) {
     debugPrint(
-      'BG message id=${message.messageId} keys=${message.data.keys.toList()}',
+      'BG message id=${message.messageId} '
+      'keys=${message.data.keys.toList()} '
+      'hasNotification=${message.notification != null}',
     );
   }
+  
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await _activateFirebaseAppCheck(background: true);
+
+  if (message.notification != null) {
+    if (kDebugMode) {
+      debugPrint(
+        'BG skip local notification because remote notification exists '
+        'id=${message.messageId}',
+      );
+    }
+    return;
+  }
+
   await NotificationService.handleMessageForLocalNotification(message);
+}
+
+@pragma('vm:entry-point')
+Future<void> backgroundTrackingMain() async {
+  await tracking_background.backgroundTrackingMain();
 }
 
 Future<void> main() async {

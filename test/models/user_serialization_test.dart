@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_profile_patch.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_subscription.dart';
@@ -81,6 +82,47 @@ void main() {
 
       expect(map.containsKey('role'), isFalse);
       expect(map['displayName'], 'Parent');
+    });
+  });
+
+  group('AppUser member parsing', () {
+    test('fromMap parses denormalized member fields for guardian docs', () {
+      final lastActiveAt = DateTime(2026, 3, 25, 9, 15);
+      final user = AppUser.fromMap({
+        'role': 'guardian',
+        'familyId': 'family-1',
+        'email': 'guardian@example.com',
+        'displayName': 'Guardian',
+        'avatarUrl': 'https://example.com/avatar.jpg',
+        'parentUid': 'parent-1',
+        'isActive': true,
+        'allowTracking': true,
+        'managedChildIds': ['child-1', 'child-2', 'child-1'],
+        'lastActiveAt': Timestamp.fromDate(lastActiveAt),
+      }, docId: 'guardian-1');
+
+      expect(user.uid, 'guardian-1');
+      expect(user.role, UserRole.guardian);
+      expect(user.familyId, 'family-1');
+      expect(user.email, 'guardian@example.com');
+      expect(user.parentUid, 'parent-1');
+      expect(user.isActive, isTrue);
+      expect(user.allowTracking, isTrue);
+      expect(user.lastActiveAt, lastActiveAt);
+      expect(user.managedChildIds, ['child-1', 'child-2']);
+    });
+
+    test('fromMap keeps legacy child docs visible on location when allowTracking is missing', () {
+      final user = AppUser.fromMap({
+        'role': 'child',
+        'familyId': 'family-1',
+        'parentUid': 'parent-1',
+        'displayName': 'Child',
+      }, docId: 'child-1');
+
+      expect(user.uid, 'child-1');
+      expect(user.role, UserRole.child);
+      expect(user.allowTracking, isTrue);
     });
   });
 }
