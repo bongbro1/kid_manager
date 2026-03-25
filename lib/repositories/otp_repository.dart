@@ -1,238 +1,112 @@
-import 'dart:convert';
-import 'dart:math';
-import 'package:crypto/crypto.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
-import 'package:kid_manager/utils/runtime_l10n.dart';
+
+class PasswordResetOtpVerifyResponse {
+  const PasswordResetOtpVerifyResponse({
+    required this.result,
+    this.resetSessionToken,
+  });
+
+  final OtpVerifyResult result;
+  final String? resetSessionToken;
+}
 
 class OtpRepository {
-  final FirebaseFirestore _db;
+  OtpRepository({FirebaseFunctions? functions})
+    : _functions =
+          functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
-  OtpRepository(this._db);
+  final FirebaseFunctions _functions;
 
-  static const int _maxResendCount = 5;
-  static const int _expiryMinutes = 5;
-  static const int _maxAttempts = 3;
+  HttpsCallable _callable(String name) => _functions.httpsCallable(name);
 
-  /// ================================
-  /// PUBLIC API
-  /// ================================
-
-  Future<void> createOtp({
-    required String uid,
-    required String email,
-    required MailType type,
-  }) async {
-    final ref = _db.collection("email_otps").doc(uid);
-    final doc = await ref.get();
-
-    /// nếu OTP đã tồn tại → không tạo mới
-    if (doc.exists) {
-      final data = doc.data()!;
-
-      /// check locked
-      if (data["lockedUntil"] != null) {
-        final lockedUntil = data["lockedUntil"].toDate();
-        final now = DateTime.now();
-
-        if (lockedUntil.isAfter(now)) {
-          final seconds = lockedUntil.difference(now).inSeconds;
-
-          throw Exception(
-            runtimeL10n().otpRepositoryLockedMessage(seconds),
-          );
-        }
-      }
-
-      /// OTP đã tồn tại nhưng không bị lock
-      // throw Exception("OTP already exists. Use resend.");
-      return;
-    }
-
-    final code = _generateOtp();
-    final hash = _hash(code);
-
-    await ref.set({
-      "codeHash": hash,
-      "expiresAt": Timestamp.fromDate(
-        DateTime.now().add(const Duration(minutes: _expiryMinutes)),
-      ),
-      "attempts": 0,
-      "maxAttempts": _maxAttempts,
-      "lockedUntil": null,
-      "createdAt": Timestamp.now(),
-      "lastSentAt": Timestamp.now(),
-      "resendCount": 1,
-    });
-
-    await _sendOtpEmail(email: email, uid: uid, code: code, type: type);
+  Future<void> requestEmailOtp() async {
+    await _callable('requestEmailOtp').call();
   }
 
-  Future<OtpVerifyResult> verifyOtp({
-    required String uid,
+  Future<void> requestPasswordReset({required String email}) async {
+    await _callable('requestPasswordReset').call({
+      'email': email.trim(),
+    });
+  }
+
+  Future<OtpVerifyResult> verifyEmailOtp({required String inputCode}) async {
+    try {
+      await _callable('verifyEmailOtp').call({
+        'otp': inputCode.trim(),
+      });
+      return OtpVerifyResult.success;
+    } on FirebaseFunctionsException catch (error) {
+      return _mapVerifyError(error);
+    }
+  }
+
+  Future<PasswordResetOtpVerifyResponse> verifyPasswordResetOtp({
+    required String email,
     required String inputCode,
   }) async {
-    final ref = _db.collection("email_otps").doc(uid);
-    final doc = await ref.get();
+    try {
+      final response = await _callable('verifyPasswordResetOtp').call({
+        'email': email.trim(),
+        'otp': inputCode.trim(),
+      });
 
-    if (!doc.exists) {
-      return OtpVerifyResult.notFound;
+      final data = Map<String, dynamic>.from(
+        (response.data as Map?) ?? const <String, dynamic>{},
+      );
+
+      return PasswordResetOtpVerifyResponse(
+        result: OtpVerifyResult.success,
+        resetSessionToken: data['resetSessionToken']?.toString(),
+      );
+    } on FirebaseFunctionsException catch (error) {
+      return PasswordResetOtpVerifyResponse(
+        result: _mapVerifyError(error),
+      );
     }
-
-    final data = doc.data()!;
-
-    final lockedUntil = data["lockedUntil"] != null
-        ? (data["lockedUntil"] as Timestamp).toDate()
-        : null;
-
-    /// nếu đang bị lock
-    if (lockedUntil != null && DateTime.now().isBefore(lockedUntil)) {
-      return OtpVerifyResult.tooManyAttempts;
-    }
-
-    final expiresAt = (data["expiresAt"] as Timestamp).toDate();
-    final attempts = data["attempts"] ?? 0;
-    final maxAttempts = data["maxAttempts"] ?? _maxAttempts;
-    final storedHash = data["codeHash"];
-
-    /// OTP hết hạn
-    if (DateTime.now().isAfter(expiresAt)) {
-      await ref.delete();
-      return OtpVerifyResult.expired;
-    }
-
-    final inputHash = _hash(inputCode);
-
-    /// OTP sai
-    if (inputHash != storedHash) {
-      final newAttempts = attempts + 1;
-
-      /// vượt quá số lần cho phép
-      if (newAttempts >= maxAttempts) {
-        await ref.update({
-          "attempts": newAttempts,
-          "lockedUntil": Timestamp.fromDate(
-            DateTime.now().add(const Duration(minutes: 10)),
-          ),
-        });
-
-        return OtpVerifyResult.tooManyAttempts;
-      }
-
-      await ref.update({"attempts": newAttempts});
-
-      return OtpVerifyResult.invalid;
-    }
-
-    /// OTP đúng
-    await _activateUser(uid);
-    await ref.delete();
-
-    return OtpVerifyResult.success;
-  }
-
-  Future<DocumentSnapshot<Map<String, dynamic>>?> getOtpDoc(String uid) async {
-    final doc = await _db.collection("email_otps").doc(uid).get();
-
-    if (!doc.exists) return null;
-
-    return doc;
   }
 
   Future<OtpResendResult> resendOtp({
     required String email,
-    required String uid,
     required MailType type,
   }) async {
-    final ref = _db.collection("email_otps").doc(uid);
-    final doc = await ref.get();
-
-    if (!doc.exists) {
-      return OtpResendResult.notFound;
-    }
-
-    final data = doc.data()!;
-
-    /// check lock
-    final lockedUntil = data["lockedUntil"] != null
-        ? (data["lockedUntil"] as Timestamp).toDate()
-        : null;
-
-    if (lockedUntil != null && DateTime.now().isBefore(lockedUntil)) {
-      return OtpResendResult.locked;
-    }
-
-    /// check resend limit
-    final resendCount = data["resendCount"] ?? 0;
-
-    if (resendCount >= _maxResendCount) {
-      await ref.update({
-        "lockedUntil": Timestamp.fromDate(
-          DateTime.now().add(const Duration(minutes: 10)),
-        ),
-      });
-
-      return OtpResendResult.maxResend;
-    }
-
-    /// check cooldown
-    if (data["lastSentAt"] != null) {
-      final lastSent = (data["lastSentAt"] as Timestamp).toDate();
-      final diff = DateTime.now().difference(lastSent).inSeconds;
-
-      if (diff < 60) {
-        return OtpResendResult.cooldown;
+    try {
+      switch (type) {
+        case MailType.verifyEmail:
+          await requestEmailOtp();
+          break;
+        case MailType.resetPassword:
+          await requestPasswordReset(email: email);
+          break;
       }
+      return OtpResendResult.success;
+    } on FirebaseFunctionsException catch (error) {
+      return _mapResendError(error);
     }
-
-    final code = _generateOtp();
-    final hash = _hash(code);
-
-    await ref.update({
-      "codeHash": hash,
-      "expiresAt": Timestamp.fromDate(
-        DateTime.now().add(const Duration(minutes: _expiryMinutes)),
-      ),
-      "lastSentAt": Timestamp.now(),
-      "resendCount": FieldValue.increment(1),
-    });
-
-    await _sendOtpEmail(email: email, uid: uid, code: code, type: type);
-
-    return OtpResendResult.success;
   }
 
-  /// ================================
-  /// PRIVATE
-  /// ================================
-
-  String _generateOtp() {
-    final rnd = Random();
-    return (1000 + rnd.nextInt(9000)).toString();
+  OtpVerifyResult _mapVerifyError(FirebaseFunctionsException error) {
+    switch (error.code) {
+      case 'resource-exhausted':
+        return OtpVerifyResult.tooManyAttempts;
+      case 'failed-precondition':
+        return OtpVerifyResult.expired;
+      case 'invalid-argument':
+        return OtpVerifyResult.invalid;
+      default:
+        return OtpVerifyResult.notFound;
+    }
   }
 
-  String _hash(String input) {
-    return sha256.convert(utf8.encode(input)).toString();
-  }
-
-  Future<void> _activateUser(String uid) async {
-    await _db.collection("users").doc(uid).update({"isActive": true});
-  }
-
-  Future<void> _sendOtpEmail({
-    required String email,
-    required String uid,
-    required String code,
-    required MailType type,
-  }) async {
-    await _db.collection("mail_queue").add({
-      "to": email,
-      "uid": uid,
-      "code": code,
-      "type": type.value,
-      "createdAt": FieldValue.serverTimestamp(),
-      "status": "pending",
-    });
+  OtpResendResult _mapResendError(FirebaseFunctionsException error) {
+    switch (error.code) {
+      case 'resource-exhausted':
+        return OtpResendResult.locked;
+      case 'failed-precondition':
+        return OtpResendResult.cooldown;
+      default:
+        return OtpResendResult.notFound;
+    }
   }
 }

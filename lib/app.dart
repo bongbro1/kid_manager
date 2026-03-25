@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_navigator.dart';
@@ -129,7 +130,9 @@ class _MyAppState extends State<MyApp> {
       membershipRepository: _membershipRepo,
     );
     _authRepo = AuthRepository(_authService, _userRepo);
-    _otpRepo = OtpRepository(FirebaseFirestore.instance);
+    _otpRepo = OtpRepository(
+      functions: FirebaseFunctions.instanceFor(region: 'asia-southeast1'),
+    );
     _termsRepo = TermsRepository(FirebaseFirestore.instance);
     _subscriptionRepo = SubscriptionRepository(FirebaseFirestore.instance);
     _scheduleRepo = ScheduleRepository(FirebaseFirestore.instance);

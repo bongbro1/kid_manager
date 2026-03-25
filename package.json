@@ -1,8 +1,4 @@
 {
-  "devDependencies": {
-    "@types/react": "^19.2.14",
-    "typescript": "^5.9.3"
-  },
   "dependencies": {
     "firebase-admin": "^13.6.1",
     "firebase-functions": "^7.0.5"
@@ -15,7 +11,8 @@
     "lib": "lib"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:firestore-rules": "firebase emulators:exec --only firestore \"node --test test/firestore.rules.test.cjs\""
   },
   "repository": {
     "type": "git",
@@ -25,6 +22,13 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.3",
+    "@types/react": "^19.2.14",
+    "firebase": "^10.14.1",
+    "firebase-tools": "^14.23.0",
+    "typescript": "^5.9.3"
+  },
   "bugs": {
     "url": "https://github.com/bongbro1/kid_manager/issues"
   },

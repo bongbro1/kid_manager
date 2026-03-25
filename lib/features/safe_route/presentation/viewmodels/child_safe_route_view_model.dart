@@ -105,7 +105,6 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
         route = routeGroup.primaryRoute;
         alternativeRoutes = routeGroup.alternativeRoutes;
       }
-      if (!_canApplyResult(requestId)) return;
 
       _state = _state.copyWith(
         isLoading: false,

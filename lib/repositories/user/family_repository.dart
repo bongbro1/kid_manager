@@ -26,6 +26,7 @@ class FamilyRepository {
     String? displayName,
     String locale = 'vi',
     String timezone = 'Asia/Ho_Chi_Minh',
+    bool isActive = false,
   }) async {
     final ref = userRef(uid);
     final snap = await ref.get();
@@ -38,7 +39,10 @@ class FamilyRepository {
       final familyId = _db.collection('families').doc().id;
       final batch = _db.batch();
 
-      batch.update(ref, {'familyId': familyId});
+      batch.update(ref, {
+        'familyId': familyId,
+        if (isActive) 'isActive': true,
+      });
 
       final familyRef = _db.collection('families').doc(familyId);
       batch.set(familyRef, {
@@ -85,7 +89,7 @@ class FamilyRepository {
           status: SubscriptionStatus.active,
           startAt: DateTime.now(),
         ).toMap(),
-        'isActive': false,
+        'isActive': isActive,
       })..removeWhere((key, value) => value == null),
     );
 

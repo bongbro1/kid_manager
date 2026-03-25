@@ -1,4 +1,3 @@
-import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 
 class UserProfilePatch {
@@ -9,12 +8,9 @@ class UserProfilePatch {
     this.dob,
     this.address,
     this.allowTracking,
-    this.role,
     this.avatarUrl,
     this.coverUrl,
-    this.parentUid,
     this.locale,
-    this.managedChildIds,
   });
 
   final String? name;
@@ -23,12 +19,9 @@ class UserProfilePatch {
   final String? dob;
   final String? address;
   final bool? allowTracking;
-  final UserRole? role;
   final String? avatarUrl;
   final String? coverUrl;
-  final String? parentUid;
   final String? locale;
-  final List<String>? managedChildIds;
 
   bool get isEmpty =>
       name == null &&
@@ -37,12 +30,9 @@ class UserProfilePatch {
       dob == null &&
       address == null &&
       allowTracking == null &&
-      role == null &&
       avatarUrl == null &&
       coverUrl == null &&
-      parentUid == null &&
-      locale == null &&
-      managedChildIds == null;
+      locale == null;
 
   Map<String, dynamic> toMap() {
     final parsedDob = dob == null ? null : parseFlexibleBirthDate(dob);
@@ -56,12 +46,9 @@ class UserProfilePatch {
         'dob': dob,
       if (address != null) 'address': address,
       if (allowTracking != null) 'allowTracking': allowTracking,
-      if (role != null) 'role': roleToString(role!),
       if (avatarUrl != null) 'avatarUrl': avatarUrl,
       if (coverUrl != null) 'coverUrl': coverUrl,
-      if (parentUid != null) 'parentUid': parentUid,
       if (locale != null) 'locale': locale,
-      if (managedChildIds != null) 'managedChildIds': managedChildIds,
     };
 
     data.removeWhere((key, value) => value == null);
@@ -75,12 +62,9 @@ class UserProfilePatch {
     String? dob,
     String? address,
     bool? allowTracking,
-    UserRole? role,
     String? avatarUrl,
     String? coverUrl,
-    String? parentUid,
     String? locale,
-    List<String>? managedChildIds,
   }) {
     return UserProfilePatch(
       name: name ?? this.name,
@@ -89,12 +73,9 @@ class UserProfilePatch {
       dob: dob ?? this.dob,
       address: address ?? this.address,
       allowTracking: allowTracking ?? this.allowTracking,
-      role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       coverUrl: coverUrl ?? this.coverUrl,
-      parentUid: parentUid ?? this.parentUid,
       locale: locale ?? this.locale,
-      managedChildIds: managedChildIds ?? this.managedChildIds,
     );
   }
 }

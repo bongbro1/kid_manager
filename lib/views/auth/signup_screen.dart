@@ -10,7 +10,6 @@ import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/app_colors.dart';
 import '../../core/alert_service.dart';
 import '../../viewmodels/auth_vm.dart';
 import '../../widgets/app/app_button.dart';
@@ -62,9 +61,9 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    final uid = await vm.register(email, password);
+    final ok = await vm.register(email, password);
 
-    if (uid == null) {
+    if (!ok) {
       AlertService.error(message: vm.error ?? l10n.authSignupFailed);
       return;
     }
@@ -73,7 +72,7 @@ class _SignupScreenState extends State<SignupScreen> {
       context,
       MaterialPageRoute(
         builder: (_) =>
-            OtpScreen(uid: uid, email: email, purpose: OtpPurpose.verifyEmail),
+            OtpScreen(email: email, purpose: OtpPurpose.verifyEmail),
       ),
     );
   }
