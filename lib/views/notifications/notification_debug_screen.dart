@@ -320,9 +320,8 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
                 onPressed: () async {
                   await LocalNotificationService.show(
                     title: 'Tracking alert test',
-                    body:
-                        'This should appear on the tracking_alerts channel.',
-                    channelId: LocalNotificationService.trackingChannelId,
+                    body: 'This should appear on the tracking_alerts channel.',
+                    channelId: LocalNotificationService.generalChannelId,
                     payload: jsonEncode({
                       "type": "tracking",
                       "eventKey": "tracking.location_service_off.parent",
