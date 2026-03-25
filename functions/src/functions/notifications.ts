@@ -111,9 +111,15 @@ export const onNotificationCreated = onDocumentCreated(
         type: String(data.type ?? "GENERIC"),
         notificationId,
         eventKey,
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
       },
       android: {
         priority: "high",
+        notification: {
+          channelId: "general_notifications",
+          priority: "high",
+          defaultSound: true,
+        },
       },
       apns: {
         payload: {

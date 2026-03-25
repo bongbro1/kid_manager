@@ -94,13 +94,14 @@ class OtpVM extends ChangeNotifier {
   Future<OtpVerifyResult> verifyOtp({
     required String uid,
     required String code,
+    required MailType type
   }) async {
     try {
       loading = true;
       error = null;
       notifyListeners();
 
-      final result = await repo.verifyOtp(uid: uid, inputCode: code);
+      final result = await repo.verifyOtp(uid: uid, inputCode: code, type: type);
 
       if (result == OtpVerifyResult.tooManyAttempts) {
         await syncCooldown(uid);

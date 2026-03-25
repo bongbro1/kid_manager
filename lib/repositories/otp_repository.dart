@@ -27,42 +27,45 @@ class OtpRepository {
     final ref = _db.collection("email_otps").doc(uid);
     final doc = await ref.get();
 
-    /// nếu OTP đã tồn tại → không tạo mới
     if (doc.exists) {
       final data = doc.data()!;
 
-      /// check locked
-      if (data["lockedUntil"] != null) {
-        final lockedUntil = data["lockedUntil"].toDate();
+      final lockedUntilRaw = data["lockedUntil"];
+      if (lockedUntilRaw != null) {
+        final lockedUntil = (lockedUntilRaw as Timestamp).toDate();
         final now = DateTime.now();
 
         if (lockedUntil.isAfter(now)) {
           final seconds = lockedUntil.difference(now).inSeconds;
-
-          throw Exception(
-            runtimeL10n().otpRepositoryLockedMessage(seconds),
-          );
+          throw Exception(runtimeL10n().otpRepositoryLockedMessage(seconds));
         }
       }
 
-      /// OTP đã tồn tại nhưng không bị lock
-      // throw Exception("OTP already exists. Use resend.");
-      return;
+      final storedType = (data["type"] ?? "").toString();
+
+      // Nếu OTP hiện tại thuộc cùng purpose, không tạo mới
+      if (storedType == type.value) {
+        return;
+      }
+
+      // Nếu OTP cũ thuộc purpose khác, ghi đè để tránh dùng chéo luồng
     }
 
     final code = _generateOtp();
     final hash = _hash(code);
+    final now = DateTime.now();
 
     await ref.set({
       "codeHash": hash,
+      "type": type.value,
       "expiresAt": Timestamp.fromDate(
-        DateTime.now().add(const Duration(minutes: _expiryMinutes)),
+        now.add(const Duration(minutes: _expiryMinutes)),
       ),
       "attempts": 0,
       "maxAttempts": _maxAttempts,
       "lockedUntil": null,
-      "createdAt": Timestamp.now(),
-      "lastSentAt": Timestamp.now(),
+      "createdAt": Timestamp.fromDate(now),
+      "lastSentAt": Timestamp.fromDate(now),
       "resendCount": 1,
     });
 
@@ -72,6 +75,7 @@ class OtpRepository {
   Future<OtpVerifyResult> verifyOtp({
     required String uid,
     required String inputCode,
+    required MailType type,
   }) async {
     final ref = _db.collection("email_otps").doc(uid);
     final doc = await ref.get();
@@ -82,11 +86,15 @@ class OtpRepository {
 
     final data = doc.data()!;
 
+    final storedPurpose = (data['type'] ?? '').toString();
+    if (storedPurpose != type.value) {
+      return OtpVerifyResult.invalid;
+    }
+
     final lockedUntil = data["lockedUntil"] != null
         ? (data["lockedUntil"] as Timestamp).toDate()
         : null;
 
-    /// nếu đang bị lock
     if (lockedUntil != null && DateTime.now().isBefore(lockedUntil)) {
       return OtpVerifyResult.tooManyAttempts;
     }
@@ -96,7 +104,6 @@ class OtpRepository {
     final maxAttempts = data["maxAttempts"] ?? _maxAttempts;
     final storedHash = data["codeHash"];
 
-    /// OTP hết hạn
     if (DateTime.now().isAfter(expiresAt)) {
       await ref.delete();
       return OtpVerifyResult.expired;
@@ -104,11 +111,9 @@ class OtpRepository {
 
     final inputHash = _hash(inputCode);
 
-    /// OTP sai
     if (inputHash != storedHash) {
       final newAttempts = attempts + 1;
 
-      /// vượt quá số lần cho phép
       if (newAttempts >= maxAttempts) {
         await ref.update({
           "attempts": newAttempts,
@@ -121,14 +126,14 @@ class OtpRepository {
       }
 
       await ref.update({"attempts": newAttempts});
-
       return OtpVerifyResult.invalid;
     }
 
-    /// OTP đúng
-    await _activateUser(uid);
-    await ref.delete();
+    if (type == MailType.verifyEmail) {
+      await _activateUser(uid);
+    }
 
+    await ref.delete();
     return OtpVerifyResult.success;
   }
 

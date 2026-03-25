@@ -37,8 +37,8 @@ class AppAccessibilityService : AccessibilityService() {
                 usageSyncManager?.syncUsageApps(userId)
             }
 
-            // handler.postDelayed(this, 15 * 60 * 1000)
-            handler.postDelayed(this, 60000)
+            handler.postDelayed(this, 15 * 60 * 1000)
+            // handler.postDelayed(this, 60000)
         }
     }
 
@@ -51,8 +51,8 @@ class AppAccessibilityService : AccessibilityService() {
                 usageSyncManager?.syncInstalledApps(userId)
             }
 
-            // handler.postDelayed(this, 5 * 60 * 1000)
-            handler.postDelayed(this, 60000)
+            handler.postDelayed(this, 5 * 60 * 1000)
+            // handler.postDelayed(this, 60000)
         }
     }
 
