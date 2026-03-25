@@ -13,12 +13,11 @@ import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
-enum OtpPurpose { verifyEmail, resetPassword }
 
 class OtpScreen extends StatefulWidget {
   final String uid;
   final String email;
-  final OtpPurpose purpose;
+  final MailType purpose;
 
   const OtpScreen({
     super.key,
@@ -86,14 +85,14 @@ class _OtpScreenState extends State<OtpScreen> {
     final vm = context.read<OtpVM>();
 
     /// 3. gọi API verify
-    final result = await vm.verifyOtp(uid: widget.uid, code: otp);
+    final result = await vm.verifyOtp(uid: widget.uid, code: otp, type: widget.purpose);
 
     if (!mounted) return;
 
     /// 4. xử lý result
     switch (result) {
       case OtpVerifyResult.success:
-        if (widget.purpose == OtpPurpose.verifyEmail) {
+        if (widget.purpose == MailType.verifyEmail) {
           NotificationDialog.show(
             context,
             type: DialogType.success,
@@ -111,7 +110,7 @@ class _OtpScreenState extends State<OtpScreen> {
           );
         }
 
-        if (widget.purpose == OtpPurpose.resetPassword) {
+        if (widget.purpose == MailType.resetPassword) {
           if (!mounted) return;
 
           Navigator.pushReplacement(
@@ -268,9 +267,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       final result = await vm.resendOtp(
                         uid: widget.uid,
                         email: widget.email,
-                        type: widget.purpose == OtpPurpose.verifyEmail
-                            ? MailType.verifyEmail
-                            : MailType.resetPassword,
+                        type: widget.purpose
                       );
 
                       if (result != OtpResendResult.success) {

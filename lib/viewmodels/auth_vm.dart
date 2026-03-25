@@ -72,35 +72,6 @@ class AuthVM extends ChangeNotifier {
     });
   }
 
-  Future<bool> verifyOtp(String code) async {
-    _loading = true;
-    notifyListeners();
-
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-
-    final result = await _otpRepo.verifyOtp(uid: uid, inputCode: code);
-
-    _loading = false;
-    notifyListeners();
-
-    switch (result) {
-      case OtpVerifyResult.success:
-        return true;
-      case OtpVerifyResult.invalid:
-        _error = "invalidCode";
-        return false;
-      case OtpVerifyResult.expired:
-        _error = "codeExpired";
-        return false;
-      case OtpVerifyResult.tooManyAttempts:
-        _error = "tooManyAttempts";
-        return false;
-      default:
-        _error = "unknownError";
-        return false;
-    }
-  }
-
   Future<void> onLoginSuccess(String userId) async {}
 
   Future<String?> forgotPassword(String email) async {

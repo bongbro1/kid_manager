@@ -58,6 +58,7 @@ const STATIONARY_RADIUS_METERS = 18;
 const STATIONARY_ALERT_DELAY_MS = 5 * 60 * 1000;
 const RECENT_COMPLETED_TRIP_WINDOW_MS = 15 * 60 * 1000;
 const SAFE_ROUTE_SCHEDULE = "every 1 minutes";
+const FAMILY_LIVE_LOCATIONS_ROOT = "live_locations_by_family";
 
 function parseSafeRouteTravelMode(value: unknown): SafeRouteTravelMode {
   const normalized = mustString(value ?? "walking", "travelMode");
@@ -110,6 +111,18 @@ function parseRouteIdList(value: unknown) {
     .map((item) => String(item ?? "").trim())
     .filter((id) => id.length > 0)
     .filter((id, index, list) => list.indexOf(id) === index);
+}
+
+function readFamilyIdFromLocationRecord(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const familyId = (raw as Record<string, unknown>).familyId;
+  if (typeof familyId !== "string" || !familyId.trim()) {
+    return null;
+  }
+  return familyId.trim();
 }
 
 function zonedDateParts(ms: number) {
@@ -861,14 +874,44 @@ export const syncSafeRouteLiveLocation = onValueWritten(
   async (event) => {
     const childId = String(event.params.childId ?? "");
     const targetRef = admin.database().ref(`live_locations/${childId}`);
+    const previousFamilyId = readFamilyIdFromLocationRecord(
+      event.data.before.exists() ? event.data.before.val() : null
+    );
+    const nextFamilyId = readFamilyIdFromLocationRecord(
+      event.data.after.exists() ? event.data.after.val() : null
+    );
+
+    const removeFamilyMirror = (familyId: string) =>
+      admin
+        .database()
+        .ref(`${FAMILY_LIVE_LOCATIONS_ROOT}/${familyId}/${childId}`)
+        .remove();
 
     if (!event.data.after.exists()) {
-      await targetRef.remove();
+      const removals: Array<Promise<unknown>> = [targetRef.remove()];
+      if (previousFamilyId) {
+        removals.push(removeFamilyMirror(previousFamilyId));
+      }
+      await Promise.all(removals);
       return;
     }
 
     const liveLocation = parseLiveLocationRecord(childId, event.data.after.val());
-    await targetRef.set(liveLocation);
+    const writes: Array<Promise<unknown>> = [targetRef.set(liveLocation)];
+
+    if (previousFamilyId && previousFamilyId !== nextFamilyId) {
+      writes.push(removeFamilyMirror(previousFamilyId));
+    }
+    if (nextFamilyId) {
+      writes.push(
+        admin
+          .database()
+          .ref(`${FAMILY_LIVE_LOCATIONS_ROOT}/${nextFamilyId}/${childId}`)
+          .set(liveLocation)
+      );
+    }
+
+    await Promise.all(writes);
   }
 );
 

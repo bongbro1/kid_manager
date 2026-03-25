@@ -12,6 +12,7 @@ class TrackingBackgroundService {
   static Future<bool> startForCurrentUser({
     required bool requireBackground,
     String? parentUid,
+    String? familyId,
     String? displayName,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -20,12 +21,19 @@ class TrackingBackgroundService {
       return false;
     }
 
+    final existingConfig = await TrackingRuntimeStore.loadConfig();
+    final preservedConfig =
+        existingConfig != null && existingConfig.userId == userId
+        ? existingConfig
+        : null;
+
     final config = TrackingRuntimeConfig(
       userId: userId,
       enabled: true,
       requireBackground: requireBackground,
-      parentUid: parentUid?.trim(),
-      displayName: displayName?.trim(),
+      parentUid: parentUid?.trim() ?? preservedConfig?.parentUid,
+      familyId: familyId?.trim() ?? preservedConfig?.familyId,
+      displayName: displayName?.trim() ?? preservedConfig?.displayName,
     );
 
     await TrackingRuntimeStore.saveConfig(config);

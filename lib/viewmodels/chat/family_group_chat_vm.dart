@@ -8,6 +8,7 @@ import 'package:kid_manager/models/chat/family_chat_message.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/chat/chat_media_service.dart';
+import 'package:kid_manager/services/chat/family_chat_storage_path.dart';
 
 class FamilyGroupChatVm extends ChangeNotifier {
   FamilyGroupChatVm({
@@ -172,10 +173,21 @@ class FamilyGroupChatVm extends ChangeNotifier {
         message.imageUrl != null &&
         message.imageWidth != null &&
         message.imageHeight != null) {
+      final resolvedImagePath = resolveFamilyChatImageStoragePath(
+        familyId: _requireFamilyId(),
+        senderUid: sender.uid,
+        messageId: message.id,
+        imagePath: message.imagePath,
+        imageUrl: message.imageUrl,
+      );
+      if (resolvedImagePath == null) {
+        throw StateError('missing_or_invalid_image_path');
+      }
+
       await sendRemoteImageMessage(
         sender: sender,
         imageUrl: message.imageUrl!,
-        imagePath: message.imagePath ?? '',
+        imagePath: resolvedImagePath,
         imageWidth: message.imageWidth!,
         imageHeight: message.imageHeight!,
         text: message.text,

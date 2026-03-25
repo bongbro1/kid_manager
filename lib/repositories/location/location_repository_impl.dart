@@ -5,6 +5,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/background/tracking_runtime_config.dart';
+import 'package:kid_manager/background/tracking_runtime_store.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
@@ -35,7 +37,9 @@ class LocationRepositoryImpl implements LocationRepository {
   static const int _historyChunkLimit = 250;
 
   String? _cachedParentUid;
+  String? _cachedFamilyId;
   String? _cachedParentUidForUid;
+  String? _cachedFamilyIdForUid;
   String? _metaEnsuredForUid;
 
   FirebaseFunctions get _functions =>
@@ -93,15 +97,44 @@ class LocationRepositoryImpl implements LocationRepository {
     return uid;
   }
 
-  Future<String> _getParentUid() async {
+  Future<TrackingRoutingContext?> _loadPersistedRoutingContext(String uid) async {
+    try {
+      return await TrackingRuntimeStore.loadRoutingContext(uid);
+    } catch (e, st) {
+      _logErr('loadPersistedRoutingContext failed', e, st);
+      return null;
+    }
+  }
+
+  Future<Map<String, String>> _loadUserRoutingContext(String uid) async {
     final l10n = runtimeL10n();
-    final uid = _requireUid();
-    if (_cachedParentUid != null && _cachedParentUidForUid == uid) {
-      _log('getParentUid -> cache hit parentUid=$_cachedParentUid');
-      return _cachedParentUid!;
+    final canUseParentCache =
+        _cachedParentUid != null && _cachedParentUidForUid == uid;
+    final canUseFamilyCache =
+        _cachedFamilyId != null && _cachedFamilyIdForUid == uid;
+    if (canUseParentCache && canUseFamilyCache) {
+      return <String, String>{
+        'parentUid': _cachedParentUid!,
+        'familyId': _cachedFamilyId!,
+      };
     }
 
-    _log('getParentUid -> fetch Firestore users/$uid');
+    final persistedContext = await _loadPersistedRoutingContext(uid);
+    if (persistedContext != null) {
+      _cachedParentUid = persistedContext.parentUid!.trim();
+      _cachedParentUidForUid = uid;
+      _cachedFamilyId = persistedContext.familyId!.trim();
+      _cachedFamilyIdForUid = uid;
+      _log(
+        'loadUserRoutingContext -> store hit parentUid=$_cachedParentUid familyId=$_cachedFamilyId',
+      );
+      return <String, String>{
+        'parentUid': _cachedParentUid!,
+        'familyId': _cachedFamilyId!,
+      };
+    }
+
+    _log('loadUserRoutingContext -> fetch Firestore users/$uid');
 
     try {
       final snap = await FirebaseFirestore.instance
@@ -110,19 +143,60 @@ class LocationRepositoryImpl implements LocationRepository {
           .get();
 
       final parentUid = snap.data()?['parentUid'];
-      _log('getParentUid -> Firestore parentUid=$parentUid');
+      final familyId = snap.data()?['familyId'];
+      _log(
+        'loadUserRoutingContext -> Firestore parentUid=$parentUid familyId=$familyId',
+      );
 
       if (parentUid == null) {
         throw Exception(l10n.locationRepositoryParentIdNotFound);
       }
+      if (familyId == null || familyId.toString().trim().isEmpty) {
+        throw Exception(l10n.userVmFamilyIdNotFound);
+      }
 
       _cachedParentUid = parentUid.toString();
       _cachedParentUidForUid = uid;
-      return _cachedParentUid!;
+      _cachedFamilyId = familyId.toString();
+      _cachedFamilyIdForUid = uid;
+      await TrackingRuntimeStore.saveRoutingContext(
+        TrackingRoutingContext(
+          userId: uid,
+          parentUid: _cachedParentUid,
+          familyId: _cachedFamilyId,
+        ),
+      );
+
+      return <String, String>{
+        'parentUid': _cachedParentUid!,
+        'familyId': _cachedFamilyId!,
+      };
     } catch (e, st) {
-      _logErr('getParentUid failed', e, st);
+      _logErr('loadUserRoutingContext failed', e, st);
       rethrow;
     }
+  }
+
+  Future<String> _getParentUid() async {
+    final uid = _requireUid();
+    if (_cachedParentUid != null && _cachedParentUidForUid == uid) {
+      _log('getParentUid -> cache hit parentUid=$_cachedParentUid');
+      return _cachedParentUid!;
+    }
+
+    final routing = await _loadUserRoutingContext(uid);
+    return routing['parentUid']!;
+  }
+
+  Future<String> _getFamilyId() async {
+    final uid = _requireUid();
+    if (_cachedFamilyId != null && _cachedFamilyIdForUid == uid) {
+      _log('getFamilyId -> cache hit familyId=$_cachedFamilyId');
+      return _cachedFamilyId!;
+    }
+
+    final routing = await _loadUserRoutingContext(uid);
+    return routing['familyId']!;
   }
 
   Future<void> _ensureMeta(String uid) async {
@@ -131,12 +205,15 @@ class LocationRepositoryImpl implements LocationRepository {
     }
 
     try {
-      final parentUid = await _getParentUid();
+      final routing = await _loadUserRoutingContext(uid);
       final metaRef = _database.ref('locations/$uid/meta');
 
-      _log('ensureMeta -> update locations/$uid/meta {parentUid:$parentUid}');
+      _log(
+        'ensureMeta -> update locations/$uid/meta {parentUid:${routing['parentUid']} familyId:${routing['familyId']}}',
+      );
       await metaRef.update({
-        'parentUid': parentUid,
+        'parentUid': routing['parentUid'],
+        'familyId': routing['familyId'],
         'updatedAt': ServerValue.timestamp,
       });
       _metaEnsuredForUid = uid;
@@ -154,6 +231,7 @@ class LocationRepositoryImpl implements LocationRepository {
 
     try {
       await _ensureMeta(uid);
+      final familyId = await _getFamilyId();
 
       final ref = _database.ref('locations/$uid/current');
 
@@ -171,6 +249,7 @@ class LocationRepositoryImpl implements LocationRepository {
 
         return Transaction.success({
           ..._flattenPayload(payload),
+          'familyId': familyId,
           'updatedAt': ServerValue.timestamp,
         });
       });

@@ -12,7 +12,7 @@ class MotionDetector {
     required double speedMps,
     required double accuracyM,
   }) {
-    final movementThresholdKm = accuracyM <= 15
+    final baseMovementThresholdKm = accuracyM <= 15
         ? 0.006
         : accuracyM <= 30
         ? 0.008
@@ -20,7 +20,19 @@ class MotionDetector {
         ? 0.012
         : 0.015;
 
-    if (distanceKm >= movementThresholdKm || speedMps >= 0.8) {
+    final movementThresholdKm = switch (current) {
+      MotionState.moving => baseMovementThresholdKm,
+      MotionState.idle => baseMovementThresholdKm * 1.35,
+      MotionState.stationary => baseMovementThresholdKm * 1.8,
+    };
+
+    final movingSpeedThresholdMps = switch (current) {
+      MotionState.moving => 0.8,
+      MotionState.idle => accuracyM <= 20 ? 1.0 : 1.2,
+      MotionState.stationary => accuracyM <= 20 ? 1.25 : 1.5,
+    };
+
+    if (distanceKm >= movementThresholdKm || speedMps >= movingSpeedThresholdMps) {
       return MotionState.moving;
     }
 

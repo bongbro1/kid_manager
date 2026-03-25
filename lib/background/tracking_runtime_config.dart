@@ -1,9 +1,26 @@
+class TrackingRoutingContext {
+  const TrackingRoutingContext({
+    required this.userId,
+    this.parentUid,
+    this.familyId,
+  });
+
+  final String userId;
+  final String? parentUid;
+  final String? familyId;
+
+  bool get isComplete =>
+      (parentUid?.trim().isNotEmpty ?? false) &&
+      (familyId?.trim().isNotEmpty ?? false);
+}
+
 class TrackingRuntimeConfig {
   const TrackingRuntimeConfig({
     required this.userId,
     required this.enabled,
     required this.requireBackground,
     this.parentUid,
+    this.familyId,
     this.displayName,
   });
 
@@ -11,6 +28,7 @@ class TrackingRuntimeConfig {
   final bool enabled;
   final bool requireBackground;
   final String? parentUid;
+  final String? familyId;
   final String? displayName;
 
   TrackingRuntimeConfig copyWith({
@@ -18,6 +36,7 @@ class TrackingRuntimeConfig {
     bool? enabled,
     bool? requireBackground,
     String? parentUid,
+    String? familyId,
     String? displayName,
   }) {
     return TrackingRuntimeConfig(
@@ -25,6 +44,7 @@ class TrackingRuntimeConfig {
       enabled: enabled ?? this.enabled,
       requireBackground: requireBackground ?? this.requireBackground,
       parentUid: parentUid ?? this.parentUid,
+      familyId: familyId ?? this.familyId,
       displayName: displayName ?? this.displayName,
     );
   }

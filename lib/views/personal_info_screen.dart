@@ -246,7 +246,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: theme.textTheme.titleLarge?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 20
+            fontSize: 20,
           ),
         ),
         actions: const [SizedBox(width: 60)],
@@ -642,24 +642,6 @@ class MoreActionSheet extends StatelessWidget {
             ),
 
             const SizedBox(height: 10),
-
-            if (showNotificationDebug) ...[
-              SettingItem(
-                title: 'Notification Debug',
-                iconPath: "assets/icons/bell.svg",
-                iconType: AppIconType.svg,
-                iconSize: 18,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const NotificationDebugScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
 
             SettingItem(
               title: AppLocalizations.of(context).logoutTitle,

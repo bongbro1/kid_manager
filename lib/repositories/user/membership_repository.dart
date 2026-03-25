@@ -40,34 +40,19 @@ class MembershipRepository {
         .doc(familyId)
         .collection('members');
 
-    return membersRef
-        .snapshots()
-        .asyncMap((qs) async {
+    return membersRef.snapshots().map((qs) {
           final memberDocs = qs.docs;
           final parentUid = _inferFamilyParentUid(memberDocs);
 
-          final users = await Future.wait(
-            memberDocs.map((memberDoc) async {
-              final uid = (memberDoc.data()['uid'] ?? memberDoc.id).toString();
-              final userSnap = await userRef(uid).get();
-              if (userSnap.exists) {
-                final user = AppUser.fromDoc(userSnap);
-                return _normalizeLegacyLocationMember(
-                  user,
+          final users = memberDocs
+              .map(
+                (memberDoc) => _normalizeLegacyLocationMember(
+                  AppUser.fromMap(memberDoc.data(), docId: memberDoc.id),
                   familyId: familyId,
                   inferredParentUid: parentUid,
-                );
-              }
-
-              final data = memberDoc.data();
-              return _fallbackLocationMember(
-                uid: uid,
-                data: data,
-                familyId: familyId,
-                inferredParentUid: parentUid,
-              );
-            }),
-          );
+                ),
+              )
+              .toList(growable: false);
 
           final list = users
               .where((user) {
@@ -137,47 +122,9 @@ class MembershipRepository {
       return user;
     }
 
-    return AppUser(
-      uid: user.uid,
-      role: user.role,
-      phone: user.phone,
-      email: user.email,
-      displayName: user.displayName,
-      coverUrl: user.coverUrl,
-      avatarUrl: user.avatarUrl,
-      locale: user.locale,
-      timezone: user.timezone,
-      createdAt: user.createdAt,
-      lastActiveAt: user.lastActiveAt,
+    return user.copyWith(
       familyId: normalizedFamilyId,
-      isActive: user.isActive,
-      allowTracking: user.allowTracking,
       parentUid: normalizedParentUid,
-      subscription: user.subscription,
-      managedChildIds: user.managedChildIds,
-    );
-  }
-
-  AppUser _fallbackLocationMember({
-    required String uid,
-    required Map<String, dynamic> data,
-    required String familyId,
-    required String? inferredParentUid,
-  }) {
-    final role = UserRole.fromValue(data['role']);
-    final fallbackParentUid =
-        (role == UserRole.child || role == UserRole.guardian)
-        ? inferredParentUid
-        : null;
-
-    return AppUser(
-      uid: uid,
-      role: role,
-      familyId: familyId,
-      displayName: data['displayName']?.toString(),
-      avatarUrl: data['avatarUrl']?.toString(),
-      allowTracking: role == UserRole.child,
-      parentUid: fallbackParentUid,
     );
   }
 
@@ -225,6 +172,7 @@ class MembershipRepository {
           'lastActiveAt': FieldValue.serverTimestamp(),
           'avatarUrl': '',
           'isActive': true,
+          'allowTracking': role == UserRole.child,
         }..removeWhere((key, value) => value == null),
       );
 
@@ -238,8 +186,13 @@ class MembershipRepository {
             role: role,
             familyId: familyId,
             displayName: displayName,
+            email: email.trim(),
             avatarUrl: '',
             dob: dob,
+            parentUid: parentUid,
+            isActive: true,
+            allowTracking: role == UserRole.child,
+            lastActiveAt: FieldValue.serverTimestamp(),
           ),
           'joinedAt': FieldValue.serverTimestamp(),
         },

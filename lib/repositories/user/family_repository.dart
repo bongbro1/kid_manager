@@ -52,10 +52,14 @@ class FamilyRepository {
           role: UserRole.parent,
           familyId: familyId,
           displayName: data?['displayName']?.toString(),
+          email: data?['email']?.toString(),
           avatarUrl: data?['avatarUrl']?.toString(),
           dob:
               parseFlexibleBirthDate(data?['dobIso']) ??
               parseFlexibleBirthDate(data?['dob']),
+          isActive: (data?['isActive'] as bool?) ?? false,
+          allowTracking: (data?['allowTracking'] as bool?) ?? false,
+          lastActiveAt: data?['lastActiveAt'] ?? FieldValue.serverTimestamp(),
         ),
         'joinedAt': FieldValue.serverTimestamp(),
       });
@@ -101,7 +105,11 @@ class FamilyRepository {
         role: UserRole.parent,
         familyId: familyId,
         displayName: displayName,
+        email: email,
         avatarUrl: '',
+        isActive: false,
+        allowTracking: false,
+        lastActiveAt: FieldValue.serverTimestamp(),
       ),
       'joinedAt': FieldValue.serverTimestamp(),
     });
@@ -123,38 +131,36 @@ class FamilyRepository {
         .doc(familyId)
         .collection('members');
 
-    return membersRef
-        .snapshots()
-        .asyncMap((qs) async {
-          final memberDocs = qs.docs;
-          if (memberDocs.isEmpty) {
-            return const <AppUser>[];
-          }
+    return membersRef.snapshots().map((qs) {
+      final memberDocs = qs.docs;
+      if (memberDocs.isEmpty) {
+        return const <AppUser>[];
+      }
 
-          final users = await Future.wait(
-            memberDocs.map((memberDoc) async {
-              final uid = (memberDoc.data()['uid'] ?? memberDoc.id).toString();
-              final userSnap = await userRef(uid).get();
-              if (userSnap.exists) {
-                return AppUser.fromDoc(userSnap);
-              }
-              return _fallbackFamilyMember(memberDoc, familyId: familyId);
-            }),
-          );
+      final inferredParentUid = _inferFamilyParentUid(memberDocs);
+      final users = memberDocs
+          .map(
+            (memberDoc) => _normalizeFamilyMember(
+              memberDoc,
+              familyId: familyId,
+              inferredParentUid: inferredParentUid,
+            ),
+          )
+          .toList(growable: false);
 
-          users.sort((a, b) {
-            final roleCompare = _roleSortOrder(a.role).compareTo(
-              _roleSortOrder(b.role),
-            );
-            if (roleCompare != 0) {
-              return roleCompare;
-            }
-            final nameA = (a.displayName ?? a.email ?? '').trim().toLowerCase();
-            final nameB = (b.displayName ?? b.email ?? '').trim().toLowerCase();
-            return nameA.compareTo(nameB);
-          });
-          return users;
-        });
+      users.sort((a, b) {
+        final roleCompare = _roleSortOrder(a.role).compareTo(
+          _roleSortOrder(b.role),
+        );
+        if (roleCompare != 0) {
+          return roleCompare;
+        }
+        final nameA = (a.displayName ?? a.email ?? '').trim().toLowerCase();
+        final nameB = (b.displayName ?? b.email ?? '').trim().toLowerCase();
+        return nameA.compareTo(nameB);
+      });
+      return users;
+    });
   }
 
   Future<AppUser?> getUserById(String uid) {
@@ -172,18 +178,49 @@ class FamilyRepository {
     }
   }
 
-  AppUser _fallbackFamilyMember(
+  String? _inferFamilyParentUid(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> memberDocs,
+  ) {
+    for (final memberDoc in memberDocs) {
+      final data = memberDoc.data();
+      if (UserRole.fromValue(data['role']) != UserRole.parent) {
+        continue;
+      }
+      final uid = (data['uid'] ?? memberDoc.id).toString().trim();
+      if (uid.isNotEmpty) {
+        return uid;
+      }
+    }
+    return null;
+  }
+
+  AppUser _normalizeFamilyMember(
     DocumentSnapshot<Map<String, dynamic>> memberDoc, {
     required String familyId,
+    required String? inferredParentUid,
   }) {
     final data = memberDoc.data() ?? const <String, dynamic>{};
-    return AppUser(
-      uid: (data['uid'] ?? memberDoc.id).toString(),
-      role: UserRole.fromValue(data['role']),
-      familyId: (data['familyId'] ?? familyId).toString(),
-      displayName: data['displayName']?.toString(),
-      avatarUrl: data['avatarUrl']?.toString(),
-      parentUid: data['parentUid']?.toString(),
+    final user = AppUser.fromMap(data, docId: memberDoc.id);
+    final normalizedFamilyId =
+        (user.familyId ?? '').trim().isEmpty ? familyId : user.familyId;
+    final normalizedParentUid =
+        (user.parentUid ?? '').trim().isEmpty &&
+            (user.role == UserRole.child || user.role == UserRole.guardian)
+        ? inferredParentUid
+        : user.parentUid;
+    final normalizedAllowTracking =
+        user.role == UserRole.child ? true : user.allowTracking;
+
+    if (normalizedFamilyId == user.familyId &&
+        normalizedParentUid == user.parentUid &&
+        normalizedAllowTracking == user.allowTracking) {
+      return user;
+    }
+
+    return user.copyWith(
+      familyId: normalizedFamilyId,
+      parentUid: normalizedParentUid,
+      allowTracking: normalizedAllowTracking,
     );
   }
 }

@@ -17,6 +17,7 @@ import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/background/tracking_runtime_config.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
@@ -131,6 +132,36 @@ class ChildLocationViewModel extends ChangeNotifier {
       fallbackLang: fallbackLang,
     );
     return _l10nFuture!;
+  }
+
+  Future<TrackingRoutingContext?> _loadTrackingRoutingContext() async {
+    final uid = _currentUidOrNull();
+    if (uid == null) {
+      return null;
+    }
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      final data = snapshot.data();
+      if (data == null) {
+        return null;
+      }
+
+      final parentUid = data['parentUid']?.toString().trim();
+      final familyId = data['familyId']?.toString().trim();
+      return TrackingRoutingContext(
+        userId: uid,
+        parentUid: parentUid?.isEmpty == true ? null : parentUid,
+        familyId: familyId?.isEmpty == true ? null : familyId,
+      );
+    } catch (e, st) {
+      debugPrint('ChildLocationViewModel load routing context error: $e');
+      debugPrint('$st');
+      return null;
+    }
   }
 
   String? _currentUidOrNull() {
@@ -500,8 +531,11 @@ class ChildLocationViewModel extends ChangeNotifier {
 
     var serviceStarted = false;
     if (_requireBackground) {
+      final routingContext = await _loadTrackingRoutingContext();
       serviceStarted = await TrackingBackgroundService.startForCurrentUser(
         requireBackground: _requireBackground,
+        parentUid: routingContext?.parentUid,
+        familyId: routingContext?.familyId,
       );
       if (serviceStarted) {
         final runtimeReady = await TrackingBackgroundService.waitUntilReady();

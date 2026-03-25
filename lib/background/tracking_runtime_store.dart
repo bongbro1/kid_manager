@@ -8,6 +8,7 @@ class TrackingRuntimeStore {
   static const prefsKeyUserId = 'tracking.runtime.userId';
   static const prefsKeyRequireBackground = 'tracking.runtime.requireBackground';
   static const prefsKeyParentUid = 'tracking.runtime.parentUid';
+  static const prefsKeyFamilyId = 'tracking.runtime.familyId';
   static const prefsKeyDisplayName = 'tracking.runtime.displayName';
   static const prefsKeyPublisherReady = 'tracking.runtime.publisherReady';
 
@@ -24,6 +25,12 @@ class TrackingRuntimeStore {
       await prefs.setString(prefsKeyParentUid, config.parentUid!.trim());
     } else {
       await prefs.remove(prefsKeyParentUid);
+    }
+
+    if (_hasText(config.familyId)) {
+      await prefs.setString(prefsKeyFamilyId, config.familyId!.trim());
+    } else {
+      await prefs.remove(prefsKeyFamilyId);
     }
 
     if (_hasText(config.displayName)) {
@@ -51,8 +58,45 @@ class TrackingRuntimeStore {
       enabled: enabled,
       requireBackground: requireBackground,
       parentUid: prefs.getString(prefsKeyParentUid)?.trim(),
+      familyId: prefs.getString(prefsKeyFamilyId)?.trim(),
       displayName: prefs.getString(prefsKeyDisplayName)?.trim(),
     );
+  }
+
+  static Future<void> saveRoutingContext(
+    TrackingRoutingContext context,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(prefsKeyUserId, context.userId);
+
+    if (_hasText(context.parentUid)) {
+      await prefs.setString(prefsKeyParentUid, context.parentUid!.trim());
+    } else {
+      await prefs.remove(prefsKeyParentUid);
+    }
+
+    if (_hasText(context.familyId)) {
+      await prefs.setString(prefsKeyFamilyId, context.familyId!.trim());
+    } else {
+      await prefs.remove(prefsKeyFamilyId);
+    }
+  }
+
+  static Future<TrackingRoutingContext?> loadRoutingContext(
+    String userId,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedUserId = prefs.getString(prefsKeyUserId)?.trim();
+    if (storedUserId == null || storedUserId.isEmpty || storedUserId != userId) {
+      return null;
+    }
+
+    final context = TrackingRoutingContext(
+      userId: storedUserId,
+      parentUid: prefs.getString(prefsKeyParentUid)?.trim(),
+      familyId: prefs.getString(prefsKeyFamilyId)?.trim(),
+    );
+    return context.isComplete ? context : null;
   }
 
   static Future<void> clear() async {
@@ -61,6 +105,7 @@ class TrackingRuntimeStore {
     await prefs.remove(prefsKeyUserId);
     await prefs.remove(prefsKeyRequireBackground);
     await prefs.remove(prefsKeyParentUid);
+    await prefs.remove(prefsKeyFamilyId);
     await prefs.remove(prefsKeyDisplayName);
     await prefs.remove(prefsKeyPublisherReady);
   }
