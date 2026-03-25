@@ -317,6 +317,23 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
                 child: const Text('Show test notification'),
               ),
               ElevatedButton(
+                onPressed: () async {
+                  await LocalNotificationService.show(
+                    title: 'Tracking alert test',
+                    body:
+                        'This should appear on the tracking_alerts channel.',
+                    channelId: LocalNotificationService.trackingChannelId,
+                    payload: jsonEncode({
+                      "type": "tracking",
+                      "eventKey": "tracking.location_service_off.parent",
+                      "message":
+                          "Please turn on GPS or Location Services on the device so location updates can continue.",
+                    }),
+                  );
+                },
+                child: const Text('Show tracking channel notification'),
+              ),
+              ElevatedButton(
                 onPressed: _sendSystem,
                 child: const Text("⚙️ Send System → User"),
               ),

@@ -1,53 +1,10 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { admin, db } from "../../bootstrap";
 import { REGION } from "../../config";
-import { randomUUID } from "crypto";
-import { sendLocalizedNotification } from "../notifications/sendLocalizedNotification";
+import { createGlobalNotificationRecord } from "../../services/globalNotifications";
 
 const FLAP_STATUSES = new Set(["location_stale", "ok"]);
 const FLAP_COOLDOWN_MS = 5 * 60 * 1000;
-
-function dayInVN(ms: number) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(ms));
-
-  const y = parts.find((p) => p.type === "year")?.value ?? "1970";
-  const m = parts.find((p) => p.type === "month")?.value ?? "01";
-  const d = parts.find((p) => p.type === "day")?.value ?? "01";
-  return `${y}-${m}-${d}`;
-}
-
-async function writeInbox(opts: {
-  toUid: string;
-  senderId: string;
-  type: string;
-  eventKey: string;
-  body: string;
-  data: Record<string, any>;
-  createdAtMs: number;
-}) {
-  const id = randomUUID();
-  const day = dayInVN(opts.createdAtMs);
-
-  await db.doc(`users/${opts.toUid}/notifications/${id}`).set({
-    senderId: opts.senderId,
-    receiverId: opts.toUid,
-    title: opts.eventKey,
-    type: opts.type,
-    eventKey: opts.eventKey,
-    body: opts.body,
-    data: opts.data,
-    childUid: String(opts.data.childUid ?? ""),
-    isRead: false,
-    status: "sent",
-    day,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-}
 
 async function getParentUids(familyId: string, childUid: string): Promise<string[]> {
   const membersSnap = await db.collection(`families/${familyId}/members`).get();
@@ -147,24 +104,15 @@ const beforeData = before?.exists ? before.data() : null;
         toUid: parentUid,
       };
 
-      await writeInbox({
-        toUid: parentUid,
+      await createGlobalNotificationRecord({
+        receiverId: parentUid,
         senderId: "system",
         type: "TRACKING",
-        eventKey: parentEventKey,
+        title: parentEventKey,
         body: message,
-        data: payloadForParent,
-        createdAtMs: nowMs,
-      });
-
-      await sendLocalizedNotification({
-        uid: parentUid,
-        type: "TRACKING",
         eventKey: parentEventKey,
-        titleParams: { childName },
-        bodyParams: { childName },
         data: payloadForParent,
-        channelId: "tracking_alerts",
+        familyId,
       });
     }
 

@@ -14,6 +14,7 @@ import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
 import 'package:kid_manager/views/setting_pages/member_management_screen.dart';
+import 'package:kid_manager/views/notifications/notification_debug_screen.dart';
 import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';
@@ -598,6 +599,9 @@ class MoreActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final profile = context.watch<UserVm>().profile;
+    final showNotificationDebug = profile?.role == UserRole.parent;
+
     return AppOverlaySheet(
       showHandle: true,
       child: Padding(
@@ -638,6 +642,24 @@ class MoreActionSheet extends StatelessWidget {
             ),
 
             const SizedBox(height: 10),
+
+            if (showNotificationDebug) ...[
+              SettingItem(
+                title: 'Notification Debug',
+                iconPath: "assets/icons/bell.svg",
+                iconType: AppIconType.svg,
+                iconSize: 18,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationDebugScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
 
             SettingItem(
               title: AppLocalizations.of(context).logoutTitle,

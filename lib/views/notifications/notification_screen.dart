@@ -14,7 +14,6 @@ class NotificationScreen extends StatefulWidget {
   const NotificationScreen({
     super.key,
     this.sources = const [
-      NotificationSource.userInbox,
       NotificationSource.global,
     ],
     this.systemOnly = false,

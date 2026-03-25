@@ -353,6 +353,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.trackingChannelId,
     );
   }
 
@@ -377,6 +378,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.zoneChannelId,
     );
   }
 
@@ -403,6 +405,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.chatChannelId,
     );
   }
 

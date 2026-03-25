@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/background/auth_runtime_manager.dart';
+import 'package:kid_manager/background/tracking_background_service.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/features/sessions/sessionstatus.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
@@ -145,7 +146,6 @@ class _SessionGuardState extends State<SessionGuard> {
               uid: uid,
               sources: const [
                 NotificationSource.global,
-                NotificationSource.userInbox,
               ],
             );
 
@@ -309,7 +309,17 @@ class _SessionGuardState extends State<SessionGuard> {
               );
             }
 
-            return const _ChildWarmupShell();
+            return MultiProvider(
+              providers: [
+                ChangeNotifierProvider(
+                  create: (context) => ChildLocationViewModel(
+                    context.read<LocationRepository>(),
+                    context.read<LocationServiceInterface>(),
+                  ),
+                ),
+              ],
+              child: const _ChildWarmupShell(),
+            );
         }
       },
     );
@@ -331,6 +341,7 @@ class _SessionGuardState extends State<SessionGuard> {
     await appManagementVm.clear();
     await parentLocationVm.stopWatchingAllChildren();
     await parentLocationVm.stopMyLocation();
+    await TrackingBackgroundService.stop();
     await AuthRuntimeManager.stop();
     scheduleVm.resetForNewSession();
     memoryVm.resetForNewSession();
@@ -475,11 +486,7 @@ class _GuardianWarmupShellState extends State<_GuardianWarmupShell> {
         return;
       }
 
-      final hasBackgroundMode = await _locationService
-          .isBackgroundModeEnabled();
-      await _childLocationVm.startLocationSharing(
-        background: hasBackgroundMode,
-      );
+      await _childLocationVm.startLocationSharing(background: true);
       _selfTrackingActive = _childLocationVm.isSharing;
       return;
     }
@@ -513,6 +520,11 @@ class _ChildWarmupShell extends StatefulWidget {
 class _ChildWarmupShellState extends State<_ChildWarmupShell> {
   bool _ready = false;
   bool _started = false;
+  bool _selfTrackingActive = false;
+
+  late final UserVm _userVm;
+  late final ChildLocationViewModel _childLocationVm;
+  late final LocationServiceInterface _locationService;
 
   @override
   void didChangeDependencies() {
@@ -520,10 +532,49 @@ class _ChildWarmupShellState extends State<_ChildWarmupShell> {
     if (_started) return;
     _started = true;
 
+    _userVm = context.read<UserVm>();
+    _childLocationVm = context.read<ChildLocationViewModel>();
+    _locationService = context.read<LocationServiceInterface>();
+    _userVm.addListener(_onUserChanged);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      await _syncSelfTracking();
       setState(() => _ready = true);
     });
+  }
+
+  void _onUserChanged() {
+    unawaited(_syncSelfTracking());
+  }
+
+  Future<void> _syncSelfTracking() async {
+    final me = _userVm.me;
+    final shouldShare = me?.isChild == true && me?.allowTracking == true;
+
+    if (shouldShare && !_selfTrackingActive) {
+      final hasForegroundPermission = await _locationService
+          .hasLocationPermission(requireBackground: false);
+      final serviceEnabled = await _locationService.isServiceEnabled();
+      if (!hasForegroundPermission || !serviceEnabled) {
+        return;
+      }
+
+      await _childLocationVm.startLocationSharing(background: true);
+      _selfTrackingActive = _childLocationVm.isSharing;
+      return;
+    }
+
+    if (!shouldShare && _selfTrackingActive) {
+      await _childLocationVm.stopSharing(clearData: false);
+      _selfTrackingActive = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _userVm.removeListener(_onUserChanged);
+    super.dispose();
   }
 
   @override

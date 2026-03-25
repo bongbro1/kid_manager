@@ -6,6 +6,11 @@ import 'package:kid_manager/l10n/app_localizations.dart';
 
 class LocalNotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
+  static const String defaultChannelId = 'default_channel';
+  static const String chatChannelId = 'chat_messages';
+  static const String trackingChannelId = 'tracking_alerts';
+  static const String zoneChannelId = 'zone_alerts';
+  static const String generalAlertsChannelId = 'general_alerts';
 
   static Future<AppLocalizations> _loadL10n([String? lang]) {
     final normalized =
@@ -24,14 +29,42 @@ class LocalNotificationService {
         >();
     final l10n = await _loadL10n();
 
-    await androidPlugin?.createNotificationChannel(
+    final channels = <AndroidNotificationChannel>[
       AndroidNotificationChannel(
-        'default_channel',
+        defaultChannelId,
         l10n.notificationsLocalChannelName,
         description: l10n.notificationsLocalChannelDescription,
         importance: Importance.max,
       ),
-    );
+      AndroidNotificationChannel(
+        chatChannelId,
+        l10n.notificationsLocalChannelName,
+        description: l10n.notificationsLocalChannelDescription,
+        importance: Importance.max,
+      ),
+      AndroidNotificationChannel(
+        trackingChannelId,
+        l10n.notificationsLocalChannelName,
+        description: l10n.notificationsLocalChannelDescription,
+        importance: Importance.max,
+      ),
+      AndroidNotificationChannel(
+        zoneChannelId,
+        l10n.notificationsLocalChannelName,
+        description: l10n.notificationsLocalChannelDescription,
+        importance: Importance.max,
+      ),
+      AndroidNotificationChannel(
+        generalAlertsChannelId,
+        l10n.notificationsLocalChannelName,
+        description: l10n.notificationsLocalChannelDescription,
+        importance: Importance.max,
+      ),
+    ];
+
+    for (final channel in channels) {
+      await androidPlugin?.createNotificationChannel(channel);
+    }
 
     // debugPrint('STEP INIT DONE');
   }
@@ -40,6 +73,7 @@ class LocalNotificationService {
     required String title,
     required String body,
     String? payload,
+    String channelId = defaultChannelId,
   }) async {
     // debugPrint("========== LOCAL NOTIFICATION DEBUG ==========");
     // debugPrint("TIME: ${DateTime.now()}");
@@ -50,7 +84,7 @@ class LocalNotificationService {
     try {
       final l10n = await _loadL10n();
       final androidDetails = AndroidNotificationDetails(
-        'default_channel',
+        channelId,
         l10n.notificationsLocalChannelName,
         channelDescription: l10n.notificationsLocalChannelDescription,
         importance: Importance.max,
