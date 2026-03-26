@@ -25,7 +25,6 @@ import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/services/usage_sync_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
@@ -80,7 +79,6 @@ class _MyAppState extends State<MyApp> {
   late final SecondaryAuthService _secondaryAuthService;
   late final PermissionService _permissionService;
   late final AppInstalledService _appInstalledService;
-  late final UsageSyncService _usageService;
   late final AccessControlService _accessControlService;
   late final ProfileRepository _profileRepo;
   late final FamilyRepository _familyRepo;
@@ -112,7 +110,6 @@ class _MyAppState extends State<MyApp> {
     _secondaryAuthService = SecondaryAuthService();
     _permissionService = PermissionService();
     _appInstalledService = AppInstalledService();
-    _usageService = UsageSyncService(FirebaseFirestore.instance);
     _accessControlService = AccessControlService();
     _profileRepo = ProfileRepository(FirebaseFirestore.instance);
     _membershipRepo = MembershipRepository(
@@ -135,7 +132,6 @@ class _MyAppState extends State<MyApp> {
     _scheduleRepo = ScheduleRepository(FirebaseFirestore.instance);
     _appRepo = AppManagementRepository(
       _appInstalledService,
-      _usageService,
       FirebaseFirestore.instance,
       _storageService,
     );
@@ -175,7 +171,6 @@ class _MyAppState extends State<MyApp> {
         Provider.value(value: _authService),
         Provider.value(value: _permissionService),
         Provider.value(value: _appInstalledService),
-        Provider.value(value: _usageService),
         Provider.value(value: _accessControlService),
 
         Provider.value(value: _profileRepo),

@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
@@ -8,20 +6,16 @@ import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/utils/statical_utils.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
-import 'package:usage_stats/usage_stats.dart';
 
 import '../services/app_installed_service.dart';
-import '../services/usage_sync_service.dart';
 
 class AppManagementRepository {
   final AppInstalledService appService;
-  final UsageSyncService usageService;
   final FirebaseFirestore db;
   final StorageService _storage;
 
   AppManagementRepository(
     this.appService,
-    this.usageService,
     this.db,
     this._storage,
   );

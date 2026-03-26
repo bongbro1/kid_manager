@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/alert_service.dart';
-import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/models/auth/password_validator.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';

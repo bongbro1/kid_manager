@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/firebase_auth_service.dart';
 import 'package:kid_manager/services/notifications/fcm_installation_service.dart';
 

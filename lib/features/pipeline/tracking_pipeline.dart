@@ -9,7 +9,6 @@ import 'package:kid_manager/helpers/location/effective_speed_estimator.dart';
 import 'package:kid_manager/helpers/location/transport_mode_detector.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/tracking_result.dart';
-import 'package:kid_manager/models/location/transport_mode.dart';
 
 class TrackingPipeline {
   final MotionDetector motionDetector;

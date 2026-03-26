@@ -10,7 +10,6 @@ import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/access_control/access_control_service.dart';
-import 'package:kid_manager/services/access_control/feature_policy.dart';
 import 'package:kid_manager/services/image_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';

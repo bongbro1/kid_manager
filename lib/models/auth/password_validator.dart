@@ -1,4 +1,3 @@
-import 'package:kid_manager/l10n/app_localizations.dart';
 
 class PasswordValidationResult {
   final bool hasMinLength;
