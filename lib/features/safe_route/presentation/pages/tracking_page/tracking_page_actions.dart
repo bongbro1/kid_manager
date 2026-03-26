@@ -145,7 +145,6 @@ extension _TrackingPageActions on _TrackingPageBodyState {
       context,
       title: AppLocalizations.of(context).safeRouteSelectScheduleTimeTitle,
       initial: state.scheduledTime,
-      primaryColor: const Color(0xFF1A73E8),
       minuteInterval: 1,
     );
     if (!mounted || picked == null) return;

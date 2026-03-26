@@ -35,6 +35,7 @@ class SchedulePeriodSelector extends StatelessWidget {
           children: SchedulePeriod.values.map((p) {
             final selected = value == p;
             final style = _periodStyle(p);
+            final colorScheme = Theme.of(context).colorScheme;
 
             return Expanded(
               child: Padding(
@@ -54,12 +55,12 @@ class SchedulePeriodSelector extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: selected
                               ? style.selectedBg
-                              : const Color(0xFFF2F3F5),
+                              : colorScheme.surface,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: selected
                                 ? style.dotColor
-                                : Colors.transparent,
+                                : colorScheme.onSurface.withOpacity(0.5),
                             width: 1,
                           ),
                         ),
@@ -82,7 +83,7 @@ class SchedulePeriodSelector extends StatelessWidget {
                                 fontWeight: FontWeight.w500,
                                 color: selected
                                     ? style.dotColor
-                                    : const Color(0xFF2A2A2A),
+                                    : colorScheme.onSurface.withOpacity(0.8)
                               ),
                             ),
                           ],
