@@ -24,15 +24,4 @@ class PasswordValidator {
       hasNumber: RegExp(r'[0-9]').hasMatch(password),
     );
   }
-
-  // static String? validateError(String password, AppLocalizations l10n) {
-  //   final r = validate(password);
-
-  //   if (!r.hasMinLength) return l10n.passwordMinLength;
-  //   if (!r.hasUppercase) return l10n.passwordUppercase;
-  //   if (!r.hasLowercase) return l10n.passwordLowercase;
-  //   if (!r.hasNumber) return l10n.passwordNumber;
-
-  //   return null;
-  // }
 }

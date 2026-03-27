@@ -15,12 +15,10 @@ import 'package:kid_manager/services/notifications/local_notification_service.da
 import 'package:kid_manager/services/notifications/sos_tap_router.dart';
 import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
-import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:kid_manager/widgets/notifications/birthday_notification_experience.dart';
 
 class NotificationService {
   static bool _initialized = false;
-  static String? _lastHandledNotificationId;
 
   NotificationService._();
 
@@ -29,8 +27,8 @@ class NotificationService {
   static final NotificationRepository _repo = NotificationRepository();
 
   static Future<AppLocalizations> _loadL10n([String? lang]) {
-    final normalized =
-        (lang ?? PlatformDispatcher.instance.locale.languageCode).toLowerCase();
+    final normalized = (lang ?? PlatformDispatcher.instance.locale.languageCode)
+        .toLowerCase();
     return AppLocalizations.delegate.load(
       Locale(normalized.startsWith('en') ? 'en' : 'vi'),
     );
@@ -58,13 +56,14 @@ class NotificationService {
     // App bị kill hẳn, user bấm push để mở app
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      debugPrint(
-        '🔔 getInitialMessage id=${initialMessage.messageId} data=${initialMessage.data}',
-      );
+      // debugPrint(
+      //   '🔔 getInitialMessage kill id=${initialMessage.messageId} data=${initialMessage.data}',
+      // );
+      // debugPrint('🔥KILL BEFORE handleTap');
 
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await handleTap(Map<String, dynamic>.from(initialMessage.data));
-      });
+      await handleTap(Map<String, dynamic>.from(initialMessage.data));
+
+      // debugPrint('🔥KILL END handleTap');
     }
 
     // Local notification tap / native channel cũ
@@ -79,15 +78,7 @@ class NotificationService {
     });
   }
 
-  static Future<void> handleInitialMessage() async {
-    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
-      debugPrint(
-        '🔔 handleInitialMessage id=${initialMessage.messageId} data=${initialMessage.data}',
-      );
-      await handleTap(initialMessage.data);
-    }
-  }
+  static String? _lastHandledTapKey;
 
   static Future<void> handleTap(Map<String, dynamic> data) async {
     final rawType = data["type"]?.toString();
@@ -98,14 +89,25 @@ class NotificationService {
     final eventId = data['eventId']?.toString();
     final route = data['route']?.toString();
 
-    debugPrint(
-      '🔔 handleTap type=$rawType normalizedType=$type notificationId=$notificationId familyId=$familyId messageId=$messageId eventId=$eventId route=$route',
-    );
+    final tapKey = [
+      type,
+      notificationId ?? '',
+      familyId ?? '',
+      messageId ?? '',
+      eventId ?? '',
+      route ?? '',
+    ].join('|');
 
-    if (type == 'test') {
-      debugPrint('🔔 TEST NOTIFICATION CLICKED');
+    if (_lastHandledTapKey == tapKey) {
       return;
     }
+    _lastHandledTapKey = tapKey;
+
+    // debugPrint(
+    //   '🔔 handleTap type=$rawType normalizedType=$type notificationId=$notificationId familyId=$familyId messageId=$messageId eventId=$eventId route=$route',
+    // );
+
+    if (type == 'test') return;
 
     if (type == 'sos') {
       await SosTapRouter.handleTap(data);
@@ -114,17 +116,15 @@ class NotificationService {
 
     final navigator = AppNavigator.navigatorKey.currentState;
     if (navigator == null) {
-      debugPrint('🔔 Navigator is null, cannot navigate');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        handleTap(data);
+      });
       return;
     }
 
     if (type == 'family_chat' || route == 'family_group_chat') {
-      if (familyId == null || familyId.isEmpty) {
-        debugPrint('🔔 family_chat tapped but familyId missing');
-        return;
-      }
+      if (familyId == null || familyId.isEmpty) return;
 
-      // TODO: mở lại khi đã import FamilyGroupChatScreen
       navigator.push(
         MaterialPageRoute(
           builder: (_) => FamilyGroupChatScreen(
@@ -138,30 +138,22 @@ class NotificationService {
 
     if (type == 'family_event') {
       debugPrint('🔔 family_event tapped eventId=$eventId');
-      // TODO: navigate event detail
       return;
     }
 
     if (type == 'zone') {
-      debugPrint('🔔 zone notification tapped -> open notifications tab');
       activeTabNotifier.value = notificationTabIndexNotifier.value;
       return;
     }
 
     if (notificationId == null || notificationId.isEmpty) {
-      debugPrint('🔔 notificationId missing, skip detail navigation');
+      // debugPrint('🔔 notificationId missing, skip detail navigation');
       return;
     }
-
-    if (_lastHandledNotificationId == notificationId) {
-      debugPrint('🔔 duplicate tap ignored: $notificationId');
-      return;
-    }
-    _lastHandledNotificationId = notificationId;
 
     final item = await _repo.getItemById(notificationId);
     if (item == null) {
-      debugPrint('🔔 notification not found: $notificationId');
+      // debugPrint('🔔 notification not found: $notificationId');
       return;
     }
 
@@ -173,31 +165,16 @@ class NotificationService {
         final sheetNavigator =
             NotificationTabNavigator.key.currentState ??
             AppNavigator.navigatorKey.currentState;
-        if (sheetNavigator == null) {
-          debugPrint('birthday tap: no context to open sheet');
-          return;
-        }
+        if (sheetNavigator == null) return;
 
         showBirthdayNotificationSheet(sheetNavigator.context, item: item);
       });
       return;
     }
 
-    if (type != "sos") {
-      activeTabNotifier.value = notificationTabIndexNotifier.value;
-      Future.microtask(() {
-        final nav = NotificationTabNavigator.key.currentState;
-        if (nav == null) return;
+    activeTabNotifier.value = notificationTabIndexNotifier.value;
 
-        nav.push(
-          MaterialPageRoute(
-            builder: (_) => NotificationDetailScreen(item: item),
-          ),
-        );
-      });
-
-      return;
-    }
+    NotificationNavigationState.set(item, type: type);
   }
 
   static Future<void> _markNotificationAsRead(AppNotification item) async {
@@ -353,6 +330,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.generalChannelId,
     );
   }
 
@@ -377,6 +355,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.generalChannelId,
     );
   }
 
@@ -403,6 +382,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.chatChannelId,
     );
   }
 

@@ -59,9 +59,11 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
   final FocusNode _inputFocusNode = FocusNode();
 
   bool _appliedInitialComposerText = false;
+  bool _sessionSyncScheduled = false;
   String? _boundFamilyId;
   String? _boundUid;
   List<FamilyChatSticker> _stickerCatalog = kFamilyChatFallbackStickers;
+  UserVm? _userVm;
 
   @override
   void initState() {
@@ -70,7 +72,29 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextUserVm = context.read<UserVm>();
+    if (!identical(_userVm, nextUserVm)) {
+      _userVm?.removeListener(_handleUserSessionChanged);
+      _userVm = nextUserVm;
+      _userVm?.addListener(_handleUserSessionChanged);
+    }
+    _scheduleSessionSync();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FamilyGroupChatBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialFamilyId != widget.initialFamilyId ||
+        oldWidget.initialComposerText != widget.initialComposerText) {
+      _scheduleSessionSync();
+    }
+  }
+
+  @override
   void dispose() {
+    _userVm?.removeListener(_handleUserSessionChanged);
     _inputFocusNode.dispose();
     _textController.dispose();
     super.dispose();
@@ -92,6 +116,32 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
   void _resetLocalState() {
     _textController.clear();
     _appliedInitialComposerText = false;
+  }
+
+  void _handleUserSessionChanged() {
+    _scheduleSessionSync();
+  }
+
+  void _scheduleSessionSync() {
+    if (_sessionSyncScheduled) {
+      return;
+    }
+    _sessionSyncScheduled = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _sessionSyncScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      _runSessionSync();
+    });
+  }
+
+  void _runSessionSync() {
+    final me = _userVm?.me;
+    final vmFamilyId = _userVm?.familyId;
+    final familyId = widget.initialFamilyId ?? vmFamilyId;
+    _syncSession(me, familyId);
   }
 
   void _applyInitialComposerTextIfNeeded() {
@@ -298,7 +348,6 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
     final me = context.select<UserVm, AppUser?>((vm) => vm.me);
     final vmFamilyId = context.select<UserVm, String?>((vm) => vm.familyId);
     final familyId = widget.initialFamilyId ?? vmFamilyId;
-    _syncSession(me, familyId);
 
     if (me == null || familyId == null || familyId.trim().isEmpty) {
       return _FamilyChatLoadingScaffold(

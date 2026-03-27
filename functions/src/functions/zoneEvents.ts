@@ -1,51 +1,22 @@
 import { onValueCreated } from "firebase-functions/v2/database";
 import { admin, db } from "../bootstrap";
-import { randomUUID } from "crypto";
-import { sendLocalizedNotification } from "../functions/notifications/sendLocalizedNotification";
+import { createGlobalNotificationRecord } from "../services/globalNotifications";
 
 const RTDB_REGION = "us-central1";
-function dayInVN(ms: number) {
+
+function dayInVN(timestampMs: number): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date(ms));
+  }).formatToParts(new Date(timestampMs));
 
-  const y = parts.find((p) => p.type === "year")?.value ?? "1970";
-  const m = parts.find((p) => p.type === "month")?.value ?? "01";
-  const d = parts.find((p) => p.type === "day")?.value ?? "01";
-  return `${y}-${m}-${d}`;
-}
+  const year = parts.find((part) => part.type === "year")?.value ?? "1970";
+  const month = parts.find((part) => part.type === "month")?.value ?? "01";
+  const day = parts.find((part) => part.type === "day")?.value ?? "01";
 
-async function writeInbox(opts: {
-  toUid: string;
-  senderId: string;
-  type: string;
-  eventKey: string;
-  body: string;
-  data: Record<string, any>;
-  createdAtMs: number;
-}) {
-  const id = randomUUID();
-  const day = dayInVN(opts.createdAtMs);
-
-  await db.doc(`users/${opts.toUid}/notifications/${id}`).set({
-    senderId: opts.senderId,
-    receiverId: opts.toUid,
-    title: opts.eventKey,
-    type: opts.type,
-    eventKey: opts.eventKey,
-    body: opts.body,
-    data: opts.data,
-    childUid: String(opts.data.childUid ?? ""),
-    isRead: false,
-    status: "sent",
-    day,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-
-  return id;
+  return `${year}-${month}-${day}`;
 }
 
 export const onZoneEventCreated = onValueCreated(
@@ -179,86 +150,24 @@ export const onZoneEventCreated = onValueCreated(
       durationMin: String(durationMin),
     };
 
-    const parentNotificationId = await writeInbox({
-      toUid: parentUid,
+    await createGlobalNotificationRecord({
+      receiverId: parentUid,
       senderId: "system",
       type: "ZONE",
-      eventKey: parentKey,
+      title: parentKey,
       body: inboxBody,
+      eventKey: parentKey,
       data: payloadForHistory,
-      createdAtMs: nowMs,
     });
 
-    const childNotificationId = await writeInbox({
-      toUid: childUid,
+    await createGlobalNotificationRecord({
+      receiverId: childUid,
       senderId: "system",
       type: "ZONE",
-      eventKey: childKey,
+      title: childKey,
       body: inboxBody,
-      data: payloadForHistory,
-      createdAtMs: nowMs,
-    });
-
-    const durationSuffix = durationMin > 0 ? ` • ${durationMin} phút` : "";
-
-    await sendLocalizedNotification({
-      uid: parentUid,
-      type: "zone",
-      eventKey: parentKey,
-      titleParams: {
-        childName,
-        zoneName,
-        durationSuffix,
-      },
-      bodyParams: {
-        childName,
-        zoneName,
-        durationSuffix,
-      },
-      data: {
-        childUid: String(childUid),
-        childName,
-        zoneId,
-        zoneType,
-        action,
-        zoneName,
-        eventId: String(eventId),
-        notificationId: parentNotificationId,
-        timestamp: String(eventTs),
-        durationSec: String(durationSec),
-        durationMin: String(durationMin),
-      },
-      channelId: "zone_alerts",
-    });
-
-    await sendLocalizedNotification({
-      uid: childUid,
-      type: "zone",
       eventKey: childKey,
-      titleParams: {
-        childName,
-        zoneName,
-        durationSuffix,
-      },
-      bodyParams: {
-        childName,
-        zoneName,
-        durationSuffix,
-      },
-      data: {
-        childUid: String(childUid),
-        childName,
-        zoneId,
-        zoneType,
-        action,
-        zoneName,
-        eventId: String(eventId),
-        notificationId: childNotificationId,
-        timestamp: String(eventTs),
-        durationSec: String(durationSec),
-        durationMin: String(durationMin),
-      },
-      channelId: "zone_alerts",
+      data: payloadForHistory,
     });
   }
 );

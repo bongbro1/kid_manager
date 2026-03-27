@@ -11,7 +11,7 @@ import 'package:usage_stats/usage_stats.dart';
 class PermissionService {
   Future<bool> hasNotificationPermission() async {
     final status = await Permission.notification.status;
-    return status.isGranted || status == PermissionStatus.provisional;
+    return status.isGranted;
   }
 
   Future<PermissionStatus> requestNotificationPermission() async {
@@ -174,8 +174,8 @@ class PermissionService {
   }
 
   Future<Map<String, bool>> checkAllPermissions() async {
-    final notifications = await hasNotificationPermission();
     final location = await hasForegroundLocationPermission();
+    final notifications = await hasNotificationPermission();
     final backgroundLocation = await hasBackgroundLocationPermission();
     final media = await hasPhotosOrStoragePermission();
     final usage = await hasUsagePermission();

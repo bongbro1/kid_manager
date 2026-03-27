@@ -81,7 +81,7 @@ class NotificationVM extends ChangeNotifier {
     notifyListeners();
 
     _unreadSub?.cancel();
-    _unreadSub = _repo.watchUnreadCount(uid).listen((unreadValue) {
+    _unreadSub = _repo.watchUnreadCount(uid, sources: sources).listen((unreadValue) {
       if (_uid != uid) return;
       _unreadCount = unreadValue;
       notifyListeners();

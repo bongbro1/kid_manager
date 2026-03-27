@@ -1,17 +1,9 @@
 import { CloudTasksClient } from "@google-cloud/tasks";
-import { REGION } from "../config";
+import { TASK_LOCATION, getSosReminderRuntimeConfig } from "../config";
 
 const client = new CloudTasksClient();
 
-// Đổi các biến này theo project của bạn
-const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "";
-const QUEUE_ID = process.env.SOS_REMINDER_QUEUE_ID || "sos-reminder-queue";
-const WORKER_URL = process.env.SOS_REMINDER_WORKER_URL || "";
-const TASK_CALLER_SA =
-process.env.SOS_TASK_CALLER_SA || ""; // vd: firebase-adminsdk-xxx@project-id.iam.gserviceaccount.com
-
 export function getReminderDelaySec(attempt: number): number | null {
-  // attempt = 1 là lần nhắc đầu tiên sau push ban đầu
   switch (attempt) {
     case 1:
       return 45;
@@ -41,17 +33,23 @@ export async function enqueueSosReminder(params: {
     return { enqueued: false, reason: "max-attempt-reached" };
   }
 
-  if (!PROJECT_ID) {
+  const runtimeConfig = getSosReminderRuntimeConfig();
+
+  if (!runtimeConfig.projectId) {
     throw new Error("Missing PROJECT_ID");
   }
-  if (!WORKER_URL) {
+  if (!runtimeConfig.workerUrl) {
     throw new Error("Missing SOS_REMINDER_WORKER_URL");
   }
-  if (!TASK_CALLER_SA) {
+  if (!runtimeConfig.taskCallerServiceAccount) {
     throw new Error("Missing SOS_TASK_CALLER_SA");
   }
 
-  const parent = client.queuePath(PROJECT_ID, REGION, QUEUE_ID);
+  const parent = client.queuePath(
+    runtimeConfig.projectId,
+    TASK_LOCATION,
+    runtimeConfig.queueId,
+  );
 
   const scheduleSeconds = Math.floor(Date.now() / 1000) + delaySec;
 
@@ -65,12 +63,12 @@ export async function enqueueSosReminder(params: {
   const task = {
     httpRequest: {
       httpMethod: "POST" as const,
-      url: WORKER_URL,
+      url: runtimeConfig.workerUrl,
       headers: {
         "Content-Type": "application/json",
       },
       oidcToken: {
-        serviceAccountEmail: TASK_CALLER_SA,
+        serviceAccountEmail: runtimeConfig.taskCallerServiceAccount,
       },
       body: Buffer.from(JSON.stringify(payload)).toString("base64"),
     },

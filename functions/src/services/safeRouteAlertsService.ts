@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
-import { admin, db } from "../bootstrap";
-import { sendLocalizedNotification } from "../functions/notifications/sendLocalizedNotification";
+import { db } from "../bootstrap";
+import { createGlobalNotificationRecord } from "./globalNotifications";
 import { t } from "../i18n";
 import {
   RouteHazardRecord,
@@ -22,20 +22,6 @@ type LocalizedAlertMessage = {
   body: string;
   status: string;
 };
-
-function dayInVN(ms: number) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(ms));
-
-  const y = parts.find((p) => p.type === "year")?.value ?? "1970";
-  const m = parts.find((p) => p.type === "month")?.value ?? "01";
-  const d = parts.find((p) => p.type === "day")?.value ?? "01";
-  return `${y}-${m}-${d}`;
-}
 
 function toDistanceLabel(meters: number) {
   if (meters >= 1000) {
@@ -116,56 +102,6 @@ async function buildLocalizedAlertMessage(params: {
   };
 }
 
-async function writeInbox(params: {
-  toUid: string;
-  senderId: string;
-  childId: string;
-  childName: string;
-  routeId: string;
-  routeName: string;
-  kind: SafeRouteAlertKind;
-  status: string;
-  title: string;
-  body: string;
-  eventKey: string;
-  distanceFromRouteMeters: number;
-  createdAtMs: number;
-  hazard?: RouteHazardRecord | null;
-  stationaryDurationMinutes?: number | null;
-}) {
-  const notificationId = randomUUID();
-  const day = dayInVN(params.createdAtMs);
-
-  await db.doc(`users/${params.toUid}/notifications/${notificationId}`).set({
-    senderId: params.senderId,
-    receiverId: params.toUid,
-    title: params.title,
-    body: params.body,
-    type: "tracking",
-    eventKey: params.eventKey,
-    isRead: false,
-    status: "sent",
-    day,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    data: {
-      childUid: params.childId,
-      childName: params.childName,
-      routeId: params.routeId,
-      routeName: params.routeName,
-      kind: params.kind,
-      status: params.status,
-      eventKey: params.eventKey,
-      distanceFromRouteMeters: params.distanceFromRouteMeters,
-      hazardId: params.hazard?.id ?? "",
-      hazardName: params.hazard?.name ?? "",
-      hazardRiskLevel: params.hazard?.riskLevel ?? "",
-      stationaryDurationMinutes: params.stationaryDurationMinutes ?? null,
-    },
-  });
-
-  return notificationId;
-}
-
 export async function createSafeRouteAlert(params: {
   trip: TripRecord;
   route: SafeRouteRecord;
@@ -219,48 +155,13 @@ export async function sendSafeRouteAlertPush(params: {
     stationaryDurationMinutes: params.stationaryDurationMinutes,
   });
 
-  const notificationId = await writeInbox({
-    toUid: params.toUid,
+  await createGlobalNotificationRecord({
+    receiverId: params.toUid,
     senderId: "system",
-    childId: params.trip.childId,
-    childName: params.childName,
-    routeId: params.route.id,
-    routeName: params.route.name,
-    kind: params.kind,
-    status: localized.status,
+    type: "tracking",
     title: localized.title,
     body: localized.body,
     eventKey: localized.eventKey,
-    distanceFromRouteMeters: params.distanceFromRouteMeters,
-    createdAtMs: Date.now(),
-    hazard: params.hazard,
-    stationaryDurationMinutes: params.stationaryDurationMinutes,
-  });
-
-  await sendLocalizedNotification({
-    uid: params.toUid,
-    type: "tracking",
-    eventKey: localized.eventKey,
-    titleParams: {
-      childName: params.childName,
-      routeName: params.route.name,
-      hazardName: params.hazard?.name ?? "",
-      distanceFromRoute: toDistanceLabel(params.distanceFromRouteMeters),
-      stationaryDuration:
-        params.stationaryDurationMinutes == null
-          ? ""
-          : `${params.stationaryDurationMinutes}`,
-    },
-    bodyParams: {
-      childName: params.childName,
-      routeName: params.route.name,
-      hazardName: params.hazard?.name ?? "",
-      distanceFromRoute: toDistanceLabel(params.distanceFromRouteMeters),
-      stationaryDuration:
-        params.stationaryDurationMinutes == null
-          ? ""
-          : `${params.stationaryDurationMinutes}`,
-    },
     data: {
       childUid: params.trip.childId,
       childName: params.childName,
@@ -270,7 +171,6 @@ export async function sendSafeRouteAlertPush(params: {
       kind: params.kind,
       status: localized.status,
       eventKey: localized.eventKey,
-      notificationId,
       hazardId: params.hazard?.id ?? "",
       hazardName: params.hazard?.name ?? "",
       distanceFromRouteMeters:
@@ -280,6 +180,5 @@ export async function sendSafeRouteAlertPush(params: {
       title: localized.title,
       body: localized.body,
     },
-    channelId: "tracking_alerts",
   });
 }

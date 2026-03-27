@@ -23,12 +23,15 @@ class FirebaseAuthService {
   }
 
   Future<void> resetPassword({
-    required String uid,
+    required String resetSessionToken,
     required String newPassword,
   }) async {
     final callable = _functions.httpsCallable("resetUserPassword");
 
-    await callable.call({"uid": uid, "newPassword": newPassword});
+    await callable.call({
+      "resetSessionToken": resetSessionToken,
+      "newPassword": newPassword,
+    });
   }
 
   Future<void> changePassword({

@@ -35,12 +35,26 @@ class MembershipRepository {
     String familyId, {
     String? excludeUid,
   }) {
-    return _users
-        .where('familyId', isEqualTo: familyId)
-        .snapshots()
-        .map((qs) {
-          final list = qs.docs
-              .map(AppUser.fromDoc)
+    final membersRef = _db
+        .collection('families')
+        .doc(familyId)
+        .collection('members');
+
+    return membersRef.snapshots().map((qs) {
+          final memberDocs = qs.docs;
+          final parentUid = _inferFamilyParentUid(memberDocs);
+
+          final users = memberDocs
+              .map(
+                (memberDoc) => _normalizeLegacyLocationMember(
+                  AppUser.fromMap(memberDoc.data(), docId: memberDoc.id),
+                  familyId: familyId,
+                  inferredParentUid: parentUid,
+                ),
+              )
+              .toList(growable: false);
+
+          final list = users
               .where((user) {
                 if (excludeUid != null &&
                     excludeUid.isNotEmpty &&
@@ -70,6 +84,48 @@ class MembershipRepository {
 
           return list;
         });
+  }
+
+  String? _inferFamilyParentUid(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> memberDocs,
+  ) {
+    for (final memberDoc in memberDocs) {
+      final data = memberDoc.data();
+      final role = UserRole.fromValue(data['role']);
+      if (role == UserRole.parent) {
+        final uid = (data['uid'] ?? memberDoc.id).toString().trim();
+        if (uid.isNotEmpty) {
+          return uid;
+        }
+      }
+    }
+    return null;
+  }
+
+  AppUser _normalizeLegacyLocationMember(
+    AppUser user, {
+    required String familyId,
+    required String? inferredParentUid,
+  }) {
+    final normalizedFamilyId = (user.familyId ?? '').trim().isEmpty
+        ? familyId
+        : user.familyId;
+
+    final normalizedParentUid =
+        (user.parentUid ?? '').trim().isEmpty &&
+            (user.role == UserRole.child || user.role == UserRole.guardian)
+        ? inferredParentUid
+        : user.parentUid;
+
+    if (normalizedFamilyId == user.familyId &&
+        normalizedParentUid == user.parentUid) {
+      return user;
+    }
+
+    return user.copyWith(
+      familyId: normalizedFamilyId,
+      parentUid: normalizedParentUid,
+    );
   }
 
   Future<String> createManagedAccount({
@@ -116,6 +172,7 @@ class MembershipRepository {
           'lastActiveAt': FieldValue.serverTimestamp(),
           'avatarUrl': '',
           'isActive': true,
+          'allowTracking': role == UserRole.child,
         }..removeWhere((key, value) => value == null),
       );
 
@@ -129,8 +186,13 @@ class MembershipRepository {
             role: role,
             familyId: familyId,
             displayName: displayName,
+            email: email.trim(),
             avatarUrl: '',
             dob: dob,
+            parentUid: parentUid,
+            isActive: true,
+            allowTracking: role == UserRole.child,
+            lastActiveAt: FieldValue.serverTimestamp(),
           ),
           'joinedAt': FieldValue.serverTimestamp(),
         },

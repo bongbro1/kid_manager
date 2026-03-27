@@ -42,6 +42,7 @@ class UserProfile {
 
   Map<String, dynamic> toMap() {
     final parsedDob = parseFlexibleBirthDate(dob);
+    // Keep self-service profile serialization limited to editable fields.
     final data = <String, dynamic>{
       'displayName': name,
       'phone': phone,
@@ -52,13 +53,9 @@ class UserProfile {
         "dob": dob,
       "address": address,
       "allowTracking": allowTracking,
-      'role': roleKey,
       "avatarUrl": avatarUrl,
       "coverUrl": coverUrl,
-      "parentUid": parentUid,
       "locale": locale,
-      "familyId": familyId,
-      if (managedChildIds.isNotEmpty) 'managedChildIds': managedChildIds,
     };
 
     data.removeWhere((key, value) => value == null);

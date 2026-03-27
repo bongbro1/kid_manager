@@ -6,6 +6,7 @@ import 'package:kid_manager/models/chat/family_chat_member.dart';
 import 'package:kid_manager/models/chat/family_chat_message.dart';
 import 'package:kid_manager/models/chat/family_chat_state.dart';
 import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/services/chat/family_chat_storage_path.dart';
 
 class FamilyChatRepository {
   FamilyChatRepository({
@@ -17,6 +18,10 @@ class FamilyChatRepository {
 
   final FirebaseFirestore _db;
   final FirebaseFunctions _functions;
+  static const int _maxClientMessageIdLength = 120;
+  static final RegExp _safeClientMessageIdPattern = RegExp(
+    r'^[A-Za-z0-9_-]{1,120}$',
+  );
 
   CollectionReference<Map<String, dynamic>> _messageCollection(String familyId) {
     return _db.collection('families').doc(familyId).collection('messages');
@@ -32,6 +37,24 @@ class FamilyChatRepository {
         : sender.email?.trim().isNotEmpty == true
             ? sender.email!.trim()
             : 'Family member';
+  }
+
+  String _resolveMessageId(String familyId, String? clientMessageId) {
+    final normalizedClientMessageId = clientMessageId?.trim() ?? '';
+    final messageId = normalizedClientMessageId.isNotEmpty
+        ? normalizedClientMessageId
+        : _messageCollection(familyId).doc().id;
+
+    if (messageId.length > _maxClientMessageIdLength ||
+        !_safeClientMessageIdPattern.hasMatch(messageId)) {
+      throw ArgumentError.value(
+        messageId,
+        'clientMessageId',
+        'clientMessageId must match [A-Za-z0-9_-] and be <= $_maxClientMessageIdLength chars',
+      );
+    }
+
+    return messageId;
   }
 
   Future<Map<String, dynamic>> _createPendingMessage({
@@ -174,9 +197,7 @@ class FamilyChatRepository {
     }
 
     final resolvedFamilyId = familyId.trim();
-    final messageId = (clientMessageId?.trim().isNotEmpty == true)
-        ? clientMessageId!.trim()
-        : _messageCollection(resolvedFamilyId).doc().id;
+    final messageId = _resolveMessageId(resolvedFamilyId, clientMessageId);
 
     debugPrint(
       '[FamilyChatRepository] sendTextMessage direct '
@@ -226,9 +247,24 @@ class FamilyChatRepository {
         'Image caption too long (>140 chars)',
       );
     }
-    final messageId = (clientMessageId?.trim().isNotEmpty == true)
-        ? clientMessageId!.trim()
-        : _messageCollection(resolvedFamilyId).doc().id;
+    final normalizedImagePath = imagePath.trim();
+    if (normalizedImagePath.isEmpty) {
+      throw ArgumentError.value(imagePath, 'imagePath', 'imagePath is required');
+    }
+
+    final messageId = _resolveMessageId(resolvedFamilyId, clientMessageId);
+    if (!matchesFamilyChatImageStoragePath(
+      imagePath: normalizedImagePath,
+      familyId: resolvedFamilyId,
+      senderUid: sender.uid,
+      messageId: messageId,
+    )) {
+      throw ArgumentError.value(
+        normalizedImagePath,
+        'imagePath',
+        'imagePath must belong to the same family, sender, and messageId',
+      );
+    }
 
     debugPrint(
       '[FamilyChatRepository] sendImageMessage direct '
@@ -242,7 +278,7 @@ class FamilyChatRepository {
       text: normalizedText,
       messageId: messageId,
       imageUrl: normalizedImageUrl,
-      imagePath: imagePath.trim(),
+      imagePath: normalizedImagePath,
       imageWidth: imageWidth,
       imageHeight: imageHeight,
     );
@@ -276,9 +312,7 @@ class FamilyChatRepository {
       throw ArgumentError.value(familyId, 'familyId', 'familyId is required');
     }
 
-    final messageId = (clientMessageId?.trim().isNotEmpty == true)
-        ? clientMessageId!.trim()
-        : _messageCollection(resolvedFamilyId).doc().id;
+    final messageId = _resolveMessageId(resolvedFamilyId, clientMessageId);
 
     debugPrint(
       '[FamilyChatRepository] sendStickerMessage direct '
@@ -323,9 +357,7 @@ class FamilyChatRepository {
       throw ArgumentError.value(familyId, 'familyId', 'familyId is required');
     }
 
-    final messageId = (clientMessageId?.trim().isNotEmpty == true)
-        ? clientMessageId!.trim()
-        : _messageCollection(resolvedFamilyId).doc().id;
+    final messageId = _resolveMessageId(resolvedFamilyId, clientMessageId);
 
     return _createPendingMessage(
       familyId: resolvedFamilyId,

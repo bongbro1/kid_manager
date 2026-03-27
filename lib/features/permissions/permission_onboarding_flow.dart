@@ -47,8 +47,8 @@ enum PermissionOnboardingStepType {
   backgroundLocation,
   media,
   usage,
-  accessibility,
   battery,
+  accessibility,
 }
 
 class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
@@ -97,8 +97,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
     if (Platform.isAndroid) {
       steps.addAll(const [
         PermissionOnboardingStepType.usage,
-        PermissionOnboardingStepType.accessibility,
         PermissionOnboardingStepType.battery,
+        PermissionOnboardingStepType.accessibility,
       ]);
     }
 

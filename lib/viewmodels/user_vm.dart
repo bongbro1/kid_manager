@@ -150,10 +150,9 @@ class UserVm extends ChangeNotifier {
 
     return list.where((member) {
       if (member.role == UserRole.child) {
-        return _accessControl.canViewLocation(
+        return _accessControl.canAccessChild(
           actor: actor,
           childUid: member.uid,
-          childAllowsTracking: member.allowTracking,
           child: member,
         );
       }

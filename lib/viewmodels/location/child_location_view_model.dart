@@ -17,12 +17,14 @@ import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/background/tracking_runtime_config.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
 import 'package:kid_manager/utils/app_localizations_loader.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
+import 'package:kid_manager/background/tracking_background_service.dart';
 
 class ChildLocationViewModel extends ChangeNotifier {
   ChildLocationViewModel(
@@ -89,6 +91,9 @@ class ChildLocationViewModel extends ChangeNotifier {
   bool _requireBackground = false;
   bool get requireBackground => _requireBackground;
 
+  bool _publishingHandledByService = false;
+  bool get publishingHandledByService => _publishingHandledByService;
+
   String? _error;
   String? get error => _error;
 
@@ -127,6 +132,36 @@ class ChildLocationViewModel extends ChangeNotifier {
       fallbackLang: fallbackLang,
     );
     return _l10nFuture!;
+  }
+
+  Future<TrackingRoutingContext?> _loadTrackingRoutingContext() async {
+    final uid = _currentUidOrNull();
+    if (uid == null) {
+      return null;
+    }
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      final data = snapshot.data();
+      if (data == null) {
+        return null;
+      }
+
+      final parentUid = data['parentUid']?.toString().trim();
+      final familyId = data['familyId']?.toString().trim();
+      return TrackingRoutingContext(
+        userId: uid,
+        parentUid: parentUid?.isEmpty == true ? null : parentUid,
+        familyId: familyId?.isEmpty == true ? null : familyId,
+      );
+    } catch (e, st) {
+      debugPrint('ChildLocationViewModel load routing context error: $e');
+      debugPrint('$st');
+      return null;
+    }
   }
 
   String? _currentUidOrNull() {
@@ -227,6 +262,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     String? message,
     bool force = false,
   }) async {
+    if (_publishingHandledByService) return;
     if (!force && _lastTrackingStatus == status) return;
     _lastTrackingStatus = status;
 
@@ -281,8 +317,10 @@ class ChildLocationViewModel extends ChangeNotifier {
         }
 
         if (_requireBackground) {
-          final bgEnabled = await _locationService.isBackgroundModeEnabled();
-          if (!bgEnabled) {
+          final backgroundSatisfied = _publishingHandledByService
+              ? await _locationService.hasBackgroundLocationPermission()
+              : await _locationService.isBackgroundModeEnabled();
+          if (!backgroundSatisfied) {
             await _reportTrackingStatusIfChanged(
               'background_disabled',
               message: l10n.trackingStatusBackgroundDisabledMessage,
@@ -351,6 +389,13 @@ class ChildLocationViewModel extends ChangeNotifier {
 
   /// Stop sharing (clearData=false if paused, true on logout)
   Future<void> stopSharing({bool clearData = false}) async {
+    final serviceBacked = _publishingHandledByService;
+    _publishingHandledByService = false;
+
+    if (serviceBacked) {
+      await TrackingBackgroundService.stop();
+    }
+
     await _gpsSub?.cancel();
     _gpsSub = null;
     _engine.reset();
@@ -408,6 +453,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     try {
       ok = await _locationService.ensureServiceAndPermission(
         requireBackground: _requireBackground,
+        enablePluginBackgroundMode: false,
         notificationTitle: l10n.locationForegroundServiceTitle,
         notificationSubtitle: l10n.locationForegroundServiceSubtitle,
       );
@@ -483,6 +529,42 @@ class ChildLocationViewModel extends ChangeNotifier {
       return;
     }
 
+    var serviceStarted = false;
+    if (_requireBackground) {
+      final routingContext = await _loadTrackingRoutingContext();
+      serviceStarted = await TrackingBackgroundService.startForCurrentUser(
+        requireBackground: _requireBackground,
+        parentUid: routingContext?.parentUid,
+        familyId: routingContext?.familyId,
+      );
+      if (serviceStarted) {
+        final runtimeReady = await TrackingBackgroundService.waitUntilReady();
+        _publishingHandledByService = runtimeReady;
+        if (!runtimeReady) {
+          debugPrint(
+            'Tracking foreground service started but background runtime is not ready yet; keep local publisher active.',
+          );
+        }
+      } else {
+        _publishingHandledByService = false;
+      }
+    }
+
+    if (!_publishingHandledByService && _requireBackground) {
+      try {
+        await _locationService.ensureServiceAndPermission(
+          requireBackground: true,
+          requestIfNeeded: false,
+          enablePluginBackgroundMode: true,
+          notificationTitle: l10n.locationForegroundServiceTitle,
+          notificationSubtitle: l10n.locationForegroundServiceSubtitle,
+        );
+      } catch (e, st) {
+        debugPrint('enable native plugin background mode fallback error: $e');
+        debugPrint('$st');
+      }
+    }
+
     _sentInitialCurrent = false;
     _activeSharingUid = sharingUid;
     _isSharing = true;
@@ -495,7 +577,9 @@ class ChildLocationViewModel extends ChangeNotifier {
     // listen GPS stream
     await _startActivityRecognition();
     if (_disposed) return;
-    await _ensureZoneMonitor(sharingUid);
+    if (!_publishingHandledByService) {
+      await _ensureZoneMonitor(sharingUid);
+    }
     if (_disposed) return;
     _gpsSub = _locationService.getLocationStream().listen((raw) async {
       if (_disposed) return;
@@ -541,15 +625,17 @@ class ChildLocationViewModel extends ChangeNotifier {
         _currentLocation = filtered;
       }
 
-      try {
-        if (_zonesInited) {
-          debugPrint(
-            "Checking zones for location: lat=${filtered.latitude} lng=${filtered.longitude}",
-          );
-          await _zoneMonitor?.onLocation(filtered);
+      if (!_publishingHandledByService) {
+        try {
+          if (_zonesInited) {
+            debugPrint(
+              "Checking zones for location: lat=${filtered.latitude} lng=${filtered.longitude}",
+            );
+            await _zoneMonitor?.onLocation(filtered);
+          }
+        } catch (e) {
+          debugPrint("zoneMonitor error: $e");
         }
-      } catch (e) {
-        debugPrint("zoneMonitor error: $e");
       }
 
       _motionState = result.motion;
@@ -573,7 +659,6 @@ class ChildLocationViewModel extends ChangeNotifier {
           !_sentInitialCurrent && !rejectVeryBadAcc;
 
       var sentCurrentToServer = false;
-      var sentHistoryToServer = false;
       Object? locationError;
 
       final currentInterval = _currentSendInterval(
@@ -582,7 +667,8 @@ class ChildLocationViewModel extends ChangeNotifier {
         shouldSendInitialCurrent: shouldSendInitialCurrent,
       );
 
-      if (currentInterval != null &&
+      if (!_publishingHandledByService &&
+          currentInterval != null &&
           _canAttemptSend(
             nowMs: nowMs,
             lastSuccessAtMs: _lastCurrentSentAtMs,
@@ -605,7 +691,8 @@ class ChildLocationViewModel extends ChangeNotifier {
       // =========================
       // 2) Append HISTORY only when policy allows and moving
       // =========================
-      if (isMoving &&
+      if (!_publishingHandledByService &&
+          isMoving &&
           result.shouldSend &&
           goodHistoryAcc &&
           _canAttemptSend(
@@ -618,7 +705,6 @@ class ChildLocationViewModel extends ChangeNotifier {
           await _locationRepository.appendMyHistory(payload);
           _lastHistoryFailureAtMs = 0;
           _engine.acknowledgeHistorySent(filtered, result.motion);
-          sentHistoryToServer = true;
         } catch (e) {
           _lastHistoryFailureAtMs = nowMs;
           locationError ??= e;
@@ -626,14 +712,21 @@ class ChildLocationViewModel extends ChangeNotifier {
         }
       }
 
-        // Keep status reporting separate from health monitor.
-        // Only report "ok" when current was sent successfully.
-        if (sentCurrentToServer) {
-          await _reportTrackingStatusIfChanged(
-            'ok',
-            message: l10n.trackingStatusOkMessage,
-          );
-        }
+      if (_publishingHandledByService &&
+          isMoving &&
+          result.shouldSend &&
+          goodHistoryAcc) {
+        _engine.acknowledgeHistorySent(filtered, result.motion);
+      }
+
+      // Keep status reporting separate from health monitor.
+      // Only report "ok" when current was sent successfully.
+      if (sentCurrentToServer) {
+        await _reportTrackingStatusIfChanged(
+          'ok',
+          message: l10n.trackingStatusOkMessage,
+        );
+      }
 
       if (locationError != null) {
         _setError(locationError);
@@ -657,6 +750,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     if (_disposed) return;
     final ok = await _locationService.ensureServiceAndPermission(
       requireBackground: true,
+      enablePluginBackgroundMode: !_publishingHandledByService,
       notificationTitle: l10n.locationForegroundServiceTitle,
       notificationSubtitle: l10n.locationForegroundServiceSubtitle,
     );

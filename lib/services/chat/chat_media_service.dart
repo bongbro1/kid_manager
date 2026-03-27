@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:kid_manager/services/chat/family_chat_storage_path.dart';
 
 class PreparedChatImage {
   const PreparedChatImage({
@@ -101,18 +102,23 @@ class ChatMediaService {
     final normalizedSenderUid = senderUid.trim();
     final normalizedMessageId = messageId.trim();
 
-    final storagePath =
-        'families/$normalizedFamilyId/chat/$normalizedSenderUid/$normalizedMessageId.jpg';
+    final storagePath = buildFamilyChatImageStoragePath(
+      familyId: normalizedFamilyId,
+      senderUid: normalizedSenderUid,
+      messageId: normalizedMessageId,
+    );
     final ref = FirebaseStorage.instance.ref().child(storagePath);
 
     await ref.putData(
       image.bytes,
       SettableMetadata(
+        cacheControl: 'public,max-age=3600',
         contentType: 'image/jpeg',
         customMetadata: <String, String>{
           'familyId': normalizedFamilyId,
           'senderUid': normalizedSenderUid,
           'messageId': normalizedMessageId,
+          'kind': 'familyChatImage',
         },
       ),
     );

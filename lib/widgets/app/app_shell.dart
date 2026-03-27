@@ -21,6 +21,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
   final FamilyChatRepository _chatRepository = FamilyChatRepository();
+  late final Set<int> _visitedIndexes = <int>{_index};
 
   late final AppShellConfig _config = widget.mode == AppMode.parent
       ? AppShellConfig.parent()
@@ -35,14 +36,14 @@ class _AppShellState extends State<AppShell> {
         : GlobalKey<NavigatorState>(),
   );
 
-  late final List<Widget> _tabs = List.generate(_config.tabs.length, (i) {
-    final tab = _config.tabs[i];
+  // late final List<Widget> _tabs = List.generate(_config.tabs.length, (i) {
+  //   final tab = _config.tabs[i];
 
-    return Navigator(
-      key: _navKeys[i],
-      onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => tab.root),
-    );
-  });
+  //   return Navigator(
+  //     key: _navKeys[i],
+  //     onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => tab.root),
+  //   );
+  // });
 
   @override
   void initState() {
@@ -63,7 +64,10 @@ class _AppShellState extends State<AppShell> {
     final i = activeTabNotifier.value;
     if (!mounted) return;
     if (i == _index) return;
-    setState(() => _index = i);
+    setState(() {
+      _index = i;
+      _visitedIndexes.add(i);
+    });
   }
 
   Future<void> _onNavTap(int i) async {
@@ -80,7 +84,10 @@ class _AppShellState extends State<AppShell> {
       return;
     }
 
-    setState(() => _index = i);
+    setState(() {
+      _index = i;
+      _visitedIndexes.add(i);
+    });
     activeTabNotifier.value = i;
 
     if (i == _config.chatTabIndex) {
@@ -111,7 +118,15 @@ class _AppShellState extends State<AppShell> {
       child: Stack(
         children: [
           Scaffold(
-            body: IndexedStack(index: _index, children: _tabs),
+            body: IndexedStack(
+              index: _index,
+              children: List<Widget>.generate(_config.tabs.length, (i) {
+                if (!_visitedIndexes.contains(i)) {
+                  return const SizedBox.shrink();
+                }
+                return _buildTabNavigator(i);
+              }),
+            ),
             bottomNavigationBar: AppBottomNav(
               items: _config.tabs
                   .map(
@@ -141,5 +156,15 @@ class _AppShellState extends State<AppShell> {
   void dispose() {
     activeTabNotifier.removeListener(_syncTabFromNotifier);
     super.dispose();
+  }
+
+  Widget _buildTabNavigator(int index) {
+    final tab = _config.tabs[index];
+    final isNotificationTab = tab.isNotificationTab;
+
+    return Navigator(
+      key: isNotificationTab ? NotificationTabNavigator.key : _navKeys[index],
+      onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => tab.root),
+    );
   }
 }

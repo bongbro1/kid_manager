@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/validators.dart';
-import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -33,7 +32,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     final email = _emailController.text.trim();
 
-    /// Validate
     if (email.isEmpty) {
       AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
@@ -44,9 +42,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    final uid = await authVm.forgotPassword(email);
+    final ok = await authVm.forgotPassword(email);
 
-    if (uid == null) {
+    if (!ok) {
       AlertService.showSnack(
         authVm.error ?? l10n.authSendOtpFailed,
         isError: true,
@@ -54,17 +52,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    /// start cooldown ngay lập tức
-
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => OtpScreen(
-          uid: uid,
           email: email,
-          purpose: MailType.resetPassword,
+          purpose: OtpPurpose.resetPassword,
         ),
       ),
     );
@@ -83,8 +80,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Scaffold(
           backgroundColor: colorScheme.background,
           body: SafeArea(
-            child: 
-            Padding(
+            child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,9 +102,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 22),
-
                   Padding(
                     padding: const EdgeInsets.only(left: 14),
                     child: SizedBox(
@@ -141,9 +135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 32),
-
                   Padding(
                     padding: const EdgeInsets.only(left: 14, bottom: 8),
                     child: Text(
@@ -156,16 +148,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                   ),
-
                   AuthTextField(
                     controller: _emailController,
                     hintText: l10n.authEnterEmailHint,
                     keyboardType: TextInputType.emailAddress,
                     prefixSvg: 'assets/icons/user.svg',
                   ),
-
                   const Spacer(),
-
                   AppButton(
                     height: 60,
                     text: l10n.authContinueButton,
@@ -175,7 +164,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     backgroundColor: colorScheme.primary,
                     foregroundColor: colorScheme.onPrimary,
                   ),
-
                   const SizedBox(height: 24),
                 ],
               ),

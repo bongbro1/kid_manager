@@ -245,7 +245,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: theme.textTheme.titleLarge?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 20
+            fontSize: 20,
           ),
         ),
         actions: const [SizedBox(width: 60)],
@@ -598,6 +598,9 @@ class MoreActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final profile = context.watch<UserVm>().profile;
+    final showNotificationDebug = profile?.role == UserRole.parent;
+
     return AppOverlaySheet(
       showHandle: true,
       child: Padding(

@@ -55,7 +55,7 @@ class ProfileRepository {
     await userRef(uid).update({
       if (displayName != null) 'displayName': displayName,
       if (phone != null) 'phone': phone,
-      if (photoUrl != null) 'photoUrl': photoUrl,
+      if (photoUrl != null) 'avatarUrl': photoUrl,
       if (locale != null) 'locale': locale,
       if (timezone != null) 'timezone': timezone,
       'lastActiveAt': FieldValue.serverTimestamp(),
@@ -86,20 +86,6 @@ class ProfileRepository {
       return null;
     }
     return UserProfile.fromMap(uid, doc.data()!);
-  }
-
-  Future<UserProfile?> getUserByEmail(String email) async {
-    final snap = await _users
-        .where('email', isEqualTo: email.trim())
-        .limit(1)
-        .get();
-
-    if (snap.docs.isEmpty) {
-      return null;
-    }
-
-    final doc = snap.docs.first;
-    return UserProfile.fromMap(doc.id, doc.data());
   }
 
   Stream<UserProfile?> listenUserProfile(String uid) {

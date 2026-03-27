@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/auth/password_validator.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
@@ -22,37 +24,52 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool hideOld = true;
   bool hideNew = true;
   bool hideConfirm = true;
-
   Future<void> _handleChangePassword() async {
+    final vm = context.read<AuthVM>();
     final l10n = AppLocalizations.of(context);
-    final authVm = context.read<AuthVM>();
 
-    await authVm.changePassword(
-      oldPassword: _oldCtrl.text.trim(),
-      newPassword: _newCtrl.text.trim(),
-      confirmPassword: _confirmCtrl.text.trim(),
-    );
+    final oldPassword = _oldCtrl.text.trim();
+    final newPassword = _newCtrl.text.trim();
+    final confirmPassword = _confirmCtrl.text.trim();
 
-    if (!mounted) return;
+    if (oldPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+      AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
+      return;
+    }
 
-    if (authVm.error != null) {
-      await NotificationDialog.show(
-        context,
-        type: DialogType.error,
-        title: l10n.updateErrorTitle,
-        message: authVm.error!,
+    if (newPassword != confirmPassword) {
+      AlertService.showSnack(l10n.authPasswordMismatch, isError: true);
+      return;
+    }
+
+    final passwordResult = PasswordValidator.validate(newPassword);
+    if (!passwordResult.isValid) {
+      AlertService.showSnack(
+        'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.',
+        isError: true,
       );
       return;
     }
 
-    await NotificationDialog.show(
+    final ok = await vm.changePassword(
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
+
+    if (!ok) {
+      AlertService.showSnack(vm.error ?? l10n.updateErrorTitle, isError: true);
+      return;
+    }
+
+    if (!mounted) return;
+
+    NotificationDialog.show(
       context,
       type: DialogType.success,
       title: l10n.updateSuccessTitle,
       message: l10n.changePasswordSuccessMessage,
     );
-
-    if (!mounted) return;
     Navigator.pop(context);
   }
 

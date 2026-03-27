@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { admin } from "../bootstrap";
 import { REGION } from "../config";
 import { mustString } from "../helpers";
+import { parseLiveLocationRecord } from "../services/safeRouteMonitoringService";
 import {
   listTrackableLocationMembersForViewer,
   requireLocationViewerAccess,
@@ -40,6 +41,44 @@ function parseChunkLimit(value: unknown): number {
   }
 
   return Math.min(Math.trunc(parsed), MAX_HISTORY_CHUNK_LIMIT);
+}
+
+function normalizeLiveLocationMap(raw: unknown): Record<string, any> {
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  return raw as Record<string, any>;
+}
+
+async function readMissingFamilyLiveLocations(params: {
+  familyId: string;
+  missingMemberUids: string[];
+}) {
+  const { familyId, missingMemberUids } = params;
+  if (missingMemberUids.length === 0) {
+    return {};
+  }
+
+  const entries = await Promise.all(
+    missingMemberUids.map(async (memberUid) => {
+      const currentSnap = await admin
+        .database()
+        .ref(`locations/${memberUid}/current`)
+        .get();
+      if (!currentSnap.exists()) {
+        return [memberUid, null] as const;
+      }
+
+      const liveLocation = parseLiveLocationRecord(memberUid, currentSnap.val());
+      await admin
+        .database()
+        .ref(`live_locations_by_family/${familyId}/${memberUid}`)
+        .set(liveLocation);
+      return [memberUid, liveLocation] as const;
+    })
+  );
+
+  return Object.fromEntries(entries.filter((entry) => entry[1] != null));
 }
 
 export const getChildLocationCurrent = onCall({ region: REGION }, async (req) => {
@@ -149,18 +188,39 @@ export const getFamilyChildrenCurrent = onCall({ region: REGION }, async (req) =
   const { familyId, members } = await listTrackableLocationMembersForViewer(uid);
   if (!members.length) return { ok: true, familyId, children: [] };
 
-  const reads = await Promise.all(
-    members.map(async (member) => {
-      const snap = await admin.database().ref(`locations/${member.uid}/current`).get();
+  const membersByUid = new Map(
+    members.map((member) => [member.uid, member] as const)
+  );
+  const familyLiveSnap = await admin
+    .database()
+    .ref(`live_locations_by_family/${familyId}`)
+    .get();
+  const familyLiveSource = familyLiveSnap.exists()
+    ? normalizeLiveLocationMap(familyLiveSnap.val())
+    : {};
+  const missingMemberUids = Array.from(membersByUid.keys()).filter(
+    (memberUid) => familyLiveSource[memberUid] == null
+  );
+  const missingLiveSource = await readMissingFamilyLiveLocations({
+    familyId,
+    missingMemberUids,
+  });
+  const liveSource = {
+    ...familyLiveSource,
+    ...missingLiveSource,
+  };
+
+  const children = Array.from(membersByUid.entries())
+    .map(([memberUid, member]) => {
+      const current = liveSource[memberUid] ?? null;
       return {
-        childUid: member.uid,
+        childUid: memberUid,
         role: member.role,
         allowTracking: member.allowTracking,
-        current: snap.exists() ? snap.val() : null,
+        current,
       };
     })
-  );
+    .filter((item) => item.current != null);
 
-  const children = reads.filter((x) => x.current != null);
   return { ok: true, familyId, children };
 });

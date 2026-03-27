@@ -6,10 +6,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:intl/date_symbol_data_local.dart';
+import 'package:kid_manager/background/background_tracking_entrypoint.dart'
+    as tracking_background;
 import 'package:kid_manager/core/storage_keys.dart';
-import 'package:kid_manager/services/notifications/local_alarm_service.dart';
-import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -18,11 +17,6 @@ import 'package:provider/provider.dart';
 import 'app.dart';
 import 'firebase_options.dart';
 
-String _maskToken(String? token) {
-  if (token == null || token.isEmpty) return 'null';
-  if (token.length <= 8) return '***';
-  return '${token.substring(0, 4)}...${token.substring(token.length - 4)}';
-}
 
 Future<void> _activateFirebaseAppCheck({required bool background}) async {
   try {
@@ -53,36 +47,6 @@ Future<void> _activateFirebaseAppCheck({required bool background}) async {
   }
 }
 
-Future<void> _runDeferredStartupTasks() async {
-  try {
-    await LocalNotificationService.init();
-    await NotificationService.init();
-  } catch (e) {
-    debugPrint('Notification bootstrap failed: $e');
-  }
-
-  try {
-    await LocalAlarmService.I.init();
-  } catch (e) {
-    debugPrint('LocalAlarm init failed: $e');
-  }
-
-  try {
-    await initializeDateFormatting('vi_VN', null);
-  } catch (e) {
-    debugPrint('Date formatting init failed: $e');
-  }
-
-  try {
-    final token = await FirebaseMessaging.instance.getToken();
-    if (kDebugMode) {
-      debugPrint('FCM token=${_maskToken(token)}');
-    }
-  } catch (e) {
-    debugPrint('FCM token fetch failed: $e');
-  }
-}
-
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (kDebugMode) {
@@ -110,6 +74,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await NotificationService.handleMessageForLocalNotification(message);
 }
 
+@pragma('vm:entry-point')
+Future<void> backgroundTrackingMain() async {
+  await tracking_background.backgroundTrackingMain();
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -135,8 +104,4 @@ Future<void> main() async {
       child: MyApp(isDark: isDark, primaryColor: Color(colorValue)),
     ),
   );
-
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    unawaited(_runDeferredStartupTasks());
-  });
 }

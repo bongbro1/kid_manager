@@ -92,10 +92,6 @@ class AppManagementRepository {
     } else {
       // debugPrint("⚡ Server already synced");
     }
-
-    // Future.microtask(() {
-    //   syncTodayUsage(userId: userId);
-    // });
   }
 
   Future<void> seedApps(String userId, List<AppInfo> apps) async {
