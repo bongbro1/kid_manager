@@ -76,6 +76,16 @@ service cloud.firestore {
         && userDoc(childUid).data.parentUid == parentUid
         && userDoc(childUid).data.familyId == userDoc(parentUid).data.familyId;
     }
+    
+     function canAccessSafeRouteChild(childUid) {
+      return isSignedIn()
+        && userExists(childUid)
+        && isChildUser(childUid)
+        && (
+          isSelf(childUid)
+          || isAdultManagerOfParent(userDoc(childUid).data.parentUid)
+        );
+    }
 
     function isParentManagingGuardianAssignments(uid) {
       return isSignedIn()
@@ -98,6 +108,26 @@ service cloud.firestore {
         );
     }
 
+    function selfEditableUserFields() {
+      return [
+        "displayName",
+        "phone",
+        "gender",
+        "dob",
+        "dobIso",
+        "birthMonth",
+        "birthDay",
+        "address",
+        "allowTracking",
+        "avatarUrl",
+        "coverUrl",
+        "locale",
+        "timezone",
+        "lastActiveAt",
+        "photoURL"
+      ];
+    }
+
     // ================================
     // USERS
     // ================================
@@ -112,23 +142,24 @@ service cloud.firestore {
           && resource.data.familyId == userDoc(request.auth.uid).data.familyId
         );
 
-      allow list: if isSignedIn() || request.query.limit <= 1;
+      allow list: if isSignedIn();
 
       allow create: if isSignedIn() && (
         (isSelf(uid) && request.resource.data.role == "parent")
-
         ||
-
         (
           request.resource.data.role in ["child", "guardian"]
           && request.auth.uid == request.resource.data.parentUid
         )
       );
-      allow update: if isSelf(uid)
-        || isParentManagingGuardianAssignments(uid)
-        || request.resource.data.diff(resource.data)
-          .changedKeys()
-          .hasOnly(["isActive"]);
+
+      allow update: if (
+          isSelf(uid)
+          && request.resource.data.diff(resource.data)
+            .changedKeys()
+            .hasOnly(selfEditableUserFields())
+        )
+        || isParentManagingGuardianAssignments(uid);
 
       allow delete: if isSelf(uid);
     }
@@ -140,6 +171,7 @@ service cloud.firestore {
     match /users/{uid}/fcmTokens/{tokenHash} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
     match /users/{userId}/chatNotifications/{notificationId} {
       allow read, delete: if request.auth != null && request.auth.uid == userId;
       allow create, update: if false;
@@ -150,13 +182,10 @@ service cloud.firestore {
     // ================================
 
     match /families/{familyId} {
-      // CREATE family
       allow create: if isSignedIn();
 
-      // READ only member
       allow read: if isFamilyMember(familyId);
 
-      // Client được update metadata cuối cùng của chat
       allow update: if isFamilyMember(familyId)
         && request.resource.data.diff(resource.data).changedKeys()
           .hasOnly(["lastMessageAt", "lastMessageBy", "lastMessageText"])
@@ -166,22 +195,14 @@ service cloud.firestore {
         && request.resource.data.lastMessageText.size() <= 1000;
 
       allow delete: if false;
-      
-      
+
       match /members/{memberId} {
-
-        // family member đọc danh sách
         allow read: if isFamilyMember(familyId);
-
-        // parent thêm member mới
         allow create: if isSignedIn();
-
-        // member tự cập nhật role metadata nếu cần
         allow update: if isSignedIn();
-
         allow delete: if false;
       }
-      
+
       match /chatStates/{uid} {
         allow get, list: if isFamilyMember(familyId);
 
@@ -204,61 +225,129 @@ service cloud.firestore {
         allow delete: if false;
       }
 
-
       // ============================
       // MESSAGES
       // ============================
 
       match /messages/{messageId} {
+        function currentUserProfileMatchesFamily() {
+          return userExists(request.auth.uid)
+            && userDoc(request.auth.uid).data.familyId == familyId;
+        }
+
+        function expectedImagePath() {
+          return "families/" + familyId + "/chat/" + request.auth.uid + "/" + messageId + ".jpg";
+        }
+
+        function hasCommonPendingMessageFields() {
+          return currentUserProfileMatchesFamily()
+            && request.resource.data.id == messageId
+            && request.resource.data.clientMessageId == messageId
+            && request.resource.data.familyId == familyId
+            && request.resource.data.senderUid == request.auth.uid
+            && request.resource.data.senderRole == userDoc(request.auth.uid).data.role
+            && request.resource.data.senderName is string
+            && request.resource.data.senderName.size() > 0
+            && request.resource.data.senderName.size() <= 120
+            && request.resource.data.verifyState == "pending"
+            && request.resource.data.clientCreatedAt is timestamp
+            && request.resource.data.createdAt is timestamp;
+        }
+
+        function isValidTextMessageCreate() {
+          return request.resource.data.keys().hasOnly([
+              "id",
+              "familyId",
+              "senderUid",
+              "senderRole",
+              "senderName",
+              "clientMessageId",
+              "text",
+              "type",
+              "verifyState",
+              "clientCreatedAt",
+              "createdAt"
+            ])
+            && request.resource.data.type == "text"
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 1000;
+        }
+
+        function isValidImageMessageCreate() {
+          return request.resource.data.keys().hasOnly([
+              "id",
+              "familyId",
+              "senderUid",
+              "senderRole",
+              "senderName",
+              "clientMessageId",
+              "text",
+              "type",
+              "imageUrl",
+              "imagePath",
+              "imageWidth",
+              "imageHeight",
+              "verifyState",
+              "clientCreatedAt",
+              "createdAt"
+            ])
+            && request.resource.data.type == "image"
+            && request.resource.data.text is string
+            && request.resource.data.text.size() <= 140
+            && request.resource.data.imageUrl is string
+            && request.resource.data.imageUrl.size() > 0
+            && request.resource.data.imageUrl.size() <= 2048
+            && request.resource.data.imagePath is string
+            && request.resource.data.imagePath == expectedImagePath()
+            && request.resource.data.imageWidth is int
+            && request.resource.data.imageWidth > 0
+            && request.resource.data.imageHeight is int
+            && request.resource.data.imageHeight > 0;
+        }
+
+        function isValidStickerMessageCreate() {
+          return request.resource.data.keys().hasOnly([
+              "id",
+              "familyId",
+              "senderUid",
+              "senderRole",
+              "senderName",
+              "clientMessageId",
+              "text",
+              "type",
+              "stickerId",
+              "verifyState",
+              "clientCreatedAt",
+              "createdAt"
+            ])
+            && request.resource.data.type == "sticker"
+            && request.resource.data.text is string
+            && (
+              (
+                request.resource.data.stickerId is string
+                && request.resource.data.stickerId.size() > 0
+                && request.resource.data.stickerId.size() <= 64
+                && request.resource.data.text.size() <= 32
+              )
+              || (
+                request.resource.data.text.size() > 0
+                && request.resource.data.text.size() <= 32
+                && !("stickerId" in request.resource.data)
+              )
+            );
+        }
+
         allow get, list: if isFamilyMember(familyId);
 
-        // Cho client tạo message pending
         allow create: if isFamilyMember(familyId)
-          && request.resource.data.id == messageId
-          && request.resource.data.familyId == familyId
-          && request.resource.data.senderUid == request.auth.uid
-          && request.resource.data.senderRole is string
-          && request.resource.data.senderName is string
-          && request.resource.data.verifyState == "pending"
-          && request.resource.data.clientCreatedAt is timestamp
+          && hasCommonPendingMessageFields()
           && (
-            (
-              request.resource.data.type == "text"
-              && request.resource.data.text is string
-              && request.resource.data.text.size() > 0
-              && request.resource.data.text.size() <= 1000
-            )
-            || (
-              request.resource.data.type == "image"
-              && request.resource.data.text is string
-              && request.resource.data.text.size() <= 140
-              && request.resource.data.imageUrl is string
-              && request.resource.data.imageUrl.size() > 0
-              && request.resource.data.imageUrl.size() <= 2048
-              && request.resource.data.imageWidth is int
-              && request.resource.data.imageWidth > 0
-              && request.resource.data.imageHeight is int
-              && request.resource.data.imageHeight > 0
-            )
-            || (
-              request.resource.data.type == "sticker"
-              && request.resource.data.text is string
-              && (
-                (
-                  request.resource.data.stickerId is string
-                  && request.resource.data.stickerId.size() > 0
-                  && request.resource.data.stickerId.size() <= 64
-                  && request.resource.data.text.size() <= 32
-                )
-                || (
-                  request.resource.data.text.size() > 0
-                  && request.resource.data.text.size() <= 32
-                )
-              )
-            )
+            isValidTextMessageCreate()
+            || isValidImageMessageCreate()
+            || isValidStickerMessageCreate()
           );
 
-        // Không cho client tự sửa verify / sender / text sau khi tạo
         allow update, delete: if false;
       }
 
@@ -268,10 +357,8 @@ service cloud.firestore {
 
       match /members/{uid} {
         allow create: if isSignedIn() && (
-          // Parent thêm chính mình lúc setup
           (isSelf(uid) && request.resource.data.role == "parent")
           ||
-          // Parent thêm child
           (request.resource.data.role == "child"
             && request.resource.data.uid == uid
             && request.resource.data.familyId == familyId
@@ -322,42 +409,30 @@ service cloud.firestore {
     // BLOCKED ITEMS
     // ================================
 
-//     match /blocked_items/{docId} {
-//       allow read, write: if isSignedIn();
-
-//       match /apps/{appId} {
-//         allow read, write: if isSignedIn();
-
-//         match /{subCollection}/{docId} {
-//           allow read, write: if isSignedIn();
-//         }
-//       }
-
-//       match /usage_daily_flat {
-//         allow read, write: if isSignedIn();
-//       }
-
-//       match /usage_daily_flat/{date} {
-//         allow read, write: if isSignedIn();
-//       }
-//     }
-
-//     match /{path=**}/usage_daily/{doc} {
-//       allow get: if isSignedIn()
-//         && resource.data.userId == request.auth.uid;
-
-//       allow list: if isSignedIn()
-//         && request.auth.uid != null;
-//     }
-
     match /blocked_items/{userId} {
-
       allow read, write: if request.auth != null;
 
       match /{sub=**} {
         allow read, write: if request.auth != null;
       }
     }
+    
+    // ================================
+    // SAFE ROUTE
+    // ================================
+
+    match /trips/{tripId} {
+      allow read: if resource.data.childId is string
+        && canAccessSafeRouteChild(resource.data.childId);
+      allow create, update, delete: if false;
+    }
+
+    match /routes/{routeId} {
+      allow read: if resource.data.childId is string
+        && canAccessSafeRouteChild(resource.data.childId);
+      allow create, update, delete: if false;
+    }
+
     // ================================
     // NOTIFICATIONS
     // ================================
@@ -422,8 +497,6 @@ service cloud.firestore {
       }
 
       function isParentOrGuardian() {
-        // Phase 5: Guardian gets parent-like access only when bound to this
-        // owner parent and still belongs to the same family.
         return isAdultManagerOfParent(parentUid);
       }
 
@@ -459,7 +532,6 @@ service cloud.firestore {
           && isChildOfParent(request.resource.data.childId, parentUid);
       }
 
-      // Parent / Guardian
       allow read: if isParentOrGuardian();
       allow create: if isParentOrGuardian()
         && scheduleRequestMatchesPath()
@@ -470,72 +542,67 @@ service cloud.firestore {
         && scheduleResourceMatchesPath();
       allow delete: if isParentOrGuardian();
 
-      // Child read
       allow get, list: if isChildOfThisParent()
         && resource.data.childId == request.auth.uid;
 
-      // Child create
       allow create: if isChildOfThisParent()
         && isOwnCreate()
         && request.resource.data.parentUid == parentUid
         && isChildOfParent(request.auth.uid, parentUid)
         && request.resource.data.startAt is timestamp;
 
-      // Child update
       allow update: if isChildOfThisParent()
         && isOwnSchedule()
         && resource.data.parentUid == parentUid
         && request.resource.data.parentUid == parentUid
         && childIdUnchanged();
 
-      // Child delete
       allow delete: if isParentOrGuardian()
         || (isChildOfThisParent() && isOwnSchedule());
-      
-      
-    // ================================
-    // HISTORY_EDIT_SCHEDULE
-    // ================================
 
-    match /histories/{historyId} {
+      // ================================
+      // HISTORY_EDIT_SCHEDULE
+      // ================================
 
-      function scheduleBelongsToChild() {
-        return get(
-          /databases/$(database)/documents/parents/$(parentUid)/schedules/$(scheduleId)
-        ).data.childId == request.auth.uid;
+      match /histories/{historyId} {
+
+        function scheduleBelongsToChild() {
+          return get(
+            /databases/$(database)/documents/parents/$(parentUid)/schedules/$(scheduleId)
+          ).data.childId == request.auth.uid;
+        }
+
+        function childCanAccessHistory() {
+          return isChildOfThisParent() && scheduleBelongsToChild();
+        }
+
+        function historyResourceMatchesPath() {
+          return resource.data.scheduleId == scheduleId
+            && (resource.data.parentUid == null || resource.data.parentUid == parentUid)
+            && resource.data.childId is string
+            && isChildOfParent(resource.data.childId, parentUid);
+        }
+
+        function historyRequestMatchesPath() {
+          return request.resource.data.scheduleId == scheduleId
+            && request.resource.data.parentUid == parentUid
+            && request.resource.data.childId is string
+            && isChildOfParent(request.resource.data.childId, parentUid);
+        }
+
+        allow get, list: if isParentOrGuardian();
+        allow create, update: if isParentOrGuardian() && historyRequestMatchesPath();
+        allow delete: if isParentOrGuardian();
+
+        // Child history reads follow schedule ownership so legacy history docs
+        // missing denormalized path fields do not block schedule deletion.
+        allow get, list: if childCanAccessHistory();
+        allow create, update: if childCanAccessHistory()
+          && historyRequestMatchesPath()
+          && request.resource.data.childId == request.auth.uid;
+        allow delete: if childCanAccessHistory();
       }
-
-      function childCanAccessHistory() {
-        return isChildOfThisParent() && scheduleBelongsToChild();
-      }
-
-      function historyResourceMatchesPath() {
-        return resource.data.scheduleId == scheduleId
-          && (resource.data.parentUid == null || resource.data.parentUid == parentUid)
-          && resource.data.childId is string
-          && isChildOfParent(resource.data.childId, parentUid);
-      }
-
-      function historyRequestMatchesPath() {
-        return request.resource.data.scheduleId == scheduleId
-          && request.resource.data.parentUid == parentUid
-          && request.resource.data.childId is string
-          && isChildOfParent(request.resource.data.childId, parentUid);
-      }
-
-      // Parent / Guardian
-      allow get, list: if isParentOrGuardian();
-      allow create, update: if isParentOrGuardian() && historyRequestMatchesPath();
-      allow delete: if isParentOrGuardian();
-
-      // Child
-      allow get, list: if childCanAccessHistory() && historyResourceMatchesPath();
-      allow create, update: if childCanAccessHistory()
-        && historyRequestMatchesPath()
-        && request.resource.data.childId == request.auth.uid;
-      allow delete: if childCanAccessHistory();
     }
-  }
 
     // ================================
     // MEMORY_DAYS
@@ -572,16 +639,12 @@ service cloud.firestore {
         return request.resource.data.ownerParentUid == parentUid;
       }
 
-      // Phase 5: Child read should follow the parent-owned namespace instead of
-      // requiring every legacy memory document to already store ownerParentUid.
-      // Some older docs can miss or store stale ownerParentUid values, which
-      // would make the whole month query fail for child accounts.
       allow get, list: if isParentOrGuardian() || isChildOfThisParent();
       allow create, update: if (isParentOrGuardian() || isChildOfThisParent())
         && memoryRequestMatchesPath();
       allow delete: if isParentOrGuardian() || isChildOfThisParent();
     }
-    
+
     // ================================
     // MEMORY DAY REMINDER META
     // ================================
@@ -625,16 +688,12 @@ service cloud.firestore {
       allow delete: if isParentOrGuardian() || isChildOfThisParent();
     }
 
-
     // ================================
     // EMAIL OTP
     // ================================
 
     match /email_otps/{uid} {
-      allow create: if true;
-      allow get: if true;
-      allow update: if true;
-      allow delete: if true;
+      allow read, write: if false;
     }
 
     // ================================
@@ -642,7 +701,7 @@ service cloud.firestore {
     // ================================
 
     match /mail_queue/{docId} {
-      allow create: if true;
-    }
+  		allow read, write: if false;
+		}
   }
 }

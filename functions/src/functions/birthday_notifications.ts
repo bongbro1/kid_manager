@@ -1,6 +1,15 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
+
 import { admin, db } from "../bootstrap";
 import { REGION, TZ } from "../config";
+import {
+  createDocumentIfMissing,
+  type FirestoreLike,
+  loadExistingDocumentPaths,
+  loadUserLocales,
+  type FirestoreQueryDocumentSnapshotLike,
+  type SchedulerLoggerLike,
+} from "./scheduler_utils";
 
 function getZonedDateParts(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -32,59 +41,14 @@ function utcNoonDate(year: number, month: number, day: number) {
   return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
 }
 
-function resolveBirthdayOccurrenceDate(
-  year: number,
-  month: number,
-  day: number,
-) {
-  if (month === 2 && day === 29 && !isLeapYear(year)) {
-    return utcNoonDate(year, 2, 28);
-  }
-
-  return utcNoonDate(year, month, day);
-}
-
-function daysBetween(target: Date, base: Date) {
-  const msPerDay = 24 * 60 * 60 * 1000;
-  return Math.round((target.getTime() - base.getTime()) / msPerDay);
-}
-
-function daysUntilNextBirthday(opts: {
-  today: Date;
-  year: number;
-  birthMonth: number;
-  birthDay: number;
-}) {
-  let nextOccurrence = resolveBirthdayOccurrenceDate(
-    opts.year,
-    opts.birthMonth,
-    opts.birthDay,
-  );
-
-  let daysUntil = daysBetween(nextOccurrence, opts.today);
-  if (daysUntil < 0) {
-    nextOccurrence = resolveBirthdayOccurrenceDate(
-      opts.year + 1,
-      opts.birthMonth,
-      opts.birthDay,
-    );
-    daysUntil = daysBetween(nextOccurrence, opts.today);
-  }
-
-  return {
-    nextOccurrence,
-    daysUntil,
-  };
-}
-
-function isBirthdayCountdownDay(daysUntil: number) {
-  return daysUntil >= 1 && daysUntil <= 7;
-}
-
 function isLeapYear(year: number) {
   if (year % 400 === 0) return true;
   if (year % 100 === 0) return false;
   return year % 4 === 0;
+}
+
+function addDays(base: Date, days: number) {
+  return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
 function parseBirthYear(rawDob: unknown, rawDobIso: unknown): number | null {
@@ -150,79 +114,294 @@ function buildBirthdayText(opts: {
     if (opts.isSelf) {
       if (isEn) {
         return {
-          title: "Birthday countdown",
+          title: "Birthday countdown🎂",
           body:
             opts.daysUntil === 1
-              ? "Tomorrow is your birthday."
-              : `Your birthday is in ${opts.daysUntil} days.`,
+              ? "Tomorrow is your birthday 🎂"
+              : `Your birthday is in ${opts.daysUntil} days`,
         };
       }
 
       return {
-        title: "Dem nguoc sinh nhat",
+        title: "Đếm ngược sinh nhật🎂",
         body:
           opts.daysUntil === 1
-            ? "Ngay mai la sinh nhat cua ban."
-            : `Sinh nhat cua ban con ${opts.daysUntil} ngay nua.`,
+            ? "Ngày mai là sinh nhật của bạn 🎂"
+            : `Sinh nhật của bạn còn ${opts.daysUntil} ngày nữa`,
       };
     }
 
     if (isEn) {
       return {
-        title: "Upcoming birthday",
+        title: "Upcoming birthday 🎂",
         body:
           opts.daysUntil === 1
-            ? `Tomorrow is ${opts.birthdayName}'s birthday.`
+            ? `Tomorrow is ${opts.birthdayName}'s birthday 🎂`
             : `${opts.birthdayName}'s birthday is in ${opts.daysUntil} days.`,
       };
     }
 
     return {
-      title: "Sap toi sinh nhat",
+      title: "Sinh nhật sắp tới 🎂",
       body:
         opts.daysUntil === 1
-          ? `Ngay mai la sinh nhat cua ${opts.birthdayName}.`
-          : `Sap toi sinh nhat ${opts.birthdayName}! Chi con ${opts.daysUntil} ngay nua.`,
+          ? `Ngày mai là sinh nhật của ${opts.birthdayName} 🎂`
+          : `Sắp tới sinh nhật của ${opts.birthdayName}! Còn ${opts.daysUntil} ngày nữa`,
     };
   }
 
   if (opts.isSelf) {
     if (isEn) {
       return {
-        title: "Happy birthday",
+        title: "Happy birthday 🎂",
         body:
           opts.ageTurning != null && opts.ageTurning > 0
-            ? `Today you turn ${opts.ageTurning}.`
+            ? `Today you turn ${opts.ageTurning} 🎂`
             : "Today is your birthday.",
       };
     }
 
     return {
-      title: "Chúc mừng sinh nhật",
+      title: "Chúc mừng sinh nhật 🎂",
       body:
         opts.ageTurning != null && opts.ageTurning > 0
-          ? `Hôm nay bạn tròn ${opts.ageTurning} tuổi.`
+          ? `Hôm nay bạn tròn ${opts.ageTurning} tuổi 🎂`
           : "Hôm nay là sinh nhật của bạn.",
     };
   }
 
   if (isEn) {
     return {
-      title: "Birthday today",
+      title: "Birthday today 🎂",
       body:
         opts.ageTurning != null && opts.ageTurning > 0
-          ? `Today is ${opts.birthdayName}'s birthday, turning ${opts.ageTurning}.`
+          ? `Today is ${opts.birthdayName}'s birthday, turning ${opts.ageTurning} 🎂`
           : `Today is ${opts.birthdayName}'s birthday.`,
     };
   }
 
   return {
-    title: "Sinh nhật hôm nay",
+    title: "Sinh nhật hôm nay 🎂",
     body:
       opts.ageTurning != null && opts.ageTurning > 0
-        ? `Hôm nay là sinh nhật của ${opts.birthdayName}, tròn ${opts.ageTurning} tuổi.`
+        ? `Hôm nay là sinh nhật của ${opts.birthdayName}, tròn ${opts.ageTurning} tuổi 🎂`
         : `Hôm nay là sinh nhật của ${opts.birthdayName}.`,
   };
+}
+
+type BirthdayNotificationDeps = {
+  db: FirestoreLike;
+  logger: SchedulerLoggerLike;
+  now: () => Date;
+  serverTimestamp: () => unknown;
+  timeZone: string;
+};
+
+type BirthdaySearchTarget = {
+  daysUntil: number;
+  birthMonth: number;
+  birthDay: number;
+};
+
+type BirthdayMatch = {
+  familyId: string;
+  doc: FirestoreQueryDocumentSnapshotLike;
+  daysUntil: number;
+};
+
+function buildBirthdaySearchTargets(today: Date) {
+  const targets: BirthdaySearchTarget[] = [];
+  const seen = new Set<string>();
+
+  function pushTarget(daysUntil: number, birthMonth: number, birthDay: number) {
+    const key = `${daysUntil}:${birthMonth}:${birthDay}`;
+    if (seen.has(key)) return;
+
+    seen.add(key);
+    targets.push({ daysUntil, birthMonth, birthDay });
+  }
+
+  for (let daysUntil = 0; daysUntil <= 7; daysUntil++) {
+    const targetDate = addDays(today, daysUntil);
+    const birthMonth = targetDate.getUTCMonth() + 1;
+    const birthDay = targetDate.getUTCDate();
+
+    pushTarget(daysUntil, birthMonth, birthDay);
+
+    if (birthMonth === 2 && birthDay === 28 && !isLeapYear(targetDate.getUTCFullYear())) {
+      pushTarget(daysUntil, 2, 29);
+    }
+  }
+
+  return targets;
+}
+
+function resolveFamilyIdFromBirthdayDoc(doc: FirestoreQueryDocumentSnapshotLike) {
+  const data = doc.data() ?? {};
+  const familyId = String(data.familyId ?? "").trim();
+  if (familyId) return familyId;
+
+  const path = String(doc.ref?.path ?? "").trim();
+  const parts = path.split("/");
+  if (parts.length >= 4 && parts[0] === "families" && parts[2] === "members") {
+    return parts[1];
+  }
+
+  return "";
+}
+
+export async function runBirthdayNotifications(
+  deps: BirthdayNotificationDeps,
+) {
+  const now = deps.now();
+  const { year, month, day, hour } = getZonedDateParts(now, deps.timeZone);
+  const dayKey = formatDayKey(year, month, day);
+  const today = utcNoonDate(year, month, day);
+
+  if (hour < 7) {
+    deps.logger.log(`[BIRTHDAY_NOTI] skip before 07:00 local time hour=${hour}`);
+    return;
+  }
+
+  deps.logger.log(`[BIRTHDAY_NOTI] start dayKey=${dayKey}`);
+
+  const birthdayMatches = new Map<string, BirthdayMatch>();
+  const searchTargets = buildBirthdaySearchTargets(today);
+
+  for (const target of searchTargets) {
+    const membersSnap = await deps.db
+      .collectionGroup("members")
+      .where("birthMonth", "==", target.birthMonth)
+      .where("birthDay", "==", target.birthDay)
+      .get();
+
+    for (const memberDoc of membersSnap.docs) {
+      const familyId = resolveFamilyIdFromBirthdayDoc(memberDoc);
+      if (!familyId) continue;
+
+      const dedupeKey = `${familyId}:${memberDoc.id}:${target.daysUntil}`;
+      birthdayMatches.set(dedupeKey, {
+        familyId,
+        doc: memberDoc,
+        daysUntil: target.daysUntil,
+      });
+    }
+  }
+
+  deps.logger.log(
+    `[BIRTHDAY_NOTI] searchTargets=${searchTargets.length} matchedBirthdays=${birthdayMatches.size}`,
+  );
+
+  if (birthdayMatches.size === 0) {
+    deps.logger.log(`[BIRTHDAY_NOTI] no birthdays for dayKey=${dayKey}`);
+    return;
+  }
+
+  const familyMembersCache = new Map<string, string[]>();
+  for (const familyId of new Set(Array.from(birthdayMatches.values()).map((item) => item.familyId))) {
+    const membersSnap = await deps.db
+      .collection(`families/${familyId}/members`)
+      .get();
+    familyMembersCache.set(
+      familyId,
+      membersSnap.docs.map((memberDoc) => memberDoc.id),
+    );
+  }
+
+  const localeCache = await loadUserLocales(
+    deps.db,
+    Array.from(familyMembersCache.values()).flat(),
+  );
+  let createdCount = 0;
+  let skippedCount = 0;
+
+  for (const birthdayItem of birthdayMatches.values()) {
+    const familyId = birthdayItem.familyId;
+    if (!familyId) continue;
+
+    const birthdayDoc = birthdayItem.doc;
+    const birthdayUid = birthdayDoc.id;
+    const birthdayData = birthdayDoc.data();
+    const daysUntil = birthdayItem.daysUntil;
+    const birthdayName =
+      String(birthdayData.displayName ?? birthdayData.email ?? birthdayUid).trim() ||
+      "ThÃ nh viÃªn";
+    const receiverIds = familyMembersCache.get(familyId) ?? [];
+    const notificationRefs = receiverIds.map((receiverId) => ({
+      receiverId,
+      notificationId: daysUntil === 0
+        ? `birthday_${dayKey}_${birthdayUid}_${receiverId}`
+        : `birthday_countdown_${dayKey}_${birthdayUid}_${receiverId}`,
+    }));
+
+    const birthYear = parseBirthYear(birthdayData.dob, birthdayData.dobIso);
+    const ageTurning =
+      birthYear != null && birthYear <= year ? year - birthYear : null;
+    const existingNotificationPaths = await loadExistingDocumentPaths(
+      deps.db,
+      notificationRefs.map(({ notificationId }) =>
+        deps.db.collection("notifications").doc(notificationId)
+      ),
+    );
+
+    for (const { receiverId, notificationId } of notificationRefs) {
+      const notificationRef = deps.db.collection("notifications").doc(notificationId);
+      if (existingNotificationPaths.has(notificationRef.path)) {
+        skippedCount++;
+        continue;
+      }
+
+      const locale = localeCache.get(receiverId) ?? "vi";
+
+      const text = buildBirthdayText({
+        locale,
+        birthdayName,
+        ageTurning,
+        isSelf: receiverId === birthdayUid,
+        daysUntil,
+      });
+
+      const result = await createDocumentIfMissing(notificationRef, {
+        senderId: "system",
+        receiverId,
+        familyId,
+        type: "birthday",
+        title: text.title,
+        body: text.body,
+        data: {
+          familyId,
+          birthdayUid,
+          birthdayName,
+          ageTurning: ageTurning?.toString() ?? "",
+          birthMonth: String(birthdayData.birthMonth ?? ""),
+          birthDay: String(birthdayData.birthDay ?? ""),
+          dayKey,
+          birthdayPhase: daysUntil === 0 ? "today" : "countdown",
+          daysUntil: String(daysUntil),
+          isSelf: receiverId === birthdayUid ? "true" : "false",
+        },
+        isRead: false,
+        status: "pending",
+        createdAt: deps.serverTimestamp(),
+      });
+
+      if (result === "created") {
+        createdCount++;
+      } else {
+        skippedCount++;
+      }
+    }
+  }
+
+  deps.logger.log(
+    `[BIRTHDAY_NOTI] done dayKey=${dayKey} created=${createdCount} skipped=${skippedCount}`,
+  );
+}
+
+export function createBirthdayNotificationsHandler(
+  deps: BirthdayNotificationDeps,
+) {
+  return async () => runBirthdayNotifications(deps);
 }
 
 export const sendBirthdayNotifications = onSchedule(
@@ -231,143 +410,11 @@ export const sendBirthdayNotifications = onSchedule(
     timeZone: TZ,
     region: REGION,
   },
-  async () => {
-    const now = new Date();
-    const { year, month, day, hour } = getZonedDateParts(now, TZ);
-    const dayKey = formatDayKey(year, month, day);
-    const today = utcNoonDate(year, month, day);
-
-    if (hour < 7) {
-      console.log(`[BIRTHDAY_NOTI] skip before 07:00 local time hour=${hour}`);
-      return;
-    }
-
-    console.log(`[BIRTHDAY_NOTI] start dayKey=${dayKey}`);
-
-    const familiesSnap = await db.collection("families").get();
-    const birthdayDocs: Array<{
-      familyId: string;
-      doc: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>;
-      daysUntil: number;
-    }> = [];
-
-    for (const familyDoc of familiesSnap.docs) {
-      const membersSnap = await db.collection(`families/${familyDoc.id}/members`).get();
-
-      for (const memberDoc of membersSnap.docs) {
-        const birthMonth = Number(memberDoc.data().birthMonth ?? 0);
-        const birthDay = Number(memberDoc.data().birthDay ?? 0);
-        if (birthMonth <= 0 || birthDay <= 0) continue;
-
-        const { daysUntil } = daysUntilNextBirthday({
-          today,
-          year,
-          birthMonth,
-          birthDay,
-        });
-
-        if (daysUntil === 0 || isBirthdayCountdownDay(daysUntil)) {
-          birthdayDocs.push({
-            familyId: familyDoc.id,
-            doc: memberDoc,
-            daysUntil,
-          });
-        }
-      }
-    }
-
-    console.log(
-      `[BIRTHDAY_NOTI] families=${familiesSnap.size} matchedBirthdays=${birthdayDocs.length}`
-    );
-
-    if (birthdayDocs.length === 0) {
-      console.log(`[BIRTHDAY_NOTI] no birthdays for dayKey=${dayKey}`);
-      return;
-    }
-
-    const familyMembersCache = new Map<string, string[]>();
-    const localeCache = new Map<string, string>();
-    let createdCount = 0;
-    let skippedCount = 0;
-
-    for (const birthdayItem of birthdayDocs) {
-      const familyId = birthdayItem.familyId;
-      if (!familyId) continue;
-
-      const birthdayDoc = birthdayItem.doc;
-      const birthdayUid = birthdayDoc.id;
-      const birthdayData = birthdayDoc.data();
-      const daysUntil = birthdayItem.daysUntil;
-      const birthdayName =
-        String(birthdayData.displayName ?? birthdayData.email ?? birthdayUid).trim() ||
-        "Thành viên";
-
-      let receiverIds = familyMembersCache.get(familyId);
-      if (!receiverIds) {
-        const membersSnap = await db.collection(`families/${familyId}/members`).get();
-        receiverIds = membersSnap.docs.map((doc) => doc.id);
-        familyMembersCache.set(familyId, receiverIds);
-      }
-
-      const birthYear = parseBirthYear(birthdayData.dob, birthdayData.dobIso);
-      const ageTurning =
-        birthYear != null && birthYear <= year ? year - birthYear : null;
-
-      for (const receiverId of receiverIds) {
-        const notificationId = daysUntil === 0
-          ? `birthday_${dayKey}_${birthdayUid}_${receiverId}`
-          : `birthday_countdown_${dayKey}_${birthdayUid}_${receiverId}`;
-        const notificationRef = db.collection("notifications").doc(notificationId);
-        const existing = await notificationRef.get();
-        if (existing.exists) {
-          skippedCount++;
-          continue;
-        }
-
-        let locale = localeCache.get(receiverId);
-        if (!locale) {
-          const userSnap = await db.doc(`users/${receiverId}`).get();
-          locale = String(userSnap.data()?.locale ?? "vi");
-          localeCache.set(receiverId, locale);
-        }
-
-        const text = buildBirthdayText({
-          locale,
-          birthdayName,
-          ageTurning,
-          isSelf: receiverId === birthdayUid,
-          daysUntil,
-        });
-
-        await notificationRef.set({
-          senderId: "system",
-          receiverId,
-          familyId,
-          type: "birthday",
-          title: text.title,
-          body: text.body,
-          data: {
-            familyId,
-            birthdayUid,
-            birthdayName,
-            ageTurning: ageTurning?.toString() ?? "",
-            birthMonth: String(birthdayData.birthMonth ?? ""),
-            birthDay: String(birthdayData.birthDay ?? ""),
-            dayKey,
-            birthdayPhase: daysUntil === 0 ? "today" : "countdown",
-            daysUntil: String(daysUntil),
-            isSelf: receiverId === birthdayUid ? "true" : "false",
-          },
-          isRead: false,
-          status: "pending",
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        createdCount++;
-      }
-    }
-
-    console.log(
-      `[BIRTHDAY_NOTI] done dayKey=${dayKey} created=${createdCount} skipped=${skippedCount}`
-    );
-  }
+  createBirthdayNotificationsHandler({
+    db,
+    logger: console,
+    now: () => new Date(),
+    serverTimestamp: () => admin.firestore.FieldValue.serverTimestamp(),
+    timeZone: TZ,
+  }),
 );
