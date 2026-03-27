@@ -40,6 +40,7 @@ class ParentChildrenListScreen extends StatelessWidget {
                   builder: (_) => ChildDetailMapScreen(
                     childId: child.uid,
                     childAvatarUrl: child.avatarUrl,
+                    childTimeZone: child.timezone,
                   ),
                 ),
               );

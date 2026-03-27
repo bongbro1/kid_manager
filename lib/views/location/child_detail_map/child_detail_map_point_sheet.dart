@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_network_gap_sheet.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
 
 class ChildDetailMapPointSheet extends StatelessWidget {
+  final ChildDetailMapVm vm;
   final LocationData point;
   final List<LocationData> history;
   final bool isToday;
@@ -13,6 +15,7 @@ class ChildDetailMapPointSheet extends StatelessWidget {
 
   const ChildDetailMapPointSheet({
     super.key,
+    required this.vm,
     required this.point,
     required this.history,
     required this.isToday,
@@ -23,7 +26,11 @@ class ChildDetailMapPointSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (point.isNetworkGap) {
-      return ChildDetailMapNetworkGapSheet(point: point, onClose: onClose);
+      return ChildDetailMapNetworkGapSheet(
+        vm: vm,
+        point: point,
+        onClose: onClose,
+      );
     }
 
     final orderedHistory = history.length < 2
@@ -146,35 +153,35 @@ class ChildDetailMapPointSheet extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-              children: [
-                if (isStart)
-                  ChildDetailMapTagChip(
-                    text: l10n.childLocationTagStart,
-                    backgroundColor: Color(0xFFDDF5E3),
-                    foregroundColor: Color(0xFF188038),
-                  ),
-                if (isEnd)
-                  ChildDetailMapTagChip(
-                    text: l10n.childLocationTagEnd,
-                    backgroundColor: Color(0xFFFDE2E1),
-                    foregroundColor: Color(0xFFC5221F),
-                  ),
+            children: [
+              if (isStart)
+                ChildDetailMapTagChip(
+                  text: l10n.childLocationTagStart,
+                  backgroundColor: const Color(0xFFDDF5E3),
+                  foregroundColor: const Color(0xFF188038),
+                ),
+              if (isEnd)
+                ChildDetailMapTagChip(
+                  text: l10n.childLocationTagEnd,
+                  backgroundColor: const Color(0xFFFDE2E1),
+                  foregroundColor: const Color(0xFFC5221F),
+                ),
               ChildDetailMapTagChip(
-                text: point.timeLabel,
+                text: vm.formatTimeLabelForTimestamp(point.timestamp),
                 backgroundColor: const Color(0xFFF1F3F4),
                 foregroundColor: const Color(0xFF5F6368),
-                ),
-                if (gpsVeryBad)
-                  ChildDetailMapTagChip(
-                    text: l10n.childLocationTagGpsVeryWeak,
-                    backgroundColor: Color(0xFFFCE8E6),
-                    foregroundColor: Color(0xFFC5221F),
-                  )
-                else if (gpsLost)
-                  ChildDetailMapTagChip(
-                    text: l10n.childLocationTagGpsLost,
-                    backgroundColor: Color(0xFFFCE8E6),
-                    foregroundColor: Color(0xFFC5221F),
+              ),
+              if (gpsVeryBad)
+                ChildDetailMapTagChip(
+                  text: l10n.childLocationTagGpsVeryWeak,
+                  backgroundColor: const Color(0xFFFCE8E6),
+                  foregroundColor: const Color(0xFFC5221F),
+                )
+              else if (gpsLost)
+                ChildDetailMapTagChip(
+                  text: l10n.childLocationTagGpsLost,
+                  backgroundColor: const Color(0xFFFCE8E6),
+                  foregroundColor: const Color(0xFFC5221F),
                 )
               else
                 ChildDetailMapTagChip(
@@ -241,7 +248,7 @@ class ChildDetailMapPointSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          ChildDetailMapTechSection(point: point),
+          ChildDetailMapTechSection(vm: vm, point: point),
         ],
       ),
     );

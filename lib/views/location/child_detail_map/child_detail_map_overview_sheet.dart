@@ -120,7 +120,9 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            l10n.childLocationUpdatedAt(latest.timeLabel),
+            l10n.childLocationUpdatedAt(
+              vm.formatTimeLabelForTimestamp(latest.timestamp),
+            ),
             style: TextStyle(
               fontSize: 13,
               height: 1.35,
@@ -186,6 +188,7 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
                 const SizedBox(height: 12),
                 ...groupedPoints.map(
                   (group) => ChildDetailMapRecentPointsHourSection(
+                    vm: vm,
                     group: group,
                     history: orderedHistory,
                     onPointSelected: onPointSelected,

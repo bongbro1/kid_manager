@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
 
 class ChildDetailMapNetworkGapSheet extends StatelessWidget {
+  final ChildDetailMapVm vm;
   final LocationData point;
   final VoidCallback? onClose;
 
   const ChildDetailMapNetworkGapSheet({
     super.key,
+    required this.vm,
     required this.point,
     required this.onClose,
   });
@@ -103,16 +106,24 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
                 Expanded(
                   child: ChildDetailMapInfoCard(
                     label: l10n.childLocationNetworkGapFromLabel,
-                    value: LocationHistoryPresenter.formatTime(start),
-                    hint: point.dateLabel,
+                    value: vm.formatTimeLabelForTimestamp(
+                      start.millisecondsSinceEpoch,
+                    ),
+                    hint: vm.formatDateLabelForTimestamp(
+                      start.millisecondsSinceEpoch,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: ChildDetailMapInfoCard(
                     label: l10n.childLocationNetworkGapToLabel,
-                    value: LocationHistoryPresenter.formatTime(end),
-                    hint: point.dateLabel,
+                    value: vm.formatTimeLabelForTimestamp(
+                      end.millisecondsSinceEpoch,
+                    ),
+                    hint: vm.formatDateLabelForTimestamp(
+                      end.millisecondsSinceEpoch,
+                    ),
                   ),
                 ),
               ],

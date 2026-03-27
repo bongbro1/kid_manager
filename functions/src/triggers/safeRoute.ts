@@ -1,3 +1,4 @@
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onValueWritten } from "firebase-functions/v2/database";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -8,7 +9,7 @@ import {
   RTDB_TRIGGER_REGION,
   TZ,
 } from "../config";
-import { mustNumber, mustString } from "../helpers";
+import { chunk, mustNumber, mustString, normalizeTimeZone, zonedDateParts } from "../helpers";
 import {
   requireAdultManagerOfChild,
   requireParentGuardianOrChildSelf,
@@ -17,7 +18,22 @@ import { buildSuggestedSafeRoutes } from "../services/safeRouteDirectionsService
 import {
   createSafeRouteAlert,
   sendSafeRouteAlertPush,
+  type SafeRouteAlertKind,
 } from "../services/safeRouteAlertsService";
+import {
+  asSafeRouteCurrentTripSnapshotRecord,
+  buildSafeRouteCurrentTripSnapshot,
+  MONITORED_TRIP_STATUSES,
+  SAFE_ROUTE_CURRENT_TRIPS_COLLECTION,
+  selectTripFromCurrentTripSnapshot,
+  VISIBLE_TRIP_STATUSES,
+  type SafeRouteTripAudience,
+} from "../services/safeRouteCurrentTripService";
+import {
+  claimDangerZoneSafeRouteAlertDispatch,
+  claimStationarySafeRouteAlertDispatch,
+  claimTimedSafeRouteAlertDispatch,
+} from "../services/safeRouteAlertCooldownService";
 import {
   evaluateSafeRouteTripAcrossRoutes,
   parseLiveLocationRecord,
@@ -37,18 +53,6 @@ import {
   TripRecord,
   TripStatus,
 } from "../types";
-
-const VISIBLE_TRIP_STATUSES: TripStatus[] = [
-  "planned",
-  "active",
-  "temporarilyDeviated",
-  "deviated",
-];
-const MONITORED_TRIP_STATUSES: TripStatus[] = [
-  "active",
-  "temporarilyDeviated",
-  "deviated",
-];
 const SAFE_ROUTE_ALERT_COOLDOWN_MS = 3 * 60 * 1000;
 const START_POINT_EXIT_RADIUS_METERS = 30;
 const DESTINATION_ARRIVAL_RADIUS_METERS = 10;
@@ -56,7 +60,6 @@ const DESTINATION_ROUTE_PROXIMITY_METERS = 18;
 const ALTERNATIVE_ROUTE_ENDPOINT_RADIUS_METERS = 120;
 const STATIONARY_RADIUS_METERS = 18;
 const STATIONARY_ALERT_DELAY_MS = 5 * 60 * 1000;
-const RECENT_COMPLETED_TRIP_WINDOW_MS = 15 * 60 * 1000;
 const SAFE_ROUTE_SCHEDULE = "every 1 minutes";
 const FAMILY_LIVE_LOCATIONS_ROOT = "live_locations_by_family";
 
@@ -125,58 +128,6 @@ function readFamilyIdFromLocationRecord(raw: unknown): string | null {
   return familyId.trim();
 }
 
-function zonedDateParts(ms: number) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
-    weekday: "short",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date(ms));
-
-  const weekdayToken =
-    parts.find((part) => part.type === "weekday")?.value ?? "Mon";
-  const year = Number(parts.find((part) => part.type === "year")?.value ?? 1970);
-  const month = Number(parts.find((part) => part.type === "month")?.value ?? 1);
-  const day = Number(parts.find((part) => part.type === "day")?.value ?? 1);
-  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
-  const minute = Number(
-    parts.find((part) => part.type === "minute")?.value ?? 0
-  );
-
-  const weekday = (() => {
-    switch (weekdayToken.slice(0, 3).toLowerCase()) {
-      case "mon":
-        return 1;
-      case "tue":
-        return 2;
-      case "wed":
-        return 3;
-      case "thu":
-        return 4;
-      case "fri":
-        return 5;
-      case "sat":
-        return 6;
-      case "sun":
-      default:
-        return 7;
-    }
-  })();
-
-  return {
-    weekday,
-    dayKey: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
-      2,
-      "0"
-    )}`,
-    minutesOfDay: hour * 60 + minute,
-  };
-}
-
 function shouldCreatePlannedTrip(params: {
   scheduledStartAt: number | null;
   repeatWeekdays: number[];
@@ -191,7 +142,11 @@ function shouldCreatePlannedTrip(params: {
   return params.scheduledStartAt > params.nowMs + 30 * 1000;
 }
 
-function isTripScheduleDue(trip: TripRecord, nowMs: number) {
+function isTripScheduleDue(
+  trip: TripRecord,
+  nowMs: number,
+  timeZone: string,
+) {
   if (trip.status !== "planned") {
     return false;
   }
@@ -206,8 +161,8 @@ function isTripScheduleDue(trip: TripRecord, nowMs: number) {
     return nowMs >= scheduledStartAt;
   }
 
-  const nowParts = zonedDateParts(nowMs);
-  const scheduledParts = zonedDateParts(scheduledStartAt);
+  const nowParts = zonedDateParts(nowMs, timeZone);
+  const scheduledParts = zonedDateParts(scheduledStartAt, timeZone);
 
   if (nowParts.dayKey < scheduledParts.dayKey) {
     return false;
@@ -219,7 +174,10 @@ function isTripScheduleDue(trip: TripRecord, nowMs: number) {
     return false;
   }
   if (trip.lastScheduledActivationAt != null) {
-    const lastActivationParts = zonedDateParts(trip.lastScheduledActivationAt);
+    const lastActivationParts = zonedDateParts(
+      trip.lastScheduledActivationAt,
+      timeZone
+    );
     if (lastActivationParts.dayKey == nowParts.dayKey) {
       return false;
     }
@@ -347,48 +305,94 @@ async function loadRouteOrThrow(routeId: string) {
   return route;
 }
 
-async function findVisibleTripByChildId(childId: string) {
+async function loadTripsByChildId(childId: string) {
   const snap = await db
     .collection("trips")
     .where("childId", "==", childId)
     .get();
 
-  const trips = snap.docs
+  return snap.docs
     .map((doc) => asTripRecord(doc))
-    .filter((trip): trip is TripRecord => trip !== null)
-    .filter((trip) => VISIBLE_TRIP_STATUSES.includes(trip.status))
-    .sort((left, right) => right.updatedAt - left.updatedAt);
+    .filter((trip): trip is TripRecord => trip !== null);
+}
 
-  return trips[0] ?? null;
+async function syncCurrentTripSnapshotByChildId(childId: string) {
+  const normalizedChildId = childId.trim();
+  if (!normalizedChildId) {
+    return null;
+  }
+
+  const trips = await loadTripsByChildId(normalizedChildId);
+  const snapshot = buildSafeRouteCurrentTripSnapshot({
+    childId: normalizedChildId,
+    trips,
+    nowMs: Date.now(),
+  });
+  const snapshotRef = db
+    .collection(SAFE_ROUTE_CURRENT_TRIPS_COLLECTION)
+    .doc(normalizedChildId);
+
+  if (
+    snapshot.adultCurrentTrip == null &&
+    snapshot.adultRecentCompletedTrip == null &&
+    snapshot.childMonitorTrip == null
+  ) {
+    await snapshotRef.delete().catch(() => {});
+    return null;
+  }
+
+  await snapshotRef.set(snapshot, { merge: true });
+  return snapshot;
+}
+
+async function readCurrentTripSnapshotByChildId(childId: string) {
+  const normalizedChildId = childId.trim();
+  if (!normalizedChildId) {
+    return null;
+  }
+
+  const snapshotSnap = await db
+    .collection(SAFE_ROUTE_CURRENT_TRIPS_COLLECTION)
+    .doc(normalizedChildId)
+    .get();
+  if (!snapshotSnap.exists) {
+    return null;
+  }
+
+  return asSafeRouteCurrentTripSnapshotRecord(snapshotSnap.data());
+}
+
+async function ensureCurrentTripSnapshotByChildId(childId: string) {
+  const existing = await readCurrentTripSnapshotByChildId(childId);
+  if (existing != null) {
+    return existing;
+  }
+  return syncCurrentTripSnapshotByChildId(childId);
+}
+
+async function findCurrentTripByChildId(params: {
+  childId: string;
+  audience: SafeRouteTripAudience;
+}) {
+  const snapshot = await ensureCurrentTripSnapshotByChildId(params.childId);
+  return selectTripFromCurrentTripSnapshot({
+    snapshot,
+    audience: params.audience,
+    nowMs: Date.now(),
+  });
 }
 
 async function findMonitorableTripByChildId(childId: string) {
-  const snap = await db
-    .collection("trips")
-    .where("childId", "==", childId)
-    .get();
-
-  const trips = snap.docs
-    .map((doc) => asTripRecord(doc))
-    .filter((trip): trip is TripRecord => trip !== null)
-    .filter((trip) => MONITORED_TRIP_STATUSES.includes(trip.status))
-    .sort((left, right) => right.updatedAt - left.updatedAt);
-
-  return trips[0] ?? null;
-}
-
-async function findLatestTripByChildId(childId: string) {
-  const snap = await db
-    .collection("trips")
-    .where("childId", "==", childId)
-    .get();
-
-  const trips = snap.docs
-    .map((doc) => asTripRecord(doc))
-    .filter((trip): trip is TripRecord => trip !== null)
-    .sort((left, right) => right.updatedAt - left.updatedAt);
-
-  return trips[0] ?? null;
+  const snapshot = await ensureCurrentTripSnapshotByChildId(childId);
+  const trip = selectTripFromCurrentTripSnapshot({
+    snapshot,
+    audience: "child_monitor",
+    nowMs: Date.now(),
+  });
+  if (trip == null || !MONITORED_TRIP_STATUSES.includes(trip.status)) {
+    return null;
+  }
+  return trip;
 }
 
 async function appendCancelExistingTripsToBatch(params: {
@@ -476,6 +480,71 @@ async function loadRoutesForTrip(trip: TripRecord) {
   }
 
   return routes;
+}
+
+async function loadChildTimeZoneMap(childIds: string[]) {
+  const uniqueChildIds = childIds
+    .map((childId) => childId.trim())
+    .filter((childId) => childId.length > 0)
+    .filter((childId, index, list) => list.indexOf(childId) === index);
+
+  const result = new Map<string, string>();
+  if (uniqueChildIds.length === 0) {
+    return result;
+  }
+
+  const docIdField = admin.firestore.FieldPath.documentId();
+  const snapshots = await Promise.all(
+    chunk(uniqueChildIds, 30).map((batchIds) =>
+      db.collection("users").where(docIdField, "in", batchIds).get()
+    )
+  );
+
+  for (const snap of snapshots) {
+    for (const doc of snap.docs) {
+      const data = doc.data() ?? {};
+      result.set(doc.id, normalizeTimeZone(data.timezone, TZ));
+    }
+  }
+
+  for (const childId of uniqueChildIds) {
+    if (!result.has(childId)) {
+      result.set(childId, TZ);
+    }
+  }
+
+  return result;
+}
+
+async function dispatchSafeRouteAlert(params: {
+  toUid: string;
+  trip: TripRecord;
+  route: SafeRouteRecord;
+  kind: SafeRouteAlertKind;
+  childName: string;
+  distanceFromRouteMeters: number;
+  hazard?: SafeRouteRecord["hazards"][number] | null;
+  stationaryDurationMinutes?: number | null;
+}): Promise<void> {
+  await createSafeRouteAlert({
+    trip: params.trip,
+    route: params.route,
+    kind: params.kind,
+    childName: params.childName,
+    distanceFromRouteMeters: params.distanceFromRouteMeters,
+    hazard: params.hazard,
+    stationaryDurationMinutes: params.stationaryDurationMinutes,
+  });
+  await sendSafeRouteAlertPush({
+    toUid: params.toUid,
+    trip: params.trip,
+    route: params.route,
+    childName: params.childName,
+    kind: params.kind,
+    distanceFromRouteMeters: params.distanceFromRouteMeters,
+    hazard: params.hazard,
+    stationaryDurationMinutes: params.stationaryDurationMinutes,
+  });
 }
 
 async function validateAlternativeRoutes(params: {
@@ -658,6 +727,7 @@ export const startSafeRouteTrip = onCall(
     });
     batch.set(tripRef, trip, {merge: true});
     await batch.commit();
+    await syncCurrentTripSnapshotByChildId(route.childId);
     return {
       ok: true,
       trip,
@@ -726,6 +796,7 @@ export const updateSafeRouteTripStatus = onCall(
       },
       {merge: true}
     );
+    await syncCurrentTripSnapshotByChildId(trip.childId);
 
     return {ok: true};
   }
@@ -744,27 +815,38 @@ export const getActiveSafeRouteTripByChildId = onCall(
     const childId = mustString(request.data?.childId, "childId");
     await requireParentGuardianOrChildSelf(requesterUid, childId);
 
-    const trip =
-      requesterUid === childId
-        ? await findMonitorableTripByChildId(childId)
-        : await findVisibleTripByChildId(childId);
-    if (trip != null) {
-      return {
-        ok: true,
-        trip,
-      };
-    }
-
-    const latestTrip = await findLatestTripByChildId(childId);
-    const shouldExposeRecentCompleted =
-      latestTrip != null &&
-      latestTrip.status === "completed" &&
-      Date.now() - latestTrip.updatedAt <= RECENT_COMPLETED_TRIP_WINDOW_MS;
+    const audience: SafeRouteTripAudience =
+      requesterUid === childId ? "child_monitor" : "adult_manager";
+    const trip = await findCurrentTripByChildId({
+      childId,
+      audience,
+    });
 
     return {
       ok: true,
-      trip: shouldExposeRecentCompleted ? latestTrip : null,
+      trip,
     };
+  }
+);
+
+export const syncSafeRouteCurrentTripSnapshot = onDocumentWritten(
+  {
+    document: "trips/{tripId}",
+    region: REGION,
+  },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    const childIds = [
+      typeof before?.childId === "string" ? before.childId.trim() : "",
+      typeof after?.childId === "string" ? after.childId.trim() : "",
+    ].filter((childId, index, list) =>
+      childId.length > 0 && list.indexOf(childId) === index
+    );
+
+    await Promise.all(
+      childIds.map((childId) => syncCurrentTripSnapshotByChildId(childId))
+    );
   }
 );
 
@@ -811,11 +893,21 @@ export const activateScheduledSafeRouteTrips = onSchedule(
         .filter((trip): trip is TripRecord => trip !== null)
         .map((trip) => trip.childId)
     );
-
-    const dueTrips = plannedSnap.docs
+    const plannedTrips = plannedSnap.docs
       .map((doc) => asTripRecord(doc))
-      .filter((trip): trip is TripRecord => trip !== null)
-      .filter((trip) => isTripScheduleDue(trip, nowMs))
+      .filter((trip): trip is TripRecord => trip !== null);
+    const childTimeZones = await loadChildTimeZoneMap(
+      plannedTrips.map((trip) => trip.childId)
+    );
+
+    const dueTrips = plannedTrips
+      .filter((trip) =>
+        isTripScheduleDue(
+          trip,
+          nowMs,
+          childTimeZones.get(trip.childId) ?? TZ
+        )
+      )
       .sort(
         (left, right) =>
           (left.scheduledStartAt ?? left.updatedAt) -
@@ -917,7 +1009,7 @@ export const syncSafeRouteLiveLocation = onValueWritten(
 
 export const monitorSafeRouteLiveLocation = onValueWritten(
   {
-    ref: "live_locations/{childId}",
+    ref: "locations/{childId}/current",
     region: RTDB_TRIGGER_REGION,
   },
   async (event) => {
@@ -1007,27 +1099,37 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
     updates.hasStationaryAlertActive = stillAtSamePlace
       ? trip.hasStationaryAlertActive === true
       : false;
+    const nextTripState: TripRecord = {
+      ...trip,
+      status: evaluation.nextStatus,
+      reason: evaluation.nextReason,
+      consecutiveDeviationCount: evaluation.nextDeviationCount,
+      currentDistanceFromRouteMeters: evaluation.distanceFromRouteMeters,
+      currentRouteId: evaluation.matchedRouteId,
+      updatedAt: now,
+      lastLocation: liveLocation,
+      hasLeftStartArea,
+      isNearStartArea: evaluation.isNearStartPoint,
+      stationaryAnchorLatitude: updates.stationaryAnchorLatitude,
+      stationaryAnchorLongitude: updates.stationaryAnchorLongitude,
+      stationarySinceAt,
+      hasStationaryAlertActive: updates.hasStationaryAlertActive,
+    };
+    const completedTripState: TripRecord = {
+      ...nextTripState,
+      status: "completed",
+      reason: "Child arrived at safe route destination",
+      consecutiveDeviationCount: 0,
+      hasStationaryAlertActive: false,
+    };
 
     if (arrivedAtDestination) {
-      await createSafeRouteAlert({
-        trip: {
-          ...trip,
-          status: "completed",
-        },
-        route,
-        kind: "arrived",
-        childName,
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-      });
-      await sendSafeRouteAlertPush({
+      await dispatchSafeRouteAlert({
         toUid: trip.parentId,
-        trip: {
-          ...trip,
-          status: "completed",
-        },
+        trip: completedTripState,
         route,
-        childName,
         kind: "arrived",
+        childName,
         distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
       });
       updates.status = "completed";
@@ -1039,91 +1141,66 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
       return;
     }
 
-    if (
-      evaluation.triggeredHazard &&
-      ((trip.lastDangerAlertAt ?? 0) + SAFE_ROUTE_ALERT_COOLDOWN_MS <= now ||
-        trip.lastDangerHazardId !== evaluation.triggeredHazard.id)
-    ) {
-      await createSafeRouteAlert({
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
-        kind: "dangerZone",
-        childName,
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-        hazard: evaluation.triggeredHazard,
-      });
-      await sendSafeRouteAlertPush({
-        toUid: trip.parentId,
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
-        childName,
-        kind: "dangerZone",
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-        hazard: evaluation.triggeredHazard,
-      });
-      updates.lastDangerAlertAt = now;
-      updates.lastDangerHazardId = evaluation.triggeredHazard.id;
+    if (evaluation.triggeredHazard) {
+      const didClaimDangerZoneAlert =
+        await claimDangerZoneSafeRouteAlertDispatch({
+          tripId: trip.id,
+          nowMs: now,
+          cooldownMs: SAFE_ROUTE_ALERT_COOLDOWN_MS,
+          hazardId: evaluation.triggeredHazard.id,
+        });
+      if (didClaimDangerZoneAlert) {
+        await dispatchSafeRouteAlert({
+          toUid: trip.parentId,
+          trip: nextTripState,
+          route,
+          kind: "dangerZone",
+          childName,
+          distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
+          hazard: evaluation.triggeredHazard,
+        });
+        updates.lastDangerAlertAt = now;
+        updates.lastDangerHazardId = evaluation.triggeredHazard.id;
+      }
     }
 
-    if (
-      returnedToStart &&
-      (trip.lastReturnedToStartAlertAt ?? 0) + SAFE_ROUTE_ALERT_COOLDOWN_MS <=
-        now
-    ) {
-      await createSafeRouteAlert({
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
-        kind: "returnedToStart",
-        childName,
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-      });
-      await sendSafeRouteAlertPush({
-        toUid: trip.parentId,
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
-        childName,
-        kind: "returnedToStart",
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-      });
-      updates.lastReturnedToStartAlertAt = now;
-    } else if (
-      returnedToRoute &&
-      (trip.lastBackOnRouteAlertAt ?? 0) + SAFE_ROUTE_ALERT_COOLDOWN_MS <= now
-    ) {
-      await createSafeRouteAlert({
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
+    if (returnedToStart) {
+      const didClaimReturnedToStartAlert =
+        await claimTimedSafeRouteAlertDispatch({
+          tripId: trip.id,
+          kind: "returnedToStart",
+          nowMs: now,
+          cooldownMs: SAFE_ROUTE_ALERT_COOLDOWN_MS,
+        });
+      if (didClaimReturnedToStartAlert) {
+        await dispatchSafeRouteAlert({
+          toUid: trip.parentId,
+          trip: nextTripState,
+          route,
+          kind: "returnedToStart",
+          childName,
+          distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
+        });
+        updates.lastReturnedToStartAlertAt = now;
+      }
+    } else if (returnedToRoute) {
+      const didClaimBackOnRouteAlert = await claimTimedSafeRouteAlertDispatch({
+        tripId: trip.id,
         kind: "backOnRoute",
-        childName,
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
+        nowMs: now,
+        cooldownMs: SAFE_ROUTE_ALERT_COOLDOWN_MS,
       });
-      await sendSafeRouteAlertPush({
-        toUid: trip.parentId,
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
-        childName,
-        kind: "backOnRoute",
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-      });
-      updates.lastBackOnRouteAlertAt = now;
+      if (didClaimBackOnRouteAlert) {
+        await dispatchSafeRouteAlert({
+          toUid: trip.parentId,
+          trip: nextTripState,
+          route,
+          kind: "backOnRoute",
+          childName,
+          distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
+        });
+        updates.lastBackOnRouteAlertAt = now;
+      }
     }
 
     if (
@@ -1132,59 +1209,48 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
       stationaryDurationMs >= STATIONARY_ALERT_DELAY_MS &&
       trip.hasStationaryAlertActive !== true
     ) {
-      await createSafeRouteAlert({
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
-        kind: "stationary",
-        childName,
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-        stationaryDurationMinutes,
-      });
-      await sendSafeRouteAlertPush({
-        toUid: trip.parentId,
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
-        childName,
-        kind: "stationary",
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-        stationaryDurationMinutes,
-      });
-      updates.lastStationaryAlertAt = now;
-      updates.hasStationaryAlertActive = true;
+      const didClaimStationaryAlert =
+        await claimStationarySafeRouteAlertDispatch({
+          tripId: trip.id,
+          nowMs: now,
+        });
+      if (didClaimStationaryAlert) {
+        await dispatchSafeRouteAlert({
+          toUid: trip.parentId,
+          trip: {
+            ...nextTripState,
+            hasStationaryAlertActive: true,
+            lastStationaryAlertAt: now,
+          },
+          route,
+          kind: "stationary",
+          childName,
+          distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
+          stationaryDurationMinutes,
+        });
+        updates.lastStationaryAlertAt = now;
+        updates.hasStationaryAlertActive = true;
+      }
     }
 
-    if (
-      evaluation.nextStatus === "deviated" &&
-      (trip.lastDeviationAlertAt ?? 0) + SAFE_ROUTE_ALERT_COOLDOWN_MS <= now
-    ) {
-      await createSafeRouteAlert({
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
+    if (evaluation.nextStatus === "deviated") {
+      const didClaimDeviationAlert = await claimTimedSafeRouteAlertDispatch({
+        tripId: trip.id,
         kind: "deviated",
-        childName,
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
+        nowMs: now,
+        cooldownMs: SAFE_ROUTE_ALERT_COOLDOWN_MS,
       });
-      await sendSafeRouteAlertPush({
-        toUid: trip.parentId,
-        trip: {
-          ...trip,
-          status: evaluation.nextStatus,
-        },
-        route,
-        childName,
-        kind: "deviated",
-        distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-      });
-      updates.lastDeviationAlertAt = now;
+      if (didClaimDeviationAlert) {
+        await dispatchSafeRouteAlert({
+          toUid: trip.parentId,
+          trip: nextTripState,
+          route,
+          kind: "deviated",
+          childName,
+          distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
+        });
+        updates.lastDeviationAlertAt = now;
+      }
     }
 
     if (!evaluation.triggeredHazard) {

@@ -170,7 +170,10 @@ extension _TrackingPageActions on _TrackingPageBodyState {
       title: AppLocalizations.of(context).safeRouteArrivedDialogTitle,
       message: AppLocalizations.of(context).safeRouteArrivedDialogMessage,
       confirmText: AppLocalizations.of(context).safeRouteArrivedDialogConfirm,
-      onConfirm: vm.returnToRouteSelection,
+      onConfirm: () {
+        vm.returnToRouteSelection();
+        vm.clearCompletedTripConfirmation();
+      },
     );
   }
 
@@ -184,11 +187,6 @@ extension _TrackingPageActions on _TrackingPageBodyState {
     }
 
     await vm.completeTrip();
-    if (!mounted) return;
-
-    if (vm.state.activeTrip?.status == TripStatus.completed) {
-      await _showArrivedSuccessDialog(vm);
-    }
   }
 
   Future<void> _confirmCancelTrip(SafeRouteTrackingViewModel vm) async {

@@ -77,6 +77,16 @@ service cloud.firestore {
         && userDoc(childUid).data.familyId == userDoc(parentUid).data.familyId;
     }
 
+    function canAccessSafeRouteChild(childUid) {
+      return isSignedIn()
+        && userExists(childUid)
+        && isChildUser(childUid)
+        && (
+          isSelf(childUid)
+          || isAdultManagerOfParent(userDoc(childUid).data.parentUid)
+        );
+    }
+
     function isParentManagingGuardianAssignments(uid) {
       return isSignedIn()
         && resource != null
@@ -476,6 +486,27 @@ service cloud.firestore {
         );
 
       allow create: if false;
+    }
+
+    // ================================
+    // SAFE ROUTE
+    // ================================
+
+    match /trips/{tripId} {
+      allow read: if resource.data.childId is string
+        && canAccessSafeRouteChild(resource.data.childId);
+      allow create, update, delete: if false;
+    }
+
+    match /routes/{routeId} {
+      allow read: if resource.data.childId is string
+        && canAccessSafeRouteChild(resource.data.childId);
+      allow create, update, delete: if false;
+    }
+
+    match /safe_route_current_trips/{childUid} {
+      allow read: if canAccessSafeRouteChild(childUid);
+      allow create, update, delete: if false;
     }
 
     // ================================

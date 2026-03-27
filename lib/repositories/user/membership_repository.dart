@@ -188,6 +188,7 @@ class MembershipRepository {
             displayName: displayName,
             email: email.trim(),
             avatarUrl: '',
+            timezone: timezone,
             dob: dob,
             parentUid: parentUid,
             isActive: true,

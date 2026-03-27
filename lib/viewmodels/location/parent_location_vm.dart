@@ -205,6 +205,8 @@ class ParentLocationVm extends ChangeNotifier {
     DateTime day, {
     int? fromTs,
     int? toTs,
+    int? startMinuteOfDay,
+    int? endMinuteOfDay,
   }) async {
     final l10n = await _getL10n();
 
@@ -214,6 +216,8 @@ class ParentLocationVm extends ChangeNotifier {
         day,
         fromTs: fromTs,
         toTs: toTs,
+        startMinuteOfDay: startMinuteOfDay,
+        endMinuteOfDay: endMinuteOfDay,
       );
       return history.where(_isValidLocation).toList();
     } catch (e) {

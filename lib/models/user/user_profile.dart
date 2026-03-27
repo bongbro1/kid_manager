@@ -15,6 +15,7 @@ class UserProfile {
   final String? avatarUrl;
   final String? coverUrl;
   final String? locale;
+  final String? timezone;
   final List<String> managedChildIds;
 
   UserProfile({
@@ -30,6 +31,7 @@ class UserProfile {
     this.coverUrl,
     this.parentUid,
     this.locale,
+    this.timezone,
     this.familyId,
     this.managedChildIds = const <String>[],
   });
@@ -57,6 +59,7 @@ class UserProfile {
       "coverUrl": coverUrl,
       "parentUid": parentUid,
       "locale": locale,
+      "timezone": timezone,
       "familyId": familyId,
       if (managedChildIds.isNotEmpty) 'managedChildIds': managedChildIds,
     };
@@ -79,6 +82,7 @@ class UserProfile {
     String? parentUid,
     String? familyId,
     String? locale,
+    String? timezone,
     List<String>? managedChildIds,
   }) {
     return UserProfile(
@@ -95,6 +99,7 @@ class UserProfile {
       parentUid: parentUid ?? this.parentUid,
       familyId: familyId ?? this.familyId,
       locale: locale ?? this.locale ?? 'vi',
+      timezone: timezone ?? this.timezone,
       managedChildIds: managedChildIds ?? this.managedChildIds,
     );
   }
@@ -123,6 +128,7 @@ class UserProfile {
       coverUrl: data['coverUrl']?.toString(),
       parentUid: data['parentUid']?.toString(),
       locale: data['locale']?.toString() ?? 'vi',
+      timezone: data['timezone']?.toString(),
       familyId: data["familyId"]?.toString(),
       managedChildIds: _readManagedChildIds(data),
     );

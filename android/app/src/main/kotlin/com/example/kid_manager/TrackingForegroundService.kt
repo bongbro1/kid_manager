@@ -103,6 +103,7 @@ class TrackingForegroundService : Service() {
             val engine = FlutterEngine(applicationContext)
             GeneratedPluginRegistrant.registerWith(engine)
             TrackingServiceChannel.register(engine.dartExecutor.binaryMessenger, applicationContext)
+            DeviceTimeZoneChannel.register(engine.dartExecutor.binaryMessenger)
 
             val bundlePath = loader.findAppBundlePath()
             val dartEntrypoint = DartExecutor.DartEntrypoint(

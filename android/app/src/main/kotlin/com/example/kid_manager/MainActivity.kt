@@ -33,6 +33,9 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             applicationContext,
         )
+        DeviceTimeZoneChannel.register(
+            flutterEngine.dartExecutor.binaryMessenger,
+        )
 
         // WATCHER CHANNEL
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WATCHER_CONFIG_CHANNEL)

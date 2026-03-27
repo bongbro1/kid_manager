@@ -518,6 +518,10 @@ class _TrackingStatusContent extends StatelessWidget {
   final VoidCallback onFocusRoute;
   final VoidCallback onShowHistory;
 
+  bool get _isCompleting => state.tripMutation == TripMutationState.completing;
+  bool get _isCancelling => state.tripMutation == TripMutationState.cancelling;
+  bool get _hasTripMutation => state.tripMutation != TripMutationState.none;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -769,7 +773,8 @@ class _TrackingStatusContent extends StatelessWidget {
                   backgroundColor: const Color(0xFFFEF2F2),
                   foregroundColor: const Color(0xFF991B1B),
                   borderColor: const Color(0xFFFCA5A5),
-                  onTap: onCancelTrip,
+                  onTap: _hasTripMutation ? null : onCancelTrip,
+                  isLoading: _isCancelling,
                 ),
               ),
               const SizedBox(width: 10),
@@ -779,7 +784,7 @@ class _TrackingStatusContent extends StatelessWidget {
                   icon: Icons.route_rounded,
                   backgroundColor: const Color(0xFFDC2626),
                   foregroundColor: Colors.white,
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
             ],
@@ -794,7 +799,8 @@ class _TrackingStatusContent extends StatelessWidget {
                   backgroundColor: const Color(0xFFF8FAFC),
                   foregroundColor: const Color(0xFF475569),
                   borderColor: const Color(0xFFCBD5E1),
-                  onTap: onCancelTrip,
+                  onTap: _hasTripMutation ? null : onCancelTrip,
+                  isLoading: _isCancelling,
                 ),
               ),
               const SizedBox(width: 10),
@@ -805,7 +811,7 @@ class _TrackingStatusContent extends StatelessWidget {
                   backgroundColor: const Color(0xFFFFF7ED),
                   foregroundColor: const Color(0xFFB45309),
                   borderColor: const Color(0xFFFCD34D),
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
               const SizedBox(width: 10),
@@ -815,7 +821,8 @@ class _TrackingStatusContent extends StatelessWidget {
                   icon: Icons.flag_rounded,
                   backgroundColor: const Color(0xFFF59E0B),
                   foregroundColor: Colors.white,
-                  onTap: onCompleteTrip,
+                  onTap: _hasTripMutation ? null : onCompleteTrip,
+                  isLoading: _isCompleting,
                 ),
               ),
             ],
@@ -830,7 +837,8 @@ class _TrackingStatusContent extends StatelessWidget {
                   backgroundColor: const Color(0xFFF8FAFC),
                   foregroundColor: const Color(0xFF475569),
                   borderColor: const Color(0xFFCBD5E1),
-                  onTap: onCancelTrip,
+                  onTap: _hasTripMutation ? null : onCancelTrip,
+                  isLoading: _isCancelling,
                 ),
               ),
               const SizedBox(width: 10),
@@ -841,7 +849,7 @@ class _TrackingStatusContent extends StatelessWidget {
                   backgroundColor: const Color(0xFFEFF6FF),
                   foregroundColor: const Color(0xFF1D4ED8),
                   borderColor: const Color(0xFFBFDBFE),
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
             ],
@@ -856,7 +864,7 @@ class _TrackingStatusContent extends StatelessWidget {
                   backgroundColor: const Color(0xFFEFF6FF),
                   foregroundColor: const Color(0xFF1D4ED8),
                   borderColor: const Color(0xFFBFDBFE),
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
               const SizedBox(width: 10),
@@ -867,7 +875,7 @@ class _TrackingStatusContent extends StatelessWidget {
                   backgroundColor: const Color(0xFFF0FDF4),
                   foregroundColor: const Color(0xFF15803D),
                   borderColor: const Color(0xFFBBF7D0),
-                  onTap: onCompleteTrip,
+                  onTap: _hasTripMutation ? null : onCompleteTrip,
                 ),
               ),
             ],
@@ -882,7 +890,7 @@ class _TrackingStatusContent extends StatelessWidget {
                   backgroundColor: const Color(0xFFEFF6FF),
                   foregroundColor: const Color(0xFF1D4ED8),
                   borderColor: const Color(0xFFBFDBFE),
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
               const SizedBox(width: 10),
@@ -892,7 +900,8 @@ class _TrackingStatusContent extends StatelessWidget {
                   icon: Icons.check_circle_rounded,
                   backgroundColor: const Color(0xFF1A73E8),
                   foregroundColor: Colors.white,
-                  onTap: onCompleteTrip,
+                  onTap: _hasTripMutation ? null : onCompleteTrip,
+                  isLoading: _isCompleting,
                 ),
               ),
             ],
@@ -1362,6 +1371,7 @@ class _TrackingActionButton extends StatelessWidget {
     required this.foregroundColor,
     required this.onTap,
     this.borderColor,
+    this.isLoading = false,
   });
 
   final String label;
@@ -1369,15 +1379,17 @@ class _TrackingActionButton extends StatelessWidget {
   final Color backgroundColor;
   final Color foregroundColor;
   final Color? borderColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
+    final disabled = onTap == null && !isLoading;
     return Material(
-      color: backgroundColor,
+      color: disabled ? backgroundColor.withOpacity(0.58) : backgroundColor,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: onTap,
+        onTap: isLoading ? null : onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           height: 46,
@@ -1389,7 +1401,23 @@ class _TrackingActionButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: foregroundColor),
+              if (isLoading)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(foregroundColor),
+                  ),
+                )
+              else
+                Icon(
+                  icon,
+                  size: 16,
+                  color: disabled
+                      ? foregroundColor.withOpacity(0.75)
+                      : foregroundColor,
+                ),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
@@ -1398,7 +1426,9 @@ class _TrackingActionButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: foregroundColor,
+                    color: disabled
+                        ? foregroundColor.withOpacity(0.75)
+                        : foregroundColor,
                   ),
                 ),
               ),

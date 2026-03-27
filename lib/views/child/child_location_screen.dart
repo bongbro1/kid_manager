@@ -15,6 +15,7 @@ import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_active_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_route_by_id_usecase.dart';
+import 'package:kid_manager/features/safe_route/domain/usecases/watch_current_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/presentation/child_safe_route_guidance.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/child_safe_route_state.dart';
 import 'package:kid_manager/features/safe_route/presentation/viewmodels/child_safe_route_view_model.dart';
@@ -22,7 +23,6 @@ import 'package:kid_manager/features/safe_route/presentation/widgets/child_safe_
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/viewmodels/locale_vm.dart';
-import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 import 'package:kid_manager/widgets/location/map_top_bar.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
 
@@ -134,6 +134,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     final viewModel = ChildSafeRouteViewModel(
       childId: childId,
       getActiveTripByChildIdUseCase: GetActiveTripByChildIdUseCase(repository),
+      watchCurrentTripByChildIdUseCase: WatchCurrentTripByChildIdUseCase(
+        repository,
+      ),
       getRouteByIdUseCase: GetRouteByIdUseCase(repository),
     );
 
@@ -247,7 +250,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     final childError = context.select<ChildLocationViewModel, String?>(
       (vm) => vm.error,
     );
-    final hasSosOverlay = familyId != null && myUid != null;
+    final canShowSos = familyId != null && myUid != null;
     final currentLocation = _vm.currentLocation;
     final safeRouteState =
         _safeRouteVm?.state ?? ChildSafeRouteState.initial(myUid ?? '');
@@ -267,15 +270,11 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         final availableHeight = constraints.maxHeight;
         final compactLayout = availableHeight < 760;
         final ultraCompactLayout = availableHeight < 680;
-        final safeRouteHudBottomOffset = hasSosOverlay
-            ? (compactLayout ? 138.0 : 190.0)
-            : (compactLayout ? 80.0 : 96.0);
-        final errorBannerBottom = hasSosOverlay
-            ? (compactLayout ? 196.0 : 260.0)
-            : (compactLayout ? 110.0 : 150.0);
-        final sosButtonTop = safeRouteState.guidance != null
-            ? (compactLayout ? 152.0 : 196.0)
-            : 90.0;
+        final bottomSafeInset = MediaQuery.paddingOf(context).bottom;
+        final floatingRailBottom =
+            bottomSafeInset + (ultraCompactLayout ? 74.0 : 88.0);
+        final safeRouteHudBottomOffset = compactLayout ? 80.0 : 96.0;
+        final errorBannerBottom = floatingRailBottom + (compactLayout ? 138.0 : 154.0);
 
         return Stack(
           children: [
@@ -357,97 +356,86 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
               ),
 
             Positioned(
-              left: 16,
               right: 16,
-              bottom: 16,
-              child: SafeArea(
-                top: false,
-                child: MapBottomControls(
-                  children: const [],
-                  onMyLocation: () {
-                    final loc = _vm.currentLocation;
-                    if (loc == null) return;
+              bottom: floatingRailBottom,
+              child: _ChildFloatingActionRail(
+                showSos: canShowSos,
+                onSosPressed: canShowSos
+                    ? () async {
+                        final loc = _vm.currentLocation;
+                        final displayName =
+                            context.read<UserVm>().me?.displayName ??
+                            l10n.parentLocationUnknownUser;
+                        final sosVm = context.read<SosViewModel>();
 
-                    _autoFollow = true;
+                        debugPrint('SOS child tapped');
+                        debugPrint('SOS loc=$loc');
+                        debugPrint('SOS sending=${sosVm.sending}');
+                        debugPrint('SOS familyId=${context.read<UserVm>().familyId}');
+                        debugPrint('SOS uid=${context.read<UserVm>().me?.uid}');
 
-                    _map?.easeTo(
-                      CameraOptions(
-                        center: Point(
-                          coordinates: Position(loc.longitude, loc.latitude),
-                        ),
-                        zoom: 16,
+                        if (loc == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.currentLocationError)),
+                          );
+                          return;
+                        }
+
+                        if (sosVm.sending) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.childLocationSosSending)),
+                          );
+                          return;
+                        }
+
+                        try {
+                          final sosId = await sosVm.triggerSos(
+                            lat: loc.latitude,
+                            lng: loc.longitude,
+                            acc: loc.accuracy,
+                            createdByName: displayName,
+                          );
+
+                          if (!context.mounted) return;
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                sosId != null
+                                    ? l10n.parentLocationSosSent
+                                    : l10n.parentLocationSosFailed,
+                              ),
+                            ),
+                          );
+                        } catch (error, stackTrace) {
+                          debugPrint('triggerSos error: $error');
+                          debugPrint('$stackTrace');
+
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.childLocationSosError('$error')),
+                            ),
+                          );
+                        }
+                      }
+                    : null,
+                onMyLocationPressed: () {
+                  final loc = _vm.currentLocation;
+                  if (loc == null) return;
+
+                  _autoFollow = true;
+
+                  _map?.easeTo(
+                    CameraOptions(
+                      center: Point(
+                        coordinates: Position(loc.longitude, loc.latitude),
                       ),
-                      MapAnimationOptions(duration: 600),
-                    );
-                  },
-                ),
-              ),
-            ),
-            Positioned(
-              left: 12,
-              top: sosButtonTop,
-              child: SafeArea(
-                top: false,
-                child: SosCircleButton(
-                  onPressed: () async {
-                    final loc = _vm.currentLocation;
-                    final displayName =
-                        context.read<UserVm>().me?.displayName ??
-                        l10n.parentLocationUnknownUser;
-                    final sosVm = context.read<SosViewModel>();
-
-                    debugPrint('SOS child tapped');
-                    debugPrint('SOS loc=$loc');
-                    debugPrint('SOS sending=${sosVm.sending}');
-                    debugPrint('SOS familyId=${context.read<UserVm>().familyId}');
-                    debugPrint('SOS uid=${context.read<UserVm>().me?.uid}');
-
-                    if (loc == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.currentLocationError)),
-                      );
-                      return;
-                    }
-
-                    if (sosVm.sending) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.childLocationSosSending)),
-                      );
-                      return;
-                    }
-
-                    try {
-                      final sosId = await sosVm.triggerSos(
-                        lat: loc.latitude,
-                        lng: loc.longitude,
-                        acc: loc.accuracy,
-                        createdByName: displayName,
-                      );
-
-                      if (!context.mounted) return;
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            sosId != null
-                                ? l10n.parentLocationSosSent
-                                : l10n.parentLocationSosFailed,
-                          ),
-                        ),
-                      );
-                    } catch (error, stackTrace) {
-                      debugPrint('triggerSos error: $error');
-                      debugPrint('$stackTrace');
-
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.childLocationSosError('$error')),
-                        ),
-                      );
-                    }
-                  },
-                ),
+                      zoom: 16,
+                    ),
+                    MapAnimationOptions(duration: 600),
+                  );
+                },
               ),
             ),
             if (combinedError != null)
@@ -460,6 +448,69 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
           ],
         );
       },
+    );
+  }
+}
+
+class _ChildFloatingActionRail extends StatelessWidget {
+  const _ChildFloatingActionRail({
+    required this.showSos,
+    required this.onSosPressed,
+    required this.onMyLocationPressed,
+  }) : assert(!showSos || onSosPressed != null);
+
+  final bool showSos;
+  final VoidCallback? onSosPressed;
+  final VoidCallback onMyLocationPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (showSos) ...[
+          SosCircleButton(onPressed: onSosPressed!),
+          const SizedBox(height: 12),
+        ],
+        _RailCircleButton(
+          icon: Icons.my_location,
+          onPressed: onMyLocationPressed,
+        ),
+      ],
+    );
+  }
+}
+
+class _RailCircleButton extends StatelessWidget {
+  const _RailCircleButton({
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: colorScheme.surface,
+      shape: const CircleBorder(),
+      elevation: 6,
+      shadowColor: Colors.black.withOpacity(0.2),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: colorScheme.outline),
+          ),
+          child: Icon(icon, size: 26, color: colorScheme.primary),
+        ),
+      ),
     );
   }
 }

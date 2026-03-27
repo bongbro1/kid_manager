@@ -157,6 +157,8 @@ function buildFamilyMemberPublicFields(
     typeof userData.email === "string" ? userData.email.trim() : "";
   const avatarUrl =
     typeof userData.avatarUrl === "string" ? userData.avatarUrl : "";
+  const timezone =
+    typeof userData.timezone === "string" ? userData.timezone.trim() : "";
   const parentUid =
     typeof userData.parentUid === "string" ? userData.parentUid.trim() : "";
   const isActive = userData.isActive === true;
@@ -179,6 +181,7 @@ function buildFamilyMemberPublicFields(
     ...(displayName ? { displayName } : {}),
     ...(email ? { email } : {}),
     avatarUrl,
+    ...(timezone ? { timezone } : {}),
     ...(parentUid ? { parentUid } : {}),
     isActive,
     allowTracking,

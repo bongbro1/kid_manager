@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -101,6 +102,9 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final familyId = context.select<UserVm, String?>((vm) => vm.familyId);
     final myUid = context.select<UserVm, String?>((vm) => vm.me?.uid);
+    final viewerRole = context.select<UserVm, UserRole?>(
+      (vm) => vm.actorSnapshot?.role,
+    );
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -130,11 +134,14 @@ class _AppShellState extends State<AppShell> {
               onTap: _onNavTap,
             ),
           ),
-          if (familyId != null && myUid != null)
+          if (familyId != null &&
+              myUid != null &&
+              (viewerRole?.isAdultManager ?? false))
             IncomingSosOverlay(
               key: ValueKey('sos-$familyId'),
               familyId: familyId,
               myUid: myUid,
+              viewerRole: viewerRole,
             ),
         ],
       ),

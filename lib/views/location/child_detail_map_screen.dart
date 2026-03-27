@@ -21,18 +21,24 @@ import 'package:provider/provider.dart';
 class ChildDetailMapScreen extends StatelessWidget {
   final String childId;
   final String? childAvatarUrl;
+  final String? childTimeZone;
 
   const ChildDetailMapScreen({
     super.key,
     required this.childId,
     this.childAvatarUrl,
+    this.childTimeZone,
   });
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) =>
-          ChildDetailMapVm(context.read<ParentLocationVm>(), childId: childId),
+          ChildDetailMapVm(
+            context.read<ParentLocationVm>(),
+            childId: childId,
+            childTimeZone: childTimeZone,
+          ),
       child: _ChildDetailMapBody(
         childId: childId,
         childAvatarUrl: childAvatarUrl,
@@ -201,16 +207,8 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   Future<void> _loadForDay(DateTime day) async {
     setState(() => _hideEmptyCard = false);
     final dayOnly = DateTime(day.year, day.month, day.day);
-    final today = DateTime.now();
-    final isToday =
-        dayOnly.year == today.year &&
-        dayOnly.month == today.month &&
-        dayOnly.day == today.day;
-
-    if (!isToday) {
-      await _sub?.cancel();
-      _sub = null;
-    }
+    await _sub?.cancel();
+    _sub = null;
 
     await _vm.loadForDay(dayOnly);
     if (!mounted) return;
@@ -278,7 +276,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       context: context,
       initialDate: _vm.selectedDay,
       firstDate: DateTime(2024, 1, 1),
-      lastDate: DateTime.now(),
+      lastDate: _vm.currentLocalDay,
       builder: (ctx, child) {
         final theme = Theme.of(ctx);
         final scheme = theme.colorScheme;
@@ -314,7 +312,8 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       return '${_fmtDay(vm.selectedDay)} · ${vm.rangeLabel}';
     }
 
-    final diff = DateTime.now().difference(latest.dateTime);
+    final diffMs = DateTime.now().millisecondsSinceEpoch - latest.timestamp;
+    final diff = Duration(milliseconds: diffMs < 0 ? 0 : diffMs);
     final freshness = diff.inMinutes <= 0
         ? l10n.childLocationUpdatedJustNow
         : diff.inMinutes == 1

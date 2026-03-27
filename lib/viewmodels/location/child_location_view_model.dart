@@ -20,6 +20,7 @@ import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/background/tracking_runtime_config.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
+import 'package:kid_manager/services/location/location_day_key_resolver.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
 import 'package:kid_manager/utils/app_localizations_loader.dart';
@@ -32,7 +33,9 @@ class ChildLocationViewModel extends ChangeNotifier {
     this._locationService, {
     FirebaseAuth? auth,
     TrackingStatusService? trackingStatusService,
+    LocationDayKeyResolver? dayKeyResolver,
   }) : _auth = auth ?? FirebaseAuth.instance,
+       _dayKeyResolver = dayKeyResolver ?? LocationDayKeyResolver(),
        _trackingStatusService =
            trackingStatusService ?? TrackingStatusService() {
     _authStateSub = _auth.authStateChanges().listen(_handleAuthStateChanged);
@@ -41,6 +44,7 @@ class ChildLocationViewModel extends ChangeNotifier {
   final LocationRepository _locationRepository;
   final LocationServiceInterface _locationService;
   final FirebaseAuth _auth;
+  final LocationDayKeyResolver _dayKeyResolver;
   final TrackingStatusService _trackingStatusService;
   StreamSubscription<User?>? _authStateSub;
   bool _disposed = false;
@@ -152,10 +156,14 @@ class ChildLocationViewModel extends ChangeNotifier {
 
       final parentUid = data['parentUid']?.toString().trim();
       final familyId = data['familyId']?.toString().trim();
+      final timeZone = await _dayKeyResolver.resolvePreferredTimeZone(
+        data['timezone']?.toString(),
+      );
       return TrackingRoutingContext(
         userId: uid,
         parentUid: parentUid?.isEmpty == true ? null : parentUid,
         familyId: familyId?.isEmpty == true ? null : familyId,
+        timeZone: timeZone,
       );
     } catch (e, st) {
       debugPrint('ChildLocationViewModel load routing context error: $e');
@@ -317,9 +325,8 @@ class ChildLocationViewModel extends ChangeNotifier {
         }
 
         if (_requireBackground) {
-          final backgroundSatisfied = _publishingHandledByService
-              ? await _locationService.hasBackgroundLocationPermission()
-              : await _locationService.isBackgroundModeEnabled();
+          final backgroundSatisfied =
+              await _isBackgroundTrackingSatisfiedForStatus();
           if (!backgroundSatisfied) {
             await _reportTrackingStatusIfChanged(
               'background_disabled',
@@ -507,8 +514,9 @@ class ChildLocationViewModel extends ChangeNotifier {
           );
           _error = l10n.trackingErrorEnablePreciseLocation;
         } else if (_requireBackground) {
-          final bgEnabled = await _locationService.isBackgroundModeEnabled();
-          if (!bgEnabled) {
+          final backgroundSatisfied =
+              await _isBackgroundTrackingSatisfiedForStatus();
+          if (!backgroundSatisfied) {
             await _reportTrackingStatusIfChanged(
               'background_disabled',
               message: l10n.trackingStatusBackgroundDisabledMessage,
@@ -536,6 +544,7 @@ class ChildLocationViewModel extends ChangeNotifier {
         requireBackground: _requireBackground,
         parentUid: routingContext?.parentUid,
         familyId: routingContext?.familyId,
+        timeZone: routingContext?.timeZone,
       );
       if (serviceStarted) {
         final runtimeReady = await TrackingBackgroundService.waitUntilReady();
@@ -740,6 +749,7 @@ class ChildLocationViewModel extends ChangeNotifier {
       notifyListeners();
     });
   }
+
   /// Android 11+: request background permission (usually opens Settings)
   Future<void> enableBackgroundSharing() async {
     if (_disposed) return;
@@ -762,6 +772,38 @@ class ChildLocationViewModel extends ChangeNotifier {
     if (_isSharing) {
       await _restartSharing(delay: const Duration(milliseconds: 300));
     }
+  }
+
+  bool _isAppResumed() {
+    return PlatformDispatcher.instance.initialLifecycleState ==
+        AppLifecycleState.resumed;
+  }
+
+  Future<bool> _isBackgroundTrackingSatisfiedForStatus() async {
+    if (!_requireBackground) {
+      return true;
+    }
+
+    final serviceRunning = await TrackingBackgroundService.isRunning();
+    if (serviceRunning) {
+      return true;
+    }
+
+    if (_isAppResumed() && _isSharing) {
+      return true;
+    }
+
+    final hasBackgroundPermission = await _locationService
+        .hasBackgroundLocationPermission();
+    if (!hasBackgroundPermission) {
+      return false;
+    }
+
+    if (_publishingHandledByService) {
+      return true;
+    }
+
+    return _locationService.isBackgroundModeEnabled();
   }
   // SOS
 
@@ -896,14 +938,17 @@ class ChildLocationViewModel extends ChangeNotifier {
     DateTime day, {
     int? fromTs,
     int? toTs,
+    int? startMinuteOfDay,
+    int? endMinuteOfDay,
   }) async {
     try {
-      // If repo interface does not include this, call impl directly.
       final history = await _locationRepository.getLocationHistoryByDay(
         childId,
         day,
         fromTs: fromTs,
         toTs: toTs,
+        startMinuteOfDay: startMinuteOfDay,
+        endMinuteOfDay: endMinuteOfDay,
       );
       if (_disposed) return history;
 
@@ -991,5 +1036,3 @@ class ChildLocationViewModel extends ChangeNotifier {
     super.dispose();
   }
 }
-
-

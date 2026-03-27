@@ -12,8 +12,10 @@ Future<MapPlaceSearchResult?> showMapPlaceSearchSheet({
   String initialQuery = '',
   double? proximityLatitude,
   double? proximityLongitude,
-  MapboxPlaceSearchService service = const MapboxPlaceSearchService(),
+  MapboxPlaceSearchService? service,
 }) {
+  final resolvedService = service ?? MapboxPlaceSearchService();
+
   return showModalBottomSheet<MapPlaceSearchResult>(
     context: context,
     isScrollControlled: true,
@@ -25,7 +27,7 @@ Future<MapPlaceSearchResult?> showMapPlaceSearchSheet({
         initialQuery: initialQuery,
         proximityLatitude: proximityLatitude,
         proximityLongitude: proximityLongitude,
-        service: service,
+        service: resolvedService,
       );
     },
   );

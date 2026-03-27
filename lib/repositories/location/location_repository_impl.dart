@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,6 +8,9 @@ import 'package:kid_manager/background/tracking_runtime_store.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/services/location/canonical_live_location_stream.dart';
+import 'package:kid_manager/services/location/location_day_key_resolver.dart';
+import 'package:kid_manager/services/location/location_history_partition.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class _HistoryChunkPage {
@@ -27,20 +28,28 @@ class _HistoryChunkPage {
 class LocationRepositoryImpl implements LocationRepository {
   final FirebaseDatabase _database;
   final FirebaseAuth _auth;
+  final LocationDayKeyResolver _dayKeyResolver;
 
-  LocationRepositoryImpl({FirebaseDatabase? database, FirebaseAuth? auth})
+  LocationRepositoryImpl({
+    FirebaseDatabase? database,
+    FirebaseAuth? auth,
+    LocationDayKeyResolver? dayKeyResolver,
+  })
     : _database = database ?? FirebaseDatabase.instance,
-      _auth = auth ?? FirebaseAuth.instance;
+      _auth = auth ?? FirebaseAuth.instance,
+      _dayKeyResolver = dayKeyResolver ?? LocationDayKeyResolver();
 
-  static const Duration _trackingTzOffset = Duration(hours: 7);
   static const Duration _currentPollingInterval = Duration(seconds: 2);
   static const int _historyChunkLimit = 250;
 
   String? _cachedParentUid;
   String? _cachedFamilyId;
+  String? _cachedTimeZone;
   String? _cachedParentUidForUid;
   String? _cachedFamilyIdForUid;
+  String? _cachedTimeZoneForUid;
   String? _metaEnsuredForUid;
+  String? _metaEnsuredForTimeZone;
 
   FirebaseFunctions get _functions =>
       FirebaseFunctions.instanceFor(region: 'asia-southeast1');
@@ -49,17 +58,6 @@ class LocationRepositoryImpl implements LocationRepository {
       "${year.toString().padLeft(4, '0')}-"
       "${month.toString().padLeft(2, '0')}-"
       "${day.toString().padLeft(2, '0')}";
-
-  String _trackingDayKeyFromTimestamp(int ts) {
-    final d = DateTime.fromMillisecondsSinceEpoch(
-      ts,
-      isUtc: true,
-    ).add(_trackingTzOffset);
-    return _formatDayKeyParts(d.year, d.month, d.day);
-  }
-
-  String _trackingDayKeyFromDate(DateTime day) =>
-      _formatDayKeyParts(day.year, day.month, day.day);
 
   void _log(String msg) {
     debugPrint('[LocationRepo] $msg');
@@ -112,25 +110,36 @@ class LocationRepositoryImpl implements LocationRepository {
         _cachedParentUid != null && _cachedParentUidForUid == uid;
     final canUseFamilyCache =
         _cachedFamilyId != null && _cachedFamilyIdForUid == uid;
-    if (canUseParentCache && canUseFamilyCache) {
-      return <String, String>{
-        'parentUid': _cachedParentUid!,
-        'familyId': _cachedFamilyId!,
-      };
-    }
 
     final persistedContext = await _loadPersistedRoutingContext(uid);
-    if (persistedContext != null) {
+    if (persistedContext != null &&
+        (persistedContext.timeZone?.trim().isNotEmpty ?? false)) {
       _cachedParentUid = persistedContext.parentUid!.trim();
       _cachedParentUidForUid = uid;
       _cachedFamilyId = persistedContext.familyId!.trim();
       _cachedFamilyIdForUid = uid;
+      final persistedTimeZone = await _dayKeyResolver.normalizeTimeZone(
+        persistedContext.timeZone,
+      );
+      _cachedTimeZone = persistedTimeZone;
+      _cachedTimeZoneForUid = uid;
       _log(
-        'loadUserRoutingContext -> store hit parentUid=$_cachedParentUid familyId=$_cachedFamilyId',
+        'loadUserRoutingContext -> store hit parentUid=$_cachedParentUid familyId=$_cachedFamilyId timeZone=$_cachedTimeZone',
       );
       return <String, String>{
         'parentUid': _cachedParentUid!,
         'familyId': _cachedFamilyId!,
+        'timeZone': _cachedTimeZone!,
+      };
+    }
+
+    final canUseTimeZoneCache =
+        _cachedTimeZone != null && _cachedTimeZoneForUid == uid;
+    if (canUseParentCache && canUseFamilyCache && canUseTimeZoneCache) {
+      return <String, String>{
+        'parentUid': _cachedParentUid!,
+        'familyId': _cachedFamilyId!,
+        'timeZone': _cachedTimeZone!,
       };
     }
 
@@ -144,8 +153,11 @@ class LocationRepositoryImpl implements LocationRepository {
 
       final parentUid = snap.data()?['parentUid'];
       final familyId = snap.data()?['familyId'];
+      final timeZone = await _dayKeyResolver.normalizeTimeZone(
+        snap.data()?['timezone']?.toString(),
+      );
       _log(
-        'loadUserRoutingContext -> Firestore parentUid=$parentUid familyId=$familyId',
+        'loadUserRoutingContext -> Firestore parentUid=$parentUid familyId=$familyId timeZone=$timeZone',
       );
 
       if (parentUid == null) {
@@ -159,17 +171,21 @@ class LocationRepositoryImpl implements LocationRepository {
       _cachedParentUidForUid = uid;
       _cachedFamilyId = familyId.toString();
       _cachedFamilyIdForUid = uid;
+      _cachedTimeZone = timeZone;
+      _cachedTimeZoneForUid = uid;
       await TrackingRuntimeStore.saveRoutingContext(
         TrackingRoutingContext(
           userId: uid,
           parentUid: _cachedParentUid,
           familyId: _cachedFamilyId,
+          timeZone: _cachedTimeZone,
         ),
       );
 
       return <String, String>{
         'parentUid': _cachedParentUid!,
         'familyId': _cachedFamilyId!,
+        'timeZone': _cachedTimeZone!,
       };
     } catch (e, st) {
       _logErr('loadUserRoutingContext failed', e, st);
@@ -199,24 +215,68 @@ class LocationRepositoryImpl implements LocationRepository {
     return routing['familyId']!;
   }
 
-  Future<void> _ensureMeta(String uid) async {
-    if (_metaEnsuredForUid == uid) {
+  Future<String> _getHistoryTimeZone() async {
+    final uid = _requireUid();
+    final persistedContext = await _loadPersistedRoutingContext(uid);
+    if (persistedContext?.timeZone?.trim().isNotEmpty == true) {
+      final normalized = await _dayKeyResolver.normalizeTimeZone(
+        persistedContext!.timeZone,
+      );
+      _cachedTimeZone = normalized;
+      _cachedTimeZoneForUid = uid;
+      return normalized;
+    }
+
+    if (_cachedTimeZone != null && _cachedTimeZoneForUid == uid) {
+      return _cachedTimeZone!;
+    }
+
+    final routing = await _loadUserRoutingContext(uid);
+    return routing['timeZone']!;
+  }
+
+  Future<void> _ensureMeta(
+    String uid, {
+    required int partitionAnchorTimestamp,
+  }) async {
+    final routing = await _loadUserRoutingContext(uid);
+    final routingTimeZone = routing['timeZone']!;
+
+    if (_metaEnsuredForUid == uid && _metaEnsuredForTimeZone == routingTimeZone) {
       return;
     }
 
     try {
-      final routing = await _loadUserRoutingContext(uid);
       final metaRef = _database.ref('locations/$uid/meta');
+      final existingMeta = await metaRef.get();
+      final existingData = existingMeta.value is Map
+          ? Map<String, dynamic>.from(existingMeta.value as Map)
+          : const <String, dynamic>{};
+      final existingTimeZone = existingData['historyTimeZone']?.toString().trim();
+      final shouldResetCutover =
+          existingTimeZone == null ||
+          existingTimeZone.isEmpty ||
+          existingTimeZone != routingTimeZone;
+      final existingCutover = existingData['historyPartitionCutoverAt'];
+      final normalizedCutover = existingCutover is num
+          ? existingCutover.toInt()
+          : int.tryParse('$existingCutover');
 
       _log(
-        'ensureMeta -> update locations/$uid/meta {parentUid:${routing['parentUid']} familyId:${routing['familyId']}}',
+        'ensureMeta -> update locations/$uid/meta {parentUid:${routing['parentUid']} familyId:${routing['familyId']} timeZone:$routingTimeZone}',
       );
       await metaRef.update({
         'parentUid': routing['parentUid'],
         'familyId': routing['familyId'],
+        'historyTimeZone': routingTimeZone,
+        'historyPartitionVersion': LocationHistoryPartition.currentVersion,
+        'historyPartitionCutoverAt': shouldResetCutover
+            ? partitionAnchorTimestamp
+            : normalizedCutover ?? partitionAnchorTimestamp,
         'updatedAt': ServerValue.timestamp,
       });
       _metaEnsuredForUid = uid;
+      _metaEnsuredForTimeZone = routingTimeZone;
       _log('ensureMeta -> OK');
     } catch (e, st) {
       _logErr('ensureMeta failed', e, st);
@@ -230,7 +290,7 @@ class LocationRepositoryImpl implements LocationRepository {
     final newTs = payload.location.timestamp;
 
     try {
-      await _ensureMeta(uid);
+      await _ensureMeta(uid, partitionAnchorTimestamp: newTs);
       final familyId = await _getFamilyId();
 
       final ref = _database.ref('locations/$uid/current');
@@ -269,13 +329,16 @@ class LocationRepositoryImpl implements LocationRepository {
     }
   }
 
-  String _dayKeyFromTs(int ts) => _trackingDayKeyFromTimestamp(ts);
-
   @override
   Future<void> appendMyHistory(TrackingPayload payload) async {
     final uid = _requireUid();
     final ts = payload.location.timestamp;
-    final day = _dayKeyFromTs(ts);
+    await _ensureMeta(uid, partitionAnchorTimestamp: ts);
+    final timeZone = await _getHistoryTimeZone();
+    final day = await _dayKeyResolver.dayKeyForTimestamp(
+      timestampMs: ts,
+      timeZone: timeZone,
+    );
     final tsKey = ts.toString();
     _log(
       'appendMyHistory -> uid=$uid day=$day tsKey=$tsKey payload=${_safePayloadJson(payload)}',
@@ -346,6 +409,8 @@ class LocationRepositoryImpl implements LocationRepository {
     int? cursorAfterTs,
     int? fromTs,
     int? toTs,
+    int? startMinuteOfDay,
+    int? endMinuteOfDay,
   }) async {
     final payload = <String, dynamic>{
       "childUid": childUid,
@@ -355,6 +420,12 @@ class LocationRepositoryImpl implements LocationRepository {
     if (cursorAfterTs != null) payload["cursorAfterTs"] = cursorAfterTs;
     if (fromTs != null) payload["fromTs"] = fromTs;
     if (toTs != null) payload["toTs"] = toTs;
+    if (startMinuteOfDay != null) {
+      payload["startMinuteOfDay"] = startMinuteOfDay;
+    }
+    if (endMinuteOfDay != null) {
+      payload["endMinuteOfDay"] = endMinuteOfDay;
+    }
 
     final res = await _functions.httpsCallable('getChildHistoryChunk').call(
       payload,
@@ -378,11 +449,25 @@ class LocationRepositoryImpl implements LocationRepository {
     String dayKey, {
     int? fromTs,
     int? toTs,
+    int? startMinuteOfDay,
+    int? endMinuteOfDay,
   }) async {
-    final res = await _functions.httpsCallable('getChildHistoryByDay').call({
+    final payload = <String, dynamic>{
       "childUid": childUid,
       "dayKey": dayKey,
-    });
+    };
+    if (fromTs != null) payload["fromTs"] = fromTs;
+    if (toTs != null) payload["toTs"] = toTs;
+    if (startMinuteOfDay != null) {
+      payload["startMinuteOfDay"] = startMinuteOfDay;
+    }
+    if (endMinuteOfDay != null) {
+      payload["endMinuteOfDay"] = endMinuteOfDay;
+    }
+
+    final res = await _functions.httpsCallable('getChildHistoryByDay').call(
+      payload,
+    );
 
     final data = Map<String, dynamic>.from(res.data);
     final historyRaw = data["history"];
@@ -417,63 +502,35 @@ class LocationRepositoryImpl implements LocationRepository {
 
   @override
   Stream<LocationData> watchChildLocation(String childId) {
-    final ctrl = StreamController<LocationData>();
-    StreamSubscription<DatabaseEvent>? rtdbSub;
-    Timer? pollTimer;
-    bool fallbackStarted = false;
     int? lastTimestamp;
 
-    void emitCurrent(dynamic raw) {
-      if (raw is! Map) return;
+    LocationData? parseCurrent(dynamic raw) {
+      if (raw is! Map) return null;
       final loc = LocationData.fromJson(Map<String, dynamic>.from(raw));
-      if (loc.timestamp <= 0 || lastTimestamp == loc.timestamp) return;
+      if (loc.timestamp <= 0 || lastTimestamp == loc.timestamp) return null;
       lastTimestamp = loc.timestamp;
-      if (!ctrl.isClosed) {
-        ctrl.add(loc);
-      }
+      return loc;
     }
 
-    Future<void> pollOnce() async {
-      try {
+    return streamCanonicalLiveLocation<LocationData>(
+      reference: _database.ref('locations/$childId/current'),
+      pollCanonicalSnapshot: () async {
         final res = await _functions
             .httpsCallable('getChildLocationCurrent')
             .call({"childUid": childId});
         final data = Map<String, dynamic>.from(res.data);
-        emitCurrent(data["current"]);
-      } catch (e) {
+        return data["current"];
+      },
+      parseSnapshot: parseCurrent,
+      pollingInterval: _currentPollingInterval,
+      onRealtimeError: (Object e, StackTrace st) {
+        debugPrint("watchChildLocation(rtdb) error: $e");
+      },
+      onPollingError: (Object e, StackTrace st) {
         debugPrint("watchChildLocation(fn) error: $e");
-      }
-    }
-
-    void startFallbackPolling() {
-      if (fallbackStarted) return;
-      fallbackStarted = true;
-      pollTimer?.cancel();
-      unawaited(pollOnce());
-      pollTimer = Timer.periodic(_currentPollingInterval, (_) {
-        unawaited(pollOnce());
-      });
-    }
-
-    rtdbSub = _database
-        .ref('locations/$childId/current')
-        .onValue
-        .listen(
-          (event) => emitCurrent(event.snapshot.value),
-          onError: (Object e, StackTrace st) {
-            debugPrint("watchChildLocation(rtdb) error: $e");
-            unawaited(rtdbSub?.cancel());
-            rtdbSub = null;
-            startFallbackPolling();
-          },
-        );
-
-    ctrl.onCancel = () {
-      pollTimer?.cancel();
-      unawaited(rtdbSub?.cancel());
-    };
-
-    return ctrl.stream;
+      },
+      forwardPollingErrorsToStream: false,
+    );
   }
 
   @override
@@ -482,8 +539,10 @@ class LocationRepositoryImpl implements LocationRepository {
     DateTime day, {
     int? fromTs,
     int? toTs,
+    int? startMinuteOfDay,
+    int? endMinuteOfDay,
   }) async {
-    final dayKey = _trackingDayKeyFromDate(day);
+    final dayKey = _formatDayKeyParts(day.year, day.month, day.day);
     debugPrint(
       "[FN] getChildHistoryByDay -> childUid=$childId dayKey=$dayKey fromTs=$fromTs toTs=$toTs",
     );
@@ -500,6 +559,8 @@ class LocationRepositoryImpl implements LocationRepository {
           cursorAfterTs: cursorAfterTs,
           fromTs: fromTs,
           toTs: toTs,
+          startMinuteOfDay: startMinuteOfDay,
+          endMinuteOfDay: endMinuteOfDay,
         );
         list.addAll(page.items);
         hasMore = page.hasMore;
@@ -520,6 +581,8 @@ class LocationRepositoryImpl implements LocationRepository {
           dayKey,
           fromTs: fromTs,
           toTs: toTs,
+          startMinuteOfDay: startMinuteOfDay,
+          endMinuteOfDay: endMinuteOfDay,
         );
       }
       debugPrint(

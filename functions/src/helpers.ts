@@ -42,6 +42,84 @@ export function dayKeyInTZ(d: Date, timeZone: string): string {
   }).format(d);
 }
 
+export function isValidTimeZone(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim()) {
+    return false;
+  }
+
+  try {
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: value.trim(),
+      year: "numeric",
+    }).format(new Date(0));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function normalizeTimeZone(
+  value: unknown,
+  fallbackTimeZone: string,
+): string {
+  if (isValidTimeZone(value)) {
+    return value.trim();
+  }
+  return fallbackTimeZone;
+}
+
+export function zonedDateParts(ms: number, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(ms));
+
+  const weekdayToken =
+    parts.find((part) => part.type === "weekday")?.value ?? "Mon";
+  const year = Number(parts.find((part) => part.type === "year")?.value ?? 1970);
+  const month = Number(parts.find((part) => part.type === "month")?.value ?? 1);
+  const day = Number(parts.find((part) => part.type === "day")?.value ?? 1);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+  const minute = Number(
+    parts.find((part) => part.type === "minute")?.value ?? 0
+  );
+
+  const weekday = (() => {
+    switch (weekdayToken.slice(0, 3).toLowerCase()) {
+      case "mon":
+        return 1;
+      case "tue":
+        return 2;
+      case "wed":
+        return 3;
+      case "thu":
+        return 4;
+      case "fri":
+        return 5;
+      case "sat":
+        return 6;
+      case "sun":
+      default:
+        return 7;
+    }
+  })();
+
+  return {
+    weekday,
+    dayKey: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
+      2,
+      "0"
+    )}`,
+    minutesOfDay: hour * 60 + minute,
+  };
+}
+
 export function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));

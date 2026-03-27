@@ -18,6 +18,7 @@ class SafeRouteTrackingState {
   final bool isLoading;
   final bool isFetchingSuggestions;
   final bool isStartingTrip;
+  final TripMutationState tripMutation;
   final RouteSelectionMode selectionMode;
   final SafeRouteTravelMode selectedTravelMode;
   final RoutePoint? selectedStart;
@@ -34,6 +35,7 @@ class SafeRouteTrackingState {
   final SafeRoute? activeRoute;
   final List<SafeRoute> activeAlternativeRoutes;
   final LiveLocation? liveLocation;
+  final String? completedTripConfirmationTripId;
   final String? errorMessage;
 
   const SafeRouteTrackingState({
@@ -41,6 +43,7 @@ class SafeRouteTrackingState {
     required this.isLoading,
     required this.isFetchingSuggestions,
     required this.isStartingTrip,
+    required this.tripMutation,
     required this.selectionMode,
     required this.selectedTravelMode,
     required this.selectedStart,
@@ -57,6 +60,7 @@ class SafeRouteTrackingState {
     required this.activeRoute,
     required this.activeAlternativeRoutes,
     required this.liveLocation,
+    required this.completedTripConfirmationTripId,
     required this.errorMessage,
   });
 
@@ -66,6 +70,7 @@ class SafeRouteTrackingState {
       isLoading: false,
       isFetchingSuggestions: false,
       isStartingTrip: false,
+      tripMutation: TripMutationState.none,
       selectionMode: RouteSelectionMode.none,
       selectedTravelMode: SafeRouteTravelMode.walking,
       selectedStart: null,
@@ -82,6 +87,7 @@ class SafeRouteTrackingState {
       activeRoute: null,
       activeAlternativeRoutes: const [],
       liveLocation: null,
+      completedTripConfirmationTripId: null,
       errorMessage: null,
     );
   }
@@ -92,6 +98,7 @@ class SafeRouteTrackingState {
     bool? isLoading,
     bool? isFetchingSuggestions,
     bool? isStartingTrip,
+    TripMutationState? tripMutation,
     RouteSelectionMode? selectionMode,
     SafeRouteTravelMode? selectedTravelMode,
     Object? selectedStart = _unset,
@@ -108,6 +115,7 @@ class SafeRouteTrackingState {
     SafeRoute? activeRoute,
     List<SafeRoute>? activeAlternativeRoutes,
     LiveLocation? liveLocation,
+    Object? completedTripConfirmationTripId = _unset,
     String? errorMessage,
     bool clearErrorMessage = false,
     bool clearSelectedRoute = false,
@@ -119,6 +127,7 @@ class SafeRouteTrackingState {
       isLoading: isLoading ?? this.isLoading,
       isFetchingSuggestions: isFetchingSuggestions ?? this.isFetchingSuggestions,
       isStartingTrip: isStartingTrip ?? this.isStartingTrip,
+      tripMutation: tripMutation ?? this.tripMutation,
       selectionMode: selectionMode ?? this.selectionMode,
       selectedTravelMode: selectedTravelMode ?? this.selectedTravelMode,
       selectedStart: identical(selectedStart, _unset)
@@ -149,6 +158,10 @@ class SafeRouteTrackingState {
       activeAlternativeRoutes:
           clearActiveRoute ? const [] : activeAlternativeRoutes ?? this.activeAlternativeRoutes,
       liveLocation: liveLocation ?? this.liveLocation,
+      completedTripConfirmationTripId:
+          identical(completedTripConfirmationTripId, _unset)
+          ? this.completedTripConfirmationTripId
+          : completedTripConfirmationTripId as String?,
       errorMessage: clearErrorMessage ? null : errorMessage ?? this.errorMessage,
     );
   }

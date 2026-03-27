@@ -3,15 +3,31 @@ class TrackingRoutingContext {
     required this.userId,
     this.parentUid,
     this.familyId,
+    this.timeZone,
   });
 
   final String userId;
   final String? parentUid;
   final String? familyId;
+  final String? timeZone;
 
   bool get isComplete =>
       (parentUid?.trim().isNotEmpty ?? false) &&
       (familyId?.trim().isNotEmpty ?? false);
+
+  TrackingRoutingContext copyWith({
+    String? userId,
+    String? parentUid,
+    String? familyId,
+    String? timeZone,
+  }) {
+    return TrackingRoutingContext(
+      userId: userId ?? this.userId,
+      parentUid: parentUid ?? this.parentUid,
+      familyId: familyId ?? this.familyId,
+      timeZone: timeZone ?? this.timeZone,
+    );
+  }
 }
 
 class TrackingRuntimeConfig {
@@ -22,6 +38,7 @@ class TrackingRuntimeConfig {
     this.parentUid,
     this.familyId,
     this.displayName,
+    this.timeZone,
   });
 
   final String userId;
@@ -30,6 +47,7 @@ class TrackingRuntimeConfig {
   final String? parentUid;
   final String? familyId;
   final String? displayName;
+  final String? timeZone;
 
   TrackingRuntimeConfig copyWith({
     String? userId,
@@ -38,6 +56,7 @@ class TrackingRuntimeConfig {
     String? parentUid,
     String? familyId,
     String? displayName,
+    String? timeZone,
   }) {
     return TrackingRuntimeConfig(
       userId: userId ?? this.userId,
@@ -46,6 +65,7 @@ class TrackingRuntimeConfig {
       parentUid: parentUid ?? this.parentUid,
       familyId: familyId ?? this.familyId,
       displayName: displayName ?? this.displayName,
+      timeZone: timeZone ?? this.timeZone,
     );
   }
 }

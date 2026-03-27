@@ -1,5 +1,6 @@
 import 'package:kid_manager/features/safe_route/data/models/route_hazard_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/route_point_model.dart';
+import 'package:kid_manager/features/safe_route/data/models/safe_route_timestamp_parser.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
 
@@ -50,8 +51,14 @@ class SafeRouteModel extends SafeRoute {
       durationSeconds: (map['durationSeconds'] as num?)?.toDouble() ?? 0,
       travelMode: parseSafeRouteTravelMode(map['travelMode']),
       profile: map['profile']?.toString(),
-      createdAt: DateTime.fromMillisecondsSinceEpoch((map['createdAt'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch((map['updatedAt'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch),
+      createdAt: parseRequiredSafeRouteTimestamp(
+        map['createdAt'],
+        fieldName: 'SafeRoute.createdAt',
+      ),
+      updatedAt: parseRequiredSafeRouteTimestamp(
+        map['updatedAt'],
+        fieldName: 'SafeRoute.updatedAt',
+      ),
     );
   }
 

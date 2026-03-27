@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_active_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_route_by_id_usecase.dart';
+import 'package:kid_manager/features/safe_route/domain/usecases/watch_current_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/presentation/child_safe_route_guidance.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/child_safe_route_state.dart';
 import 'package:kid_manager/models/location/location_data.dart';
@@ -13,22 +15,26 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   ChildSafeRouteViewModel({
     required this.childId,
     required GetActiveTripByChildIdUseCase getActiveTripByChildIdUseCase,
+    required WatchCurrentTripByChildIdUseCase watchCurrentTripByChildIdUseCase,
     required GetRouteByIdUseCase getRouteByIdUseCase,
   }) : _getActiveTripByChildIdUseCase = getActiveTripByChildIdUseCase,
+       _watchCurrentTripByChildIdUseCase = watchCurrentTripByChildIdUseCase,
        _getRouteByIdUseCase = getRouteByIdUseCase,
        _state = ChildSafeRouteState.initial(childId);
 
   final String childId;
   final GetActiveTripByChildIdUseCase _getActiveTripByChildIdUseCase;
+  final WatchCurrentTripByChildIdUseCase _watchCurrentTripByChildIdUseCase;
   final GetRouteByIdUseCase _getRouteByIdUseCase;
 
-  static const Duration _refreshInterval = Duration(seconds: 15);
+  static const Duration _refreshInterval = Duration(minutes: 1);
   static const Duration _arrivalRefreshCooldown = Duration(seconds: 4);
 
   ChildSafeRouteState _state;
   ChildSafeRouteState get state => _state;
 
   Timer? _refreshTimer;
+  StreamSubscription<Trip?>? _tripSub;
   String _languageCode = 'vi';
   DateTime? _lastArrivalRefreshAt;
   bool _disposed = false;
@@ -44,6 +50,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
     if (initialLocation != null) {
       _state = _state.copyWith(currentLocation: initialLocation);
     }
+    unawaited(_bindCurrentTripStream(generation));
     unawaited(refreshActiveTrip(generation: generation));
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(_refreshInterval, (_) {
@@ -94,36 +101,41 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
     try {
       final trip = await _getActiveTripByChildIdUseCase(childId);
       if (!_isActiveGeneration(generation)) return;
-      SafeRoute? route;
-      List<SafeRoute> alternativeRoutes = const [];
-      if (trip != null) {
-        final routeGroup = await _loadRouteGroupForTrip(
-          trip,
-          generation: generation,
-        );
-        if (!_isActiveGeneration(generation)) return;
-        route = routeGroup.primaryRoute;
-        alternativeRoutes = routeGroup.alternativeRoutes;
-      }
-
-      _state = _state.copyWith(
+      await _applyCanonicalTrip(
+        trip,
+        generation: generation,
         isLoading: false,
-        activeTrip: trip,
-        activeRoute: route,
-        alternativeRoutes: alternativeRoutes,
-        lastSyncedAt: DateTime.now(),
-        clearActiveTrip: trip == null,
-        clearActiveRoute: route == null,
-        clearGuidance: trip == null || route == null,
-        clearErrorMessage: true,
       );
-      _recomputeGuidance(notify: true);
     } catch (error) {
       if (!_isActiveGeneration(generation)) return;
       _setState(
         _state.copyWith(isLoading: false, errorMessage: error.toString()),
       );
     }
+  }
+
+  Future<void> _bindCurrentTripStream(int generation) async {
+    await _tripSub?.cancel();
+    if (!_isActiveGeneration(generation)) return;
+    _tripSub = _watchCurrentTripByChildIdUseCase(
+      childId,
+      audience: TripVisibilityAudience.childMonitor,
+    ).listen(
+      (trip) async {
+        if (!_isActiveGeneration(generation)) return;
+        await _applyCanonicalTrip(
+          trip,
+          generation: generation,
+          isLoading: false,
+        );
+      },
+      onError: (error) {
+        if (!_isActiveGeneration(generation)) return;
+        _setState(
+          _state.copyWith(isLoading: false, errorMessage: error.toString()),
+        );
+      },
+    );
   }
 
   void _recomputeGuidance({bool notify = false}) {
@@ -244,12 +256,47 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
     );
   }
 
+  Future<void> _applyCanonicalTrip(
+    Trip? trip, {
+    required int? generation,
+    required bool isLoading,
+  }) async {
+    if (!_isActiveGeneration(generation)) return;
+
+    SafeRoute? route;
+    List<SafeRoute> alternativeRoutes = const [];
+    if (trip != null) {
+      final routeGroup = await _loadRouteGroupForTrip(
+        trip,
+        generation: generation,
+      );
+      if (!_isActiveGeneration(generation)) return;
+      route = routeGroup.primaryRoute;
+      alternativeRoutes = routeGroup.alternativeRoutes;
+    }
+
+    _state = _state.copyWith(
+      isLoading: isLoading,
+      activeTrip: trip,
+      activeRoute: route,
+      alternativeRoutes: alternativeRoutes,
+      lastSyncedAt: DateTime.now(),
+      clearActiveTrip: trip == null,
+      clearActiveRoute: route == null,
+      clearGuidance: trip == null || route == null,
+      clearErrorMessage: true,
+    );
+    _recomputeGuidance(notify: true);
+  }
+
   @override
   void dispose() {
     _disposed = true;
     _lifecycleGeneration++;
     _refreshTimer?.cancel();
     _refreshTimer = null;
+    _tripSub?.cancel();
+    _tripSub = null;
     super.dispose();
   }
 

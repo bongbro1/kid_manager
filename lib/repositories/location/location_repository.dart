@@ -15,5 +15,7 @@ abstract class LocationRepository {
     DateTime day, {
     int? fromTs,
     int? toTs,
+    int? startMinuteOfDay,
+    int? endMinuteOfDay,
   });
 }

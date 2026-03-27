@@ -10,6 +10,7 @@ class TrackingRuntimeStore {
   static const prefsKeyParentUid = 'tracking.runtime.parentUid';
   static const prefsKeyFamilyId = 'tracking.runtime.familyId';
   static const prefsKeyDisplayName = 'tracking.runtime.displayName';
+  static const prefsKeyTimeZone = 'tracking.runtime.timeZone';
   static const prefsKeyPublisherReady = 'tracking.runtime.publisherReady';
 
   static Future<void> saveConfig(TrackingRuntimeConfig config) async {
@@ -39,6 +40,12 @@ class TrackingRuntimeStore {
       await prefs.remove(prefsKeyDisplayName);
     }
 
+    if (_hasText(config.timeZone)) {
+      await prefs.setString(prefsKeyTimeZone, config.timeZone!.trim());
+    } else {
+      await prefs.remove(prefsKeyTimeZone);
+    }
+
     await prefs.setBool(prefsKeyPublisherReady, false);
   }
 
@@ -60,6 +67,7 @@ class TrackingRuntimeStore {
       parentUid: prefs.getString(prefsKeyParentUid)?.trim(),
       familyId: prefs.getString(prefsKeyFamilyId)?.trim(),
       displayName: prefs.getString(prefsKeyDisplayName)?.trim(),
+      timeZone: prefs.getString(prefsKeyTimeZone)?.trim(),
     );
   }
 
@@ -80,6 +88,12 @@ class TrackingRuntimeStore {
     } else {
       await prefs.remove(prefsKeyFamilyId);
     }
+
+    if (_hasText(context.timeZone)) {
+      await prefs.setString(prefsKeyTimeZone, context.timeZone!.trim());
+    } else {
+      await prefs.remove(prefsKeyTimeZone);
+    }
   }
 
   static Future<TrackingRoutingContext?> loadRoutingContext(
@@ -95,6 +109,7 @@ class TrackingRuntimeStore {
       userId: storedUserId,
       parentUid: prefs.getString(prefsKeyParentUid)?.trim(),
       familyId: prefs.getString(prefsKeyFamilyId)?.trim(),
+      timeZone: prefs.getString(prefsKeyTimeZone)?.trim(),
     );
     return context.isComplete ? context : null;
   }
@@ -107,7 +122,27 @@ class TrackingRuntimeStore {
     await prefs.remove(prefsKeyParentUid);
     await prefs.remove(prefsKeyFamilyId);
     await prefs.remove(prefsKeyDisplayName);
+    await prefs.remove(prefsKeyTimeZone);
     await prefs.remove(prefsKeyPublisherReady);
+  }
+
+  static Future<void> syncTimeZone({
+    required String userId,
+    required String timeZone,
+  }) async {
+    final normalizedUserId = userId.trim();
+    final normalizedTimeZone = timeZone.trim();
+    if (normalizedUserId.isEmpty || normalizedTimeZone.isEmpty) {
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final storedUserId = prefs.getString(prefsKeyUserId)?.trim();
+    if (storedUserId == null || storedUserId != normalizedUserId) {
+      return;
+    }
+
+    await prefs.setString(prefsKeyTimeZone, normalizedTimeZone);
   }
 
   static Future<void> setPublisherReady(bool ready) async {

@@ -52,6 +52,16 @@ class SafeRouteRepositoryImpl implements SafeRouteRepository {
   }
 
   @override
+  Stream<Trip?> watchCurrentTripByChildId(
+    String childId, {
+    required TripVisibilityAudience audience,
+  }) {
+    return _remoteDataSource
+        .watchCurrentTripByChildId(childId, audience: audience)
+        .map((item) => item?.toEntity());
+  }
+
+  @override
   Stream<LiveLocation> streamLiveLocation(String childId) {
     return _remoteDataSource.streamLiveLocation(childId).map((item) => item.toEntity());
   }

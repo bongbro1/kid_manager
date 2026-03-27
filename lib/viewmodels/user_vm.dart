@@ -101,6 +101,7 @@ class UserVm extends ChangeNotifier {
       coverUrl: currentProfile.coverUrl,
       avatarUrl: currentProfile.avatarUrl,
       locale: currentProfile.locale,
+      timezone: currentProfile.timezone,
       allowTracking: currentProfile.allowTracking,
       parentUid: currentProfile.parentUid,
       managedChildIds: currentProfile.managedChildIds,
@@ -491,6 +492,38 @@ class UserVm extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> syncUserTimeZone({
+    required String uid,
+    required String timeZone,
+    String? currentTimeZone,
+  }) async {
+    final normalizedUid = uid.trim();
+    final normalizedTimeZone = timeZone.trim();
+    final normalizedCurrentTimeZone =
+        (currentTimeZone ??
+                profile?.timezone ??
+                me?.timezone)
+            ?.trim() ??
+        '';
+
+    if (normalizedUid.isEmpty ||
+        normalizedTimeZone.isEmpty ||
+        normalizedTimeZone == normalizedCurrentTimeZone) {
+      return;
+    }
+
+    await _userRepo.updateProfile(uid: normalizedUid, timezone: normalizedTimeZone);
+
+    if (profile?.id == normalizedUid) {
+      profile = profile?.copyWith(timezone: normalizedTimeZone);
+    }
+    if (me?.uid == normalizedUid) {
+      me = me?.copyWith(timezone: normalizedTimeZone);
+    }
+
+    notifyListeners();
   }
 
   Future<bool> updateUserPhoto({

@@ -14,6 +14,7 @@ import 'package:kid_manager/features/safe_route/domain/usecases/get_trip_history
 import 'package:kid_manager/features/safe_route/domain/usecases/start_trip_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/stream_live_location_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/update_trip_status_usecase.dart';
+import 'package:kid_manager/features/safe_route/domain/usecases/watch_current_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
 import 'package:kid_manager/features/subscription/subscription_quota_gate.dart';
@@ -32,6 +33,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     required StreamLiveLocationUseCase streamLiveLocationUseCase,
     required UpdateTripStatusUseCase updateTripStatusUseCase,
     required GetActiveTripByChildIdUseCase getActiveTripByChildIdUseCase,
+    required WatchCurrentTripByChildIdUseCase watchCurrentTripByChildIdUseCase,
     required GetTripHistoryByChildIdUseCase getTripHistoryByChildIdUseCase,
     required GetRouteByIdUseCase getRouteByIdUseCase,
     required AppLocalizations l10n,
@@ -43,6 +45,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
        _streamLiveLocationUseCase = streamLiveLocationUseCase,
        _updateTripStatusUseCase = updateTripStatusUseCase,
        _getActiveTripByChildIdUseCase = getActiveTripByChildIdUseCase,
+       _watchCurrentTripByChildIdUseCase = watchCurrentTripByChildIdUseCase,
        _getTripHistoryByChildIdUseCase = getTripHistoryByChildIdUseCase,
        _getRouteByIdUseCase = getRouteByIdUseCase,
        _l10n = l10n,
@@ -57,6 +60,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   final StreamLiveLocationUseCase _streamLiveLocationUseCase;
   final UpdateTripStatusUseCase _updateTripStatusUseCase;
   final GetActiveTripByChildIdUseCase _getActiveTripByChildIdUseCase;
+  final WatchCurrentTripByChildIdUseCase _watchCurrentTripByChildIdUseCase;
   final GetTripHistoryByChildIdUseCase _getTripHistoryByChildIdUseCase;
   final GetRouteByIdUseCase _getRouteByIdUseCase;
   final AppLocalizations _l10n;
@@ -68,13 +72,13 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   SafeRouteTrackingState get state => _state;
 
   StreamSubscription? _liveLocationSub;
-  Timer? _tripRefreshTimer;
+  StreamSubscription<Trip?>? _tripSub;
   bool _isRefreshingTrip = false;
   String? _dismissedCompletedTripId;
+  String? _pendingCompletionTripId;
+  String? _pendingCancellationTripId;
   bool _disposed = false;
   int _lifecycleGeneration = 0;
-
-  static const Duration _tripRefreshInterval = Duration(seconds: 5);
 
   int _captureLifecycle() => _lifecycleGeneration;
 
@@ -333,18 +337,14 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     }
     await _bindLiveLocation();
     if (_isStaleLifecycle(generation)) return;
-    await refreshActiveTrip();
+    await _bindCurrentTripStream();
     if (_isStaleLifecycle(generation)) return;
-    _tripRefreshTimer?.cancel();
-    _tripRefreshTimer = Timer.periodic(_tripRefreshInterval, (_) {
-      if (_disposed) return;
-      unawaited(refreshActiveTrip());
-    });
+    await refreshActiveTrip();
     if (_isStaleLifecycle(generation)) return;
     _setState(_state.copyWith(isLoading: false));
   }
 
-  Future<void> refreshActiveTrip() async {
+  Future<void> refreshActiveTrip({bool showLoading = false}) async {
     if (_disposed) return;
     if (_isRefreshingTrip) return;
     final access = await _resolveAuthorizedContext(
@@ -354,72 +354,42 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     if (access == null) return;
     final generation = _captureLifecycle();
     _isRefreshingTrip = true;
+    if (showLoading) {
+      _setState(_state.copyWith(isLoading: true, clearErrorMessage: true));
+    }
     try {
-      var trip = await _getActiveTripByChildIdUseCase(childId);
+      final trip = await _getActiveTripByChildIdUseCase(childId);
       if (_isStaleLifecycle(generation)) return;
-      if (trip?.status == TripStatus.completed &&
-          trip?.id == _dismissedCompletedTripId) {
-        trip = null;
-      } else if (trip == null || trip.status != TripStatus.completed) {
-        _dismissedCompletedTripId = null;
-      }
-      SafeRoute? route;
-      List<SafeRoute> alternativeRoutes = const [];
-      if (trip != null) {
-        final routeGroup = await _loadRouteGroupForTrip(trip);
-        if (_isStaleLifecycle(generation)) return;
-        route = routeGroup.primaryRoute;
-        alternativeRoutes = routeGroup.alternativeRoutes;
-      }
-
-      final fallbackLiveLocation = trip?.lastLocation;
-      final nextLiveLocation =
-          fallbackLiveLocation != null &&
-              (_state.liveLocation == null ||
-                  fallbackLiveLocation.timestamp >
-                      _state.liveLocation!.timestamp)
-          ? fallbackLiveLocation
-          : _state.liveLocation;
-
-      _setState(
-        _state.copyWith(
-          activeTrip: trip,
-          activeRoute: route,
-          activeAlternativeRoutes: alternativeRoutes,
-          liveLocation: nextLiveLocation,
-          scheduledDate: trip == null
-              ? _state.scheduledDate
-              : trip.scheduledStartAt == null
-              ? null
-              : DateTime(
-                  trip.scheduledStartAt!.year,
-                  trip.scheduledStartAt!.month,
-                  trip.scheduledStartAt!.day,
-                ),
-          scheduledTime: trip == null
-              ? _state.scheduledTime
-              : trip.scheduledStartAt == null
-              ? null
-              : TimeOfDay(
-                  hour: trip.scheduledStartAt!.hour,
-                  minute: trip.scheduledStartAt!.minute,
-                ),
-          repeatWeekdays: trip == null
-              ? _state.repeatWeekdays
-              : trip.repeatWeekdays,
-          selectedAlternativeRouteIds: trip == null
-              ? _state.selectedAlternativeRouteIds
-              : trip.alternativeRouteIds,
-          clearActiveTrip: trip == null,
-          clearActiveRoute: route == null,
-        ),
-      );
+      await _applyCanonicalTrip(trip, generation: generation);
     } catch (error) {
       debugPrint('Error refreshing active trip: $error');
-      _setState(_state.copyWith(errorMessage: error.toString()));
+      _setState(
+        _state.copyWith(
+          isLoading: false,
+          errorMessage: error.toString(),
+        ),
+      );
     } finally {
       _isRefreshingTrip = false;
     }
+  }
+
+  Future<void> _bindCurrentTripStream() async {
+    await _tripSub?.cancel();
+    final generation = _captureLifecycle();
+    _tripSub = _watchCurrentTripByChildIdUseCase(
+      childId,
+      audience: TripVisibilityAudience.adultManager,
+    ).listen(
+      (trip) async {
+        if (_isStaleLifecycle(generation)) return;
+        await _applyCanonicalTrip(trip, generation: generation);
+      },
+      onError: (error) {
+        if (_isStaleLifecycle(generation)) return;
+        _setState(_state.copyWith(errorMessage: error.toString()));
+      },
+    );
   }
 
   Future<void> _bindLiveLocation() async {
@@ -841,12 +811,31 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     );
     if (access == null) return;
     final trip = _state.activeTrip;
-    if (trip == null) return;
+    if (trip == null || _state.tripMutation != TripMutationState.none) return;
     final generation = _captureLifecycle();
     _dismissedCompletedTripId = null;
-    await _updateTripStatusUseCase(trip.id, TripStatus.completed);
-    if (_isStaleLifecycle(generation)) return;
-    await refreshActiveTrip();
+    _pendingCancellationTripId = null;
+    _pendingCompletionTripId = trip.id;
+    _setState(
+      _state.copyWith(
+        tripMutation: TripMutationState.completing,
+        clearErrorMessage: true,
+        completedTripConfirmationTripId: null,
+      ),
+    );
+    try {
+      await _updateTripStatusUseCase(trip.id, TripStatus.completed);
+      if (_isStaleLifecycle(generation)) return;
+    } catch (error) {
+      if (_isStaleLifecycle(generation)) return;
+      _pendingCompletionTripId = null;
+      _setState(
+        _state.copyWith(
+          tripMutation: TripMutationState.none,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
   }
 
   Future<void> cancelTrip() async {
@@ -857,21 +846,41 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     );
     if (access == null) return;
     final trip = _state.activeTrip;
-    if (trip == null) return;
+    if (trip == null || _state.tripMutation != TripMutationState.none) return;
     final generation = _captureLifecycle();
     _dismissedCompletedTripId = null;
-    await _updateTripStatusUseCase(
-      trip.id,
-      TripStatus.cancelled,
-      reason: _l10n.safeRouteCancelledByParentReason,
+    _pendingCompletionTripId = null;
+    _pendingCancellationTripId = trip.id;
+    _setState(
+      _state.copyWith(
+        tripMutation: TripMutationState.cancelling,
+        clearErrorMessage: true,
+      ),
     );
-    if (_isStaleLifecycle(generation)) return;
-    await refreshActiveTrip();
+    try {
+      await _updateTripStatusUseCase(
+        trip.id,
+        TripStatus.cancelled,
+        reason: _l10n.safeRouteCancelledByParentReason,
+      );
+      if (_isStaleLifecycle(generation)) return;
+    } catch (error) {
+      if (_isStaleLifecycle(generation)) return;
+      _pendingCancellationTripId = null;
+      _setState(
+        _state.copyWith(
+          tripMutation: TripMutationState.none,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
   }
 
   void returnToRouteSelection() {
     final activeTrip = _state.activeTrip;
     final activeRoute = _state.activeRoute;
+    _pendingCompletionTripId = null;
+    _pendingCancellationTripId = null;
 
     if (activeTrip?.status == TripStatus.completed) {
       _dismissedCompletedTripId = activeTrip!.id;
@@ -907,7 +916,18 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
         clearSelectedRoute: true,
         clearActiveTrip: true,
         clearActiveRoute: true,
+        completedTripConfirmationTripId: null,
+        tripMutation: TripMutationState.none,
         clearErrorMessage: true,
+      ),
+    );
+  }
+
+  void clearCompletedTripConfirmation() {
+    if (_state.completedTripConfirmationTripId == null) return;
+    _setState(
+      _state.copyWith(
+        completedTripConfirmationTripId: null,
       ),
     );
   }
@@ -915,6 +935,106 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   void clearError() {
     if (_state.errorMessage == null) return;
     _setState(_state.copyWith(clearErrorMessage: true));
+  }
+
+  Future<void> _applyCanonicalTrip(
+    Trip? rawTrip, {
+    required int generation,
+  }) async {
+    if (_isStaleLifecycle(generation)) return;
+
+    Trip? trip = rawTrip;
+    if (trip?.status == TripStatus.completed &&
+        trip?.id == _dismissedCompletedTripId) {
+      trip = null;
+    } else if (trip == null || trip.status != TripStatus.completed) {
+      _dismissedCompletedTripId = null;
+    }
+
+    SafeRoute? route;
+    List<SafeRoute> alternativeRoutes = const [];
+    if (trip != null) {
+      final routeGroup = await _loadRouteGroupForTrip(trip);
+      if (_isStaleLifecycle(generation)) return;
+      route = routeGroup.primaryRoute;
+      alternativeRoutes = routeGroup.alternativeRoutes;
+    }
+
+    final fallbackLiveLocation = trip?.lastLocation;
+    final nextLiveLocation =
+        fallbackLiveLocation != null &&
+            (_state.liveLocation == null ||
+                fallbackLiveLocation.timestamp >
+                    _state.liveLocation!.timestamp)
+        ? fallbackLiveLocation
+        : _state.liveLocation;
+
+    var nextTripMutation = _state.tripMutation;
+    String? completedTripConfirmationTripId =
+        _state.completedTripConfirmationTripId;
+
+    if (_pendingCompletionTripId != null) {
+      final completedTripVisible =
+          trip?.id == _pendingCompletionTripId &&
+          trip?.status == TripStatus.completed;
+      if (completedTripVisible) {
+        completedTripConfirmationTripId = trip!.id;
+        nextTripMutation = TripMutationState.none;
+        _pendingCompletionTripId = null;
+      }
+    }
+
+    if (_pendingCancellationTripId != null) {
+      final cancelledTripNoLongerVisible =
+          trip == null || trip.id != _pendingCancellationTripId;
+      if (cancelledTripNoLongerVisible) {
+        nextTripMutation = TripMutationState.none;
+        _pendingCancellationTripId = null;
+      }
+    }
+
+    if (_pendingCompletionTripId == null &&
+        _pendingCancellationTripId == null &&
+        nextTripMutation != TripMutationState.none) {
+      nextTripMutation = TripMutationState.none;
+    }
+
+    _setState(
+      _state.copyWith(
+        isLoading: false,
+        activeTrip: trip,
+        activeRoute: route,
+        activeAlternativeRoutes: alternativeRoutes,
+        liveLocation: nextLiveLocation,
+        scheduledDate: trip == null
+            ? _state.scheduledDate
+            : trip.scheduledStartAt == null
+            ? null
+            : DateTime(
+                trip.scheduledStartAt!.year,
+                trip.scheduledStartAt!.month,
+                trip.scheduledStartAt!.day,
+              ),
+        scheduledTime: trip == null
+            ? _state.scheduledTime
+            : trip.scheduledStartAt == null
+            ? null
+            : TimeOfDay(
+                hour: trip.scheduledStartAt!.hour,
+                minute: trip.scheduledStartAt!.minute,
+              ),
+        repeatWeekdays: trip == null
+            ? _state.repeatWeekdays
+            : trip.repeatWeekdays,
+        selectedAlternativeRouteIds: trip == null
+            ? _state.selectedAlternativeRouteIds
+            : trip.alternativeRouteIds,
+        tripMutation: nextTripMutation,
+        completedTripConfirmationTripId: completedTripConfirmationTripId,
+        clearActiveTrip: trip == null,
+        clearActiveRoute: route == null,
+      ),
+    );
   }
 
   DateTime? _buildScheduledStartAt() {
@@ -1022,7 +1142,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     _disposed = true;
     _lifecycleGeneration++;
     _liveLocationSub?.cancel();
-    _tripRefreshTimer?.cancel();
+    _tripSub?.cancel();
     super.dispose();
   }
 }

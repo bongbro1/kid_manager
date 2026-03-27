@@ -20,6 +20,7 @@ import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
+import 'package:kid_manager/background/tracking_background_service.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
 import 'package:kid_manager/utils/app_localizations_loader.dart';
@@ -359,9 +360,7 @@ class BackgroundTrackingRuntime {
       );
       final preciseGranted = await _locationService
           .hasPreciseLocationPermission();
-      final backgroundGranted = _requireBackground
-          ? await _locationService.hasBackgroundLocationPermission()
-          : true;
+      final backgroundSatisfied = await _isBackgroundTrackingSatisfiedForStatus();
 
       if (!serviceEnabled) {
         await _reportTrackingStatusIfChanged(
@@ -381,7 +380,7 @@ class BackgroundTrackingRuntime {
         return;
       }
 
-      if (!backgroundGranted) {
+      if (!backgroundSatisfied) {
         await _reportTrackingStatusIfChanged(
           'background_disabled',
           message: l10n.trackingStatusBackgroundDisabledMessage,
@@ -425,9 +424,8 @@ class BackgroundTrackingRuntime {
         );
         final preciseGranted = await _locationService
             .hasPreciseLocationPermission();
-        final backgroundGranted = _requireBackground
-            ? await _locationService.hasBackgroundLocationPermission()
-            : true;
+        final backgroundSatisfied =
+            await _isBackgroundTrackingSatisfiedForStatus();
 
         if (!serviceEnabled) {
           await _reportTrackingStatusIfChanged(
@@ -447,7 +445,7 @@ class BackgroundTrackingRuntime {
           return;
         }
 
-        if (!backgroundGranted) {
+        if (!backgroundSatisfied) {
           await _reportTrackingStatusIfChanged(
             'background_disabled',
             message: l10n.trackingStatusBackgroundDisabledMessage,
@@ -471,6 +469,19 @@ class BackgroundTrackingRuntime {
         debugPrint('BackgroundTrackingRuntime health monitor error: $e');
       }
     });
+  }
+
+  Future<bool> _isBackgroundTrackingSatisfiedForStatus() async {
+    if (!_requireBackground) {
+      return true;
+    }
+
+    final serviceRunning = await TrackingBackgroundService.isRunning();
+    if (serviceRunning) {
+      return true;
+    }
+
+    return _locationService.hasBackgroundLocationPermission();
   }
 
   Duration? _currentSendInterval({

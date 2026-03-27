@@ -66,6 +66,7 @@ class ChildDetailMapBottomSheet extends StatelessWidget {
               if (selectedPoint != null)
                 SliverToBoxAdapter(
                   child: ChildDetailMapPointSheet(
+                    vm: vm,
                     point: selectedPoint,
                     history: vm.cachedHistory,
                     isToday: vm.isToday,

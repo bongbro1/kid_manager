@@ -14,6 +14,7 @@ class TrackingBackgroundService {
     String? parentUid,
     String? familyId,
     String? displayName,
+    String? timeZone,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     final userId = user?.uid.trim();
@@ -34,6 +35,7 @@ class TrackingBackgroundService {
       parentUid: parentUid?.trim() ?? preservedConfig?.parentUid,
       familyId: familyId?.trim() ?? preservedConfig?.familyId,
       displayName: displayName?.trim() ?? preservedConfig?.displayName,
+      timeZone: timeZone?.trim() ?? preservedConfig?.timeZone,
     );
 
     await TrackingRuntimeStore.saveConfig(config);

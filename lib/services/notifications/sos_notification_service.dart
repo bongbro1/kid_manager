@@ -5,17 +5,20 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 
 class SosNotificationService {
   SosNotificationService._();
   static final instance = SosNotificationService._();
   bool _initialized = false;
+  bool _canResolveSos = false;
 
   final FlutterLocalNotificationsPlugin _fln =
       FlutterLocalNotificationsPlugin();
 
   static const String _channelId = 'sos_channel_v2';
+  static const int _notificationId = 1001;
 
   bool _isSosData(Map<String, dynamic> data) {
     return (data['type']?.toString() ?? '').toLowerCase() == 'sos';
@@ -42,6 +45,8 @@ class SosNotificationService {
   }
 
   Future<void> _resolveFromAction(Map<String, dynamic> data) async {
+    if (!_canResolveSos) return;
+
     final familyId = data['familyId']?.toString();
     final sosId = data['sosId']?.toString();
     if (familyId == null || sosId == null) return;
@@ -51,12 +56,19 @@ class SosNotificationService {
     ).httpsCallable('resolveSos');
 
     await fn.call({'familyId': familyId, 'sosId': sosId});
-    await _fln.cancel(1001);
+    await clearActiveAlert();
+  }
+
+  Future<void> clearActiveAlert() async {
+    await _fln.cancel(_notificationId);
   }
 
   Future<void> init({
     required void Function(Map<String, dynamic> data) onTapSos,
+    required UserRole role,
   }) async {
+    _canResolveSos = role.isAdultManager;
+
     if (_initialized) return;
     _initialized = true;
     debugPrint('SosNotificationService.init()');
@@ -152,13 +164,15 @@ class SosNotificationService {
       playSound: true,
       sound: const RawResourceAndroidNotificationSound('sos'),
       visibility: NotificationVisibility.public,
-      actions: [
-        AndroidNotificationAction(
-          'RESOLVE_SOS',
-          l10n.incomingSosConfirmButton,
-          showsUserInterface: false,
-        ),
-      ],
+      actions: _canResolveSos
+          ? [
+              AndroidNotificationAction(
+                'RESOLVE_SOS',
+                l10n.incomingSosConfirmButton,
+                showsUserInterface: false,
+              ),
+            ]
+          : const <AndroidNotificationAction>[],
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -169,7 +183,7 @@ class SosNotificationService {
     );
 
     await _fln.show(
-      1001,
+      _notificationId,
       title,
       body,
       NotificationDetails(android: androidDetails, iOS: iosDetails),

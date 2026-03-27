@@ -20,6 +20,7 @@ import 'package:kid_manager/features/safe_route/domain/usecases/get_trip_history
 import 'package:kid_manager/features/safe_route/domain/usecases/start_trip_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/stream_live_location_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/update_trip_status_usecase.dart';
+import 'package:kid_manager/features/safe_route/domain/usecases/watch_current_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/presentation/pages/safe_route_history_page.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_tracking_visuals.dart';
@@ -72,6 +73,9 @@ class TrackingPage extends StatelessWidget {
           streamLiveLocationUseCase: StreamLiveLocationUseCase(repository),
           updateTripStatusUseCase: UpdateTripStatusUseCase(repository),
           getActiveTripByChildIdUseCase: GetActiveTripByChildIdUseCase(
+            repository,
+          ),
+          watchCurrentTripByChildIdUseCase: WatchCurrentTripByChildIdUseCase(
             repository,
           ),
           getTripHistoryByChildIdUseCase: GetTripHistoryByChildIdUseCase(
@@ -138,6 +142,7 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
   bool _focusedOnce = false;
   bool _showHazards = true;
   bool _isAutoFollowEnabled = true;
+  String? _lastCompletedTripConfirmationId;
   bool _safeRouteStyleReady = false;
   Future<void>? _safeRouteStyleSetupFuture;
   int? _safeRouteStyleSetupSession;
@@ -146,6 +151,9 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
   DateTime? _lastAutoFollowAt;
   int _mapSession = 0;
   bool _disposed = false;
+  bool _mapSyncScheduled = false;
+  SafeRouteTrackingState? _pendingMapSyncState;
+  SafeRouteTrackingViewModel? _listenedVm;
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
   final AppMapViewController _mapViewController = AppMapViewController();
@@ -154,6 +162,39 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
   void initState() {
     super.initState();
     _prefetchChildMarkerImages();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final vm = context.read<SafeRouteTrackingViewModel>();
+    if (identical(_listenedVm, vm)) {
+      return;
+    }
+
+    _listenedVm?.removeListener(_handleViewModelChanged);
+    _listenedVm = vm;
+    _listenedVm!.addListener(_handleViewModelChanged);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _disposed || !identical(_listenedVm, vm)) {
+        return;
+      }
+      _handleViewModelChanged();
+    });
+  }
+
+  void _handleViewModelChanged() {
+    final vm = _listenedVm;
+    if (vm == null || !mounted || _disposed) {
+      return;
+    }
+
+    final state = vm.state;
+    _scheduleSync(state);
+    _syncSheetForSelectionMode(state);
+    _maybeShowError(vm);
+    _maybeShowCompletedTripConfirmation(vm);
   }
 
   void _prefetchChildMarkerImages() {
@@ -252,6 +293,8 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
     _mapSession++;
     _map = null;
     _camera = null;
+    _listenedVm?.removeListener(_handleViewModelChanged);
+    _listenedVm = null;
     _safeRouteStyleReady = false;
     _safeRouteStyleSetupFuture = null;
     _safeRouteStyleSetupSession = null;
@@ -263,10 +306,6 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
   Widget build(BuildContext context) {
     return Consumer<SafeRouteTrackingViewModel>(
       builder: (context, vm, _) {
-        _scheduleSync(vm.state);
-        _syncSheetForSelectionMode(vm.state);
-        _maybeShowError(vm);
-
         final state = vm.state;
         final isSelectingOnMap = state.selectionMode != RouteSelectionMode.none;
         final initialSheetSize = isSelectingOnMap

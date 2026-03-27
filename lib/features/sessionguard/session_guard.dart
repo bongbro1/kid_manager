@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/background/tracking_background_service.dart';
+import 'package:kid_manager/background/tracking_runtime_store.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/features/sessions/sessionstatus.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
+import 'package:kid_manager/services/location/device_time_zone_service.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
 import 'package:kid_manager/services/notifications/sos_tap_router.dart';
@@ -37,7 +39,8 @@ class SessionGuard extends StatefulWidget {
   State<SessionGuard> createState() => _SessionGuardState();
 }
 
-class _SessionGuardState extends State<SessionGuard> {
+class _SessionGuardState extends State<SessionGuard>
+    with WidgetsBindingObserver {
   SessionStatus? _lastStatus;
   String? _lastUid;
   bool? _lastIsLocationViewer;
@@ -46,15 +49,28 @@ class _SessionGuardState extends State<SessionGuard> {
 
   String? _pushInitedForUid;
   bool _sessionCleanupInFlight = false;
+  String? _timeZoneSyncInFlightForUid;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_initCalled) {
         _initCalled = true;
         context.read<AppInitVM>().init();
       }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_syncAuthenticatedUserTimeZone());
     });
   }
 
@@ -155,6 +171,7 @@ class _SessionGuardState extends State<SessionGuard> {
               if (!mounted) return;
               await SosNotificationService.instance.init(
                 onTapSos: SosTapRouter.handleTap,
+                role: profile.role,
               );
             }
 
@@ -186,6 +203,14 @@ class _SessionGuardState extends State<SessionGuard> {
                     .map((item) => item.trim())
                     .where((item) => item.isNotEmpty)
                     .toList(growable: false);
+
+            await _syncAuthenticatedUserTimeZone(
+              uid: uid,
+              currentTimeZone:
+                  profile?.timezone ??
+                  sessionUser?.timezone,
+            );
+            if (!mounted) return;
 
             await storage.setString(
               StorageKeys.role,
@@ -347,6 +372,59 @@ class _SessionGuardState extends State<SessionGuard> {
     memoryVm.resetForNewSession();
     birthdayVm.resetForNewSession();
     _pushInitedForUid = null;
+  }
+
+  Future<void> _syncAuthenticatedUserTimeZone({
+    String? uid,
+    String? currentTimeZone,
+  }) async {
+    if (!mounted) return;
+
+    final session = context.read<SessionVM>();
+    if (session.status != SessionStatus.authenticated) {
+      return;
+    }
+
+    final resolvedUid = (uid ?? session.user?.uid)?.trim();
+    if (resolvedUid == null || resolvedUid.isEmpty) {
+      return;
+    }
+    if (_timeZoneSyncInFlightForUid == resolvedUid) {
+      return;
+    }
+
+    _timeZoneSyncInFlightForUid = resolvedUid;
+    try {
+      final normalizedTimeZone =
+          await DeviceTimeZoneService.instance.getDeviceTimeZone();
+      final userVm = context.read<UserVm>();
+      await userVm.syncUserTimeZone(
+        uid: resolvedUid,
+        timeZone: normalizedTimeZone,
+        currentTimeZone:
+            currentTimeZone ??
+            userVm.profile?.timezone ??
+            userVm.me?.timezone ??
+            session.user?.timezone,
+      );
+      await TrackingRuntimeStore.syncTimeZone(
+        userId: resolvedUid,
+        timeZone: normalizedTimeZone,
+      );
+    } catch (e, st) {
+      debugPrint('[SessionGuard] sync timezone error: $e');
+      debugPrint('$st');
+    } finally {
+      if (_timeZoneSyncInFlightForUid == resolvedUid) {
+        _timeZoneSyncInFlightForUid = null;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 }
 

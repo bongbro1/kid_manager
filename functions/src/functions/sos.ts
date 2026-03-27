@@ -288,7 +288,7 @@ export const sosReminderWorker = onRequest(
       const pushRes = await sendSosPush({
         familyId,
         sosId,
-        childUid: String(childUid),
+        createdByUid: String(childUid),
         lat: loc.lat != null ? Number(loc.lat) : null,
         lng: loc.lng != null ? Number(loc.lng) : null,
         createdByName: String(createdByName),
@@ -385,7 +385,7 @@ export const createSos = onCall({ region: REGION }, async (req) => {
   await requireFamilyActor({
     familyId,
     uid,
-    allowedRoles: ["child", "parent"],
+    allowedRoles: ["child", "parent", "guardian"],
   });
 
   const sosRef = db.doc(`families/${familyId}/sos/${eventId}`);
@@ -573,7 +573,7 @@ export const onSosCreated = onDocumentCreated(
       const pushRes = await sendSosPush({
         familyId,
         sosId,
-        childUid: String(createdBy),
+        createdByUid: String(createdBy),
         lat: loc.lat != null ? Number(loc.lat) : null,
         lng: loc.lng != null ? Number(loc.lng) : null,
         createdByName: sos.createdByName ?? "",

@@ -26,6 +26,29 @@ String _maskToken(String? token) {
   return '${token.substring(0, 4)}...${token.substring(token.length - 4)}';
 }
 
+String _normalizeConfigValue(String? value) {
+  final normalized = (value ?? '').trim();
+  if (normalized.length >= 2) {
+    final first = normalized[0];
+    final last = normalized[normalized.length - 1];
+    final isWrappedInQuotes =
+        (first == "'" && last == "'") || (first == '"' && last == '"');
+    if (isWrappedInQuotes) {
+      return normalized.substring(1, normalized.length - 1).trim();
+    }
+  }
+  return normalized;
+}
+
+String _readMapboxPublicAccessToken() {
+  const defineToken = String.fromEnvironment('MAPBOX_PUBLIC_ACCESS_TOKEN');
+  final envToken = dotenv.env['MAPBOX_PUBLIC_ACCESS_TOKEN'];
+
+  return _normalizeConfigValue(
+    defineToken.trim().isNotEmpty ? defineToken : envToken,
+  );
+}
+
 Future<void> _activateFirebaseAppCheck({required bool background}) async {
   try {
     await FirebaseAppCheck.instance.activate(
@@ -127,8 +150,14 @@ Future<void> main() async {
 
   await dotenv.load(fileName: '.env');
 
-  final accessToken = dotenv.env['ACCESS_TOKEN'] ?? '';
-  MapboxOptions.setAccessToken(accessToken);
+  final mapboxAccessToken = _readMapboxPublicAccessToken();
+  if (mapboxAccessToken.isEmpty) {
+    throw StateError(
+      'Missing MAPBOX_PUBLIC_ACCESS_TOKEN for Mapbox rendering. '
+      'Provide it in .env or via --dart-define.',
+    );
+  }
+  MapboxOptions.setAccessToken(mapboxAccessToken);
 
   final storageService = await StorageService.create();
   final isDark = storageService.getBool(StorageKeys.isDarkMode) ?? false;

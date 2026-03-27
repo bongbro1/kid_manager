@@ -8,6 +8,7 @@ import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
+import 'package:kid_manager/services/location/device_time_zone_service.dart';
 import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
@@ -343,6 +344,8 @@ class AuthVM extends ChangeNotifier {
     }
     try {
       final existingUser = await _authRepo.getUser(user.uid);
+      final resolvedTimeZone =
+          await DeviceTimeZoneService.instance.getDeviceTimeZone();
 
       if (existingUser == null) {
         await _userRepo.createParentIfMissing(
@@ -350,7 +353,7 @@ class AuthVM extends ChangeNotifier {
           email: user.email ?? '',
           displayName: user.displayName,
           locale: user.locale ?? 'vi',
-          timezone: user.timezone ?? 'Asia/Ho_Chi_Minh',
+          timezone: user.timezone ?? resolvedTimeZone,
         );
         currentUser = await _authRepo.getUser(user.uid);
       } else {

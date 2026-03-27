@@ -54,6 +54,7 @@ class FamilyRepository {
           displayName: data?['displayName']?.toString(),
           email: data?['email']?.toString(),
           avatarUrl: data?['avatarUrl']?.toString(),
+          timezone: data?['timezone']?.toString(),
           dob:
               parseFlexibleBirthDate(data?['dobIso']) ??
               parseFlexibleBirthDate(data?['dob']),
@@ -107,6 +108,7 @@ class FamilyRepository {
         displayName: displayName,
         email: email,
         avatarUrl: '',
+        timezone: timezone,
         isActive: false,
         allowTracking: false,
         lastActiveAt: FieldValue.serverTimestamp(),

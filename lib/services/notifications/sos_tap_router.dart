@@ -13,7 +13,9 @@ class SosTapRouter {
 
     final familyId = data['familyId']?.toString().trim() ?? '';
     final sosId = data['sosId']?.toString().trim() ?? '';
-    final childUid = data['childUid']?.toString().trim();
+    final childUid =
+        data['createdByUid']?.toString().trim() ??
+        data['childUid']?.toString().trim();
     final lat = double.tryParse(data['lat']?.toString() ?? '');
     final lng = double.tryParse(data['lng']?.toString() ?? '');
 

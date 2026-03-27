@@ -1,100 +1,50 @@
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:latlong2/latlong.dart' as osm;
-import 'package:polyline_codec/polyline_codec.dart';
+import 'package:kid_manager/services/location/mapbox_gateway_service.dart';
 
 class MapboxRouteResult {
-  final List<osm.LatLng> points;
-  final double distanceKm;
-  final double durationMinutes;
-
-  MapboxRouteResult({
+  const MapboxRouteResult({
     required this.points,
     required this.distanceKm,
     required this.durationMinutes,
   });
+
+  final List<osm.LatLng> points;
+  final double distanceKm;
+  final double durationMinutes;
 }
 
 class MapboxRouteService {
-  static final String _token =
-      dotenv.env['ACCESS_TOKEN'] ?? '';
+  static final MapboxGatewayService _gateway = MapboxGatewayService();
 
-
-  static Future<MapboxRouteResult?> snapSegment(
-      List<osm.LatLng> input,
-      ) async {
-    debugPrint("Vao day roai");
-
+  static Future<MapboxRouteResult?> snapSegment(List<osm.LatLng> input) async {
     if (input.length < 3) {
-      debugPrint("❌ Not enough points");
       return null;
     }
 
-    final coordinates = input
-        .map((p) => '${p.longitude},${p.latitude}')
-        .join(';');
-
-    final radiuses =
-    List.filled(input.length, 30).join(';');
-
-    final url = Uri.parse(
-      'https://api.mapbox.com/matching/v5/mapbox/driving/'
-          '$coordinates'
-          '?geometries=polyline6'
-          '&overview=full'
-          '&radiuses=$radiuses'
-          '&steps=false'
-          '&annotations=distance,duration'
-          '&tidy=true'
-          '&access_token=$_token',
+    final result = await _gateway.matchTrace(
+      points: input
+          .map(
+            (point) => MapboxTracePointInput(
+              latitude: point.latitude,
+              longitude: point.longitude,
+              accuracy: 30,
+            ),
+          )
+          .toList(growable: false),
+      profile: 'mapbox/driving',
+      tidy: true,
     );
 
-    final response = await http.get(url);
-    debugPrint("STATUS: ${response.statusCode}");
-    debugPrint("BODY: ${response.body}");
-
-    if (response.statusCode != 200) {
-      debugPrint("❌ MATCHING ERROR");
+    if (result == null || result.routeCoordinates.length < 2) {
       return null;
     }
-
-    final data = json.decode(response.body);
-    debugPrint("GEOMETRY: ${data['matchings'][0]['geometry']}");
-
-    if (data['matchings'] == null ||
-        data['matchings'].isEmpty) {
-      debugPrint("❌ No matchings");
-      return null;
-    }
-
-    final matching = data['matchings'][0];
-
-    final geometry = matching['geometry'];
-    final decoded =
-    PolylineCodec.decode(geometry, precision: 6);
-    debugPrint("DECODED LENGTH: ${decoded.length}");
-    debugPrint("FIRST POINT: ${decoded.first}");
-    final points =decoded
-        .map((p) => osm.LatLng(
-      p[0].toDouble(),
-      p[1].toDouble(),
-    ))
-        .toList();
-
-    final distanceMeters =
-        (matching['distance'] as num?)?.toDouble() ?? 0;
-
-    final durationSeconds =
-        (matching['duration'] as num?)?.toDouble() ?? 0;
 
     return MapboxRouteResult(
-      points: points,
-      distanceKm: distanceMeters / 1000,
-      durationMinutes: durationSeconds / 60,
+      points: result.routeCoordinates
+          .map((coordinate) => osm.LatLng(coordinate[1], coordinate[0]))
+          .toList(growable: false),
+      distanceKm: result.distanceMeters / 1000,
+      durationMinutes: result.durationSeconds / 60,
     );
   }
-
-
 }

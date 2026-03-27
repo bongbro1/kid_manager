@@ -2,20 +2,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/core/sos/sos_alarm_player.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/notifications/sos_notification_service.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:provider/provider.dart';
 
 class IncomingSosOverlay extends StatefulWidget {
   final String familyId;
   final String myUid;
+  final UserRole? viewerRole;
 
   const IncomingSosOverlay({
     super.key,
     required this.familyId,
     required this.myUid,
+    required this.viewerRole,
   });
 
   @override
@@ -30,6 +34,9 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   bool _resolving = false;
   String? _ignoredSosId;
   int _permissionRetryCount = 0;
+
+  bool get _canResolveSos =>
+      widget.viewerRole?.isAdultManager ?? false;
 
   @override
   void initState() {
@@ -59,6 +66,8 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
           _permissionRetryCount = 0;
 
           if (qs.docs.isEmpty) {
+            _resolving = false;
+            _ignoredSosId = null;
             _clearOverlayAndStopAlarm();
             return;
           }
@@ -81,6 +90,11 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
           if (_ignoredSosId != null && doc.id == _ignoredSosId) {
             debugPrint('Ignore active snapshot for resolving sosId=${doc.id}');
             return;
+          }
+
+          if (_ignoredSosId != null && doc.id != _ignoredSosId) {
+            _ignoredSosId = null;
+            _resolving = false;
           }
 
           if (!mounted) return;
@@ -136,9 +150,13 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       _ringing = false;
       unawaited(SosAlarmPlayer.instance.stop());
     }
+
+    unawaited(SosNotificationService.instance.clearActiveAlert());
   }
 
   Future<void> _handleConfirm() async {
+    if (!_canResolveSos) return;
+
     final previousDoc = _doc;
     if (previousDoc == null) return;
     final sosViewModel = context.read<SosViewModel>();
@@ -184,12 +202,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
         familyId: widget.familyId,
         sosId: sosId,
       );
-
-      // Đợi rất ngắn để Firestore kịp phát snapshot resolved / query rỗng
-      await Future.delayed(const Duration(milliseconds: 400));
-
-      _resolving = false;
-      _ignoredSosId = null;
+      await SosNotificationService.instance.clearActiveAlert();
 
       debugPrint('Confirm success sosId=$sosId');
     } catch (e) {
@@ -256,19 +269,20 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
                   ),
                 ),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.red,
-                  shape: const StadiumBorder(),
+              if (_canResolveSos)
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.red,
+                    shape: const StadiumBorder(),
+                  ),
+                  onPressed: _resolving ? null : _handleConfirm,
+                  child: Text(
+                    _resolving
+                        ? l10n.incomingSosResolvingButton
+                        : l10n.incomingSosConfirmButton,
+                  ),
                 ),
-                onPressed: _resolving ? null : _handleConfirm,
-                child: Text(
-                  _resolving
-                      ? l10n.incomingSosResolvingButton
-                      : l10n.incomingSosConfirmButton,
-                ),
-              ),
             ],
           ),
         ),

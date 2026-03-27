@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 
 class ChildDetailMapStatCard extends StatelessWidget {
   final String title;
@@ -129,9 +130,14 @@ class ChildDetailMapInfoCard extends StatelessWidget {
 }
 
 class ChildDetailMapTechSection extends StatefulWidget {
+  final ChildDetailMapVm vm;
   final LocationData point;
 
-  const ChildDetailMapTechSection({super.key, required this.point});
+  const ChildDetailMapTechSection({
+    super.key,
+    required this.vm,
+    required this.point,
+  });
 
   @override
   State<ChildDetailMapTechSection> createState() =>
@@ -196,7 +202,9 @@ class _ChildDetailMapTechSectionState extends State<ChildDetailMapTechSection> {
                 children: [
                   ChildDetailMapDetailRow(
                     label: l10n.childLocationDetailFullTimeLabel,
-                    value: widget.point.fullLabel,
+                    value: widget.vm.formatFullLabelForTimestamp(
+                      widget.point.timestamp,
+                    ),
                   ),
                   ChildDetailMapDetailRow(
                     label: l10n.childLocationDetailHeadingLabel,

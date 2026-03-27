@@ -8,6 +8,7 @@ import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/access_control/access_control_service.dart';
+import 'package:kid_manager/services/location/device_time_zone_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
@@ -35,10 +36,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       WidgetsBinding.instance.platformDispatcher.locale.countryCode == null
       ? WidgetsBinding.instance.platformDispatcher.locale.languageCode
       : '${WidgetsBinding.instance.platformDispatcher.locale.languageCode}_${WidgetsBinding.instance.platformDispatcher.locale.countryCode}';
-
-  final String timezone = DateTime.now().timeZoneName.isNotEmpty
-      ? DateTime.now().timeZoneName
-      : 'Asia/Ho_Chi_Minh';
 
   @override
   void dispose() {
@@ -150,6 +147,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     }
 
     final vm = context.read<UserVm>();
+    final timezone = await DeviceTimeZoneService.instance.getDeviceTimeZone();
 
     try {
       await vm.addChildAccount(

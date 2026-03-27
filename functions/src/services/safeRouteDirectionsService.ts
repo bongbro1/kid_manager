@@ -1,11 +1,11 @@
 import { db } from "../bootstrap";
-import { MAPBOX_ACCESS_TOKEN } from "../config";
 import { HttpsError } from "firebase-functions/v2/https";
 import {
   RoutePointRecord,
   SafeRouteRecord,
   SafeRouteTravelMode,
 } from "../types";
+import { readMapboxAccessToken } from "./mapboxGateway";
 import { listRouteRelevantHazards } from "./safeRouteZonesService";
 
 const DEFAULT_CORRIDOR_WIDTH_METERS = 50;
@@ -92,10 +92,7 @@ async function fetchDirections(
   end: RoutePointRecord,
   travelMode: SafeRouteTravelMode
 ) {
-  const token = MAPBOX_ACCESS_TOKEN.value();
-  if (!token) {
-    throw new HttpsError("failed-precondition", "Missing MAPBOX_ACCESS_TOKEN secret");
-  }
+  const token = readMapboxAccessToken();
 
   const profile = toMapboxProfile(travelMode);
   const url = new URL(

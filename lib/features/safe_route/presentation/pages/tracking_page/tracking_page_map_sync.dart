@@ -892,9 +892,18 @@ extension _TrackingPageMapSync on _TrackingPageBodyState {
   }
 
   void _scheduleSync(SafeRouteTrackingState state) {
+    _pendingMapSyncState = state;
+    if (_mapSyncScheduled) {
+      return;
+    }
+    _mapSyncScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await _syncMap(state);
+      _mapSyncScheduled = false;
+      if (!mounted || _disposed) return;
+      final nextState = _pendingMapSyncState;
+      _pendingMapSyncState = null;
+      if (nextState == null) return;
+      await _syncMap(nextState);
     });
   }
 
@@ -937,6 +946,18 @@ extension _TrackingPageMapSync on _TrackingPageBodyState {
         ).showSnackBar(SnackBar(content: Text(error)));
       }
       vm.clearError();
+    });
+  }
+
+  void _maybeShowCompletedTripConfirmation(SafeRouteTrackingViewModel vm) {
+    final confirmationId = vm.state.completedTripConfirmationTripId;
+    if (confirmationId == null || confirmationId == _lastCompletedTripConfirmationId) {
+      return;
+    }
+    _lastCompletedTripConfirmationId = confirmationId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _showArrivedSuccessDialog(vm);
     });
   }
 }

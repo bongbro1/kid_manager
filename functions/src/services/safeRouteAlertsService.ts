@@ -8,7 +8,7 @@ import {
   TripRecord,
 } from "../types";
 
-type SafeRouteAlertKind =
+export type SafeRouteAlertKind =
   | "deviated"
   | "dangerZone"
   | "backOnRoute"
