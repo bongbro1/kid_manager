@@ -58,49 +58,62 @@ class NotificationDialog extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final messageColor = theme.brightness == Brightness.dark
+        ? colorScheme.onSurface.withValues(alpha: 0.9)
+        : colorScheme.onSurfaceVariant;
 
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _IconSection(config: config),
-          const SizedBox(height: 10),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _IconSection(config: config),
+                const SizedBox(height: 10),
 
           /// TITLE
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
 
           /// MESSAGE
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: textTheme.bodyMedium?.copyWith(
-              color: theme.brightness == Brightness.dark
-                  ? colorScheme.onSurface.withOpacity(0.9)
-                  : colorScheme.onSurfaceVariant,
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: SingleChildScrollView(
+                    child: Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: messageColor,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+                _ActionSection(
+                  type: type,
+                  primaryColor: config.primary,
+                  confirmText: confirmText,
+                  cancelText: cancelText,
+                  onConfirm: onConfirm,
+                  onCancel: onCancel,
+                ),
+              ],
             ),
           ),
-
-          const SizedBox(height: 24),
-          _ActionSection(
-            type: type,
-            primaryColor: config.primary,
-            confirmText: confirmText,
-            cancelText: cancelText,
-            onConfirm: onConfirm,
-            onCancel: onCancel,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -144,7 +157,6 @@ class _ActionSection extends StatelessWidget {
     final isWarning = type == DialogType.warning;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
 
     if (isWarning) {

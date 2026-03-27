@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
@@ -13,9 +14,7 @@ import 'package:provider/provider.dart';
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({
     super.key,
-    this.sources = const [
-      NotificationSource.global,
-    ],
+    this.sources = const [NotificationSource.global],
     this.systemOnly = false,
   });
 
@@ -44,6 +43,7 @@ class _NotificationScreenState extends State<NotificationScreen>
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handlePendingNavigation();
       if (!mounted) return;
       _applyCurrentFilter();
     });
@@ -56,6 +56,20 @@ class _NotificationScreenState extends State<NotificationScreen>
     });
   }
 
+  void _handlePendingNavigation() {
+    if (!NotificationNavigationState.hasPending) {
+      return;
+    }
+
+    final item = NotificationNavigationState.consume();
+
+    if (item == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => NotificationDetailScreen(item: item)),
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -64,6 +78,14 @@ class _NotificationScreenState extends State<NotificationScreen>
     if (route is PageRoute) {
       routeObserver.subscribe(this, route);
     }
+
+    activeTabNotifier.addListener(() {
+      if (activeTabNotifier.value == notificationTabIndexNotifier.value) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _handlePendingNavigation();
+        });
+      }
+    });
   }
 
   @override
@@ -456,7 +478,7 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
             style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: colorScheme.onSurface,
-              fontSize: 20
+              fontSize: 20,
             ),
           ),
         ),

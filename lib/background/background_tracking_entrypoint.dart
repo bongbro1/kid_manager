@@ -1,14 +1,13 @@
 import 'dart:async';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:kid_manager/background/background_tracking_runtime.dart';
 import 'package:kid_manager/background/tracking_runtime_store.dart';
 import 'package:kid_manager/firebase_options.dart';
 import 'package:kid_manager/repositories/location/location_repository_impl.dart';
+import 'package:kid_manager/services/firebase_app_check_service.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 
 class BackgroundTrackingHost {
@@ -76,8 +75,10 @@ class BackgroundTrackingHost {
 
   Future<void> _ensureInitialized() async {
     WidgetsFlutterBinding.ensureInitialized();
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    await _activateFirebaseAppCheck();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await activateFirebaseAppCheck(background: true);
   }
 
   Future<bool> _waitForExpectedAuthUser(String expectedUid) async {
@@ -94,22 +95,6 @@ class BackgroundTrackingHost {
       return user?.uid == expectedUid;
     } catch (_) {
       return false;
-    }
-  }
-
-  Future<void> _activateFirebaseAppCheck() async {
-    try {
-      await FirebaseAppCheck.instance.activate(
-        androidProvider: kDebugMode
-            ? AndroidProvider.debug
-            : AndroidProvider.playIntegrity,
-        appleProvider: kDebugMode
-            ? AppleProvider.debug
-            : AppleProvider.deviceCheck,
-      );
-      await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
-    } catch (e) {
-      debugPrint('BackgroundTrackingHost AppCheck activation failed: $e');
     }
   }
 }

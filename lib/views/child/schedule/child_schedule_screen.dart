@@ -6,7 +6,6 @@ import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
-
 import '../../../core/storage_keys.dart';
 import '../../../services/storage_service.dart';
 import '../../../viewmodels/schedule/schedule_vm.dart';

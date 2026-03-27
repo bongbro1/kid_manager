@@ -8,20 +8,16 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:kid_manager/background/tracking_background_service.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/firebase_auth_service.dart';
 import 'package:kid_manager/services/notifications/fcm_installation_service.dart';
 
 import 'user_repository.dart';
 
 class AuthRepository {
-  static final RegExp _phoneFormattingRegExp = RegExp(r'[\s\-\(\)\.]');
-  static final RegExp _e164PhoneRegExp = RegExp(r'^\+[1-9]\d{7,14}$');
+  AuthRepository(this._authService, this._users);
 
   final FirebaseAuthService _authService;
   final UserRepository _users;
-
-  AuthRepository(this._authService, this._users);
 
   Stream<User?> authStateChanges() => _authService.authStateChanges();
 
@@ -29,17 +25,25 @@ class AuthRepository {
 
   Stream<AppUser?> watchSessionUser() {
     return authStateChanges().asyncMap((fbUser) async {
-      if (fbUser == null) return null;
+      if (fbUser == null) {
+        return null;
+      }
 
       try {
         final user = await _users.getUserById(fbUser.uid);
 
-        /// 🔹 nếu Firestore chưa có user
         if (user == null) {
           debugPrint(
-            '[AuthRepository] Firestore user missing → fallback Firebase',
+            '[AuthRepository] Firestore user missing -> fallback Firebase',
           );
+          if (_isEmailPasswordUser(fbUser)) {
+            return null;
+          }
           return AppUser.fromFirebase(fbUser);
+        }
+
+        if (!user.isActive && _isEmailPasswordUser(fbUser)) {
+          return null;
         }
 
         return user;
@@ -47,21 +51,27 @@ class AuthRepository {
         debugPrint('[AuthRepository] watchSessionUser error: $e');
         debugPrintStack(stackTrace: st);
 
-        /// 🔹 fallback để SessionVM vẫn authenticated
+        if (_isEmailPasswordUser(fbUser)) {
+          return null;
+        }
+
         return AppUser.fromFirebase(fbUser);
       }
     });
   }
 
   Future<AppUser?> getUser(String uid) async {
-    return await _users.getUserById(uid);
+    return _users.getUserById(uid);
   }
 
   Future<void> resetPassword({
-    required String uid,
+    required String resetSessionToken,
     required String newPassword,
   }) {
-    return _authService.resetPassword(uid: uid, newPassword: newPassword);
+    return _authService.resetPassword(
+      resetSessionToken: resetSessionToken,
+      newPassword: newPassword,
+    );
   }
 
   Future<UserCredential> login(String email, String password) {
@@ -128,43 +138,39 @@ class AuthRepository {
     await _authService.signOut();
   }
 
-  // auth socials
   Future<AppUser?> signInWithGoogle() async {
-    try {
-      final googleSignIn = GoogleSignIn();
+    final googleSignIn = GoogleSignIn();
+    final googleUser = await googleSignIn.signIn();
 
-      final googleUser = await googleSignIn.signIn();
-
-      if (googleUser == null) {
-        return null;
-      }
-      final googleAuth = await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(
-        credential,
-      );
-
-      final firebaseUser = userCredential.user;
-
-      if (firebaseUser == null) {
-        return null;
-      }
-
-      return AppUser.fromFirebase(firebaseUser);
-    } catch (e) {
-      rethrow;
+    if (googleUser == null) {
+      return null;
     }
+
+    final googleAuth = await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final userCredential = await FirebaseAuth.instance.signInWithCredential(
+      credential,
+    );
+
+    final firebaseUser = userCredential.user;
+    if (firebaseUser == null) {
+      return null;
+    }
+
+    return AppUser.fromFirebase(firebaseUser);
   }
 
   Future<AppUser?> signInWithFacebook() async {
     final result = await FacebookAuth.instance.login();
 
-    if (result.status != LoginStatus.success) return null;
+    if (result.status != LoginStatus.success) {
+      return null;
+    }
 
     final credential = FacebookAuthProvider.credential(
       result.accessToken!.token,
@@ -175,7 +181,9 @@ class AuthRepository {
     );
 
     final user = userCredential.user;
-    if (user == null) return null;
+    if (user == null) {
+      return null;
+    }
 
     return AppUser.fromFirebase(user);
   }
@@ -223,19 +231,16 @@ class AuthRepository {
     await _auth.verifyPhoneNumber(
       phoneNumber: normalizedPhone,
       timeout: const Duration(seconds: 60),
-
       verificationCompleted: (PhoneAuthCredential credential) async {
         debugPrint("PHONE verificationCompleted");
         await _auth.signInWithCredential(credential);
       },
-
       verificationFailed: (FirebaseAuthException e) {
         debugPrint("PHONE verificationFailed: ${e.code} - ${e.message}");
         if (!completer.isCompleted) {
           completer.completeError(Exception(_mapPhoneAuthError(e)));
         }
       },
-
       codeSent: (String verificationId, int? resendToken) {
         debugPrint("PHONE codeSent: $verificationId");
         _verificationId = verificationId;
@@ -245,7 +250,6 @@ class AuthRepository {
           completer.complete();
         }
       },
-
       codeAutoRetrievalTimeout: (String verificationId) {
         debugPrint("PHONE timeout: $verificationId");
         _verificationId = verificationId;
@@ -255,7 +259,6 @@ class AuthRepository {
     return completer.future;
   }
 
-  /// verify OTP
   Future<AppUser?> verifyOtpSms(String smsCode) async {
     if (_verificationId == null) {
       throw Exception("VerificationId null");
@@ -267,11 +270,18 @@ class AuthRepository {
     );
 
     final userCredential = await _auth.signInWithCredential(credential);
-
     final firebaseUser = userCredential.user;
 
-    if (firebaseUser == null) return null;
+    if (firebaseUser == null) {
+      return null;
+    }
 
     return AppUser.fromFirebase(firebaseUser);
+  }
+
+  bool _isEmailPasswordUser(User user) {
+    return user.providerData.any(
+      (provider) => provider.providerId == 'password',
+    );
   }
 }

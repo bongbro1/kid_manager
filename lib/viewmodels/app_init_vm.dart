@@ -46,46 +46,6 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
       .map((entry) => entry.key)
       .toList();
 
-  Future<void> requestMissingPermissions() async {
-    if (_permissions['notifications'] == false) {
-      await permissionService.requestNotificationPermission();
-      await checkPermissions();
-    }
-
-    if (_permissions['location'] == false) {
-      await permissionService.requestForegroundLocationPermission();
-      await checkPermissions();
-    }
-
-    if (_permissions['backgroundLocation'] == false) {
-      await permissionService.requestBackgroundLocationPermission();
-      await checkPermissions();
-    }
-
-    if (_permissions['media'] == false) {
-      await permissionService.requestPhotosOrStoragePermission();
-      await checkPermissions();
-    }
-
-    if (_permissions['usage'] == false) {
-      await permissionService.openUsageAccessSettings();
-      return;
-    }
-
-    if (_permissions['batteryOptimizationDisabled'] == false) {
-      await permissionService.openBatteryOptimizationSettings();
-      return;
-    }
-
-    if (_permissions['accessibility'] == false) {
-      if (!_openedAccessibilitySettings) {
-        _openedAccessibilitySettings = true;
-        await permissionService.openAccessibilitySettings();
-      }
-      return;
-    }
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && !_checkingPermissions) {

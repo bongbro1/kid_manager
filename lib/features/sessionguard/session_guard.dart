@@ -7,8 +7,12 @@ import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/background/tracking_background_service.dart';
 import 'package:kid_manager/background/tracking_runtime_store.dart';
 import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/features/permissions/permission_onboarding_flow.dart';
+import 'package:kid_manager/features/sessionguard/session_guard_state.dart';
 import 'package:kid_manager/features/sessions/sessionstatus.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
+import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/services/location/device_time_zone_service.dart';
@@ -16,6 +20,7 @@ import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/notifications/fcm_push_receiver_service.dart';
 import 'package:kid_manager/services/notifications/sos_tap_router.dart';
 import 'package:kid_manager/services/notifications/sos_notification_service.dart';
+import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
@@ -31,7 +36,98 @@ import 'package:kid_manager/views/auth/flash_screen.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 import 'package:kid_manager/widgets/app/app_shell.dart';
+import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:provider/provider.dart';
+
+class StartupGate extends StatefulWidget {
+  const StartupGate({super.key});
+
+  @override
+  State<StartupGate> createState() => _StartupGateState();
+}
+
+class _StartupGateState extends State<StartupGate> {
+  bool _loading = true;
+  bool _showFlash = false;
+  bool _showPermission = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final storage = context.read<StorageService>();
+    final appVM = context.read<AppManagementVM>();
+
+    final hasSeenFlash = storage.getBool(StorageKeys.flashSeenV1) ?? false;
+
+    if (!mounted) return;
+
+    // ❗ LẦN ĐẦU → KHÔNG check permission gì hết
+    if (!hasSeenFlash) {
+      setState(() {
+        _showFlash = true;
+        _loading = false;
+      });
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(appVM.loadAndSeedApp());
+    });
+
+    // 👉 Sau khi qua flash mới check
+    final permissionService = context.read<PermissionService>();
+
+    final hasSeenPermissionFlow =
+        storage.getBool(StorageKeys.permissionOnboardingSeenV1) ?? false;
+
+    final permissionResults = await permissionService.checkAllPermissions();
+
+    final hasMissingPermissions = permissionResults.values.any((e) => !e);
+
+    if (!mounted) return;
+
+    setState(() {
+      _showFlash = false;
+      _showPermission = !hasSeenPermissionFlow || hasMissingPermissions;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const LoadingOverlay();
+    }
+
+    if (_showFlash) {
+      return const FlashScreen();
+    }
+
+    if (_showPermission) {
+      return PermissionOnboardingFlow(
+        onFinished: (_) async {
+          await context.read<StorageService>().setBool(
+            StorageKeys.permissionOnboardingSeenV1,
+            true,
+          );
+
+          if (!mounted) return;
+
+          setState(() {
+            _showPermission = false;
+          });
+        },
+      );
+    }
+
+    return const SessionGuard();
+  }
+}
 
 class SessionGuard extends StatefulWidget {
   const SessionGuard({super.key});
@@ -49,6 +145,11 @@ class _SessionGuardState extends State<SessionGuard>
   bool _initCalled = false;
 
   String? _pushInitedForUid;
+  String? _bootstrappedUid;
+  String? _bootstrapQueuedForUid;
+  String? _bootstrapRetryScheduledForUid;
+  bool _sessionBootstrapInFlight = false;
+  Timer? _bootstrapRetryTimer;
   bool _sessionCleanupInFlight = false;
   String? _timeZoneSyncInFlightForUid;
 
@@ -77,14 +178,23 @@ class _SessionGuardState extends State<SessionGuard>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SessionVM>(
-      builder: (context, session, _) {
+    return Consumer2<SessionVM, UserVm>(
+      builder: (context, session, userVm, _) {
         final status = session.status;
         final uid = session.user?.uid;
-        final isParent = session.isParent;
-        final isGuardian = session.isGuardian;
-        final isLocationViewer = session.isLocationViewer;
-        final familyId = session.user?.familyId;
+        final liveUser = _currentLiveUser(userVm, uid);
+        final profile = _currentProfile(userVm, uid);
+        final resolvedSession = SessionGuardResolvedState.fromSources(
+          status: status,
+          sessionUser: session.user,
+          liveUser: liveUser,
+          profile: profile,
+        );
+        final isParent = resolvedSession.isParent;
+        final isGuardian = resolvedSession.isGuardian;
+        final isLocationViewer = resolvedSession.isLocationViewer;
+        final familyId = resolvedSession.familyId;
+        final parentUid = resolvedSession.parentUid;
         final prevStatus = _lastStatus;
         final prevUid = _lastUid;
 
@@ -92,16 +202,19 @@ class _SessionGuardState extends State<SessionGuard>
             status == SessionStatus.unauthenticated &&
             (prevStatus != SessionStatus.unauthenticated || prevUid != null);
 
-        final shouldTriggerMeWatch =
+        final shouldEnsureSessionBootstrap =
             status == SessionStatus.authenticated &&
             uid != null &&
-            (_lastStatus != status || _lastUid != uid);
+            (_bootstrappedUid != uid || !resolvedSession.hasResolvedIdentity) &&
+            !_sessionBootstrapInFlight &&
+            _bootstrapQueuedForUid != uid &&
+            (_bootstrapRetryScheduledForUid != uid ||
+                resolvedSession.hasResolvedIdentity);
 
         final shouldTriggerLocationMembersWatch =
             status == SessionStatus.authenticated &&
             isLocationViewer == true &&
             uid != null &&
-            familyId != null &&
             familyId.isNotEmpty &&
             (_lastStatus != status ||
                 _lastUid != uid ||
@@ -117,6 +230,7 @@ class _SessionGuardState extends State<SessionGuard>
           _sessionCleanupInFlight = true;
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             try {
+              _resetBootstrapState();
               await _clearSessionScopedState();
             } finally {
               _sessionCleanupInFlight = false;
@@ -124,149 +238,8 @@ class _SessionGuardState extends State<SessionGuard>
           });
         }
 
-        if (shouldTriggerMeWatch) {
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            if (!mounted) return;
-
-            final userVm = context.read<UserVm>();
-            final storage = context.read<StorageService>();
-            final appManagementVm = context.read<AppManagementVM>();
-            final notificationVm = context.read<NotificationVM>();
-
-            final profile = await userVm.loadProfile(
-              uid: uid,
-              caller: 'SessionGuard',
-            );
-
-            if (!mounted) return;
-
-            final currentSession = context.read<SessionVM>();
-            if (currentSession.status != SessionStatus.authenticated ||
-                currentSession.user?.uid != uid) {
-              return;
-            }
-
-            final sessionUser = currentSession.user;
-            final hasResolvedSessionIdentity =
-                (sessionUser?.familyId?.trim().isNotEmpty ?? false) ||
-                (sessionUser?.parentUid?.trim().isNotEmpty ?? false);
-
-            if (profile == null && !hasResolvedSessionIdentity) {
-              debugPrint(
-                '[SessionGuard] skip bootstrap until profile is available '
-                'uid=$uid',
-              );
-              return;
-            }
-
-            await notificationVm.bindUser(
-              uid: uid,
-              sources: const [NotificationSource.global],
-            );
-
-            if (_pushInitedForUid != uid && profile != null) {
-              _pushInitedForUid = uid;
-              await FcmPushReceiverService.init(uid);
-              if (!mounted) return;
-              await SosNotificationService.instance.init(
-                onTapSos: SosTapRouter.handleTap,
-                role: profile.role,
-              );
-            }
-
-            if (!mounted) return;
-
-            final verifiedSession = context.read<SessionVM>();
-            if (verifiedSession.status != SessionStatus.authenticated ||
-                verifiedSession.user?.uid != uid) {
-              return;
-            }
-
-            await storage.setString(StorageKeys.uid, uid);
-
-            final resolvedRole =
-                profile?.role ?? sessionUser?.role ?? UserRole.child;
-            final resolvedDisplayName =
-                (profile?.name ?? sessionUser?.displayName ?? '').trim();
-            final resolvedParentOwnerUid = resolvedRole == UserRole.parent
-                ? uid
-                : (profile?.parentUid ?? sessionUser?.parentUid ?? '').trim();
-            final managedOwnerUid = resolvedRole == UserRole.guardian
-                ? resolvedParentOwnerUid
-                : uid;
-            final managedChildIds =
-                <String>{
-                      ...?profile?.managedChildIds,
-                      ...?sessionUser?.managedChildIds,
-                    }
-                    .map((item) => item.trim())
-                    .where((item) => item.isNotEmpty)
-                    .toList(growable: false);
-
-            await _syncAuthenticatedUserTimeZone(
-              uid: uid,
-              currentTimeZone: profile?.timezone ?? sessionUser?.timezone,
-            );
-            if (!mounted) return;
-
-            await storage.setString(
-              StorageKeys.role,
-              roleToString(resolvedRole),
-            );
-            if (resolvedDisplayName.isNotEmpty) {
-              await storage.setString(
-                StorageKeys.displayName,
-                resolvedDisplayName,
-              );
-            } else {
-              await storage.remove(StorageKeys.displayName);
-            }
-
-            if (resolvedParentOwnerUid.isNotEmpty) {
-              await storage.setString(
-                StorageKeys.parentId,
-                resolvedParentOwnerUid,
-              );
-            } else {
-              await storage.remove(StorageKeys.parentId);
-            }
-            if (managedChildIds.isNotEmpty) {
-              await storage.setStringList(
-                StorageKeys.managedChildIds,
-                managedChildIds,
-              );
-            } else {
-              await storage.remove(StorageKeys.managedChildIds);
-            }
-
-            if (resolvedRole == UserRole.child) {
-              if (resolvedParentOwnerUid.isNotEmpty &&
-                  resolvedDisplayName.isNotEmpty) {
-                AuthRuntimeManager.start(
-                  parentId: resolvedParentOwnerUid,
-                  displayName: resolvedDisplayName,
-                );
-              } else {
-                debugPrint(
-                  '[SessionGuard] skip native watcher config '
-                  'uid=$uid parentId="$resolvedParentOwnerUid" '
-                  'displayName="$resolvedDisplayName"',
-                );
-              }
-            } else {
-              await AuthRuntimeManager.stop();
-            }
-
-            userVm.watchMe(uid);
-            final resolvedFamilyId =
-                (profile?.familyId ?? sessionUser?.familyId ?? '').trim();
-
-            if ((resolvedRole == UserRole.parent ||
-                    resolvedRole == UserRole.guardian) &&
-                managedOwnerUid.isNotEmpty) {
-              appManagementVm.watchChildren(managedOwnerUid);
-            }
-          });
+        if (shouldEnsureSessionBootstrap) {
+          _queueSessionBootstrap(uid: uid);
         }
 
         if (shouldTriggerLocationMembersWatch) {
@@ -274,7 +247,7 @@ class _SessionGuardState extends State<SessionGuard>
             if (!mounted) return;
             final currentUid = uid;
             if (currentUid.isEmpty) return;
-            final normalizedFamilyId = familyId.trim() ?? '';
+            final normalizedFamilyId = familyId.trim();
             if (normalizedFamilyId.isEmpty) return;
             final userVm = context.read<UserVm>();
             userVm.watchFamilyMembers(normalizedFamilyId);
@@ -282,9 +255,7 @@ class _SessionGuardState extends State<SessionGuard>
               normalizedFamilyId,
               excludeUid: currentUid,
             );
-            final managedOwnerUid = isGuardian == true
-                ? (session.user?.parentUid?.trim() ?? '')
-                : currentUid;
+            final managedOwnerUid = isGuardian == true ? parentUid : currentUid;
             if ((isParent == true || isGuardian == true) &&
                 managedOwnerUid.isNotEmpty) {
               userVm.watchChildren(managedOwnerUid);
@@ -292,9 +263,19 @@ class _SessionGuardState extends State<SessionGuard>
           });
         }
 
+        debugPrint(
+          '[SessionGuard] status=$status uid=$uid '
+          'hasResolvedIdentity=${resolvedSession.hasResolvedIdentity} '
+          'isParent=${resolvedSession.isParent} '
+          'isGuardian=${resolvedSession.isGuardian} '
+          'isLocationViewer=${resolvedSession.isLocationViewer} '
+          'familyId=${resolvedSession.familyId} '
+          'parentUid=${resolvedSession.parentUid}',
+        );
+
         switch (status) {
           case SessionStatus.booting:
-            return const FlashScreen();
+            return const AppLoadingScreen();
 
           case SessionStatus.unauthenticated:
             _pushInitedForUid = null;
@@ -302,15 +283,11 @@ class _SessionGuardState extends State<SessionGuard>
 
           case SessionStatus.authenticated:
             if (uid == null) {
-              return const FlashScreen();
+              return const AppLoadingScreen();
             }
 
-            final hasResolvedSessionIdentity =
-                (session.user?.familyId?.trim().isNotEmpty ?? false) ||
-                (session.user?.parentUid?.trim().isNotEmpty ?? false);
-
-            if (!hasResolvedSessionIdentity) {
-              return const FlashScreen();
+            if (!resolvedSession.hasResolvedIdentity) {
+              return const AppLoadingScreen();
             }
 
             if (isParent == true) {
@@ -331,20 +308,238 @@ class _SessionGuardState extends State<SessionGuard>
               );
             }
 
-            return MultiProvider(
-              providers: [
-                ChangeNotifierProvider(
-                  create: (context) => ChildLocationViewModel(
-                    context.read<LocationRepository>(),
-                    context.read<LocationServiceInterface>(),
-                  ),
-                ),
-              ],
+            return ChangeNotifierProvider(
+              create: (context) => ChildLocationViewModel(
+                context.read<LocationRepository>(),
+                context.read<LocationServiceInterface>(),
+              ),
               child: const _ChildWarmupShell(),
             );
         }
       },
     );
+  }
+
+  AppUser? _currentLiveUser(UserVm userVm, String? uid) {
+    final user = userVm.me;
+    if (uid == null || user == null || user.uid != uid) {
+      return null;
+    }
+    return user;
+  }
+
+  UserProfile? _currentProfile(UserVm userVm, String? uid) {
+    final profile = userVm.profile;
+    if (uid == null || profile == null || profile.id != uid) {
+      return null;
+    }
+    return profile;
+  }
+
+  void _queueSessionBootstrap({required String uid}) {
+    _bootstrapQueuedForUid = uid;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      _bootstrapQueuedForUid = null;
+
+      final currentSession = context.read<SessionVM>();
+      if (currentSession.status != SessionStatus.authenticated ||
+          currentSession.user?.uid != uid) {
+        return;
+      }
+
+      _sessionBootstrapInFlight = true;
+      try {
+        await _runSessionBootstrap(uid: uid);
+      } finally {
+        _sessionBootstrapInFlight = false;
+      }
+    });
+  }
+
+  Future<void> _runSessionBootstrap({required String uid}) async {
+    try {
+      final userVm = context.read<UserVm>();
+      final storage = context.read<StorageService>();
+      final appManagementVm = context.read<AppManagementVM>();
+      final notificationVm = context.read<NotificationVM>();
+
+      final loadedProfile = await userVm.loadProfile(
+        uid: uid,
+        caller: 'SessionGuard',
+      );
+
+      debugPrint('[SessionGuard] loadedProfile=${loadedProfile?.id}');
+
+      if (!mounted) return;
+
+      final currentSession = context.read<SessionVM>();
+      if (currentSession.status != SessionStatus.authenticated ||
+          currentSession.user?.uid != uid) {
+        return;
+      }
+
+      final liveUser = _currentLiveUser(userVm, uid);
+      final profile = _currentProfile(userVm, uid) ?? loadedProfile;
+      final resolvedSession = SessionGuardResolvedState.fromSources(
+        status: currentSession.status,
+        sessionUser: currentSession.user,
+        liveUser: liveUser,
+        profile: profile,
+      );
+
+      if (!resolvedSession.hasResolvedIdentity) {
+        debugPrint(
+          '[SessionGuard] bootstrap waiting for resolved identity uid=$uid',
+        );
+        _scheduleBootstrapRetry(uid);
+        return;
+      }
+
+      await notificationVm.bindUser(
+        uid: uid,
+        sources: const [
+          NotificationSource.global,
+          NotificationSource.userInbox,
+        ],
+      );
+
+      if (_pushInitedForUid != uid && profile != null) {
+        _pushInitedForUid = uid;
+        await FcmPushReceiverService.init(uid);
+        if (!mounted) return;
+        await SosNotificationService.instance.init(
+          onTapSos: SosTapRouter.handleTap,
+          role: profile.role,
+        );
+      }
+
+      if (!mounted) return;
+
+      final verifiedSession = context.read<SessionVM>();
+      if (verifiedSession.status != SessionStatus.authenticated ||
+          verifiedSession.user?.uid != uid) {
+        return;
+      }
+
+      await storage.setString(StorageKeys.uid, uid);
+
+      final sessionUser = verifiedSession.user;
+      final resolvedRole = resolvedSession.role;
+      final resolvedDisplayName =
+          (profile?.name ??
+                  liveUser?.displayName ??
+                  sessionUser?.displayName ??
+                  '')
+              .trim();
+      final resolvedParentOwnerUid = resolvedRole == UserRole.parent
+          ? uid
+          : resolvedSession.parentUid;
+      final managedOwnerUid = resolvedRole == UserRole.guardian
+          ? resolvedParentOwnerUid
+          : uid;
+      final managedChildIds =
+          <String>{
+                ...?profile?.managedChildIds,
+                ...?liveUser?.managedChildIds,
+                ...?sessionUser?.managedChildIds,
+              }
+              .map((item) => item.trim())
+              .where((item) => item.isNotEmpty)
+              .toList(growable: false);
+
+      await _syncAuthenticatedUserTimeZone(
+        uid: uid,
+        currentTimeZone: profile?.timezone ?? sessionUser?.timezone,
+      );
+      if (!mounted) return;
+
+      await storage.setString(StorageKeys.role, roleToString(resolvedRole));
+      if (resolvedDisplayName.isNotEmpty) {
+        await storage.setString(StorageKeys.displayName, resolvedDisplayName);
+      } else {
+        await storage.remove(StorageKeys.displayName);
+      }
+      await storage.setString(StorageKeys.role, roleToString(resolvedRole));
+      if (resolvedDisplayName.isNotEmpty) {
+        await storage.setString(StorageKeys.displayName, resolvedDisplayName);
+      } else {
+        await storage.remove(StorageKeys.displayName);
+      }
+
+      if (resolvedParentOwnerUid.isNotEmpty) {
+        await storage.setString(StorageKeys.parentId, resolvedParentOwnerUid);
+      } else {
+        await storage.remove(StorageKeys.parentId);
+      }
+      if (managedChildIds.isNotEmpty) {
+        await storage.setStringList(
+          StorageKeys.managedChildIds,
+          managedChildIds,
+        );
+      } else {
+        await storage.remove(StorageKeys.managedChildIds);
+      }
+
+      if (resolvedRole == UserRole.child) {
+        if (resolvedParentOwnerUid.isNotEmpty &&
+            resolvedDisplayName.isNotEmpty) {
+          AuthRuntimeManager.start(
+            parentId: resolvedParentOwnerUid,
+            displayName: resolvedDisplayName,
+          );
+        } else {
+          debugPrint(
+            '[SessionGuard] skip native watcher config '
+            'uid=$uid parentId="$resolvedParentOwnerUid" '
+            'displayName="$resolvedDisplayName"',
+          );
+        }
+      } else {
+        await AuthRuntimeManager.stop();
+      }
+
+      userVm.watchMe(uid);
+
+      if ((resolvedRole == UserRole.parent ||
+              resolvedRole == UserRole.guardian) &&
+          managedOwnerUid.isNotEmpty) {
+        unawaited(appManagementVm.watchChildren(managedOwnerUid));
+      }
+
+      _bootstrappedUid = uid;
+      _bootstrapRetryScheduledForUid = null;
+    } catch (e, st) {
+      debugPrint('[SessionGuard] bootstrap failed uid=$uid error=$e');
+      debugPrintStack(stackTrace: st);
+      _scheduleBootstrapRetry(uid);
+    }
+  }
+
+  void _scheduleBootstrapRetry(String uid) {
+    if (_bootstrapRetryScheduledForUid == uid) return;
+    _bootstrapRetryScheduledForUid = uid;
+    _bootstrapRetryTimer?.cancel();
+    _bootstrapRetryTimer = Timer(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      final session = context.read<SessionVM>();
+      if (session.status != SessionStatus.authenticated ||
+          session.user?.uid != uid) {
+        _bootstrapRetryScheduledForUid = null;
+        return;
+      }
+      _bootstrapRetryScheduledForUid = null;
+      setState(() {});
+    });
+  }
+
+  void _resetBootstrapState() {
+    _bootstrappedUid = null;
+    _bootstrapQueuedForUid = null;
+    _bootstrapRetryScheduledForUid = null;
+    _bootstrapRetryTimer?.cancel();
+    _bootstrapRetryTimer = null;
+    _sessionBootstrapInFlight = false;
   }
 
   Future<void> _clearSessionScopedState() async {
@@ -662,7 +857,16 @@ class _ChildWarmupShellState extends State<_ChildWarmupShell> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_ready) return const FlashScreen();
+    if (!_ready) return const AppLoadingScreen();
     return const AppShell(mode: AppMode.child);
+  }
+}
+
+class AppLoadingScreen extends StatelessWidget {
+  const AppLoadingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

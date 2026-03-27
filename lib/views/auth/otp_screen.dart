@@ -1,11 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
-import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/views/auth/reset_pass_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
@@ -13,18 +12,17 @@ import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+enum OtpPurpose { verifyEmail, resetPassword }
 
 class OtpScreen extends StatefulWidget {
-  final String uid;
-  final String email;
-  final MailType purpose;
-
   const OtpScreen({
     super.key,
-    required this.uid,
     required this.email,
     required this.purpose,
   });
+
+  final String email;
+  final OtpPurpose purpose;
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -36,7 +34,7 @@ class _OtpScreenState extends State<OtpScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<OtpVM>().syncCooldown(widget.uid);
+      context.read<OtpVM>().armInitialCooldown();
     });
   }
 
@@ -52,16 +50,20 @@ class _OtpScreenState extends State<OtpScreen> {
   final TextEditingController _otpController = TextEditingController();
   final FocusNode _otpFocus = FocusNode();
 
+  MailType get _mailType => widget.purpose == OtpPurpose.verifyEmail
+      ? MailType.verifyEmail
+      : MailType.resetPassword;
+
   void _onOtpChanged(String value) {
-    if (value.length > 4) {
-      value = value.substring(0, 4);
+    if (value.length > 6) {
+      value = value.substring(0, 6);
     }
 
     setState(() {
       _otp = value;
     });
 
-    if (_otp.length == 4) {
+    if (_otp.length == 6) {
       _otpFocus.unfocus();
     }
   }
@@ -70,29 +72,35 @@ class _OtpScreenState extends State<OtpScreen> {
     final otp = _otp;
     final l10n = AppLocalizations.of(context);
 
-    /// 1. kiểm tra đủ 4 ký tự
-    if (otp.length != 4) {
-      AlertService.showSnack(l10n.otpNeed4Digits, isError: true);
+    if (otp.length != 6) {
+      AlertService.showSnack(l10n.authGenericError, isError: true);
       return;
     }
 
-    /// 2. kiểm tra toàn number
     if (!RegExp(r'^\d+$').hasMatch(otp)) {
       AlertService.showSnack(l10n.otpDigitsOnly, isError: true);
       return;
     }
 
     final vm = context.read<OtpVM>();
+    final result = await vm.verifyOtp(
+      email: widget.email,
+      code: otp,
+      type: _mailType,
+    );
 
-    /// 3. gọi API verify
-    final result = await vm.verifyOtp(uid: widget.uid, code: otp, type: widget.purpose);
+    if (!mounted) {
+      return;
+    }
 
-    if (!mounted) return;
-
-    /// 4. xử lý result
     switch (result) {
       case OtpVerifyResult.success:
-        if (widget.purpose == MailType.verifyEmail) {
+        if (widget.purpose == OtpPurpose.verifyEmail) {
+          await context.read<AuthVM>().logout();
+          if (!mounted) {
+            return;
+          }
+
           NotificationDialog.show(
             context,
             type: DialogType.success,
@@ -102,43 +110,42 @@ class _OtpScreenState extends State<OtpScreen> {
 
           await Future.delayed(const Duration(milliseconds: 1000));
 
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-          );
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          return;
         }
 
-        if (widget.purpose == MailType.resetPassword) {
-          if (!mounted) return;
+        final resetSessionToken = vm.resetSessionToken;
+        if (resetSessionToken == null || resetSessionToken.isEmpty) {
+          AlertService.showSnack(l10n.authGenericError, isError: true);
+          return;
+        }
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  ResetPasswordScreen(uid: widget.uid, email: widget.email),
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ResetPasswordScreen(
+              resetSessionToken: resetSessionToken,
             ),
-          );
-        }
-
-        break;
-
+          ),
+        );
+        return;
       case OtpVerifyResult.invalid:
         AlertService.showSnack(l10n.otpIncorrect, isError: true);
-        break;
-
+        return;
       case OtpVerifyResult.expired:
         AlertService.showSnack(l10n.otpExpired, isError: true);
-        break;
-
+        return;
       case OtpVerifyResult.tooManyAttempts:
         AlertService.showSnack(l10n.otpTooManyAttempts, isError: true);
         vm.startCountdown(600);
-        break;
+        return;
       case OtpVerifyResult.notFound:
-        AlertService.showSnack(l10n.otpRequestNotFound, isError: true);
-        break;
+        AlertService.showSnack(l10n.authGenericError, isError: true);
+        return;
     }
   }
 
@@ -188,7 +195,6 @@ class _OtpScreenState extends State<OtpScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-
                   GestureDetector(
                     onTap: () {
                       FocusScope.of(context).requestFocus(_otpFocus);
@@ -204,16 +210,15 @@ class _OtpScreenState extends State<OtpScreen> {
                               controller: _otpController,
                               focusNode: _otpFocus,
                               keyboardType: TextInputType.number,
-                              maxLength: 4,
+                              maxLength: 6,
                               onChanged: _onOtpChanged,
                             ),
                           ),
                         ),
-
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(4, (index) {
-                            String char = '';
+                          children: List.generate(6, (index) {
+                            var char = '';
 
                             if (index < _otp.length) {
                               char = _otp[index];
@@ -223,10 +228,10 @@ class _OtpScreenState extends State<OtpScreen> {
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+                                horizontal: 6,
                               ),
                               child: Container(
-                                width: 59,
+                                width: 44,
                                 height: 59,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
@@ -257,22 +262,26 @@ class _OtpScreenState extends State<OtpScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   GestureDetector(
                     onTap: () async {
-                      if (vm.loading || !vm.canResend) return;
+                      if (vm.loading || !vm.canResend) {
+                        return;
+                      }
 
                       final result = await vm.resendOtp(
-                        uid: widget.uid,
                         email: widget.email,
-                        type: widget.purpose
+                        type: _mailType,
                       );
+
+                      if (!mounted) {
+                        return;
+                      }
 
                       if (result != OtpResendResult.success) {
                         AlertService.showSnack(
                           vm.error ?? l10n.authSendOtpFailed,
+                          isError: true,
                         );
                       }
                     },
@@ -290,9 +299,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   AppButton(
                     text: l10n.otpVerifyButton,
                     width: 150,
@@ -303,7 +310,6 @@ class _OtpScreenState extends State<OtpScreen> {
               ),
             ),
           ),
-
           if (vm.loading) const LoadingOverlay(),
         ],
       ),

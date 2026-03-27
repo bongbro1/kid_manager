@@ -27,13 +27,24 @@ class _AppShellState extends State<AppShell> {
   late final AppShellConfig _config = widget.mode == AppMode.parent
       ? AppShellConfig.parent()
       : widget.mode == AppMode.guardian
-      ? AppShellConfig.guardian()
-      : AppShellConfig.child();
+          ? AppShellConfig.guardian()
+          : AppShellConfig.child();
 
   late final List<GlobalKey<NavigatorState>> _navKeys = List.generate(
     _config.tabs.length,
-    (_) => GlobalKey<NavigatorState>(),
+    (i) => _config.tabs[i].isNotificationTab
+        ? NotificationTabNavigator.key
+        : GlobalKey<NavigatorState>(),
   );
+
+  // late final List<Widget> _tabs = List.generate(_config.tabs.length, (i) {
+  //   final tab = _config.tabs[i];
+
+  //   return Navigator(
+  //     key: _navKeys[i],
+  //     onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => tab.root),
+  //   );
+  // });
 
   @override
   void initState() {

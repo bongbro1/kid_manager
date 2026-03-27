@@ -18,6 +18,7 @@ class LocalNotificationService {
     );
   }
 
+  static String? initialPayload;
   static Future<void> init() async {
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',

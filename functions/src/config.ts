@@ -22,6 +22,8 @@ export const MAPBOX_ACCESS_TOKEN = defineSecret("MAPBOX_ACCESS_TOKEN");
 export const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
 export const MAIL_FROM = defineString("MAIL_FROM");
 
+export const KID_MANAGER_PACKAGE = "com.example.kid_manager";
+
 function readDefinedString(
   param: ReturnType<typeof defineString>,
   envName: string,

@@ -1,5 +1,5 @@
 import { onSchedule } from "firebase-functions/scheduler";
-import { REGION } from "../config";
+import { KID_MANAGER_PACKAGE, REGION } from "../config";
 import { admin, db } from "../bootstrap";
 
 export const detectKidAppRemoved = onSchedule(
@@ -17,7 +17,7 @@ export const detectKidAppRemoved = onSchedule(
 
     const snap = await db
       .collectionGroup("apps")
-      .where("packageName", "==", "com.example.kid_manager")
+      .where("packageName", "==", KID_MANAGER_PACKAGE)
       .where("kidLastSeen", "<", threshold)
       .get()
 
@@ -70,6 +70,7 @@ export const detectKidAppRemoved = onSchedule(
         receiverId: parentId,
         senderId: "system",
         type: "appRemoved",
+        eventKey: "device.app_removed",
 
         title: "Ứng dụng quản lý không hoạt động",
 

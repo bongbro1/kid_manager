@@ -5,7 +5,6 @@ import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:provider/provider.dart';
-
 import 'package:kid_manager/core/app_text_styles.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/schedule.dart';

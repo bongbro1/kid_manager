@@ -63,6 +63,7 @@ class UserRepository {
     String? displayName,
     String locale = 'vi',
     String timezone = 'Asia/Ho_Chi_Minh',
+    bool isActive = false,
   }) {
     return _familyRepository.createParentIfMissing(
       uid: uid,
@@ -70,6 +71,7 @@ class UserRepository {
       displayName: displayName,
       locale: locale,
       timezone: timezone,
+      isActive: isActive,
     );
   }
 
@@ -145,9 +147,6 @@ class UserRepository {
 
   Future<UserProfile?> getUserProfile(String uid) =>
       _profileRepository.getUserProfile(uid);
-
-  Future<UserProfile?> getUserByEmail(String email) =>
-      _profileRepository.getUserByEmail(email);
 
   Stream<UserProfile?> listenUserProfile(String uid) =>
       _profileRepository.listenUserProfile(uid);

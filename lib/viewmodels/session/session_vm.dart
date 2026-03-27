@@ -36,6 +36,10 @@ class SessionVM extends ChangeNotifier {
         debugPrint("[SESSION_VM] user=${_user?.uid}");
         debugPrint("[SESSION_VM] status=$_authStatus");
 
+        if (!_splashDone) {
+          _splashDone = true;
+        }
+
         notifyListeners();
       },
       onError: (e) {

@@ -217,8 +217,8 @@ class _MemoryDayCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border(
           left: BorderSide(
-            color: colorScheme.primary,
-            width: 3,
+            color: Color(0xFFE2B53B),
+            width: 3
           ),
         ),
         boxShadow: [
@@ -246,7 +246,7 @@ class _MemoryDayCard extends StatelessWidget {
                 child: Icon(
                   Icons.star_rounded,
                   size: 18,
-                  color: colorScheme.primary,
+                  color: Color(0xFFE2B53B),
                 ),
               ),
               const SizedBox(width: 10),
@@ -329,7 +329,7 @@ class _MemoryDayCard extends StatelessWidget {
                     color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: colorScheme.outline.withOpacity(0.5),
+                      color: colorScheme.outline.withOpacity(0.5)
                     ),
                   ),
                   alignment: Alignment.center,

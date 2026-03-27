@@ -1,8 +1,15 @@
+import 'dart:async';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:kid_manager/core/storage_keys.dart';
-import 'package:kid_manager/features/permissions/permission_onboarding_flow.dart';
+import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
-import 'package:kid_manager/services/permission_service.dart';
+import 'package:kid_manager/services/notifications/local_alarm_service.dart';
+import 'package:kid_manager/services/notifications/local_notification_service.dart';
+import 'package:kid_manager/services/notifications/notification_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
@@ -16,55 +23,55 @@ class FlashScreen extends StatefulWidget {
   State<FlashScreen> createState() => _FlashScreenState();
 }
 
+String _maskToken(String? token) {
+  if (token == null || token.isEmpty) return 'null';
+  if (token.length <= 8) return '***';
+  return '${token.substring(0, 4)}...${token.substring(token.length - 4)}';
+}
+
+Future<void> _runDeferredStartupTasks() async {
+  try {
+    await LocalNotificationService.init();
+    await NotificationService.init();
+  } catch (e) {
+    debugPrint('Notification bootstrap failed: $e');
+  }
+
+  try {
+    await LocalAlarmService.I.init();
+  } catch (e) {
+    debugPrint('LocalAlarm init failed: $e');
+  }
+
+  try {
+    await initializeDateFormatting('vi_VN', '');
+  } catch (e) {
+    debugPrint('Date formatting init failed: $e');
+  }
+
+  try {
+    final token = await FirebaseMessaging.instance.getToken();
+    if (kDebugMode) {
+      debugPrint('FCM token=${_maskToken(token)}');
+    }
+  } catch (e) {
+    debugPrint('FCM token fetch failed: $e');
+  }
+}
+
 class _FlashScreenState extends State<FlashScreen> {
-  bool _showPermissionFlow = false;
-  bool _permissionsChecked = false;
+  Future<void> _onContinue() async {
+    await context.read<StorageService>().setBool(StorageKeys.flashSeenV1, true);
 
-  void _onContinue() {
+    await _runDeferredStartupTasks();
+    if (!mounted) return;
+
     context.read<SessionVM>().finishSplash();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _init();
-    });
-  }
-
-  Future<void> _init() async {
-    final appVM = context.read<AppManagementVM>();
-    final storage = context.read<StorageService>();
-    final permissionService = context.read<PermissionService>();
-
-    appVM.loadAndSeedApp();
-
-    final hasSeenPermissionFlow =
-        storage.getBool(StorageKeys.permissionOnboardingSeenV1) ?? false;
-    final permissionResults = await permissionService.checkAllPermissions();
-    final hasMissingPermissions = permissionResults.values.any(
-      (granted) => !granted,
+    unawaited(
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const StartupGate())),
     );
-
-    if (!mounted) return;
-    setState(() {
-      _showPermissionFlow = !hasSeenPermissionFlow || hasMissingPermissions;
-      _permissionsChecked = true;
-    });
-  }
-
-  Future<void> _finishPermissionFlow(
-    PermissionOnboardingCompletion completion,
-  ) async {
-    await context.read<StorageService>().setBool(
-      StorageKeys.permissionOnboardingSeenV1,
-      true,
-    );
-
-    if (!mounted) return;
-    setState(() {
-      _showPermissionFlow = false;
-    });
   }
 
   @override
@@ -75,12 +82,8 @@ class _FlashScreenState extends State<FlashScreen> {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    if (appVM.loading || !_permissionsChecked) {
+    if (appVM.loading) {
       return const LoadingOverlay();
-    }
-
-    if (_showPermissionFlow) {
-      return PermissionOnboardingFlow(onFinished: _finishPermissionFlow);
     }
 
     return Scaffold(
@@ -118,7 +121,7 @@ class _FlashScreenState extends State<FlashScreen> {
                         l10n.flashWelcomeSubtitle,
                         textAlign: TextAlign.center,
                         style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface.withOpacity(0.8),
+                          color: colorScheme.onSurface.withValues(alpha: 0.8),
                           fontSize: 14,
                           fontFamily: 'DM Sans',
                           fontWeight: FontWeight.w400,

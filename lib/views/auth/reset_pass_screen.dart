@@ -12,14 +12,12 @@ import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  final String uid;
-  final String email;
-
   const ResetPasswordScreen({
     super.key,
-    required this.uid,
-    required this.email,
+    required this.resetSessionToken,
   });
+
+  final String resetSessionToken;
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -37,7 +35,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   void initState() {
     super.initState();
-
     _passwordController.addListener(_validatePassword);
   }
 
@@ -73,34 +70,43 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Future<void> _resetPassword() async {
     final authVM = context.read<AuthVM>();
     final l10n = AppLocalizations.of(context);
-    if (!_isPasswordValid) return;
+
+    if (!_isPasswordValid) {
+      return;
+    }
 
     if (_passwordController.text != _confirmController.text) {
       AlertService.showSnack(l10n.resetPasswordConfirmMismatch, isError: true);
       return;
     }
 
-    try {
-      await authVM.resetPassword(
-        uid: widget.uid,
-        newPassword: _passwordController.text,
-      );
+    await authVM.resetPassword(
+      resetSessionToken: widget.resetSessionToken,
+      newPassword: _passwordController.text,
+    );
 
-      if (!mounted) return;
-
-      NotificationDialog.show(
-        context,
-        type: DialogType.success,
-        title: l10n.updateSuccessTitle,
-        message: l10n.resetPasswordSuccessMessage,
-      );
-      await Future.delayed(const Duration(milliseconds: 1000));
-      if (!mounted) return;
-
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    } catch (e) {
-      AlertService.showSnack(e.toString(), isError: true);
+    if (!mounted) {
+      return;
     }
+
+    if (authVM.error != null) {
+      AlertService.showSnack(authVM.error!, isError: true);
+      return;
+    }
+
+    NotificationDialog.show(
+      context,
+      type: DialogType.success,
+      title: l10n.updateSuccessTitle,
+      message: l10n.resetPasswordSuccessMessage,
+    );
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
@@ -152,9 +158,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 24),
-
                       Padding(
                         padding: const EdgeInsets.only(left: 14),
                         child: SizedBox(
@@ -189,9 +193,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
                       AuthTextField(
                         label: l10n.resetPasswordNewLabel,
                         controller: _passwordController,
@@ -201,7 +203,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         isPassword: true,
                         prefixSvg: 'assets/icons/lock.svg',
                       ),
-
                       AuthTextField(
                         label: l10n.resetPasswordConfirmLabel,
                         controller: _confirmController,
@@ -211,9 +212,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         isPassword: true,
                         prefixSvg: 'assets/icons/lock.svg',
                       ),
-
                       const SizedBox(height: 10),
-
                       Container(
                         margin: const EdgeInsets.only(top: 12),
                         padding: const EdgeInsets.symmetric(
@@ -238,9 +237,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 color: colorScheme.onSurface,
                               ),
                             ),
-
                             const SizedBox(height: 10),
-
                             _buildRule(
                               _hasMinLength,
                               l10n.resetPasswordRuleMinLength,
@@ -260,9 +257,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ],
                         ),
                       ),
-
                       const Spacer(),
-
                       AppButton(
                         height: 60,
                         text: l10n.resetPasswordCompleteButton,
@@ -272,7 +267,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         backgroundColor: colorScheme.primary,
                         foregroundColor: colorScheme.onPrimary,
                       ),
-
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -315,9 +309,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ? Icon(Icons.check, size: 12, color: colorScheme.onPrimary)
                     : null,
               ),
-
               const SizedBox(width: 10),
-
               Expanded(
                 child: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 200),

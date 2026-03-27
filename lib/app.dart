@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_navigator.dart';
@@ -25,7 +26,6 @@ import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/services/schedule/schedule_notification_service.dart';
 import 'package:kid_manager/services/secondary_auth_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/services/usage_sync_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
@@ -80,7 +80,6 @@ class _MyAppState extends State<MyApp> {
   late final SecondaryAuthService _secondaryAuthService;
   late final PermissionService _permissionService;
   late final AppInstalledService _appInstalledService;
-  late final UsageSyncService _usageService;
   late final AccessControlService _accessControlService;
   late final ProfileRepository _profileRepo;
   late final FamilyRepository _familyRepo;
@@ -112,7 +111,6 @@ class _MyAppState extends State<MyApp> {
     _secondaryAuthService = SecondaryAuthService();
     _permissionService = PermissionService();
     _appInstalledService = AppInstalledService();
-    _usageService = UsageSyncService(FirebaseFirestore.instance);
     _accessControlService = AccessControlService();
     _profileRepo = ProfileRepository(FirebaseFirestore.instance);
     _membershipRepo = MembershipRepository(
@@ -129,13 +127,14 @@ class _MyAppState extends State<MyApp> {
       membershipRepository: _membershipRepo,
     );
     _authRepo = AuthRepository(_authService, _userRepo);
-    _otpRepo = OtpRepository(FirebaseFirestore.instance);
+    _otpRepo = OtpRepository(
+      functions: FirebaseFunctions.instanceFor(region: 'asia-southeast1'),
+    );
     _termsRepo = TermsRepository(FirebaseFirestore.instance);
     _subscriptionRepo = SubscriptionRepository(FirebaseFirestore.instance);
     _scheduleRepo = ScheduleRepository(FirebaseFirestore.instance);
     _appRepo = AppManagementRepository(
       _appInstalledService,
-      _usageService,
       FirebaseFirestore.instance,
       _storageService,
     );
@@ -175,7 +174,6 @@ class _MyAppState extends State<MyApp> {
         Provider.value(value: _authService),
         Provider.value(value: _permissionService),
         Provider.value(value: _appInstalledService),
-        Provider.value(value: _usageService),
         Provider.value(value: _accessControlService),
 
         Provider.value(value: _profileRepo),
@@ -193,12 +191,8 @@ class _MyAppState extends State<MyApp> {
         Provider.value(value: _notificationRepo),
 
         ChangeNotifierProvider(
-          create: (_) => AuthVM(
-            _authRepo,
-            _userRepo,
-            _otpRepo,
-            _storageService,
-          ),
+          create: (_) =>
+              AuthVM(_authRepo, _userRepo, _otpRepo, _storageService),
         ),
         ChangeNotifierProvider(
           create: (_) => AppInitVM(_storageService, _permissionService),
@@ -214,15 +208,15 @@ class _MyAppState extends State<MyApp> {
 
         ChangeNotifierProvider(create: (_) => OtpVM(_otpRepo)),
         ChangeNotifierProvider(create: (_) => TermsVM(_termsRepo)),
-        ChangeNotifierProvider(create: (_) => SubscriptionVM(_subscriptionRepo)),
+        ChangeNotifierProvider(
+          create: (_) => SubscriptionVM(_subscriptionRepo),
+        ),
 
         Provider<ScheduleRepository>.value(value: _scheduleRepo),
 
         Provider<ScheduleNotificationService>(
-          create: (_) => ScheduleNotificationService(
-            _userRepo,
-            _accessControlService,
-          ),
+          create: (_) =>
+              ScheduleNotificationService(_userRepo, _accessControlService),
         ),
         Provider<MemoryDayReminderSyncService>(
           create: (_) => MemoryDayReminderSyncService(
@@ -260,23 +254,20 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => BirthdayViewModel(_birthdayRepo)),
 
         ChangeNotifierProvider(
-          create: (context) => ScheduleHistoryViewModel(
-            context.read<ScheduleRepository>(),
-          ),
+          create: (context) =>
+              ScheduleHistoryViewModel(context.read<ScheduleRepository>()),
         ),
 
         ChangeNotifierProvider<SessionVM>(
+          lazy: false,
           create: (_) => SessionVM(_authRepo),
         ),
 
         ChangeNotifierProvider.value(value: _sosVm),
 
         ChangeNotifierProvider<UserVm>(
-          create: (_) => UserVm(
-            _userRepo,
-            _storageService,
-            _accessControlService,
-          ),
+          create: (_) =>
+              UserVm(_userRepo, _storageService, _accessControlService),
         ),
 
         ChangeNotifierProxyProvider<UserVm, LocaleVm>(
@@ -329,7 +320,7 @@ class _MyAppState extends State<MyApp> {
             theme: AppTheme.light(seedColor: _primaryColor),
 
             darkTheme: AppTheme.dark(seedColor: _primaryColor),
-            home: const SessionGuard(),
+            home: const StartupGate(),
           );
         },
       ),

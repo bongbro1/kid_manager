@@ -1,4 +1,4 @@
-﻿import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 
@@ -7,10 +7,23 @@ class AppWheelTimePicker {
     BuildContext context, {
     required String title,
     TimeOfDay? initial,
-    Color primaryColor = const Color(0xFF3F7CFF),
     int minuteInterval = 1,
   }) async {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final actionColor = scheme.primary;
+    final sheetColor = theme.bottomSheetTheme.backgroundColor ?? scheme.surface;
+    final titleColor = scheme.onSurface;
+    final dividerColor = scheme.outline.withOpacity(
+      theme.brightness == Brightness.dark ? 0.55 : 0.2,
+    );
+    final handleColor = scheme.onSurface.withOpacity(
+      theme.brightness == Brightness.dark ? 0.22 : 0.12,
+    );
+    final shadowColor = Colors.black.withOpacity(
+      theme.brightness == Brightness.dark ? 0.28 : 0.12,
+    );
     final init = initial ?? TimeOfDay.now();
     var temp = DateTime(2000, 1, 1, init.hour, init.minute);
     TimeOfDay? result;
@@ -24,11 +37,11 @@ class AppWheelTimePicker {
           child: Container(
             margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: sheetColor,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
+                  color: shadowColor,
                   blurRadius: 18,
                   offset: const Offset(0, -6),
                 ),
@@ -44,7 +57,7 @@ class AppWheelTimePicker {
                   width: 44,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.12),
+                    color: handleColor,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -52,13 +65,16 @@ class AppWheelTimePicker {
 
                 // header
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   child: Row(
                     children: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
                         style: TextButton.styleFrom(
-                          foregroundColor: primaryColor,
+                          foregroundColor: actionColor,
                         ),
                         child: Text(l10n.cancelButton),
                       ),
@@ -66,21 +82,24 @@ class AppWheelTimePicker {
                         child: Text(
                           title,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: Colors.black87,
-                            decoration: TextDecoration.none, // ✅ chặn gạch chân
+                            color: titleColor,
+                            decoration: TextDecoration.none,
                           ),
                         ),
                       ),
                       TextButton(
                         onPressed: () {
-                          result = TimeOfDay(hour: temp.hour, minute: temp.minute);
+                          result = TimeOfDay(
+                            hour: temp.hour,
+                            minute: temp.minute,
+                          );
                           Navigator.pop(ctx);
                         },
                         style: TextButton.styleFrom(
-                          foregroundColor: primaryColor,
+                          foregroundColor: actionColor,
                         ),
                         child: Text(
                           l10n.cupertinoTimePickerDoneButton,
@@ -90,17 +109,28 @@ class AppWheelTimePicker {
                     ],
                   ),
                 ),
-                Divider(height: 1, color: Colors.black.withOpacity(0.08)),
+                Divider(height: 1, color: dividerColor),
 
                 // picker
                 SizedBox(
                   height: 220,
                   child: MediaQuery(
                     // giữ text không bị scale lạ trên Android
-                    data: MediaQuery.of(ctx).copyWith(textScaler: const TextScaler.linear(1.0)),
+                    data: MediaQuery.of(
+                      ctx,
+                    ).copyWith(textScaler: const TextScaler.linear(1.0)),
                     child: CupertinoTheme(
-                      data: CupertinoThemeData(primaryColor: primaryColor),
+                      data: CupertinoThemeData(
+                        brightness: theme.brightness,
+                        primaryColor: actionColor,
+                        scaffoldBackgroundColor: sheetColor,
+                        barBackgroundColor: sheetColor,
+                        textTheme: CupertinoTextThemeData(
+                          dateTimePickerTextStyle: TextStyle(color: titleColor),
+                        ),
+                      ),
                       child: CupertinoDatePicker(
+                        backgroundColor: sheetColor,
                         mode: CupertinoDatePickerMode.time,
                         initialDateTime: temp,
                         use24hFormat: true, // ✅ 00:00 - 23:59

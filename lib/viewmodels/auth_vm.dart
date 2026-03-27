@@ -1,5 +1,6 @@
-﻿import 'dart:async';
+import 'dart:async';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/validators.dart';
@@ -14,14 +15,14 @@ import 'package:kid_manager/utils/runtime_l10n.dart';
 import '../repositories/auth_repository.dart';
 
 class AuthVM extends ChangeNotifier {
+  AuthVM(this._authRepo, this._userRepo, this._otpRepo, this._storage) {
+    _listenAuthState();
+  }
+
   final AuthRepository _authRepo;
   final UserRepository _userRepo;
   final OtpRepository _otpRepo;
   final StorageService _storage;
-
-  AuthVM(this._authRepo, this._userRepo, this._otpRepo, this._storage) {
-    _listenAuthState();
-  }
 
   User? _user;
   User? get user => _user;
@@ -44,15 +45,15 @@ class AuthVM extends ChangeNotifier {
   }
 
   Future<UserCredential?> login(String email, String password) async {
-    return await _runAuthAction<UserCredential?>(() async {
+    return _runAuthAction<UserCredential?>(() async {
       final cred = await _authRepo.login(email, password);
 
       final user = cred.user;
-      if (user == null) throw Exception("User null");
+      if (user == null) {
+        throw Exception("User null");
+      }
 
-      final uid = user.uid;
-
-      final userInfo = await _userRepo.getUserById(uid);
+      final userInfo = await _userRepo.getUserById(user.uid);
 
       if (userInfo == null) {
         await _authRepo.logout();
@@ -65,42 +66,27 @@ class AuthVM extends ChangeNotifier {
       }
 
       _user = user;
-      debugPrint("User : $_user");
       notifyListeners();
-
       return cred;
     });
   }
 
   Future<void> onLoginSuccess(String userId) async {}
 
-  Future<String?> forgotPassword(String email) async {
-    return await _runAuthAction<String>(() async {
-      // 1ï¸âƒ£ tÃ¬m user theo email
-      final user = await _userRepo.getUserByEmail(email);
-
-      if (user == null) {
-        throw Exception("emailNotRegistered");
-      }
-
-      // 2ï¸âƒ£ táº¡o OTP
-      await _otpRepo.createOtp(
-        uid: user.id,
-        email: email,
-        type: MailType.resetPassword,
-      );
-
-      return user.id;
+  Future<bool> forgotPassword(String email) async {
+    final result = await _runAuthAction<bool>(() async {
+      await _otpRepo.requestPasswordReset(email: email);
+      return true;
     });
+    return result ?? false;
   }
 
-  Future<void> changePassword({
+  Future<bool> changePassword({
     required String oldPassword,
     required String newPassword,
     required String confirmPassword,
   }) async {
-    await _runAuthAction(() async {
-      /// validate password rule
+    final result = await _runAuthAction<bool>(() async {
       final passError = Validators.validatePassword(
         newPassword,
         l10n: runtimeL10n(),
@@ -109,7 +95,6 @@ class AuthVM extends ChangeNotifier {
         throw Exception(passError);
       }
 
-      /// validate confirm password
       final confirmError = Validators.validateConfirmPassword(
         newPassword,
         confirmPassword,
@@ -119,49 +104,69 @@ class AuthVM extends ChangeNotifier {
         throw Exception(confirmError);
       }
 
-      /// gọi repo
       await _authRepo.changePassword(
         oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+
+      return true;
+    });
+
+    return result ?? false;
+  }
+
+  Future<void> resetPassword({
+    required String resetSessionToken,
+    required String newPassword,
+  }) async {
+    await _runAuthAction<void>(() async {
+      await _authRepo.resetPassword(
+        resetSessionToken: resetSessionToken,
         newPassword: newPassword,
       );
     });
   }
 
-  Future<void> resetPassword({
-    required String uid,
-    required String newPassword,
-  }) async {
-    await _runAuthAction(() async {
-      await _authRepo.resetPassword(uid: uid, newPassword: newPassword);
-    });
-  }
+  Future<bool> register(String email, String password) async {
+    _setLoading(true);
+    _error = null;
 
-  Future<String?> register(String email, String password) async {
-    return await _runAuthAction<String>(() async {
-      // 1ï¸âƒ£ táº¡o account
+    var shouldCleanupAuthState = false;
+
+    try {
       final cred = await _authRepo.register(email: email, password: password);
-
       final user = cred.user;
-      if (user == null) throw Exception("User null");
+      if (user == null) {
+        throw Exception("User null");
+      }
 
-      final uid = user.uid;
+      shouldCleanupAuthState = true;
 
-      // 2ï¸âƒ£ táº¡o user doc
       await _userRepo.createParentIfMissing(
-        uid: uid,
+        uid: user.uid,
         email: user.email ?? email,
       );
 
-      // 3ï¸âƒ£ táº¡o OTP
-      await _otpRepo.createOtp(
-        uid: uid,
-        email: email,
-        type: MailType.verifyEmail,
-      );
-
-      await _authRepo.logout();
-      return uid;
-    });
+      await _otpRepo.requestEmailOtp();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _error = _mapFirebaseError(e);
+      return false;
+    } on FirebaseFunctionsException catch (e) {
+      _error = _mapFunctionsError(e);
+      return false;
+    } on Exception catch (e) {
+      _error = e.toString().replaceFirst("Exception: ", "");
+      return false;
+    } catch (_) {
+      _error = runtimeL10n().authGenericError;
+      return false;
+    } finally {
+      if (_error != null && shouldCleanupAuthState) {
+        await _safeCleanupAuthState();
+      }
+      _setLoading(false);
+    }
   }
 
   Future<void> logout() async {
@@ -170,13 +175,10 @@ class AuthVM extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _authRepo.logout();
-      await FcmPushReceiverService.onSignedOut();
-      await _storage.clearAuthData();
-      _user = null;
+      await _safeCleanupAuthState();
     } catch (e) {
       _error = e.toString();
-      debugPrint("âŒ Logout error: $e");
+      debugPrint("Logout error: $e");
     } finally {
       _loading = false;
       notifyListeners();
@@ -188,27 +190,33 @@ class AuthVM extends ChangeNotifier {
     _error = null;
 
     try {
-      final result = await action();
-      return result;
+      return await action();
     } on FirebaseAuthException catch (e) {
       debugPrint("AUTH ERROR (Firebase): $e");
-
       _error = _mapFirebaseError(e);
+      return null;
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint("AUTH ERROR (Functions): $e");
+      _error = _mapFunctionsError(e);
       return null;
     } on Exception catch (e) {
       debugPrint("AUTH ERROR (Exception): $e");
-
-      // láº¥y message tháº­t
       _error = e.toString().replaceFirst("Exception: ", "");
       return null;
     } catch (e) {
       debugPrint("AUTH ERROR (Unknown): $e");
-
       _error = runtimeL10n().authGenericError;
       return null;
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<void> _safeCleanupAuthState() async {
+    await _authRepo.logout();
+    await FcmPushReceiverService.onSignedOut();
+    await _storage.clearAuthData();
+    _user = null;
   }
 
   void _setLoading(bool value) {
@@ -238,7 +246,20 @@ class AuthVM extends ChangeNotifier {
     }
   }
 
-  // login social
+  String _mapFunctionsError(FirebaseFunctionsException e) {
+    switch (e.code) {
+      case 'resource-exhausted':
+        return runtimeL10n().otpTooManyAttempts;
+      case 'failed-precondition':
+        return runtimeL10n().authSendOtpFailed;
+      case 'unauthenticated':
+        return runtimeL10n().authLoginRequired;
+      case 'invalid-argument':
+        return runtimeL10n().authGenericError;
+      default:
+        return runtimeL10n().authGenericError;
+    }
+  }
 
   Future<void> loginWithGoogle() async {
     try {
@@ -246,7 +267,6 @@ class AuthVM extends ChangeNotifier {
       _setLoading(true);
 
       final user = await _authRepo.signInWithGoogle();
-
       await _handleUser(user);
     } catch (e) {
       _setError(e.toString());
@@ -270,30 +290,11 @@ class AuthVM extends ChangeNotifier {
   }
 
   Future<void> loginWithApple() async {
-    // try {
-    //   _setError(null);
-    //   _setLoading(true);
-
-    //   final user = await _authRepo.signInWithApple();
-    //   await _handleUser(user);
-    // } catch (e) {
-    //   _setError(e.toString());
-    // } finally {
-    //   _setLoading(false);
-    // }
+    // Intentionally left disabled until Apple Sign-In is configured.
   }
 
   Future<void> loginWithPhone() async {
-    // try {
-    //   _setError(null);
-    //   _setLoading(true);
-
-    //   await _authRepo.signInWithPhone();
-    // } catch (e) {
-    //   _setError(e.toString());
-    // } finally {
-    //   _setLoading(false);
-    // }
+    // Intentionally left disabled until phone auth flow is configured.
   }
 
   bool _isSendingOtp = false;
@@ -353,6 +354,7 @@ class AuthVM extends ChangeNotifier {
           displayName: user.displayName,
           locale: user.locale ?? 'vi',
           timezone: user.timezone ?? resolvedTimeZone,
+          isActive: true,
         );
         currentUser = await _authRepo.getUser(user.uid);
       } else {

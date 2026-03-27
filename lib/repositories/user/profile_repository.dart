@@ -61,11 +61,11 @@ class ProfileRepository implements ProfileRepositoryInterface {
     String? timezone,
   }) async {
     await userRef(uid).update({
-      'displayName': ?displayName,
-      'phone': ?phone,
-      'photoUrl': ?photoUrl,
-      'locale': ?locale,
-      'timezone': ?timezone,
+      if (displayName != null) 'displayName': displayName,
+      if (phone != null) 'phone': phone,
+      if (photoUrl != null) 'avatarUrl': photoUrl,
+      if (locale != null) 'locale': locale,
+      if (timezone != null) 'timezone': timezone,
       'lastActiveAt': FieldValue.serverTimestamp(),
     });
   }
@@ -79,9 +79,9 @@ class ProfileRepository implements ProfileRepositoryInterface {
       return;
     }
 
-    await userRef(uid).set({
-      'timezone': normalizedTimeZone,
-    }, SetOptions(merge: true));
+    await userRef(
+      uid,
+    ).set({'timezone': normalizedTimeZone}, SetOptions(merge: true));
   }
 
   Future<void> touchActive(String uid) async {
@@ -108,20 +108,6 @@ class ProfileRepository implements ProfileRepositoryInterface {
       return null;
     }
     return UserProfile.fromMap(uid, doc.data()!);
-  }
-
-  Future<UserProfile?> getUserByEmail(String email) async {
-    final snap = await _users
-        .where('email', isEqualTo: email.trim())
-        .limit(1)
-        .get();
-
-    if (snap.docs.isEmpty) {
-      return null;
-    }
-
-    final doc = snap.docs.first;
-    return UserProfile.fromMap(doc.id, doc.data());
   }
 
   Stream<UserProfile?> listenUserProfile(String uid) {

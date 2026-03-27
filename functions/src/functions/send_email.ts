@@ -2,6 +2,7 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { REGION, RESEND_API_KEY } from "../config";
 import { admin } from "../bootstrap";
 import { Resend } from "resend";
+
 export const onMailQueueCreated = onDocumentCreated(
   {
     document: "mail_queue/{mailId}",
@@ -14,60 +15,95 @@ export const onMailQueueCreated = onDocumentCreated(
     if (!snap) return;
 
     const mailId = event.params.mailId;
-    const data = snap.data() as any;
+    const ref = snap.ref;
 
-    const to: string | undefined = data.to;
-    const type: string | undefined = data.type;
+    const claimedData = await admin.firestore().runTransaction(async (tx) => {
+      const freshSnap = await tx.get(ref);
+      if (!freshSnap.exists) return null;
 
-    if (!to || !type) {
-      console.log("[MAIL] Missing to/type -> skip");
-      return;
-    }
+      const data = freshSnap.data() as any;
+      const to: string | undefined = data.to;
+      const type: string | undefined = data.type;
 
-    // tránh gửi trùng khi retry
-    if (data.status && data.status !== "pending") {
-      console.log(`[MAIL] already processed id=${mailId}`);
-      return;
-    }
+      if (!to || !type) {
+        tx.update(ref, {
+          status: "error",
+          error: "missing_to_or_type",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return null;
+      }
+
+      if (data.status && data.status !== "pending") {
+        console.log(
+          `[MAIL] already processed id=${mailId} status=${data.status}`,
+        );
+        return null;
+      }
+
+      tx.update(ref, {
+        status: "processing",
+        processingStartedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return data;
+    });
+
+    if (!claimedData) return;
+
+    const to: string = claimedData.to;
+    const type: string = claimedData.type;
 
     const template = MAIL_TEMPLATES[type];
-
     if (!template) {
+      await ref.update({
+        status: "error",
+        error: `unknown_template:${type}`,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
       console.error(`[MAIL] Unknown template type=${type}`);
       return;
     }
 
-    console.log(`[MAIL] Triggered id=${mailId} to=${to} type=${type}`);
+    console.log(`[MAIL] Claimed id=${mailId} to=${to} type=${type}`);
 
     try {
       const resend = new Resend(RESEND_API_KEY.value());
+      const html = template.render(claimedData);
 
-      const html = template.render(data);
-
-      const { error } = await resend.emails.send({
+      const result = await resend.emails.send({
         from: "Kid Manager <no-reply@homiesmart.io.vn>",
         to: [to],
         subject: template.subject,
         html,
       });
 
-      if (error) throw error;
+      if (result.error) {
+        throw result.error;
+      }
 
-      await snap.ref.update({
+      await ref.update({
         status: "sent",
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        provider: "resend",
+        providerMessageId: result.data?.id ?? null,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      console.log(`[MAIL] Sent successfully to ${to}`);
+      console.log(`[MAIL] Sent successfully id=${mailId} to=${to}`);
     } catch (error: any) {
       console.error("[MAIL] Send failed:", error?.message);
 
-      await snap.ref.update({
-        status: "error",
-        error: error?.message ?? "unknown_error",
+      await ref.update({
+        status: "pending",
+        lastError: error?.message ?? "unknown_error",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+
+      throw error;
     }
-  }
+  },
 );
 
 export type MailTemplate = {
@@ -99,7 +135,5 @@ export const MAIL_TEMPLATES: Record<string, MailTemplate> = {
     `,
   },
 };
-
 // firebase functions:secrets:set RESEND_API_KEY
 // re_aNk2vcpx_Lst9HFZTPH7hK2m2Npj43XYa
-
