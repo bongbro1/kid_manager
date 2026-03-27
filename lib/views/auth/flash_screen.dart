@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/date_symbol_data_file.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/features/sessionguard/session_guard.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -62,13 +64,14 @@ class _FlashScreenState extends State<FlashScreen> {
     await context.read<StorageService>().setBool(StorageKeys.flashSeenV1, true);
 
     await _runDeferredStartupTasks();
+    if (!mounted) return;
+
     context.read<SessionVM>().finishSplash();
-
-    if (!context.mounted) return;
-
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const StartupGate()));
+    unawaited(
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const StartupGate()),
+      ),
+    );
   }
 
   @override
@@ -118,7 +121,7 @@ class _FlashScreenState extends State<FlashScreen> {
                         l10n.flashWelcomeSubtitle,
                         textAlign: TextAlign.center,
                         style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface.withOpacity(0.8),
+                          color: colorScheme.onSurface.withValues(alpha: 0.8),
                           fontSize: 14,
                           fontFamily: 'DM Sans',
                           fontWeight: FontWeight.w400,

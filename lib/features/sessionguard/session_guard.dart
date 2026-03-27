@@ -71,7 +71,10 @@ class _StartupGateState extends State<StartupGate> {
       return;
     }
 
-    appVM.loadAndSeedApp();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(appVM.loadAndSeedApp());
+    });
 
     // 👉 Sau khi qua flash mới check
     final permissionService = context.read<PermissionService>();
@@ -477,7 +480,7 @@ class _SessionGuardState extends State<SessionGuard> {
       if ((resolvedRole == UserRole.parent ||
               resolvedRole == UserRole.guardian) &&
           managedOwnerUid.isNotEmpty) {
-        appManagementVm.watchChildren(managedOwnerUid);
+        unawaited(appManagementVm.watchChildren(managedOwnerUid));
       }
 
       _bootstrappedUid = uid;
