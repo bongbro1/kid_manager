@@ -118,12 +118,13 @@ class TrackingForegroundService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        ensureNotificationChannel()
+        val strings = TrackingNotificationLocalizer.resolve(this)
+        ensureNotificationChannel(strings)
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Sharing location")
-            .setContentText("Location tracking continues in the background")
+            .setContentTitle(strings.notificationTitle)
+            .setContentText(strings.notificationText)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -131,23 +132,18 @@ class TrackingForegroundService : Service() {
             .build()
     }
 
-    private fun ensureNotificationChannel() {
+    private fun ensureNotificationChannel(strings: TrackingNotificationStrings) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return
         }
 
         val manager = getSystemService(NotificationManager::class.java)
-        val existing = manager.getNotificationChannel(CHANNEL_ID)
-        if (existing != null) {
-            return
-        }
-
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Background tracking",
+            strings.channelName,
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = "Keeps child location tracking alive in the background"
+            description = strings.channelDescription
             setShowBadge(false)
             lockscreenVisibility = Notification.VISIBILITY_PRIVATE
         }

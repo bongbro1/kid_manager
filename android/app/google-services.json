@@ -31,6 +31,14 @@
           }
         },
         {
+          "client_id": "1081020222417-v9ka9rmh22dest57470ovfr3ebu3l7kr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.kid_manager",
+            "certificate_hash": "1cbac8b8035a700a875b14a67e7f3506f20044a0"
+          }
+        },
+        {
           "client_id": "1081020222417-6o72uhdomnrhsk4j2a544pskjb8vhii7.apps.googleusercontent.com",
           "client_type": 3
         }
