@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/background/auth_runtime_manager.dart';
-import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/login_session.dart';
@@ -116,10 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      await storage.setString(
-        StorageKeys.role,
-        profile.roleKey,
-      );
+      await storage.setString(StorageKeys.role, profile.roleKey);
       await storage.setString(StorageKeys.displayName, profile.name);
 
       final role = profile.role;
@@ -154,9 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await storage.remove(StorageKeys.login_preference);
       }
 
-      debugPrint(
-        'Running role: ${profile.roleKey}',
-      );
+      debugPrint('Running role: ${profile.roleKey}');
 
       if (role == UserRole.child) {
         if (parentOwnerUid.isEmpty) {

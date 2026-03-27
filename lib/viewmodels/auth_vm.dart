@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
-import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
@@ -344,8 +343,8 @@ class AuthVM extends ChangeNotifier {
     }
     try {
       final existingUser = await _authRepo.getUser(user.uid);
-      final resolvedTimeZone =
-          await DeviceTimeZoneService.instance.getDeviceTimeZone();
+      final resolvedTimeZone = await DeviceTimeZoneService.instance
+          .getDeviceTimeZone();
 
       if (existingUser == null) {
         await _userRepo.createParentIfMissing(

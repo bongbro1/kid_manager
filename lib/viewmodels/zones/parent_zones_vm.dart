@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/helpers/zone/zone_overlap.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/repositories/user/profile_repository.dart';
@@ -8,19 +9,24 @@ import 'package:kid_manager/services/access_control/access_control_service.dart'
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ParentZonesVm extends ChangeNotifier {
-  final ZoneRepository _repo;
-  final FirebaseAuth _auth;
-  final ProfileRepository _profileRepository;
+  final ZoneRepositoryInterface _repo;
+  final ProfileRepositoryInterface _profileRepository;
   final AccessControlService _accessControl;
+  final String? Function() _currentUserUidProvider;
 
   ParentZonesVm(
     this._repo,
     this._profileRepository,
     this._accessControl, {
     FirebaseAuth? auth,
-  }) : _auth = auth ?? FirebaseAuth.instance;
+    String? Function()? currentUserUidProvider,
+  }) : _currentUserUidProvider =
+           currentUserUidProvider ??
+           (() => (auth ?? FirebaseAuth.instance).currentUser?.uid.trim());
 
   StreamSubscription<List<GeoZone>>? _sub;
+  int _bindGeneration = 0;
+  String? _boundChildUid;
 
   List<GeoZone> _zones = [];
   List<GeoZone> get zones => _zones;
@@ -49,49 +55,108 @@ class ParentZonesVm extends ChangeNotifier {
 
   Future<void> _reloadZones(String childUid) async {
     final latest = await _repo.getZonesOnce(childUid);
+    if (_boundChildUid != null && _boundChildUid != childUid) {
+      return;
+    }
     _zones = latest;
     _error = null;
     notifyListeners();
   }
 
-  Future<void> _ensureCanManageChild(String childUid) async {
-    final actorUid = _auth.currentUser?.uid?.trim();
+  Future<({AppUser actor, AppUser child})> _loadAccessContext(
+    String childUid,
+  ) async {
+    final actorUid = _currentUserUidProvider()?.trim();
     if (actorUid == null || actorUid.isEmpty) {
       throw StateError('Unauthenticated');
     }
 
     final actor = await _profileRepository.getUserById(actorUid);
     final child = await _profileRepository.getUserById(childUid);
-    if (actor == null ||
-        child == null ||
-        !_accessControl.canManageChild(
-          actor: actor,
-          childUid: childUid,
-          child: child,
-        )) {
+    if (actor == null || child == null) {
+      throw StateError('Access denied');
+    }
+
+    return (actor: actor, child: child);
+  }
+
+  Future<void> _ensureCanViewChild(String childUid) async {
+    final access = await _loadAccessContext(childUid);
+    if (!_accessControl.canAccessChild(
+      actor: access.actor,
+      childUid: childUid,
+      child: access.child,
+    )) {
       throw StateError('Access denied');
     }
   }
 
-  Future<void> bind(String childUid) async {
-    try {
-      await _ensureCanManageChild(childUid);
-      await _sub?.cancel();
-      _sub = _repo.watchZones(childUid).listen((list) {
-        debugPrint("zones length = ${list.length}");
-        _zones = list;
-        _error = null;
-        notifyListeners();
-      }, onError: (e) {
-        debugPrint("watchZones error: $e");
-        _setError(e);
-      });
-    } catch (e) {
-      _setError(e);
+  Future<void> _ensureCanManageChild(String childUid) async {
+    final access = await _loadAccessContext(childUid);
+    if (!_accessControl.canManageChild(
+      actor: access.actor,
+      childUid: childUid,
+      child: access.child,
+    )) {
+      throw StateError('Access denied');
     }
   }
 
-  Future<void> toggleEnabled(String childUid, GeoZone zone, bool enabled) async {
+  bool _isCurrentBind(int generation, String childUid) {
+    return _bindGeneration == generation && _boundChildUid == childUid;
+  }
+
+  Future<void> bind(String childUid) async {
+    final generation = ++_bindGeneration;
+    _boundChildUid = childUid;
+
+    final staleSub = _sub;
+    _sub = null;
+    await staleSub?.cancel();
+    if (!_isCurrentBind(generation, childUid)) {
+      return;
+    }
+
+    _zones = [];
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _ensureCanViewChild(childUid);
+      if (!_isCurrentBind(generation, childUid)) {
+        return;
+      }
+
+      _sub = _repo
+          .watchZones(childUid)
+          .listen(
+            (list) {
+              if (!_isCurrentBind(generation, childUid)) {
+                return;
+              }
+              _zones = list;
+              _error = null;
+              notifyListeners();
+            },
+            onError: (e) {
+              if (!_isCurrentBind(generation, childUid)) {
+                return;
+              }
+              _setError(e);
+            },
+          );
+    } catch (e) {
+      if (_isCurrentBind(generation, childUid)) {
+        _setError(e);
+      }
+    }
+  }
+
+  Future<void> toggleEnabled(
+    String childUid,
+    GeoZone zone,
+    bool enabled,
+  ) async {
     try {
       clearError();
       await _ensureCanManageChild(childUid);
@@ -103,6 +168,7 @@ class ParentZonesVm extends ChangeNotifier {
       await _reloadZones(childUid);
     } catch (e) {
       debugPrint('toggle zone failed: $e');
+      _setError(e);
     }
   }
 
@@ -114,6 +180,7 @@ class ParentZonesVm extends ChangeNotifier {
       await _reloadZones(childUid);
     } catch (e) {
       debugPrint('delete zone failed: $e');
+      _setError(e);
       rethrow;
     }
   }
@@ -123,7 +190,7 @@ class ParentZonesVm extends ChangeNotifier {
     clearError();
     try {
       await _ensureCanManageChild(childUid);
-      final uid = _auth.currentUser?.uid;
+      final uid = _currentUserUidProvider()?.trim();
       if (uid == null || uid.isEmpty) {
         throw StateError("Unauthenticated");
       }
@@ -145,6 +212,7 @@ class ParentZonesVm extends ChangeNotifier {
       await _reloadZones(childUid);
     } catch (e) {
       debugPrint('save zone failed: $e');
+      _setError(e);
       rethrow;
     } finally {
       _setLoading(false);
@@ -156,7 +224,7 @@ class ParentZonesVm extends ChangeNotifier {
     required double lat,
     required double lng,
   }) {
-    final uid = _auth.currentUser?.uid ?? "";
+    final uid = _currentUserUidProvider()?.trim() ?? "";
     final now = DateTime.now().millisecondsSinceEpoch;
 
     return GeoZone(
@@ -175,6 +243,8 @@ class ParentZonesVm extends ChangeNotifier {
 
   @override
   void dispose() {
+    _bindGeneration++;
+    _boundChildUid = null;
     _sub?.cancel();
     super.dispose();
   }

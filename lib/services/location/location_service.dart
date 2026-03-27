@@ -293,7 +293,7 @@ class LocationServiceImpl implements LocationServiceInterface {
         heading: p.heading,
         isMock: p.isMocked,
         timestamp:
-            p.timestamp?.millisecondsSinceEpoch ??
+            p.timestamp.millisecondsSinceEpoch ??
             DateTime.now().millisecondsSinceEpoch,
       );
     });

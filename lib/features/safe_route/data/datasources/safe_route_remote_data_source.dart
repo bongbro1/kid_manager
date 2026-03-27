@@ -54,6 +54,9 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
   final FirebaseDatabase _database;
   final FirebaseFirestore _firestore;
   static const Duration _liveLocationPollingInterval = Duration(seconds: 2);
+  static const Duration _currentTripFallbackPollingInterval = Duration(
+    seconds: 4,
+  );
 
   @override
   Future<List<SafeRouteModel>> getSuggestedRoutes(
@@ -132,15 +135,61 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
     late final StreamController<TripModel?> controller;
     StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? subscription;
     Timer? expiryTimer;
+    Timer? fallbackPollTimer;
     CurrentTripSnapshotModel? latestSnapshot;
+    bool usingCallableFallback = false;
 
     late void Function() emitCurrent;
+
+    bool shouldFallbackToCallable(Object error) {
+      return error is FirebaseException &&
+          (error.code == 'permission-denied' || error.code == 'unavailable');
+    }
+
+    Future<void> pollCurrentTripFromCallable() async {
+      if (controller.isClosed) {
+        return;
+      }
+
+      try {
+        final trip = await getActiveTripByChildId(childId);
+        if (!controller.isClosed) {
+          controller.add(trip);
+        }
+      } catch (error, stackTrace) {
+        if (!controller.isClosed) {
+          controller.addError(error, stackTrace);
+        }
+      }
+    }
+
+    void startCallableFallback(Object error) {
+      if (usingCallableFallback || controller.isClosed) {
+        return;
+      }
+      usingCallableFallback = true;
+      expiryTimer?.cancel();
+      expiryTimer = null;
+      debugPrint(
+        '[SafeRoute] fallback to getActiveSafeRouteTripByChildId for '
+        'safe_route_current_trips/$childId because snapshot listen failed: '
+        '$error',
+      );
+      unawaited(subscription?.cancel());
+      subscription = null;
+      unawaited(pollCurrentTripFromCallable());
+      fallbackPollTimer = Timer.periodic(
+        _currentTripFallbackPollingInterval,
+        (_) => unawaited(pollCurrentTripFromCallable()),
+      );
+    }
 
     void scheduleExpiryIfNeeded() {
       expiryTimer?.cancel();
       expiryTimer = null;
 
-      if (audience != TripVisibilityAudience.adultManager) {
+      if (usingCallableFallback ||
+          audience != TripVisibilityAudience.adultManager) {
         return;
       }
 
@@ -206,6 +255,10 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
             emitCurrent();
           },
           onError: (error, stackTrace) {
+            if (shouldFallbackToCallable(error)) {
+              startCallableFallback(error);
+              return;
+            }
             if (!controller.isClosed) {
               controller.addError(error, stackTrace);
             }
@@ -215,6 +268,8 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
       onCancel: () async {
         expiryTimer?.cancel();
         expiryTimer = null;
+        fallbackPollTimer?.cancel();
+        fallbackPollTimer = null;
         await subscription?.cancel();
         subscription = null;
       },

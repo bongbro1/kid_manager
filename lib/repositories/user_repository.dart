@@ -91,6 +91,13 @@ class UserRepository {
     );
   }
 
+  Future<void> updateTimeZone({
+    required String uid,
+    required String timezone,
+  }) {
+    return _profileRepository.updateTimeZone(uid: uid, timezone: timezone);
+  }
+
   Future<void> touchActive(String uid) => _profileRepository.touchActive(uid);
 
   Stream<List<AppUser>> watchChildren(String parentUid) =>

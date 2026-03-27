@@ -7,7 +7,7 @@ import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 
 class ZoneMonitor {
-  final ZoneRepository repo;
+  final ZoneRepositoryInterface repo;
   final String childUid;
 
   ZoneMonitor({required this.repo, required this.childUid});
@@ -94,18 +94,9 @@ class ZoneMonitor {
           await LocalAlarmService.I.showDangerEnter(zoneName: z.name);
         }
 
-        await repo.pushZoneEvent(childUid, {
-          'zoneId': z.id,
-          'zoneType': z.type.name, // safe/danger
-          'action': 'enter',
-          'zoneName': z.name,
-          'lat': loc.latitude,
-          'lng': loc.longitude,
-          'timestamp': loc.timestamp,
-        });
-
         debugPrint(
-          'ZONE ENTER: ${z.name} (${z.type.name}) d=${d.toStringAsFixed(1)}m',
+          'ZONE ENTER (local observation only): ${z.name} (${z.type.name}) '
+          'd=${d.toStringAsFixed(1)}m',
         );
       }
 
@@ -113,18 +104,9 @@ class ZoneMonitor {
         _inside.remove(z.id);
         _lastEventAtMs = now;
 
-        await repo.pushZoneEvent(childUid, {
-          'zoneId': z.id,
-          'zoneType': z.type.name,
-          'action': 'exit',
-          'zoneName': z.name,
-          'lat': loc.latitude,
-          'lng': loc.longitude,
-          'timestamp': loc.timestamp,
-        });
-
         debugPrint(
-          'ZONE EXIT: ${z.name} (${z.type.name}) d=${d.toStringAsFixed(1)}m',
+          'ZONE EXIT (local observation only): ${z.name} (${z.type.name}) '
+          'd=${d.toStringAsFixed(1)}m',
         );
       }
     }

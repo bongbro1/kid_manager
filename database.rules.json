@@ -27,14 +27,14 @@
     "zoneEventsByChild": {
       "$childUid": {
         ".read": "auth != null && (auth.uid === $childUid || root.child('locations').child($childUid).child('meta').child('parentUid').val() === auth.uid)",
-        ".write": "auth != null && auth.uid === $childUid"
+        ".write": false
       }
     },
     "zonePresenceByChild": {
-      "$memberUid": {
-    ".read": "auth != null",
-    ".write": false
-  }
+      "$childUid": {
+        ".read": "auth != null && (auth.uid === $childUid || root.child('locations').child($childUid).child('meta').child('parentUid').val() === auth.uid)",
+        ".write": false
+      }
     }
   }
 }

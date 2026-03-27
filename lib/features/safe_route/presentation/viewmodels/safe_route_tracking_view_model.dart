@@ -15,12 +15,12 @@ import 'package:kid_manager/features/safe_route/domain/usecases/start_trip_useca
 import 'package:kid_manager/features/safe_route/domain/usecases/stream_live_location_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/update_trip_status_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/watch_current_trip_by_child_id_usecase.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_access.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
 import 'package:kid_manager/features/subscription/subscription_quota_gate.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
-import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/repositories/user/profile_repository.dart';
 import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/services/access_control/feature_policy.dart';
@@ -128,50 +128,47 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     required bool requireManageChild,
     bool requireViewLocation = false,
   }) async {
-    final actorUid = _auth.currentUser?.uid?.trim();
-    if (actorUid == null || actorUid.isEmpty) {
-      _setState(
-        _state.copyWith(
-          errorMessage: _l10n.safeRouteErrorLoginAgain,
-        ),
-      );
+    final access = await loadSafeRouteAccess(
+      childId: childId,
+      profileRepository: _profileRepository,
+      accessControl: _accessControl,
+      auth: _auth,
+      requireManageChild: requireManageChild,
+      requireViewLocation: requireViewLocation,
+    );
+
+    debugPrint(
+      '[SafeRouteAuth] '
+      'childId=$childId '
+      'feature=${feature.name} '
+      'requireViewLocation=$requireViewLocation '
+      'requireManageChild=$requireManageChild '
+      'allowed=${access.isAllowed} '
+      'issue=${access.issue}',
+    );
+    if (!access.isAllowed) {
+      final issue = access.issue;
+      if (issue == null) {
+        _setState(_state.copyWith(errorMessage: _accessDeniedMessage));
+        return null;
+      }
+
+      final errorMessage = resolveSafeRouteAccessMessage(_l10n, issue);
+      _setState(_state.copyWith(errorMessage: errorMessage));
       return null;
     }
 
-    final actor = await _profileRepository.getUserById(actorUid);
-    final child = await _profileRepository.getUserById(childId);
-
-    if (actor == null ||
-        child == null ||
-        !_accessControl.canUseFeature(feature: feature, actor: actor)) {
-      _setState(_state.copyWith(errorMessage: _accessDeniedMessage));
+    final actor = access.actor!;
+    final child = access.child!;
+    if (!_accessControl.canUseFeature(feature: feature, actor: actor)) {
+      final fallbackMessage = feature == AppFeature.locationViewing
+          ? _locationDeniedMessage
+          : _accessDeniedMessage;
+      _setState(_state.copyWith(errorMessage: fallbackMessage));
       return null;
     }
 
-    if (requireManageChild &&
-        !_accessControl.canManageChild(
-          actor: actor,
-          childUid: childId,
-          child: child,
-        )) {
-      _setState(_state.copyWith(errorMessage: _accessDeniedMessage));
-      return null;
-    }
-
-    if (requireViewLocation &&
-        !_accessControl.canViewLocation(
-          actor: actor,
-          childUid: childId,
-          childAllowsTracking: child.allowTracking,
-          child: child,
-        )) {
-      _setState(_state.copyWith(errorMessage: _locationDeniedMessage));
-      return null;
-    }
-
-    final ownerParentUid = actor.role == UserRole.guardian
-        ? (actor.parentUid ?? '').trim()
-        : actor.uid;
+    final ownerParentUid = access.ownerParentUid ?? '';
     if (ownerParentUid.isEmpty) {
       _setState(_state.copyWith(errorMessage: _accessDeniedMessage));
       return null;
@@ -262,9 +259,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     } else {
       if (next.length >= 2) {
         _setState(
-          _state.copyWith(
-            errorMessage: _l10n.safeRouteErrorMaxAlternative,
-          ),
+          _state.copyWith(errorMessage: _l10n.safeRouteErrorMaxAlternative),
         );
         return;
       }
@@ -364,10 +359,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     } catch (error) {
       debugPrint('Error refreshing active trip: $error');
       _setState(
-        _state.copyWith(
-          isLoading: false,
-          errorMessage: error.toString(),
-        ),
+        _state.copyWith(isLoading: false, errorMessage: error.toString()),
       );
     } finally {
       _isRefreshingTrip = false;
@@ -377,19 +369,20 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   Future<void> _bindCurrentTripStream() async {
     await _tripSub?.cancel();
     final generation = _captureLifecycle();
-    _tripSub = _watchCurrentTripByChildIdUseCase(
-      childId,
-      audience: TripVisibilityAudience.adultManager,
-    ).listen(
-      (trip) async {
-        if (_isStaleLifecycle(generation)) return;
-        await _applyCanonicalTrip(trip, generation: generation);
-      },
-      onError: (error) {
-        if (_isStaleLifecycle(generation)) return;
-        _setState(_state.copyWith(errorMessage: error.toString()));
-      },
-    );
+    _tripSub =
+        _watchCurrentTripByChildIdUseCase(
+          childId,
+          audience: TripVisibilityAudience.adultManager,
+        ).listen(
+          (trip) async {
+            if (_isStaleLifecycle(generation)) return;
+            await _applyCanonicalTrip(trip, generation: generation);
+          },
+          onError: (error) {
+            if (_isStaleLifecycle(generation)) return;
+            _setState(_state.copyWith(errorMessage: error.toString()));
+          },
+        );
   }
 
   Future<void> _bindLiveLocation() async {
@@ -447,7 +440,9 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   void useLiveLocationAsStart() {
     final liveLocation = _state.liveLocation;
     if (liveLocation == null) {
-      _setState(_state.copyWith(errorMessage: _l10n.safeRouteErrorNoCurrentLocation));
+      _setState(
+        _state.copyWith(errorMessage: _l10n.safeRouteErrorNoCurrentLocation),
+      );
       return;
     }
 
@@ -580,7 +575,9 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     final start = _state.selectedStart;
     final end = _state.selectedEnd;
     if (start == null || end == null) {
-      _setState(_state.copyWith(errorMessage: _l10n.safeRouteErrorNeedStartEnd));
+      _setState(
+        _state.copyWith(errorMessage: _l10n.safeRouteErrorNeedStartEnd),
+      );
       return;
     }
 
@@ -674,9 +671,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     if (_isStaleLifecycle(generation)) return;
     if (route == null) {
       _setState(
-        _state.copyWith(
-          errorMessage: _l10n.safeRouteErrorLoadHistoryRoute,
-        ),
+        _state.copyWith(errorMessage: _l10n.safeRouteErrorLoadHistoryRoute),
       );
       return;
     }
@@ -723,19 +718,13 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
       _setState(_state.copyWith(errorMessage: _l10n.safeRouteErrorNeedRoute));
       return;
     }
-    if (parentId == null || parentId.isEmpty) {
-      _setState(
-        _state.copyWith(
-          errorMessage: _l10n.safeRouteErrorLoginAgain,
-        ),
-      );
+    if (parentId.isEmpty) {
+      _setState(_state.copyWith(errorMessage: _l10n.safeRouteErrorLoginAgain));
       return;
     }
     if (_state.repeatWeekdays.isNotEmpty && _state.scheduledTime == null) {
       _setState(
-        _state.copyWith(
-          errorMessage: _l10n.safeRouteErrorSelectTimeForRepeat,
-        ),
+        _state.copyWith(errorMessage: _l10n.safeRouteErrorSelectTimeForRepeat),
       );
       return;
     }
@@ -826,6 +815,8 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     try {
       await _updateTripStatusUseCase(trip.id, TripStatus.completed);
       if (_isStaleLifecycle(generation)) return;
+      await refreshActiveTrip();
+      if (_isStaleLifecycle(generation)) return;
     } catch (error) {
       if (_isStaleLifecycle(generation)) return;
       _pendingCompletionTripId = null;
@@ -863,6 +854,8 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
         TripStatus.cancelled,
         reason: _l10n.safeRouteCancelledByParentReason,
       );
+      if (_isStaleLifecycle(generation)) return;
+      await refreshActiveTrip();
       if (_isStaleLifecycle(generation)) return;
     } catch (error) {
       if (_isStaleLifecycle(generation)) return;
@@ -925,11 +918,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
 
   void clearCompletedTripConfirmation() {
     if (_state.completedTripConfirmationTripId == null) return;
-    _setState(
-      _state.copyWith(
-        completedTripConfirmationTripId: null,
-      ),
-    );
+    _setState(_state.copyWith(completedTripConfirmationTripId: null));
   }
 
   void clearError() {
@@ -951,6 +940,28 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
       _dismissedCompletedTripId = null;
     }
 
+    final mutationResolution = _resolveTripMutation(trip);
+    final nextTripMutation = mutationResolution.tripMutation;
+    final completedTripConfirmationTripId =
+        mutationResolution.completedTripConfirmationTripId;
+    final shouldCommitMutationResolutionEarly =
+        trip != null &&
+        (nextTripMutation != _state.tripMutation ||
+            completedTripConfirmationTripId !=
+                _state.completedTripConfirmationTripId);
+
+    if (shouldCommitMutationResolutionEarly) {
+      _setState(
+        _state.copyWith(
+          isLoading: false,
+          activeTrip: trip,
+          tripMutation: nextTripMutation,
+          completedTripConfirmationTripId: completedTripConfirmationTripId,
+          clearActiveTrip: false,
+        ),
+      );
+    }
+
     SafeRoute? route;
     List<SafeRoute> alternativeRoutes = const [];
     if (trip != null) {
@@ -964,40 +975,9 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     final nextLiveLocation =
         fallbackLiveLocation != null &&
             (_state.liveLocation == null ||
-                fallbackLiveLocation.timestamp >
-                    _state.liveLocation!.timestamp)
+                fallbackLiveLocation.timestamp > _state.liveLocation!.timestamp)
         ? fallbackLiveLocation
         : _state.liveLocation;
-
-    var nextTripMutation = _state.tripMutation;
-    String? completedTripConfirmationTripId =
-        _state.completedTripConfirmationTripId;
-
-    if (_pendingCompletionTripId != null) {
-      final completedTripVisible =
-          trip?.id == _pendingCompletionTripId &&
-          trip?.status == TripStatus.completed;
-      if (completedTripVisible) {
-        completedTripConfirmationTripId = trip!.id;
-        nextTripMutation = TripMutationState.none;
-        _pendingCompletionTripId = null;
-      }
-    }
-
-    if (_pendingCancellationTripId != null) {
-      final cancelledTripNoLongerVisible =
-          trip == null || trip.id != _pendingCancellationTripId;
-      if (cancelledTripNoLongerVisible) {
-        nextTripMutation = TripMutationState.none;
-        _pendingCancellationTripId = null;
-      }
-    }
-
-    if (_pendingCompletionTripId == null &&
-        _pendingCancellationTripId == null &&
-        nextTripMutation != TripMutationState.none) {
-      nextTripMutation = TripMutationState.none;
-    }
 
     _setState(
       _state.copyWith(
@@ -1034,6 +1014,43 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
         clearActiveTrip: trip == null,
         clearActiveRoute: route == null,
       ),
+    );
+  }
+
+  _TripMutationResolution _resolveTripMutation(Trip? trip) {
+    var nextTripMutation = _state.tripMutation;
+    var completedTripConfirmationTripId =
+        _state.completedTripConfirmationTripId;
+
+    if (_pendingCompletionTripId != null) {
+      final completedTripVisible =
+          trip?.id == _pendingCompletionTripId &&
+          trip?.status == TripStatus.completed;
+      if (completedTripVisible) {
+        completedTripConfirmationTripId = trip!.id;
+        nextTripMutation = TripMutationState.none;
+        _pendingCompletionTripId = null;
+      }
+    }
+
+    if (_pendingCancellationTripId != null) {
+      final cancelledTripNoLongerVisible =
+          trip == null || trip.id != _pendingCancellationTripId;
+      if (cancelledTripNoLongerVisible) {
+        nextTripMutation = TripMutationState.none;
+        _pendingCancellationTripId = null;
+      }
+    }
+
+    if (_pendingCompletionTripId == null &&
+        _pendingCancellationTripId == null &&
+        nextTripMutation != TripMutationState.none) {
+      nextTripMutation = TripMutationState.none;
+    }
+
+    return _TripMutationResolution(
+      tripMutation: nextTripMutation,
+      completedTripConfirmationTripId: completedTripConfirmationTripId,
     );
   }
 
@@ -1155,6 +1172,16 @@ class _ResolvedRouteGroup {
 
   final SafeRoute? primaryRoute;
   final List<SafeRoute> alternativeRoutes;
+}
+
+class _TripMutationResolution {
+  const _TripMutationResolution({
+    required this.tripMutation,
+    required this.completedTripConfirmationTripId,
+  });
+
+  final TripMutationState tripMutation;
+  final String? completedTripConfirmationTripId;
 }
 
 class _AuthorizedSafeRouteContext {

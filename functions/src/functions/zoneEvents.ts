@@ -1,6 +1,17 @@
-import { onValueCreated } from "firebase-functions/v2/database";
+import {
+  onValueCreated,
+  onValueWritten,
+} from "firebase-functions/v2/database";
 import { admin, db } from "../bootstrap";
 import { createGlobalNotificationRecord } from "../services/globalNotifications";
+import {
+  computeCanonicalZoneEvents,
+  isCanonicalZoneEventRecord,
+  parseTrustedZones,
+  parseZoneObservation,
+  parseZonePresenceRecord,
+  type CanonicalZoneEventRecord,
+} from "../services/zoneEventEvaluator";
 
 const RTDB_REGION = "us-central1";
 
@@ -19,135 +30,245 @@ function dayInVN(timestampMs: number): string {
   return `${year}-${month}-${day}`;
 }
 
+async function writeZoneExitStats(
+  childUid: string,
+  eventRecord: CanonicalZoneEventRecord,
+) {
+  if (eventRecord.action !== "exit" || eventRecord.durationSec <= 0) {
+    return;
+  }
+
+  const day = dayInVN(eventRecord.timestamp);
+  const zoneStatRef = db.doc(
+    `zoneStatsByChild/${childUid}/days/${day}/zones/${eventRecord.zoneId}`,
+  );
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(zoneStatRef);
+    const current = snap.exists ? (snap.data() as Record<string, unknown>) : {};
+
+    const previousTotal = Number(current.totalSec ?? 0);
+    const previousSessions = Number(current.sessions ?? 0);
+
+    tx.set(
+      zoneStatRef,
+      {
+        zoneId: eventRecord.zoneId,
+        zoneName: eventRecord.zoneName,
+        zoneType: eventRecord.zoneType,
+        totalSec: previousTotal + eventRecord.durationSec,
+        sessions: previousSessions + 1,
+        lastEnterAt:
+          current.lastEnterAt ?? (eventRecord.enterAt ?? eventRecord.timestamp),
+        lastExitAt: eventRecord.timestamp,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  });
+}
+
+async function persistCanonicalZoneEvent(
+  childUid: string,
+  eventRecord: CanonicalZoneEventRecord,
+) {
+  const presenceRef = admin
+    .database()
+    .ref(`zonePresenceByChild/${childUid}/${eventRecord.zoneId}`);
+
+  if (eventRecord.action === "enter") {
+    const txResult = await presenceRef.transaction((current) => {
+      const presence = parseZonePresenceRecord(current);
+      if (presence?.inside === true) {
+        return;
+      }
+
+      return {
+        inside: true,
+        zoneType: eventRecord.zoneType,
+        zoneName: eventRecord.zoneName,
+        enterAt: eventRecord.timestamp,
+        updatedAt: eventRecord.timestamp,
+        source: eventRecord.source,
+      };
+    });
+
+    if (!txResult.committed) {
+      return false;
+    }
+  } else {
+    const currentPresenceSnap = await presenceRef.get();
+    const currentPresence = currentPresenceSnap.exists()
+      ? parseZonePresenceRecord(currentPresenceSnap.val())
+      : null;
+    if (currentPresence == null) {
+      return false;
+    }
+
+    const expectedEnterAt = currentPresence.enterAt;
+    const txResult = await presenceRef.transaction((current) => {
+      const presence = parseZonePresenceRecord(current);
+      if (presence == null || !presence.inside) {
+        return;
+      }
+      if (presence.enterAt !== expectedEnterAt) {
+        return;
+      }
+
+      return null;
+    });
+
+    if (!txResult.committed) {
+      return false;
+    }
+
+    await writeZoneExitStats(childUid, {
+      ...eventRecord,
+      enterAt: expectedEnterAt,
+      durationSec: Math.max(
+        0,
+        Math.floor((eventRecord.timestamp - expectedEnterAt) / 1000),
+      ),
+      durationMin:
+        eventRecord.timestamp > expectedEnterAt
+          ? Math.max(
+              1,
+              Math.round((eventRecord.timestamp - expectedEnterAt) / 60000),
+            )
+          : 0,
+    });
+  }
+
+  await admin
+    .database()
+    .ref(`zoneEventsByChild/${childUid}`)
+    .push()
+    .set({
+      ...eventRecord,
+      createdAt: Date.now(),
+    });
+  return true;
+}
+
+export const evaluateZoneEventsFromCurrentLocation = onValueWritten(
+  { ref: "locations/{childUid}/current", region: RTDB_REGION },
+  async (event) => {
+    const childUid = String(event.params.childUid ?? "").trim();
+    const current = event.data.after.val();
+    if (!childUid || !current) {
+      return;
+    }
+
+    const observation = parseZoneObservation(childUid, current);
+    if (observation == null) {
+      console.log(
+        `[ZONE_EVENT_EVALUATOR] ignore invalid current location childUid=${childUid}`,
+      );
+      return;
+    }
+
+    const [zonesSnap, presenceSnap] = await Promise.all([
+      admin.database().ref(`zonesByChild/${childUid}`).get(),
+      admin.database().ref(`zonePresenceByChild/${childUid}`).get(),
+    ]);
+
+    const zones = parseTrustedZones(zonesSnap.exists() ? zonesSnap.val() : null);
+    if (!zones.length) {
+      return;
+    }
+
+    const canonicalEvents = computeCanonicalZoneEvents({
+      childUid,
+      observation,
+      zones,
+      presenceByZone:
+        presenceSnap.exists() && typeof presenceSnap.val() === "object"
+          ? (presenceSnap.val() as Record<string, unknown>)
+          : {},
+    });
+
+    for (const canonicalEvent of canonicalEvents) {
+      try {
+        await persistCanonicalZoneEvent(childUid, canonicalEvent);
+      } catch (error) {
+        console.error(
+          `[ZONE_EVENT_EVALUATOR] persist failed childUid=${childUid} zoneId=${canonicalEvent.zoneId} action=${canonicalEvent.action}`,
+          error,
+        );
+      }
+    }
+  },
+);
+
 export const onZoneEventCreated = onValueCreated(
   { ref: "zoneEventsByChild/{childUid}/{eventId}", region: RTDB_REGION },
   async (event) => {
-    const { childUid, eventId } = event.params as any;
-    const ev = event.data?.val();
-    if (!ev) return;
+    const { childUid, eventId } = event.params as {
+      childUid: string;
+      eventId: string;
+    };
+    const rawEvent = event.data?.val();
+    if (!isCanonicalZoneEventRecord(rawEvent)) {
+      console.log(
+        `[ZONE_EVENT] ignore non-canonical event childUid=${childUid} eventId=${eventId}`,
+      );
+      return;
+    }
 
+    const eventRecord = rawEvent as CanonicalZoneEventRecord;
     const childSnap = await db.doc(`users/${childUid}`).get();
-    if (!childSnap.exists) return;
+    if (!childSnap.exists) {
+      return;
+    }
 
-    const child = childSnap.data() as any;
-    const parentUid: string | undefined = child.parentUid;
+    const child = childSnap.data() as Record<string, unknown>;
+    const parentUid =
+      typeof child.parentUid === "string" ? child.parentUid.trim() : "";
     if (!parentUid) {
       console.log(`[ZONE_EVENT] child has no parentUid childUid=${childUid}`);
       return;
     }
 
     const childName = String(child.displayName ?? child.name ?? "Bé");
-
-    const zoneId = String(ev.zoneId ?? "");
-    if (!zoneId) {
-      console.log(`[ZONE_EVENT] Missing zoneId childUid=${childUid} eventId=${eventId}`);
-      return;
-    }
-
-    const zoneType = String(ev.zoneType ?? ev.type ?? "").toLowerCase();
-    const action = String(ev.action ?? ev.eventType ?? "").toLowerCase();
-    const zoneName = String(ev.zoneName ?? "Vùng");
-
-    const isDanger = zoneType === "danger";
-    const isEnter = action === "enter";
-    const isExit = action === "exit";
-
-    if (!isEnter && !isExit) {
-      console.log(
-        `[ZONE_EVENT] Skip unknown action childUid=${childUid} eventId=${eventId} action=${action}`
-      );
-      return;
-    }
+    const isDanger = eventRecord.zoneType === "danger";
+    const isEnter = eventRecord.action === "enter";
 
     const parentKey = isDanger
       ? isEnter
         ? "zone.enter.danger.parent"
         : "zone.exit.danger.parent"
       : isEnter
-      ? "zone.enter.safe.parent"
-      : "zone.exit.safe.parent";
+        ? "zone.enter.safe.parent"
+        : "zone.exit.safe.parent";
 
     const childKey = isDanger
       ? isEnter
         ? "zone.enter.danger.child"
         : "zone.exit.danger.child"
       : isEnter
-      ? "zone.enter.safe.child"
-      : "zone.exit.safe.child";
+        ? "zone.enter.safe.child"
+        : "zone.exit.safe.child";
 
-    const nowMs = Date.now();
-    const eventTs = Number(ev.timestamp ?? nowMs);
-
-    const presenceRef = admin.database().ref(`zonePresenceByChild/${childUid}/${zoneId}`);
-
-    let durationSec = 0;
-    let durationMin = 0;
-    let enterAt: number | null = null;
-
-    if (isEnter) {
-      await presenceRef.set({
-        inside: true,
-        zoneType,
-        zoneName,
-        enterAt: eventTs,
-        updatedAt: eventTs,
-      });
-    }
-
-    if (isExit) {
-      const snap = await presenceRef.get();
-      const pres = snap.exists() ? snap.val() : null;
-
-      enterAt = pres?.enterAt ? Number(pres.enterAt) : null;
-      durationSec = enterAt ? Math.max(0, Math.floor((eventTs - enterAt) / 1000)) : 0;
-      durationMin = durationSec > 0 ? Math.max(1, Math.round(durationSec / 60)) : 0;
-
-      await presenceRef.remove();
-    }
-
-    if (isExit && durationSec > 0) {
-      const day = dayInVN(eventTs);
-      const zoneStatRef = db.doc(`zoneStatsByChild/${childUid}/days/${day}/zones/${zoneId}`);
-
-      await db.runTransaction(async (tx) => {
-        const snap = await tx.get(zoneStatRef);
-        const cur = snap.exists ? (snap.data() as any) : {};
-
-        const prevTotal = Number(cur.totalSec ?? 0);
-        const prevSessions = Number(cur.sessions ?? 0);
-
-        tx.set(
-          zoneStatRef,
-          {
-            zoneId,
-            zoneName,
-            zoneType,
-            totalSec: prevTotal + durationSec,
-            sessions: prevSessions + 1,
-            lastEnterAt: cur.lastEnterAt ?? (enterAt ?? eventTs),
-            lastExitAt: eventTs,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
-          { merge: true }
-        );
-      });
-    }
-
-    const inboxBody = isExit && durationMin > 0 ? `${zoneName} • ${durationMin} phút` : zoneName;
+    const inboxBody =
+      !isEnter && eventRecord.durationMin > 0
+        ? `${eventRecord.zoneName} • ${eventRecord.durationMin} phút`
+        : eventRecord.zoneName;
 
     const payloadForHistory = {
-      childUid: String(childUid),
+      childUid,
       childName,
-      zoneId,
-      zoneType,
-      action,
-      zoneName,
+      zoneId: eventRecord.zoneId,
+      zoneType: eventRecord.zoneType,
+      action: eventRecord.action,
+      zoneName: eventRecord.zoneName,
       eventId: String(eventId),
-      timestamp: String(eventTs),
-      lat: String(ev.lat ?? ""),
-      lng: String(ev.lng ?? ""),
-      durationSec: String(durationSec),
-      durationMin: String(durationMin),
+      timestamp: String(eventRecord.timestamp),
+      lat: String(eventRecord.lat),
+      lng: String(eventRecord.lng),
+      durationSec: String(eventRecord.durationSec),
+      durationMin: String(eventRecord.durationMin),
+      canonical: "true",
+      source: eventRecord.source,
     };
 
     await createGlobalNotificationRecord({
@@ -169,5 +290,5 @@ export const onZoneEventCreated = onValueCreated(
       eventKey: childKey,
       data: payloadForHistory,
     });
-  }
+  },
 );

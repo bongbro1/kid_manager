@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/background/auth_runtime_manager.dart';
@@ -160,9 +161,7 @@ class _SessionGuardState extends State<SessionGuard>
 
             await notificationVm.bindUser(
               uid: uid,
-              sources: const [
-                NotificationSource.global,
-              ],
+              sources: const [NotificationSource.global],
             );
 
             if (_pushInitedForUid != uid && profile != null) {
@@ -206,9 +205,7 @@ class _SessionGuardState extends State<SessionGuard>
 
             await _syncAuthenticatedUserTimeZone(
               uid: uid,
-              currentTimeZone:
-                  profile?.timezone ??
-                  sessionUser?.timezone,
+              currentTimeZone: profile?.timezone ?? sessionUser?.timezone,
             );
             if (!mounted) return;
 
@@ -276,8 +273,8 @@ class _SessionGuardState extends State<SessionGuard>
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
             final currentUid = uid;
-            if (currentUid == null || currentUid.isEmpty) return;
-            final normalizedFamilyId = familyId?.trim() ?? '';
+            if (currentUid.isEmpty) return;
+            final normalizedFamilyId = familyId.trim() ?? '';
             if (normalizedFamilyId.isEmpty) return;
             final userVm = context.read<UserVm>();
             userVm.watchFamilyMembers(normalizedFamilyId);
@@ -389,14 +386,22 @@ class _SessionGuardState extends State<SessionGuard>
     if (resolvedUid == null || resolvedUid.isEmpty) {
       return;
     }
+    final authUid = FirebaseAuth.instance.currentUser?.uid?.trim();
+    if (authUid == null || authUid.isEmpty || authUid != resolvedUid) {
+      debugPrint(
+        '[SessionGuard] skip timezone sync until auth uid matches session '
+        'uid authUid=$authUid sessionUid=$resolvedUid',
+      );
+      return;
+    }
     if (_timeZoneSyncInFlightForUid == resolvedUid) {
       return;
     }
 
     _timeZoneSyncInFlightForUid = resolvedUid;
     try {
-      final normalizedTimeZone =
-          await DeviceTimeZoneService.instance.getDeviceTimeZone();
+      final normalizedTimeZone = await DeviceTimeZoneService.instance
+          .getDeviceTimeZone();
       final userVm = context.read<UserVm>();
       await userVm.syncUserTimeZone(
         uid: resolvedUid,

@@ -54,7 +54,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
         opaque: false,
         barrierColor: Colors.transparent,
         pageBuilder: (_, __, ___) => UsageTimeEditScreen(
-          appId: app.packageName!,
+          appId: app.packageName,
           childId: selectedChildId,
         ),
       ),
@@ -80,18 +80,18 @@ class _AppManagementScreenState extends State<AppManagementScreen>
 
   @override
   Widget build(BuildContext context) {
-    final app_vm = context.watch<AppManagementVM>();
-    if (!app_vm.hasChild) {
+    final appVm = context.watch<AppManagementVM>();
+    if (!appVm.hasChild) {
       return const NoChildScreen();
     }
 
     return Stack(
       children: [
         // ✅ UI chính của bạn (giữ nguyên)
-        _buildMain(context, app_vm),
+        _buildMain(context, appVm),
 
         // ✅ overlay loading phủ lên toàn bộ
-        if (app_vm.loading)
+        if (appVm.loading)
           const Positioned.fill(
             child: AbsorbPointer(
               absorbing: true, // chặn tap/scroll

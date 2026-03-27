@@ -1,12 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:kid_manager/utils/date_utils.dart';
-import 'package:usage_stats/usage_stats.dart';
 
 class UsageSyncService {
   final FirebaseFirestore _db;
   UsageSyncService(this._db);
-
 
   /// Sync usage hôm nay cho tất cả app
   // Future<void> syncTodayUsage({required String userId}) async {
@@ -53,7 +49,6 @@ class UsageSyncService {
 
   //   await batch.commit();
   // }
-
 
   // Future<void> ensureUsageRange({
   //   required String userId,

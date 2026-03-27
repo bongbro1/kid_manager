@@ -69,7 +69,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
         type: payload["type"] as String,
         title: payload["title"] as String,
         body: payload["body"] as String,
-        familyId: payload["familyId"] as String?,
+        familyId: payload["familyId"],
       );
 
       if (mounted) {

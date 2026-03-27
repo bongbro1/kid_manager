@@ -15,6 +15,9 @@ import 'package:kid_manager/services/notifications/fcm_installation_service.dart
 import 'user_repository.dart';
 
 class AuthRepository {
+  static final RegExp _phoneFormattingRegExp = RegExp(r'[\s\-\(\)\.]');
+  static final RegExp _e164PhoneRegExp = RegExp(r'^\+[1-9]\d{7,14}$');
+
   final FirebaseAuthService _authService;
   final UserRepository _users;
 
@@ -180,14 +183,45 @@ class AuthRepository {
   String? _verificationId;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  String _normalizePhoneForFirebase(String phone) {
+    final trimmed = phone.trim();
+    if (trimmed.startsWith('00')) {
+      return '+${trimmed.substring(2).replaceAll(_phoneFormattingRegExp, '')}';
+    }
+    if (trimmed.startsWith('+')) {
+      return '+${trimmed.substring(1).replaceAll(_phoneFormattingRegExp, '')}';
+    }
+    return trimmed.replaceAll(_phoneFormattingRegExp, '');
+  }
+
+  String _mapPhoneAuthError(FirebaseAuthException error) {
+    switch (error.code) {
+      case 'too-many-requests':
+        return 'too-many-requests: We have blocked OTP requests from this device temporarily. Please try again later.';
+      case 'invalid-phone-number':
+        return 'invalid-phone-number: The phone number must be in E.164 format, for example +84973564344.';
+      case 'app-not-authorized':
+        return 'app-not-authorized: Firebase Phone Auth is not authorized for Android package com.example.kid_manager. Verify the package name, SHA-1, and SHA-256 in Firebase Console.';
+      default:
+        return '${error.code}: ${error.message}';
+    }
+  }
+
   Future<void> sendOtpSms(
     String phone,
     Function(String verificationId) onCodeSent,
   ) async {
     final completer = Completer<void>();
+    final normalizedPhone = _normalizePhoneForFirebase(phone);
+
+    if (!_e164PhoneRegExp.hasMatch(normalizedPhone)) {
+      throw Exception(
+        'invalid-phone-number: The phone number must be in E.164 format, for example +84973564344.',
+      );
+    }
 
     await _auth.verifyPhoneNumber(
-      phoneNumber: phone,
+      phoneNumber: normalizedPhone,
       timeout: const Duration(seconds: 60),
 
       verificationCompleted: (PhoneAuthCredential credential) async {
@@ -198,7 +232,7 @@ class AuthRepository {
       verificationFailed: (FirebaseAuthException e) {
         debugPrint("PHONE verificationFailed: ${e.code} - ${e.message}");
         if (!completer.isCompleted) {
-          completer.completeError(Exception("${e.code}: ${e.message}"));
+          completer.completeError(Exception(_mapPhoneAuthError(e)));
         }
       },
 

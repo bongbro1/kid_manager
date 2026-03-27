@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/services/location/map_avatar_marker_factory.dart';
@@ -46,11 +45,23 @@ class ChildBlueDotRenderer {
           ['linear'],
           ['zoom'],
           12,
-          ['*', ['get', 'acc'], 0.10],
+          [
+            '*',
+            ['get', 'acc'],
+            0.10,
+          ],
           16,
-          ['*', ['get', 'acc'], 0.25],
+          [
+            '*',
+            ['get', 'acc'],
+            0.25,
+          ],
           18,
-          ['*', ['get', 'acc'], 0.35],
+          [
+            '*',
+            ['get', 'acc'],
+            0.35,
+          ],
         ],
       ),
     );
@@ -65,10 +76,7 @@ class ChildBlueDotRenderer {
       ),
     );
 
-    await _addMarkerStyleImage(
-      _defaultMarkerIconId,
-      photoUrlOrData: null,
-    );
+    await _addMarkerStyleImage(_defaultMarkerIconId, photoUrlOrData: null);
 
     final trimmedAvatarUrl = avatarUrl?.trim() ?? '';
     if (trimmedAvatarUrl.isNotEmpty) {

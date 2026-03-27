@@ -244,6 +244,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
       (userVm) => userVm.familyId,
     );
     final myUid = context.select<UserVm, String?>((userVm) => userVm.me?.uid);
+    final isChildActor = context.select<UserVm, bool>(
+      (userVm) => userVm.me?.isChild ?? false,
+    );
     final localeCode = context.select<LocaleVm, String>(
       (localeVm) => localeVm.locale.languageCode,
     );
@@ -255,12 +258,14 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     final safeRouteState =
         _safeRouteVm?.state ?? ChildSafeRouteState.initial(myUid ?? '');
 
-    if (myUid != null) {
+    if (isChildActor && myUid != null) {
       _ensureSafeRouteVm(
         childId: myUid,
         languageCode: localeCode,
         initialLocation: currentLocation,
       );
+    } else {
+      _disposeSafeRouteVm();
     }
 
     final combinedError = childError ?? safeRouteState.errorMessage;

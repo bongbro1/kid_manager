@@ -164,10 +164,7 @@ class MapboxGatewayService {
         cause: error,
       );
     } catch (error) {
-      throw MapboxGatewayException(
-        'Map matching request failed',
-        cause: error,
-      );
+      throw MapboxGatewayException('Map matching request failed', cause: error);
     }
   }
 
@@ -191,8 +188,8 @@ class MapboxGatewayService {
         'language': language,
         if (country != null && country.trim().isNotEmpty) 'country': country,
         if (bbox != null && bbox.trim().isNotEmpty) 'bbox': bbox,
-        if (proximityLatitude != null) 'proximityLatitude': proximityLatitude,
-        if (proximityLongitude != null) 'proximityLongitude': proximityLongitude,
+        'proximityLatitude': ?proximityLatitude,
+        'proximityLongitude': ?proximityLongitude,
         if (featureTypes.isNotEmpty) 'featureTypes': featureTypes,
       });
 
@@ -219,10 +216,7 @@ class MapboxGatewayService {
         cause: error,
       );
     } catch (error) {
-      throw MapboxGatewayException(
-        'Map place search failed',
-        cause: error,
-      );
+      throw MapboxGatewayException('Map place search failed', cause: error);
     }
   }
 }

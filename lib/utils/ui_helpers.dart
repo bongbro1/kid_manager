@@ -6,15 +6,10 @@ Future<T> runWithLoading<T>(
   Future<T> Function() action,
 ) async {
   final overlay = Overlay.of(context, rootOverlay: true);
-  if (overlay == null) {
-    return await action();
-  }
 
   late final OverlayEntry entry;
 
-  entry = OverlayEntry(
-    builder: (_) => const _BlockingLoadingOverlay(),
-  );
+  entry = OverlayEntry(builder: (_) => const _BlockingLoadingOverlay());
 
   overlay.insert(entry);
 

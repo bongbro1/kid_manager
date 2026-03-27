@@ -70,6 +70,15 @@ service cloud.firestore {
       return isSelf(parentUid) || isGuardianOfParent(parentUid);
     }
 
+    function isGuardianAssignedToChild(childUid) {
+      return isSignedIn()
+        && userExists(childUid)
+        && isChildUser(childUid)
+        && isGuardianOfParent(userDoc(childUid).data.parentUid)
+        && userDoc(request.auth.uid).data.managedChildIds is list
+        && childUid in userDoc(request.auth.uid).data.managedChildIds;
+    }
+
     function isChildOfParent(childUid, parentUid) {
       return isChildUser(childUid)
         && isParentUser(parentUid)
@@ -83,7 +92,8 @@ service cloud.firestore {
         && isChildUser(childUid)
         && (
           isSelf(childUid)
-          || isAdultManagerOfParent(userDoc(childUid).data.parentUid)
+          || isSelf(userDoc(childUid).data.parentUid)
+          || isGuardianAssignedToChild(childUid)
         );
     }
 

@@ -3,7 +3,10 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { admin } from "../bootstrap";
 import { REGION } from "../config";
 import { mustString, mustNumber, validateLatLng } from "../helpers";
-import { requireLocationViewerAccess } from "../services/locationAccess";
+import {
+  requireZoneManagerAccess,
+  requireZoneViewerAccess,
+} from "../services/zoneAccess";
 import {
   enforceQuota,
   FREE_ZONE_LIMIT,
@@ -17,7 +20,7 @@ export const upsertChildZone = onCall({ region: REGION }, async (req) => {
   const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
-  await requireLocationViewerAccess(viewerUid, childUid);
+  await requireZoneManagerAccess(viewerUid, childUid);
 
   const zonesRef = admin.database().ref(`zonesByChild/${childUid}`);
   const existingZonesSnap = await zonesRef.get();
@@ -85,7 +88,7 @@ export const deleteChildZone = onCall({ region: REGION }, async (req) => {
 
   const childUid = mustString(req.data?.childUid, "childUid");
   const zoneId = mustString(req.data?.zoneId, "zoneId");
-  await requireLocationViewerAccess(viewerUid, childUid);
+  await requireZoneManagerAccess(viewerUid, childUid);
 
   await admin.database().ref(`zonesByChild/${childUid}/${zoneId}`).remove();
   return { ok: true };
@@ -97,7 +100,7 @@ export const getChildZones = onCall({ region: REGION }, async (req) => {
   const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
-  await requireLocationViewerAccess(viewerUid, childUid);
+  await requireZoneViewerAccess(viewerUid, childUid);
 
   const snap = await admin.database().ref(`zonesByChild/${childUid}`).get();
   const zones = snap.exists() ? snap.val() : null;
@@ -110,7 +113,7 @@ export const getChildZonePresence = onCall({ region: REGION }, async (req) => {
   const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
-  await requireLocationViewerAccess(viewerUid, childUid);
+  await requireZoneViewerAccess(viewerUid, childUid);
 
   const snap = await admin.database().ref(`zonePresenceByChild/${childUid}`).get();
   return {

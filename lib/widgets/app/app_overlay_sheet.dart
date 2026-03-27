@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class AppOverlaySheet extends StatefulWidget {
   final Widget child;
@@ -63,12 +62,7 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     _controller.forward();
   }
@@ -111,9 +105,7 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: widget.dismissOnBarrierTap ? close : null,
-                child: Container(
-                  color: widget.barrierColor,
-                ),
+                child: Container(color: widget.barrierColor),
               ),
             ),
 
@@ -126,15 +118,14 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                   onTap: () {},
                   child: Container(
                     width: widget.width ?? screenSize.width,
-                    constraints: BoxConstraints(
-                      maxHeight: widget.height,
-                    ),
+                    constraints: BoxConstraints(maxHeight: widget.height),
                     decoration: ShapeDecoration(
                       color: widget.backgroundColor ?? scheme.surface,
                       shape: RoundedRectangleBorder(
                         borderRadius: widget.borderRadius,
                       ),
-                      shadows: widget.shadows ??
+                      shadows:
+                          widget.shadows ??
                           [
                             BoxShadow(
                               color: scheme.shadow.withOpacity(0.2),
@@ -156,7 +147,9 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                                   width: 55,
                                   height: 5,
                                   decoration: BoxDecoration(
-                                    color: scheme.onSurfaceVariant.withOpacity(0.5),
+                                    color: scheme.onSurfaceVariant.withOpacity(
+                                      0.5,
+                                    ),
                                     borderRadius: BorderRadius.circular(100),
                                   ),
                                 ),

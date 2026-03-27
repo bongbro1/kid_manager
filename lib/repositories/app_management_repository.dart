@@ -118,7 +118,7 @@ class AppManagementRepository {
 
     for (final app in apps) {
       final pkg = app.packageName;
-      if (pkg == null || pkg.isEmpty) continue;
+      if (pkg.isEmpty) continue;
 
       final docRef = col.doc(pkg);
 

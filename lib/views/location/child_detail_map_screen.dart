@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/features/map_engine/map_engine.dart';
 import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_access.dart';
 import 'package:kid_manager/features/safe_route/presentation/pages/tracking_page.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -349,10 +351,24 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
     return null;
   }
 
-  bool _canOpenSafeRoute() {
+  SafeRouteAccessResult? _resolveSafeRouteAccess() {
     final viewer = context.read<UserVm>().me;
     final target = _resolveTrackedMember();
-    return viewer?.isAdultManager == true && target?.isChild == true;
+    if (viewer == null || target == null) {
+      return null;
+    }
+
+    return evaluateSafeRouteAccess(
+      accessControl: context.read<AccessControlService>(),
+      actor: viewer,
+      child: target,
+      requireManageChild: true,
+      requireViewLocation: true,
+    );
+  }
+
+  bool _canOpenSafeRoute() {
+    return _resolveSafeRouteAccess()?.isAllowed ?? false;
   }
 
   bool _canManageZones() {

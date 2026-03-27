@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/subscription/subscription_quota_gate.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
@@ -92,56 +94,60 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
     final messageText = (message ?? '').trim();
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+    Timer? autoDismissTimer;
 
-    await showGeneralDialog(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: true,
-      barrierLabel: l10n.accessibilityNoticeBarrierLabel,
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 220),
-      pageBuilder: (dialogContext, animation, secondaryAnimation) {
-        Future.delayed(const Duration(seconds: 2), () {
-          if (Navigator.of(dialogContext, rootNavigator: true).canPop()) {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-          }
-        });
+    try {
+      autoDismissTimer = Timer(const Duration(seconds: 2), () {
+        if (!rootNavigator.mounted || !rootNavigator.canPop()) {
+          return;
+        }
+        rootNavigator.pop();
+      });
 
-        return SafeArea(
-          child: Center(
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                width: 310,
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-                decoration: BoxDecoration(
-                  color: locationPanelColor(scheme),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.16),
-                      blurRadius: 24,
-                      offset: Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    config.iconBuilder(),
-                    const SizedBox(height: 18),
-                    Text(
-                      titleText,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: scheme.onSurface,
+      await showGeneralDialog(
+        context: context,
+        useRootNavigator: true,
+        barrierDismissible: true,
+        barrierLabel: l10n.accessibilityNoticeBarrierLabel,
+        barrierColor: Colors.black54,
+        transitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (dialogContext, animation, secondaryAnimation) {
+          return SafeArea(
+            child: Center(
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 310,
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                  decoration: BoxDecoration(
+                    color: locationPanelColor(scheme),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.16),
+                        blurRadius: 24,
+                        offset: Offset(0, 10),
                       ),
-                    ),
-                    if (messageText.isNotEmpty) ...[
-                      const SizedBox(height: 10),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      config.iconBuilder(),
+                      const SizedBox(height: 18),
+                      Text(
+                        titleText,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      if (messageText.isNotEmpty) ...[
+                        const SizedBox(height: 10),
                         Text(
                           messageText,
                           textAlign: TextAlign.center,
@@ -151,29 +157,32 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutBack,
-        );
+          );
+        },
+        transitionBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutBack,
+          );
 
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.9, end: 1).animate(curved),
-            child: child,
-          ),
-        );
-      },
-    );
+          return FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.9, end: 1).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      );
+    } finally {
+      autoDismissTimer?.cancel();
+    }
   }
 
   Future<bool> _showDeleteConfirm(BuildContext context, GeoZone zone) async {

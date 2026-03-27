@@ -4,12 +4,13 @@ import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
+import 'package:flutter_activity_recognition/models/activity.dart';
+import 'package:kid_manager/core/location/current_publish_policy.dart';
 import 'package:kid_manager/core/location/motion_detector.dart';
 import 'package:kid_manager/core/location/send_policy.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/core/location/tracking_state.dart';
+import 'package:kid_manager/core/location/tracking_tuning.dart';
 import 'package:kid_manager/core/zones/zone_monitor.dart';
 import 'package:kid_manager/background/tracking_runtime_store.dart';
 import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
@@ -21,6 +22,7 @@ import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/background/tracking_background_service.dart';
+import 'package:kid_manager/services/location/background_tracking_status_policy.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
 import 'package:kid_manager/utils/app_localizations_loader.dart';
@@ -127,135 +129,161 @@ class BackgroundTrackingRuntime {
       await _ensureZoneMonitor(sharingUid);
       if (_disposed) return false;
 
-      _gpsSub = _locationService.getLocationStream(
-        usePlatformPlugin: false,
-      ).listen(
-        (raw) async {
-          if (_disposed || !_running) return;
+      _gpsSub = _locationService
+          .getLocationStream(usePlatformPlugin: false)
+          .listen(
+            (raw) async {
+              if (_disposed || !_running) return;
 
-          final activeSharingUid = _activeSharingUid;
-          final currentUid = _currentUidOrNull();
-          if (activeSharingUid == null ||
-              currentUid == null ||
-              currentUid != activeSharingUid) {
-            debugPrint(
-              'BackgroundTrackingRuntime dropping location because auth changed.',
-            );
-            await stop();
-            return;
-          }
+              final activeSharingUid = _activeSharingUid;
+              final currentUid = _currentUidOrNull();
+              if (activeSharingUid == null ||
+                  currentUid == null ||
+                  currentUid != activeSharingUid) {
+                debugPrint(
+                  'BackgroundTrackingRuntime dropping location because auth changed.',
+                );
+                await stop();
+                return;
+              }
 
-          final result = _engine.process(
-            raw,
-            _lastActivity,
-            previousReference: _currentLocation,
-          );
-          final filtered = result.filteredLocation;
-          final accuracy = filtered.accuracy;
-
-          if (_sentInitialCurrent &&
-              _currentLocation != null &&
-              _isJumpTooLarge(_currentLocation, filtered) &&
-              accuracy > 20) {
-            return;
-          }
-
-          _currentLocation = filtered;
-          _motionState = result.motion;
-          _transport = result.transport;
-
-          try {
-            if (_zonesInited) {
-              await _zoneMonitor?.onLocation(filtered);
-            }
-          } catch (e) {
-            debugPrint('BackgroundTrackingRuntime zone monitor error: $e');
-          }
-
-          final payload = TrackingPayload(
-            deviceId: activeSharingUid,
-            location: filtered,
-            motion: result.motion.name,
-            transport: _transport.name,
-          );
-
-          final nowMs = DateTime.now().millisecondsSinceEpoch;
-          final rejectVeryBadAcc = accuracy > 100;
-          final isMoving = result.motion == MotionState.moving;
-          final goodHistoryAcc = accuracy <= 30;
-          final shouldSendInitialCurrent =
-              !_sentInitialCurrent && !rejectVeryBadAcc;
-
-          var sentCurrentToServer = false;
-          Object? sendError;
-
-          final currentInterval = _currentSendInterval(
-            motion: result.motion,
-            accuracy: accuracy,
-            shouldSendInitialCurrent: shouldSendInitialCurrent,
-          );
-
-          if (currentInterval != null &&
-              _canAttemptSend(
-                nowMs: nowMs,
-                lastSuccessAtMs: _lastCurrentSentAtMs,
-                lastFailureAtMs: _lastCurrentFailureAtMs,
-                minSuccessInterval: currentInterval,
-              )) {
-            try {
-              await _locationRepository.updateMyCurrent(payload);
-              _lastCurrentSentAtMs = nowMs;
-              _lastCurrentFailureAtMs = 0;
-              _sentInitialCurrent = true;
-              sentCurrentToServer = true;
-            } catch (e) {
-              _lastCurrentFailureAtMs = nowMs;
-              sendError = e;
-              debugPrint(
-                'BackgroundTrackingRuntime current location send failed: $e',
+              final result = _engine.process(
+                raw,
+                _lastActivity,
+                previousReference: _currentLocation,
               );
-            }
-          }
+              final filtered = result.filteredLocation;
+              final accuracy = filtered.accuracy;
 
-          if (isMoving &&
-              result.shouldSend &&
-              goodHistoryAcc &&
-              _canAttemptSend(
+              if (_sentInitialCurrent &&
+                  _currentLocation != null &&
+                  _isJumpTooLarge(_currentLocation, filtered) &&
+                  accuracy > TrackingTuning.jumpGuardBadAccuracyMinM) {
+                return;
+              }
+
+              _currentLocation = filtered;
+              _motionState = result.motion;
+              _transport = result.transport;
+
+              try {
+                if (_zonesInited) {
+                  await _zoneMonitor?.onLocation(filtered);
+                }
+              } catch (e) {
+                debugPrint('BackgroundTrackingRuntime zone monitor error: $e');
+              }
+
+              final payload = TrackingPayload(
+                deviceId: activeSharingUid,
+                location: filtered,
+                motion: result.motion.name,
+                transport: _transport.name,
+              );
+
+              final nowMs = DateTime.now().millisecondsSinceEpoch;
+              final rejectVeryBadAcc =
+                  accuracy > TrackingTuning.currentRejectAccuracyMaxM;
+              final isMoving = result.motion == MotionState.moving;
+              final goodHistoryAcc =
+                  accuracy <= TrackingTuning.historyGoodAccuracyMaxM;
+              final shouldSendInitialCurrent =
+                  !_sentInitialCurrent && !rejectVeryBadAcc;
+
+              var sentCurrentToServer = false;
+              Object? sendError;
+
+              final currentInterval = currentPublishInterval(
+                motion: result.motion,
+                accuracy: accuracy,
+                shouldSendInitialCurrent: shouldSendInitialCurrent,
+                indoorSuppressed: result.indoorSuppressed,
+              );
+              final shouldAttemptCurrentSend =
+                  currentInterval != null &&
+                  _canAttemptSend(
+                    nowMs: nowMs,
+                    lastSuccessAtMs: _lastCurrentSentAtMs,
+                    lastFailureAtMs: _lastCurrentFailureAtMs,
+                    minSuccessInterval: currentInterval,
+                  );
+
+              if (shouldAttemptCurrentSend) {
+                final resolvedCurrentInterval = currentInterval;
+                if (result.indoorSuppressed && kDebugMode) {
+                  debugPrint(
+                    'BackgroundTrackingRuntime current update anchored due to '
+                    'weak GPS acc=${accuracy.toStringAsFixed(1)} '
+                    'interval=${resolvedCurrentInterval.inSeconds}s',
+                  );
+                }
+                try {
+                  await _locationRepository.updateMyCurrent(payload);
+                  _lastCurrentSentAtMs = nowMs;
+                  _lastCurrentFailureAtMs = 0;
+                  _sentInitialCurrent = true;
+                  sentCurrentToServer = true;
+                } catch (e) {
+                  _lastCurrentFailureAtMs = nowMs;
+                  sendError = e;
+                  debugPrint(
+                    'BackgroundTrackingRuntime current location send failed: $e',
+                  );
+                }
+              }
+
+              final historySendWindowOpen = _canAttemptSend(
                 nowMs: nowMs,
                 lastSuccessAtMs: 0,
                 lastFailureAtMs: _lastHistoryFailureAtMs,
                 minSuccessInterval: Duration.zero,
-              )) {
-            try {
-              await _locationRepository.appendMyHistory(payload);
-              _lastHistoryFailureAtMs = 0;
-              _engine.acknowledgeHistorySent(filtered, result.motion);
-            } catch (e) {
-              _lastHistoryFailureAtMs = nowMs;
-              sendError ??= e;
-              debugPrint(
-                'BackgroundTrackingRuntime history location send failed: $e',
               );
-            }
-          }
+              if (isMoving &&
+                  goodHistoryAcc &&
+                  result.indoorSuppressed &&
+                  historySendWindowOpen &&
+                  kDebugMode) {
+                debugPrint(
+                  'BackgroundTrackingRuntime history send skipped due to '
+                  'indoor suppression acc=${accuracy.toStringAsFixed(1)}',
+                );
+              }
 
-          if (sentCurrentToServer) {
-            final runtimeL10n = await _getL10n();
-            await _reportTrackingStatusIfChanged(
-              'ok',
-              message: runtimeL10n.trackingStatusOkMessage,
-            );
-          }
+              if (isMoving &&
+                  !result.indoorSuppressed &&
+                  result.shouldSend &&
+                  goodHistoryAcc &&
+                  historySendWindowOpen) {
+                try {
+                  await _locationRepository.appendMyHistory(payload);
+                  _lastHistoryFailureAtMs = 0;
+                  _engine.acknowledgeHistorySent(filtered, result.motion);
+                } catch (e) {
+                  _lastHistoryFailureAtMs = nowMs;
+                  sendError ??= e;
+                  debugPrint(
+                    'BackgroundTrackingRuntime history location send failed: $e',
+                  );
+                }
+              }
 
-          if (sendError != null) {
-            debugPrint('BackgroundTrackingRuntime send error: $sendError');
-          }
-        },
-        onError: (Object error, StackTrace stackTrace) {
-          debugPrint('BackgroundTrackingRuntime GPS stream error: $error');
-          debugPrint('$stackTrace');
-        },
-      );
+              if (sentCurrentToServer) {
+                final runtimeL10n = await _getL10n();
+                await _reportTrackingStatusIfChanged(
+                  'ok',
+                  message: runtimeL10n.trackingStatusOkMessage,
+                );
+              }
+
+              if (sendError != null) {
+                debugPrint('BackgroundTrackingRuntime send error: $sendError');
+              }
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              debugPrint('BackgroundTrackingRuntime GPS stream error: $error');
+              debugPrint('$stackTrace');
+            },
+          );
 
       await TrackingRuntimeStore.setPublisherReady(true);
       return true;
@@ -306,7 +334,7 @@ class BackgroundTrackingRuntime {
   }
 
   String? _currentUidOrNull() {
-    final uid = _auth.currentUser?.uid?.trim();
+    final uid = _auth.currentUser?.uid.trim();
     if (uid == null || uid.isEmpty) {
       return null;
     }
@@ -323,7 +351,7 @@ class BackgroundTrackingRuntime {
 
   void _handleAuthStateChanged(User? user) {
     if (_disposed) return;
-    final nextUid = user?.uid?.trim();
+    final nextUid = user?.uid.trim();
     final activeSharingUid = _activeSharingUid;
     if (activeSharingUid == null || nextUid == activeSharingUid) {
       return;
@@ -342,12 +370,13 @@ class BackgroundTrackingRuntime {
 
     _zoneMonitor = ZoneMonitor(repo: repo, childUid: uid);
     _zoneMonitorUid = uid;
-    _zonesSub = repo.watchZones(uid).listen(
-      (zones) => _zoneMonitor?.updateZones(zones),
-      onError: (e) => debugPrint(
-        'BackgroundTrackingRuntime zones watch error: $e',
-      ),
-    );
+    _zonesSub = repo
+        .watchZones(uid)
+        .listen(
+          (zones) => _zoneMonitor?.updateZones(zones),
+          onError: (e) =>
+              debugPrint('BackgroundTrackingRuntime zones watch error: $e'),
+        );
 
     _zonesInited = true;
   }
@@ -360,7 +389,8 @@ class BackgroundTrackingRuntime {
       );
       final preciseGranted = await _locationService
           .hasPreciseLocationPermission();
-      final backgroundSatisfied = await _isBackgroundTrackingSatisfiedForStatus();
+      final backgroundSatisfied =
+          await _isBackgroundTrackingSatisfiedForStatus();
 
       if (!serviceEnabled) {
         await _reportTrackingStatusIfChanged(
@@ -477,35 +507,19 @@ class BackgroundTrackingRuntime {
     }
 
     final serviceRunning = await TrackingBackgroundService.isRunning();
-    if (serviceRunning) {
-      return true;
-    }
+    final hasBackgroundPermission = await _locationService
+        .hasBackgroundLocationPermission();
 
-    return _locationService.hasBackgroundLocationPermission();
-  }
-
-  Duration? _currentSendInterval({
-    required MotionState motion,
-    required double accuracy,
-    required bool shouldSendInitialCurrent,
-  }) {
-    if (accuracy > 100) return null;
-    if (shouldSendInitialCurrent) return Duration.zero;
-
-    switch (motion) {
-      case MotionState.moving:
-        if (accuracy <= 20) return const Duration(seconds: 5);
-        if (accuracy <= 50) return const Duration(seconds: 10);
-        return const Duration(seconds: 20);
-      case MotionState.idle:
-        if (accuracy <= 20) return const Duration(seconds: 45);
-        if (accuracy <= 50) return const Duration(minutes: 1);
-        return const Duration(minutes: 2);
-      case MotionState.stationary:
-        if (accuracy <= 20) return const Duration(minutes: 2);
-        if (accuracy <= 50) return const Duration(minutes: 3);
-        return const Duration(minutes: 5);
-    }
+    return isBackgroundTrackingSatisfiedForStatus(
+      BackgroundTrackingStatusSnapshot(
+        requireBackground: _requireBackground,
+        serviceRunning: serviceRunning,
+        isSharing: _running,
+        publishingHandledByService: true,
+        hasBackgroundPermission: hasBackgroundPermission,
+        backgroundModeEnabled: false,
+      ),
+    );
   }
 
   bool _canAttemptSend({
@@ -534,39 +548,16 @@ class BackgroundTrackingRuntime {
 
   Future<void> _startActivityRecognition() async {
     if (_disposed) return;
-    try {
-      final permission = await FlutterActivityRecognition.instance
-          .checkPermission();
-      if (permission != ActivityPermission.GRANTED) {
-        _lastActivity = null;
-        return;
-      }
-    } on PlatformException catch (e, st) {
-      debugPrint(
-        'BackgroundTrackingRuntime activity permission error: ${e.code} ${e.message}',
-      );
-      debugPrint('$st');
-      _lastActivity = null;
-      return;
-    } catch (e, st) {
-      debugPrint(
-        'BackgroundTrackingRuntime unexpected activity permission error: $e',
-      );
-      debugPrint('$st');
-      _lastActivity = null;
-      return;
-    }
-
     await _activitySub?.cancel();
-    if (_disposed) return;
-    _activitySub = FlutterActivityRecognition.instance.activityStream.listen(
-      (activity) {
-        _lastActivity = activity;
-      },
-      onError: (e) => debugPrint(
-        'BackgroundTrackingRuntime activity stream error: $e',
-      ),
-    );
+    _activitySub = null;
+    _lastActivity = null;
+
+    if (kDebugMode) {
+      debugPrint(
+        'BackgroundTrackingRuntime skipping activity recognition on '
+        'headless FlutterEngine because no Activity is attached.',
+      );
+    }
   }
 
   AppLocalizations _fallbackL10n() {

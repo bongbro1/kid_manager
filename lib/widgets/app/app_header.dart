@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 
@@ -20,10 +19,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       title: Text(title),
       actions: [
         if (right != null)
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: right!,
-          )
+          Padding(padding: const EdgeInsets.only(right: 12), child: right!)
         else if (mode == AppMode.parent || mode == AppMode.guardian)
           const Icon(Icons.search)
         else

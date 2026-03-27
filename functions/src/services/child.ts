@@ -8,6 +8,30 @@ export interface ChildAccessContext {
   childUid: string;
   ownerParentUid: string;
   requesterRole: string;
+  requesterUid: string;
+  requesterParentUid: string | null;
+  requesterFamilyId: string | null;
+  requesterManagedChildIds: string[];
+  childFamilyId: string | null;
+}
+
+export interface ChildAccessPolicyContext {
+  requesterUid: string;
+  requesterRole: string;
+  requesterParentUid: string | null;
+  requesterFamilyId: string | null;
+  requesterManagedChildIds: string[];
+  childUid: string;
+  ownerParentUid: string;
+  childFamilyId: string | null;
+}
+
+function optionalTrimmedString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
 }
 
 function readRequiredString(
@@ -20,6 +44,59 @@ function readRequiredString(
     throw new HttpsError("failed-precondition", errorMessage);
   }
   return raw.trim();
+}
+
+function readStringList(data: UserDoc, field: string): string[] {
+  const raw = data[field];
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .map((value) => optionalTrimmedString(value))
+    .filter((value): value is string => value != null);
+}
+
+export function canAccessChildForSafeRoute(
+  context: ChildAccessPolicyContext
+): boolean {
+  if (context.requesterUid === context.childUid) {
+    return true;
+  }
+
+  if (
+    context.requesterRole === "parent" &&
+    context.requesterUid === context.ownerParentUid
+  ) {
+    return true;
+  }
+
+  return (
+    context.requesterRole === "guardian" &&
+    context.requesterParentUid === context.ownerParentUid &&
+    context.requesterFamilyId != null &&
+    context.requesterFamilyId === context.childFamilyId &&
+    context.requesterManagedChildIds.includes(context.childUid)
+  );
+}
+
+export function canManageChildForSafeRoute(
+  context: ChildAccessPolicyContext
+): boolean {
+  if (
+    context.requesterRole === "parent" &&
+    context.requesterUid === context.ownerParentUid
+  ) {
+    return true;
+  }
+
+  return (
+    context.requesterRole === "guardian" &&
+    context.requesterParentUid === context.ownerParentUid &&
+    context.requesterFamilyId != null &&
+    context.requesterFamilyId === context.childFamilyId &&
+    context.requesterManagedChildIds.includes(context.childUid)
+  );
 }
 
 async function resolveChildAccess(
@@ -51,45 +128,29 @@ async function resolveChildAccess(
     "parentUid",
     "Missing parentUid on child profile"
   );
+  const policyContext: ChildAccessPolicyContext = {
+    requesterUid,
+    requesterRole,
+    requesterParentUid: optionalTrimmedString(requester.parentUid),
+    requesterFamilyId: optionalTrimmedString(requester.familyId),
+    requesterManagedChildIds: readStringList(requester, "managedChildIds"),
+    childUid,
+    ownerParentUid,
+    childFamilyId: optionalTrimmedString(child.familyId),
+  };
 
-  if (requesterUid === childUid) {
+  if (canAccessChildForSafeRoute(policyContext)) {
     return {
       child,
       childUid,
       ownerParentUid,
       requesterRole,
+      requesterUid,
+      requesterParentUid: policyContext.requesterParentUid,
+      requesterFamilyId: policyContext.requesterFamilyId,
+      requesterManagedChildIds: policyContext.requesterManagedChildIds,
+      childFamilyId: policyContext.childFamilyId,
     };
-  }
-
-  if (requesterUid === ownerParentUid) {
-    return {
-      child,
-      childUid,
-      ownerParentUid,
-      requesterRole,
-    };
-  }
-
-  if (requesterRole === "guardian") {
-    const guardianParentUid =
-      typeof requester.parentUid === "string" ? requester.parentUid.trim() : "";
-    const requesterFamilyId =
-      typeof requester.familyId === "string" ? requester.familyId.trim() : "";
-    const childFamilyId =
-      typeof child.familyId === "string" ? child.familyId.trim() : "";
-
-    if (
-      guardianParentUid === ownerParentUid &&
-      requesterFamilyId.length > 0 &&
-      requesterFamilyId === childFamilyId
-    ) {
-      return {
-        child,
-        childUid,
-        ownerParentUid,
-        requesterRole,
-      };
-    }
   }
 
   throw new HttpsError(
@@ -103,7 +164,7 @@ export async function requireAdultManagerOfChild(
   childUid: string
 ): Promise<ChildAccessContext> {
   const access = await resolveChildAccess(requesterUid, childUid);
-  if (access.requesterRole !== "parent" && access.requesterRole !== "guardian") {
+  if (!canManageChildForSafeRoute(access)) {
     throw new HttpsError(
       "permission-denied",
       "Not your child"

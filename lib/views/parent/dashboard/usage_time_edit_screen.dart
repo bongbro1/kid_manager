@@ -95,10 +95,11 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
 
   void toggleDay(int day) {
     final next = {...rule.weekdays};
-    if (next.contains(day))
+    if (next.contains(day)) {
       next.remove(day);
-    else
+    } else {
       next.add(day);
+    }
 
     setState(() => rule = rule.copyWith(weekdays: next));
   }
@@ -546,8 +547,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                         text: l10n.saveButton,
                         height: 50,
                         backgroundColor: scheme.primary,
-                        foregroundColor:
-                            scheme.onPrimary,
+                        foregroundColor: scheme.onPrimary,
                         fontSize: 16,
                         lineHeight: 1.38,
                         fontWeight: FontWeight.w700,
@@ -873,7 +873,7 @@ Widget buildCalendar({
     l10n.scheduleWeekdaySun,
   ];
 
-  DateTime _d(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+  DateTime d(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -965,7 +965,7 @@ Widget buildCalendar({
           final inMonth = cellDate.month == month.month;
 
           final isSelected = sel != null && norm(cellDate) == sel;
-          final dotType = dotsByDay[_d(cellDate)] ?? DotType.none;
+          final dotType = dotsByDay[d(cellDate)] ?? DotType.none;
 
           return _dayCell(
             context: context,

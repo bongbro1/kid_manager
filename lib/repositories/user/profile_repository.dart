@@ -5,7 +5,11 @@ import 'package:kid_manager/models/user/user_profile_patch.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 
-class ProfileRepository {
+abstract class ProfileRepositoryInterface {
+  Future<AppUser?> getUserById(String uid);
+}
+
+class ProfileRepository implements ProfileRepositoryInterface {
   ProfileRepository(this._db);
 
   final FirebaseFirestore _db;
@@ -13,8 +17,10 @@ class ProfileRepository {
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');
 
-  DocumentReference<Map<String, dynamic>> userRef(String uid) => _users.doc(uid);
+  DocumentReference<Map<String, dynamic>> userRef(String uid) =>
+      _users.doc(uid);
 
+  @override
   Future<AppUser?> getUserById(String uid) async {
     final snap = await userRef(uid).get();
     if (!snap.exists) {
@@ -35,13 +41,15 @@ class ProfileRepository {
   Future<List<UserItem>> loadAllUsers() async {
     final snapshot = await _users.get();
 
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      return UserItem(
-        uid: (data['uid'] ?? doc.id).toString(),
-        displayName: (data['displayName'] ?? '').toString(),
-      );
-    }).toList(growable: false);
+    return snapshot.docs
+        .map((doc) {
+          final data = doc.data();
+          return UserItem(
+            uid: (data['uid'] ?? doc.id).toString(),
+            displayName: (data['displayName'] ?? '').toString(),
+          );
+        })
+        .toList(growable: false);
   }
 
   Future<void> updateProfile({
@@ -53,13 +61,27 @@ class ProfileRepository {
     String? timezone,
   }) async {
     await userRef(uid).update({
-      if (displayName != null) 'displayName': displayName,
-      if (phone != null) 'phone': phone,
-      if (photoUrl != null) 'photoUrl': photoUrl,
-      if (locale != null) 'locale': locale,
-      if (timezone != null) 'timezone': timezone,
+      'displayName': ?displayName,
+      'phone': ?phone,
+      'photoUrl': ?photoUrl,
+      'locale': ?locale,
+      'timezone': ?timezone,
       'lastActiveAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<void> updateTimeZone({
+    required String uid,
+    required String timezone,
+  }) async {
+    final normalizedTimeZone = timezone.trim();
+    if (normalizedTimeZone.isEmpty) {
+      return;
+    }
+
+    await userRef(uid).set({
+      'timezone': normalizedTimeZone,
+    }, SetOptions(merge: true));
   }
 
   Future<void> touchActive(String uid) async {
@@ -128,10 +150,9 @@ class ProfileRepository {
   }) async {
     try {
       final field = type == UserPhotoType.avatar ? 'avatarUrl' : 'coverUrl';
-      await userRef(uid).update({
-        field: url,
-        'lastActiveAt': FieldValue.serverTimestamp(),
-      });
+      await userRef(
+        uid,
+      ).update({field: url, 'lastActiveAt': FieldValue.serverTimestamp()});
       return true;
     } catch (e) {
       debugPrint('Update photo error: $e');
@@ -141,10 +162,7 @@ class ProfileRepository {
 }
 
 class UserItem {
-  const UserItem({
-    required this.uid,
-    required this.displayName,
-  });
+  const UserItem({required this.uid, required this.displayName});
 
   final String uid;
   final String displayName;

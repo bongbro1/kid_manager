@@ -56,8 +56,10 @@ class UserVm extends ChangeNotifier {
   String? _currentWatchedUid;
   String? _currentProfileUid;
 
-  UserRole get _sessionRole =>
-      roleFromString(_storage.getString(StorageKeys.role), fallback: UserRole.child);
+  UserRole get _sessionRole => roleFromString(
+    _storage.getString(StorageKeys.role),
+    fallback: UserRole.child,
+  );
 
   String? get _storedParentOwnerUid {
     final value = _storage.getString(StorageKeys.parentId)?.trim();
@@ -95,9 +97,12 @@ class UserVm extends ChangeNotifier {
     return AppUser(
       uid: currentUid,
       role: currentProfile.role,
-      phone: currentProfile.phone.trim().isEmpty ? null : currentProfile.phone.trim(),
-      displayName:
-          currentProfile.name.trim().isEmpty ? null : currentProfile.name.trim(),
+      phone: currentProfile.phone.trim().isEmpty
+          ? null
+          : currentProfile.phone.trim(),
+      displayName: currentProfile.name.trim().isEmpty
+          ? null
+          : currentProfile.name.trim(),
       coverUrl: currentProfile.coverUrl,
       avatarUrl: currentProfile.avatarUrl,
       locale: currentProfile.locale,
@@ -150,21 +155,23 @@ class UserVm extends ChangeNotifier {
       return _sessionRole == UserRole.guardian ? <AppUser>[] : list;
     }
 
-    return list.where((member) {
-      if (member.role == UserRole.child) {
-        return _accessControl.canAccessChild(
-          actor: actor,
-          childUid: member.uid,
-          child: member,
-        );
-      }
+    return list
+        .where((member) {
+          if (member.role == UserRole.child) {
+            return _accessControl.canAccessChild(
+              actor: actor,
+              childUid: member.uid,
+              child: member,
+            );
+          }
 
-      if (actor.role.isAdultManager) {
-        return member.role == UserRole.guardian && member.allowTracking;
-      }
+          if (actor.role.isAdultManager) {
+            return member.role == UserRole.guardian && member.allowTracking;
+          }
 
-      return false;
-    }).toList(growable: false);
+          return false;
+        })
+        .toList(growable: false);
   }
 
   List<AppUser> _filterFamilyMembersByAccess(List<AppUser> list) {
@@ -178,24 +185,26 @@ class UserVm extends ChangeNotifier {
     }
 
     if (actor.role == UserRole.guardian) {
-      return list.where((member) {
-        if (member.role == UserRole.parent) {
-          return member.uid == (actor.parentUid?.trim() ?? '');
-        }
-        if (member.role == UserRole.child) {
-          return _accessControl.canAccessChild(
-            actor: actor,
-            childUid: member.uid,
-            child: member,
-          );
-        }
-        return false;
-      }).toList(growable: false);
+      return list
+          .where((member) {
+            if (member.role == UserRole.parent) {
+              return member.uid == (actor.parentUid?.trim() ?? '');
+            }
+            if (member.role == UserRole.child) {
+              return _accessControl.canAccessChild(
+                actor: actor,
+                childUid: member.uid,
+                child: member,
+              );
+            }
+            return false;
+          })
+          .toList(growable: false);
     }
 
-    return list.where((member) => member.role == UserRole.parent).toList(
-      growable: false,
-    );
+    return list
+        .where((member) => member.role == UserRole.parent)
+        .toList(growable: false);
   }
 
   void _recomputeChildren({bool notify = true}) {
@@ -414,8 +423,9 @@ class UserVm extends ChangeNotifier {
       return;
     }
 
-    if (_currentProfileUid == resolvedUid && _profileSubscription != null)
+    if (_currentProfileUid == resolvedUid && _profileSubscription != null) {
       return;
+    }
     _currentProfileUid = resolvedUid;
 
     _profileSubscription?.cancel();
@@ -502,11 +512,7 @@ class UserVm extends ChangeNotifier {
     final normalizedUid = uid.trim();
     final normalizedTimeZone = timeZone.trim();
     final normalizedCurrentTimeZone =
-        (currentTimeZone ??
-                profile?.timezone ??
-                me?.timezone)
-            ?.trim() ??
-        '';
+        (currentTimeZone ?? profile?.timezone ?? me?.timezone)?.trim() ?? '';
 
     if (normalizedUid.isEmpty ||
         normalizedTimeZone.isEmpty ||
@@ -514,7 +520,10 @@ class UserVm extends ChangeNotifier {
       return;
     }
 
-    await _userRepo.updateProfile(uid: normalizedUid, timezone: normalizedTimeZone);
+    await _userRepo.updateTimeZone(
+      uid: normalizedUid,
+      timezone: normalizedTimeZone,
+    );
 
     if (profile?.id == normalizedUid) {
       profile = profile?.copyWith(timezone: normalizedTimeZone);

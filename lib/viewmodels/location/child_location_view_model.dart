@@ -4,11 +4,14 @@ import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:kid_manager/core/location/current_publish_policy.dart';
 import 'package:kid_manager/core/location/motion_detector.dart';
 import 'package:kid_manager/core/location/send_policy.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/core/location/tracking_state.dart';
+import 'package:kid_manager/core/location/tracking_tuning.dart';
 import 'package:kid_manager/core/zones/zone_monitor.dart';
 import 'package:kid_manager/features/pipeline/tracking_pipeline.dart';
 import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
@@ -20,6 +23,7 @@ import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/background/tracking_runtime_config.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
+import 'package:kid_manager/services/location/background_tracking_status_policy.dart';
 import 'package:kid_manager/services/location/location_day_key_resolver.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
@@ -173,7 +177,7 @@ class ChildLocationViewModel extends ChangeNotifier {
   }
 
   String? _currentUidOrNull() {
-    final uid = _auth.currentUser?.uid?.trim();
+    final uid = _auth.currentUser?.uid.trim();
     if (uid == null || uid.isEmpty) {
       return null;
     }
@@ -182,7 +186,7 @@ class ChildLocationViewModel extends ChangeNotifier {
 
   void _handleAuthStateChanged(User? user) {
     if (_disposed) return;
-    final nextUid = user?.uid?.trim();
+    final nextUid = user?.uid.trim();
     final activeSharingUid = _activeSharingUid;
     if (activeSharingUid == null || nextUid == activeSharingUid) {
       return;
@@ -368,30 +372,6 @@ class ChildLocationViewModel extends ChangeNotifier {
         lastSuccessAtMs + minSuccessInterval.inMilliseconds;
     final nextAfterFailure = lastFailureAtMs + failureBackoff.inMilliseconds;
     return nowMs >= nextAfterSuccess && nowMs >= nextAfterFailure;
-  }
-
-  Duration? _currentSendInterval({
-    required MotionState motion,
-    required double accuracy,
-    required bool shouldSendInitialCurrent,
-  }) {
-    if (accuracy > 100) return null;
-    if (shouldSendInitialCurrent) return Duration.zero;
-
-    switch (motion) {
-      case MotionState.moving:
-        if (accuracy <= 20) return const Duration(seconds: 5);
-        if (accuracy <= 50) return const Duration(seconds: 10);
-        return const Duration(seconds: 20);
-      case MotionState.idle:
-        if (accuracy <= 20) return const Duration(seconds: 45);
-        if (accuracy <= 50) return const Duration(minutes: 1);
-        return const Duration(minutes: 2);
-      case MotionState.stationary:
-        if (accuracy <= 20) return const Duration(minutes: 2);
-        if (accuracy <= 50) return const Duration(minutes: 3);
-        return const Duration(minutes: 5);
-    }
   }
 
   /// Stop sharing (clearData=false if paused, true on logout)
@@ -618,19 +598,19 @@ class ChildLocationViewModel extends ChangeNotifier {
       final filtered = result.filteredLocation;
       final acc = filtered.accuracy;
 
-      if (acc <= 30) {
+      if (acc <= TrackingTuning.historyGoodAccuracyMaxM) {
         _lastGoodFixAt = DateTime.now();
       }
       final shouldGuardJump = _sentInitialCurrent && _currentLocation != null;
       if (shouldGuardJump &&
           _isJumpTooLarge(_currentLocation, filtered) &&
-          filtered.accuracy > 20) {
+          filtered.accuracy > TrackingTuning.jumpGuardBadAccuracyMinM) {
         debugPrint('Skip jump point: acc=${filtered.accuracy}');
         return;
       }
 
       _transport = result.transport;
-      if (_currentLocation == null || acc <= 50) {
+      if (_currentLocation == null || acc <= TrackingTuning.weakAccuracyMaxM) {
         _currentLocation = filtered;
       }
 
@@ -661,29 +641,40 @@ class ChildLocationViewModel extends ChangeNotifier {
       // 1) Update CURRENT with keep-alive even when child is idle/stationary.
       // =========================
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final rejectVeryBadAcc = acc > 100;
+      final rejectVeryBadAcc = acc > TrackingTuning.currentRejectAccuracyMaxM;
       final isMoving = result.motion == MotionState.moving;
-      final goodHistoryAcc = acc <= 30; // adjust threshold as needed
+      final goodHistoryAcc = acc <= TrackingTuning.historyGoodAccuracyMaxM;
       final shouldSendInitialCurrent =
           !_sentInitialCurrent && !rejectVeryBadAcc;
 
       var sentCurrentToServer = false;
       Object? locationError;
 
-      final currentInterval = _currentSendInterval(
+      final currentInterval = currentPublishInterval(
         motion: result.motion,
         accuracy: acc,
         shouldSendInitialCurrent: shouldSendInitialCurrent,
+        indoorSuppressed: result.indoorSuppressed,
       );
-
-      if (!_publishingHandledByService &&
+      final shouldAttemptCurrentSend =
+          !_publishingHandledByService &&
           currentInterval != null &&
           _canAttemptSend(
             nowMs: nowMs,
             lastSuccessAtMs: _lastCurrentSentAtMs,
             lastFailureAtMs: _lastCurrentFailureAtMs,
             minSuccessInterval: currentInterval,
-          )) {
+          );
+
+      if (shouldAttemptCurrentSend) {
+        final resolvedCurrentInterval = currentInterval;
+        if (result.indoorSuppressed && kDebugMode) {
+          debugPrint(
+            'ChildLocationViewModel current update anchored due to weak GPS '
+            'acc=${acc.toStringAsFixed(1)} '
+            'interval=${resolvedCurrentInterval.inSeconds}s',
+          );
+        }
         try {
           await _locationRepository.updateMyCurrent(payload);
           _lastCurrentSentAtMs = nowMs;
@@ -700,16 +691,29 @@ class ChildLocationViewModel extends ChangeNotifier {
       // =========================
       // 2) Append HISTORY only when policy allows and moving
       // =========================
+      final historySendWindowOpen = _canAttemptSend(
+        nowMs: nowMs,
+        lastSuccessAtMs: 0,
+        lastFailureAtMs: _lastHistoryFailureAtMs,
+        minSuccessInterval: Duration.zero,
+      );
       if (!_publishingHandledByService &&
           isMoving &&
+          goodHistoryAcc &&
+          result.indoorSuppressed &&
+          historySendWindowOpen &&
+          kDebugMode) {
+        debugPrint(
+          'ChildLocationViewModel history send skipped due to indoor '
+          'suppression acc=${acc.toStringAsFixed(1)}',
+        );
+      }
+      if (!_publishingHandledByService &&
+          isMoving &&
+          !result.indoorSuppressed &&
           result.shouldSend &&
           goodHistoryAcc &&
-          _canAttemptSend(
-            nowMs: nowMs,
-            lastSuccessAtMs: 0,
-            lastFailureAtMs: _lastHistoryFailureAtMs,
-            minSuccessInterval: Duration.zero,
-          )) {
+          historySendWindowOpen) {
         try {
           await _locationRepository.appendMyHistory(payload);
           _lastHistoryFailureAtMs = 0;
@@ -743,7 +747,7 @@ class ChildLocationViewModel extends ChangeNotifier {
         _error = null;
       }
 
-      if (acc <= 30) {
+      if (acc <= TrackingTuning.historyGoodAccuracyMaxM) {
         _appendTrail(result.filteredLocation);
       }
       notifyListeners();
@@ -775,7 +779,7 @@ class ChildLocationViewModel extends ChangeNotifier {
   }
 
   bool _isAppResumed() {
-    return PlatformDispatcher.instance.initialLifecycleState ==
+    return SchedulerBinding.instance.lifecycleState ==
         AppLifecycleState.resumed;
   }
 
@@ -785,25 +789,31 @@ class ChildLocationViewModel extends ChangeNotifier {
     }
 
     final serviceRunning = await TrackingBackgroundService.isRunning();
-    if (serviceRunning) {
-      return true;
-    }
-
-    if (_isAppResumed() && _isSharing) {
-      return true;
-    }
-
     final hasBackgroundPermission = await _locationService
         .hasBackgroundLocationPermission();
-    if (!hasBackgroundPermission) {
-      return false;
+
+    var backgroundModeEnabled = false;
+    final shouldProbePluginBackgroundMode =
+        _requireBackground &&
+        !serviceRunning &&
+        !_publishingHandledByService &&
+        !(_isAppResumed() && _isSharing) &&
+        hasBackgroundPermission;
+    if (shouldProbePluginBackgroundMode) {
+      backgroundModeEnabled = await _locationService.isBackgroundModeEnabled();
     }
 
-    if (_publishingHandledByService) {
-      return true;
-    }
-
-    return _locationService.isBackgroundModeEnabled();
+    return isBackgroundTrackingSatisfiedForStatus(
+      BackgroundTrackingStatusSnapshot(
+        requireBackground: _requireBackground,
+        serviceRunning: serviceRunning,
+        isSharing: _isSharing,
+        publishingHandledByService: _publishingHandledByService,
+        hasBackgroundPermission: hasBackgroundPermission,
+        backgroundModeEnabled: backgroundModeEnabled,
+        appLifecycleState: SchedulerBinding.instance.lifecycleState,
+      ),
+    );
   }
   // SOS
 

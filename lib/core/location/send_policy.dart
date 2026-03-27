@@ -1,4 +1,5 @@
 import 'package:kid_manager/core/location/tracking_state.dart';
+import 'package:kid_manager/core/location/tracking_tuning.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
 
 class SendPolicy {
@@ -8,78 +9,81 @@ class SendPolicy {
     required Duration sinceLast,
     required bool isNight,
     required double accuracyM,
+    required bool indoorSuppressed,
     required TransportMode transport,
     double? turnDeg,
   }) {
-    // ✅ ưu tiên cua: nếu rẽ > 25° và accuracy tốt -> gửi ngay
-    if (turnDeg != null && turnDeg >= 25 && accuracyM <= 30) {
+    if (indoorSuppressed) {
+      return false;
+    }
+
+    // Prefer sending on meaningful turns when GPS quality is still usable.
+    if (turnDeg != null &&
+        turnDeg >= TrackingTuning.turnSendThresholdDeg &&
+        accuracyM <= TrackingTuning.moderateAccuracyMaxM) {
       return true;
     }
-    // 0) Accuracy quá tệ: hạn chế gửi để khỏi “nhảy”
-    if (accuracyM >= 80) {
-      // chỉ keep-alive thưa
-      return sinceLast >= const Duration(minutes: 2);
+
+    // Very weak GPS: only keep alive sparsely to avoid visible jumping.
+    if (accuracyM >= TrackingTuning.weakGpsKeepAliveAccuracyM) {
+      return sinceLast >= TrackingTuning.weakGpsKeepAliveInterval;
     }
-    if (accuracyM >= 50) {
-      return sinceLast >= const Duration(minutes: 1);
+    if (accuracyM >= TrackingTuning.moderateGpsKeepAliveAccuracyM) {
+      return sinceLast >= TrackingTuning.moderateGpsKeepAliveInterval;
     }
 
-    // 1) Ban đêm: gửi thưa hơn
     if (isNight) {
-      // vẫn cho keep-alive
-      if (sinceLast >= const Duration(minutes: 5)) return true;
-      return distanceKm >= 0.1; // 100m
+      if (sinceLast >= TrackingTuning.nightKeepAliveInterval) {
+        return true;
+      }
+      return distanceKm >= TrackingTuning.nightMovingDistanceKm;
     }
 
-    // 2) chỉnh ngưỡng theo transport
-    // walking: chậm, distance nhỏ -> đừng gửi quá dày
-    // vehicle: đi nhanh -> gửi dày hơn
     Duration movingMinInterval;
     double movingMinDistanceKm;
 
     switch (transport) {
       case TransportMode.walking:
-        movingMinInterval = const Duration(seconds: 10);
-        movingMinDistanceKm = 0.012; // ~12m
+        movingMinInterval = TrackingTuning.walkingMovingInterval;
+        movingMinDistanceKm = TrackingTuning.walkingMovingDistanceKm;
         break;
       case TransportMode.bicycle:
-        movingMinInterval = const Duration(seconds: 7);
-        movingMinDistanceKm = 0.015; // ~15m
+        movingMinInterval = TrackingTuning.bicycleMovingInterval;
+        movingMinDistanceKm = TrackingTuning.bicycleMovingDistanceKm;
         break;
       case TransportMode.vehicle:
-        movingMinInterval = const Duration(seconds: 5);
-        movingMinDistanceKm = 0.020; // ~20m
+        movingMinInterval = TrackingTuning.vehicleMovingInterval;
+        movingMinDistanceKm = TrackingTuning.vehicleMovingDistanceKm;
         break;
       case TransportMode.still:
       case TransportMode.unknown:
-        movingMinInterval = const Duration(seconds: 10);
-        movingMinDistanceKm = 0.015;
+        movingMinInterval = TrackingTuning.unknownMovingInterval;
+        movingMinDistanceKm = TrackingTuning.unknownMovingDistanceKm;
         break;
     }
 
     if (transport == TransportMode.still || transport == TransportMode.unknown) {
-      if (accuracyM >= 30) {
-        movingMinInterval = const Duration(seconds: 20);
-        movingMinDistanceKm = 0.025;
-      } else if (movingMinDistanceKm < 0.018) {
-        movingMinDistanceKm = 0.018;
+      if (accuracyM >= TrackingTuning.stillUnknownWeakAccuracyMinM) {
+        movingMinInterval = TrackingTuning.stillUnknownWeakInterval;
+        movingMinDistanceKm = TrackingTuning.stillUnknownWeakDistanceKm;
+      } else if (movingMinDistanceKm < TrackingTuning.stillUnknownTightDistanceKm) {
+        movingMinDistanceKm = TrackingTuning.stillUnknownTightDistanceKm;
       }
     }
 
     switch (motion) {
       case MotionState.moving:
-        if (distanceKm >= movingMinDistanceKm) return true;
-        if (sinceLast >= movingMinInterval) return true;
-        return false;
-
+        if (distanceKm >= movingMinDistanceKm) {
+          return true;
+        }
+        return sinceLast >= movingMinInterval;
       case MotionState.idle:
-      // idle: gửi thưa hơn, nhưng vẫn keep-alive để parent biết online
-        if (distanceKm >= 0.02) return true; // 20m
-        return sinceLast >= const Duration(minutes: 2);
-
+        if (distanceKm >= TrackingTuning.idleHistoryDistanceKm) {
+          return true;
+        }
+        return sinceLast >= TrackingTuning.idleHistoryKeepAliveInterval;
       case MotionState.stationary:
-      // stationary: keep-alive 2-5 phút
-        return sinceLast >= const Duration(minutes: 5);
+        return sinceLast >= TrackingTuning.stationaryHistoryKeepAliveInterval;
     }
   }
 }

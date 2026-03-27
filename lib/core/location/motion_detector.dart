@@ -1,9 +1,7 @@
 import 'package:kid_manager/core/location/tracking_state.dart';
+import 'package:kid_manager/core/location/tracking_tuning.dart';
 
 class MotionDetector {
-  static const Duration _idleDelay = Duration(seconds: 45);
-  static const Duration _stationaryDelay = Duration(minutes: 3);
-
   MotionState detect(
     MotionState current,
     double distanceKm,
@@ -12,24 +10,30 @@ class MotionDetector {
     required double speedMps,
     required double accuracyM,
   }) {
-    final baseMovementThresholdKm = accuracyM <= 15
-        ? 0.006
-        : accuracyM <= 30
-        ? 0.008
-        : accuracyM <= 50
-        ? 0.012
-        : 0.015;
+    final baseMovementThresholdKm = accuracyM <= TrackingTuning.goodAccuracyMaxM
+        ? TrackingTuning.motionBaseMovementThresholdGoodKm
+        : accuracyM <= TrackingTuning.moderateAccuracyMaxM
+        ? TrackingTuning.motionBaseMovementThresholdModerateKm
+        : accuracyM <= TrackingTuning.weakAccuracyMaxM
+        ? TrackingTuning.motionBaseMovementThresholdWeakKm
+        : TrackingTuning.motionBaseMovementThresholdFallbackKm;
 
     final movementThresholdKm = switch (current) {
       MotionState.moving => baseMovementThresholdKm,
-      MotionState.idle => baseMovementThresholdKm * 1.35,
-      MotionState.stationary => baseMovementThresholdKm * 1.8,
+      MotionState.idle =>
+        baseMovementThresholdKm * TrackingTuning.motionIdleDistanceMultiplier,
+      MotionState.stationary => baseMovementThresholdKm *
+          TrackingTuning.motionStationaryDistanceMultiplier,
     };
 
     final movingSpeedThresholdMps = switch (current) {
-      MotionState.moving => 0.8,
-      MotionState.idle => accuracyM <= 20 ? 1.0 : 1.2,
-      MotionState.stationary => accuracyM <= 20 ? 1.25 : 1.5,
+      MotionState.moving => TrackingTuning.motionMovingSpeedThresholdMovingMps,
+      MotionState.idle => accuracyM <= TrackingTuning.goodAccuracyMaxM
+          ? TrackingTuning.motionMovingSpeedThresholdIdleGoodMps
+          : TrackingTuning.motionMovingSpeedThresholdIdleWeakMps,
+      MotionState.stationary => accuracyM <= TrackingTuning.goodAccuracyMaxM
+          ? TrackingTuning.motionMovingSpeedThresholdStationaryGoodMps
+          : TrackingTuning.motionMovingSpeedThresholdStationaryWeakMps,
     };
 
     if (distanceKm >= movementThresholdKm || speedMps >= movingSpeedThresholdMps) {
@@ -44,11 +48,11 @@ class MotionDetector {
 
     final idleFor = now.difference(lastMoveAt);
 
-    if (idleFor >= _stationaryDelay) {
+    if (idleFor >= TrackingTuning.motionStationaryDelay) {
       return MotionState.stationary;
     }
 
-    if (idleFor >= _idleDelay) {
+    if (idleFor >= TrackingTuning.motionIdleDelay) {
       return MotionState.idle;
     }
 

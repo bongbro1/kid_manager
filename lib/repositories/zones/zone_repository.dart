@@ -5,7 +5,17 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/models/zones/geo_zone.dart';
 
-class ZoneRepository {
+abstract class ZoneRepositoryInterface {
+  Stream<List<GeoZone>> watchZones(String childUid);
+
+  Future<List<GeoZone>> getZonesOnce(String childUid);
+
+  Future<void> upsertZone(String childUid, GeoZone zone);
+
+  Future<void> deleteZone(String childUid, String zoneId);
+}
+
+class ZoneRepository implements ZoneRepositoryInterface {
   final FirebaseDatabase _db;
   final FirebaseFunctions _functions;
 
@@ -17,7 +27,6 @@ class ZoneRepository {
           region: 'asia-southeast1',
         );
   DatabaseReference _zonesRef(String childUid) => _db.ref("zonesByChild/$childUid");
-  DatabaseReference _eventsRef(String childUid) => _db.ref("zoneEventsByChild/$childUid");
 
   List<GeoZone> _parseZones(dynamic raw) {
     if (raw is! Map) return <GeoZone>[];
@@ -42,6 +51,7 @@ class ZoneRepository {
     return _parseZones(data['zones']);
   }
 
+  @override
   Stream<List<GeoZone>> watchZones(String childUid) {
     final ctrl = StreamController<List<GeoZone>>();
     StreamSubscription<DatabaseEvent>? rtdbSub;
@@ -95,6 +105,7 @@ class ZoneRepository {
     return ctrl.stream;
   }
 
+  @override
   Future<List<GeoZone>> getZonesOnce(String childUid) async {
     try {
       final snap = await _zonesRef(childUid).get();
@@ -115,6 +126,7 @@ class ZoneRepository {
     return (map['zoneId'] ?? '').toString();
   }
 
+  @override
   Future<void> upsertZone(String childUid, GeoZone zone) async {
     try {
       final callable = _functions.httpsCallable('upsertChildZone');
@@ -143,6 +155,7 @@ class ZoneRepository {
     }
   }
 
+  @override
   Future<void> deleteZone(String childUid, String zoneId) async {
     final callable = _functions.httpsCallable('deleteChildZone');
     await callable.call({
@@ -151,15 +164,14 @@ class ZoneRepository {
     });
   }
 
+  @Deprecated(
+    'Client-authored zone events are non-authoritative. '
+    'Canonical zone events are computed on the backend from trusted inputs.',
+  )
   Future<void> pushZoneEvent(String childUid, Map<String, dynamic> event) async {
-    try {
-      final ref = _eventsRef(childUid).push();
-      await ref.set(event);
-      debugPrint("✅ pushZoneEvent OK path=zoneEventsByChild/$childUid/${ref.key} data=$event");
-    } catch (e, st) {
-      debugPrint("❌ pushZoneEvent FAIL $e");
-      debugPrint("$st");
-      rethrow;
-    }
+    debugPrint(
+      '[ZoneRepository] Ignored legacy client-authored zone event for '
+      'childUid=$childUid. Canonical events are server-generated only.',
+    );
   }
 }

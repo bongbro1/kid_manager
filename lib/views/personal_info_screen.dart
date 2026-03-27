@@ -14,7 +14,6 @@ import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
 import 'package:kid_manager/views/setting_pages/member_management_screen.dart';
-import 'package:kid_manager/views/notifications/notification_debug_screen.dart';
 import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_icon.dart';

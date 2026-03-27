@@ -10,23 +10,96 @@ import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:provider/provider.dart';
 
 class PhoneAuthDialog {
+  static final RegExp _nonDigitRegExp = RegExp(r'\D');
+  static final RegExp _e164RegExp = RegExp(r'^\+[1-9]\d{7,14}$');
+
   static final List<Country> countries = [
-    Country(name: 'Vietnam', dialCode: '+84', flag: '🇻🇳'),
-    Country(name: 'United States', dialCode: '+1', flag: '🇺🇸'),
-    Country(name: 'Japan', dialCode: '+81', flag: '🇯🇵'),
-    Country(name: 'Korea', dialCode: '+82', flag: '🇰🇷'),
+    Country(name: 'Vietnam', dialCode: '+84', flag: 'VN'),
+    Country(name: 'United States', dialCode: '+1', flag: 'US'),
+    Country(name: 'Japan', dialCode: '+81', flag: 'JP'),
+    Country(name: 'Korea', dialCode: '+82', flag: 'KR'),
   ];
 
+  static String _digitsOnly(String value) {
+    return value.replaceAll(_nonDigitRegExp, '');
+  }
+
+  static bool _dropsNationalPrefixZero(String dialCode) {
+    return dialCode == '+84' || dialCode == '+81' || dialCode == '+82';
+  }
+
   static String normalizePhone(String phone, String dialCode) {
-    phone = phone.replaceAll(' ', '');
+    final trimmed = phone.trim();
+    if (trimmed.isEmpty) return '';
 
-    if (phone.startsWith('+')) return phone;
-
-    if (dialCode == '+84' && phone.startsWith('0')) {
-      return '$dialCode${phone.substring(1)}';
+    if (trimmed.startsWith('00')) {
+      return '+${_digitsOnly(trimmed.substring(2))}';
     }
 
-    return '$dialCode$phone';
+    if (trimmed.startsWith('+')) {
+      return '+${_digitsOnly(trimmed)}';
+    }
+
+    final dialDigits = _digitsOnly(dialCode);
+    var digits = _digitsOnly(trimmed);
+    if (digits.isEmpty) {
+      return '';
+    }
+
+    if (digits.startsWith(dialDigits)) {
+      digits = digits.substring(dialDigits.length);
+    }
+
+    if (_dropsNationalPrefixZero(dialCode) && digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+
+    return '+$dialDigits$digits';
+  }
+
+  static String? validatePhone(String phone, AppLocalizations l10n) {
+    final isVietnamese = l10n.localeName.toLowerCase().startsWith('vi');
+    if (phone.isEmpty) {
+      return isVietnamese
+          ? 'Vui lòng nhập số điện thoại'
+          : 'Please enter a phone number';
+    }
+
+    if (!_e164RegExp.hasMatch(phone)) {
+      return isVietnamese
+          ? 'Số điện thoại không hợp lệ. Hãy nhập đúng định dạng quốc tế, ví dụ +84973564344.'
+          : 'Invalid phone number. Please use an international format such as +84973564344.';
+    }
+
+    return null;
+  }
+
+  static String mapPhoneAuthErrorMessage(
+    AppLocalizations l10n,
+    Object error,
+  ) {
+    final raw = error.toString();
+    final isVietnamese = l10n.localeName.toLowerCase().startsWith('vi');
+
+    if (raw.contains('too-many-requests')) {
+      return isVietnamese
+          ? 'Thiết bị này đang bị Firebase chặn tạm thời vì gửi quá nhiều yêu cầu OTP. Hãy chờ một lúc rồi thử lại.'
+          : 'This device is temporarily blocked by Firebase because it sent too many OTP requests. Please wait and try again later.';
+    }
+
+    if (raw.contains('invalid-phone-number')) {
+      return isVietnamese
+          ? 'Số điện thoại chưa đúng chuẩn quốc tế (E.164). Hãy kiểm tra lại mã quốc gia và số điện thoại.'
+          : 'The phone number is not in valid international (E.164) format. Please check the country code and number.';
+    }
+
+    if (raw.contains('app-not-authorized')) {
+      return isVietnamese
+          ? 'Ứng dụng Android này chưa được cấu hình hợp lệ cho Firebase Phone Auth. Cần kiểm tra package name, SHA-1 và SHA-256 trong Firebase Console.'
+          : 'This Android app is not properly configured for Firebase Phone Auth. Check the package name, SHA-1, and SHA-256 in Firebase Console.';
+    }
+
+    return raw;
   }
 
   static Future<void> showPhoneDialog(BuildContext context) async {
@@ -90,7 +163,6 @@ class PhoneAuthDialog {
                       hintStyle: textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurface.withOpacity(0.45),
                       ),
-
                       prefixIcon: Padding(
                         padding: const EdgeInsets.only(left: 12, right: 8),
                         child: DropdownButtonHideUnderline(
@@ -124,20 +196,16 @@ class PhoneAuthDialog {
                           ),
                         ),
                       ),
-
                       prefixIconConstraints: const BoxConstraints(
                         minWidth: 0,
                         minHeight: 0,
                       ),
-
                       filled: true,
-                      fillColor: colorScheme.surface, // 👈 sáng hơn
-
+                      fillColor: colorScheme.surface,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 14,
                       ),
-
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide(
@@ -145,7 +213,6 @@ class PhoneAuthDialog {
                           width: 1.4,
                         ),
                       ),
-
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide(
@@ -153,7 +220,6 @@ class PhoneAuthDialog {
                           width: 1.4,
                         ),
                       ),
-
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide(
@@ -180,7 +246,9 @@ class PhoneAuthDialog {
                           : const Icon(Icons.sms_outlined),
                       label: Text(
                         vm.isSendingOtp
-                            ? 'Đang gửi...'
+                            ? (l10n.localeName.toLowerCase().startsWith('vi')
+                                  ? 'Đang gửi...'
+                                  : 'Sending...')
                             : l10n.phoneAuthSendOtpButton,
                         style: textTheme.titleMedium?.copyWith(
                           fontSize: 16,
@@ -203,24 +271,30 @@ class PhoneAuthDialog {
                           ? null
                           : () async {
                               try {
-                                var phone = phoneController.text.trim();
+                                final normalizedPhone = normalizePhone(
+                                  phoneController.text,
+                                  selectedCountry.dialCode,
+                                );
+                                final validationMessage = validatePhone(
+                                  normalizedPhone,
+                                  l10n,
+                                );
 
-                                if (phone.isEmpty) {
+                                if (validationMessage != null) {
                                   NotificationDialog.show(
                                     parentContext,
                                     type: DialogType.error,
-                                    title: 'Thất bại',
-                                    message: 'Vui lòng nhập số điện thoại',
+                                    title: l10n.localeName
+                                            .toLowerCase()
+                                            .startsWith('vi')
+                                        ? 'Thất bại'
+                                        : 'Failed',
+                                    message: validationMessage,
                                   );
                                   return;
                                 }
 
-                                phone = normalizePhone(
-                                  phone,
-                                  selectedCountry.dialCode,
-                                );
-
-                                await vm.sendOtpSms(phone);
+                                await vm.sendOtpSms(normalizedPhone);
 
                                 if (context.mounted) {
                                   Navigator.of(context).pop();
@@ -233,8 +307,12 @@ class PhoneAuthDialog {
                                 NotificationDialog.show(
                                   parentContext,
                                   type: DialogType.error,
-                                  title: 'Thất bại',
-                                  message: 'Không gửi được OTP: $e',
+                                  title: l10n.localeName
+                                          .toLowerCase()
+                                          .startsWith('vi')
+                                      ? 'Thất bại'
+                                      : 'Failed',
+                                  message: mapPhoneAuthErrorMessage(l10n, e),
                                 );
                               }
                             },
@@ -276,7 +354,11 @@ class PhoneAuthDialog {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lock_outline, size: 42, color: Colors.green),
+                        const Icon(
+                          Icons.lock_outline,
+                          size: 42,
+                          color: Colors.green,
+                        ),
                         const SizedBox(height: 10),
                         Text(
                           l10n.phoneAuthOtpTitle,
