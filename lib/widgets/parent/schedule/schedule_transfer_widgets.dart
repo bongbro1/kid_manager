@@ -317,12 +317,12 @@ Future<void> showScheduleTransferSuccessDialog(
   required String message,
   required String confirmText,
 }) {
-  final scheme = Theme.of(context).colorScheme;
 
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (dialogCtx) {
+      
       final dialogScheme = Theme.of(dialogCtx).colorScheme;
 
       return Dialog(

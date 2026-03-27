@@ -19,7 +19,6 @@ class EditScheduleScreen extends StatelessWidget {
       headerTitle: l10n.scheduleEditHeaderTitle,
       submitButtonText: l10n.scheduleEditSubmitButton,
       successMessage: l10n.scheduleEditSuccessMessage,
-      fieldStyle: ScheduleFormFieldStyle.floatingLabel,
       allowDateEditing: false,
       requireChangesToSubmit: true,
       initialData: ScheduleFormData.fromSchedule(schedule),

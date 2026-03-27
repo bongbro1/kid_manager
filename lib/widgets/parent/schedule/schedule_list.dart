@@ -667,6 +667,9 @@ class MemoryDayItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     final memoryVm = context.read<MemoryDayViewModel>();
     final daysLeft = memoryVm.daysUntilNextOccurrence(memory);
     final dateText = DateFormat('dd/MM/yyyy').format(memory.date);
@@ -676,15 +679,18 @@ class MemoryDayItem extends StatelessWidget {
         : daysLeft == 0
         ? l10n.memoryDayToday
         : l10n.memoryDayDaysLeft(daysLeft);
-    final badgeStyle = _memoryBadgeStyleFor(daysLeft);
+    final badgeStyle = _memoryBadgeStyleFor(context, daysLeft);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: const Border(
-          left: BorderSide(color: Color(0xFFE2B53B), width: 3),
+          left: BorderSide(
+            color: Color(0xFFE2B53B), 
+            width: 3
+            ),
         ),
         boxShadow: [
           BoxShadow(
@@ -704,7 +710,7 @@ class MemoryDayItem extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7DE),
+                  color: colorScheme.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
@@ -724,7 +730,7 @@ class MemoryDayItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1F2937),
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -734,7 +740,7 @@ class MemoryDayItem extends StatelessWidget {
                   tooltip: '',
                   position: PopupMenuPosition.under,
                   elevation: 6,
-                  color: theme.colorScheme.surface,
+                  color: colorScheme.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -750,17 +756,17 @@ class MemoryDayItem extends StatelessWidget {
                       value: _ScheduleMemoryAction.edit,
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.edit_outlined,
                             size: 18,
-                            color: Color(0xFF2563EB),
+                            color: colorScheme.primary,
                           ),
                           const SizedBox(width: 10),
                           Text(
                             l10n.memoryDayEditAction,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF1F2937),
+                              color: colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -770,17 +776,17 @@ class MemoryDayItem extends StatelessWidget {
                       value: _ScheduleMemoryAction.delete,
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.delete_outline,
                             size: 18,
-                            color: Colors.red,
+                            color: colorScheme.error,
                           ),
                           const SizedBox(width: 10),
                           Text(
                             l10n.memoryDayDeleteAction,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: Colors.red,
+                              color: colorScheme.error,
                             ),
                           ),
                         ],
@@ -792,15 +798,17 @@ class MemoryDayItem extends StatelessWidget {
                     height: 36,
                     margin: const EdgeInsets.only(left: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                      border: Border.all(
+                        color: colorScheme.outline.withOpacity(0.5)
+                        ),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(
+                    child: Icon(
                       Icons.more_vert_rounded,
                       size: 18,
-                      color: Color(0xFF6B7280),
+                      color: colorScheme.onSurface.withOpacity(0.65),
                     ),
                   ),
                 ),
@@ -832,7 +840,7 @@ class MemoryDayItem extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               fontSize: 12.5,
               height: 1.3,
-              color: const Color(0xFF6B7280),
+              color: colorScheme.onSurface.withOpacity(0.65),
             ),
           ),
           if (noteText.isNotEmpty) ...[
@@ -844,7 +852,7 @@ class MemoryDayItem extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(
                 fontSize: 12.5,
                 height: 1.35,
-                color: const Color(0xFF9CA3AF),
+                color: colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
           ],
@@ -853,11 +861,14 @@ class MemoryDayItem extends StatelessWidget {
     );
   }
 
-  _MemoryDayBadgeStyle _memoryBadgeStyleFor(int daysLeft) {
+  _MemoryDayBadgeStyle _memoryBadgeStyleFor(BuildContext context, int daysLeft) {
+
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (daysLeft < 0) {
-      return const _MemoryDayBadgeStyle(
-        backgroundColor: Color(0xFFF3F4F6),
-        textColor: Color(0xFF6B7280),
+      return _MemoryDayBadgeStyle(
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        textColor: colorScheme.onSurface.withOpacity(0.65),
       );
     }
 

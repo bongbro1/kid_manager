@@ -11,8 +11,6 @@ import 'package:kid_manager/widgets/parent/schedule/schedule_period_selector.dar
 
 import '../../../models/schedule.dart';
 
-enum ScheduleFormFieldStyle { hint, floatingLabel }
-
 class ScheduleFormData {
   final String title;
   final String description;
@@ -137,7 +135,6 @@ class ScheduleFormSheet extends StatefulWidget {
   final String headerTitle;
   final String submitButtonText;
   final String successMessage;
-  final ScheduleFormFieldStyle fieldStyle;
   final bool allowDateEditing;
   final bool requireChangesToSubmit;
   final ScheduleFormData initialData;
@@ -148,7 +145,6 @@ class ScheduleFormSheet extends StatefulWidget {
     required this.headerTitle,
     required this.submitButtonText,
     required this.successMessage,
-    required this.fieldStyle,
     required this.allowDateEditing,
     required this.requireChangesToSubmit,
     required this.initialData,
@@ -272,7 +268,6 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
       context,
       title: label,
       initial: initial,
-      primaryColor: const Color(0xFF3F7CFF),
       minuteInterval: 1,
     );
 
@@ -437,7 +432,7 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
   }) {
     final scheme = Theme.of(context).colorScheme;
 
-    final baseDecoration = InputDecoration(
+    final decoration = InputDecoration(
       filled: true,
       fillColor: scheme.surface,
       border: OutlineInputBorder(
@@ -453,18 +448,12 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
         borderSide: BorderSide(color: scheme.primary, width: 1.2),
       ),
       counterText: '',
+      labelText: text,
+      alignLabelWithHint: maxLines > 1,
+      labelStyle: _compactFieldLabelStyle(scheme),
+      floatingLabelStyle: _compactFieldLabelStyle(scheme),
+      floatingLabelBehavior: FloatingLabelBehavior.always,
     );
-
-    final decoration = widget.fieldStyle == ScheduleFormFieldStyle.hint
-        ? baseDecoration.copyWith(
-            hintText: text,
-            hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
-          )
-        : baseDecoration.copyWith(
-            labelText: text,
-            labelStyle: TextStyle(color: scheme.onSurface.withOpacity(0.7)),
-            floatingLabelBehavior: FloatingLabelBehavior.auto,
-          );
 
     return TextField(
       controller: controller,
@@ -490,55 +479,48 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
     );
   }
 
+  TextStyle _compactFieldValueStyle(ColorScheme scheme) {
+    return TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: scheme.onSurface,
+    );
+  }
+
+  TextStyle _compactFieldLabelStyle(ColorScheme scheme) {
+    return TextStyle(
+      fontSize: 17,
+      fontWeight: FontWeight.w500,
+      color: scheme.onSurface.withOpacity(0.7),
+    );
+  }
+
   Widget _buildDateField(AppLocalizations l10n) {
     final scheme = Theme.of(context).colorScheme;
-    final dateText = DateFormat('dd/MM/yyyy').format(_selectedDate);
-
-    if (widget.fieldStyle == ScheduleFormFieldStyle.floatingLabel) {
-      return TextFormField(
-        readOnly: true,
-        controller: _dateCtrl,
-        onTap: widget.allowDateEditing ? _pickDate : null,
-        style: TextStyle(color: scheme.onSurface),
-        decoration: InputDecoration(
-          labelText: l10n.scheduleFormDateLabel,
-          labelStyle: TextStyle(color: scheme.onSurface.withOpacity(0.7)),
-          floatingLabelBehavior: FloatingLabelBehavior.auto,
-          filled: true,
-          fillColor: scheme.surface,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: scheme.outline.withOpacity(0.5)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: scheme.primary, width: 1.2),
-          ),
-        ),
-      );
-    }
-
-    return InkWell(
+    return TextFormField(
+      readOnly: true,
+      controller: _dateCtrl,
       onTap: widget.allowDateEditing ? _pickDate : null,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: scheme.background,
+      style: _compactFieldValueStyle(scheme),
+      decoration: InputDecoration(
+        labelText: l10n.scheduleFormDateLabel,
+        labelStyle: _compactFieldLabelStyle(scheme),
+        floatingLabelStyle: _compactFieldLabelStyle(scheme),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        contentPadding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+        filled: true,
+        fillColor: scheme.surface,
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: scheme.outline.withOpacity(0.5)),
+          borderSide: BorderSide.none,
         ),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            dateText,
-            style: TextStyle(fontSize: 14, color: scheme.onSurface),
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.outline.withOpacity(0.5)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.primary, width: 1.2),
         ),
       ),
     );
@@ -601,10 +583,11 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
       readOnly: true,
       controller: controller,
       onTap: onTap,
-      style: TextStyle(color: scheme.onSurface),
+      style: _compactFieldValueStyle(scheme),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: scheme.onSurface.withOpacity(0.7)),
+        labelStyle: _compactFieldLabelStyle(scheme),
+        floatingLabelStyle: _compactFieldLabelStyle(scheme),
         errorText: errorText,
         helperText: ' ',
         helperStyle: const TextStyle(fontSize: 1, height: 0.1),
@@ -619,9 +602,9 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 12,
+          vertical: 14,
         ),
-        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        floatingLabelBehavior: FloatingLabelBehavior.always,
         filled: true,
         fillColor: scheme.surface,
         border: OutlineInputBorder(
