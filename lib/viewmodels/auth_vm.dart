@@ -4,7 +4,6 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/validators.dart';
-import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
