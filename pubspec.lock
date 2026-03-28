@@ -1709,10 +1709,9 @@ packages:
   usage_stats:
     dependency: "direct main"
     description:
-      name: usage_stats
-      sha256: f007f9344ae8ddcbf48caa49290fc274d14eb99c7b2e980113935c2b668fd21c
-      url: "https://pub.dev"
-    source: hosted
+      path: "vendor/usage_stats"
+      relative: true
+    source: path
     version: "1.3.1"
   uuid:
     dependency: "direct main"
