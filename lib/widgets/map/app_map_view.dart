@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:kid_manager/core/enums/enums.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/widgets/location/location_theme.dart';
@@ -46,6 +46,8 @@ class AppMapViewController {
 class _AppMapViewState extends State<AppMapView> {
   MapboxMap? _map;
   AppMapType _type = AppMapType.street;
+  bool _disposed = false;
+  int _mapGeneration = 0;
 
   /// Lưu camera để restore khi đổi style (tránh zoom lại)
   CameraOptions? _pendingCameraRestore;
@@ -73,6 +75,9 @@ class _AppMapViewState extends State<AppMapView> {
 
   @override
   void dispose() {
+    _disposed = true;
+    _mapGeneration++;
+    _map = null;
     widget.controller?._unbind();
     super.dispose();
   }
@@ -108,24 +113,38 @@ class _AppMapViewState extends State<AppMapView> {
             pixelRatio: MediaQuery.of(context).devicePixelRatio,
           ),
           onMapCreated: (map) {
+            _mapGeneration++;
             _map = map;
             widget.onMapCreated(map);
           },
           onTapListener: widget.onTapListener,
           onStyleLoadedListener: (_) async {
-            final map = _map;
-            if (map == null) return;
+            try {
+              final map = _map;
+              final generation = _mapGeneration;
+              if (map == null) return;
+              if (!_isMapGenerationActive(generation, map)) return;
 
-            await hideMapOrnaments(map);
+              await hideMapOrnaments(map);
+              if (!_isMapGenerationActive(generation, map)) return;
 
-            // ✅ restore camera sau khi style load xong
-            if (_pendingCameraRestore != null) {
-              await map.setCamera(_pendingCameraRestore!);
-              _pendingCameraRestore = null;
+              // ✅ restore camera sau khi style load xong
+              if (_pendingCameraRestore != null) {
+                await map.setCamera(_pendingCameraRestore!);
+                if (!_isMapGenerationActive(generation, map)) return;
+                _pendingCameraRestore = null;
+              }
+
+              final cb = widget.onStyleLoaded;
+              if (cb != null && _isMapGenerationActive(generation, map)) {
+                await cb(map);
+              }
+            } catch (error) {
+              if (_isMapLifecycleError(error)) {
+                return;
+              }
+              rethrow;
             }
-
-            final cb = widget.onStyleLoaded;
-            if (cb != null) await cb(map);
           },
         ),
 
@@ -141,14 +160,14 @@ class _AppMapViewState extends State<AppMapView> {
               child: const Icon(Icons.layers),
             ),
           ),
-
       ],
     );
   }
 
   Future<void> _showMapSelector() async {
+    if (!mounted || _disposed) return;
     final scheme = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       showDragHandle: true,
       backgroundColor: locationPanelColor(scheme),
@@ -228,10 +247,12 @@ class _AppMapViewState extends State<AppMapView> {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: () async {
+        if (!mounted || _disposed) return;
         // ✅ lưu camera hiện tại trước khi đổi style
         final map = _map;
         if (map != null) {
           final cs = await map.getCameraState();
+          if (!mounted || _disposed) return;
           _pendingCameraRestore = CameraOptions(
             center: cs.center,
             zoom: cs.zoom,
@@ -322,5 +343,19 @@ class _AppMapViewState extends State<AppMapView> {
       ),
       child: const Center(child: Icon(Icons.terrain_outlined)),
     );
+  }
+
+  bool _isMapGenerationActive(int generation, MapboxMap map) {
+    return mounted &&
+        !_disposed &&
+        generation == _mapGeneration &&
+        identical(_map, map);
+  }
+
+  bool _isMapLifecycleError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('mapboxcontroller was used after being disposed') ||
+        text.contains('unable to establish connection on channel') ||
+        text.contains('flutterjni was detached');
   }
 }

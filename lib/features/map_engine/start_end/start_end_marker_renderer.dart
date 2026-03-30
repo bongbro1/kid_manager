@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -14,13 +15,38 @@ class StartEndMarkerRenderer {
 
   Uint8List? _startIconBytes;
   Uint8List? _endIconBytes;
+  int _generation = 0;
+  bool _disposed = false;
 
   static const double _markerSize = 0.5;
 
   StartEndMarkerRenderer(this.map);
 
+  bool _isActive(int generation) => !_disposed && generation == _generation;
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _generation++;
+    _manager = null;
+    _startMarker = null;
+    _endMarker = null;
+  }
+
   Future<void> init() async {
-    _manager ??= await map.annotations.createPointAnnotationManager();
+    if (_disposed) return;
+    final generation = _generation;
+    if (_manager == null) {
+      try {
+        _manager = await map.annotations.createPointAnnotationManager();
+      } catch (error) {
+        if (isMapLifecycleError(error) || !_isActive(generation)) {
+          return;
+        }
+        rethrow;
+      }
+    }
+    if (!_isActive(generation)) return;
 
     _startIconBytes ??= await _buildBadgeBytes(
       text: 'START',
@@ -30,6 +56,7 @@ class StartEndMarkerRenderer {
       icon: Icons.home_rounded,
       iconColor: Colors.white,
     );
+    if (!_isActive(generation)) return;
 
     _endIconBytes ??= await _buildBadgeBytes(
       text: 'FINISH',
@@ -81,10 +108,7 @@ class StartEndMarkerRenderer {
       const Radius.circular(99),
     );
 
-    canvas.drawRRect(
-      pillRRect.shift(const Offset(0, 2)),
-      shadowPaint,
-    );
+    canvas.drawRRect(pillRRect.shift(const Offset(0, 2)), shadowPaint);
     canvas.drawRRect(pillRRect, pillPaint);
 
     final pillBorder = Paint()
@@ -107,18 +131,9 @@ class StartEndMarkerRenderer {
       textDirection: TextDirection.ltr,
       maxLines: 1,
     )..layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        (width - textPainter.width) / 2,
-        8,
-      ),
-    );
+    textPainter.paint(canvas, Offset((width - textPainter.width) / 2, 8));
 
-    canvas.drawRRect(
-      iconRRect.shift(const Offset(0, 3)),
-      shadowPaint,
-    );
+    canvas.drawRRect(iconRRect.shift(const Offset(0, 3)), shadowPaint);
     canvas.drawRRect(iconRRect, iconPaint);
 
     final iconBorder = Paint()
@@ -143,16 +158,10 @@ class StartEndMarkerRenderer {
 
     iconTextPainter.paint(
       canvas,
-      Offset(
-        (width - iconTextPainter.width) / 2,
-        43,
-      ),
+      Offset((width - iconTextPainter.width) / 2, 43),
     );
 
-    canvas.drawRRect(
-      stemRRect.shift(const Offset(0, 1)),
-      shadowPaint,
-    );
+    canvas.drawRRect(stemRRect.shift(const Offset(0, 1)), shadowPaint);
     canvas.drawRRect(stemRRect, stemPaint);
 
     final picture = recorder.endRecording();
@@ -165,96 +174,151 @@ class StartEndMarkerRenderer {
   }
 
   Future<void> clear() async {
+    if (_disposed) return;
+    final generation = _generation;
     final manager = _manager;
     if (manager == null) return;
 
     if (_startMarker != null) {
-      await manager.delete(_startMarker!);
+      try {
+        await manager.delete(_startMarker!);
+      } catch (error) {
+        if (!isMapLifecycleError(error) && _isActive(generation)) {
+          rethrow;
+        }
+      }
       _startMarker = null;
     }
+    if (!_isActive(generation)) return;
 
     if (_endMarker != null) {
-      await manager.delete(_endMarker!);
+      try {
+        await manager.delete(_endMarker!);
+      } catch (error) {
+        if (!isMapLifecycleError(error) && _isActive(generation)) {
+          rethrow;
+        }
+      }
       _endMarker = null;
     }
   }
 
   Future<void> render(List<LocationData> data) async {
+    if (_disposed) return;
+    final generation = _generation;
     final manager = _manager;
     if (manager == null) return;
 
     await clear();
+    if (!_isActive(generation)) return;
     if (data.isEmpty) return;
 
-    final sorted = [...data]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final sorted = [...data]
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     final start = sorted.first;
     final end = sorted.last;
 
-    _startMarker = await manager.create(
-      PointAnnotationOptions(
-        geometry: Point(
-          coordinates: Position(start.longitude, start.latitude),
-        ),
-        image: _startIconBytes,
-        iconAnchor: IconAnchor.BOTTOM,
-        iconSize: _markerSize,
-      ),
-    );
-
-    if (sorted.length > 1) {
-      _endMarker = await manager.create(
+    try {
+      _startMarker = await manager.create(
         PointAnnotationOptions(
           geometry: Point(
-            coordinates: Position(end.longitude, end.latitude),
+            coordinates: Position(start.longitude, start.latitude),
           ),
-          image: _endIconBytes,
+          image: _startIconBytes,
           iconAnchor: IconAnchor.BOTTOM,
           iconSize: _markerSize,
         ),
       );
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isActive(generation)) {
+        return;
+      }
+      rethrow;
+    }
+    if (!_isActive(generation)) return;
+
+    if (sorted.length > 1) {
+      try {
+        _endMarker = await manager.create(
+          PointAnnotationOptions(
+            geometry: Point(coordinates: Position(end.longitude, end.latitude)),
+            image: _endIconBytes,
+            iconAnchor: IconAnchor.BOTTOM,
+            iconSize: _markerSize,
+          ),
+        );
+      } catch (error) {
+        if (isMapLifecycleError(error) || !_isActive(generation)) {
+          return;
+        }
+        rethrow;
+      }
     }
   }
 
   Future<void> renderSinglePoint(LocationData loc) async {
+    if (_disposed) return;
+    final generation = _generation;
     final manager = _manager;
     if (manager == null) return;
 
     await clear();
+    if (!_isActive(generation)) return;
 
-    _startMarker = await manager.create(
-      PointAnnotationOptions(
-        geometry: Point(
-          coordinates: Position(loc.longitude, loc.latitude),
-        ),
-        image: _startIconBytes,
-        iconAnchor: IconAnchor.BOTTOM,
-        iconSize: _markerSize,
-      ),
-    );
-  }
-
-  Future<void> updateEndMarker(LocationData loc) async {
-    final manager = _manager;
-    if (manager == null) return;
-
-    final point = Point(
-      coordinates: Position(loc.longitude, loc.latitude),
-    );
-
-    if (_endMarker == null) {
-      _endMarker = await manager.create(
+    try {
+      _startMarker = await manager.create(
         PointAnnotationOptions(
-          geometry: point,
-          image: _endIconBytes,
+          geometry: Point(coordinates: Position(loc.longitude, loc.latitude)),
+          image: _startIconBytes,
           iconAnchor: IconAnchor.BOTTOM,
           iconSize: _markerSize,
         ),
       );
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isActive(generation)) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> updateEndMarker(LocationData loc) async {
+    if (_disposed) return;
+    final generation = _generation;
+    final manager = _manager;
+    if (manager == null) return;
+
+    final point = Point(coordinates: Position(loc.longitude, loc.latitude));
+
+    if (_endMarker == null) {
+      try {
+        _endMarker = await manager.create(
+          PointAnnotationOptions(
+            geometry: point,
+            image: _endIconBytes,
+            iconAnchor: IconAnchor.BOTTOM,
+            iconSize: _markerSize,
+          ),
+        );
+      } catch (error) {
+        if (isMapLifecycleError(error) || !_isActive(generation)) {
+          return;
+        }
+        rethrow;
+      }
       return;
     }
+    if (!_isActive(generation)) return;
 
     _endMarker!.geometry = point;
     _endMarker!.iconSize = _markerSize;
-    await manager.update(_endMarker!);
+    try {
+      await manager.update(_endMarker!);
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isActive(generation)) {
+        return;
+      }
+      rethrow;
+    }
   }
 }

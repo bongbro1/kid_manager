@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/sos/sos_view.dart';
@@ -9,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import 'package:kid_manager/features/map_engine/map_engine.dart';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:kid_manager/features/safe_route/data/datasources/safe_route_remote_data_source.dart';
 import 'package:kid_manager/features/safe_route/data/repositories/safe_route_repository_impl.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
@@ -48,6 +50,8 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   String? _transientSafeRouteBanner;
   Timer? _transientSafeRouteBannerTimer;
   bool _disposed = false;
+  int _mapGeneration = 0;
+  AuthVM? _authVm;
 
   late ChildLocationViewModel _vm;
 
@@ -68,17 +72,31 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _vm = context.read<ChildLocationViewModel>();
+
+    final nextAuthVm = context.read<AuthVM>();
+    if (!identical(_authVm, nextAuthVm)) {
+      _authVm?.removeListener(_handleAuthStateChanged);
+      _authVm = nextAuthVm;
+      _authVm?.addListener(_handleAuthStateChanged);
+    }
   }
 
   @override
   void dispose() {
     _disposed = true;
+    _authVm?.removeListener(_handleAuthStateChanged);
+    _invalidateMapLifecycle();
     if (_vmListener != null) {
       _vm.removeListener(_vmListener!);
       _vmListener = null;
     }
     _disposeSafeRouteVm();
     super.dispose();
+  }
+
+  void _handleAuthStateChanged() {
+    if (_authVm?.logoutInProgress != true) return;
+    _invalidateMapLifecycle();
   }
 
   void _disposeSafeRouteVm() {
@@ -172,16 +190,21 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
   Future<void> _syncSafeRouteOverlay() async {
     if (_disposed) return;
+    final generation = _mapGeneration;
     final engine = _engine;
     final route = _safeRouteVm?.state.activeRoute;
-    if (engine == null) return;
+    if (engine == null || !_isMapGenerationActive(generation, engine: engine)) {
+      return;
+    }
 
     if (route == null) {
       if (_renderedSafeRouteId == null) return;
       await engine.route.renderRoad(const []);
+      if (!_isMapGenerationActive(generation, engine: engine)) return;
       await engine.route.renderStraightSegments(const []);
+      if (!_isMapGenerationActive(generation, engine: engine)) return;
       await engine.startEndMarkers.clear();
-      if (_disposed) return;
+      if (!_isMapGenerationActive(generation, engine: engine)) return;
       _renderedSafeRouteId = null;
       return;
     }
@@ -194,14 +217,16 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         .toList(growable: false);
 
     await engine.route.renderRoad(coords);
+    if (!_isMapGenerationActive(generation, engine: engine)) return;
     await engine.route.renderStraightSegments(const []);
+    if (!_isMapGenerationActive(generation, engine: engine)) return;
 
     final markers = [
       _routePointToLocation(points.first, 0),
       _routePointToLocation(points.last, 1),
     ];
     await engine.startEndMarkers.render(markers);
-    if (_disposed) return;
+    if (!_isMapGenerationActive(generation, engine: engine)) return;
 
     final fitPoints = points
         .asMap()
@@ -210,7 +235,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         .toList(growable: false);
     if (fitPoints.length >= 2) {
       await engine.camera.fitToRoute(fitPoints);
-      if (_disposed) return;
+      if (!_isMapGenerationActive(generation, engine: engine)) return;
     }
 
     _renderedSafeRouteId = route.id;
@@ -279,7 +304,8 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         final floatingRailBottom =
             bottomSafeInset + (ultraCompactLayout ? 74.0 : 88.0);
         final safeRouteHudBottomOffset = compactLayout ? 80.0 : 96.0;
-        final errorBannerBottom = floatingRailBottom + (compactLayout ? 138.0 : 154.0);
+        final errorBannerBottom =
+            floatingRailBottom + (compactLayout ? 138.0 : 154.0);
 
         return Stack(
           children: [
@@ -290,9 +316,14 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
               },
               onStyleLoaded: (map) async {
                 if (_disposed) return;
-                _engine = MapEngine(map, enableChildDot: true);
-                await _engine!.init();
-                if (!mounted || _disposed) return;
+                final generation = _beginMapLifecycle(map);
+                final engine = MapEngine(map, enableChildDot: true);
+                _engine = engine;
+                await engine.init();
+                if (!_isMapGenerationActive(generation, engine: engine)) {
+                  engine.dispose();
+                  return;
+                }
                 _renderedSafeRouteId = null;
 
                 final vm = _vm;
@@ -302,22 +333,33 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
                 }
 
                 _vmListener = () {
-                  if (_disposed) return;
+                  if (!_isMapGenerationActive(generation, engine: engine)) {
+                    return;
+                  }
                   final loc = vm.currentLocation;
                   if (loc == null) return;
 
                   _safeRouteVm?.updateCurrentLocation(loc);
-                  _engine?.updateChildRealtime(loc);
+                  unawaited(
+                    _runMapTask(
+                      generation: generation,
+                      task: () => engine.updateChildRealtime(loc),
+                    ),
+                  );
 
                   if (_autoFollow) {
-                    _map?.easeTo(
-                      CameraOptions(
-                        center: Point(
-                          coordinates: Position(loc.longitude, loc.latitude),
+                    unawaited(
+                      _safeEaseTo(
+                        generation: generation,
+                        map: map,
+                        camera: CameraOptions(
+                          center: Point(
+                            coordinates: Position(loc.longitude, loc.latitude),
+                          ),
+                          zoom: 16,
                         ),
-                        zoom: 16,
+                        options: MapAnimationOptions(duration: 600),
                       ),
-                      MapAnimationOptions(duration: 600),
                     );
                   }
                 };
@@ -327,8 +369,13 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
                 final loc = vm.currentLocation;
                 if (loc != null) {
                   _safeRouteVm?.updateCurrentLocation(loc);
-                  await _engine!.updateChildRealtime(loc);
-                  if (_disposed) return;
+                  await _runMapTask(
+                    generation: generation,
+                    task: () => engine.updateChildRealtime(loc),
+                  );
+                  if (!_isMapGenerationActive(generation, engine: engine)) {
+                    return;
+                  }
                 }
                 await _syncSafeRouteOverlay();
               },
@@ -376,7 +423,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
                         debugPrint('SOS child tapped');
                         debugPrint('SOS loc=$loc');
                         debugPrint('SOS sending=${sosVm.sending}');
-                        debugPrint('SOS familyId=${context.read<UserVm>().familyId}');
+                        debugPrint(
+                          'SOS familyId=${context.read<UserVm>().familyId}',
+                        );
                         debugPrint('SOS uid=${context.read<UserVm>().me?.uid}');
 
                         if (loc == null) {
@@ -388,7 +437,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
                         if (sosVm.sending) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.childLocationSosSending)),
+                            SnackBar(
+                              content: Text(l10n.childLocationSosSending),
+                            ),
                           );
                           return;
                         }
@@ -419,7 +470,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(l10n.childLocationSosError('$error')),
+                              content: Text(
+                                l10n.childLocationSosError('$error'),
+                              ),
                             ),
                           );
                         }
@@ -431,14 +484,21 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
                   _autoFollow = true;
 
-                  _map?.easeTo(
-                    CameraOptions(
-                      center: Point(
-                        coordinates: Position(loc.longitude, loc.latitude),
+                  final map = _map;
+                  if (map == null) return;
+                  final generation = _mapGeneration;
+                  unawaited(
+                    _safeEaseTo(
+                      generation: generation,
+                      map: map,
+                      camera: CameraOptions(
+                        center: Point(
+                          coordinates: Position(loc.longitude, loc.latitude),
+                        ),
+                        zoom: 16,
                       ),
-                      zoom: 16,
+                      options: MapAnimationOptions(duration: 600),
                     ),
-                    MapAnimationOptions(duration: 600),
                   );
                 },
               ),
@@ -454,6 +514,64 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         );
       },
     );
+  }
+
+  int _beginMapLifecycle(MapboxMap map) {
+    _mapGeneration++;
+    _engine?.dispose();
+    _engine = null;
+    _map = map;
+    return _mapGeneration;
+  }
+
+  void _invalidateMapLifecycle() {
+    _mapGeneration++;
+    _engine?.dispose();
+    _engine = null;
+    _map = null;
+    _renderedSafeRouteId = null;
+  }
+
+  bool _isMapGenerationActive(int generation, {MapEngine? engine}) {
+    if (_disposed || generation != _mapGeneration) {
+      return false;
+    }
+    if (engine != null && !identical(_engine, engine)) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _runMapTask({
+    required int generation,
+    required Future<void> Function() task,
+  }) async {
+    if (!_isMapGenerationActive(generation)) return;
+    try {
+      await task();
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isMapGenerationActive(generation)) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _safeEaseTo({
+    required int generation,
+    required MapboxMap map,
+    required CameraOptions camera,
+    required MapAnimationOptions options,
+  }) async {
+    if (!_isMapGenerationActive(generation)) return;
+    try {
+      await map.easeTo(camera, options);
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isMapGenerationActive(generation)) {
+        return;
+      }
+      rethrow;
+    }
   }
 }
 
@@ -488,10 +606,7 @@ class _ChildFloatingActionRail extends StatelessWidget {
 }
 
 class _RailCircleButton extends StatelessWidget {
-  const _RailCircleButton({
-    required this.icon,
-    required this.onPressed,
-  });
+  const _RailCircleButton({required this.icon, required this.onPressed});
 
   final IconData icon;
   final VoidCallback onPressed;

@@ -33,6 +33,7 @@ import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
 import 'package:kid_manager/views/auth/flash_screen.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
@@ -242,23 +243,7 @@ class _SessionGuardState extends State<SessionGuard>
         if (shouldPrepareSessionForLogout &&
             !_sessionPreLogoutCleanupInFlight) {
           _sessionPreLogoutCleanupInFlight = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            try {
-              if (!mounted) return;
-              final currentSession = context.read<SessionVM>();
-              final currentAuthVm = context.read<AuthVM>();
-              if (!currentAuthVm.logoutInProgress ||
-                  currentSession.status != SessionStatus.authenticated ||
-                  currentSession.user?.uid != uid) {
-                return;
-              }
-              _resetBootstrapState();
-              await _prepareSessionForLogout();
-              _logoutPreparedForUid = uid;
-            } finally {
-              _sessionPreLogoutCleanupInFlight = false;
-            }
-          });
+          unawaited(_runPreLogoutCleanup(uid));
         }
 
         if (shouldClearSessionState && !_sessionCleanupInFlight) {
@@ -591,12 +576,46 @@ class _SessionGuardState extends State<SessionGuard>
     _sessionBootstrapInFlight = false;
   }
 
+  Future<void> _runPreLogoutCleanup(String uid) async {
+    try {
+      if (!mounted) return;
+      final currentSession = context.read<SessionVM>();
+      final currentAuthVm = context.read<AuthVM>();
+      if (!currentAuthVm.logoutInProgress ||
+          currentSession.status != SessionStatus.authenticated ||
+          currentSession.user?.uid != uid) {
+        return;
+      }
+      _resetBootstrapState();
+      await _prepareSessionForLogout();
+      _logoutPreparedForUid = uid;
+    } finally {
+      _sessionPreLogoutCleanupInFlight = false;
+    }
+  }
+
+  T? _readOptional<T>() {
+    try {
+      return context.read<T>();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _prepareSessionForLogout() async {
     if (!mounted) return;
 
+    final userVm = context.read<UserVm>();
+    final appManagementVm = context.read<AppManagementVM>();
     final notificationVm = context.read<NotificationVM>();
     final parentLocationVm = context.read<ParentLocationVm>();
+    final childLocationVm = _readOptional<ChildLocationViewModel>();
+    final zoneStatusVm = _readOptional<ZoneStatusVm>();
 
+    await userVm.suspendSessionStreams();
+    await appManagementVm.suspendChildrenWatch();
+    await childLocationVm?.stopSharingOnLogout();
+    zoneStatusVm?.clearFocus();
     await notificationVm.clear();
     await parentLocationVm.stopWatchingAllChildren();
     await parentLocationVm.stopMyLocation();

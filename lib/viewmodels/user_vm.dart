@@ -250,6 +250,8 @@ class UserVm extends ChangeNotifier {
   }
 
   Future<void> clear() async {
+    _currentWatchedUid = null;
+    _currentProfileUid = null;
     await _childrenSub?.cancel();
     await _familySub?.cancel();
     await _locationMembersSub?.cancel();
@@ -274,6 +276,27 @@ class UserVm extends ChangeNotifier {
     _allLocationMembers.clear();
 
     notifyListeners();
+  }
+
+  Future<void> suspendSessionStreams({bool notify = false}) async {
+    _currentWatchedUid = null;
+    _currentProfileUid = null;
+
+    await _childrenSub?.cancel();
+    await _familySub?.cancel();
+    await _locationMembersSub?.cancel();
+    await _profileSubscription?.cancel();
+    await _meSub?.cancel();
+
+    _childrenSub = null;
+    _familySub = null;
+    _locationMembersSub = null;
+    _profileSubscription = null;
+    _meSub = null;
+
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   Future<void> loadUsers() async {
