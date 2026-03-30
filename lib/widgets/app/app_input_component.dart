@@ -49,21 +49,24 @@ class AppLabeledTextField extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          SizedBox(
-            height: 55,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 55),
             child: TextField(
               controller: controller,
               obscureText: obscureText,
               readOnly: readOnly,
               onTap: onTap,
               keyboardType: keyboardType,
+              minLines: 1,
+              maxLines: 1,
+              textAlignVertical: TextAlignVertical.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurface,
               ),
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant.withOpacity(0.4),
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
                 ),
 
                 prefixIcon: prefixIcon,
@@ -72,7 +75,10 @@ class AppLabeledTextField extends StatelessWidget {
                 filled: true,
                 fillColor: scheme.surface,
 
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
 
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -140,8 +146,8 @@ class AppLabeledDropdownField<T> extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              SizedBox(
-                height: 65,
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 65),
                 child: DropdownMenu<T>(
                   width: effectiveWidth,
                   alignmentOffset: const Offset(0, 10),
@@ -158,7 +164,10 @@ class AppLabeledDropdownField<T> extends StatelessWidget {
                     ),
                     filled: true,
                     fillColor: scheme.surface,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(color: scheme.outlineVariant),

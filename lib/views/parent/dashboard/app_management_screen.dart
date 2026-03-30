@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
@@ -53,7 +54,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.transparent,
-        pageBuilder: (_, __, ___) => UsageTimeEditScreen(
+        pageBuilder: (_, _, _) => UsageTimeEditScreen(
           appId: app.packageName,
           childId: selectedChildId,
         ),
@@ -108,16 +109,22 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final horizontalPadding = context.adaptiveHorizontalPadding(
+      compact: 12,
+      regular: 18,
+    );
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final topDecorationHeight = screenHeight < 700 ? 270.0 : 290.0;
 
     return Container(
-      color: scheme.background,
+      color: theme.scaffoldBackgroundColor,
       child: SafeArea(
         top: false,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             Container(
-              height: 290,
+              height: topDecorationHeight,
               decoration: BoxDecoration(
                 color: scheme.primary,
                 borderRadius: const BorderRadius.only(
@@ -129,10 +136,10 @@ class _AppManagementScreenState extends State<AppManagementScreen>
 
             Column(
               children: [
-                const SizedBox(height: 50),
+                SizedBox(height: screenHeight < 700 ? 44 : 50),
 
                 Padding(
-                  padding: const EdgeInsets.only(left: 26),
+                  padding: EdgeInsets.only(left: horizontalPadding + 8),
                   child: Row(
                     children: [
                       SvgPicture.asset(
@@ -161,7 +168,9 @@ class _AppManagementScreenState extends State<AppManagementScreen>
 
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 18, right: 18),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
                     child: Column(
                       children: [
                         const SizedBox(height: 14),

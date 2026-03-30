@@ -1,6 +1,7 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/widgets/common/notification_modal.dart';
@@ -64,8 +65,12 @@ class NotificationDialog extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final dialogPadding = context.adaptiveHorizontalPadding(
+          compact: 16,
+          regular: 24,
+        );
         return Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(dialogPadding),
           child: ConstrainedBox(
             constraints: BoxConstraints(maxHeight: constraints.maxHeight),
             child: Column(
@@ -75,10 +80,12 @@ class NotificationDialog extends StatelessWidget {
                 _IconSection(config: config),
                 const SizedBox(height: 10),
 
-          /// TITLE
+                /// TITLE
                 Text(
                   title,
                   textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
@@ -86,7 +93,7 @@ class NotificationDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-          /// MESSAGE
+                /// MESSAGE
                 Flexible(
                   fit: FlexFit.loose,
                   child: SingleChildScrollView(
@@ -163,13 +170,11 @@ class _ActionSection extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            height: 56,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
             child: ElevatedButton(
               style: ButtonStyle(
-                backgroundColor: MaterialStatePropertyAll(
-                  isDark ? colorScheme.primary : const Color(0xFF2563EB),
-                ),
+                backgroundColor: MaterialStatePropertyAll(colorScheme.primary),
                 elevation: const MaterialStatePropertyAll(0),
                 overlayColor: const MaterialStatePropertyAll(
                   Colors.transparent,
@@ -188,11 +193,11 @@ class _ActionSection extends StatelessWidget {
               onPressed: () => _close(context, onConfirm),
               child: Text(
                 l10n.confirmButton,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: isDark
-                      ? colorScheme
-                            .onPrimary // nền primary → text onPrimary
-                      : colorScheme.onSurface,
+                  color: colorScheme.onPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -200,8 +205,8 @@ class _ActionSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 56,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
             child: ElevatedButton(
               style: ButtonStyle(
                 backgroundColor: MaterialStatePropertyAll(
@@ -225,6 +230,9 @@ class _ActionSection extends StatelessWidget {
               onPressed: () => _close(context, onCancel),
               child: Text(
                 l10n.cancelButton,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFF111827),
                   fontSize: 16,
@@ -241,9 +249,7 @@ class _ActionSection extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton(
         style: ButtonStyle(
-          backgroundColor: MaterialStatePropertyAll(
-            isDark ? colorScheme.primary : const Color(0xFFF1F5F9),
-          ),
+          backgroundColor: MaterialStatePropertyAll(colorScheme.primary),
           elevation: const MaterialStatePropertyAll(0),
           overlayColor: const MaterialStatePropertyAll(Colors.transparent),
           shadowColor: const MaterialStatePropertyAll(Colors.transparent),
@@ -260,7 +266,7 @@ class _ActionSection extends StatelessWidget {
         child: Text(
           l10n.continueButton,
           style: TextStyle(
-            color: colorScheme.onSurface,
+            color: colorScheme.onPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),

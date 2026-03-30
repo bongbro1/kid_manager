@@ -1391,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @flashWelcomeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Child tracking application'**
+  /// **'Child management application'**
   String get flashWelcomeSubtitle;
 
   /// No description provided for @flashNext.
@@ -3414,7 +3414,7 @@ abstract class AppLocalizations {
   /// No description provided for @parentDashboardAddDeviceButton.
   ///
   /// In en, this message translates to:
-  /// **'Add device'**
+  /// **'Add child'**
   String get parentDashboardAddDeviceButton;
 
   /// No description provided for @parentDashboardHowItWorksButton.

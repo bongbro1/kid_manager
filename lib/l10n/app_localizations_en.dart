@@ -720,7 +720,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get flashWelcomeTitle => 'Welcome to the app';
 
   @override
-  String get flashWelcomeSubtitle => 'Child tracking application';
+  String get flashWelcomeSubtitle => 'Child management application';
 
   @override
   String get flashNext => 'Next';
@@ -1954,7 +1954,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'To monitor app usage time, add your child\'s device to the system.';
 
   @override
-  String get parentDashboardAddDeviceButton => 'Add device';
+  String get parentDashboardAddDeviceButton => 'Add child';
 
   @override
   String get parentDashboardHowItWorksButton => 'Learn how it works';

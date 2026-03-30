@@ -5,6 +5,7 @@ import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
 import 'package:kid_manager/models/chat/family_chat_message.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/chat/family_group_chat_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/chat/family_chat_assets.dart';
@@ -64,6 +65,7 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
   String? _boundUid;
   List<FamilyChatSticker> _stickerCatalog = kFamilyChatFallbackStickers;
   UserVm? _userVm;
+  AuthVM? _authVm;
 
   @override
   void initState() {
@@ -80,6 +82,13 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
       _userVm = nextUserVm;
       _userVm?.addListener(_handleUserSessionChanged);
     }
+
+    final nextAuthVm = context.read<AuthVM>();
+    if (!identical(_authVm, nextAuthVm)) {
+      _authVm?.removeListener(_handleAuthSessionChanged);
+      _authVm = nextAuthVm;
+      _authVm?.addListener(_handleAuthSessionChanged);
+    }
     _scheduleSessionSync();
   }
 
@@ -95,6 +104,7 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
   @override
   void dispose() {
     _userVm?.removeListener(_handleUserSessionChanged);
+    _authVm?.removeListener(_handleAuthSessionChanged);
     _inputFocusNode.dispose();
     _textController.dispose();
     super.dispose();
@@ -122,6 +132,10 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
     _scheduleSessionSync();
   }
 
+  void _handleAuthSessionChanged() {
+    _scheduleSessionSync();
+  }
+
   void _scheduleSessionSync() {
     if (_sessionSyncScheduled) {
       return;
@@ -138,6 +152,12 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
   }
 
   void _runSessionSync() {
+    final isLoggingOut = _authVm?.logoutInProgress ?? false;
+    if (isLoggingOut) {
+      _syncSession(null, null);
+      return;
+    }
+
     final me = _userVm?.me;
     final vmFamilyId = _userVm?.familyId;
     final familyId = widget.initialFamilyId ?? vmFamilyId;

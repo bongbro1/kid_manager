@@ -29,6 +29,9 @@ class AuthVM extends ChangeNotifier {
   bool _loading = false;
   bool get loading => _loading;
 
+  bool _logoutInProgress = false;
+  bool get logoutInProgress => _logoutInProgress;
+
   String? _error;
   String? get error => _error;
 
@@ -52,15 +55,22 @@ class AuthVM extends ChangeNotifier {
         throw Exception("User null");
       }
 
-      final userInfo = await _userRepo.getUserById(user.uid);
+      var userInfo = await _userRepo.getUserById(user.uid);
 
       if (userInfo == null) {
-        await _authRepo.logout();
-        throw Exception("accountNotFound");
+        await _userRepo.createParentIfMissing(
+          uid: user.uid,
+          email: user.email ?? email,
+        );
+        userInfo = await _userRepo.getUserById(user.uid);
+        if (userInfo == null) {
+          await _authRepo.logout();
+          throw Exception("accountNotFound");
+        }
       }
 
       if (userInfo.isActive != true) {
-        await _authRepo.logout();
+        // Keep current auth session so user can continue verify/resend OTP.
         throw Exception("accountNotActivated");
       }
 
@@ -169,6 +179,8 @@ class AuthVM extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    if (_logoutInProgress) return;
+    _logoutInProgress = true;
     _loading = true;
     _error = null;
     notifyListeners();
@@ -180,6 +192,7 @@ class AuthVM extends ChangeNotifier {
       debugPrint("Logout error: $e");
     } finally {
       _loading = false;
+      _logoutInProgress = false;
       notifyListeners();
     }
   }

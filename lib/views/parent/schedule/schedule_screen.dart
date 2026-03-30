@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/features/sessions/sessionstatus.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:provider/provider.dart';
 import '../../../core/app_text_styles.dart';
 import '../../../viewmodels/schedule/schedule_vm.dart';
+import '../../../viewmodels/session/session_vm.dart';
 import '../../../viewmodels/user_vm.dart';
 import '../../../views/parent/schedule/add_schedule_sheet.dart';
 import '../../../views/parent/schedule/schedule_session_resolver.dart';
@@ -39,19 +44,28 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   bool _bootstrapping = false;
   bool _selectingDefaultChild = false;
   bool _appliedNotificationTarget = false;
+  bool _pendingBootstrap = false;
+  bool _disposed = false;
+  int _bootstrapGeneration = 0;
 
   late final UserVm _userVm;
+  late final SessionVM _sessionVm;
+  late final AuthVM _authVm;
   late final ScheduleSessionResolver _sessionResolver;
 
   @override
   void initState() {
     super.initState();
     _userVm = context.read<UserVm>();
+    _sessionVm = context.read<SessionVM>();
+    _authVm = context.read<AuthVM>();
     _sessionResolver = ScheduleSessionResolver(
       storage: context.read<StorageService>(),
       userVm: _userVm,
     );
     _userVm.addListener(_handleUserVmChanged);
+    _sessionVm.addListener(_handleSessionVmChanged);
+    _authVm.addListener(_handleAuthVmChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -61,24 +75,73 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   @override
   void dispose() {
+    _disposed = true;
+    _invalidateBootstrapTasks();
+    _pendingBootstrap = false;
     _userVm.removeListener(_handleUserVmChanged);
+    _sessionVm.removeListener(_handleSessionVmChanged);
+    _authVm.removeListener(_handleAuthVmChanged);
     super.dispose();
+  }
+
+  void _handleSessionVmChanged() {
+    if (_sessionVm.status == SessionStatus.authenticated) {
+      return;
+    }
+    _invalidateBootstrapTasks();
+    _pendingBootstrap = false;
+  }
+
+  void _handleAuthVmChanged() {
+    if (!_authVm.logoutInProgress) return;
+    _invalidateBootstrapTasks();
+    _pendingBootstrap = false;
+  }
+
+  void _invalidateBootstrapTasks() {
+    _bootstrapGeneration++;
+  }
+
+  bool _isGenerationActive(int generation) {
+    if (_disposed || !mounted) return false;
+    if (generation != _bootstrapGeneration) return false;
+    if (_authVm.logoutInProgress) return false;
+    return _sessionVm.status == SessionStatus.authenticated;
   }
 
   void _handleUserVmChanged() {
     if (!mounted) return;
-    _bootstrapScheduleState();
+    _invalidateBootstrapTasks();
+
+    if (_bootstrapping) {
+      _pendingBootstrap = true;
+      return;
+    }
+
+    _bootstrapScheduleState(generation: _bootstrapGeneration);
   }
 
-  Future<void> _bootstrapScheduleState() async {
+  Future<void> _bootstrapScheduleState({required int generation}) async {
+    if (!_isGenerationActive(generation)) return;
     if (_bootstrapping) return;
     _bootstrapping = true;
 
     try {
-      await _bindParentSessionIfNeeded();
-      await _maybeAutoSelectFirstChild();
+      await _bindParentSessionIfNeeded(generation: generation);
+      if (!_isGenerationActive(generation)) return;
+
+      await _maybeAutoSelectFirstChild(generation: generation);
     } finally {
       _bootstrapping = false;
+
+      final shouldRerun = _pendingBootstrap && !_disposed && mounted;
+      if (shouldRerun) {
+        _pendingBootstrap = false;
+        final rerunGeneration = _bootstrapGeneration;
+        if (_isGenerationActive(rerunGeneration)) {
+          unawaited(_bootstrapScheduleState(generation: rerunGeneration));
+        }
+      }
     }
   }
 
@@ -109,15 +172,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Future<void> _applyNotificationTargetIfNeeded() async {
+  Future<void> _applyNotificationTargetIfNeeded({
+    required int generation,
+  }) async {
+    if (!_isGenerationActive(generation)) return;
     if (_appliedNotificationTarget) return;
     if (widget.initialChildId == null ||
         widget.initialDate == null ||
         widget.initialOwnerParentUid == null) {
       return;
     }
-
-    _appliedNotificationTarget = true;
 
     final scheduleVm = context.read<ScheduleViewModel>();
     final memoryVm = context.read<MemoryDayViewModel>();
@@ -128,6 +192,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       childId: widget.initialChildId!,
       date: widget.initialDate!,
     );
+    if (!_isGenerationActive(generation)) return;
 
     memoryVm.bindCalendarState(
       focusedMonth: scheduleVm.focusedMonth,
@@ -138,9 +203,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       selectedDate: scheduleVm.selectedDate,
     );
     await Future.wait([memoryVm.loadMonth(), birthdayVm.loadMonth()]);
+    if (!_isGenerationActive(generation)) return;
+
+    _appliedNotificationTarget = true;
   }
 
-  void _clearBoundScheduleStateIfNeeded() {
+  void _clearBoundScheduleStateIfNeeded({required int generation}) {
+    if (!_isGenerationActive(generation)) return;
     final scheduleVm = context.read<ScheduleViewModel>();
     final shouldClear =
         _lastParentUid != null ||
@@ -158,7 +227,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     context.read<BirthdayViewModel>().resetForNewSession();
   }
 
-  Future<void> _bindParentSessionIfNeeded() async {
+  Future<void> _bindParentSessionIfNeeded({required int generation}) async {
+    if (!_isGenerationActive(generation)) return;
     if (_binding) return;
     _binding = true;
 
@@ -171,6 +241,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         initialChildId: widget.initialChildId,
         watchChildrenForParent: true,
       );
+      if (!_isGenerationActive(generation)) return;
 
       // Guardian shares the same schedule screen as parent, but reads data
       // through the resolved ownerParentUid from the session resolver.
@@ -181,13 +252,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               session.role == UserRole.guardian);
 
       if (!isParentLikeRole) {
-        _clearBoundScheduleStateIfNeeded();
+        _clearBoundScheduleStateIfNeeded(generation: generation);
         return;
       }
 
       final familyId = session.familyId;
       if (familyId == null || familyId.isEmpty) {
-        _clearBoundScheduleStateIfNeeded();
+        _clearBoundScheduleStateIfNeeded(generation: generation);
         return;
       }
 
@@ -216,13 +287,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
 
       await Future.wait([memoryVm.loadMonth(), birthdayVm.loadMonth()]);
-      await _applyNotificationTargetIfNeeded();
+      if (!_isGenerationActive(generation)) return;
+
+      await _applyNotificationTargetIfNeeded(generation: generation);
     } finally {
       _binding = false;
     }
   }
 
-  Future<void> _maybeAutoSelectFirstChild() async {
+  Future<void> _maybeAutoSelectFirstChild({required int generation}) async {
+    if (!_isGenerationActive(generation)) return;
     if (_selectingDefaultChild) return;
     if (widget.initialChildId != null) return;
 
@@ -245,7 +319,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     try {
       await scheduleVm.setChild(defaultChildId);
-      await _syncCalendarCompanions();
+      if (!_isGenerationActive(generation)) return;
+
+      await _syncCalendarCompanions(generation: generation);
     } finally {
       _selectingDefaultChild = false;
     }
@@ -416,12 +492,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
 
     await scheduleVm.loadMonth();
+    if (!mounted || _disposed) return;
+
     await _syncCalendarCompanions();
 
     debugPrint('[SCHEDULE_IMPORT] reload done');
   }
 
-  Future<void> _syncCalendarCompanions() async {
+  Future<void> _syncCalendarCompanions({int? generation}) async {
+    if (_disposed || !mounted) return;
+    if (generation != null && !_isGenerationActive(generation)) return;
+
     final scheduleVm = context.read<ScheduleViewModel>();
     final memoryVm = context.read<MemoryDayViewModel>();
     final birthdayVm = context.read<BirthdayViewModel>();
@@ -435,5 +516,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       selectedDate: scheduleVm.selectedDate,
     );
     await Future.wait([memoryVm.loadMonth(), birthdayVm.loadMonth()]);
+    if (_disposed || !mounted) return;
+    if (generation != null && !_isGenerationActive(generation)) return;
   }
 }

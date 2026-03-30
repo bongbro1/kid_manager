@@ -48,13 +48,13 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final bgColor = backgroundColor ??
+    final bgColor =
+        backgroundColor ??
         (outlined ? Colors.transparent : theme.colorScheme.primary);
 
-    final fgColor = foregroundColor ??
-        (outlined
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onPrimary);
+    final fgColor =
+        foregroundColor ??
+        (outlined ? theme.colorScheme.primary : theme.colorScheme.onPrimary);
 
     final bool isDisabled = loading || onPressed == null;
 
@@ -62,97 +62,112 @@ class AppButton extends StatelessWidget {
       color: fgColor,
       fontSize: fontSize,
       fontWeight: fontWeight,
-      fontFamily: fontFamily ?? "Poppins",
+      fontFamily: fontFamily ?? 'Poppins',
       letterSpacing: letterSpacing,
       height: lineHeight,
     );
 
-    Widget child = loading
-        ? SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: fgColor,
-            ),
-          )
-        : IconTheme(
-            data: IconThemeData(
-              color: fgColor,
-              size: 18,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      fgColor,
-                      BlendMode.srcIn,
-                    ),
-                    child: icon!,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  style: textStyle!,
-                  child: Text(text),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double? effectiveWidth = width;
+        if (effectiveWidth != null && constraints.maxWidth.isFinite) {
+          effectiveWidth = effectiveWidth.clamp(0, constraints.maxWidth);
+        }
+
+        Widget child = loading
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: fgColor,
                 ),
-              ],
-            ),
-          );
+              )
+            : IconTheme(
+                data: IconThemeData(color: fgColor, size: 18),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (icon case final iconWidget?) ...[
+                      ColorFiltered(
+                        colorFilter: ColorFilter.mode(fgColor, BlendMode.srcIn),
+                        child: iconWidget,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      style:
+                          textStyle ??
+                          const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Poppins',
+                          ),
+                      child: Text(
+                        text,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
 
-    Widget button = AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        color: outlined ? Colors.transparent : bgColor,
-        borderRadius: BorderRadius.circular(30),
-        border: outlined ? Border.all(color: fgColor) : null,
-      ),
-      child: ElevatedButton(
-        onPressed: isDisabled ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: fgColor,
-          disabledBackgroundColor: Colors.transparent,
-          disabledForegroundColor: fgColor.withOpacity(0.7),
-          shadowColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          splashFactory: NoSplash.splashFactory,
-          padding: padding ??
-              const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          shape: RoundedRectangleBorder(
+        Widget button = AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            color: outlined ? Colors.transparent : bgColor,
             borderRadius: BorderRadius.circular(30),
+            border: outlined ? Border.all(color: fgColor) : null,
           ),
-        ),
-        child: child,
-      ),
+          child: ElevatedButton(
+            onPressed: isDisabled ? null : onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: fgColor,
+              disabledBackgroundColor: Colors.transparent,
+              disabledForegroundColor: fgColor.withValues(alpha: 0.7),
+              shadowColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              splashFactory: NoSplash.splashFactory,
+              padding:
+                  padding ??
+                  const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+            child: child,
+          ),
+        );
+
+        button = AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: isDisabled ? 0.8 : 1,
+          child: button,
+        );
+
+        if (height != null) {
+          button = ConstrainedBox(
+            constraints: BoxConstraints(minHeight: height!),
+            child: button,
+          );
+        }
+
+        if (effectiveWidth != null) {
+          button = SizedBox(width: effectiveWidth, child: button);
+        } else if (fullWidth) {
+          button = SizedBox(width: double.infinity, child: button);
+        }
+
+        return button;
+      },
     );
-
-    button = AnimatedOpacity(
-      duration: const Duration(milliseconds: 200),
-      opacity: isDisabled ? 0.8 : 1,
-      child: button,
-    );
-
-    if (width != null || height != null) {
-      button = SizedBox(
-        width: width ?? (fullWidth ? double.infinity : null),
-        height: height,
-        child: button,
-      );
-    } else if (fullWidth) {
-      button = SizedBox(
-        width: double.infinity,
-        child: button,
-      );
-    }
-
-    return button;
   }
 }
