@@ -209,6 +209,18 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       compact: 12,
       regular: 16,
     );
+    const compactLabelSpacing = 6.0;
+    const compactTextFieldMinHeight = 50.0;
+    const compactDropdownFieldHeight = 50.0;
+    const compactDropdownMinHeight = 50.0;
+    const compactTextFieldPadding = EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 12,
+    );
+    const compactDropdownPadding = EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 10,
+    );
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -262,7 +274,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: horizontalPadding,
@@ -272,7 +284,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           constraints: const BoxConstraints(maxWidth: 500),
                           child: SizedBox(
                             width: double.infinity,
-                            height: 210,
+                            height: 196,
                             child: Stack(
                               clipBehavior: Clip.none,
                               children: [
@@ -309,7 +321,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                     child: Builder(
                                       builder: (context) {
                                         return Container(
-                                          height: 82,
+                                          height: 76,
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 18,
                                           ),
@@ -435,24 +447,34 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 12),
 
                           AppLabeledTextField(
                             label: l10n.fullNameLabel,
                             hint: l10n.fullNameHint,
                             controller: _nameCtrl,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                           ),
 
                           AppLabeledTextField(
                             label: l10n.phoneLabel,
                             hint: l10n.phoneHint,
                             controller: _phoneCtrl,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                           ),
 
                           AppLabeledDropdownField<String>(
                             label: l10n.genderLabel,
                             hint: l10n.genderHint,
                             value: _selectedGender,
+                            fieldHeight: compactDropdownFieldHeight,
+                            minFieldHeight: compactDropdownMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactDropdownPadding,
                             items: [
                               DropdownMenuEntry(
                                 value: _genderMaleValue,
@@ -479,6 +501,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             controller: _dobCtrl,
                             readOnly: true,
                             onTap: pickDate,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                             suffixIcon: const Icon(
                               Icons.calendar_today,
                               size: 18,
@@ -489,6 +514,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             label: l10n.addressLabel,
                             hint: l10n.addressHint,
                             controller: _addressCtrl,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                           ),
 
                           if (!isChild)
@@ -496,6 +524,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                               label: l10n.locationTrackingLabel,
                               text: l10n.allowLocationTrackingText,
                               value: allowLocationTracking,
+                              labelBottomSpacing: compactLabelSpacing,
                               onChanged: (v) {
                                 setState(() {
                                   allowLocationTracking = v;
@@ -513,7 +542,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
                                 return Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: scheme.surface,
                                     borderRadius: BorderRadius.circular(12),
@@ -527,8 +556,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   child: Row(
                                     children: [
                                       Container(
-                                        height: 40,
-                                        width: 40,
+                                        height: 36,
+                                        width: 36,
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: scheme.primary,
@@ -587,7 +616,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 16,
-                                            vertical: 8,
+                                            vertical: 7,
                                           ),
                                           decoration: BoxDecoration(
                                             color: scheme.primary,
