@@ -9,53 +9,70 @@ import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
 import 'package:kid_manager/features/safe_route/domain/repositories/safe_route_repository.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_active_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_route_by_id_usecase.dart';
+import 'package:kid_manager/features/safe_route/domain/usecases/watch_current_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/presentation/viewmodels/child_safe_route_view_model.dart';
 
 void main() {
   group('ChildSafeRouteViewModel', () {
-    test('does not notify after dispose when active trip request completes late', () async {
-      final tripCompleter = Completer<Trip?>();
-      final repository = _FakeSafeRouteRepository(
-        activeTripLoader: (_) => tripCompleter.future,
-      );
-      final viewModel = ChildSafeRouteViewModel(
-        childId: 'child-1',
-        getActiveTripByChildIdUseCase: GetActiveTripByChildIdUseCase(repository),
-        getRouteByIdUseCase: GetRouteByIdUseCase(repository),
-      );
+    test(
+      'does not notify after dispose when active trip request completes late',
+      () async {
+        final tripCompleter = Completer<Trip?>();
+        final repository = _FakeSafeRouteRepository(
+          activeTripLoader: (_) => tripCompleter.future,
+        );
+        final viewModel = ChildSafeRouteViewModel(
+          childId: 'child-1',
+          getActiveTripByChildIdUseCase: GetActiveTripByChildIdUseCase(
+            repository,
+          ),
+          watchCurrentTripByChildIdUseCase: WatchCurrentTripByChildIdUseCase(
+            repository,
+          ),
+          getRouteByIdUseCase: GetRouteByIdUseCase(repository),
+        );
 
-      viewModel.initialize(languageCode: 'vi');
-      viewModel.dispose();
+        viewModel.initialize(languageCode: 'vi');
+        viewModel.dispose();
 
-      tripCompleter.complete(_sampleTrip());
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        tripCompleter.complete(_sampleTrip());
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(true, isTrue);
-    });
+        expect(true, isTrue);
+      },
+    );
 
-    test('does not notify after dispose when route loading completes late', () async {
-      final routeCompleter = Completer<SafeRoute?>();
-      final repository = _FakeSafeRouteRepository(
-        activeTripLoader: (_) async => _sampleTrip(),
-        routeLoader: (_) => routeCompleter.future,
-      );
-      final viewModel = ChildSafeRouteViewModel(
-        childId: 'child-1',
-        getActiveTripByChildIdUseCase: GetActiveTripByChildIdUseCase(repository),
-        getRouteByIdUseCase: GetRouteByIdUseCase(repository),
-      );
+    test(
+      'does not notify after dispose when route loading completes late',
+      () async {
+        final routeCompleter = Completer<SafeRoute?>();
+        final repository = _FakeSafeRouteRepository(
+          activeTripLoader: (_) async => _sampleTrip(),
+          routeLoader: (_) => routeCompleter.future,
+        );
+        final viewModel = ChildSafeRouteViewModel(
+          childId: 'child-1',
+          getActiveTripByChildIdUseCase: GetActiveTripByChildIdUseCase(
+            repository,
+          ),
+          watchCurrentTripByChildIdUseCase: WatchCurrentTripByChildIdUseCase(
+            repository,
+          ),
+          getRouteByIdUseCase: GetRouteByIdUseCase(repository),
+        );
 
-      viewModel.initialize(languageCode: 'vi');
-      await Future<void>.delayed(Duration.zero);
-      viewModel.dispose();
+        viewModel.initialize(languageCode: 'vi');
+        await Future<void>.delayed(Duration.zero);
+        viewModel.dispose();
 
-      routeCompleter.complete(_sampleRoute());
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        routeCompleter.complete(_sampleRoute());
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(true, isTrue);
-    });
+        expect(true, isTrue);
+      },
+    );
   });
 }
 
@@ -117,8 +134,8 @@ class _FakeSafeRouteRepository implements SafeRouteRepository {
   _FakeSafeRouteRepository({
     Future<Trip?> Function(String childId)? activeTripLoader,
     Future<SafeRoute?> Function(String routeId)? routeLoader,
-  })  : _activeTripLoader = activeTripLoader,
-        _routeLoader = routeLoader;
+  }) : _activeTripLoader = activeTripLoader,
+       _routeLoader = routeLoader;
 
   final Future<Trip?> Function(String childId)? _activeTripLoader;
   final Future<SafeRoute?> Function(String routeId)? _routeLoader;
@@ -158,4 +175,11 @@ class _FakeSafeRouteRepository implements SafeRouteRepository {
     TripStatus status, {
     String? reason,
   }) async {}
+  @override
+  Stream<Trip?> watchCurrentTripByChildId(
+    String childId, {
+    required TripVisibilityAudience audience,
+  }) {
+    return const Stream<Trip?>.empty();
+  }
 }
