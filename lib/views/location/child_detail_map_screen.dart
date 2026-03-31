@@ -35,12 +35,11 @@ class ChildDetailMapScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) =>
-          ChildDetailMapVm(
-            context.read<ParentLocationVm>(),
-            childId: childId,
-            childTimeZone: childTimeZone,
-          ),
+      create: (context) => ChildDetailMapVm(
+        context.read<ParentLocationVm>(),
+        childId: childId,
+        childTimeZone: childTimeZone,
+      ),
       child: _ChildDetailMapBody(
         childId: childId,
         childAvatarUrl: childAvatarUrl,

@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/core/validators.dart';
+import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/models/app_user.dart';
+import 'package:kid_manager/models/auth/auth_models.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/device_time_zone_service.dart';
@@ -23,11 +26,16 @@ class AuthVM extends ChangeNotifier {
   final OtpRepository _otpRepo;
   final StorageService _storage;
 
+  PendingOtp? pendingOtp;
+
   User? _user;
   User? get user => _user;
 
   bool _loading = false;
   bool get loading => _loading;
+
+  bool _logoutInProgress = false;
+  bool get logoutInProgress => _logoutInProgress;
 
   String? _error;
   String? get error => _error;
@@ -43,31 +51,67 @@ class AuthVM extends ChangeNotifier {
     });
   }
 
-  Future<UserCredential?> login(String email, String password) async {
-    return _runAuthAction<UserCredential?>(() async {
-      final cred = await _authRepo.login(email, password);
-
-      final user = cred.user;
-      if (user == null) {
-        throw Exception("User null");
+  Future<PendingOtp?> loadPendingOtp() async {
+    final raw = await _storage.getString(StorageKeys.pendingOtp);
+    if (raw != null) {
+      try {
+        final json = JsonHelper.decode(raw) as Map<String, dynamic>;
+        final pending = PendingOtp.fromJson(json);
+        pendingOtp = pending; // cập nhật biến trong AuthVM
+        notifyListeners();
+        return pending;
+      } catch (_) {
+        pendingOtp = null;
+        return null;
       }
+    } else {
+      pendingOtp = null;
+      return null;
+    }
+  }
+
+  Future<void> setPendingOtp(String email, OtpPurpose purpose) async {
+    pendingOtp = PendingOtp(email: email, purpose: purpose);
+
+    // Lưu vào storage
+    await _storage.setString(
+      StorageKeys.pendingOtp,
+      JsonHelper.encode(pendingOtp!.toJson()),
+    );
+
+    notifyListeners();
+  }
+
+  Future<void> clearPendingOtp() async {
+    pendingOtp = null;
+
+    // Xóa khỏi storage
+    await _storage.remove(StorageKeys.pendingOtp);
+
+    notifyListeners();
+  }
+
+  Future<UserCredential> login(String email, String password) async {
+    return _runAuthAction<UserCredential>(() async {
+      final cred = await _authRepo.login(email, password);
+      final user = cred.user;
+      if (user == null) throw Exception("User null");
 
       final userInfo = await _userRepo.getUserById(user.uid);
-
       if (userInfo == null) {
         await _authRepo.logout();
         throw Exception("accountNotFound");
       }
 
       if (userInfo.isActive != true) {
-        await _authRepo.logout();
+        await setPendingOtp(email, OtpPurpose.verifyEmail);
         throw Exception("accountNotActivated");
       }
 
       _user = user;
       notifyListeners();
       return cred;
-    });
+    }, rethrowOnError: true);
   }
 
   Future<void> onLoginSuccess(String userId) async {}
@@ -80,12 +124,12 @@ class AuthVM extends ChangeNotifier {
     return result ?? false;
   }
 
-  Future<bool> changePassword({
+  Future<void> changePassword({
     required String oldPassword,
     required String newPassword,
     required String confirmPassword,
   }) async {
-    final result = await _runAuthAction<bool>(() async {
+    await _runAuthAction(() async {
       final passError = Validators.validatePassword(
         newPassword,
         l10n: runtimeL10n(),
@@ -107,11 +151,7 @@ class AuthVM extends ChangeNotifier {
         oldPassword: oldPassword,
         newPassword: newPassword,
       );
-
-      return true;
     });
-
-    return result ?? false;
   }
 
   Future<void> resetPassword({
@@ -141,12 +181,15 @@ class AuthVM extends ChangeNotifier {
 
       shouldCleanupAuthState = true;
 
-      await _userRepo.createParentIfMissing(
-        uid: user.uid,
-        email: user.email ?? email,
+      unawaited(
+        _userRepo.createParentIfMissing(
+          uid: user.uid,
+          email: user.email ?? email,
+        ),
       );
+      unawaited(_otpRepo.requestEmailOtp());
 
-      await _otpRepo.requestEmailOtp();
+      await setPendingOtp(email, OtpPurpose.verifyEmail);
       return true;
     } on FirebaseAuthException catch (e) {
       _error = _mapFirebaseError(e);
@@ -169,6 +212,8 @@ class AuthVM extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    if (_logoutInProgress) return;
+    _logoutInProgress = true;
     _loading = true;
     _error = null;
     notifyListeners();
@@ -180,32 +225,27 @@ class AuthVM extends ChangeNotifier {
       debugPrint("Logout error: $e");
     } finally {
       _loading = false;
+      _logoutInProgress = false;
       notifyListeners();
     }
   }
 
-  Future<T?> _runAuthAction<T>(Future<T> Function() action) async {
+  Future<T> _runAuthAction<T>(
+    Future<T> Function() action, {
+    bool rethrowOnError = false,
+  }) async {
     _setLoading(true);
     _error = null;
 
     try {
       return await action();
-    } on FirebaseAuthException catch (e) {
-      debugPrint("AUTH ERROR (Firebase): $e");
-      _error = _mapFirebaseError(e);
-      return null;
-    } on FirebaseFunctionsException catch (e) {
-      debugPrint("AUTH ERROR (Functions): $e");
-      _error = _mapFunctionsError(e);
-      return null;
-    } on Exception catch (e) {
-      debugPrint("AUTH ERROR (Exception): $e");
+    } catch (e, st) {
+      debugPrint("AUTH ERROR: $e");
       _error = e.toString().replaceFirst("Exception: ", "");
-      return null;
-    } catch (e) {
-      debugPrint("AUTH ERROR (Unknown): $e");
-      _error = runtimeL10n().authGenericError;
-      return null;
+      if (rethrowOnError) {
+        return Future<T>.error(e, st);
+      }
+      rethrow;
     } finally {
       _setLoading(false);
     }

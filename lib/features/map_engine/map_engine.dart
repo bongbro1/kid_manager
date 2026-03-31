@@ -3,6 +3,7 @@ import 'package:kid_manager/features/map_engine/child_blue_dot_renderer.dart';
 import 'package:kid_manager/features/map_engine/controllers/camera_controller.dart';
 import 'package:kid_manager/features/map_engine/controllers/interaction_controller.dart';
 import 'package:kid_manager/features/map_engine/history_renderer.dart';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:kid_manager/features/map_engine/network_gap_renderer.dart';
 import 'package:kid_manager/features/map_engine/route_renderer.dart';
 import 'package:kid_manager/features/map_engine/services/history_gap_detector.dart';
@@ -13,49 +14,16 @@ import 'package:kid_manager/models/location/location_data.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class MapEngine {
-  final MapboxMap map;
-
-  final bool enableChildDot;
-  final bool enableHistory;
-  final bool enableRoute;
-  final bool enableInteraction;
-  final bool enableCameraFollow;
-  final String? childAvatarUrl;
-  bool showHistoryDots = false;
-
-  late RouteRenderer route;
-  late HistoryRenderer history;
-  late NetworkGapRenderer networkGaps;
-  late CameraController camera;
-
-  List<List<double>> _matchedRoute = [];
-  List<List<List<double>>> _straightSegs = [];
-
-  bool followEnabled = true;
-  bool _didInitialFit = false;
-
-  int _lastMatchedTs = 0; // ✅ rất quan trọng
-  int _lastFollowMs = 0;
-
-  List<double>? _anchor; // [lng,lat] điểm neo cuối cùng (road hoặc straight)
-  final void Function(LocationData point)? onHistoryPointSelected;
-  ChildBlueDotRenderer? childDot;
-  late StartEndMarkerRenderer startEndMarkers;
-  final _segMatcher = SegmentedMapMatcher(MapMatchingService());
-  final _gapDetector = HistoryGapDetector();
-  InteractionController? interaction;
-  List<LocationData> _gapMarkers = const [];
-
   MapEngine(
-      this.map, {
-        this.enableChildDot = false,
-        this.enableHistory = true,
-        this.enableRoute = true,
-        this.enableInteraction = true,
-        this.enableCameraFollow = true,
-        this.childAvatarUrl,
-        this.onHistoryPointSelected
-      }) {
+    this.map, {
+    this.enableChildDot = false,
+    this.enableHistory = true,
+    this.enableRoute = true,
+    this.enableInteraction = true,
+    this.enableCameraFollow = true,
+    this.childAvatarUrl,
+    this.onHistoryPointSelected,
+  }) {
     route = RouteRenderer(map);
     history = HistoryRenderer(map);
     networkGaps = NetworkGapRenderer(map);
@@ -67,41 +35,139 @@ class MapEngine {
     }
   }
 
-  Future<void> init() async {
-    if (enableRoute) await route.init();
-    if (enableHistory) await history.init(visible: showHistoryDots); // ✅
-    await networkGaps.init();
-    await startEndMarkers.init();
+  final MapboxMap map;
+  final bool enableChildDot;
+  final bool enableHistory;
+  final bool enableRoute;
+  final bool enableInteraction;
+  final bool enableCameraFollow;
+  final String? childAvatarUrl;
+  final void Function(LocationData point)? onHistoryPointSelected;
 
-    if (enableChildDot) await childDot!.init();
+  bool showHistoryDots = false;
+
+  late RouteRenderer route;
+  late HistoryRenderer history;
+  late NetworkGapRenderer networkGaps;
+  late CameraController camera;
+  late StartEndMarkerRenderer startEndMarkers;
+  ChildBlueDotRenderer? childDot;
+  InteractionController? interaction;
+
+  List<List<double>> _matchedRoute = [];
+  List<List<List<double>>> _straightSegs = [];
+  List<double>? _anchor;
+  List<LocationData> _gapMarkers = const [];
+
+  bool followEnabled = true;
+  bool _didInitialFit = false;
+  int _lastMatchedTs = 0;
+  int _lastFollowMs = 0;
+
+  final _segMatcher = SegmentedMapMatcher(MapMatchingService());
+  final _gapDetector = HistoryGapDetector();
+
+  int _generation = 0;
+  bool _disposed = false;
+
+  bool get isDisposed => _disposed;
+
+  bool _isActive(int generation) => !_disposed && generation == _generation;
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _generation++;
+    interaction = null;
+    childDot?.dispose();
+    history.dispose();
+    route.dispose();
+    startEndMarkers.dispose();
+    _gapMarkers = const [];
+  }
+
+  Future<bool> _runStep({
+    required int generation,
+    required Future<void> Function() action,
+  }) async {
+    if (!_isActive(generation)) return false;
+    try {
+      await action();
+      return _isActive(generation);
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isActive(generation)) {
+        return false;
+      }
+      rethrow;
+    }
   }
 
   void handleMapTap(MapContentGestureContext gestureContext) {
+    if (_disposed) return;
     final currentInteraction = interaction;
     if (currentInteraction == null) return;
 
     final coord = gestureContext.point.coordinates;
-    final lat = coord.lat.toDouble();
-    final lng = coord.lng.toDouble();
-
     currentInteraction.handleTap(
-      lat: lat,
-      lng: lng,
+      lat: coord.lat.toDouble(),
+      lng: coord.lng.toDouble(),
       maxDistanceMeters: 35,
     );
   }
 
-  Future<void> setHistoryDotsVisible(bool v) async {
-    showHistoryDots = v;
-    if (enableHistory) {
-      await history.setVisible(v);
+  Future<void> init() async {
+    if (_disposed) return;
+    final generation = _generation;
+
+    if (enableRoute &&
+        !await _runStep(generation: generation, action: () => route.init())) {
+      return;
+    }
+    if (enableHistory &&
+        !await _runStep(
+          generation: generation,
+          action: () => history.init(visible: showHistoryDots),
+        )) {
+      return;
+    }
+    if (!await _runStep(
+      generation: generation,
+      action: () => networkGaps.init(),
+    )) {
+      return;
+    }
+    if (!await _runStep(
+      generation: generation,
+      action: () => startEndMarkers.init(),
+    )) {
+      return;
+    }
+
+    if (enableChildDot) {
+      await _runStep(generation: generation, action: () => childDot!.init());
     }
   }
 
+  Future<void> setHistoryDotsVisible(bool visible) async {
+    if (_disposed) return;
+    showHistoryDots = visible;
+    if (!enableHistory) return;
+    final generation = _generation;
+    await _runStep(
+      generation: generation,
+      action: () => history.setVisible(visible),
+    );
+  }
+
   Future<void> _renderNetworkGaps(List<LocationData> historyPoints) async {
+    if (_disposed) return;
+    final generation = _generation;
     final gaps = _gapDetector.detect(historyPoints);
     _gapMarkers = gaps.map((gap) => gap.marker).toList(growable: false);
-    await networkGaps.render(gaps);
+    await _runStep(
+      generation: generation,
+      action: () => networkGaps.render(gaps),
+    );
   }
 
   List<LocationData> _interactivePoints(List<LocationData> basePoints) {
@@ -126,10 +192,10 @@ class MapEngine {
     }
 
     final bound = <LocationData>[
-      for (var i = 0; i < count; i++)
-        rawPoints[i].copyWith(
-          latitude: displayPoints[i].latitude,
-          longitude: displayPoints[i].longitude,
+      for (var index = 0; index < count; index++)
+        rawPoints[index].copyWith(
+          latitude: displayPoints[index].latitude,
+          longitude: displayPoints[index].longitude,
         ),
     ];
 
@@ -147,48 +213,79 @@ class MapEngine {
     _lastMatchedTs = 0;
   }
 
-  void setFollowEnabled(bool v) => followEnabled = v;
+  void setFollowEnabled(bool value) => followEnabled = value;
+
   void resetInitialFit() => _didInitialFit = false;
 
   Future<void> updateChildDot(LocationData loc) async {
-    if (enableChildDot) {
-      await childDot!.update(loc);
-    }
+    if (_disposed || !enableChildDot) return;
+    final generation = _generation;
+    await _runStep(generation: generation, action: () => childDot!.update(loc));
   }
 
   bool _isSoftFail(
-      List<LocationData> raw,
-      List<LocationData> snapped, {
-        double maxMeanErrM = 60,
-      }) {
-    final n = raw.length < snapped.length ? raw.length : snapped.length;
-    if (n < 2) return true;
+    List<LocationData> raw,
+    List<LocationData> snapped, {
+    double maxMeanErrM = 60,
+  }) {
+    final count = raw.length < snapped.length ? raw.length : snapped.length;
+    if (count < 2) return true;
     double sum = 0;
-    for (int i = 0; i < n; i++) {
-      sum += raw[i].distanceTo(snapped[i]) * 1000.0;
+    for (int index = 0; index < count; index++) {
+      sum += raw[index].distanceTo(snapped[index]) * 1000.0;
     }
-    final mean = sum / n;
-    debugPrint("🧭 snap mean error = ${mean.toStringAsFixed(1)}m");
+    final mean = sum / count;
+    debugPrint('snap mean error = ${mean.toStringAsFixed(1)}m');
     return mean > maxMeanErrM;
   }
 
-  Future<void> loadHistory(List<LocationData> data, BuildContext context) async {
-    if (!enableHistory && !enableRoute) return;
+  Future<void> loadHistory(
+    List<LocationData> data,
+    BuildContext context,
+  ) async {
+    if (_disposed || (!enableHistory && !enableRoute)) return;
+    final generation = _generation;
 
     if (data.isEmpty) {
       interaction = null;
-      if (enableHistory) await history.render(const []);
-      if (enableRoute) {
-        await route.renderRoad([]);
-        await route.renderStraightSegments([]);
+      if (enableHistory &&
+          !await _runStep(
+            generation: generation,
+            action: () => history.render(const []),
+          )) {
+        return;
       }
-      await networkGaps.clear();
-      await startEndMarkers.clear();
+      if (enableRoute) {
+        if (!await _runStep(
+          generation: generation,
+          action: () => route.renderRoad(const []),
+        )) {
+          return;
+        }
+        if (!await _runStep(
+          generation: generation,
+          action: () => route.renderStraightSegments(const []),
+        )) {
+          return;
+        }
+      }
+      if (!await _runStep(
+        generation: generation,
+        action: () => networkGaps.clear(),
+      )) {
+        return;
+      }
+      await _runStep(
+        generation: generation,
+        action: () => startEndMarkers.clear(),
+      );
       return;
     }
 
-    final sorted = [...data]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final sorted = [...data]
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     await _renderNetworkGaps(sorted);
+    if (!_isActive(generation)) return;
 
     if (sorted.length < 2) {
       if (enableHistory) await history.render(sorted);
@@ -211,39 +308,73 @@ class MapEngine {
     }
 
     final matched = await _segMatcher.matchByTransport(sorted);
+    if (!_isActive(generation)) return;
     final pointsToShow = matched?.snappedPoints ?? sorted;
-
-    final rawCoords = sorted.map((e) => <double>[e.longitude, e.latitude]).toList();
+    final rawCoords = sorted
+        .map((item) => <double>[item.longitude, item.latitude])
+        .toList();
 
     if (enableRoute) {
       if (matched != null && matched.routeCoordinates.length >= 2) {
         _matchedRoute = matched.routeCoordinates;
-        await route.renderRoad(_matchedRoute);
+        if (!await _runStep(
+          generation: generation,
+          action: () => route.renderRoad(_matchedRoute),
+        )) {
+          return;
+        }
 
         _straightSegs = matched.straightSegments;
-        await route.renderStraightSegments(_straightSegs);
-
+        if (!await _runStep(
+          generation: generation,
+          action: () => route.renderStraightSegments(_straightSegs),
+        )) {
+          return;
+        }
         _anchor = _matchedRoute.last;
       } else {
         _matchedRoute = [];
-        await route.renderRoad([]);
+        if (!await _runStep(
+          generation: generation,
+          action: () => route.renderRoad(const []),
+        )) {
+          return;
+        }
 
         _straightSegs = rawCoords.length >= 2 ? [rawCoords] : [];
-        await route.renderStraightSegments(_straightSegs);
-
+        if (!await _runStep(
+          generation: generation,
+          action: () => route.renderStraightSegments(_straightSegs),
+        )) {
+          return;
+        }
         _anchor = rawCoords.isNotEmpty ? rawCoords.last : null;
       }
     }
 
-    if (enableHistory) {
-      await history.render(pointsToShow);
+    if (enableHistory &&
+        !await _runStep(
+          generation: generation,
+          action: () => history.render(pointsToShow),
+        )) {
+      return;
     }
 
-    await startEndMarkers.render(sorted);
+    if (!await _runStep(
+      generation: generation,
+      action: () => startEndMarkers.render(sorted),
+    )) {
+      return;
+    }
 
     if (!_didInitialFit) {
       _didInitialFit = true;
-      await camera.fitToRoute(pointsToShow);
+      if (!await _runStep(
+        generation: generation,
+        action: () => camera.fitToRoute(pointsToShow),
+      )) {
+        return;
+      }
     }
 
     if (enableInteraction) {
@@ -254,7 +385,6 @@ class MapEngine {
     }
 
     _lastMatchedTs = sorted.last.timestamp;
-
     if (_matchedRoute.isNotEmpty) {
       _anchor = _matchedRoute.last;
     } else if (_straightSegs.isNotEmpty && _straightSegs.last.isNotEmpty) {
@@ -263,39 +393,53 @@ class MapEngine {
   }
 
   Future<void> updateEndMarkerRealtime(LocationData loc) async {
-    await startEndMarkers.updateEndMarker(loc);
+    if (_disposed) return;
+    final generation = _generation;
+    await _runStep(
+      generation: generation,
+      action: () => startEndMarkers.updateEndMarker(loc),
+    );
   }
 
   Future<void> updateMatchedRouteIncremental(
-      List<LocationData> data,
-      BuildContext context, {
-        int windowPoints = 25,
-      }) async {
-    if (data.length < 2) return;
+    List<LocationData> data,
+    BuildContext context, {
+    int windowPoints = 25,
+  }) async {
+    if (_disposed || data.length < 2) return;
+    final generation = _generation;
 
-    final sorted = [...data]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final sorted = [...data]
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     await _renderNetworkGaps(sorted);
+    if (!_isActive(generation)) return;
 
     final latestTs = sorted.last.timestamp;
     if (latestTs <= _lastMatchedTs) {
-      // vẫn update points để user thấy realtime
-      if (enableHistory) await history.render(sorted);
+      if (enableHistory &&
+          !await _runStep(
+            generation: generation,
+            action: () => history.render(sorted),
+          )) {
+        return;
+      }
       if (enableInteraction) {
         interaction = InteractionController(
           _bindRenderedPointsToHistory(sorted, renderedPoints: sorted),
           onPointSelected: onHistoryPointSelected,
         );
       }
-      await startEndMarkers.updateEndMarker(sorted.last);
-
+      await _runStep(
+        generation: generation,
+        action: () => startEndMarkers.updateEndMarker(sorted.last),
+      );
       return;
     }
 
-    final bool hasWindow = sorted.length > windowPoints;
-    final int windowStartIndex = hasWindow ? (sorted.length - windowPoints) : 0;
+    final hasWindow = sorted.length > windowPoints;
+    final windowStartIndex = hasWindow ? (sorted.length - windowPoints) : 0;
     final window = sorted.sublist(windowStartIndex);
 
-    // helper gap segment (raw) giữa trước window và đầu window
     List<List<double>>? rawGapSegment() {
       if (!hasWindow || windowStartIndex == 0) return null;
       final prev = sorted[windowStartIndex - 1];
@@ -307,56 +451,69 @@ class MapEngine {
     }
 
     final matched = await _segMatcher.matchByTransport(window);
-    final bool softFail = matched != null && _isSoftFail(window, matched.snappedPoints);
+    if (!_isActive(generation)) return;
+    final softFail =
+        matched != null && _isSoftFail(window, matched.snappedPoints);
 
     debugPrint(
-      "🧭 match window=${window.length} total=${sorted.length} "
-          "matched=${matched != null} softFail=$softFail routeCoords=${matched?.routeCoordinates.length ?? 0} "
-          "lastMatchedTs=$_lastMatchedTs latestTs=$latestTs",
+      'match window=${window.length} total=${sorted.length} '
+      'matched=${matched != null} softFail=$softFail '
+      'routeCoords=${matched?.routeCoordinates.length ?? 0} '
+      'lastMatchedTs=$_lastMatchedTs latestTs=$latestTs',
     );
 
-    // =========================
-    // FAIL (hard/soft)
-    // =========================
     if (matched == null || matched.routeCoordinates.length < 2 || softFail) {
-      debugPrint("❌ match fail -> draw straight ONLY new points");
-
-      // ✅ lấy phần mới trong window (không lấy toàn sorted)
-      final newPts = window.where((p) => p.timestamp > _lastMatchedTs).toList();
-
-      // build seg bắt đầu từ anchor để nối tiếp
+      final newPts = window
+          .where((point) => point.timestamp > _lastMatchedTs)
+          .toList();
       final seg = <List<double>>[];
 
-      final anchor = _anchor ??
-          (_straightSegs.isNotEmpty && _straightSegs.last.isNotEmpty ? _straightSegs.last.last : null);
-
+      final anchor =
+          _anchor ??
+          (_straightSegs.isNotEmpty && _straightSegs.last.isNotEmpty
+              ? _straightSegs.last.last
+              : null);
       if (anchor != null) seg.add(anchor);
+      seg.addAll(
+        newPts.map((point) => <double>[point.longitude, point.latitude]),
+      );
 
-      seg.addAll(newPts.map((p) => <double>[p.longitude, p.latitude]));
-
-      // nếu có gap giữa window trước và window hiện tại (khi hasWindow)
       final gap = rawGapSegment();
       if (gap != null) {
-        // gap thường ngắn; add trước để nối liền
         _straightSegs.add(gap);
       }
 
-      final ok = seg.length >= 2 && !(seg.first[0] == seg.last[0] && seg.first[1] == seg.last[1]);
-      if (ok) {
+      final canAppend =
+          seg.length >= 2 &&
+          !(seg.first[0] == seg.last[0] && seg.first[1] == seg.last[1]);
+      if (canAppend) {
         _straightSegs.add(seg);
         _anchor = seg.last;
-        debugPrint("🧩 add straight seg len=${seg.length} totalSegs=${_straightSegs.length}");
-      } else {
-        debugPrint("🧩 skip straight seg len=${seg.length}");
       }
 
       _lastMatchedTs = latestTs;
 
       if (enableRoute) {
-        await route.renderRoad(_matchedRoute); // giữ road cũ
-        await route.renderStraightSegments(_straightSegs);
+        if (!await _runStep(
+          generation: generation,
+          action: () => route.renderRoad(_matchedRoute),
+        )) {
+          return;
+        }
+        if (!await _runStep(
+          generation: generation,
+          action: () => route.renderStraightSegments(_straightSegs),
+        )) {
+          return;
+        }
       }
-      if (enableHistory) await history.render(sorted);
+      if (enableHistory &&
+          !await _runStep(
+            generation: generation,
+            action: () => history.render(sorted),
+          )) {
+        return;
+      }
 
       if (enableInteraction) {
         interaction = InteractionController(
@@ -364,35 +521,40 @@ class MapEngine {
           onPointSelected: onHistoryPointSelected,
         );
       }
-      await startEndMarkers.updateEndMarker(sorted.last);
+      await _runStep(
+        generation: generation,
+        action: () => startEndMarkers.updateEndMarker(sorted.last),
+      );
       return;
     }
 
-    // =========================
-    // SUCCESS
-    // =========================
     final newCoords = matched.routeCoordinates;
     if (newCoords.length < 2) {
       _lastMatchedTs = latestTs;
-      if (enableHistory) await history.render(sorted);
-      await startEndMarkers.updateEndMarker(sorted.last);
-
+      if (enableHistory &&
+          !await _runStep(
+            generation: generation,
+            action: () => history.render(sorted),
+          )) {
+        return;
+      }
+      await _runStep(
+        generation: generation,
+        action: () => startEndMarkers.updateEndMarker(sorted.last),
+      );
       return;
     }
 
-    // nếu road mới không nối với road cũ -> chỉ nối gap raw (ngắn)
     if (_matchedRoute.isNotEmpty) {
       final lastRoad = _matchedRoute.last;
       final firstRoad = newCoords.first;
       final same = (lastRoad[0] == firstRoad[0] && lastRoad[1] == firstRoad[1]);
-
       if (!same) {
         final gap = rawGapSegment();
         if (gap != null) _straightSegs.add(gap);
       }
     }
 
-    // append road
     if (_matchedRoute.isEmpty) {
       _matchedRoute = [...newCoords];
     } else {
@@ -409,10 +571,26 @@ class MapEngine {
     _lastMatchedTs = latestTs;
 
     if (enableRoute) {
-      await route.renderRoad(_matchedRoute);
-      await route.renderStraightSegments(_straightSegs);
+      if (!await _runStep(
+        generation: generation,
+        action: () => route.renderRoad(_matchedRoute),
+      )) {
+        return;
+      }
+      if (!await _runStep(
+        generation: generation,
+        action: () => route.renderStraightSegments(_straightSegs),
+      )) {
+        return;
+      }
     }
-    if (enableHistory) await history.render(matched.snappedPoints);
+    if (enableHistory &&
+        !await _runStep(
+          generation: generation,
+          action: () => history.render(matched.snappedPoints),
+        )) {
+      return;
+    }
 
     if (enableInteraction) {
       final renderedHistory = matched.snappedPoints;
@@ -427,30 +605,52 @@ class MapEngine {
         onPointSelected: onHistoryPointSelected,
       );
     }
-    await startEndMarkers.updateEndMarker(sorted.last);
+    await _runStep(
+      generation: generation,
+      action: () => startEndMarkers.updateEndMarker(sorted.last),
+    );
   }
 
   Future<void> updateChildRealtime(LocationData loc) async {
-    // chỉ update dot (marker)
+    if (_disposed) return;
+    final generation = _generation;
     await updateChildDot(loc);
+    if (!_isActive(generation)) return;
 
-    // follow nếu user bật
     if (enableCameraFollow && followEnabled) {
       final now = DateTime.now().millisecondsSinceEpoch;
       if (now - _lastFollowMs > 800) {
         _lastFollowMs = now;
-        await camera.follow(loc);
+        await _runStep(
+          generation: generation,
+          action: () => camera.follow(loc),
+        );
       }
     }
   }
 
-  Future<void> renderHistoryFast(List<LocationData> data, BuildContext context) async {
-    if (!enableHistory) return;
-    if (data.isEmpty) return;
+  Future<void> renderHistoryFast(
+    List<LocationData> data,
+    BuildContext context,
+  ) async {
+    if (_disposed || !enableHistory || data.isEmpty) return;
+    final generation = _generation;
 
     await _renderNetworkGaps(data);
-    await history.render(data);
-    await startEndMarkers.updateEndMarker(data.last);
+    if (!_isActive(generation)) return;
+
+    if (!await _runStep(
+      generation: generation,
+      action: () => history.render(data),
+    )) {
+      return;
+    }
+    if (!await _runStep(
+      generation: generation,
+      action: () => startEndMarkers.updateEndMarker(data.last),
+    )) {
+      return;
+    }
 
     if (enableInteraction) {
       interaction = InteractionController(
@@ -461,15 +661,25 @@ class MapEngine {
   }
 
   Future<void> resetForNewHistory() async {
+    if (_disposed) return;
+    final generation = _generation;
     _matchedRoute = [];
     _straightSegs = [];
     _anchor = null;
     _lastMatchedTs = 0;
     _didInitialFit = false;
-    interaction =null;
     interaction = null;
     _gapMarkers = const [];
-    await networkGaps.clear();
-    await startEndMarkers.clear();
+
+    if (!await _runStep(
+      generation: generation,
+      action: () => networkGaps.clear(),
+    )) {
+      return;
+    }
+    await _runStep(
+      generation: generation,
+      action: () => startEndMarkers.clear(),
+    );
   }
 }

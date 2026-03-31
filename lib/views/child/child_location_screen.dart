@@ -242,7 +242,8 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   Future<void> _handleSosPressed(AppLocalizations l10n) async {
     final loc = _vm.currentLocation;
     final displayName =
-        context.read<UserVm>().me?.displayName ?? l10n.parentLocationUnknownUser;
+        context.read<UserVm>().me?.displayName ??
+        l10n.parentLocationUnknownUser;
     final sosVm = context.read<SosViewModel>();
 
     debugPrint('SOS child tapped');
@@ -290,9 +291,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.childLocationSosError('$error')),
-        ),
+        SnackBar(content: Text(l10n.childLocationSosError('$error'))),
       );
     }
   }
@@ -304,9 +303,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     _autoFollow = true;
     _map?.easeTo(
       CameraOptions(
-        center: Point(
-          coordinates: Position(loc.longitude, loc.latitude),
-        ),
+        center: Point(coordinates: Position(loc.longitude, loc.latitude)),
         zoom: 16,
       ),
       MapAnimationOptions(duration: 600),
@@ -519,10 +516,7 @@ class _ChildMapControlDock extends StatelessWidget {
 }
 
 class _RailCircleButton extends StatelessWidget {
-  const _RailCircleButton({
-    required this.icon,
-    required this.onPressed,
-  });
+  const _RailCircleButton({required this.icon, required this.onPressed});
 
   final IconData icon;
   final VoidCallback onPressed;

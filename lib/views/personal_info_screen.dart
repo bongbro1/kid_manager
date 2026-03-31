@@ -1,14 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/utils/date_utils.dart';
-import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
-import 'package:kid_manager/viewmodels/app_management_vm.dart';
-import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
-import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
@@ -177,7 +175,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     return SmartNetworkImage(
       imageUrl: coverUrl,
       fallbackAsset: "assets/images/cover.png",
-      width: 500,
+      width: double.infinity,
       height: 200,
       fit: BoxFit.cover,
     );
@@ -207,9 +205,25 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final horizontalPadding = context.adaptiveHorizontalPadding(
+      compact: 12,
+      regular: 16,
+    );
+    const compactLabelSpacing = 6.0;
+    const compactTextFieldMinHeight = 50.0;
+    const compactDropdownFieldHeight = 50.0;
+    const compactDropdownMinHeight = 50.0;
+    const compactTextFieldPadding = EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 12,
+    );
+    const compactDropdownPadding = EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 10,
+    );
 
     return Scaffold(
-      backgroundColor: scheme.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: scheme.surface,
         elevation: 0,
@@ -222,7 +236,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               RawDialogRoute<void>(
                 barrierDismissible: true,
                 barrierLabel: l10n.birthdayCloseButton,
-                barrierColor: Colors.black.withOpacity(0.12),
+                barrierColor: Colors.black.withValues(alpha: 0.12),
                 transitionDuration: const Duration(milliseconds: 280),
                 pageBuilder: (routeContext, animation, secondaryAnimation) {
                   return const MoreActionSheet();
@@ -278,7 +292,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 url: p?.coverUrl,
                                 fallbackAsset: "assets/images/cover.png",
                                 cropType: CropPhotoType.cover,
-                                onReplace: (index, file) {
+                                onReplace: (index, file) async {
+                                  vm.updateLocalPhoto(
+                                    file,
+                                    UserPhotoType.cover,
+                                  );
                                   return vm.updateUserPhoto(
                                     file: file,
                                     type: UserPhotoType.cover,
@@ -320,7 +338,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           url: p?.avatarUrl,
                                           fallbackAsset: "assets/images/u1.png",
                                           cropType: CropPhotoType.avatar,
-                                          onReplace: (index, file) {
+                                          onReplace: (index, file) async {
+                                            vm.updateLocalPhoto(
+                                              file,
+                                              UserPhotoType.avatar,
+                                            );
                                             return vm.updateUserPhoto(
                                               file: file,
                                               type: UserPhotoType.avatar,
@@ -401,28 +423,43 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        0,
+                        horizontalPadding,
+                        16,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 12),
 
                           AppLabeledTextField(
                             label: l10n.fullNameLabel,
                             hint: l10n.fullNameHint,
                             controller: _nameCtrl,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                           ),
 
                           AppLabeledTextField(
                             label: l10n.phoneLabel,
                             hint: l10n.phoneHint,
                             controller: _phoneCtrl,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                           ),
 
                           AppLabeledDropdownField<String>(
                             label: l10n.genderLabel,
                             hint: l10n.genderHint,
                             value: _selectedGender,
+                            fieldHeight: compactDropdownFieldHeight,
+                            minFieldHeight: compactDropdownMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactDropdownPadding,
                             items: [
                               DropdownMenuEntry(
                                 value: _genderMaleValue,
@@ -449,6 +486,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             controller: _dobCtrl,
                             readOnly: true,
                             onTap: pickDate,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                             suffixIcon: const Icon(
                               Icons.calendar_today,
                               size: 18,
@@ -459,6 +499,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             label: l10n.addressLabel,
                             hint: l10n.addressHint,
                             controller: _addressCtrl,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                           ),
 
                           if (!isChild)
@@ -466,6 +509,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                               label: l10n.locationTrackingLabel,
                               text: l10n.allowLocationTrackingText,
                               value: allowLocationTracking,
+                              labelBottomSpacing: compactLabelSpacing,
                               onChanged: (v) {
                                 setState(() {
                                   allowLocationTracking = v;
@@ -483,20 +527,22 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
                                 return Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: scheme.surface,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: scheme.outline.withOpacity(0.3),
+                                      color: scheme.outline.withValues(
+                                        alpha: 0.3,
+                                      ),
                                       width: 1,
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       Container(
-                                        height: 40,
-                                        width: 40,
+                                        height: 36,
+                                        width: 36,
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: scheme.primary,
@@ -509,9 +555,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           color: scheme.onPrimary,
                                         ),
                                       ),
-
                                       const SizedBox(width: 12),
-
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
@@ -519,26 +563,30 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           children: [
                                             Text(
                                               l10n.personalInfoManageAccountsTitle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
                                                 color: scheme.onSurface,
                                                 fontSize: 16,
-                                                fontFamily: 'Public Sans',
+                                                fontFamily: 'Poppins',
                                                 fontWeight: FontWeight.w700,
                                               ),
                                             ),
-                                            SizedBox(height: 2),
+                                            const SizedBox(height: 2),
                                             Text(
                                               l10n.personalInfoManageAccountsSubtitle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
                                                 color: scheme.onSurface,
                                                 fontSize: 12,
-                                                fontFamily: 'Public Sans',
+                                                fontFamily: 'Poppins',
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-
+                                      const SizedBox(width: 10),
                                       InkWell(
                                         borderRadius: BorderRadius.circular(8),
                                         onTap: () {
@@ -553,7 +601,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 16,
-                                            vertical: 8,
+                                            vertical: 7,
                                           ),
                                           decoration: BoxDecoration(
                                             color: scheme.primary,
@@ -596,11 +644,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 class MoreActionSheet extends StatelessWidget {
   const MoreActionSheet({super.key});
 
+  void _navigateFromSheet(BuildContext context, Widget page) {
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+    rootNavigator.pop();
+
+    // Wait one tick so the sheet route is removed before pushing next screen.
+    Future<void>.delayed(Duration.zero, () {
+      if (!rootNavigator.mounted) return;
+      rootNavigator.push(MaterialPageRoute(builder: (_) => page));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final profile = context.watch<UserVm>().profile;
-    final showNotificationDebug = profile?.role == UserRole.parent;
-
     return AppOverlaySheet(
       showHandle: true,
       child: Padding(
@@ -615,14 +671,8 @@ class MoreActionSheet extends StatelessWidget {
               iconPath: "assets/icons/color_palette.svg",
               iconType: AppIconType.svg,
               iconSize: 20,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AppAppearanceScreen(),
-                  ),
-                );
-              },
+              onTap: () =>
+                  _navigateFromSheet(context, const AppAppearanceScreen()),
             ),
 
             const SizedBox(height: 10),
@@ -632,12 +682,7 @@ class MoreActionSheet extends StatelessWidget {
               iconPath: "assets/icons/info.png",
               iconType: AppIconType.png,
               iconSize: 17,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AboutAppScreen()),
-                );
-              },
+              onTap: () => _navigateFromSheet(context, const AboutAppScreen()),
             ),
 
             const SizedBox(height: 10),
@@ -687,19 +732,11 @@ class ConfirmLogoutSheet extends StatelessWidget {
 
     Future<void> logout() async {
       final authVM = context.read<AuthVM>();
-      final userVm = context.read<UserVm>();
-      final appManagementVm = context.read<AppManagementVM>();
-      final parentLocationVm = context.read<ParentLocationVm>();
-      final notiVM = context.read<NotificationVM>();
       final rootNav = Navigator.of(context, rootNavigator: true);
 
-      await parentLocationVm.stopWatchingAllChildren();
-      await parentLocationVm.stopMyLocation();
-      await notiVM.clear();
-      await userVm.clear();
-      await appManagementVm.clear();
       await authVM.logout();
-      if (rootNav.mounted && rootNav.canPop()) {
+      if (!rootNav.mounted) return;
+      if (rootNav.canPop()) {
         rootNav.pop();
       }
     }
@@ -717,7 +754,12 @@ class ConfirmLogoutSheet extends StatelessWidget {
         AppOverlaySheet(
           showHandle: true,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
+            padding: EdgeInsets.symmetric(
+              horizontal: context.adaptiveHorizontalPadding(
+                compact: 16,
+                regular: 30,
+              ),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -725,7 +767,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
 
                 /// divider
                 Container(
-                  width: 345,
+                  width: double.infinity,
                   decoration: ShapeDecoration(
                     shape: RoundedRectangleBorder(
                       side: BorderSide(width: 1, color: scheme.outline),

@@ -8,6 +8,7 @@ class StorageKeys {
   static const isLoggedIn = 'is_logged_in';
   static const locale = 'locale';
   static const login_preference = 'login_preference';
+  static const pendingOtp = 'pendingOtp';
 
   static const themeColor = 'theme_color';
   static const isDarkMode = 'is_dark_mode';

@@ -425,6 +425,18 @@ class AppManagementVM extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> suspendChildrenWatch({bool notify = false}) async {
+    _childrenWatchGeneration++;
+    _loadGeneration++;
+    await _childrenSub?.cancel();
+    _childrenSub = null;
+
+    if (notify) {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     _childrenWatchGeneration++;

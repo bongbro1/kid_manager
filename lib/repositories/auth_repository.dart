@@ -24,40 +24,85 @@ class AuthRepository {
   User? currentUser() => _authService.currentUser;
 
   Stream<AppUser?> watchSessionUser() {
-    return authStateChanges().asyncMap((fbUser) async {
-      if (fbUser == null) {
+    late final StreamController<AppUser?> controller;
+    StreamSubscription<User?>? authSub;
+    StreamSubscription<AppUser?>? profileSub;
+
+    controller = StreamController<AppUser?>(
+      onListen: () {
+        authSub = authStateChanges().listen(
+          (fbUser) {
+            profileSub?.cancel();
+            profileSub = null;
+
+            if (fbUser == null) {
+              if (!controller.isClosed) {
+                controller.add(null);
+              }
+              return;
+            }
+
+            profileSub = _users.watchUserById(fbUser.uid).listen(
+              (user) {
+                if (!controller.isClosed) {
+                  controller.add(_mapSessionUser(fbUser: fbUser, user: user));
+                }
+              },
+              onError: (e, st) {
+                debugPrint('[AuthRepository] watchSessionUser error: $e');
+                debugPrintStack(stackTrace: st);
+
+                if (controller.isClosed) {
+                  return;
+                }
+
+                if (_isEmailPasswordUser(fbUser)) {
+                  controller.add(null);
+                } else {
+                  controller.add(AppUser.fromFirebase(fbUser));
+                }
+              },
+            );
+          },
+          onError: (e, st) {
+            if (!controller.isClosed) {
+              controller.addError(e, st);
+            }
+          },
+          onDone: () {
+            profileSub?.cancel();
+            if (!controller.isClosed) {
+              controller.close();
+            }
+          },
+        );
+      },
+      onCancel: () async {
+        await profileSub?.cancel();
+        await authSub?.cancel();
+      },
+    );
+
+    return controller.stream;
+  }
+
+  AppUser? _mapSessionUser({
+    required User fbUser,
+    required AppUser? user,
+  }) {
+    if (user == null) {
+      debugPrint('[AuthRepository] Firestore user missing -> fallback Firebase');
+      if (_isEmailPasswordUser(fbUser)) {
         return null;
       }
+      return AppUser.fromFirebase(fbUser);
+    }
 
-      try {
-        final user = await _users.getUserById(fbUser.uid);
+    if (!user.isActive && _isEmailPasswordUser(fbUser)) {
+      return null;
+    }
 
-        if (user == null) {
-          debugPrint(
-            '[AuthRepository] Firestore user missing -> fallback Firebase',
-          );
-          if (_isEmailPasswordUser(fbUser)) {
-            return null;
-          }
-          return AppUser.fromFirebase(fbUser);
-        }
-
-        if (!user.isActive && _isEmailPasswordUser(fbUser)) {
-          return null;
-        }
-
-        return user;
-      } catch (e, st) {
-        debugPrint('[AuthRepository] watchSessionUser error: $e');
-        debugPrintStack(stackTrace: st);
-
-        if (_isEmailPasswordUser(fbUser)) {
-          return null;
-        }
-
-        return AppUser.fromFirebase(fbUser);
-      }
-    });
+    return user;
   }
 
   Future<AppUser?> getUser(String uid) async {

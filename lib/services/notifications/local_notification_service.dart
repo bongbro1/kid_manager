@@ -58,7 +58,7 @@ class LocalNotificationService {
       ),
     );
 
-    await androidPlugin?.requestNotificationsPermission();
+    // await androidPlugin?.requestNotificationsPermission();
   }
 
   static Future<void> show({

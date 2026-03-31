@@ -1,4 +1,5 @@
-﻿import 'dart:io';
+﻿import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,7 +19,9 @@ Future<void> showImageModal(
   return showGeneralDialog(
     context: context,
     barrierDismissible: false,
-    barrierLabel: AppLocalizations.of(context).accessibilityImageModalBarrierLabel,
+    barrierLabel: AppLocalizations.of(
+      context,
+    ).accessibilityImageModalBarrierLabel,
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 180),
     pageBuilder: (ctx, _, _) {
@@ -122,19 +125,16 @@ class _ImageModalState extends State<_ImageModal> {
     try {
       final XFile? xfile = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 82,
-        maxWidth: widget.cropType == CropPhotoType.avatar ? 1200 : 1600,
-        maxHeight: widget.cropType == CropPhotoType.avatar ? 1200 : 1600,
+        imageQuality: 70,
+        maxWidth: widget.cropType == CropPhotoType.avatar ? 1000 : 1300,
+        maxHeight: widget.cropType == CropPhotoType.avatar ? 1000 : 1300,
       );
 
       if (xfile == null) return false;
 
       final rawFile = File(xfile.path);
 
-      // đóng image modal trước
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      // ❌ bỏ pop ở đây
 
       final croppedFile = await Navigator.of(context, rootNavigator: true)
           .push<File>(
@@ -146,9 +146,14 @@ class _ImageModalState extends State<_ImageModal> {
 
       if (croppedFile == null) return false;
 
-      if (widget.onReplace != null) {
-        await widget.onReplace!(_index, croppedFile);
+      // ✅ gọi replace (VM sẽ handle update UI ngay)
+      unawaited(widget.onReplace?.call(_index, croppedFile));
+
+      // ✅ đóng modal SAU khi xong
+      if (mounted) {
+        Navigator.of(context).pop();
       }
+
       return true;
     } finally {
       if (mounted) {
@@ -277,7 +282,11 @@ class _ImageLoadFallback extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.broken_image_outlined, color: Colors.white, size: 40),
+          const Icon(
+            Icons.broken_image_outlined,
+            color: Colors.white,
+            size: 40,
+          ),
           const SizedBox(height: 10),
           Text(
             l10n.appImageLoadFailed,

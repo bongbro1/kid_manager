@@ -292,6 +292,7 @@ class _BottomActions extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
+                  color: Color(0xFF667085),
                 ),
               ),
             ),
@@ -300,9 +301,7 @@ class _BottomActions extends StatelessWidget {
           TextButton(
             onPressed: busy ? null : onSkip,
             child: Text(
-              optional
-                  ? l10n.permissionLaterButton
-                  : l10n.permissionSkipButton,
+              optional ? l10n.permissionLaterButton : l10n.permissionSkipButton,
               style: const TextStyle(fontSize: 14, color: Color(0xFF667085)),
             ),
           ),

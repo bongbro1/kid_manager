@@ -45,13 +45,20 @@ class NotificationVM extends ChangeNotifier {
   int get unreadCount => _unreadCount;
 
   StreamSubscription? _unreadSub;
+  bool _disposed = false;
 
+  void _safeNotifyListeners() {
+    if (!_disposed) {
+      notifyListeners();
+    }
+  }
 
   Future<void> bindUser({
     required String? uid,
     required List<NotificationSource> sources,
     NotificationPredicate? filter,
   }) async {
+    if (_disposed) return;
     if (uid == null || uid.isEmpty) {
       await clear();
       return;
@@ -59,11 +66,7 @@ class NotificationVM extends ChangeNotifier {
 
     if (_uid == uid && _cache.isNotEmpty) return;
 
-    await listenMulti(
-      uid: uid,
-      sources: sources,
-      filter: filter,
-    );
+    await listenMulti(uid: uid, sources: sources, filter: filter);
   }
 
   Future<void> listenMulti({
@@ -71,6 +74,7 @@ class NotificationVM extends ChangeNotifier {
     required List<NotificationSource> sources,
     NotificationPredicate? filter,
   }) async {
+    if (_disposed) return;
     _uid = null;
     await _cancelAll();
     _resetState();
@@ -78,48 +82,62 @@ class NotificationVM extends ChangeNotifier {
     _loading = true;
     _error = null;
 
-    notifyListeners();
+    _safeNotifyListeners();
 
-    _unreadSub?.cancel();
-    _unreadSub = _repo.watchUnreadCount(uid, sources: sources).listen((unreadValue) {
-      if (_uid != uid) return;
-      _unreadCount = unreadValue;
-      notifyListeners();
-    }, onError: (e) {
-      if (_uid != uid) return;
-      _error = 'Notification unread stream error: $e';
-      _unreadCount = 0;
-      notifyListeners();
-    });
+    final previousUnreadSub = _unreadSub;
+    if (previousUnreadSub != null) {
+      unawaited(previousUnreadSub.cancel());
+    }
+    _unreadSub = _repo
+        .watchUnreadCount(uid, sources: sources)
+        .listen(
+          (unreadValue) {
+            if (_disposed || _uid != uid) return;
+            _unreadCount = unreadValue;
+            _safeNotifyListeners();
+          },
+          onError: (e) {
+            if (_disposed || _uid != uid) return;
+            _error = 'Notification unread stream error: $e';
+            _unreadCount = 0;
+            _safeNotifyListeners();
+          },
+        );
 
     for (final src in sources) {
-      final sub = _repo.watchBySource(uid, src).listen((list) {
-        if (_uid != uid) return;
-        _cache[src] = list;
+      final sub = _repo
+          .watchBySource(uid, src)
+          .listen(
+            (list) {
+              if (_disposed || _uid != uid) return;
+              _cache[src] = list;
 
-        if (_lastCreatedAt == null && list.isNotEmpty) {
-          _lastCreatedAt = Timestamp.fromDate(list.last.createdAt!);
-        }
+              if (_lastCreatedAt == null && list.isNotEmpty) {
+                _lastCreatedAt = Timestamp.fromDate(list.last.createdAt!);
+              }
 
-        _emitMerged(sources, filter);
-      }, onError: (e) {
-        if (_uid != uid) return;
-        _error = 'Notification stream error ($src): $e';
-        _cache[src] = const [];
-        _emitMerged(sources, filter);
-      });
+              unawaited(_emitMerged(sources, filter));
+            },
+            onError: (e) {
+              if (_disposed || _uid != uid) return;
+              _error = 'Notification stream error ($src): $e';
+              _cache[src] = const [];
+              unawaited(_emitMerged(sources, filter));
+            },
+          );
 
       _subs.add(sub);
     }
   }
 
   Future<void> loadMore() async {
+    if (_disposed) return;
     if (_loadingMore || !_hasMore || _lastCreatedAt == null || _uid == null) {
       return;
     }
 
     _loadingMore = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final snap = await _repo.fetchOlderNotifications(
@@ -135,11 +153,11 @@ class NotificationVM extends ChangeNotifier {
       final more = snap.docs
           .map(
             (d) => AppNotification.fromMap(
-          d.id,
-          d.data(),
-          store: NotificationStore.global,
-        ),
-      )
+              d.id,
+              d.data(),
+              store: NotificationStore.global,
+            ),
+          )
           .toList();
 
       final existingIds = {
@@ -162,7 +180,7 @@ class NotificationVM extends ChangeNotifier {
       debugPrint("loadMore error: $e");
     } finally {
       _loadingMore = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -198,9 +216,10 @@ class NotificationVM extends ChangeNotifier {
   }
 
   Future<void> _emitMerged(
-      List<NotificationSource> sources,
-      NotificationPredicate? filter,
-      ) async {
+    List<NotificationSource> sources,
+    NotificationPredicate? filter,
+  ) async {
+    if (_disposed) return;
     final all = <AppNotification>[];
 
     for (final src in sources) {
@@ -235,13 +254,14 @@ class NotificationVM extends ChangeNotifier {
 
     _notifications = result;
     _loading = false;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   Future<void> loadNotificationDetailItem(AppNotification n) async {
+    if (_disposed) return;
     try {
       _loading = true;
-      notifyListeners();
+      _safeNotifyListeners();
 
       notificationDetail = await _repo.getNotificationDetailByItem(_uid, n);
     } catch (e) {
@@ -250,7 +270,7 @@ class NotificationVM extends ChangeNotifier {
       _error = e.toString();
     } finally {
       _loading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -259,16 +279,17 @@ class NotificationVM extends ChangeNotifier {
   }
 
   Future<void> loadNotificationDetail(String id, AppNotification n) async {
+    if (_disposed) return;
     try {
       _loading = true;
-      notifyListeners();
+      _safeNotifyListeners();
       notificationDetail = await _repo.getNotificationDetailByItem(id, n);
     } catch (e) {
       notificationDetail = null;
       _error = e.toString();
     } finally {
       _loading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -302,10 +323,11 @@ class NotificationVM extends ChangeNotifier {
   }
 
   Future<void> clear() async {
+    if (_disposed) return;
     _uid = null;
     await _cancelAll();
     _resetState();
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   Future<void> _cancelAll() async {
@@ -347,7 +369,9 @@ class NotificationVM extends ChangeNotifier {
 
   @override
   void dispose() {
-    _cancelAll();
+    _disposed = true;
+    _uid = null;
+    unawaited(_cancelAll());
     super.dispose();
   }
 }

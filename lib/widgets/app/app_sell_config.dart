@@ -2,6 +2,7 @@ import 'package:kid_manager/features/presentation/shared/app_bottom_bar_config.d
 import 'package:kid_manager/features/presentation/shared/state/mapbox_controller.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
@@ -90,6 +91,11 @@ class AppShellConfig {
     root: const FamilyGroupChatScreen(),
     showBadge: true,
     badgeCountStreamBuilder: (context) {
+      final authVm = context.read<AuthVM>();
+      if (authVm.logoutInProgress) {
+        return Stream.value(0);
+      }
+
       final userVm = context.read<UserVm>();
       final familyId = userVm.familyId;
       final me = userVm.me;

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
@@ -13,10 +13,11 @@ class MapboxController extends ChangeNotifier {
   mbx.MapboxMap? _map;
   bool _styleReady = false;
   bool get isReady => _styleReady;
-// trong MapboxController
+  // trong MapboxController
   mbx.Position? getChildPosition(String childId) {
     return _currentPositions[childId] ?? _lastPositions[childId];
   }
+
   Timer? _debounce;
 
   final Map<String, Uint8List> _avatarCache = {}; // childId -> bytes
@@ -24,7 +25,7 @@ class MapboxController extends ChangeNotifier {
   final Map<String, String?> _avatarKeyById = {}; // url/data string
   final Map<String, DateTime> _avatarRetryBlockedUntil = {};
   final Map<String, ({Uint8List png, int w, int h, String fingerprint})>
-      _normalizedStyleImageCache = {};
+  _normalizedStyleImageCache = {};
 
   final Map<String, mbx.Position> _currentPositions = {};
   final Set<String> _addedStyleImages = <String>{};
@@ -36,8 +37,8 @@ class MapboxController extends ChangeNotifier {
 
   // ================= FOCUS BUBBLE (MAP LAYER) =================
   static const String _bubbleSourceId = "focus-bubble-source";
-  static const String _bubbleLayerId  = "focus-bubble-layer";
-  static const String _bubbleImageId  = "focus_bubble_img";
+  static const String _bubbleLayerId = "focus-bubble-layer";
+  static const String _bubbleImageId = "focus_bubble_img";
 
   String? _bubbleCacheKey; // để tránh regenerate PNG khi text không đổi
   bool _bubbleReady = false;
@@ -50,11 +51,32 @@ class MapboxController extends ChangeNotifier {
   bool _isSessionActive(int session) => _map != null && _mapSession == session;
 
   bool _isDetachedChannelError(Object error) {
+    if (_isDisposedMapControllerError(error)) {
+      return true;
+    }
     if (error is! PlatformException) return false;
     final code = error.code.toLowerCase();
     final message = (error.message ?? '').toLowerCase();
     return code.contains('channel-error') ||
         message.contains('unable to establish connection on channel');
+  }
+
+  bool _isDisposedMapControllerError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('mapboxcontroller was used after being disposed') ||
+        text.contains('used after being disposed');
+  }
+
+  void _invalidateDeadMapSession() {
+    _mapSession++;
+    _styleReady = false;
+    _bubbleReady = false;
+    _bubbleImageAdded = false;
+    _bubbleCacheKey = null;
+    _styleQueue = Future.value();
+    _styleInitInFlight = null;
+    _styleInitSession = null;
+    _map = null;
   }
 
   bool _isStyleImageMissingError(Object error) {
@@ -80,6 +102,9 @@ class MapboxController extends ChangeNotifier {
       return await call();
     } catch (e) {
       if (_isDetachedChannelError(e) || !_isSessionActive(session)) {
+        if (_isDisposedMapControllerError(e)) {
+          _invalidateDeadMapSession();
+        }
         if (kDebugMode) {
           debugPrint("Skip map style query after detach: $label");
         }
@@ -103,6 +128,9 @@ class MapboxController extends ChangeNotifier {
       return true;
     } catch (e) {
       if (_isDetachedChannelError(e) || !_isSessionActive(session)) {
+        if (_isDisposedMapControllerError(e)) {
+          _invalidateDeadMapSession();
+        }
         if (kDebugMode) {
           debugPrint("Skip map style write after detach: $label");
         }
@@ -137,6 +165,7 @@ class MapboxController extends ChangeNotifier {
     _map = null;
     notifyListeners();
   }
+
   void scheduleUpdate({
     required Map<String, mbx.Position> positions,
     required Map<String, double> headings,
@@ -144,19 +173,14 @@ class MapboxController extends ChangeNotifier {
   }) {
     // ✅ lưu để refresh khi avatar load xong
     _lastPositions = Map.of(positions);
-    _lastHeadings  = Map.of(headings);
-    _lastNames     = Map.of(names);
+    _lastHeadings = Map.of(headings);
+    _lastNames = Map.of(names);
 
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 100), () {
-      updateChildren(
-        positions: positions,
-        headings: headings,
-        names: names,
-      );
+      updateChildren(positions: positions, headings: headings, names: names);
     });
   }
-
 
   Future<void> _refreshGeoJsonIfPossible() async {
     if (_lastPositions.isEmpty) return;
@@ -166,6 +190,7 @@ class MapboxController extends ChangeNotifier {
       names: _lastNames,
     );
   }
+
   Future<void> _enqueueStyle({
     required int session,
     required Future<void> Function() task,
@@ -249,7 +274,9 @@ class MapboxController extends ChangeNotifier {
     }
   }
 
-  Future<({Uint8List png, int w, int h})> _normalizeToPng(Uint8List inputBytes) async {
+  Future<({Uint8List png, int w, int h})> _normalizeToPng(
+    Uint8List inputBytes,
+  ) async {
     // ✅ nhỏ hơn
     const int W = 96;
     const int H = 118;
@@ -312,7 +339,10 @@ class MapboxController extends ChangeNotifier {
       ..filterQuality = ui.FilterQuality.high;
 
     final dstRect = ui.Rect.fromCircle(center: circleCenter, radius: circleR);
-    final srcRect = _centerCropRect(src.width.toDouble(), src.height.toDouble());
+    final srcRect = _centerCropRect(
+      src.width.toDouble(),
+      src.height.toDouble(),
+    );
     canvas.drawImageRect(src, srcRect, dstRect, paint);
     canvas.restore();
 
@@ -346,7 +376,10 @@ class MapboxController extends ChangeNotifier {
     }
   }
 
-  Future<void> _addPngStyleImageIfNeeded(String id, Uint8List anyEncodedBytes) async {
+  Future<void> _addPngStyleImageIfNeeded(
+    String id,
+    Uint8List anyEncodedBytes,
+  ) async {
     final map = _map;
     final session = _mapSession;
     if (map == null) return;
@@ -377,8 +410,8 @@ class MapboxController extends ChangeNotifier {
             final fingerprint = _fingerprintBytes(anyEncodedBytes);
             final cachedNorm = _normalizedStyleImageCache[id];
 
-            final norm = (cachedNorm != null &&
-                    cachedNorm.fingerprint == fingerprint)
+            final norm =
+                (cachedNorm != null && cachedNorm.fingerprint == fingerprint)
                 ? (png: cachedNorm.png, w: cachedNorm.w, h: cachedNorm.h)
                 : await _normalizeToPng(anyEncodedBytes);
             if (!_isSessionActive(session) || !identical(_map, mapNow)) return;
@@ -411,7 +444,9 @@ class MapboxController extends ChangeNotifier {
             debugPrint("addStyleImage OK id=$id w=${norm.w} h=${norm.h}");
             return;
           } catch (e) {
-            if (_isDetachedChannelError(e) || !_isSessionActive(session)) return;
+            if (_isDetachedChannelError(e) || !_isSessionActive(session)) {
+              return;
+            }
             debugPrint("addStyleImage fail id=$id attempt=$attempt err=$e");
             await Future.delayed(const Duration(milliseconds: 250));
           }
@@ -431,11 +466,7 @@ class MapboxController extends ChangeNotifier {
     required Future<void>? Function() call,
   }) async {
     try {
-      return await _runStyleWrite(
-        session: session,
-        label: label,
-        call: call,
-      );
+      return await _runStyleWrite(session: session, label: label, call: call);
     } catch (e) {
       if (_isStyleAlreadyExistsError(e)) {
         debugPrint("Skip duplicate style create: $label");
@@ -459,7 +490,8 @@ class MapboxController extends ChangeNotifier {
     _styleInitInFlight = future;
     _styleInitSession = session;
     return future.whenComplete(() {
-      if (_styleInitSession == session && identical(_styleInitInFlight, future)) {
+      if (_styleInitSession == session &&
+          identical(_styleInitInFlight, future)) {
         _styleInitInFlight = null;
         _styleInitSession = null;
       }
@@ -470,7 +502,6 @@ class MapboxController extends ChangeNotifier {
     required mbx.MapboxMap map,
     required int session,
   }) async {
-
     _addedStyleImages.clear();
     _bubbleImageAdded = false;
 
@@ -513,7 +544,10 @@ class MapboxController extends ChangeNotifier {
           mbx.SymbolLayer(
             id: "children-layer",
             sourceId: "children-source",
-            filter: ["!", ["has", "point_count"]],
+            filter: [
+              "!",
+              ["has", "point_count"],
+            ],
             iconImageExpression: ["get", "avatar_id"],
             iconAllowOverlap: true,
             iconIgnorePlacement: true,
@@ -523,10 +557,14 @@ class MapboxController extends ChangeNotifier {
               "interpolate",
               ["linear"],
               ["zoom"],
-              5, 0.28,
-              10, 0.32,
-              16, 0.35,
-              18, 0.35,
+              5,
+              0.28,
+              10,
+              0.32,
+              16,
+              0.35,
+              18,
+              0.35,
             ],
           ),
         ),
@@ -545,7 +583,10 @@ class MapboxController extends ChangeNotifier {
       final nameLayer = mbx.SymbolLayer(
         id: "name-layer",
         sourceId: "children-source",
-        filter: ["!", ["has", "point_count"]],
+        filter: [
+          "!",
+          ["has", "point_count"],
+        ],
         textFieldExpression: ["get", "name"],
         textSize: 14,
         textColor: 0xFF111111,
@@ -615,18 +656,42 @@ class MapboxController extends ChangeNotifier {
       iconAnchor: mbx.IconAnchor.BOTTOM,
       symbolSortKeyExpression: ["literal", 999999],
       iconSizeExpression: [
-        "interpolate", ["linear"], ["zoom"],
-        5, 0.48,
-        10, 0.55,
-        16, 0.62,
-        18, 0.64,
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        5,
+        0.48,
+        10,
+        0.55,
+        16,
+        0.62,
+        18,
+        0.64,
       ],
       iconOffsetExpression: [
-        "interpolate", ["linear"], ["zoom"],
-        5, ["literal", [0, -80]],
-        10, ["literal", [0, -80]],
-        16, ["literal", [0, -80]],
-        18, ["literal", [0, -80]],
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        5,
+        [
+          "literal",
+          [0, -80],
+        ],
+        10,
+        [
+          "literal",
+          [0, -80],
+        ],
+        16,
+        [
+          "literal",
+          [0, -80],
+        ],
+        18,
+        [
+          "literal",
+          [0, -80],
+        ],
       ],
     );
 
@@ -650,6 +715,7 @@ class MapboxController extends ChangeNotifier {
       await _addPngStyleImageIfNeeded(entry.key, entry.value);
     }
   }
+
   String _normalizeAvatarKey(String raw) {
     final s = raw.trim();
     if (s.isEmpty) return s;
@@ -660,7 +726,7 @@ class MapboxController extends ChangeNotifier {
 
     // ưu tiên https nếu có
     final https = parts.firstWhere(
-          (p) => p.startsWith('https://') || p.startsWith('http://'),
+      (p) => p.startsWith('https://') || p.startsWith('http://'),
       orElse: () => parts.first,
     );
     return https;
@@ -728,6 +794,9 @@ class MapboxController extends ChangeNotifier {
 
       debugPrint("✅ avatar ready child=$childId bytes=${bytes.length}");
     } catch (e) {
+      if (_isDetachedChannelError(e)) {
+        return;
+      }
       debugPrint("🔴 avatar fail child=$childId key=$key err=$e");
       _avatarRetryBlockedUntil[childId] = DateTime.now().add(
         const Duration(seconds: 45),
@@ -775,6 +844,7 @@ class MapboxController extends ChangeNotifier {
       );
     }
   }
+
   /// text: "đã ở nhà · 2g47 phút trước"
   /// icon: Icons.home / Icons.warning_amber_rounded ...
   Future<void> setFocusBubble({
@@ -836,9 +906,7 @@ class MapboxController extends ChangeNotifier {
         "type": "Point",
         "coordinates": [pos.lng, pos.lat],
       },
-      "properties": {
-        "bubble_img": _bubbleImageId,
-      }
+      "properties": {"bubble_img": _bubbleImageId},
     };
 
     final source = await _runStyleQuery<Object?>(
@@ -892,7 +960,7 @@ class MapboxController extends ChangeNotifier {
           "avatar_id": avatarId,
           "heading": headings[id] ?? 0,
           "name": names[id] ?? "",
-        }
+        },
       };
     }).toList();
 
@@ -913,6 +981,7 @@ class MapboxController extends ChangeNotifier {
       );
     }
   }
+
   Future<({Uint8List png, int w, int h})> _makeBubblePng({
     required String text,
     required IconData icon,
@@ -929,15 +998,22 @@ class MapboxController extends ChangeNotifier {
     const double tailH = 10;
 
     // measure text
-    final pb = ui.ParagraphBuilder(
-      ui.ParagraphStyle(fontSize: fontSize, maxLines: 1, textDirection: ui.TextDirection.ltr),
-    )
-      ..pushStyle(ui.TextStyle(
-        color: const ui.Color(0xFF111111),
-        fontSize: fontSize,
-        fontWeight: ui.FontWeight.w600,
-      ))
-      ..addText(text);
+    final pb =
+        ui.ParagraphBuilder(
+            ui.ParagraphStyle(
+              fontSize: fontSize,
+              maxLines: 1,
+              textDirection: ui.TextDirection.ltr,
+            ),
+          )
+          ..pushStyle(
+            ui.TextStyle(
+              color: const ui.Color(0xFF111111),
+              fontSize: fontSize,
+              fontWeight: ui.FontWeight.w600,
+            ),
+          )
+          ..addText(text);
 
     final p = pb.build()..layout(const ui.ParagraphConstraints(width: 2000));
     final textW = p.maxIntrinsicWidth;
@@ -945,15 +1021,22 @@ class MapboxController extends ChangeNotifier {
 
     // icon glyph
     final iconChar = String.fromCharCode(icon.codePoint);
-    final ib = ui.ParagraphBuilder(
-      ui.ParagraphStyle(fontSize: iconSize, maxLines: 1, textDirection: ui.TextDirection.ltr),
-    )
-      ..pushStyle(ui.TextStyle(
-        color: const ui.Color(0xFF616161),
-        fontSize: iconSize,
-        fontFamily: icon.fontFamily ?? "MaterialIcons",
-      ))
-      ..addText(iconChar);
+    final ib =
+        ui.ParagraphBuilder(
+            ui.ParagraphStyle(
+              fontSize: iconSize,
+              maxLines: 1,
+              textDirection: ui.TextDirection.ltr,
+            ),
+          )
+          ..pushStyle(
+            ui.TextStyle(
+              color: const ui.Color(0xFF616161),
+              fontSize: iconSize,
+              fontFamily: icon.fontFamily ?? "MaterialIcons",
+            ),
+          )
+          ..addText(iconChar);
 
     final ip = ib.build()..layout(const ui.ParagraphConstraints(width: 2000));
     final iconW = ip.maxIntrinsicWidth;
@@ -970,7 +1053,10 @@ class MapboxController extends ChangeNotifier {
     final canvas = ui.Canvas(recorder);
 
     final bodyRect = ui.Rect.fromLTWH(0, 0, w.toDouble(), bodyH.toDouble());
-    final bodyRRect = ui.RRect.fromRectAndRadius(bodyRect, const ui.Radius.circular(radius));
+    final bodyRRect = ui.RRect.fromRectAndRadius(
+      bodyRect,
+      const ui.Radius.circular(radius),
+    );
 
     // shadow
     final shadowPaint = ui.Paint()
@@ -1027,7 +1113,11 @@ class MapboxController extends ChangeNotifier {
 
     const duration = 900;
     await map.easeTo(
-      mbx.CameraOptions(center: mbx.Point(coordinates: pos), zoom: 17, pitch: 30),
+      mbx.CameraOptions(
+        center: mbx.Point(coordinates: pos),
+        zoom: 17,
+        pitch: 30,
+      ),
       mbx.MapAnimationOptions(duration: duration),
     );
     return duration;
@@ -1050,11 +1140,13 @@ class MapboxController extends ChangeNotifier {
     await map.setCamera(
       mbx.CameraOptions(
         center: mbx.Point(
-          coordinates: mbx.Position((minLng + maxLng) / 2, (minLat + maxLat) / 2),
+          coordinates: mbx.Position(
+            (minLng + maxLng) / 2,
+            (minLat + maxLat) / 2,
+          ),
         ),
         zoom: 13,
       ),
     );
   }
 }
-

@@ -47,6 +47,16 @@ class ChildDetailMapVm extends ChangeNotifier {
   int? _currentLocalMinuteOfDay;
   final Map<int, LocalTimeZoneParts> _localPartsByTimestamp = {};
   bool _disposed = false;
+  int _loadGeneration = 0;
+
+  bool _isAlive([int? generation]) =>
+      !_disposed && (generation == null || generation == _loadGeneration);
+
+  void _notifyIfAlive({int? generation}) {
+    if (_isAlive(generation)) {
+      notifyListeners();
+    }
+  }
 
   static DateTime _dayOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
@@ -127,8 +137,10 @@ class ChildDetailMapVm extends ChangeNotifier {
   }
 
   Future<void> preloadToday() async {
-    final today = await _resolveToday();
-    await _loadHistory(today);
+    final generation = ++_loadGeneration;
+    final today = await _resolveToday(generation: generation);
+    if (today == null || !_isAlive(generation)) return;
+    await _loadHistory(today, generation: generation);
   }
 
   Future<void> loadForDay(DateTime day) async {
@@ -136,6 +148,7 @@ class ChildDetailMapVm extends ChangeNotifier {
   }
 
   Future<void> applyTimeWindow(int startMinute, int endMinute) async {
+    if (!_isAlive()) return;
     final normalizedStart = startMinute.clamp(0, (24 * 60) - 1).toInt();
     final normalizedEnd = endMinute
         .clamp(normalizedStart, (24 * 60) - 1)
@@ -146,45 +159,51 @@ class ChildDetailMapVm extends ChangeNotifier {
     _selectedPoint = null;
     _historyLoaded = false;
     _resetRecentHourGroupsVisibility();
-    notifyListeners();
+    _notifyIfAlive();
 
     await _loadHistory(_selectedDay);
   }
 
   void toggleDots() {
+    if (!_isAlive()) return;
     _showDots = !_showDots;
-    notifyListeners();
+    _notifyIfAlive();
   }
 
   void setSelectedPoint(LocationData? point) {
+    if (!_isAlive()) return;
     _selectedPoint = point;
-    notifyListeners();
+    _notifyIfAlive();
   }
 
   void clearSelectedPoint() {
+    if (!_isAlive()) return;
     if (_selectedPoint == null) return;
     _selectedPoint = null;
-    notifyListeners();
+    _notifyIfAlive();
   }
 
   void loadMoreRecentHourGroups() {
+    if (!_isAlive()) return;
     final total = recentHourGroups.length;
     if (_visibleRecentHourGroups >= total) return;
     _visibleRecentHourGroups += _loadMoreRecentHourGroups;
     if (_visibleRecentHourGroups > total) {
       _visibleRecentHourGroups = total;
     }
-    notifyListeners();
+    _notifyIfAlive();
   }
 
   void showAllRecentHourGroups() {
+    if (!_isAlive()) return;
     final total = recentHourGroups.length;
     if (_visibleRecentHourGroups == total) return;
     _visibleRecentHourGroups = total;
-    notifyListeners();
+    _notifyIfAlive();
   }
 
   void appendRealtime(LocationData point) {
+    if (!_isAlive()) return;
     if (!_localPartsByTimestamp.containsKey(point.timestamp)) {
       _cacheLocalParts([point.timestamp], notifyAfter: true);
     }
@@ -197,7 +216,7 @@ class ChildDetailMapVm extends ChangeNotifier {
         _cachedHistory.last.timestamp != point.timestamp) {
       _cachedHistory = [..._cachedHistory, point];
     }
-    notifyListeners();
+    _notifyIfAlive();
   }
 
   void _resetRecentHourGroupsVisibility() {
@@ -284,7 +303,9 @@ class ChildDetailMapVm extends ChangeNotifier {
   Future<void> _cacheLocalParts(
     Iterable<int> timestamps, {
     bool notifyAfter = false,
+    int? generation,
   }) async {
+    if (!_isAlive(generation)) return;
     final unresolved = timestamps
         .where(
           (timestamp) =>
@@ -296,6 +317,7 @@ class ChildDetailMapVm extends ChangeNotifier {
     }
 
     final timeZone = await _resolvedTimeZone();
+    if (!_isAlive(generation)) return;
     final entries = await Future.wait(
       unresolved.map((timestamp) async {
         final parts = await _dayKeyResolver.localPartsForTimestamp(
@@ -305,12 +327,13 @@ class ChildDetailMapVm extends ChangeNotifier {
         return MapEntry(timestamp, parts);
       }),
     );
+    if (!_isAlive(generation)) return;
 
     for (final entry in entries) {
       _localPartsByTimestamp[entry.key] = entry.value;
     }
-    if (notifyAfter && !_disposed) {
-      notifyListeners();
+    if (notifyAfter) {
+      _notifyIfAlive(generation: generation);
     }
   }
 
@@ -318,25 +341,34 @@ class ChildDetailMapVm extends ChangeNotifier {
     return _dayKeyResolver.normalizeTimeZone(childTimeZone);
   }
 
-  Future<DateTime> _resolveToday() async {
+  Future<DateTime?> _resolveToday({required int generation}) async {
+    if (!_isAlive(generation)) return null;
     final timeZone = await _resolvedTimeZone();
+    if (!_isAlive(generation)) return null;
     final nowParts = await _dayKeyResolver.localPartsForTimestamp(
       timestampMs: DateTime.now().millisecondsSinceEpoch,
       timeZone: timeZone,
     );
+    if (!_isAlive(generation)) return null;
     _currentLocalDayKey = nowParts.dayKey;
     _currentLocalMinuteOfDay = nowParts.minuteOfDay;
     return _dayKeyResolver.parseLocalDayKey(nowParts.dayKey);
   }
 
-  Future<void> _refreshSelectedRange(DateTime dayOnly) async {
+  Future<bool> _refreshSelectedRange(
+    DateTime dayOnly, {
+    required int generation,
+  }) async {
+    if (!_isAlive(generation)) return false;
     final timeZone = await _resolvedTimeZone();
+    if (!_isAlive(generation)) return false;
     final range = await _dayKeyResolver.utcRangeForLocalDay(
       day: dayOnly,
       timeZone: timeZone,
       startMinuteOfDay: _rangeStartMinute,
       endMinuteOfDay: _rangeEndMinute,
     );
+    if (!_isAlive(generation)) return false;
     _selectedFromTs = range.fromTs;
     _selectedToTs = range.toTs;
     _selectedDayKey = _dayKeyResolver.localDayKeyFromDate(dayOnly);
@@ -345,16 +377,24 @@ class ChildDetailMapVm extends ChangeNotifier {
       timestampMs: DateTime.now().millisecondsSinceEpoch,
       timeZone: timeZone,
     );
+    if (!_isAlive(generation)) return false;
     _currentLocalDayKey = nowParts.dayKey;
     _currentLocalMinuteOfDay = nowParts.minuteOfDay;
+    return true;
   }
 
-  Future<void> _loadHistory(DateTime dayOnly) async {
+  Future<void> _loadHistory(DateTime dayOnly, {int? generation}) async {
+    final activeGeneration = generation ?? ++_loadGeneration;
+    if (!_isAlive(activeGeneration)) return;
     _historyLoaded = false;
     _resetRecentHourGroupsVisibility();
-    notifyListeners();
+    _notifyIfAlive(generation: activeGeneration);
 
-    await _refreshSelectedRange(dayOnly);
+    final refreshed = await _refreshSelectedRange(
+      dayOnly,
+      generation: activeGeneration,
+    );
+    if (!refreshed || !_isAlive(activeGeneration)) return;
 
     final history = await _parentLocationVm.loadLocationHistoryByDay(
       childId,
@@ -364,6 +404,7 @@ class ChildDetailMapVm extends ChangeNotifier {
       startMinuteOfDay: _rangeStartMinute,
       endMinuteOfDay: _rangeEndMinute,
     );
+    if (!_isAlive(activeGeneration)) return;
     await _cacheLocalParts(
       history.expand((point) sync* {
         yield point.timestamp;
@@ -374,19 +415,22 @@ class ChildDetailMapVm extends ChangeNotifier {
           yield point.gapEndTimestamp!;
         }
       }),
+      generation: activeGeneration,
     );
+    if (!_isAlive(activeGeneration)) return;
 
     _selectedDay = dayOnly;
     _cachedHistory = history;
     _selectedPoint = null;
     _latest = history.isNotEmpty ? history.last : null;
     _historyLoaded = true;
-    notifyListeners();
+    _notifyIfAlive(generation: activeGeneration);
   }
 
   @override
   void dispose() {
     _disposed = true;
+    _loadGeneration++;
     super.dispose();
   }
 }

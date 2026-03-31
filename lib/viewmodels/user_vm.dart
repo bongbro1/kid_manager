@@ -14,6 +14,12 @@ import 'package:kid_manager/services/image_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
 
+extension FirebaseUserX on User? {
+  bool get hasPasswordProvider {
+    return this?.providerData.any((p) => p.providerId == 'password') ?? false;
+  }
+}
+
 class UserVm extends ChangeNotifier {
   final UserRepository _userRepo;
   final StorageService _storage;
@@ -59,6 +65,9 @@ class UserVm extends ChangeNotifier {
     _storage.getString(StorageKeys.role),
     fallback: UserRole.child,
   );
+  bool get canChangePassword {
+    return FirebaseAuth.instance.currentUser.hasPasswordProvider;
+  }
 
   String? get _storedParentOwnerUid {
     final value = _storage.getString(StorageKeys.parentId)?.trim();
@@ -276,6 +285,8 @@ class UserVm extends ChangeNotifier {
   }
 
   Future<void> clear() async {
+    _currentWatchedUid = null;
+    _currentProfileUid = null;
     await _childrenSub?.cancel();
     await _familySub?.cancel();
     await _locationMembersSub?.cancel();
@@ -300,6 +311,27 @@ class UserVm extends ChangeNotifier {
     _allLocationMembers.clear();
 
     notifyListeners();
+  }
+
+  Future<void> suspendSessionStreams({bool notify = false}) async {
+    _currentWatchedUid = null;
+    _currentProfileUid = null;
+
+    await _childrenSub?.cancel();
+    await _familySub?.cancel();
+    await _locationMembersSub?.cancel();
+    await _profileSubscription?.cancel();
+    await _meSub?.cancel();
+
+    _childrenSub = null;
+    _familySub = null;
+    _locationMembersSub = null;
+    _profileSubscription = null;
+    _meSub = null;
+
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   Future<void> loadUsers() async {
@@ -570,15 +602,25 @@ class UserVm extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateLocalPhoto(File file, UserPhotoType type) {
+    final localUrl = file.path;
+
+    if (profile != null) {
+      if (type == UserPhotoType.avatar) {
+        profile = profile!.copyWith(avatarUrl: localUrl);
+      } else {
+        profile = profile!.copyWith(coverUrl: localUrl);
+      }
+    }
+
+    notifyListeners();
+  }
+
   Future<bool> updateUserPhoto({
     required File file,
     required UserPhotoType type,
   }) async {
     try {
-      _loading = true;
-      _error = null;
-      notifyListeners();
-
       final uid = FirebaseAuth.instance.currentUser!.uid;
 
       final url = await FirebaseStorageService.uploadUserPhoto(
@@ -587,32 +629,19 @@ class UserVm extends ChangeNotifier {
         type: type,
       );
 
-      final success = await _userRepo.updateUserPhotoUrl(
-        uid: uid,
-        url: url,
-        type: type,
-      );
-      if (!success) {
-        _error = runtimeL10n().userVmUpdatePhotoFailed;
-        return false;
-      }
+      unawaited(_userRepo.updateUserPhotoUrl(uid: uid, url: url, type: type));
 
       if (profile != null) {
-        if (type == UserPhotoType.avatar) {
-          profile = profile!.copyWith(avatarUrl: url);
-        } else {
-          profile = profile!.copyWith(coverUrl: url);
-        }
+        profile = type == UserPhotoType.avatar
+            ? profile!.copyWith(avatarUrl: url)
+            : profile!.copyWith(coverUrl: url);
       }
 
+      notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
       debugPrint("Update photo error: $e");
       return false;
-    } finally {
-      _loading = false;
-      notifyListeners();
     }
   }
 

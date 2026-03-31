@@ -3,6 +3,7 @@ import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
 import 'package:kid_manager/widgets/app/app_bottom_nav.dart';
@@ -27,8 +28,8 @@ class _AppShellState extends State<AppShell> {
   late final AppShellConfig _config = widget.mode == AppMode.parent
       ? AppShellConfig.parent()
       : widget.mode == AppMode.guardian
-          ? AppShellConfig.guardian()
-          : AppShellConfig.child();
+      ? AppShellConfig.guardian()
+      : AppShellConfig.child();
 
   late final List<GlobalKey<NavigatorState>> _navKeys = List.generate(
     _config.tabs.length,
@@ -72,6 +73,9 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _onNavTap(int i) async {
+    final isLoggingOut = context.read<AuthVM>().logoutInProgress;
+    if (isLoggingOut) return;
+
     if (i == _index) {
       _navKeys[i].currentState?.popUntil((r) => r.isFirst);
 
@@ -111,6 +115,9 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoggingOut = context.select<AuthVM, bool>(
+      (vm) => vm.logoutInProgress,
+    );
     final familyId = context.select<UserVm, String?>((vm) => vm.familyId);
     final myUid = context.select<UserVm, String?>((vm) => vm.me?.uid);
     final viewerRole = context.select<UserVm, UserRole?>(
@@ -145,7 +152,8 @@ class _AppShellState extends State<AppShell> {
               onTap: _onNavTap,
             ),
           ),
-          if (familyId != null &&
+          if (!isLoggingOut &&
+              familyId != null &&
               myUid != null &&
               (viewerRole?.isAdultManager ?? false))
             IncomingSosOverlay(

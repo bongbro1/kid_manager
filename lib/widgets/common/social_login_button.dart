@@ -16,7 +16,7 @@ class SocialLoginButton extends StatelessWidget {
     required this.text,
     required this.iconAsset,
     required this.onTap,
-    this.width = 360,
+    this.width,
     this.height = 60,
     this.borderRadius = 30,
   });
@@ -26,8 +26,9 @@ class SocialLoginButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: width,
-        height: height,
+        width: width ?? double.infinity,
+        constraints: BoxConstraints(minHeight: height),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: AppColors.border),
@@ -36,26 +37,25 @@ class SocialLoginButton extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Icon cố định bên trái
-            Positioned(
-              left: 24,
-              child: SvgPicture.asset(
-                iconAsset,
-                width: 18,
-                height: 18,
-              ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SvgPicture.asset(iconAsset, width: 18, height: 18),
             ),
-
-            // Text luôn ở giữa button
-            Text(
-              text,
-              style: const TextStyle(
-                color: AppColors.authText,
-                fontSize: 16,
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                height: 1.5,
-                letterSpacing: 0.5,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.authText,
+                  fontSize: 16,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ],

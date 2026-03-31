@@ -66,7 +66,7 @@ class OtpVM extends ChangeNotifier {
         case MailType.resetPassword:
           final response = await repo.verifyPasswordResetOtp(
             email: email,
-            inputCode: code
+            inputCode: code,
           );
           resetSessionToken = response.resetSessionToken;
           if (response.result == OtpVerifyResult.tooManyAttempts) {
@@ -77,6 +77,38 @@ class OtpVM extends ChangeNotifier {
     } catch (e) {
       error = e.toString();
       return OtpVerifyResult.invalid;
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Gửi OTP mới hoàn toàn, giống như lần đầu request.
+  Future<bool> requestFreshOtp({
+    required String email,
+    required MailType type,
+  }) async {
+    try {
+      loading = true;
+      error = null;
+      notifyListeners();
+
+      switch (type) {
+        case MailType.verifyEmail:
+          await repo.requestEmailOtp();
+          break;
+        case MailType.resetPassword:
+          await repo.requestPasswordReset(email: email);
+          break;
+      }
+
+      // Reset lại countdown như lần đầu
+      startCountdown(60);
+
+      return true;
+    } catch (e) {
+      error = e.toString();
+      return false;
     } finally {
       loading = false;
       notifyListeners();
