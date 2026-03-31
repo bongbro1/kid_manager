@@ -14,6 +14,12 @@ import 'package:kid_manager/services/image_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
 
+extension FirebaseUserX on User? {
+  bool get hasPasswordProvider {
+    return this?.providerData.any((p) => p.providerId == 'password') ?? false;
+  }
+}
+
 class UserVm extends ChangeNotifier {
   final UserRepository _userRepo;
   final StorageService _storage;
@@ -59,6 +65,9 @@ class UserVm extends ChangeNotifier {
     _storage.getString(StorageKeys.role),
     fallback: UserRole.child,
   );
+  bool get canChangePassword {
+    return FirebaseAuth.instance.currentUser.hasPasswordProvider;
+  }
 
   String? get _storedParentOwnerUid {
     final value = _storage.getString(StorageKeys.parentId)?.trim();
@@ -250,6 +259,8 @@ class UserVm extends ChangeNotifier {
   }
 
   Future<void> clear() async {
+    _currentWatchedUid = null;
+    _currentProfileUid = null;
     await _childrenSub?.cancel();
     await _familySub?.cancel();
     await _locationMembersSub?.cancel();
@@ -274,6 +285,27 @@ class UserVm extends ChangeNotifier {
     _allLocationMembers.clear();
 
     notifyListeners();
+  }
+
+  Future<void> suspendSessionStreams({bool notify = false}) async {
+    _currentWatchedUid = null;
+    _currentProfileUid = null;
+
+    await _childrenSub?.cancel();
+    await _familySub?.cancel();
+    await _locationMembersSub?.cancel();
+    await _profileSubscription?.cancel();
+    await _meSub?.cancel();
+
+    _childrenSub = null;
+    _familySub = null;
+    _locationMembersSub = null;
+    _profileSubscription = null;
+    _meSub = null;
+
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   Future<void> loadUsers() async {

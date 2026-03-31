@@ -7,20 +7,21 @@ class LoadingOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final screenSize = MediaQuery.sizeOf(context);
+    final dialogHeight = (screenSize.height * 0.26).clamp(160.0, 201.0);
 
     return Container(
-      color: scheme.scrim.withOpacity(0.6), // 👈 thay overlay màu xám
+      color: scheme.scrim.withValues(alpha: 0.6),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 345,
-            ),
+            constraints: const BoxConstraints(maxWidth: 345),
             child: Container(
-              height: 201,
+              height: dialogHeight,
+              width: double.infinity,
               decoration: BoxDecoration(
-                color: scheme.surface, // 👈 thay trắng
+                color: scheme.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Center(child: SvgLoading()),
@@ -68,10 +69,7 @@ class _SvgLoadingState extends State<SvgLoading>
         'assets/icons/loading.svg',
         width: 60,
         height: 60,
-        colorFilter: ColorFilter.mode(
-          scheme.primary,
-          BlendMode.srcIn,
-        ),
+        colorFilter: ColorFilter.mode(scheme.primary, BlendMode.srcIn),
       ),
     );
   }

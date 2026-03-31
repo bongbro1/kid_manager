@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/models/auth/auth_models.dart';
 import 'package:kid_manager/models/auth/password_validator.dart';
@@ -28,6 +29,26 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool agreeClause = false;
+
+  String _resolveSignupErrorMessage(AppLocalizations l10n, String? errorKey) {
+    switch (errorKey) {
+      case 'emailInUse':
+        return l10n.emailInUse;
+      case 'emailInvalid':
+        return l10n.emailInvalid;
+      case 'weakPassword':
+        return l10n.weakPassword;
+      case 'wrongPassword':
+        return l10n.wrongPassword;
+      case 'loginFailed':
+        return l10n.authSignupFailed;
+      default:
+        if (errorKey == null || errorKey.trim().isEmpty) {
+          return l10n.authSignupFailed;
+        }
+        return errorKey;
+    }
+  }
 
   @override
   void dispose() {
@@ -60,7 +81,6 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-
     final passwordResult = PasswordValidator.validate(password);
     if (!passwordResult.isValid) {
       AlertService.showSnack(
@@ -72,13 +92,13 @@ class _SignupScreenState extends State<SignupScreen> {
     final ok = await vm.register(email, password);
 
     if (!ok) {
-      AlertService.error(message: vm.error ?? l10n.authSignupFailed);
+      AlertService.error(message: _resolveSignupErrorMessage(l10n, vm.error));
       return;
     }
 
     if (!mounted) return;
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) =>
@@ -94,6 +114,10 @@ class _SignupScreenState extends State<SignupScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final horizontalPadding = context.adaptiveHorizontalPadding(
+      compact: 16,
+      regular: 24,
+    );
 
     return Stack(
       children: [
@@ -101,293 +125,316 @@ class _SignupScreenState extends State<SignupScreen> {
           backgroundColor: theme.scaffoldBackgroundColor,
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 30),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 266,
-                            child: Text(
-                              l10n.authSignupTitle,
-                              style: textTheme.headlineSmall?.copyWith(
-                                color: colorScheme.onSurface,
-                                fontSize: 24,
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                height: 1.42,
-                                letterSpacing: -0.19,
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 266,
-                            child: Text(
-                              l10n.authSignupSubtitle,
-                              style: textTheme.titleMedium?.copyWith(
-                                color: colorScheme.onSurface,
-                                fontSize: 16,
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxContentWidth = constraints.maxWidth > 420
+                      ? 420.0
+                      : constraints.maxWidth;
+
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    AuthTextField(
-                      label: l10n.authEmailLabel,
-                      controller: _emailCtrl,
-                      hintText: l10n.authEnterEmailHint,
-                      keyboardType: TextInputType.emailAddress,
-                      prefixSvg: 'assets/icons/user.svg',
-                    ),
-                    AuthTextField(
-                      label: l10n.authPasswordLabel,
-                      controller: _passwordCtrl,
-                      hintText: l10n.authEnterPasswordHint,
-                      keyboardType: TextInputType.text,
-                      obscureText: true,
-                      isPassword: true,
-                      prefixSvg: 'assets/icons/lock.svg',
-                    ),
-                    AuthTextField(
-                      label: l10n.authConfirmPasswordLabel,
-                      controller: _confirmCtrl,
-                      hintText: l10n.authConfirmPasswordLabel,
-                      keyboardType: TextInputType.text,
-                      obscureText: true,
-                      isPassword: true,
-                      prefixSvg: 'assets/icons/lock.svg',
-                    ),
-
-                    Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: DecoratedBox(
-                        decoration: ShapeDecoration(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(100),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: maxContentWidth,
                           ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 11),
-                          child: Row(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    agreeClause = !agreeClause;
-                                  });
-                                },
-                                behavior: HitTestBehavior.opaque,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 18,
-                                      height: 18,
-                                      decoration: BoxDecoration(
-                                        color: agreeClause
-                                            ? colorScheme.primary
-                                            : Colors.transparent,
-                                        border: Border.all(
-                                          width: 2,
-                                          color: agreeClause
-                                              ? colorScheme.primary
-                                              : colorScheme.outline,
-                                        ),
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                      child: agreeClause
-                                          ? Icon(
-                                              Icons.check,
-                                              size: 12,
-                                              color: colorScheme.onPrimary,
-                                            )
-                                          : null,
+                              const SizedBox(height: 30),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 266,
                                     ),
-                                    const SizedBox(width: 12),
-                                    RichText(
-                                      text: TextSpan(
-                                        text: l10n.authAgreeTermsPrefix,
-                                        style: textTheme.bodyMedium?.copyWith(
-                                          color: colorScheme.onSurface
-                                              .withOpacity(0.7),
+                                    child: Text(
+                                      l10n.authSignupTitle,
+                                      style: textTheme.headlineSmall?.copyWith(
+                                        color: colorScheme.onSurface,
+                                        fontSize: 24,
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.42,
+                                        letterSpacing: -0.19,
+                                      ),
+                                    ),
+                                  ),
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 266,
+                                    ),
+                                    child: Text(
+                                      l10n.authSignupSubtitle,
+                                      style: textTheme.titleMedium?.copyWith(
+                                        color: colorScheme.onSurface,
+                                        fontSize: 16,
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 28),
+                              AuthTextField(
+                                label: l10n.authEmailLabel,
+                                controller: _emailCtrl,
+                                hintText: l10n.authEnterEmailHint,
+                                keyboardType: TextInputType.emailAddress,
+                                prefixSvg: 'assets/icons/user.svg',
+                              ),
+                              AuthTextField(
+                                label: l10n.authPasswordLabel,
+                                controller: _passwordCtrl,
+                                hintText: l10n.authEnterPasswordHint,
+                                keyboardType: TextInputType.text,
+                                obscureText: true,
+                                isPassword: true,
+                                prefixSvg: 'assets/icons/lock.svg',
+                              ),
+                              AuthTextField(
+                                label: l10n.authConfirmPasswordLabel,
+                                controller: _confirmCtrl,
+                                hintText: l10n.authConfirmPasswordLabel,
+                                keyboardType: TextInputType.text,
+                                obscureText: true,
+                                isPassword: true,
+                                prefixSvg: 'assets/icons/lock.svg',
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      agreeClause = !agreeClause;
+                                    });
+                                  },
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                      vertical: 4,
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          width: 18,
+                                          height: 18,
+                                          margin: const EdgeInsets.only(top: 2),
+                                          decoration: BoxDecoration(
+                                            color: agreeClause
+                                                ? colorScheme.primary
+                                                : Colors.transparent,
+                                            border: Border.all(
+                                              width: 2,
+                                              color: agreeClause
+                                                  ? colorScheme.primary
+                                                  : colorScheme.outline,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
+                                          ),
+                                          child: agreeClause
+                                              ? Icon(
+                                                  Icons.check,
+                                                  size: 12,
+                                                  color: colorScheme.onPrimary,
+                                                )
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: RichText(
+                                            text: TextSpan(
+                                              text: l10n.authAgreeTermsPrefix,
+                                              style: textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                    color: colorScheme.onSurface
+                                                        .withValues(alpha: 0.7),
+                                                    fontSize: 15,
+                                                    fontFamily: 'Poppins',
+                                                    fontWeight: FontWeight.w500,
+                                                    height: 1.5,
+                                                    letterSpacing: -0.15,
+                                                  ),
+                                              children: [
+                                                TextSpan(
+                                                  text: l10n.authAgreeTermsLink,
+                                                  style: textTheme.bodyMedium
+                                                      ?.copyWith(
+                                                        color:
+                                                            colorScheme.primary,
+                                                        fontSize: 15,
+                                                        fontFamily: 'Poppins',
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        decoration:
+                                                            TextDecoration.none,
+                                                      ),
+                                                  recognizer: TapGestureRecognizer()
+                                                    ..onTap = () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (_) =>
+                                                              const TermsScreen(),
+                                                        ),
+                                                      );
+                                                    },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24.17),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 360,
+                                ),
+                                child: AppButton(
+                                  height: 60,
+                                  text: l10n.authSignupButton,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  onPressed: _onSignUpPressed,
+                                  backgroundColor: colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 17),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Divider(
+                                      color: colorScheme.outline.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      thickness: 0.83,
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    child: Text(
+                                      l10n.authOr,
+                                      style: textTheme.bodyMedium?.copyWith(
+                                        color: colorScheme.onSurface,
+                                        fontSize: 13,
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Divider(
+                                      color: colorScheme.outline.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      thickness: 0.83,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 17),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _socialBtn(
+                                      'assets/icons/google.svg',
+                                      () => vm.loginWithGoogle(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _socialBtn(
+                                      'assets/icons/facebook.svg',
+                                      () => vm.loginWithFacebook(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _socialBtn(
+                                      'assets/icons/apple.svg',
+                                      () => vm.loginWithApple(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _socialBtn(
+                                      'assets/icons/mobile.svg',
+                                      () => PhoneAuthDialog.showPhoneDialog(
+                                        context,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 40),
+                              Align(
+                                alignment: Alignment.center,
+                                child: Wrap(
+                                  alignment: WrapAlignment.center,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 4,
+                                  runSpacing: 4,
+                                  children: [
+                                    Text(
+                                      l10n.authHaveAccount,
+                                      textAlign: TextAlign.center,
+                                      style: textTheme.bodyLarge?.copyWith(
+                                        color: colorScheme.onSurface,
+                                        fontSize: 15,
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                      },
+                                      child: Text(
+                                        l10n.authLoginInline,
+                                        style: textTheme.bodyLarge?.copyWith(
+                                          color: colorScheme.primary,
                                           fontSize: 15,
                                           fontFamily: 'Poppins',
-                                          fontWeight: FontWeight.w500,
-                                          height: 1.5,
-                                          letterSpacing: -0.15,
+                                          fontWeight: FontWeight.w600,
                                         ),
-                                        children: [
-                                          TextSpan(
-                                            text: l10n.authAgreeTermsLink,
-                                            style: textTheme.bodyMedium
-                                                ?.copyWith(
-                                                  color: colorScheme.primary,
-                                                  fontSize: 15,
-                                                  fontFamily: 'Poppins',
-                                                  fontWeight: FontWeight.w600,
-                                                  decoration:
-                                                      TextDecoration.none,
-                                                ),
-                                            recognizer: TapGestureRecognizer()
-                                              ..onTap = () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        const TermsScreen(),
-                                                  ),
-                                                );
-                                              },
-                                          ),
-                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
+                              const SizedBox(height: 20),
                             ],
                           ),
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 24.17),
-
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AppButton(
-                            width: 360,
-                            height: 60,
-                            text: l10n.authSignupButton,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            onPressed: _onSignUpPressed,
-                            backgroundColor: colorScheme.primary,
-                            foregroundColor: colorScheme.onPrimary,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 17),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            color: colorScheme.outline.withOpacity(0.4),
-                            thickness: 0.83,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            l10n.authOr,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurface,
-                              fontSize: 13,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            color: colorScheme.outline.withOpacity(0.4),
-                            thickness: 0.83,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 17),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _socialBtn(
-                            'assets/icons/google.svg',
-                            () => vm.loginWithGoogle(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _socialBtn(
-                            'assets/icons/facebook.svg',
-                            () => vm.loginWithFacebook(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _socialBtn(
-                            'assets/icons/apple.svg',
-                            () => vm.loginWithApple(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _socialBtn(
-                            'assets/icons/mobile.svg',
-                            () => PhoneAuthDialog.showPhoneDialog(context),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 61),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          l10n.authHaveAccount,
-                          textAlign: TextAlign.center,
-                          style: textTheme.bodyLarge?.copyWith(
-                            color: colorScheme.onSurface,
-                            fontSize: 15,
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text(
-                            l10n.authLoginInline,
-                            style: textTheme.bodyLarge?.copyWith(
-                              color: colorScheme.primary,
-                              fontSize: 15,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ),
         ),
-
         if (vm.loading) const LoadingOverlay(),
       ],
     );

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/app.dart';
 import 'package:kid_manager/core/app_languages.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/locale_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/change_password_screen.dart';
 import 'package:kid_manager/views/setting_pages/widgets/language_selector_sheet.dart';
 import 'package:kid_manager/views/setting_pages/widgets/theme_selector_sheet.dart';
@@ -40,7 +42,7 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
       final color = result['color'] as Color;
       final isDark = result['isDark'] as bool;
 
-      await storage.setInt(StorageKeys.themeColor, color.value);
+      await storage.setInt(StorageKeys.themeColor, color.toARGB32());
       await storage.setBool(StorageKeys.isDarkMode, isDark);
 
       /// đợi animation sheet đóng xong
@@ -83,13 +85,21 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final horizontalPadding = context.adaptiveHorizontalPadding(
+      compact: 16,
+      regular: 20,
+    );
+    final itemHorizontalMargin = (horizontalPadding - 4)
+        .clamp(8.0, 20.0)
+        .toDouble();
 
     final localeVm = context.watch<LocaleVm>();
+    final userVm = context.watch<UserVm>();
     final currentLang = localeVm.locale.languageCode;
     final langName = AppLanguages.getName(currentLang);
 
     return Scaffold(
-      backgroundColor: scheme.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: scheme.surface,
@@ -111,11 +121,11 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
               children: [
                 /// ===== ỨNG DỤNG =====
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Text(
                     l10n.appAppearanceSectionApp,
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: scheme.onSurface.withOpacity(.6),
+                      color: scheme.onSurface.withValues(alpha: .6),
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.7,
                       fontFamily: 'Poppins',
@@ -128,6 +138,7 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                   title: l10n.appAppearanceThemeLabel,
                   subtitle: l10n.appAppearanceThemeSubtitle,
                   onTap: _openThemeSelector,
+                  horizontalMargin: itemHorizontalMargin,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -143,7 +154,7 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                       const SizedBox(width: 4),
                       Icon(
                         Icons.chevron_right,
-                        color: scheme.onSurface.withOpacity(.7),
+                        color: scheme.onSurface.withValues(alpha: .7),
                       ),
                     ],
                   ),
@@ -153,6 +164,7 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                   title: l10n.languageSetting,
                   subtitle: l10n.changeLanguagePrompt,
                   onTap: _openLanguageSelector,
+                  horizontalMargin: itemHorizontalMargin,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -166,7 +178,7 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                       const SizedBox(width: 4),
                       Icon(
                         Icons.chevron_right,
-                        color: scheme.onSurface.withOpacity(.7),
+                        color: scheme.onSurface.withValues(alpha: .7),
                       ),
                     ],
                   ),
@@ -175,11 +187,11 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
 
                 /// ===== BẢO MẬT =====
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Text(
                     l10n.appAppearanceSectionSecurity,
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: scheme.onSurface.withOpacity(.6),
+                      color: scheme.onSurface.withValues(alpha: .6),
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.7,
                       fontFamily: 'Poppins',
@@ -187,30 +199,33 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _settingItem(
-                  icon: Icons.lock_outline,
-                  title: l10n.appAppearanceChangePasswordTitle,
-                  subtitle: l10n.appAppearanceChangePasswordSubtitle,
-                  trailing: Icon(
-                    Icons.chevron_right,
-                    color: scheme.onSurface.withOpacity(.7),
+                if (userVm.canChangePassword)
+                  _settingItem(
+                    icon: Icons.lock_outline,
+                    title: l10n.appAppearanceChangePasswordTitle,
+                    subtitle: l10n.appAppearanceChangePasswordSubtitle,
+                    horizontalMargin: itemHorizontalMargin,
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: scheme.onSurface.withValues(alpha: .7),
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ChangePasswordScreen(),
+                        ),
+                      );
+                    },
                   ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ChangePasswordScreen(),
-                      ),
-                    );
-                  },
-                ),
                 _settingItem(
                   icon: Icons.notifications_none,
                   title: l10n.appAppearanceNotificationsTitle,
                   subtitle: l10n.appAppearanceNotificationsSubtitle,
+                  horizontalMargin: itemHorizontalMargin,
                   trailing: Switch(
                     value: notificationOn,
-                    activeColor: scheme.primary,
+                    activeThumbColor: scheme.primary,
                     onChanged: (value) {
                       setState(() => notificationOn = value);
                     },
@@ -230,6 +245,7 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
     required String title,
     required String subtitle,
     required Widget trailing,
+    required double horizontalMargin,
     VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
@@ -244,7 +260,10 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
         hoverColor: Colors.transparent,
         focusColor: Colors.transparent,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          margin: EdgeInsets.symmetric(
+            horizontal: horizontalMargin,
+            vertical: 6,
+          ),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
@@ -271,6 +290,8 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                   children: [
                     Text(
                       title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -280,18 +301,21 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFFB6C4D7),
-                        fontFamily: 'Public Sans',
+                        fontFamily: 'Poppins',
                       ),
                     ),
                   ],
                 ),
               ),
-
-              /// right widget
-              trailing,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Align(alignment: Alignment.centerRight, child: trailing),
+              ),
             ],
           ),
         ),

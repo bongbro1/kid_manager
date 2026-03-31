@@ -548,7 +548,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get authUserProfileLoadFailed => 'Không tải được hồ sơ người dùng';
 
   @override
-  String get authGenericError => 'Có lỗi xảy ra';
+  String get authGenericError => 'Thông báo';
 
   @override
   String get authWelcomeBackTitle => 'CHÀO MỪNG TRỞ LẠI';
@@ -716,7 +716,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get flashWelcomeTitle => 'Chào mừng đến với ứng dụng';
 
   @override
-  String get flashWelcomeSubtitle => 'Ứng dụng theo dõi con cái';
+  String get flashWelcomeSubtitle => 'Ứng dụng quản lý con';
 
   @override
   String get flashNext => 'Tiếp';
@@ -1951,7 +1951,7 @@ class AppLocalizationsVi extends AppLocalizations {
       'Để theo dõi thời gian sử dụng ứng dụng, bạn cần thêm thiết bị của con vào hệ thống.';
 
   @override
-  String get parentDashboardAddDeviceButton => 'Thêm thiết bị';
+  String get parentDashboardAddDeviceButton => 'Thêm con';
 
   @override
   String get parentDashboardHowItWorksButton => 'Tìm hiểu cách hoạt động';

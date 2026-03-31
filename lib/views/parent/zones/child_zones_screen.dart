@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/features/subscription/subscription_quota_gate.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:provider/provider.dart';
@@ -67,6 +68,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
 
   String _busyMessage(BuildContext context) {
     final isVi = Localizations.localeOf(context).languageCode.toLowerCase() == 'vi';
+    
     switch (_busyAction) {
       case _ZoneBusyAction.creating:
         return isVi ? 'Đang thêm vùng...' : 'Creating zone...';
@@ -115,50 +117,55 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
         pageBuilder: (dialogContext, animation, secondaryAnimation) {
           return SafeArea(
             child: Center(
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  width: 310,
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-                  decoration: BoxDecoration(
-                    color: locationPanelColor(scheme),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.16),
-                        blurRadius: 24,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      config.iconBuilder(),
-                      const SizedBox(height: 18),
-                      Text(
-                        titleText,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onSurface,
-                        ),
-                      ),
-                      if (messageText.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Text(
-                          messageText,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.5,
-                            color: scheme.onSurfaceVariant,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 310),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                      decoration: BoxDecoration(
+                        color: locationPanelColor(scheme),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.16),
+                            blurRadius: 24,
+                            offset: Offset(0, 10),
                           ),
-                        ),
-                      ],
-                    ],
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          config.iconBuilder(),
+                          const SizedBox(height: 18),
+                          Text(
+                            titleText,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          if (messageText.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              messageText,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                height: 1.5,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -192,7 +199,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.4),
+      barrierColor: Colors.black.withValues(alpha: 0.4),
       builder: (dialogContext) => AlertDialog(
         backgroundColor: locationPanelColor(scheme),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -204,7 +211,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -329,10 +336,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
 
     final quota = SubscriptionQuotaGate.resolve(actionError);
     if (quota?.feature == SubscriptionQuotaFeature.zone) {
-      await SubscriptionQuotaGate.showVipUpgradeDialog(
-        context,
-        quota: quota!,
-      );
+      await SubscriptionQuotaGate.showVipUpgradeDialog(context, quota: quota!);
       return;
     }
 
@@ -482,7 +486,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
       child: IgnorePointer(
         ignoring: false,
         child: Container(
-          color: Colors.black.withOpacity(0.18),
+          color: Colors.black.withValues(alpha: 0.18),
           alignment: Alignment.center,
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 32),
@@ -492,7 +496,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.16),
+                  color: Colors.black.withValues(alpha: 0.16),
                   blurRadius: 18,
                   offset: Offset(0, 10),
                 ),
@@ -544,13 +548,13 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: zone.enabled
-              ? color.withOpacity(0.3)
+              ? color.withValues(alpha: 0.3)
               : locationPanelBorderColor(scheme),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(zone.enabled ? 0.08 : 0.02),
+            color: color.withValues(alpha: zone.enabled ? 0.08 : 0.02),
             blurRadius: 12,
             offset: const Offset(0, 2),
           ),
@@ -563,7 +567,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -592,7 +596,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
+                          color: color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -628,8 +632,10 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
               scale: 0.85,
               child: Switch(
                 value: zone.enabled,
-                onChanged: _isBusy ? null : (v) => vm.toggleEnabled(childId, zone, v),
-                activeColor: color,
+                onChanged: _isBusy
+                    ? null
+                    : (v) => vm.toggleEnabled(childId, zone, v),
+                activeThumbColor: color,
               ),
             ),
             SizedBox(
@@ -701,9 +707,13 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final horizontalPadding = context.adaptiveHorizontalPadding(
+      compact: 12,
+      regular: 16,
+    );
 
     return Scaffold(
-      backgroundColor: scheme.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: locationPanelColor(scheme),
@@ -723,9 +733,9 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
         onPressed: _isBusy
             ? null
             : () => _handleCreateZone(
-                  context,
-                  context.read<ParentZonesVm>().zones,
-                ),
+                context,
+                context.read<ParentZonesVm>().zones,
+              ),
         icon: const Icon(Icons.add_rounded),
         label: Text(l10n.zonesAddButton),
         elevation: 4,
@@ -777,9 +787,14 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
           return Stack(
             children: [
               ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  16,
+                  horizontalPadding,
+                  100,
+                ),
                 itemCount: zones.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (_, i) => _buildZoneCard(context, i, zones[i], vm),
               ),
               if (showBusyOverlay) _buildBusyOverlay(context),

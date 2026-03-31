@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/map_engine/map_engine.dart';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_access.dart';
@@ -10,6 +11,7 @@ import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/services/access_control/access_control_service.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -35,12 +37,11 @@ class ChildDetailMapScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) =>
-          ChildDetailMapVm(
-            context.read<ParentLocationVm>(),
-            childId: childId,
-            childTimeZone: childTimeZone,
-          ),
+      create: (context) => ChildDetailMapVm(
+        context.read<ParentLocationVm>(),
+        childId: childId,
+        childTimeZone: childTimeZone,
+      ),
       child: _ChildDetailMapBody(
         childId: childId,
         childAvatarUrl: childAvatarUrl,
@@ -77,6 +78,9 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   late final Animation<double> _cardFade;
 
   bool _hideEmptyCard = false;
+  bool _disposed = false;
+  int _mapGeneration = 0;
+  AuthVM? _authVm;
 
   ChildDetailMapVm get _vm => context.read<ChildDetailMapVm>();
   ParentLocationVm get _parentVm => context.read<ParentLocationVm>();
@@ -107,13 +111,32 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextAuthVm = context.read<AuthVM>();
+    if (!identical(_authVm, nextAuthVm)) {
+      _authVm?.removeListener(_handleAuthStateChanged);
+      _authVm = nextAuthVm;
+      _authVm?.addListener(_handleAuthStateChanged);
+    }
+  }
+
+  @override
   void dispose() {
+    _disposed = true;
+    _authVm?.removeListener(_handleAuthStateChanged);
+    _invalidateMapLifecycle();
     _sub?.cancel();
     _animTick?.cancel();
     _renderDebounce?.cancel();
     _cardAnim.dispose();
     _sheetController.dispose();
     super.dispose();
+  }
+
+  void _handleAuthStateChanged() {
+    if (_authVm?.logoutInProgress != true) return;
+    _invalidateMapLifecycle();
   }
 
   void _syncCardAnimation() {
@@ -164,26 +187,43 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   }
 
   void _startAnimTick() {
+    final generation = _mapGeneration;
     _animTick ??= Timer.periodic(const Duration(milliseconds: 16), (_) async {
-      if (!mounted || _engine == null) return;
+      if (!_isMapGenerationActive(generation)) return;
+      final engine = _engine;
+      if (engine == null) return;
       if (_mover.isAnimating) {
         final smoothed = _mover.current();
-        await _engine!.updateChildDot(smoothed);
+        await _runMapTask(
+          generation: generation,
+          task: () => engine.updateChildDot(smoothed),
+        );
       }
     });
   }
 
-  Future<void> _renderOnMap() async {
+  Future<void> _renderOnMap({int? generation}) async {
+    final activeGeneration = generation ?? _mapGeneration;
     final engine = _engine;
-    if (!mounted || engine == null) return;
+    if (engine == null ||
+        !_isMapGenerationActive(activeGeneration, engine: engine)) {
+      return;
+    }
 
-    await engine.resetForNewHistory();
+    await _runMapTask(
+      generation: activeGeneration,
+      task: () => engine.resetForNewHistory(),
+    );
+    if (!_isMapGenerationActive(activeGeneration, engine: engine)) return;
     final history = _vm.cachedHistory;
 
     if (history.isEmpty) {
-      await engine.setHistoryDotsVisible(_vm.showDots);
+      await _runMapTask(
+        generation: activeGeneration,
+        task: () => engine.setHistoryDotsVisible(_vm.showDots),
+      );
       if (_vm.isToday && _vm.rangeIncludesNow) {
-        await _startRealtime();
+        await _startRealtime(generation: activeGeneration);
       } else {
         await _sub?.cancel();
         _sub = null;
@@ -192,12 +232,19 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       return;
     }
 
-    await engine.loadHistory(history, context);
-    await engine.setHistoryDotsVisible(_vm.showDots);
+    await _runMapTask(
+      generation: activeGeneration,
+      task: () => engine.loadHistory(history, context),
+    );
+    if (!_isMapGenerationActive(activeGeneration, engine: engine)) return;
+    await _runMapTask(
+      generation: activeGeneration,
+      task: () => engine.setHistoryDotsVisible(_vm.showDots),
+    );
     _lastMapMatchAt = DateTime.now();
 
     if (_vm.isToday && _vm.rangeIncludesNow) {
-      await _startRealtime();
+      await _startRealtime(generation: activeGeneration);
     } else {
       await _sub?.cancel();
       _sub = null;
@@ -216,13 +263,13 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
     if (!mounted) return;
 
     _syncCardAnimation();
-    await _renderOnMap();
+    await _renderOnMap(generation: _mapGeneration);
   }
 
-  Future<void> _startRealtime() async {
+  Future<void> _startRealtime({required int generation}) async {
     await _sub?.cancel();
     _sub = _parentVm.watchChildLocation(widget.childId).listen((loc) async {
-      if (!mounted || !_vm.isToday) return;
+      if (!_isMapGenerationActive(generation) || !_vm.isToday) return;
       if (!_vm.isTsInSelectedRange(loc.timestamp)) {
         await _sub?.cancel();
         _sub = null;
@@ -237,18 +284,25 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
 
       _renderDebounce?.cancel();
       _renderDebounce = Timer(const Duration(milliseconds: 300), () async {
-        if (!mounted || _engine == null) return;
-        await _engine!.renderHistoryFast(_vm.cachedHistory, context);
+        if (!_isMapGenerationActive(generation)) return;
+        final engine = _engine;
+        if (engine == null) return;
+        await _runMapTask(
+          generation: generation,
+          task: () => engine.renderHistoryFast(_vm.cachedHistory, context),
+        );
       });
 
       final now = DateTime.now();
-      if (_engine != null &&
+      final engine = _engine;
+      if (engine != null &&
           now.difference(_lastMapMatchAt) >= const Duration(seconds: 20) &&
           _vm.cachedHistory.length >= 6) {
         _lastMapMatchAt = now;
-        await _engine!.updateMatchedRouteIncremental(
-          _vm.cachedHistory,
-          context,
+        await _runMapTask(
+          generation: generation,
+          task: () =>
+              engine.updateMatchedRouteIncremental(_vm.cachedHistory, context),
         );
       }
     });
@@ -259,7 +313,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
     await _vm.applyTimeWindow(startMinute, endMinute);
     if (!mounted) return;
     _syncCardAnimation();
-    await _renderOnMap();
+    await _renderOnMap(generation: _mapGeneration);
   }
 
   Future<void> _pickTimeWindow() async {
@@ -300,7 +354,13 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
 
   Future<void> _toggleDots() async {
     _vm.toggleDots();
-    await _engine?.setHistoryDotsVisible(_vm.showDots);
+    final generation = _mapGeneration;
+    final engine = _engine;
+    if (engine == null) return;
+    await _runMapTask(
+      generation: generation,
+      task: () => engine.setHistoryDotsVisible(_vm.showDots),
+    );
   }
 
   String _fmtDay(DateTime value) =>
@@ -684,18 +744,29 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
               _engine?.handleMapTap(gesture);
             },
             onStyleLoaded: (map) async {
-              _engine = MapEngine(
+              final generation = _beginMapLifecycle();
+              final engine = MapEngine(
                 map,
                 enableChildDot: true,
                 childAvatarUrl: widget.childAvatarUrl,
                 onHistoryPointSelected: (point) async {
-                  if (!mounted) return;
+                  if (!_isMapGenerationActive(generation)) {
+                    return;
+                  }
                   await _showPointDetails(point);
                 },
               );
-              await _engine!.init();
+              _engine = engine;
+              await _runMapTask(
+                generation: generation,
+                task: () => engine.init(),
+              );
+              if (!_isMapGenerationActive(generation, engine: engine)) {
+                engine.dispose();
+                return;
+              }
               if (_vm.historyLoaded) {
-                await _renderOnMap();
+                await _renderOnMap(generation: generation);
               }
             },
           ),
@@ -705,5 +776,61 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
         ],
       ),
     );
+  }
+
+  int _beginMapLifecycle() {
+    _mapGeneration++;
+    final currentSub = _sub;
+    if (currentSub != null) {
+      unawaited(currentSub.cancel());
+    }
+    _sub = null;
+    _renderDebounce?.cancel();
+    _renderDebounce = null;
+    _animTick?.cancel();
+    _animTick = null;
+    _engine?.dispose();
+    _engine = null;
+    return _mapGeneration;
+  }
+
+  void _invalidateMapLifecycle() {
+    _mapGeneration++;
+    final currentSub = _sub;
+    if (currentSub != null) {
+      unawaited(currentSub.cancel());
+    }
+    _sub = null;
+    _renderDebounce?.cancel();
+    _renderDebounce = null;
+    _animTick?.cancel();
+    _animTick = null;
+    _engine?.dispose();
+    _engine = null;
+  }
+
+  bool _isMapGenerationActive(int generation, {MapEngine? engine}) {
+    if (_disposed || !mounted || generation != _mapGeneration) {
+      return false;
+    }
+    if (engine != null && !identical(_engine, engine)) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _runMapTask({
+    required int generation,
+    required Future<void> Function() task,
+  }) async {
+    if (!_isMapGenerationActive(generation)) return;
+    try {
+      await task();
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isMapGenerationActive(generation)) {
+        return;
+      }
+      rethrow;
+    }
   }
 }

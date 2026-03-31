@@ -24,6 +24,7 @@ import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
@@ -32,6 +33,7 @@ import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
 import 'package:kid_manager/views/auth/flash_screen.dart';
 import 'package:kid_manager/views/auth/login_screen.dart';
 import 'package:kid_manager/widgets/app/app_mode.dart';
@@ -151,6 +153,8 @@ class _SessionGuardState extends State<SessionGuard>
   bool _sessionBootstrapInFlight = false;
   Timer? _bootstrapRetryTimer;
   bool _sessionCleanupInFlight = false;
+  bool _sessionPreLogoutCleanupInFlight = false;
+  String? _logoutPreparedForUid;
   String? _timeZoneSyncInFlightForUid;
 
   @override
@@ -178,10 +182,11 @@ class _SessionGuardState extends State<SessionGuard>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<SessionVM, UserVm>(
-      builder: (context, session, userVm, _) {
+    return Consumer3<SessionVM, UserVm, AuthVM>(
+      builder: (context, session, userVm, authVm, _) {
         final status = session.status;
         final uid = session.user?.uid;
+        final isLoggingOut = authVm.logoutInProgress;
         final liveUser = _currentLiveUser(userVm, uid);
         final profile = _currentProfile(userVm, uid);
         final resolvedSession = SessionGuardResolvedState.fromSources(
@@ -204,6 +209,7 @@ class _SessionGuardState extends State<SessionGuard>
 
         final shouldEnsureSessionBootstrap =
             status == SessionStatus.authenticated &&
+            !isLoggingOut &&
             uid != null &&
             (_bootstrappedUid != uid || !resolvedSession.hasResolvedIdentity) &&
             !_sessionBootstrapInFlight &&
@@ -213,6 +219,7 @@ class _SessionGuardState extends State<SessionGuard>
 
         final shouldTriggerLocationMembersWatch =
             status == SessionStatus.authenticated &&
+            !isLoggingOut &&
             isLocationViewer == true &&
             uid != null &&
             familyId.isNotEmpty &&
@@ -221,10 +228,23 @@ class _SessionGuardState extends State<SessionGuard>
                 _lastIsLocationViewer != isLocationViewer ||
                 _lastFamilyId != familyId);
 
+        final shouldPrepareSessionForLogout =
+            status == SessionStatus.authenticated &&
+            isLoggingOut &&
+            uid != null &&
+            uid.isNotEmpty &&
+            _logoutPreparedForUid != uid;
+
         _lastStatus = status;
         _lastUid = uid;
         _lastIsLocationViewer = isLocationViewer;
         _lastFamilyId = familyId;
+
+        if (shouldPrepareSessionForLogout &&
+            !_sessionPreLogoutCleanupInFlight) {
+          _sessionPreLogoutCleanupInFlight = true;
+          unawaited(_runPreLogoutCleanup(uid));
+        }
 
         if (shouldClearSessionState && !_sessionCleanupInFlight) {
           _sessionCleanupInFlight = true;
@@ -232,6 +252,7 @@ class _SessionGuardState extends State<SessionGuard>
             try {
               _resetBootstrapState();
               await _clearSessionScopedState();
+              _logoutPreparedForUid = null;
             } finally {
               _sessionCleanupInFlight = false;
             }
@@ -265,6 +286,7 @@ class _SessionGuardState extends State<SessionGuard>
 
         debugPrint(
           '[SessionGuard] status=$status uid=$uid '
+          'isLoggingOut=$isLoggingOut '
           'hasResolvedIdentity=${resolvedSession.hasResolvedIdentity} '
           'isParent=${resolvedSession.isParent} '
           'isGuardian=${resolvedSession.isGuardian} '
@@ -343,8 +365,10 @@ class _SessionGuardState extends State<SessionGuard>
       _bootstrapQueuedForUid = null;
 
       final currentSession = context.read<SessionVM>();
+      final authVm = context.read<AuthVM>();
       if (currentSession.status != SessionStatus.authenticated ||
-          currentSession.user?.uid != uid) {
+          currentSession.user?.uid != uid ||
+          authVm.logoutInProgress) {
         return;
       }
 
@@ -359,6 +383,9 @@ class _SessionGuardState extends State<SessionGuard>
 
   Future<void> _runSessionBootstrap({required String uid}) async {
     try {
+      if (context.read<AuthVM>().logoutInProgress) {
+        return;
+      }
       final userVm = context.read<UserVm>();
       final storage = context.read<StorageService>();
       final appManagementVm = context.read<AppManagementVM>();
@@ -376,6 +403,9 @@ class _SessionGuardState extends State<SessionGuard>
       final currentSession = context.read<SessionVM>();
       if (currentSession.status != SessionStatus.authenticated ||
           currentSession.user?.uid != uid) {
+        return;
+      }
+      if (context.read<AuthVM>().logoutInProgress) {
         return;
       }
 
@@ -419,6 +449,9 @@ class _SessionGuardState extends State<SessionGuard>
       final verifiedSession = context.read<SessionVM>();
       if (verifiedSession.status != SessionStatus.authenticated ||
           verifiedSession.user?.uid != uid) {
+        return;
+      }
+      if (context.read<AuthVM>().logoutInProgress) {
         return;
       }
 
@@ -509,6 +542,7 @@ class _SessionGuardState extends State<SessionGuard>
 
       _bootstrappedUid = uid;
       _bootstrapRetryScheduledForUid = null;
+      _logoutPreparedForUid = null;
     } catch (e, st) {
       debugPrint('[SessionGuard] bootstrap failed uid=$uid error=$e');
       debugPrintStack(stackTrace: st);
@@ -542,28 +576,69 @@ class _SessionGuardState extends State<SessionGuard>
     _sessionBootstrapInFlight = false;
   }
 
-  Future<void> _clearSessionScopedState() async {
+  Future<void> _runPreLogoutCleanup(String uid) async {
+    try {
+      if (!mounted) return;
+      final currentSession = context.read<SessionVM>();
+      final currentAuthVm = context.read<AuthVM>();
+      if (!currentAuthVm.logoutInProgress ||
+          currentSession.status != SessionStatus.authenticated ||
+          currentSession.user?.uid != uid) {
+        return;
+      }
+      _resetBootstrapState();
+      await _prepareSessionForLogout();
+      _logoutPreparedForUid = uid;
+    } finally {
+      _sessionPreLogoutCleanupInFlight = false;
+    }
+  }
+
+  T? _readOptional<T>() {
+    try {
+      return context.read<T>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _prepareSessionForLogout() async {
     if (!mounted) return;
 
-    final notificationVm = context.read<NotificationVM>();
     final userVm = context.read<UserVm>();
     final appManagementVm = context.read<AppManagementVM>();
+    final notificationVm = context.read<NotificationVM>();
     final parentLocationVm = context.read<ParentLocationVm>();
-    final scheduleVm = context.read<ScheduleViewModel>();
-    final memoryVm = context.read<MemoryDayViewModel>();
-    final birthdayVm = context.read<BirthdayViewModel>();
+    final childLocationVm = _readOptional<ChildLocationViewModel>();
+    final zoneStatusVm = _readOptional<ZoneStatusVm>();
 
+    await userVm.suspendSessionStreams();
+    await appManagementVm.suspendChildrenWatch();
+    await childLocationVm?.stopSharingOnLogout();
+    zoneStatusVm?.clearFocus();
     await notificationVm.clear();
-    await userVm.clear();
-    await appManagementVm.clear();
     await parentLocationVm.stopWatchingAllChildren();
     await parentLocationVm.stopMyLocation();
     await TrackingBackgroundService.stop();
     await AuthRuntimeManager.stop();
+    _pushInitedForUid = null;
+  }
+
+  Future<void> _clearSessionScopedState() async {
+    if (!mounted) return;
+
+    final userVm = context.read<UserVm>();
+    final appManagementVm = context.read<AppManagementVM>();
+    final scheduleVm = context.read<ScheduleViewModel>();
+    final memoryVm = context.read<MemoryDayViewModel>();
+    final birthdayVm = context.read<BirthdayViewModel>();
+
+    await _prepareSessionForLogout();
+    await userVm.clear();
+    await appManagementVm.clear();
     scheduleVm.resetForNewSession();
     memoryVm.resetForNewSession();
     birthdayVm.resetForNewSession();
-    _pushInitedForUid = null;
   }
 
   Future<void> _syncAuthenticatedUserTimeZone({
@@ -581,7 +656,7 @@ class _SessionGuardState extends State<SessionGuard>
     if (resolvedUid == null || resolvedUid.isEmpty) {
       return;
     }
-    final authUid = FirebaseAuth.instance.currentUser?.uid?.trim();
+    final authUid = FirebaseAuth.instance.currentUser?.uid.trim();
     if (authUid == null || authUid.isEmpty || authUid != resolvedUid) {
       debugPrint(
         '[SessionGuard] skip timezone sync until auth uid matches session '
@@ -597,6 +672,7 @@ class _SessionGuardState extends State<SessionGuard>
     try {
       final normalizedTimeZone = await DeviceTimeZoneService.instance
           .getDeviceTimeZone();
+      if (!mounted) return;
       final userVm = context.read<UserVm>();
       await userVm.syncUserTimeZone(
         uid: resolvedUid,

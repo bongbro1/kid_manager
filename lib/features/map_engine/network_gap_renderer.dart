@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/features/map_engine/services/history_gap_detector.dart';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class NetworkGapRenderer {
@@ -62,8 +63,12 @@ class NetworkGapRenderer {
     }
 
     if (gaps.isEmpty) {
-      await lineSource.updateGeoJSON('{"type":"FeatureCollection","features":[]}');
-      await markerSource.updateGeoJSON('{"type":"FeatureCollection","features":[]}');
+      await lineSource.updateGeoJSON(
+        '{"type":"FeatureCollection","features":[]}',
+      );
+      await markerSource.updateGeoJSON(
+        '{"type":"FeatureCollection","features":[]}',
+      );
       return;
     }
 
@@ -116,7 +121,10 @@ class NetworkGapRenderer {
 
   Future<void> clear() => render(const []);
 
-  Future<void> _addSourceIfNeeded(StyleManager style, GeoJsonSource source) async {
+  Future<void> _addSourceIfNeeded(
+    StyleManager style,
+    GeoJsonSource source,
+  ) async {
     try {
       final exists = await style.styleSourceExists(source.id);
       if (!exists) {
@@ -173,6 +181,9 @@ class NetworkGapRenderer {
   }
 
   bool _isDetachedChannelError(Object error) {
+    if (isMapLifecycleError(error)) {
+      return true;
+    }
     if (error is! PlatformException) {
       return false;
     }

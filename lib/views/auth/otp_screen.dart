@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/models/auth/auth_models.dart';
@@ -30,6 +31,9 @@ class _OtpScreenState extends State<OtpScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
       context.read<OtpVM>().armInitialCooldown();
     });
   }
@@ -159,97 +163,143 @@ class _OtpScreenState extends State<OtpScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final horizontalPadding = context.adaptiveHorizontalPadding(
+      compact: 16,
+      regular: 24,
+    );
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           SafeArea(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 169,
-                    child: Text(
-                      l10n.otpTitle,
-                      textAlign: TextAlign.center,
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontSize: 24,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxContentWidth = constraints.maxWidth > 420
+                      ? 420.0
+                      : constraints.maxWidth;
+                  final otpGap = maxContentWidth < 340 ? 4.0 : 6.0;
+                  final otpCellWidth = ((maxContentWidth - (otpGap * 5)) / 6)
+                      .clamp(38.0, 44.0);
+                  final otpCellHeight = (otpCellWidth * 1.34).clamp(52.0, 59.0);
+
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: maxContentWidth,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 260,
+                                ),
+                                child: Text(
+                                  l10n.otpTitle,
+                                  textAlign: TextAlign.center,
+                                  style: textTheme.headlineSmall?.copyWith(
+                                    fontSize: 24,
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 300,
+                                ),
+                                child: Text(
+                                  l10n.otpInstruction,
+                                  textAlign: TextAlign.center,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.onSurface.withValues(
+                                      alpha: 0.75,
+                                    ),
+                                    fontSize: 14,
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              OtpInput(
+                                onCompleted: (otp) {
+                                  setState(() {
+                                    _otp = otp;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 20),
+                              GestureDetector(
+                                onTap: () async {
+                                  if (vm.loading || !vm.canResend) {
+                                    return;
+                                  }
+
+                                  final result = await vm.resendOtp(
+                                    email: widget.email,
+                                    type: _mailType,
+                                  );
+
+                                  if (!mounted) {
+                                    return;
+                                  }
+
+                                  if (result != OtpResendResult.success) {
+                                    AlertService.showSnack(
+                                      vm.error ?? l10n.authSendOtpFailed,
+                                      isError: true,
+                                    );
+                                  }
+                                },
+                                child: Text(
+                                  vm.countdown > 0
+                                      ? l10n.otpResendIn(vm.countdown)
+                                      : l10n.otpResend,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: vm.countdown > 0
+                                        ? colorScheme.onSurface.withValues(
+                                            alpha: 0.5,
+                                          )
+                                        : colorScheme.primary,
+                                    fontSize: 14,
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 180,
+                                ),
+                                child: AppButton(
+                                  text: l10n.otpVerifyButton,
+                                  height: 50,
+                                  onPressed: vm.isLocked
+                                      ? null
+                                      : _handleVerifyOtp,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: 250,
-                    height: 45,
-                    child: Text(
-                      l10n.otpInstruction,
-                      textAlign: TextAlign.center,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.75),
-                        fontSize: 14,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  OtpInput(
-                    onCompleted: (otp) {
-                      setState(() {
-                        _otp = otp;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () async {
-                      if (vm.loading || !vm.canResend) {
-                        return;
-                      }
-
-                      final result = await vm.resendOtp(
-                        email: widget.email,
-                        type: _mailType,
-                      );
-
-                      if (!mounted) {
-                        return;
-                      }
-
-                      if (result != OtpResendResult.success) {
-                        AlertService.showSnack(
-                          vm.error ?? l10n.authSendOtpFailed,
-                          isError: true,
-                        );
-                      }
-                    },
-                    child: Text(
-                      vm.countdown > 0
-                          ? l10n.otpResendIn(vm.countdown)
-                          : l10n.otpResend,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: vm.countdown > 0
-                            ? colorScheme.onSurface.withOpacity(0.5)
-                            : colorScheme.primary,
-                        fontSize: 14,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  AppButton(
-                    text: l10n.otpVerifyButton,
-                    width: 150,
-                    height: 50,
-                    onPressed: vm.isLocked ? null : _handleVerifyOtp,
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ),

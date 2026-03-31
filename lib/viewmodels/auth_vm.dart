@@ -34,6 +34,9 @@ class AuthVM extends ChangeNotifier {
   bool _loading = false;
   bool get loading => _loading;
 
+  bool _logoutInProgress = false;
+  bool get logoutInProgress => _logoutInProgress;
+
   String? _error;
   String? get error => _error;
 
@@ -107,7 +110,7 @@ class AuthVM extends ChangeNotifier {
 
       _user = user;
       notifyListeners();
-      return cred; // phải return, non-nullable
+      return cred;
     }, rethrowOnError: true);
   }
 
@@ -209,6 +212,8 @@ class AuthVM extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    if (_logoutInProgress) return;
+    _logoutInProgress = true;
     _loading = true;
     _error = null;
     notifyListeners();
@@ -220,6 +225,7 @@ class AuthVM extends ChangeNotifier {
       debugPrint("Logout error: $e");
     } finally {
       _loading = false;
+      _logoutInProgress = false;
       notifyListeners();
     }
   }
@@ -237,7 +243,6 @@ class AuthVM extends ChangeNotifier {
       debugPrint("AUTH ERROR: $e");
       _error = e.toString().replaceFirst("Exception: ", "");
       if (rethrowOnError) {
-        // ném exception đúng cách, không bị null
         return Future<T>.error(e, st);
       }
       rethrow;

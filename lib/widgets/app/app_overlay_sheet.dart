@@ -92,6 +92,9 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
     final scheme = Theme.of(context).colorScheme;
     final media = MediaQuery.of(context);
     final screenSize = media.size;
+    final availableMaxHeight = (screenSize.height - media.padding.top - 8)
+        .clamp(0.0, screenSize.height);
+    final effectiveMaxHeight = widget.height.clamp(0.0, availableMaxHeight);
 
     return Material(
       type: MaterialType.transparency,
@@ -118,7 +121,7 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                   onTap: () {},
                   child: Container(
                     width: widget.width ?? screenSize.width,
-                    constraints: BoxConstraints(maxHeight: widget.height),
+                    constraints: BoxConstraints(maxHeight: effectiveMaxHeight),
                     decoration: ShapeDecoration(
                       color: widget.backgroundColor ?? scheme.surface,
                       shape: RoundedRectangleBorder(
@@ -128,7 +131,7 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                           widget.shadows ??
                           [
                             BoxShadow(
-                              color: scheme.shadow.withOpacity(0.2),
+                              color: scheme.shadow.withValues(alpha: 0.2),
                               blurRadius: 30,
                               offset: const Offset(0, 3),
                             ),
@@ -136,7 +139,7 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                     ),
                     child: SafeArea(
                       top: false,
-                      child: Padding(
+                      child: SingleChildScrollView(
                         padding: widget.padding,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -147,8 +150,8 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                                   width: 55,
                                   height: 5,
                                   decoration: BoxDecoration(
-                                    color: scheme.onSurfaceVariant.withOpacity(
-                                      0.5,
+                                    color: scheme.onSurfaceVariant.withValues(
+                                      alpha: 0.5,
                                     ),
                                     borderRadius: BorderRadius.circular(100),
                                   ),
