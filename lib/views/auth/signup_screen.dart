@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/validators.dart';
+import 'package:kid_manager/models/auth/auth_models.dart';
 import 'package:kid_manager/models/auth/password_validator.dart';
 import 'package:kid_manager/views/auth/dialog/phone_auth_dialog.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';

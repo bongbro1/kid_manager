@@ -4,9 +4,9 @@ import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/utils/date_utils.dart';
-import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -278,7 +278,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 url: p?.coverUrl,
                                 fallbackAsset: "assets/images/cover.png",
                                 cropType: CropPhotoType.cover,
-                                onReplace: (index, file) {
+                                onReplace: (index, file) async {
+                                  vm.updateLocalPhoto(
+                                    file,
+                                    UserPhotoType.cover,
+                                  );
                                   return vm.updateUserPhoto(
                                     file: file,
                                     type: UserPhotoType.cover,
@@ -320,7 +324,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           url: p?.avatarUrl,
                                           fallbackAsset: "assets/images/u1.png",
                                           cropType: CropPhotoType.avatar,
-                                          onReplace: (index, file) {
+                                          onReplace: (index, file) async {
+                                            vm.updateLocalPhoto(
+                                              file,
+                                              UserPhotoType.avatar,
+                                            );
                                             return vm.updateUserPhoto(
                                               file: file,
                                               type: UserPhotoType.avatar,

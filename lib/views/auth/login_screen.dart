@@ -1,17 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
+import 'package:kid_manager/helpers/mail_helper.dart';
+import 'package:kid_manager/models/auth/auth_models.dart';
 import 'package:kid_manager/models/login_session.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
+import 'package:kid_manager/viewmodels/otp_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/dialog/phone_auth_dialog.dart';
 import 'package:kid_manager/views/auth/forgot_pass_screen.dart';
+import 'package:kid_manager/views/auth/otp_screen.dart';
 import 'package:kid_manager/views/auth/signup_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
@@ -62,17 +69,17 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
   Future<void> _onLoginPressed() async {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
-    final storage = context.read<StorageService>();
-    final l10n = AppLocalizations.of(context);
 
+    final l10n = AppLocalizations.of(context);
+    final storage = context.read<StorageService>();
+    final authVM = context.read<AuthVM>();
+    final userVM = context.read<UserVm>();
+    final appVM = context.read<AppManagementVM>();
+
+    // Validate
     if (email.isEmpty || password.isEmpty) {
       AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
@@ -83,95 +90,75 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final authVM = context.read<AuthVM>();
-    final appVM = context.read<AppManagementVM>();
-    final userVM = context.read<UserVm>();
-
     try {
       final cred = await authVM.login(email, password);
       if (!mounted) return;
-      if (cred == null) {
-        await NotificationDialog.show(
-          context,
-          type: DialogType.error,
-          title: l10n.updateErrorTitle,
-          message: _resolveLoginErrorMessage(l10n, authVM.error),
-        );
-        return;
-      }
 
       final uid = cred.user!.uid;
 
-      await storage.setString(StorageKeys.uid, uid);
+      // 🔥 lưu UID không cần await
+      unawaited(storage.setString(StorageKeys.uid, uid));
 
+      // Load profile
       final profile = await userVM.loadProfile(uid: uid, caller: 'LoginScreen');
       if (profile == null) {
-        await NotificationDialog.show(
-          context,
-          type: DialogType.error,
-          title: l10n.updateErrorTitle,
-          message: l10n.authUserProfileLoadFailed,
-        );
+        await _showError(l10n.authUserProfileLoadFailed);
         return;
       }
 
-      await storage.setString(StorageKeys.role, profile.roleKey);
-      await storage.setString(StorageKeys.displayName, profile.name);
-
       final role = profile.role;
-      final parentOwnerUid = role == UserRole.parent
+      final parentId = role == UserRole.parent
           ? uid
           : (profile.parentUid ?? '').trim();
 
-      if (parentOwnerUid.isNotEmpty) {
-        await storage.setString(StorageKeys.parentId, parentOwnerUid);
-      } else {
-        await storage.remove(StorageKeys.parentId);
-      }
-      final managedChildIds = profile.managedChildIds
-          .map((item) => item.trim())
-          .where((item) => item.isNotEmpty)
-          .toSet()
-          .toList(growable: false);
-      if (managedChildIds.isNotEmpty) {
-        await storage.setStringList(
-          StorageKeys.managedChildIds,
-          managedChildIds,
-        );
-      } else {
-        await storage.remove(StorageKeys.managedChildIds);
-      }
+      // 🔥 lưu storage song song
+      unawaited(
+        Future.wait([
+          storage.setString(StorageKeys.role, profile.roleKey),
+          storage.setString(StorageKeys.displayName, profile.name),
+          if (parentId.isNotEmpty)
+            storage.setString(StorageKeys.parentId, parentId)
+          else
+            storage.remove(StorageKeys.parentId),
+          if (profile.managedChildIds.isNotEmpty)
+            storage.setStringList(
+              StorageKeys.managedChildIds,
+              profile.managedChildIds
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toSet()
+                  .toList(),
+            )
+          else
+            storage.remove(StorageKeys.managedChildIds),
+        ]),
+      );
 
+      // remember login
       if (rememberPassword) {
         final session = LoginSession(email: email, uid: uid, remember: true);
-        final raw = JsonHelper.encode(session.toJson());
-        await storage.setString(StorageKeys.login_preference, raw);
+        unawaited(
+          storage.setString(
+            StorageKeys.login_preference,
+            JsonHelper.encode(session.toJson()),
+          ),
+        );
       } else {
-        await storage.remove(StorageKeys.login_preference);
+        unawaited(storage.remove(StorageKeys.login_preference));
       }
 
-      debugPrint('Running role: ${profile.roleKey}');
-
+      // xử lý role
       if (role == UserRole.child) {
-        if (parentOwnerUid.isEmpty) {
-          if (!mounted) return;
-          await NotificationDialog.show(
-            context,
-            type: DialogType.error,
-            title: l10n.updateErrorTitle,
-            message: l10n.authUserProfileLoadFailed,
-          );
+        if (parentId.isEmpty) {
+          await _showError(l10n.authUserProfileLoadFailed);
           return;
         }
-        AuthRuntimeManager.start(
-          parentId: parentOwnerUid,
-          displayName: profile.name,
-        );
+
+        AuthRuntimeManager.start(parentId: parentId, displayName: profile.name);
+
         await appVM.loadAndSeedApp();
-        if (!mounted) return;
       } else {
-        await AuthRuntimeManager.stop();
-        if (!mounted) return;
+        unawaited(AuthRuntimeManager.stop());
       }
 
       FocusScope.of(context).unfocus();
@@ -179,15 +166,99 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('Login error: $e');
       debugPrintStack(stackTrace: st);
 
+      await _handleLoginError(context, e, mounted);
+    }
+  }
+
+  Future<void> _handleLoginError(
+    BuildContext context,
+    Object e,
+    bool mounted,
+  ) async {
+    if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final storage = context.read<StorageService>();
+    final authVM = context.read<AuthVM>();
+
+    if (authVM.error == "accountNotActivated") {
+      final pending = await _getPendingOtp(storage);
       if (!mounted) return;
 
-      NotificationDialog.show(
-        context,
-        type: DialogType.error,
-        title: l10n.updateErrorTitle,
-        message: l10n.authGenericError,
-      );
+      if (pending != null) {
+        final proceed = await _askVerifyNow(context);
+        if (!mounted) return;
+
+        if (proceed == true) {
+          final otpVM = context.read<OtpVM>();
+
+          await otpVM.requestFreshOtp(
+            email: pending.email,
+            type: MailType.verifyEmail,
+          );
+          if (!mounted) return;
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  OtpScreen(email: pending.email, purpose: pending.purpose),
+            ),
+          );
+        }
+        return;
+      }
     }
+
+    if (!mounted) return;
+
+    await NotificationDialog.show(
+      context,
+      type: DialogType.error,
+      title: l10n.updateErrorTitle,
+      message: _resolveLoginErrorMessage(l10n, authVM.error ?? e.toString()),
+    );
+  }
+
+  Future<PendingOtp?> _getPendingOtp(StorageService storage) async {
+    final raw = await storage.getString(StorageKeys.pendingOtp);
+    if (raw == null) return null;
+
+    try {
+      return PendingOtp.fromJson(JsonHelper.decode(raw));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool?> _askVerifyNow(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Tài khoản chưa kích hoạt"),
+        content: const Text("Bạn có muốn nhập OTP ngay không?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Để sau"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Xác thực ngay"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showError(String message) async {
+    final l10n = runtimeL10n();
+    await NotificationDialog.show(
+      context,
+      type: DialogType.error,
+      title: l10n.updateErrorTitle,
+      message: message,
+    );
   }
 
   Future<void> _loadRememberedLogin() async {

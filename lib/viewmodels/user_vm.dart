@@ -534,15 +534,25 @@ class UserVm extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateLocalPhoto(File file, UserPhotoType type) {
+    final localUrl = file.path;
+
+    if (profile != null) {
+      if (type == UserPhotoType.avatar) {
+        profile = profile!.copyWith(avatarUrl: localUrl);
+      } else {
+        profile = profile!.copyWith(coverUrl: localUrl);
+      }
+    }
+
+    notifyListeners();
+  }
+
   Future<bool> updateUserPhoto({
     required File file,
     required UserPhotoType type,
   }) async {
     try {
-      _loading = true;
-      _error = null;
-      notifyListeners();
-
       final uid = FirebaseAuth.instance.currentUser!.uid;
 
       final url = await FirebaseStorageService.uploadUserPhoto(
@@ -551,32 +561,19 @@ class UserVm extends ChangeNotifier {
         type: type,
       );
 
-      final success = await _userRepo.updateUserPhotoUrl(
-        uid: uid,
-        url: url,
-        type: type,
-      );
-      if (!success) {
-        _error = runtimeL10n().userVmUpdatePhotoFailed;
-        return false;
-      }
+      unawaited(_userRepo.updateUserPhotoUrl(uid: uid, url: url, type: type));
 
       if (profile != null) {
-        if (type == UserPhotoType.avatar) {
-          profile = profile!.copyWith(avatarUrl: url);
-        } else {
-          profile = profile!.copyWith(coverUrl: url);
-        }
+        profile = type == UserPhotoType.avatar
+            ? profile!.copyWith(avatarUrl: url)
+            : profile!.copyWith(coverUrl: url);
       }
 
+      notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
       debugPrint("Update photo error: $e");
       return false;
-    } finally {
-      _loading = false;
-      notifyListeners();
     }
   }
 

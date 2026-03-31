@@ -32,6 +32,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final newPassword = _newCtrl.text.trim();
     final confirmPassword = _confirmCtrl.text.trim();
 
+    // Validate
     if (oldPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
       AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
@@ -51,26 +52,34 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       return;
     }
 
-    final ok = await vm.changePassword(
-      oldPassword: oldPassword,
-      newPassword: newPassword,
-      confirmPassword: confirmPassword,
-    );
+    try {
+      // 🔥 không còn return bool nữa
+      await vm.changePassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+      );
 
-    if (!ok) {
-      AlertService.showSnack(vm.error ?? l10n.updateErrorTitle, isError: true);
-      return;
+      if (!mounted) return;
+
+      await NotificationDialog.show(
+        context,
+        type: DialogType.success,
+        title: l10n.updateSuccessTitle,
+        message: l10n.changePasswordSuccessMessage,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      AlertService.showSnack(
+        e.toString().replaceFirst("Exception: ", ""),
+        isError: true,
+      );
     }
-
-    if (!mounted) return;
-
-    NotificationDialog.show(
-      context,
-      type: DialogType.success,
-      title: l10n.updateSuccessTitle,
-      message: l10n.changePasswordSuccessMessage,
-    );
-    Navigator.pop(context);
   }
 
   @override
