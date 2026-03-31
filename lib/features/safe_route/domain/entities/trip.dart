@@ -1,4 +1,5 @@
 ﻿import 'package:kid_manager/features/safe_route/domain/entities/live_location.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
 
 class Trip {
@@ -18,6 +19,8 @@ class Trip {
   final DateTime? scheduledStartAt;
   final List<int> repeatWeekdays;
   final LiveLocation? lastLocation;
+  final SafeRoute? previewRoute;
+  final List<SafeRoute> previewAlternativeRoutes;
 
   const Trip({
     required this.id,
@@ -36,6 +39,8 @@ class Trip {
     required this.scheduledStartAt,
     required this.repeatWeekdays,
     required this.lastLocation,
+    this.previewRoute,
+    this.previewAlternativeRoutes = const [],
   });
 
   Trip copyWith({
@@ -55,6 +60,8 @@ class Trip {
     DateTime? scheduledStartAt,
     List<int>? repeatWeekdays,
     LiveLocation? lastLocation,
+    SafeRoute? previewRoute,
+    List<SafeRoute>? previewAlternativeRoutes,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -75,6 +82,9 @@ class Trip {
       scheduledStartAt: scheduledStartAt ?? this.scheduledStartAt,
       repeatWeekdays: repeatWeekdays ?? this.repeatWeekdays,
       lastLocation: lastLocation ?? this.lastLocation,
+      previewRoute: previewRoute ?? this.previewRoute,
+      previewAlternativeRoutes:
+          previewAlternativeRoutes ?? this.previewAlternativeRoutes,
     );
   }
 }

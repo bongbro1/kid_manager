@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { db } from "../bootstrap";
 import { HttpsError } from "firebase-functions/v2/https";
 import {
@@ -10,6 +11,7 @@ import { listRouteRelevantHazards } from "./safeRouteZonesService";
 
 const DEFAULT_CORRIDOR_WIDTH_METERS = 50;
 const MAX_SUGGESTED_ROUTES = 3;
+export const PREVIEW_SAFE_ROUTE_ID_PREFIX = "preview_route_";
 
 type DirectionsRoute = {
   distance?: number;
@@ -87,6 +89,46 @@ function createRouteRecord(params: {
   } satisfies SafeRouteRecord;
 }
 
+function normalizeRouteName(name: string | null | undefined, fallback: string) {
+  const trimmed = typeof name === "string" ? name.trim() : "";
+  if (!trimmed) {
+    return fallback;
+  }
+
+  return trimmed.slice(0, 120);
+}
+
+function normalizeRoutePoints(points: RoutePointRecord[]) {
+  return [...points]
+    .map((point, sequence) => ({
+      latitude: Number(point.latitude),
+      longitude: Number(point.longitude),
+      sequence: Number.isInteger(point.sequence) ? point.sequence : sequence,
+    }))
+    .filter(
+      (point) =>
+        Number.isFinite(point.latitude) &&
+        Number.isFinite(point.longitude) &&
+        point.latitude >= -90 &&
+        point.latitude <= 90 &&
+        point.longitude >= -180 &&
+        point.longitude <= 180,
+    )
+    .sort((left, right) => left.sequence - right.sequence)
+    .map((point, sequence) => ({
+      ...point,
+      sequence,
+    }));
+}
+
+function createPreviewRouteId() {
+  return `${PREVIEW_SAFE_ROUTE_ID_PREFIX}${randomUUID()}`;
+}
+
+export function isPreviewSafeRouteId(routeId: string) {
+  return routeId.startsWith(PREVIEW_SAFE_ROUTE_ID_PREFIX);
+}
+
 async function fetchDirections(
   start: RoutePointRecord,
   end: RoutePointRecord,
@@ -158,9 +200,8 @@ export async function buildSuggestedSafeRoutes(params: {
       toRoutePoint(coordinate[1], coordinate[0], sequence)
     );
 
-    const routeRef = db.collection("routes").doc();
     const routeRecord = createRouteRecord({
-      id: routeRef.id,
+      id: createPreviewRouteId(),
       childId: params.childId,
       parentId: params.parentId,
       name: `${modeLabel} Tuyến an toàn ${index + 1}`,
@@ -179,9 +220,51 @@ export async function buildSuggestedSafeRoutes(params: {
       hazards,
     } satisfies SafeRouteRecord;
 
-    await routeRef.set(fullRoute, {merge: true});
     builtRoutes.push(fullRoute);
   }
 
   return builtRoutes;
+}
+
+export async function persistSelectedSafeRoute(params: {
+  route: SafeRouteRecord;
+  childId: string;
+  parentId: string;
+}) {
+  const normalizedPoints = normalizeRoutePoints(params.route.points);
+  if (normalizedPoints.length < 2) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Safe route must contain at least two valid points",
+    );
+  }
+
+  const routeRef = db.collection("routes").doc();
+  const modeLabel = toTravelModeLabel(params.route.travelMode);
+  const routeRecord = createRouteRecord({
+    id: routeRef.id,
+    childId: params.childId,
+    parentId: params.parentId,
+    name: normalizeRouteName(
+      params.route.name,
+      `${modeLabel} Tuyáº¿n an toÃ n`,
+    ),
+    points: normalizedPoints,
+    distanceMeters: Math.max(0, Number(params.route.distanceMeters ?? 0)),
+    durationSeconds: Math.max(0, Number(params.route.durationSeconds ?? 0)),
+    travelMode: params.route.travelMode,
+  });
+
+  const hazards = await listRouteRelevantHazards(
+    params.childId,
+    routeRecord.points,
+    routeRecord.corridorWidthMeters,
+  );
+  const fullRoute = {
+    ...routeRecord,
+    hazards,
+  } satisfies SafeRouteRecord;
+
+  await routeRef.set(fullRoute, { merge: true });
+  return fullRoute;
 }

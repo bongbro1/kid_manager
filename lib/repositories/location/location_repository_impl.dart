@@ -513,7 +513,7 @@ class LocationRepositoryImpl implements LocationRepository {
     }
 
     return streamCanonicalLiveLocation<LocationData>(
-      reference: _database.ref('locations/$childId/current'),
+      reference: _database.ref('live_locations/$childId'),
       pollCanonicalSnapshot: () async {
         final res = await _functions
             .httpsCallable('getChildLocationCurrent')

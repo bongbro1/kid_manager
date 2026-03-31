@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
+import 'package:kid_manager/services/notifications/tracking_location_notification_text.dart';
 import 'package:kid_manager/services/notifications/tracking_notification_style.dart';
 import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/widgets/notifications/birthday_notification_experience.dart';
@@ -230,6 +231,19 @@ String _displayTitle(BuildContext context, AppNotification item) {
 
 String _displayBody(BuildContext context, AppNotification item) {
   final l10n = AppLocalizations.of(context);
+
+  if (isTrackingLocationStatusNotification(
+    type: item.type,
+    title: item.title,
+    data: item.data,
+  )) {
+    return resolveTrackingLocationStatusBody(
+      l10n,
+      title: item.title,
+      fallbackBody: item.body,
+      data: item.data,
+    );
+  }
 
   if (item.notificationType == NotificationType.schedule ||
       item.notificationType == NotificationType.memoryDay ||

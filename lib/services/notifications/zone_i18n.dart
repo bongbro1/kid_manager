@@ -55,6 +55,28 @@ String trackingTitleFromKey(AppLocalizations l10n, String key) {
   }
 }
 
+String trackingParentBodyFromKey(
+  AppLocalizations l10n,
+  String key, {
+  required String childName,
+}) {
+  final normalized = _normalizeTrackingKey(key);
+  switch (normalized) {
+    case 'tracking.location_service_off.parent':
+      return l10n.tracking_location_service_off_parent_body(childName);
+    case 'tracking.location_permission_denied.parent':
+      return l10n.tracking_location_permission_denied_parent_body(childName);
+    case 'tracking.background_disabled.parent':
+      return l10n.tracking_background_disabled_parent_body(childName);
+    case 'tracking.location_stale.parent':
+      return l10n.tracking_location_stale_parent_body(childName);
+    case 'tracking.ok.parent':
+      return l10n.tracking_ok_parent_body(childName);
+    default:
+      return l10n.notificationsTrackingDefaultBody;
+  }
+}
+
 String _normalizeTrackingKey(String rawKey) {
   final key = rawKey.trim().toLowerCase();
   if (key.endsWith('.title') || key.endsWith('.body')) {

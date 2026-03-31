@@ -255,10 +255,8 @@ class _SessionGuardState extends State<SessionGuard>
               normalizedFamilyId,
               excludeUid: currentUid,
             );
-            final managedOwnerUid = isGuardian == true ? parentUid : currentUid;
-            if ((isParent == true || isGuardian == true) &&
-                managedOwnerUid.isNotEmpty) {
-              userVm.watchChildren(managedOwnerUid);
+            if (isParent == true && currentUid.isNotEmpty) {
+              userVm.watchChildren(currentUid);
             }
           });
         }
@@ -501,9 +499,7 @@ class _SessionGuardState extends State<SessionGuard>
 
       userVm.watchMe(uid);
 
-      if ((resolvedRole == UserRole.parent ||
-              resolvedRole == UserRole.guardian) &&
-          managedOwnerUid.isNotEmpty) {
+      if (resolvedRole == UserRole.parent && managedOwnerUid.isNotEmpty) {
         unawaited(appManagementVm.watchChildren(managedOwnerUid));
       }
 
@@ -756,22 +752,40 @@ class _GuardianWarmupShellState extends State<_GuardianWarmupShell> {
     final me = _userVm.me;
     final shouldShare = me?.isGuardian == true && me?.allowTracking == true;
 
+    debugPrint(
+      '[GuardianTracking] sync uid=${me?.uid} '
+      'allowTracking=${me?.allowTracking} '
+      'shouldShare=$shouldShare '
+      'active=$_selfTrackingActive',
+    );
+
     if (shouldShare && !_selfTrackingActive) {
       final hasForegroundPermission = await _locationService
           .hasLocationPermission(requireBackground: false);
       final serviceEnabled = await _locationService.isServiceEnabled();
+      debugPrint(
+        '[GuardianTracking] preflight uid=${me?.uid} '
+        'hasForegroundPermission=$hasForegroundPermission '
+        'serviceEnabled=$serviceEnabled',
+      );
       if (!hasForegroundPermission || !serviceEnabled) {
         return;
       }
 
       await _childLocationVm.startLocationSharing(background: true);
       _selfTrackingActive = _childLocationVm.isSharing;
+      debugPrint(
+        '[GuardianTracking] start result uid=${me?.uid} '
+        'isSharing=${_childLocationVm.isSharing} '
+        'error=${_childLocationVm.error}',
+      );
       return;
     }
 
     if (!shouldShare && _selfTrackingActive) {
       await _childLocationVm.stopSharing(clearData: false);
       _selfTrackingActive = false;
+      debugPrint('[GuardianTracking] stopped uid=${me?.uid}');
     }
   }
 

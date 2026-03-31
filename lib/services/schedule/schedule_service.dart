@@ -18,8 +18,8 @@ class ScheduleService {
 
     final snap = await _col(parentUid)
         .where('childId', isEqualTo: childId)
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-        .where('date', isLessThan: Timestamp.fromDate(end))
+        .where('startAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('startAt', isLessThan: Timestamp.fromDate(end))
         .orderBy('startAt')
         .get();
 

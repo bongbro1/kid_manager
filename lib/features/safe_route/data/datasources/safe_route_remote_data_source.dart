@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/core/async/polling_backoff.dart';
 import 'package:kid_manager/features/safe_route/data/models/current_trip_snapshot_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/live_location_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/route_point_model.dart';
@@ -54,8 +55,12 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
   final FirebaseDatabase _database;
   final FirebaseFirestore _firestore;
   static const Duration _liveLocationPollingInterval = Duration(seconds: 2);
-  static const Duration _currentTripFallbackPollingInterval = Duration(
-    seconds: 4,
+  static const Duration _currentTripFallbackPollingInterval = Duration(seconds: 4);
+  static const Duration _currentTripFallbackMaxPollingInterval = Duration(
+    seconds: 30,
+  );
+  static const Duration _currentTripFallbackRealtimeRetryInterval = Duration(
+    minutes: 1,
   );
 
   @override
@@ -88,6 +93,12 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
       'alternativeRouteIds': trip.alternativeRouteIds,
       'scheduledStartAt': trip.scheduledStartAt?.millisecondsSinceEpoch,
       'repeatWeekdays': trip.repeatWeekdays,
+      'previewRoute': trip.previewRoute == null
+          ? null
+          : SafeRouteModel.fromEntity(trip.previewRoute!).toMap(),
+      'previewAlternativeRoutes': trip.previewAlternativeRoutes
+          .map((route) => SafeRouteModel.fromEntity(route).toMap())
+          .toList(growable: false),
     });
     final data = Map<String, dynamic>.from(response.data as Map);
     return TripModel.fromMap(Map<String, dynamic>.from(data['trip'] as Map));
@@ -111,7 +122,7 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
     }
 
     return streamCanonicalLiveLocation<LiveLocationModel>(
-      reference: _database.ref('locations/$childId/current'),
+      reference: _database.ref('live_locations/$childId'),
       pollCanonicalSnapshot: () async {
         final callable = _functions.httpsCallable('getChildLocationCurrent');
         final response = await callable.call({'childUid': childId});
@@ -136,17 +147,73 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
     StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? subscription;
     Timer? expiryTimer;
     Timer? fallbackPollTimer;
+    Timer? realtimeRetryTimer;
     CurrentTripSnapshotModel? latestSnapshot;
     bool usingCallableFallback = false;
+    final fallbackBackoff = PollingBackoff(
+      initialDelay: _currentTripFallbackPollingInterval,
+      maxDelay: _currentTripFallbackMaxPollingInterval,
+    );
 
     late void Function() emitCurrent;
+    late void Function() attachSnapshotListener;
+    late Future<void> Function() pollCurrentTripFromCallable;
+    late void Function() scheduleFallbackPoll;
 
     bool shouldFallbackToCallable(Object error) {
       return error is FirebaseException &&
           (error.code == 'permission-denied' || error.code == 'unavailable');
     }
 
-    Future<void> pollCurrentTripFromCallable() async {
+    void cancelFallbackTimers() {
+      fallbackPollTimer?.cancel();
+      fallbackPollTimer = null;
+      realtimeRetryTimer?.cancel();
+      realtimeRetryTimer = null;
+    }
+
+    void scheduleRealtimeRetry() {
+      if (!usingCallableFallback ||
+          controller.isClosed ||
+          realtimeRetryTimer != null ||
+          subscription != null) {
+        return;
+      }
+
+      realtimeRetryTimer = Timer(
+        _currentTripFallbackRealtimeRetryInterval,
+        () {
+          realtimeRetryTimer = null;
+          if (!controller.isClosed && usingCallableFallback && subscription == null) {
+            debugPrint(
+              '[SafeRoute] retry realtime snapshot for '
+              'safe_route_current_trips/$childId',
+            );
+            attachSnapshotListener();
+          }
+        },
+      );
+    }
+
+    scheduleFallbackPoll = () {
+      fallbackPollTimer?.cancel();
+      if (!usingCallableFallback || controller.isClosed) {
+        return;
+      }
+
+      final delay = fallbackBackoff.nextDelay();
+      debugPrint(
+        '[SafeRoute] fallback polling current trip child=$childId '
+        'attempt=${fallbackBackoff.attemptCount} nextInMs=${delay.inMilliseconds}',
+      );
+      fallbackPollTimer = Timer(delay, () {
+        if (!controller.isClosed && usingCallableFallback) {
+          unawaited(pollCurrentTripFromCallable());
+        }
+      });
+    };
+
+    pollCurrentTripFromCallable = () async {
       if (controller.isClosed) {
         return;
       }
@@ -160,8 +227,13 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
         if (!controller.isClosed) {
           controller.addError(error, stackTrace);
         }
+      } finally {
+        if (!controller.isClosed && usingCallableFallback) {
+          scheduleFallbackPoll();
+          scheduleRealtimeRetry();
+        }
       }
-    }
+    };
 
     void startCallableFallback(Object error) {
       if (usingCallableFallback || controller.isClosed) {
@@ -170,6 +242,7 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
       usingCallableFallback = true;
       expiryTimer?.cancel();
       expiryTimer = null;
+      fallbackBackoff.reset();
       debugPrint(
         '[SafeRoute] fallback to getActiveSafeRouteTripByChildId for '
         'safe_route_current_trips/$childId because snapshot listen failed: '
@@ -177,11 +250,8 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
       );
       unawaited(subscription?.cancel());
       subscription = null;
+      cancelFallbackTimers();
       unawaited(pollCurrentTripFromCallable());
-      fallbackPollTimer = Timer.periodic(
-        _currentTripFallbackPollingInterval,
-        (_) => unawaited(pollCurrentTripFromCallable()),
-      );
     }
 
     void scheduleExpiryIfNeeded() {
@@ -225,7 +295,8 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
 
     controller = StreamController<TripModel?>(
       onListen: () {
-        subscription = docRef.snapshots().listen(
+        attachSnapshotListener = () {
+          subscription ??= docRef.snapshots().listen(
           (snapshot) {
             if (!snapshot.exists) {
               latestSnapshot = null;
@@ -252,6 +323,15 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
               return;
             }
 
+            if (usingCallableFallback) {
+              usingCallableFallback = false;
+              fallbackBackoff.reset();
+              cancelFallbackTimers();
+              debugPrint(
+                '[SafeRoute] restored realtime snapshot for '
+                'safe_route_current_trips/$childId',
+              );
+            }
             emitCurrent();
           },
           onError: (error, stackTrace) {
@@ -264,12 +344,13 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
             }
           },
         );
+        };
+        attachSnapshotListener();
       },
       onCancel: () async {
         expiryTimer?.cancel();
         expiryTimer = null;
-        fallbackPollTimer?.cancel();
-        fallbackPollTimer = null;
+        cancelFallbackTimers();
         await subscription?.cancel();
         subscription = null;
       },

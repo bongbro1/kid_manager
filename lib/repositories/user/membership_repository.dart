@@ -35,30 +35,28 @@ class MembershipRepository {
     String familyId, {
     String? excludeUid,
   }) {
-    final membersRef = _db
+    final normalizedFamilyId = familyId.trim();
+    final normalizedExcludeUid = excludeUid?.trim();
+
+    return _db
         .collection('families')
-        .doc(familyId)
-        .collection('members');
-
-    return membersRef.snapshots().map((qs) {
-          final memberDocs = qs.docs;
-          final parentUid = _inferFamilyParentUid(memberDocs);
-
-          final users = memberDocs
+        .doc(normalizedFamilyId)
+        .collection('members')
+        .snapshots()
+        .map((qs) {
+          final inferredParentUid = _inferFamilyParentUid(qs.docs);
+          final list = qs.docs
               .map(
-                (memberDoc) => _normalizeLegacyLocationMember(
-                  AppUser.fromMap(memberDoc.data(), docId: memberDoc.id),
-                  familyId: familyId,
-                  inferredParentUid: parentUid,
+                (doc) => _normalizeFamilyLocationMember(
+                  doc,
+                  familyId: normalizedFamilyId,
+                  inferredParentUid: inferredParentUid,
                 ),
               )
-              .toList(growable: false);
-
-          final list = users
               .where((user) {
-                if (excludeUid != null &&
-                    excludeUid.isNotEmpty &&
-                    user.uid == excludeUid) {
+                if (normalizedExcludeUid != null &&
+                    normalizedExcludeUid.isNotEmpty &&
+                    user.uid == normalizedExcludeUid) {
                   return false;
                 }
 
@@ -68,7 +66,7 @@ class MembershipRepository {
 
                 return user.role == UserRole.guardian && user.allowTracking;
               })
-              .toList();
+              .toList(growable: false);
 
           list.sort((a, b) {
             final roleScoreA = a.role == UserRole.child ? 0 : 1;
@@ -91,40 +89,43 @@ class MembershipRepository {
   ) {
     for (final memberDoc in memberDocs) {
       final data = memberDoc.data();
-      final role = UserRole.fromValue(data['role']);
-      if (role == UserRole.parent) {
-        final uid = (data['uid'] ?? memberDoc.id).toString().trim();
-        if (uid.isNotEmpty) {
-          return uid;
-        }
+      if (UserRole.fromValue(data['role']) != UserRole.parent) {
+        continue;
+      }
+      final uid = (data['uid'] ?? memberDoc.id).toString().trim();
+      if (uid.isNotEmpty) {
+        return uid;
       }
     }
     return null;
   }
 
-  AppUser _normalizeLegacyLocationMember(
-    AppUser user, {
+  AppUser _normalizeFamilyLocationMember(
+    DocumentSnapshot<Map<String, dynamic>> memberDoc, {
     required String familyId,
     required String? inferredParentUid,
   }) {
-    final normalizedFamilyId = (user.familyId ?? '').trim().isEmpty
-        ? familyId
-        : user.familyId;
-
+    final user = AppUser.fromDoc(memberDoc);
+    final normalizedFamilyId =
+        (user.familyId ?? '').trim().isEmpty ? familyId : user.familyId;
     final normalizedParentUid =
         (user.parentUid ?? '').trim().isEmpty &&
             (user.role == UserRole.child || user.role == UserRole.guardian)
         ? inferredParentUid
         : user.parentUid;
+    final normalizedAllowTracking =
+        user.role == UserRole.child ? true : user.allowTracking;
 
     if (normalizedFamilyId == user.familyId &&
-        normalizedParentUid == user.parentUid) {
+        normalizedParentUid == user.parentUid &&
+        normalizedAllowTracking == user.allowTracking) {
       return user;
     }
 
     return user.copyWith(
       familyId: normalizedFamilyId,
       parentUid: normalizedParentUid,
+      allowTracking: normalizedAllowTracking,
     );
   }
 

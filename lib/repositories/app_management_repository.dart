@@ -25,12 +25,20 @@ class AppManagementRepository {
     return appService.getUserInstalledApps(withIcon: true);
   }
 
+  DocumentReference<Map<String, dynamic>> _blockedItemsUserRef(String userId) {
+    final normalizedUid = userId.trim();
+    if (normalizedUid.isEmpty) {
+      throw ArgumentError.value(userId, 'userId', 'userId is required');
+    }
+    return db.collection("blocked_items").doc(normalizedUid);
+  }
+
+  CollectionReference<Map<String, dynamic>> _blockedItemsAppsRef(String userId) {
+    return _blockedItemsUserRef(userId).collection("apps");
+  }
+
   Future<List<AppItemModel>> loadAppsFromFirestore(String userId) async {
-    final snapshot = await db
-        .collection("blocked_items")
-        .doc(userId)
-        .collection("apps")
-        .get();
+    final snapshot = await _blockedItemsAppsRef(userId).get();
 
     final List<AppItemModel> apps = [];
 
@@ -51,11 +59,7 @@ class AppManagementRepository {
   }
 
   Future<void> migrateLegacyTimeRange(String userId) async {
-    final appsSnap = await db
-        .collection("blocked_items")
-        .doc(userId)
-        .collection("apps")
-        .get();
+    final appsSnap = await _blockedItemsAppsRef(userId).get();
 
     for (final appDoc in appsSnap.docs) {
       final ruleRef = appDoc.reference.collection("usage_rule").doc("config");
@@ -95,7 +99,7 @@ class AppManagementRepository {
   }
 
   Future<void> seedApps(String userId, List<AppInfo> apps) async {
-    final col = db.collection("blocked_items").doc(userId).collection("apps");
+    final col = _blockedItemsAppsRef(userId);
 
     final existingSnap = await col.get();
     final existingPackages = existingSnap.docs.map((d) => d.id).toSet();
@@ -169,11 +173,7 @@ class AppManagementRepository {
     required UsageRule rule,
   }) async {
     final today = DateTime.now().weekday;
-    final appRef = db
-        .collection("blocked_items")
-        .doc(userId)
-        .collection("apps")
-        .doc(packageName);
+    final appRef = _blockedItemsAppsRef(userId).doc(packageName);
 
     final ruleRef = appRef.collection("usage_rule").doc("config");
 
@@ -193,10 +193,7 @@ class AppManagementRepository {
     required String userId,
     required String packageName,
   }) async {
-    final ruleRef = db
-        .collection("blocked_items")
-        .doc(userId)
-        .collection("apps")
+    final ruleRef = _blockedItemsAppsRef(userId)
         .doc(packageName)
         .collection("usage_rule")
         .doc("config");
@@ -212,7 +209,7 @@ class AppManagementRepository {
     final hourlyResult = <DateTime, Map<int, int>>{};
 
     try {
-      final userRef = db.collection("blocked_items").doc(userId);
+      final userRef = _blockedItemsUserRef(userId);
 
       /// -------- DAILY USAGE --------
       final dailySnapshot = await userRef.collection("usage_daily_flat").get();

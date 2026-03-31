@@ -15,11 +15,7 @@ import 'package:provider/provider.dart';
 enum OtpPurpose { verifyEmail, resetPassword }
 
 class OtpScreen extends StatefulWidget {
-  const OtpScreen({
-    super.key,
-    required this.email,
-    required this.purpose,
-  });
+  const OtpScreen({super.key, required this.email, required this.purpose});
 
   final String email;
   final OtpPurpose purpose;
@@ -73,7 +69,7 @@ class _OtpScreenState extends State<OtpScreen> {
     final l10n = AppLocalizations.of(context);
 
     if (otp.length != 6) {
-      AlertService.showSnack(l10n.authGenericError, isError: true);
+      AlertService.showSnack(l10n.otpNeed4Digits, isError: true);
       return;
     }
 
@@ -127,9 +123,8 @@ class _OtpScreenState extends State<OtpScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => ResetPasswordScreen(
-              resetSessionToken: resetSessionToken,
-            ),
+            builder: (_) =>
+                ResetPasswordScreen(resetSessionToken: resetSessionToken),
           ),
         );
         return;
@@ -202,8 +197,8 @@ class _OtpScreenState extends State<OtpScreen> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        Opacity(
-                          opacity: 0,
+                        Offstage(
+                          offstage: true,
                           child: SizedBox(
                             width: 1,
                             child: TextField(
@@ -215,6 +210,7 @@ class _OtpScreenState extends State<OtpScreen> {
                             ),
                           ),
                         ),
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: List.generate(6, (index) {

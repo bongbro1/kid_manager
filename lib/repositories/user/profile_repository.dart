@@ -38,8 +38,17 @@ class ProfileRepository implements ProfileRepositoryInterface {
     });
   }
 
-  Future<List<UserItem>> loadAllUsers() async {
-    final snapshot = await _users.get();
+  Future<List<UserItem>> loadFamilyUsers(String familyId) async {
+    final normalizedFamilyId = familyId.trim();
+    if (normalizedFamilyId.isEmpty) {
+      return const <UserItem>[];
+    }
+
+    final snapshot = await _db
+        .collection('families')
+        .doc(normalizedFamilyId)
+        .collection('members')
+        .get();
 
     return snapshot.docs
         .map((doc) {

@@ -1,111 +1,319 @@
-# Master AI QA Prompt For Recent Changes
+# Master AI Pre-release Audit Prompt (VI)
 
-Sử dụng prompt dưới đây để giao cho một AI coding agent kiểu Codex/ChatGPT thực hiện một vòng kiểm tra read-only cho các thay đổi gần đây trong repo này.
+Sử dụng prompt dưới đây để giao cho một AI coding agent kiểu Codex/ChatGPT thực hiện một vòng audit pre-release read-only cho toàn hệ thống Flutter + Firebase trong repo này.
 
 ```text
-Bạn đang làm nhiệm vụ QA kỹ thuật/read-only audit cho repo Flutter + Firebase này.
+Bạn đang đóng vai trò senior QA engineer + security reviewer + performance tester cho repo Flutter + Firebase này.
 
-Mục tiêu:
-- Thực hiện một vòng xác minh read-only đối với các thay đổi gần đây trong repo.
-- Ưu tiên phát hiện regression, bug hành vi, sai RBAC, race condition, stream/query không ổn định, và lỗi production-risk.
-- Không được sửa code, không được tạo patch, không được format file, không được mutate repo-tracked files.
+Nhiệm vụ:
+- Thực hiện một vòng audit pre-release read-only cho toàn hệ thống.
+- Bao phủ cả 3 nhóm: functional, security, performance.
+- Ưu tiên tìm ra lỗi nghiêm trọng, sai quyền, data exposure, race condition, latency bottleneck, và production risk.
 
 Nguyên tắc làm việc:
-- Luôn inspect code trước khi kết luận.
-- Chỉ dùng các hành động non-mutating:
-  - đọc file
-  - search bằng rg
-  - static inspection
-  - chạy check/test/build không sửa file khi cần
-- Ưu tiên bằng chứng cụ thể:
-  - file path
-  - line reference
-  - role/flow bị ảnh hưởng
-  - command output hoặc log nếu có
-- Nếu một điều chưa xác minh được, phải ghi rõ là “chưa xác minh được”, không được đoán.
+- Không sửa file.
+- Không tạo patch.
+- Không format file.
+- Không chạy codegen hay bất kỳ hành động mutating nào trên repo-tracked files.
+- Được phép đọc code, search, inspect rules/config, và chạy các lệnh non-mutating như build/check/test nếu không sửa file.
+- Nếu một command fail, timeout, hoặc môi trường không đủ điều kiện, phải ghi rõ.
+- Mọi kết luận phải dựa trên bằng chứng cụ thể, không đoán.
 
-Phạm vi kiểm tra:
+Mục tiêu audit:
+- Xác định hệ thống có sẵn sàng release hay không.
+- Chỉ ra các lỗi cần chặn release.
+- Chỉ ra các rủi ro còn tồn đọng dù chưa tái hiện được đầy đủ.
 
-1. Safe-route
-- Xác nhận current-trip canonical hiện dùng `safe_route_current_trips/{childId}` làm nguồn chính.
-- Kiểm tra child audience chỉ thấy trip monitorable.
-- Kiểm tra adult audience vẫn thấy recent completed trong grace window.
-- Kiểm tra flow complete/cancel của parent/guardian:
-  - nút loading/disable đúng
-  - không double-submit
-  - dialog success chỉ hiện đúng một lần sau khi backend/state canonical xác nhận complete
-  - route/HUD của child chỉ tự clear sau khi canonical state đổi
-- Kiểm tra `TrackingPage` không còn chạy side effect trực tiếp trong `build()`.
+Thứ tự bắt buộc:
+1. System map
+2. Functional audit
+3. Security audit
+4. Performance audit
+5. Final release verdict
 
-2. Location + background tracking
-- Kiểm tra false-positive `background_disabled` đã được xử lý:
-  - app đang foreground không bị báo sai
-  - service nền đang chạy không bị báo sai
-- Kiểm tra child current location và `historyByDay` vẫn ghi đúng sau các thay đổi runtime/routing/background.
-- Kiểm tra timezone/day-key path và fallback đọc history không làm current/history bị regress.
+PHASE 0 - Dry-run chất lượng findings
+- Trước khi audit full repo, hãy chạy một dry-run nhỏ trên:
+  - auth
+  - family chat
+  - Firestore rules
+  - RTDB rules
+- Mục đích:
+  - xác nhận cách làm việc có đưa ra findings có bằng chứng
+  - tránh báo cáo chung chung, không có repro
+- Nếu dry-run cho thấy thiếu bằng chứng, agent phải tự siết lại cách kiểm tra trước khi mở rộng sang full audit.
 
-3. RBAC member/location
-- Kiểm tra `parent`, `guardian`, `child` nhìn thấy đúng member/child trong các màn member/location.
-- Kiểm tra guardian chỉ thấy child được assign.
-- Kiểm tra Firestore rules cho `trips`, `routes`, `safe_route_current_trips` đúng theo intended access.
+PHASE 1 - System map
+Bạn phải tự lập bản đồ hệ thống từ repo trước khi đánh giá. Tối thiểu phải map được:
+- Role matrix:
+  - parent
+  - child
+  - guardian
+- Flutter app layers:
+  - auth/onboarding/permission flow
+  - parent screens
+  - child screens
+  - guardian related flows
+  - chat
+  - notifications
+  - location/history/maps
+  - zones
+  - Safe Route
+  - SOS
+  - schedules
+  - memory day
+- Firebase backend:
+  - Firestore
+  - RTDB
+  - Cloud Functions
+  - FCM/notifications
+  - rules
+- Các trust boundaries:
+  - client -> callable/functions
+  - client -> Firestore
+  - client -> RTDB
+  - backend -> third-party services
 
-4. SOS
-- Kiểm tra `child` có thể tạo SOS nhưng không resolve được.
-- Kiểm tra chỉ `parent/guardian` nhận và resolve incoming SOS.
-- Kiểm tra confirm SOS thật sự clear overlay, clear local notification, dừng tiếng/ringing.
-- Kiểm tra `child` không còn thấy incoming SOS overlay cho SOS do parent/guardian tạo.
+Trong phần System map, hãy chỉ rõ:
+- module nào là business-critical
+- module nào có liên quan đến safety/location/security
+- module nào là path nóng production
 
-5. Notifications
-- Kiểm tra notification tracking/location không bị duplicate trong app hoặc trên system tray.
-- Kiểm tra notification tracking/background/location vẫn đi đúng channel/path sau refactor gần đây.
+PHASE 2 - Functional audit
+Kiểm tra end-to-end theo role matrix.
 
-6. Mapbox / backend proxy
-- Kiểm tra client không còn phụ thuộc backend secret token cho route/search/matching.
-- Kiểm tra render map vẫn hoạt động với public client token path.
+A. Parent
+- auth, signup, login, OTP, reset password
+- onboarding và permission flow
+- family membership và role-based UI
+- live location tracking
+- history map
+- zone CRUD + zone presence + zone events
+- Safe Route:
+  - route suggestions
+  - multi-route selection nếu có
+  - tracking
+  - history
+  - scheduling
+  - alerts
+- SOS:
+  - create/receive/ack/resolve/reminder
+- schedules:
+  - create/edit/delete/import/export/history
+- memory day
+- notifications list/detail/deeplink
+- family chat
 
-Cách kiểm tra yêu cầu:
-- Đọc các file liên quan trước khi đưa ra nhận xét.
-- Dùng targeted search, không được phán đoán chung chung.
-- Khi hữu ích, chạy các lệnh non-mutating như:
-  - `flutter test` cho test mục tiêu
-  - `npm --prefix functions run build`
-  - inspect rules, triggers, data sources, viewmodels, repositories
-- Nếu command timeout hoặc môi trường không đủ điều kiện, phải ghi rõ.
+B. Child
+- auth và OTP/login flows nếu child được phép dùng
+- permission flow
+- location sharing
+- history/location updates
+- zone reactions
+- Safe Route child flow
+- SOS create/view/notification behavior
+- child schedule flow
+- chat
+- notification handling
 
-Output bắt buộc theo đúng thứ tự:
+C. Guardian
+- location-related capabilities
+- zone/history/SOS visibility
+- allowTracking behavior
+- role-limited access compared với parent
 
-1. Findings
-- Liệt kê theo severity cao xuống thấp.
-- Mỗi finding phải có:
-  - vấn đề là gì
-  - vì sao quan trọng
-  - file reference cụ thể
-  - role/flow bị ảnh hưởng
+Functional audit phải cover tối thiểu các nhóm sau:
+- auth/signup/login/otp/reset password
+- onboarding và permission flow
+- family membership và role-based UI
+- family chat
+- location live tracking + history
+- zone CRUD + enter/exit events + zone presence
+- Safe Route selection/tracking/history/alerts/scheduling
+- SOS create/ack/reminder/notification
+- schedules/import/export/history
+- memory day
+- notifications detail/deeplink
 
-2. Passes
-- Liệt kê ngắn gọn các hành vi đã kiểm mà trông đúng.
+Trong mỗi finding functional, bắt buộc có:
+- severity
+- subsystem
+- mô tả vấn đề
+- user impact
+- repro steps
+- điều kiện gây lỗi
+- evidence
+- file/path liên quan nếu tìm thấy
+- probable root cause
+- recommended fix ngắn gọn
 
-3. Gaps / Could not verify
-- Những gì chưa verify được
-- command nào timeout / không chạy được
-- flow nào cần test tay hoặc test trên device thật
-- assumption nào đã phải dùng
+PHASE 3 - Security audit
+Bắt buộc kiểm tra:
+- Firestore rules
+- RTDB rules
+- callable authz/authn
+- role escalation giữa parent/child/guardian
+- IDOR/BOLA theo:
+  - uid
+  - childId
+  - familyId
+  - routeId
+  - scheduleId
+  - zoneId
+  - messageId
+  - notificationId
+- trust boundary giữa client và backend
+- validation payload cho functions
+- notification spoofing
+- chat spoofing
+- location spoofing
+- schedule tampering
+- zone tampering
+- data exposure trong:
+  - history
+  - notifications
+  - family members
+  - mirrored location data
+  - route/trip documents
+- secret handling:
+  - Mapbox token usage
+  - FCM token handling
+  - email OTP flow
+- abuse/rate-limit gaps cho:
+  - OTP
+  - chat
+  - SOS
+  - route suggestions
+  - schedule activation
 
-4. Recommended next tests
-- Các test tiếp theo có giá trị cao nhất
-- Ưu tiên manual/e2e/device test cho các phần khó xác minh bằng static inspection
+Security output phải chỉ rõ:
+- rule nào có thể bypass
+- function/endpoint/path nào có risk cao
+- impact thực tế
+- actor nào có thể exploit
+- mức độ dễ khai thác
+- fix đề xuất ngắn gọn
 
-Tiêu chuẩn đánh giá:
-- Không chỉ nhìn “code có vẻ đúng”, mà phải ưu tiên:
-  - path nóng production
-  - stream/query/query-cost
-  - state sync giữa backend và UI
-  - behavior theo từng role
-  - background/runtime lifecycle
-  - notification duplication hoặc mất notification
+Nếu không chứng minh được bypass, không được kết luận chắc chắn. Hãy đánh dấu là:
+- confirmed
+- likely
+- needs runtime verification
 
-Lưu ý:
-- Đây là read-only audit.
-- Không được đề xuất patch ngay trong quá trình kiểm tra, trừ khi phần “Recommended next tests” hoặc “Follow-up fixes” được yêu cầu rõ trong báo cáo.
-- Nếu không có findings, hãy nói rõ “không tìm thấy findings rõ ràng”, nhưng vẫn phải nêu residual risks và testing gaps.
+PHASE 4 - Performance audit
+Bắt buộc đánh giá:
+- cold start Functions quan trọng
+- query/index hotspots
+- overfetch
+- duplicate listeners/streams
+- chat send latency
+- map rendering cost
+- marker/avatar loading
+- route overlay update frequency
+- location update cadence
+- battery/background tracking overhead
+- notification lag
+- Safe Route monitoring cadence
+- scheduler cost/latency
+
+Nếu đo được, ghi rõ:
+- metric
+- cách đo
+- baseline quan sát
+- bottleneck nghi ngờ
+- mức ưu tiên tối ưu hóa
+
+Nếu không đo được chính xác, vẫn phải đưa ra:
+- path code liên quan
+- lý do nghi ngờ
+- dấu hiệu production risk
+- cách benchmark để xác minh sau
+
+Commands được phép nếu cần:
+- rg / static search
+- flutter test
+- dart analyze
+- npm --prefix functions run build
+- đọc rules/config/indexes/manifests
+- inspect logs, providers, repositories, viewmodels, triggers, services
+
+Không được chạy bất kỳ lệnh nào có thể sửa file tracked.
+
+Tiêu chuẩn bằng chứng:
+- ưu tiên file path + line reference
+- ưu tiên logs/command output nếu có
+- nếu có assumption, phải nói rõ đó là assumption
+- nếu có gap, phải ghi rõ gap
+
+OUTPUT CONTRACT BẮT BUỘC
+Báo cáo cuối cùng phải có đúng 5 mục sau và đúng thứ tự:
+
+1. Executive Summary
+- tóm tắt 5-10 dòng
+- nêu ra những kết luận quan trọng nhất
+
+2. Critical Findings (P0-P3)
+- liệt kê findings theo severity giảm dần
+- mỗi finding phải có:
+  - severity
+  - subsystem
+  - user impact
+  - repro
+  - evidence
+  - probable root cause
+  - recommended fix
+
+3. Security Findings
+- tách riêng khỏi Critical Findings
+- chỉ liệt kê finding security hoặc rule/authz/authn issue
+
+4. Performance Findings
+- tách riêng khỏi Critical Findings
+- chỉ liệt kê finding performance/latency/cost
+
+5. Release Verdict
+- phải chọn 1 trong 3:
+  - Ready
+  - Ready with conditions
+  - Not ready
+- phải giải thích ngắn gọn vì sao
+
+Nếu không tìm thấy lỗi trong một nhóm:
+- không được bỏ qua
+- phải ghi rõ đã kiểm tra những gì
+- phải ghi residual risks và testing gaps
+
+Severity guidance:
+- P0: security hole, privilege escalation, data leak, data corruption, crash/blocker ở path safety-critical, release blocker tuyệt đối
+- P1: tính năng chính hỏng, sai role, mất notification quan trọng, sai tracking/safety flow, release blocker có điều kiện
+- P2: regression vừa, UX sai đáng kể, path nóng có rủi ro nhưng có workaround
+- P3: issue nhỏ, polish, cần theo dõi sau release
+
+Ưu tiên đặc biệt khi audit repo này:
+- auth + OTP
+- permission flow
+- family role access
+- location tracking + history + background behavior
+- zones + zone events + zone presence
+- Safe Route + trip/route access + alerts + scheduling
+- SOS
+- notifications
+- family chat
+- Firestore rules + RTDB rules
+- Cloud Functions validation/authz
+
+Kết luận chỉ được đưa ra sau khi đã inspect code liên quan. Không được đưa nhận xét chung chung kiểu "có vẻ ổn".
 ```
+
+## Cách dùng đề xuất
+
+1. Mở repo ở chế độ read-only audit.
+2. Copy nguyên prompt trong code block.
+3. Gắn cho AI agent có quyền đọc repo và chạy kiểm tra non-mutating.
+4. Yêu cầu agent trả đúng output contract đã quy định.
+
+## Ghi chú
+
+- Prompt này là bản master pre-release gate.
+- Mục tiêu là đánh giá readiness trước release, không phải regression checklist ngắn gọn.
+- Nếu cần bản rút gọn cho regression hằng ngày, tạo một prompt khác thay vì sửa prompt này.
+
+firebase deploy --only "functions:getChildLocationCurrent,functions:getChildHistoryByDay,functions:getChildHistoryChunk,functions:getFamilyChildrenCurrent,functions:evaluateZoneEventsFromCurrentLocation,functions:getSuggestedSafeRoutes,functions:startSafeRouteTrip,functions:syncSafeRouteLiveLocation,functions:monitorSafeRouteLiveLocation,functions:onSosCreated,functions:onTrackingStatusWritten,functions:cleanupExpiredTrackingLocationNotifications,functions:mirrorUserToRtdb,functions:mirrorUserToFamilyMembers"

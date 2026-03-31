@@ -7,6 +7,11 @@ import {
   listTrackableLocationMembersForViewer,
   requireLocationViewerAccess,
 } from "../services/locationAccess";
+import {
+  assessTrustedLiveLocation,
+  buildTrustedLiveLocationPayload,
+  parseTrustedLocationHistoryPoints,
+} from "../services/trustedLocationService";
 
 const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DEFAULT_HISTORY_CHUNK_LIMIT = 250;
@@ -290,6 +295,14 @@ async function readMissingFamilyLiveLocations(params: {
 
   const entries = await Promise.all(
     missingMemberUids.map(async (memberUid) => {
+      const trustedSnap = await admin
+        .database()
+        .ref(`live_locations/${memberUid}`)
+        .get();
+      if (trustedSnap.exists()) {
+        return [memberUid, trustedSnap.val()] as const;
+      }
+
       const currentSnap = await admin
         .database()
         .ref(`locations/${memberUid}/current`)
@@ -298,7 +311,18 @@ async function readMissingFamilyLiveLocations(params: {
         return [memberUid, null] as const;
       }
 
-      const liveLocation = parseLiveLocationRecord(memberUid, currentSnap.val());
+      const rawLocation = parseLiveLocationRecord(memberUid, currentSnap.val());
+      const assessment = assessTrustedLiveLocation({
+        current: rawLocation,
+        previousTrusted: null,
+      });
+      if (!assessment.mirrorEligible) {
+        return [memberUid, null] as const;
+      }
+
+      const liveLocation = buildTrustedLiveLocationPayload({
+        location: assessment.location,
+      });
       await admin
         .database()
         .ref(`live_locations_by_family/${familyId}/${memberUid}`)
@@ -317,8 +341,32 @@ export const getChildLocationCurrent = onCall({ region: REGION }, async (req) =>
   const childUid = mustString(req.data?.childUid, "childUid");
   await requireLocationViewerAccess(viewerUid, childUid);
 
+  const trustedSnap = await admin
+    .database()
+    .ref(`live_locations/${childUid}`)
+    .get();
+  if (trustedSnap.exists()) {
+    return { ok: true, childUid, current: trustedSnap.val() };
+  }
+
   const curSnap = await admin.database().ref(`locations/${childUid}/current`).get();
-  return { ok: true, childUid, current: curSnap.exists() ? curSnap.val() : null };
+  if (!curSnap.exists()) {
+    return { ok: true, childUid, current: null };
+  }
+
+  const rawLocation = parseLiveLocationRecord(childUid, curSnap.val());
+  const assessment = assessTrustedLiveLocation({
+    current: rawLocation,
+    previousTrusted: null,
+  });
+
+  return {
+    ok: true,
+    childUid,
+    current: assessment.mirrorEligible
+      ? buildTrustedLiveLocationPayload({ location: assessment.location })
+      : null,
+  };
 });
 
 export const getChildHistoryByDay = onCall({ region: REGION }, async (req) => {
@@ -364,8 +412,12 @@ export const getChildHistoryByDay = onCall({ region: REGION }, async (req) => {
     endMinuteOfDay,
   });
 
+  const trustedItems = parseTrustedLocationHistoryPoints({
+    childUid,
+    points: items,
+  });
   const history = Object.fromEntries(
-    items.map((item) => [String(item.timestamp), item] as const)
+    trustedItems.map((item) => [String(item.timestamp), item] as const)
   );
   return { ok: true, childUid, dayKey, history };
 });
@@ -404,7 +456,7 @@ export const getChildHistoryChunk = onCall({ region: REGION }, async (req) => {
   }
 
   await requireLocationViewerAccess(viewerUid, childUid);
-  const filteredItems = await loadHistoryItemsForRequestedDay({
+  const rawItems = await loadHistoryItemsForRequestedDay({
     childUid,
     requestedDayKey: dayKey,
     cursorAfterTs,
@@ -412,6 +464,10 @@ export const getChildHistoryChunk = onCall({ region: REGION }, async (req) => {
     toTs,
     startMinuteOfDay,
     endMinuteOfDay,
+  });
+  const filteredItems = parseTrustedLocationHistoryPoints({
+    childUid,
+    points: rawItems,
   });
   const hasMore = filteredItems.length > limit;
   const pageItems = hasMore ? filteredItems.slice(0, limit) : filteredItems;

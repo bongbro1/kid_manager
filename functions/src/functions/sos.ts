@@ -20,6 +20,7 @@ validateLatLng,
 } from "../helpers";
 import { getUserFamilyAndRole, requireFamilyActor } from "../services/user";
 import { sendSosPush } from "../services/sosPush";
+import { decideInitialSosFanoutAction } from "../services/sosInitialFanout";
 import { enqueueSosReminder } from "../services/tasks";
 
 const REMINDER_LEASE_MS = 120_000;
@@ -209,6 +210,8 @@ async function ensureNextReminder(params: {
       reminder: {
         nextAttempt:
           enqueueRes && enqueueRes.enqueued ? nextAttempt : null,
+        scheduleState:
+          enqueueRes && enqueueRes.enqueued ? "scheduled" : "missing",
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
     },
@@ -324,6 +327,8 @@ export const sosReminderWorker = onRequest(
           reminder: {
             nextAttempt:
               enqueueRes && enqueueRes.enqueued ? nextAttempt : null,
+            scheduleState:
+              enqueueRes && enqueueRes.enqueued ? "scheduled" : "missing",
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           },
         },
@@ -457,6 +462,7 @@ export const createSos = onCall({ region: REGION }, async (req) => {
       reminder: {
         initialPushSent: false,
         lastAttempt: 0,
+        scheduleState: "pending",
       },
     });
 
@@ -543,54 +549,70 @@ export const onSosCreated = onDocumentCreated(
     const nowTs = admin.firestore.Timestamp.now();
 
     try {
-      const shouldSend = await db.runTransaction(async (tx) => {
+      const fanoutAction = await db.runTransaction(async (tx) => {
         const cur = await tx.get(sosRef);
-        if (!cur.exists) return false;
+        if (!cur.exists) return "skip" as const;
 
         const d = cur.data() ?? {};
         const fanout = d.fanout ?? {};
+        const reminder = d.reminder ?? {};
+        const action = decideInitialSosFanoutAction({
+          fanoutSentAt: fanout.sentAt,
+          reminderNextAttempt: reminder.nextAttempt,
+          reminderScheduleState: reminder.scheduleState,
+          reminderStoppedAt: reminder.stoppedAt,
+        });
 
-        if (fanout.sentAt) return false;
+        if (action === "skip") return action;
 
         const claimedAt: admin.firestore.Timestamp | undefined = fanout.claimedAt;
         if (claimedAt) {
           const ageMs = nowTs.toMillis() - claimedAt.toMillis();
-          if (ageMs < CLAIM_LEASE_MS) return false;
+          if (ageMs < CLAIM_LEASE_MS) return "skip" as const;
         }
 
         tx.update(sosRef, {
           "fanout.claimedAt": nowTs,
           "fanout.claimId": claimId,
-          "fanout.attempted": admin.firestore.FieldValue.increment(1),
+          ...(action === "send_and_schedule"
+            ? {
+                "fanout.attempted": admin.firestore.FieldValue.increment(1),
+              }
+            : {}),
+          "reminder.scheduleState":
+            action === "schedule_only" ? "missing" : "pending",
         });
 
-        return true;
+        return action;
       });
 
-      if (!shouldSend) return;
+      if (fanoutAction === "skip") return;
 
-      const loc = sos.location ?? {};
-      const pushRes = await sendSosPush({
-        familyId,
-        sosId,
-        createdByUid: String(createdBy),
-        lat: loc.lat != null ? Number(loc.lat) : null,
-        lng: loc.lng != null ? Number(loc.lng) : null,
-        createdByName: sos.createdByName ?? "",
-        attempt: 0,
-      });
+      if (fanoutAction === "send_and_schedule") {
+        const loc = sos.location ?? {};
+        const pushRes = await sendSosPush({
+          familyId,
+          sosId,
+          createdByUid: String(createdBy),
+          lat: loc.lat != null ? Number(loc.lat) : null,
+          lng: loc.lng != null ? Number(loc.lng) : null,
+          createdByName: sos.createdByName ?? "",
+          attempt: 0,
+        });
 
-      await sosRef.update({
-        "fanout.sentAt": admin.firestore.FieldValue.serverTimestamp(),
-        "fanout.attemptedRecipients": pushRes.attemptedRecipients,
-        "fanout.success": pushRes.success,
-        "fanout.invalidTokensRemoved": pushRes.invalidTokensRemoved,
-        "fanout.claimedAt": admin.firestore.FieldValue.delete(),
-        "fanout.claimId": admin.firestore.FieldValue.delete(),
-        "reminder.initialPushSent": true,
-        "reminder.lastAttempt": 0,
-        "reminder.lastSentAt": admin.firestore.FieldValue.serverTimestamp(),
-      });
+        await sosRef.update({
+          "fanout.sentAt": admin.firestore.FieldValue.serverTimestamp(),
+          "fanout.attemptedRecipients": pushRes.attemptedRecipients,
+          "fanout.success": pushRes.success,
+          "fanout.invalidTokensRemoved": pushRes.invalidTokensRemoved,
+          "fanout.claimedAt": admin.firestore.FieldValue.delete(),
+          "fanout.claimId": admin.firestore.FieldValue.delete(),
+          "reminder.initialPushSent": true,
+          "reminder.lastAttempt": 0,
+          "reminder.lastSentAt": admin.firestore.FieldValue.serverTimestamp(),
+          "reminder.scheduleState": "pending",
+        });
+      }
 
       await enqueueSosReminder({
         familyId,
@@ -601,8 +623,13 @@ export const onSosCreated = onDocumentCreated(
 
       await sosRef.set(
         {
+          fanout: {
+            claimedAt: admin.firestore.FieldValue.delete(),
+            claimId: admin.firestore.FieldValue.delete(),
+          },
           reminder: {
             nextAttempt: 1,
+            scheduleState: "scheduled",
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           },
         },
@@ -618,6 +645,7 @@ export const onSosCreated = onDocumentCreated(
           "fanout.claimId": admin.firestore.FieldValue.delete(),
           "fanout.lastError": String(err?.message ?? err),
           "fanout.lastErrorAt": admin.firestore.FieldValue.serverTimestamp(),
+          "reminder.scheduleState": "missing",
         });
       } catch {}
 

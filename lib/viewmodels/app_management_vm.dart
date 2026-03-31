@@ -106,6 +106,35 @@ class AppManagementVM extends ChangeNotifier {
     return _userRepo.getUserById(childId);
   }
 
+  Future<String?> _requireAuthorizedManagedChildId(String childId) async {
+    final normalizedChildId = childId.trim();
+    if (normalizedChildId.isEmpty) {
+      return null;
+    }
+
+    final actor = await _resolveActorSnapshot();
+    if (actor == null ||
+        !actor.role.isAdultManager ||
+        !_accessControl.canUseFeature(
+          feature: AppFeature.appManagement,
+          actor: actor,
+        )) {
+      return null;
+    }
+
+    final child = await _resolveManagedChild(normalizedChildId);
+    if (child == null ||
+        !_accessControl.canManageChild(
+          actor: actor,
+          childUid: normalizedChildId,
+          child: child,
+        )) {
+      return null;
+    }
+
+    return normalizedChildId;
+  }
+
   void _resetLoadedData() {
     _apps = [];
     _usageMap = {};
@@ -204,7 +233,6 @@ class AppManagementVM extends ChangeNotifier {
   Future<void> loadAppsForSelectedChild() async {
     final childId = _selectedChildId?.trim();
     final loadGeneration = ++_loadGeneration;
-    final actor = await _resolveActorSnapshot();
 
     if (childId == null || childId.isEmpty) {
       _error = null;
@@ -219,27 +247,17 @@ class AppManagementVM extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final child = await _resolveManagedChild(childId);
-      if (actor == null ||
-          child == null ||
-          !_accessControl.canUseFeature(
-            feature: AppFeature.appManagement,
-            actor: actor,
-          ) ||
-          !_accessControl.canManageChild(
-            actor: actor,
-            childUid: childId,
-            child: child,
-          )) {
+      final authorizedChildId = await _requireAuthorizedManagedChildId(childId);
+      if (authorizedChildId == null) {
         _resetLoadedData();
         _error = runtimeL10n().appManagementSyncFailed;
         return;
       }
 
-      final loadedApps = await _repo.loadAppsFromFirestore(childId);
+      final loadedApps = await _repo.loadAppsFromFirestore(authorizedChildId);
       if (_isStaleLoad(loadGeneration, childId)) return;
 
-      final usageResult = await _repo.loadUsageHistory(childId);
+      final usageResult = await _repo.loadUsageHistory(authorizedChildId);
       if (_isStaleLoad(loadGeneration, childId)) return;
 
       _apps = loadedApps;
@@ -337,8 +355,13 @@ class AppManagementVM extends ChangeNotifier {
       _loading = true;
       notifyListeners();
 
+      final authorizedChildId = await _requireAuthorizedManagedChildId(userId);
+      if (authorizedChildId == null) {
+        throw StateError('Not allowed to manage this child');
+      }
+
       await _repo.saveUsageRuleForApp(
-        userId: userId,
+        userId: authorizedChildId,
         packageName: packageName,
         rule: rule,
       );
@@ -354,13 +377,26 @@ class AppManagementVM extends ChangeNotifier {
   Future<UsageRule?> loadUsageRule({
     required String childId,
     required String packageName,
-  }) {
-    return _repo.fetchUsageRule(userId: childId, packageName: packageName);
+  }) async {
+    final authorizedChildId = await _requireAuthorizedManagedChildId(childId);
+    if (authorizedChildId == null) {
+      throw StateError('Not allowed to manage this child');
+    }
+    return _repo.fetchUsageRule(
+      userId: authorizedChildId,
+      packageName: packageName,
+    );
   }
 
   Future<void> loadUsageHistory(String selectedChildId) async {
     try {
-      final result = await _repo.loadUsageHistory(selectedChildId);
+      final authorizedChildId =
+          await _requireAuthorizedManagedChildId(selectedChildId);
+      if (authorizedChildId == null) {
+        throw StateError('Not allowed to manage this child');
+      }
+
+      final result = await _repo.loadUsageHistory(authorizedChildId);
       if (_selectedChildId != selectedChildId) return;
 
       _usageMap = result.totalUsage;

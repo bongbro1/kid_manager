@@ -29,11 +29,12 @@ class IncomingSosOverlay extends StatefulWidget {
 class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _sub;
   DocumentSnapshot<Map<String, dynamic>>? _doc;
+  Timer? _retryTimer;
 
   bool _ringing = false;
   bool _resolving = false;
   String? _ignoredSosId;
-  int _permissionRetryCount = 0;
+  int _subscribeRetryCount = 0;
 
   bool get _canResolveSos =>
       widget.viewerRole?.isAdultManager ?? false;
@@ -63,7 +64,9 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       _sub = q.snapshots().listen(
         (qs) {
           if (!mounted) return;
-          _permissionRetryCount = 0;
+          _subscribeRetryCount = 0;
+          _retryTimer?.cancel();
+          _retryTimer = null;
 
           if (qs.docs.isEmpty) {
             _resolving = false;
@@ -112,13 +115,8 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
           if (error is FirebaseException) {
             debugPrint('FirebaseException code=${error.code}');
             debugPrint('message=${error.message}');
-
-            if (error.code == 'permission-denied') {
-              _schedulePermissionRetry();
-            }
           }
-
-          _clearOverlayAndStopAlarm();
+          _scheduleSubscribeRetry();
         },
         cancelOnError: false,
       );
@@ -128,12 +126,17 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
     }
   }
 
-  void _schedulePermissionRetry() {
-    if (_permissionRetryCount >= 3) return;
-    _permissionRetryCount += 1;
-    final delay = Duration(milliseconds: 700 * _permissionRetryCount);
+  void _scheduleSubscribeRetry() {
+    if (!mounted || _retryTimer != null) {
+      return;
+    }
 
-    Future.delayed(delay, () {
+    _subscribeRetryCount += 1;
+    final exponent = _subscribeRetryCount > 6 ? 6 : _subscribeRetryCount;
+    final delay = Duration(seconds: 1 << (exponent - 1));
+
+    _retryTimer = Timer(delay, () {
+      _retryTimer = null;
       if (!mounted) return;
       _subscribe();
     });
@@ -238,7 +241,9 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       _ringing = false;
       _resolving = false;
       _ignoredSosId = null;
-      _permissionRetryCount = 0;
+      _subscribeRetryCount = 0;
+      _retryTimer?.cancel();
+      _retryTimer = null;
       _subscribe();
     }
   }
@@ -293,6 +298,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   @override
   void dispose() {
     _sub?.cancel();
+    _retryTimer?.cancel();
     unawaited(SosAlarmPlayer.instance.stop());
     debugPrint(
       'OVERLAY dispose familyId=${widget.familyId} hash=$hashCode',

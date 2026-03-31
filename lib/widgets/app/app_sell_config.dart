@@ -22,7 +22,21 @@ class AppShellConfig {
 
   static AppShellConfig parent() => _adultManager();
 
-  static AppShellConfig guardian() => _adultManager();
+  static AppShellConfig guardian() => AppShellConfig([
+    _managerMapTab(),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/dashboard.svg',
+      root: const AppManagementScreen(),
+    ),
+    _familyChatTab(),
+    _notificationTab(),
+    BottomTabConfig(
+      iconAsset: 'assets/icons/calendar.svg',
+      root: const ScheduleScreen(),
+      isScheduleTab: true,
+    ),
+    _profileTab(),
+  ], chatTabIndex: 2);
 
   static AppShellConfig child() => AppShellConfig([
     BottomTabConfig(
@@ -93,9 +107,7 @@ class AppShellConfig {
 
   static BottomTabConfig _notificationTab() => const BottomTabConfig(
     iconAsset: 'assets/icons/bell.svg',
-    root: NotificationTab(
-      sources: [NotificationSource.global],
-    ),
+    root: NotificationTab(sources: [NotificationSource.global]),
     showBadge: true,
     isNotificationTab: true,
   );

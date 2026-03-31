@@ -15,8 +15,29 @@ service firebase.storage {
       );
     }
 
+    function userExists(uid) {
+      return firestore.exists(/databases/(default)/documents/users/$(uid));
+    }
+
+    function userDoc(uid) {
+      return firestore.get(/databases/(default)/documents/users/$(uid));
+    }
+
+    function isSameFamilyAsUser(uid) {
+      return isSignedIn()
+        && userExists(uid)
+        && userExists(request.auth.uid)
+        && userDoc(uid).data.familyId is string
+        && userDoc(request.auth.uid).data.familyId is string
+        && userDoc(uid).data.familyId == userDoc(request.auth.uid).data.familyId;
+    }
+
     match /users/{uid}/{allPaths=**} {
-      allow read: if isSignedIn();
+      allow read: if isSelf(uid)
+        || (
+          isSameFamilyAsUser(uid)
+          && allPaths.matches('^(avatar_|cover_)[^/]+$')
+        );
       allow write: if isSelf(uid)
         && request.resource != null
         && request.resource.size < 10 * 1024 * 1024

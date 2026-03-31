@@ -160,6 +160,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
     final resolvedPoint = _canonicalHistoryPoint(point);
     _vm.setSelectedPoint(resolvedPoint);
     _syncCardAnimation();
+    await _engine?.camera.focusOnPoint(resolvedPoint);
     await _expandSheetForSelection();
   }
 
@@ -194,6 +195,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
 
     await engine.loadHistory(history, context);
     await engine.setHistoryDotsVisible(_vm.showDots);
+    await _ensureSingleHistoryPointFocus(engine, history);
     _lastMapMatchAt = DateTime.now();
 
     if (_vm.isToday && _vm.rangeIncludesNow) {
@@ -204,6 +206,26 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
     }
 
     _syncCardAnimation();
+  }
+
+  Future<void> _ensureSingleHistoryPointFocus(
+    MapEngine engine,
+    List<LocationData> history,
+  ) async {
+    if (history.length != 1) {
+      return;
+    }
+
+    final point = _canonicalHistoryPoint(history.single);
+
+    // Style/marker rendering can still win the first camera race on initial
+    // screen entry. Re-apply a focused camera once the point is on the map.
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    if (!mounted || _engine != engine) {
+      return;
+    }
+
+    await engine.camera.focusOnPoint(point);
   }
 
   Future<void> _loadForDay(DateTime day) async {

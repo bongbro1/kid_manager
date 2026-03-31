@@ -317,8 +317,15 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<NotificationVM>();
     final detail = vm.notificationDetail;
+    final trackingStatus = detail == null
+        ? ''
+        : trackingStatusFromNotificationPayload(
+            title: detail.title,
+            data: detail.data,
+          );
     final knownSafeRouteAccess = detail == null ||
-            detail.notificationType != NotificationType.tracking
+            detail.notificationType != NotificationType.tracking ||
+            !trackingStatus.startsWith('safe_route_')
         ? null
         : _resolveKnownSafeRouteAccess(
             (detail.data['childUid'] ?? detail.data['childId'] ?? '')
@@ -469,6 +476,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                                   : null,
                           onOpenSafeRouteTracking:
                               detail.notificationType == NotificationType.tracking &&
+                                      trackingStatus.startsWith('safe_route_') &&
                                       (knownSafeRouteAccess == null ||
                                           knownSafeRouteAccess.isAllowed)
                                   ? () => _handleOpenSafeRouteTracking(detail)

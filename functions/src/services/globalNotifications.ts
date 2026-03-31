@@ -10,6 +10,8 @@ export async function createGlobalNotificationRecord(params: {
   body: string;
   eventKey?: string;
   familyId?: string;
+  eventCategory?: string;
+  expiresAt?: FirebaseFirestore.Timestamp | null;
   data?: Record<string, any>;
 }) {
   const notificationId = params.notificationId ?? randomUUID();
@@ -22,6 +24,8 @@ export async function createGlobalNotificationRecord(params: {
     body: params.body,
     eventKey: params.eventKey ?? "",
     familyId: params.familyId ?? null,
+    eventCategory: params.eventCategory ?? null,
+    expiresAt: params.expiresAt ?? null,
     data: params.data ?? {},
     isRead: false,
     status: "pending",

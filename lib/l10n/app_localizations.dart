@@ -554,6 +554,12 @@ abstract class AppLocalizations {
   /// **'was at {zoneName} • {ago}'**
   String zoneStatusWasAtWithAgoText(String zoneName, String ago);
 
+  /// No description provided for @zoneStatusLiveUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Current zone status is unavailable'**
+  String get zoneStatusLiveUnavailable;
+
   /// No description provided for @zoneStatusDurationMinutes.
   ///
   /// In en, this message translates to:
@@ -1235,7 +1241,7 @@ abstract class AppLocalizations {
   /// No description provided for @otpNeed4Digits.
   ///
   /// In en, this message translates to:
-  /// **'Please enter all 4 OTP digits'**
+  /// **'Please enter all 6 OTP digits'**
   String get otpNeed4Digits;
 
   /// No description provided for @otpDigitsOnly.
@@ -4010,6 +4016,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Location is active again'**
   String get tracking_ok_parent_title;
+
+  /// No description provided for @tracking_location_service_off_parent_body.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName} turned off GPS or location on the device.'**
+  String tracking_location_service_off_parent_body(String childName);
+
+  /// No description provided for @tracking_location_permission_denied_parent_body.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName} disabled the app\'s location permission.'**
+  String tracking_location_permission_denied_parent_body(String childName);
+
+  /// No description provided for @tracking_background_disabled_parent_body.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName} turned off background location sharing.'**
+  String tracking_background_disabled_parent_body(String childName);
+
+  /// No description provided for @tracking_location_stale_parent_body.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName} has not updated location for more than 2 minutes.'**
+  String tracking_location_stale_parent_body(String childName);
+
+  /// No description provided for @tracking_ok_parent_body.
+  ///
+  /// In en, this message translates to:
+  /// **'{childName} has turned location back on and updates are working normally.'**
+  String tracking_ok_parent_body(String childName);
 
   /// No description provided for @tracking_location_service_off_child_title.
   ///

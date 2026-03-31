@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
+import 'package:kid_manager/services/notifications/tracking_location_notification_text.dart';
 import 'package:kid_manager/services/notifications/tracking_notification_style.dart';
 import 'package:kid_manager/widgets/notifications/blocked_app_detail_widget.dart';
 import 'package:kid_manager/widgets/notifications/removed_app_detail_widget.dart';
 import 'package:kid_manager/widgets/notifications/safe_route_notification_detail_widget.dart';
+import 'package:kid_manager/widgets/notifications/tracking_location_status_detail_widget.dart';
 import 'package:kid_manager/widgets/notifications/zone_details_widgets.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/widgets/notifications/schedule_detail_widget.dart';
@@ -45,6 +47,13 @@ class NotificationDetailBody extends StatelessWidget {
         detail: detail,
         onOpenTracking: onOpenSafeRouteTracking,
       );
+    }
+    if (isTrackingLocationStatusNotification(
+      type: detail.type,
+      title: detail.title,
+      data: detail.data,
+    )) {
+      return TrackingLocationStatusDetailWidget(detail: detail);
     }
     if (detail.notificationType == NotificationType.appRemoved) {
       return RemovedAppDetailWidget(detail: detail);

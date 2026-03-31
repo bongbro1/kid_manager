@@ -13,6 +13,7 @@ export * from "./functions/tokens";
 export * from "./functions/sos";
 export * from "./functions/locations";
 export * from "./functions/notifications";
+export * from "./functions/notification_cleanup";
 export * from "./functions/mapbox";
 export * from "./functions/zones";
 export * from "./functions/zoneEvents";

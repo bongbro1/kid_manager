@@ -292,6 +292,12 @@ class AppNotification {
     required NotificationStore store,
   }) {
     final dataMap = Map<String, dynamic>.from(map['data'] ?? {});
+    if (!dataMap.containsKey('eventCategory') && map['eventCategory'] != null) {
+      dataMap['eventCategory'] = map['eventCategory'];
+    }
+    if (!dataMap.containsKey('expiresAt') && map['expiresAt'] != null) {
+      dataMap['expiresAt'] = map['expiresAt'];
+    }
     final rawTitle = (map['title'] ?? '').toString();
     final rawEventKey = (map['eventKey'] ?? dataMap['eventKey'] ?? '').toString();
     final normalizedEventKey = _normalizeLocalizedKey(

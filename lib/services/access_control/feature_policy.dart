@@ -185,7 +185,7 @@ class FeaturePolicyCatalog {
     ),
     AppFeature.appManagement: FeaturePolicy(
       feature: AppFeature.appManagement,
-      allowedRoles: {UserRole.parent, UserRole.guardian},
+      allowedRoles: {UserRole.parent},
       allowedPlans: {SubscriptionPlan.free, SubscriptionPlan.pro},
     ),
   };

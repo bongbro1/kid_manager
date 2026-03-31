@@ -434,6 +434,10 @@ class ChildLocationViewModel extends ChangeNotifier {
 
     // allow caller override requireBackground
     _requireBackground = background;
+    debugPrint(
+      '[SelfTracking] start requested uid=$sharingUid '
+      'requireBackground=$_requireBackground',
+    );
     notifyListeners();
 
     var ok = false;
@@ -507,6 +511,12 @@ class ChildLocationViewModel extends ChangeNotifier {
       }
       _locationPermissionGranted = false;
       _isSharing = false;
+      debugPrint(
+        '[SelfTracking] start blocked uid=$sharingUid '
+        'serviceEnabled=$serviceEnabled '
+        'requireBackground=$_requireBackground '
+        'error=$_error',
+      );
       notifyListeners();
       return;
     }
@@ -537,6 +547,13 @@ class ChildLocationViewModel extends ChangeNotifier {
       } else {
         _publishingHandledByService = false;
       }
+      debugPrint(
+        '[SelfTracking] background bootstrap uid=$sharingUid '
+        'serviceStarted=$serviceStarted '
+        'runtimeReady=$_publishingHandledByService '
+        'parentUid=${routingContext?.parentUid} '
+        'familyId=${routingContext?.familyId}',
+      );
     }
 
     if (!_publishingHandledByService && _requireBackground) {
@@ -558,6 +575,11 @@ class ChildLocationViewModel extends ChangeNotifier {
     _activeSharingUid = sharingUid;
     _isSharing = true;
     _motionState = MotionState.moving;
+    debugPrint(
+      '[SelfTracking] publisher active uid=$sharingUid '
+      'handledByService=$_publishingHandledByService '
+      'requireBackground=$_requireBackground',
+    );
     await _startHealthMonitor();
     if (_disposed) return;
 

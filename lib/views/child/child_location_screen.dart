@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -36,6 +37,7 @@ class ChildLocationScreen extends StatefulWidget {
 class _ChildLocationScreenState extends State<ChildLocationScreen> {
   MapboxMap? _map;
   MapEngine? _engine;
+  final AppMapViewController _mapViewController = AppMapViewController();
 
   bool _autoFollow = true;
   VoidCallback? _vmListener;
@@ -237,6 +239,80 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     );
   }
 
+  Future<void> _handleSosPressed(AppLocalizations l10n) async {
+    final loc = _vm.currentLocation;
+    final displayName =
+        context.read<UserVm>().me?.displayName ?? l10n.parentLocationUnknownUser;
+    final sosVm = context.read<SosViewModel>();
+
+    debugPrint('SOS child tapped');
+    debugPrint('SOS loc=$loc');
+    debugPrint('SOS sending=${sosVm.sending}');
+    debugPrint('SOS familyId=${context.read<UserVm>().familyId}');
+    debugPrint('SOS uid=${context.read<UserVm>().me?.uid}');
+
+    if (loc == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.currentLocationError)));
+      return;
+    }
+
+    if (sosVm.sending) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.childLocationSosSending)));
+      return;
+    }
+
+    try {
+      final sosId = await sosVm.triggerSos(
+        lat: loc.latitude,
+        lng: loc.longitude,
+        acc: loc.accuracy,
+        createdByName: displayName,
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            sosId != null
+                ? l10n.parentLocationSosSent
+                : l10n.parentLocationSosFailed,
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('triggerSos error: $error');
+      debugPrint('$stackTrace');
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.childLocationSosError('$error')),
+        ),
+      );
+    }
+  }
+
+  void _focusCurrentLocation() {
+    final loc = _vm.currentLocation;
+    if (loc == null) return;
+
+    _autoFollow = true;
+    _map?.easeTo(
+      CameraOptions(
+        center: Point(
+          coordinates: Position(loc.longitude, loc.latitude),
+        ),
+        zoom: 16,
+      ),
+      MapAnimationOptions(duration: 600),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -276,15 +352,32 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         final compactLayout = availableHeight < 760;
         final ultraCompactLayout = availableHeight < 680;
         final bottomSafeInset = MediaQuery.paddingOf(context).bottom;
-        final floatingRailBottom =
-            bottomSafeInset + (ultraCompactLayout ? 74.0 : 88.0);
+        final topSafeInset = MediaQuery.paddingOf(context).top;
+        final hasSafeRouteHud = safeRouteState.guidance != null;
         final safeRouteHudBottomOffset = compactLayout ? 80.0 : 96.0;
-        final errorBannerBottom = floatingRailBottom + (compactLayout ? 138.0 : 154.0);
+        final sosDockTop =
+            topSafeInset +
+            (_transientSafeRouteBanner != null ? 118.0 : 90.0) +
+            (hasSafeRouteHud ? (compactLayout ? 176.0 : 196.0) : 0.0);
+        final bottomControlDockBottom = math.max(
+          bottomSafeInset + (ultraCompactLayout ? 22.0 : 28.0),
+          hasSafeRouteHud && !ultraCompactLayout
+              ? safeRouteHudBottomOffset + 84.0
+              : bottomSafeInset + (ultraCompactLayout ? 22.0 : 28.0),
+        );
+        final errorBannerBottom = math.max(
+          bottomControlDockBottom + 136.0,
+          hasSafeRouteHud && !ultraCompactLayout
+              ? safeRouteHudBottomOffset + 108.0
+              : bottomSafeInset + (compactLayout ? 112.0 : 128.0),
+        );
 
         return Stack(
           children: [
             AppMapView(
+              controller: _mapViewController,
               followThemeForStreetStyle: false,
+              showInternalMapTypeButton: false,
               onMapCreated: (map) {
                 _map = map;
               },
@@ -360,87 +453,26 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
                 showBottomStatusPill: !ultraCompactLayout,
               ),
 
+            if (canShowSos)
+              Positioned(
+                right: 16,
+                top: sosDockTop,
+                child: SafeArea(
+                  bottom: false,
+                  child: SosCircleButton(
+                    onPressed: () => _handleSosPressed(l10n),
+                  ),
+                ),
+              ),
             Positioned(
               right: 16,
-              bottom: floatingRailBottom,
-              child: _ChildFloatingActionRail(
-                showSos: canShowSos,
-                onSosPressed: canShowSos
-                    ? () async {
-                        final loc = _vm.currentLocation;
-                        final displayName =
-                            context.read<UserVm>().me?.displayName ??
-                            l10n.parentLocationUnknownUser;
-                        final sosVm = context.read<SosViewModel>();
-
-                        debugPrint('SOS child tapped');
-                        debugPrint('SOS loc=$loc');
-                        debugPrint('SOS sending=${sosVm.sending}');
-                        debugPrint('SOS familyId=${context.read<UserVm>().familyId}');
-                        debugPrint('SOS uid=${context.read<UserVm>().me?.uid}');
-
-                        if (loc == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.currentLocationError)),
-                          );
-                          return;
-                        }
-
-                        if (sosVm.sending) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.childLocationSosSending)),
-                          );
-                          return;
-                        }
-
-                        try {
-                          final sosId = await sosVm.triggerSos(
-                            lat: loc.latitude,
-                            lng: loc.longitude,
-                            acc: loc.accuracy,
-                            createdByName: displayName,
-                          );
-
-                          if (!context.mounted) return;
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                sosId != null
-                                    ? l10n.parentLocationSosSent
-                                    : l10n.parentLocationSosFailed,
-                              ),
-                            ),
-                          );
-                        } catch (error, stackTrace) {
-                          debugPrint('triggerSos error: $error');
-                          debugPrint('$stackTrace');
-
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.childLocationSosError('$error')),
-                            ),
-                          );
-                        }
-                      }
-                    : null,
-                onMyLocationPressed: () {
-                  final loc = _vm.currentLocation;
-                  if (loc == null) return;
-
-                  _autoFollow = true;
-
-                  _map?.easeTo(
-                    CameraOptions(
-                      center: Point(
-                        coordinates: Position(loc.longitude, loc.latitude),
-                      ),
-                      zoom: 16,
-                    ),
-                    MapAnimationOptions(duration: 600),
-                  );
-                },
+              bottom: bottomControlDockBottom,
+              child: SafeArea(
+                top: false,
+                child: _ChildMapControlDock(
+                  onMyLocationPressed: _focusCurrentLocation,
+                  onLayersPressed: _mapViewController.showMapSelector,
+                ),
               ),
             ),
             if (combinedError != null)
@@ -457,16 +489,14 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   }
 }
 
-class _ChildFloatingActionRail extends StatelessWidget {
-  const _ChildFloatingActionRail({
-    required this.showSos,
-    required this.onSosPressed,
+class _ChildMapControlDock extends StatelessWidget {
+  const _ChildMapControlDock({
     required this.onMyLocationPressed,
-  }) : assert(!showSos || onSosPressed != null);
+    required this.onLayersPressed,
+  });
 
-  final bool showSos;
-  final VoidCallback? onSosPressed;
   final VoidCallback onMyLocationPressed;
+  final VoidCallback onLayersPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -474,13 +504,14 @@ class _ChildFloatingActionRail extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        if (showSos) ...[
-          SosCircleButton(onPressed: onSosPressed!),
-          const SizedBox(height: 12),
-        ],
         _RailCircleButton(
           icon: Icons.my_location,
           onPressed: onMyLocationPressed,
+        ),
+        const SizedBox(height: 12),
+        _RailCircleButton(
+          icon: Icons.layers_rounded,
+          onPressed: onLayersPressed,
         ),
       ],
     );

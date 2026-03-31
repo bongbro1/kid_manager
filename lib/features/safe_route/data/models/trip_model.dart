@@ -1,4 +1,5 @@
 ﻿import 'package:kid_manager/features/safe_route/data/models/live_location_model.dart';
+import 'package:kid_manager/features/safe_route/data/models/safe_route_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/safe_route_timestamp_parser.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
@@ -21,6 +22,8 @@ class TripModel extends Trip {
     required super.scheduledStartAt,
     required super.repeatWeekdays,
     required super.lastLocation,
+    super.previewRoute,
+    super.previewAlternativeRoutes = const [],
   });
 
   factory TripModel.fromMap(Map<String, dynamic> map) {
@@ -60,6 +63,20 @@ class TripModel extends Trip {
       lastLocation: map['lastLocation'] is Map
           ? LiveLocationModel.fromMap((map['childId'] ?? '').toString(), Map<dynamic, dynamic>.from(map['lastLocation'] as Map))
           : null,
+      previewRoute: map['previewRoute'] is Map
+          ? SafeRouteModel.fromMap(
+              Map<String, dynamic>.from(map['previewRoute'] as Map),
+            )
+          : null,
+      previewAlternativeRoutes:
+          (map['previewAlternativeRoutes'] as List? ?? const [])
+              .whereType<Map>()
+              .map(
+                (item) => SafeRouteModel.fromMap(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList(growable: false),
     );
   }
 
@@ -81,6 +98,8 @@ class TripModel extends Trip {
       scheduledStartAt: entity.scheduledStartAt,
       repeatWeekdays: entity.repeatWeekdays,
       lastLocation: entity.lastLocation,
+      previewRoute: entity.previewRoute,
+      previewAlternativeRoutes: entity.previewAlternativeRoutes,
     );
   }
 
@@ -104,6 +123,12 @@ class TripModel extends Trip {
       'lastLocation': lastLocation == null
           ? null
           : LiveLocationModel.fromEntity(lastLocation!).toMap(),
+      'previewRoute': previewRoute == null
+          ? null
+          : SafeRouteModel.fromEntity(previewRoute!).toMap(),
+      'previewAlternativeRoutes': previewAlternativeRoutes
+          .map((route) => SafeRouteModel.fromEntity(route).toMap())
+          .toList(growable: false),
     };
   }
 
@@ -124,5 +149,7 @@ class TripModel extends Trip {
         scheduledStartAt: scheduledStartAt,
         repeatWeekdays: repeatWeekdays,
         lastLocation: lastLocation,
+        previewRoute: previewRoute,
+        previewAlternativeRoutes: previewAlternativeRoutes,
       );
 }

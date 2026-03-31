@@ -12,8 +12,35 @@ import {
   parseZonePresenceRecord,
   type CanonicalZoneEventRecord,
 } from "../services/zoneEventEvaluator";
+import { assessTrustedLiveLocation } from "../services/trustedLocationService";
+import { parseLiveLocationRecord } from "../services/safeRouteMonitoringService";
 
 const RTDB_REGION = "us-central1";
+
+function formatZoneDurationForInbox(durationSec: number): string {
+  const normalizedSeconds = durationSec <= 0 ? 0 : durationSec;
+  const totalMinutes =
+    normalizedSeconds <= 0 ? 0 : Math.floor((normalizedSeconds + 59) / 60);
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days <= 0 && hours <= 0) {
+    return `${minutes} phút`;
+  }
+  if (days <= 0) {
+    return `${hours} giờ ${minutes} phút`;
+  }
+
+  const parts = [`${days} ngày`];
+  if (hours > 0) {
+    parts.push(`${hours} giờ`);
+  }
+  if (minutes > 0) {
+    parts.push(`${minutes} phút`);
+  }
+  return parts.join(" ");
+}
 
 function dayInVN(timestampMs: number): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -159,6 +186,26 @@ export const evaluateZoneEventsFromCurrentLocation = onValueWritten(
       return;
     }
 
+    const rawLocation = parseLiveLocationRecord(childUid, current);
+    const previousTrustedSnap = await admin
+      .database()
+      .ref(`live_locations/${childUid}`)
+      .get();
+    const previousTrusted =
+      previousTrustedSnap.exists() && previousTrustedSnap.val()
+        ? parseLiveLocationRecord(childUid, previousTrustedSnap.val())
+        : null;
+    const trust = assessTrustedLiveLocation({
+      current: rawLocation,
+      previousTrusted,
+    });
+    if (!trust.safetyEligible) {
+      console.log(
+        `[ZONE_EVENT_EVALUATOR] ignore untrusted current location childUid=${childUid} reason=${trust.reason}`,
+      );
+      return;
+    }
+
     const observation = parseZoneObservation(childUid, current);
     if (observation == null) {
       console.log(
@@ -250,8 +297,10 @@ export const onZoneEventCreated = onValueCreated(
         : "zone.exit.safe.child";
 
     const inboxBody =
-      !isEnter && eventRecord.durationMin > 0
-        ? `${eventRecord.zoneName} • ${eventRecord.durationMin} phút`
+      !isEnter && eventRecord.durationSec > 0
+        ? `${eventRecord.zoneName} • ${formatZoneDurationForInbox(
+            eventRecord.durationSec,
+          )}`
         : eventRecord.zoneName;
 
     const payloadForHistory = {

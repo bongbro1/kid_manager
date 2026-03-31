@@ -14,7 +14,11 @@ import {
   requireAdultManagerOfChild,
   requireParentGuardianOrChildSelf,
 } from "../services/child";
-import { buildSuggestedSafeRoutes } from "../services/safeRouteDirectionsService";
+import {
+  buildSuggestedSafeRoutes,
+  isPreviewSafeRouteId,
+  persistSelectedSafeRoute,
+} from "../services/safeRouteDirectionsService";
 import {
   createSafeRouteAlert,
   sendSafeRouteAlertPush,
@@ -38,6 +42,13 @@ import {
   evaluateSafeRouteTripAcrossRoutes,
   parseLiveLocationRecord,
 } from "../services/safeRouteMonitoringService";
+import {
+  assessTrustedLiveLocation,
+  buildAcceptedTrustedLocationSignal,
+  buildRejectedTrustedLocationSignal,
+  buildTrustedLiveLocationPayload,
+  parseTrustedLocationSignalRecord,
+} from "../services/trustedLocationService";
 import { listDangerZoneHazardsForChild } from "../services/safeRouteZonesService";
 import {
   enforceQuota,
@@ -204,6 +215,95 @@ function parseRoutePoint(
     longitude,
     sequence,
   };
+}
+
+function parseOptionalString(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function parsePreviewRouteRecord(
+  raw: any,
+  fieldName: string,
+): SafeRouteRecord {
+  const id = mustString(raw?.id, `${fieldName}.id`);
+  const childId = mustString(raw?.childId, `${fieldName}.childId`);
+  const travelMode = parseSafeRouteTravelMode(raw?.travelMode);
+  const pointsRaw = Array.isArray(raw?.points) ? raw.points : [];
+  if (pointsRaw.length < 2) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${fieldName}.points must contain at least two points`,
+    );
+  }
+
+  const points = pointsRaw.map((point: unknown, index: number) =>
+    parseRoutePoint(point, `${fieldName}.points[${index}]`, index),
+  );
+  const distanceMeters = Number(raw?.distanceMeters ?? 0);
+  const durationSeconds = Number(raw?.durationSeconds ?? 0);
+  const corridorWidthMeters = Number(raw?.corridorWidthMeters ?? 50);
+  if (!Number.isFinite(distanceMeters) || distanceMeters < 0) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${fieldName}.distanceMeters must be a non-negative number`,
+    );
+  }
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${fieldName}.durationSeconds must be a non-negative number`,
+    );
+  }
+  if (!Number.isFinite(corridorWidthMeters) || corridorWidthMeters <= 0) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${fieldName}.corridorWidthMeters must be a positive number`,
+    );
+  }
+
+  return {
+    id,
+    childId,
+    parentId: parseOptionalString(raw?.parentId),
+    name: parseOptionalString(raw?.name) ?? "Safe route",
+    startPoint: points[0],
+    endPoint: points[points.length - 1],
+    points,
+    hazards: [],
+    corridorWidthMeters,
+    distanceMeters,
+    durationSeconds,
+    travelMode,
+    createdAt: Number(raw?.createdAt ?? Date.now()),
+    updatedAt: Number(raw?.updatedAt ?? Date.now()),
+    profile: parseOptionalString(raw?.profile) ?? undefined,
+  };
+}
+
+function parseOptionalPreviewRouteRecord(
+  raw: any,
+  fieldName: string,
+): SafeRouteRecord | null {
+  if (raw == null) {
+    return null;
+  }
+
+  return parsePreviewRouteRecord(raw, fieldName);
+}
+
+function parsePreviewRouteList(value: unknown, fieldName: string) {
+  if (!Array.isArray(value)) {
+    return [] as SafeRouteRecord[];
+  }
+
+  return value.map((item, index) =>
+    parsePreviewRouteRecord(item, `${fieldName}[${index}]`),
+  );
 }
 
 function asTripRecord(
@@ -585,6 +685,41 @@ async function validateAlternativeRoutes(params: {
     .map((route) => route.id);
 }
 
+function selectValidAlternativeRoutes(params: {
+  parentUid: string;
+  childId: string;
+  primaryRoute: SafeRouteRecord;
+  candidateRoutes: SafeRouteRecord[];
+}) {
+  const { parentUid, childId, primaryRoute, candidateRoutes } = params;
+  const uniqueRoutes = candidateRoutes
+    .filter((route) => route.id !== primaryRoute.id)
+    .filter(
+      (route, index, list) =>
+        list.findIndex((candidate) => candidate.id === route.id) === index,
+    )
+    .slice(0, 2);
+
+  return uniqueRoutes.filter(
+    (route) =>
+      route.childId === childId &&
+      (route.parentId == null || route.parentId === parentUid) &&
+      route.travelMode === primaryRoute.travelMode &&
+      haversineMeters(
+        route.startPoint.latitude,
+        route.startPoint.longitude,
+        primaryRoute.startPoint.latitude,
+        primaryRoute.startPoint.longitude,
+      ) <= ALTERNATIVE_ROUTE_ENDPOINT_RADIUS_METERS &&
+      haversineMeters(
+        route.endPoint.latitude,
+        route.endPoint.longitude,
+        primaryRoute.endPoint.latitude,
+        primaryRoute.endPoint.longitude,
+      ) <= ALTERNATIVE_ROUTE_ENDPOINT_RADIUS_METERS,
+  );
+}
+
 export const getSuggestedSafeRoutes = onCall(
   {
     region: REGION,
@@ -654,15 +789,120 @@ export const startSafeRouteTrip = onCall(
       request.data?.trip?.routeId ?? request.data?.routeId,
       "routeId"
     );
-    const route = await loadRouteOrThrow(routeId);
-    const access = await requireAdultManagerOfChild(requesterUid, route.childId);
-    const ownerParentUid = access.ownerParentUid;
+    const previewRoute = parseOptionalPreviewRouteRecord(
+      request.data?.trip?.previewRoute ?? request.data?.previewRoute,
+      "previewRoute",
+    );
+    const previewAlternativeRoutes = parsePreviewRouteList(
+      request.data?.trip?.previewAlternativeRoutes ??
+        request.data?.previewAlternativeRoutes,
+      "previewAlternativeRoutes",
+    );
+    const selectedAlternativeRouteIds = parseRouteIdList(
+      request.data?.trip?.alternativeRouteIds ?? request.data?.alternativeRouteIds,
+    );
 
-    if (route.parentId != null && route.parentId !== ownerParentUid) {
-      throw new HttpsError(
-        "permission-denied",
-        "You cannot start a trip on this route"
+    let route: SafeRouteRecord;
+    let ownerParentUid: string;
+    let alternativeRouteIds: string[];
+
+    if (previewRoute != null) {
+      if (!isPreviewSafeRouteId(previewRoute.id) || previewRoute.id !== routeId) {
+        throw new HttpsError(
+          "invalid-argument",
+          "previewRoute must match the selected routeId",
+        );
+      }
+
+      const access = await requireAdultManagerOfChild(
+        requesterUid,
+        previewRoute.childId,
       );
+      ownerParentUid = access.ownerParentUid;
+      if (
+        previewRoute.parentId != null &&
+        previewRoute.parentId !== ownerParentUid
+      ) {
+        throw new HttpsError(
+          "permission-denied",
+          "You cannot start a trip on this route",
+        );
+      }
+
+      const requestedPreviewAlternatives = previewAlternativeRoutes.filter((candidate) =>
+        selectedAlternativeRouteIds.includes(candidate.id),
+      );
+      if (requestedPreviewAlternatives.length !== selectedAlternativeRouteIds.length) {
+        throw new HttpsError(
+          "invalid-argument",
+          "Selected preview alternative routes are incomplete",
+        );
+      }
+
+      const validPreviewAlternatives = selectValidAlternativeRoutes({
+        parentUid: ownerParentUid,
+        childId: previewRoute.childId,
+        primaryRoute: previewRoute,
+        candidateRoutes: requestedPreviewAlternatives,
+      });
+      if (validPreviewAlternatives.length !== requestedPreviewAlternatives.length) {
+        throw new HttpsError(
+          "invalid-argument",
+          "Selected preview alternative routes are invalid",
+        );
+      }
+
+      const existingRoutesSnap = await db
+        .collection("routes")
+        .where("childId", "==", previewRoute.childId)
+        .where("parentId", "==", ownerParentUid)
+        .get();
+      const quota = await getRemainingQuota({
+        ownerUid: ownerParentUid,
+        currentCount: existingRoutesSnap.size,
+        limit: FREE_SAFE_ROUTE_LIMIT,
+      });
+      const routesToPersist = 1 + validPreviewAlternatives.length;
+      if (!quota.unlimited && routesToPersist > quota.remaining) {
+        throw new HttpsError(
+          "resource-exhausted",
+          SAFE_ROUTE_LIMIT_ERROR,
+        );
+      }
+
+      route = await persistSelectedSafeRoute({
+        route: previewRoute,
+        childId: previewRoute.childId,
+        parentId: ownerParentUid,
+      });
+      const persistedAlternatives = await Promise.all(
+        validPreviewAlternatives.map((candidate) =>
+          persistSelectedSafeRoute({
+            route: candidate,
+            childId: previewRoute.childId,
+            parentId: ownerParentUid,
+          }),
+        ),
+      );
+      alternativeRouteIds = persistedAlternatives.map((candidate) => candidate.id);
+    } else {
+      route = await loadRouteOrThrow(routeId);
+      const access = await requireAdultManagerOfChild(requesterUid, route.childId);
+      ownerParentUid = access.ownerParentUid;
+
+      if (route.parentId != null && route.parentId !== ownerParentUid) {
+        throw new HttpsError(
+          "permission-denied",
+          "You cannot start a trip on this route"
+        );
+      }
+
+      alternativeRouteIds = await validateAlternativeRoutes({
+        parentUid: ownerParentUid,
+        childId: route.childId,
+        primaryRoute: route,
+        candidateRouteIds: selectedAlternativeRouteIds,
+      });
     }
 
     const tripRef = db.collection("trips").doc();
@@ -672,14 +912,6 @@ export const startSafeRouteTrip = onCall(
       request.data?.trip?.scheduledStartAt ?? request.data?.scheduledStartAt;
     const scheduledStartAt =
       scheduledStartAtRaw == null ? null : Number(scheduledStartAtRaw);
-    const alternativeRouteIds = await validateAlternativeRoutes({
-      parentUid: ownerParentUid,
-      childId: route.childId,
-      primaryRoute: route,
-      candidateRouteIds: parseRouteIdList(
-      request.data?.trip?.alternativeRouteIds ?? request.data?.alternativeRouteIds
-      ),
-    });
     const repeatWeekdays = parseRepeatWeekdays(
       request.data?.trip?.repeatWeekdays ?? request.data?.repeatWeekdays
     );
@@ -966,6 +1198,7 @@ export const syncSafeRouteLiveLocation = onValueWritten(
   async (event) => {
     const childId = String(event.params.childId ?? "");
     const targetRef = admin.database().ref(`live_locations/${childId}`);
+    const trustSignalRef = admin.database().ref(`live_location_trust/${childId}`);
     const previousFamilyId = readFamilyIdFromLocationRecord(
       event.data.before.exists() ? event.data.before.val() : null
     );
@@ -980,7 +1213,10 @@ export const syncSafeRouteLiveLocation = onValueWritten(
         .remove();
 
     if (!event.data.after.exists()) {
-      const removals: Array<Promise<unknown>> = [targetRef.remove()];
+      const removals: Array<Promise<unknown>> = [
+        targetRef.remove(),
+        trustSignalRef.remove(),
+      ];
       if (previousFamilyId) {
         removals.push(removeFamilyMirror(previousFamilyId));
       }
@@ -988,8 +1224,57 @@ export const syncSafeRouteLiveLocation = onValueWritten(
       return;
     }
 
-    const liveLocation = parseLiveLocationRecord(childId, event.data.after.val());
-    const writes: Array<Promise<unknown>> = [targetRef.set(liveLocation)];
+    const rawLiveLocation = parseLiveLocationRecord(childId, event.data.after.val());
+    const [previousTrustedSnap, previousSignalSnap] = await Promise.all([
+      targetRef.get(),
+      trustSignalRef.get(),
+    ]);
+    const previousTrusted =
+      previousTrustedSnap.exists() && previousTrustedSnap.val()
+        ? parseLiveLocationRecord(childId, previousTrustedSnap.val())
+        : null;
+    const previousSignal = previousSignalSnap.exists()
+      ? parseTrustedLocationSignalRecord(previousSignalSnap.val())
+      : null;
+    const trust = assessTrustedLiveLocation({
+      current: rawLiveLocation,
+      previousTrusted,
+    });
+    const nowMs = Date.now();
+
+    if (!trust.mirrorEligible) {
+      const rejectedSignal = buildRejectedTrustedLocationSignal({
+        childId,
+        previousSignal,
+        previousTrusted,
+        assessment: trust,
+        nowMs,
+      });
+      console.warn(
+        `[SAFE_ROUTE] skip untrusted live location mirror childId=${childId} reason=${trust.reason}`,
+      );
+      const writes: Array<Promise<unknown>> = [trustSignalRef.set(rejectedSignal)];
+      if (previousFamilyId && previousFamilyId !== nextFamilyId) {
+        writes.push(removeFamilyMirror(previousFamilyId));
+      }
+      await Promise.all(writes);
+      return;
+    }
+
+    const liveLocation = buildTrustedLiveLocationPayload({
+      location: trust.location,
+      nowMs,
+    });
+    const trustSignal = buildAcceptedTrustedLocationSignal({
+      childId,
+      previousSignal,
+      location: trust.location,
+      nowMs,
+    });
+    const writes: Array<Promise<unknown>> = [
+      targetRef.set(liveLocation),
+      trustSignalRef.set(trustSignal),
+    ];
 
     if (previousFamilyId && previousFamilyId !== nextFamilyId) {
       writes.push(removeFamilyMirror(previousFamilyId));
@@ -1019,8 +1304,28 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
     const trip = await findMonitorableTripByChildId(childId);
     if (!trip) return;
 
+    const rawLiveLocation = parseLiveLocationRecord(childId, event.data.after.val());
+    const previousTrustedSnap = await admin
+      .database()
+      .ref(`live_locations/${childId}`)
+      .get();
+    const previousTrusted =
+      previousTrustedSnap.exists() && previousTrustedSnap.val()
+        ? parseLiveLocationRecord(childId, previousTrustedSnap.val())
+        : null;
+    const trust = assessTrustedLiveLocation({
+      current: rawLiveLocation,
+      previousTrusted,
+    });
+    if (!trust.safetyEligible) {
+      console.warn(
+        `[SAFE_ROUTE] skip untrusted safety location childId=${childId} reason=${trust.reason}`,
+      );
+      return;
+    }
+
     const routes = await loadRoutesForTrip(trip);
-    const liveLocation = parseLiveLocationRecord(childId, event.data.after.val());
+    const liveLocation = trust.location;
     const hazards = await listDangerZoneHazardsForChild(childId);
     const matched = evaluateSafeRouteTripAcrossRoutes({
       trip,

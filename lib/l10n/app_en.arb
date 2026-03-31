@@ -180,6 +180,7 @@
       }
     }
   },
+  "zoneStatusLiveUnavailable": "Current zone status is unavailable",
   "zoneStatusDurationMinutes": "{minutes} min",
   "@zoneStatusDurationMinutes": {
     "placeholders": {
@@ -373,7 +374,7 @@
   "authSendOtpFailed": "Failed to send OTP",
   "otpTitle": "ENTER OTP CODE",
   "otpInstruction": "We have sent a verification code to your email address",
-  "otpNeed4Digits": "Please enter all 4 OTP digits",
+  "otpNeed4Digits": "Please enter all 6 OTP digits",
   "otpDigitsOnly": "OTP must contain digits only",
   "otpIncorrect": "Incorrect OTP",
   "otpExpired": "OTP has expired",
@@ -1621,6 +1622,46 @@
   "tracking_background_disabled_parent_title": "Background location was turned off",
   "tracking_location_stale_parent_title": "No recent location update",
   "tracking_ok_parent_title": "Location is active again",
+  "tracking_location_service_off_parent_body": "{childName} turned off GPS or location on the device.",
+  "@tracking_location_service_off_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "tracking_location_permission_denied_parent_body": "{childName} disabled the app's location permission.",
+  "@tracking_location_permission_denied_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "tracking_background_disabled_parent_body": "{childName} turned off background location sharing.",
+  "@tracking_background_disabled_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "tracking_location_stale_parent_body": "{childName} has not updated location for more than 2 minutes.",
+  "@tracking_location_stale_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "tracking_ok_parent_body": "{childName} has turned location back on and updates are working normally.",
+  "@tracking_ok_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
 
   "tracking_location_service_off_child_title": "Location is turned off",
   "tracking_location_permission_denied_child_title": "Location permission is off",

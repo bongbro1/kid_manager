@@ -1,6 +1,10 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { admin, db } from "../../bootstrap";
 import { REGION, TZ } from "../../config";
+import {
+  parseTrustedLocationSignalRecord,
+  resolveTrustedHeartbeatMillis,
+} from "../../services/trustedLocationService";
 
 const SCHEDULE = "every 2 minutes";
 const STALE_AFTER_MS = 3 * 60 * 1000;
@@ -55,16 +59,30 @@ function toStatusUpdatedMillis(value: unknown): number | null {
   return toMillis(value);
 }
 
-async function readHeartbeatMillis(childUid: string): Promise<number | null> {
-  const snap = await admin.database().ref(`locations/${childUid}/current`).get();
-  if (!snap.exists()) return null;
+async function readHeartbeatState(childUid: string): Promise<{
+  heartbeatMs: number | null;
+  signal: ReturnType<typeof parseTrustedLocationSignalRecord>;
+}> {
+  const [signalSnap, trustedLiveSnap] = await Promise.all([
+    admin.database().ref(`live_location_trust/${childUid}`).get(),
+    admin.database().ref(`live_locations/${childUid}`).get(),
+  ]);
 
-  const current = snap.val() as Record<string, unknown>;
-  const byServerUpdatedAt = toMillis(current.updatedAt);
-  if (byServerUpdatedAt != null) return byServerUpdatedAt;
+  const signal = signalSnap.exists()
+    ? parseTrustedLocationSignalRecord(signalSnap.val())
+    : null;
+  const trustedLiveLocation =
+    trustedLiveSnap.exists() && trustedLiveSnap.val()
+      ? (trustedLiveSnap.val() as Record<string, unknown>)
+      : null;
 
-  // Fallback for legacy rows if updatedAt was not written.
-  return toMillis(current.timestamp);
+  return {
+    heartbeatMs: resolveTrustedHeartbeatMillis({
+      signal,
+      trustedLiveLocation,
+    }),
+    signal,
+  };
 }
 
 async function resolveChildName(childUid: string, fallback: string): Promise<string> {
@@ -124,10 +142,12 @@ export const checkTrackingHeartbeat = onSchedule(
         const childUid = childDoc.id;
         const statusRef = db.doc(`families/${familyId}/trackingStatus/${childUid}`);
 
-        const [heartbeatMs, statusSnap] = await Promise.all([
-          readHeartbeatMillis(childUid),
+        const [heartbeatState, statusSnap] = await Promise.all([
+          readHeartbeatState(childUid),
           statusRef.get(),
         ]);
+        const heartbeatMs = heartbeatState.heartbeatMs;
+        const heartbeatSignal = heartbeatState.signal;
 
         // No location ever written -> skip to avoid false alarms for inactive kids.
         if (heartbeatMs == null) continue;
@@ -173,6 +193,12 @@ export const checkTrackingHeartbeat = onSchedule(
 
           const childName = await resolveChildName(childUid, currentChildName);
           const staleMinutes = Math.max(1, Math.floor(staleMs / 60000));
+          const hasRecentRejectedRawPoints =
+            heartbeatSignal?.lastRejectedAt != null &&
+            nowMs - heartbeatSignal.lastRejectedAt <= STALE_AFTER_MS;
+          const staleMessage = hasRecentRejectedRawPoints
+            ? `No trusted location update for ${staleMinutes} minutes; recent raw points were rejected`
+            : `No trusted location update for ${staleMinutes} minutes`;
 
           await setTrackingStatus({
             familyId,
@@ -180,7 +206,7 @@ export const checkTrackingHeartbeat = onSchedule(
             childName,
             newStatus: "location_stale",
             prevStatus: currentStatus,
-            message: `No location update for ${staleMinutes} minutes`,
+            message: staleMessage,
           });
           updatedStatuses++;
           continue;

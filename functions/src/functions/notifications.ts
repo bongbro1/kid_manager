@@ -1,13 +1,16 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../bootstrap";
 import { REGION } from "../config";
 import { convertDataToString } from "../helpers";
 import { t } from "../i18n";
+import { normalizeClientNotificationCreateInput } from "../services/authorizedNotifications";
 import {
   deleteInstallationsByIds,
   groupInstallationsByToken,
   listInstallationsByUid,
 } from "../services/fcmInstallations";
+import { createGlobalNotificationRecord } from "../services/globalNotifications";
 
 function normalizeEventKey(raw: string): string {
   const key = (raw || "").trim();
@@ -22,6 +25,85 @@ function looksLikeLocalizedKey(value: string): boolean {
   const v = (value || "").trim();
   return /^[a-z0-9_.-]+\.(title|body)$/i.test(v);
 }
+
+function readTrimmedStringField(data: Record<string, unknown>, field: string): string {
+  const value = data[field];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export const enqueueAuthorizedNotification = onCall(
+  { region: REGION },
+  async (req) => {
+    if (!req.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Login required");
+    }
+
+    const senderUid = req.auth.uid;
+    const normalized = normalizeClientNotificationCreateInput({
+      type: req.data?.type,
+      title: req.data?.title,
+      body: req.data?.body,
+      receiverId: req.data?.receiverId,
+      familyId: req.data?.familyId,
+      data: req.data?.data,
+    });
+
+    const [senderSnap, receiverSnap] = await Promise.all([
+      db.doc(`users/${senderUid}`).get(),
+      db.doc(`users/${normalized.receiverId}`).get(),
+    ]);
+
+    if (!senderSnap.exists) {
+      throw new HttpsError("not-found", "Sender not found");
+    }
+    if (!receiverSnap.exists) {
+      throw new HttpsError("not-found", "Receiver not found");
+    }
+
+    const senderData = (senderSnap.data() ?? {}) as Record<string, unknown>;
+    const receiverData = (receiverSnap.data() ?? {}) as Record<string, unknown>;
+    const senderFamilyId = readTrimmedStringField(senderData, "familyId");
+    const receiverFamilyId = readTrimmedStringField(receiverData, "familyId");
+
+    if (!senderFamilyId || !receiverFamilyId || senderFamilyId !== receiverFamilyId) {
+      throw new HttpsError(
+        "permission-denied",
+        "Sender and receiver must belong to the same family",
+      );
+    }
+
+    if (normalized.familyId != null && normalized.familyId !== senderFamilyId) {
+      throw new HttpsError(
+        "permission-denied",
+        "familyId does not match the authenticated sender scope",
+      );
+    }
+
+    const canonicalFamilyId = normalized.familyId ?? senderFamilyId;
+    const canonicalData = {
+      ...normalized.data,
+      senderId: senderUid,
+      receiverId: normalized.receiverId,
+      familyId: canonicalFamilyId,
+      type: normalized.type,
+    };
+
+    const notificationId = await createGlobalNotificationRecord({
+      receiverId: normalized.receiverId,
+      senderId: senderUid,
+      type: normalized.type,
+      title: normalized.title,
+      body: normalized.body,
+      familyId: canonicalFamilyId,
+      data: canonicalData,
+    });
+
+    return {
+      ok: true,
+      notificationId,
+    };
+  },
+);
 
 export const onNotificationCreated = onDocumentCreated(
   {
@@ -157,6 +239,10 @@ export const onNotificationCreated = onDocumentCreated(
 
     await deleteInstallationsByIds(invalidInstallationIds);
 
-    await snap.ref.update({ status: "sent" });
+    await snap.ref.update({
+      title: safeTitle,
+      body: safeBody,
+      status: "sent",
+    });
   }
 );

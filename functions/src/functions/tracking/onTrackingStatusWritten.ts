@@ -2,6 +2,13 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { admin, db } from "../../bootstrap";
 import { REGION } from "../../config";
 import { createGlobalNotificationRecord } from "../../services/globalNotifications";
+import {
+  buildTrackingLocationNotificationRecord,
+  isTrackingLocationStatus,
+  resolveUserLanguage,
+  shouldReceiveTrackingLocationNotification,
+  toMillis,
+} from "../../services/trackingLocationNotifications";
 
 const FLAP_STATUSES = new Set(["location_stale", "ok"]);
 const FLAP_COOLDOWN_MS = 5 * 60 * 1000;
@@ -10,38 +17,20 @@ async function getParentUids(familyId: string, childUid: string): Promise<string
   const membersSnap = await db.collection(`families/${familyId}/members`).get();
 
   return membersSnap.docs
-    .map((d) => ({ uid: d.id, role: d.get("role") }))
-    .filter((x) => x.uid !== childUid && (x.role === "parent" || x.role === "guardian"))
+    .map((d) => ({
+      uid: d.id,
+      role: String(d.get("role") ?? ""),
+      data: d.data() as Record<string, unknown>,
+    }))
+    .filter((member) =>
+      shouldReceiveTrackingLocationNotification({
+        memberUid: member.uid,
+        memberRole: member.role,
+        memberData: member.data,
+        childUid,
+      })
+    )
     .map((x) => x.uid);
-}
-
-function toMillis(value: unknown): number | null {
-  if (value instanceof admin.firestore.Timestamp) {
-    return value.toMillis();
-  }
-
-  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    return Math.trunc(value);
-  }
-
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return Math.trunc(parsed);
-    }
-  }
-
-  if (typeof value === "object" && value !== null) {
-    const maybe = value as { seconds?: unknown; _seconds?: unknown };
-    const seconds =
-      (typeof maybe.seconds === "number" ? maybe.seconds : null) ??
-      (typeof maybe._seconds === "number" ? maybe._seconds : null);
-    if (seconds != null && Number.isFinite(seconds) && seconds > 0) {
-      return Math.trunc(seconds * 1000);
-    }
-  }
-
-  return null;
 }
 
 export const onTrackingStatusWritten = onDocumentWritten(
@@ -64,12 +53,14 @@ const beforeData = before?.exists ? before.data() : null;
     const childUid = String(event.params.childUid);
 
     const newStatus = String(afterData.status || "");
+    if (!isTrackingLocationStatus(newStatus)) {
+      return;
+    }
     const oldStatus = beforeData ? String(beforeData.status || "") : "";
 
     if (!newStatus || newStatus === oldStatus) return;
 
     const childName = String(afterData.childName || "Con");
-    const message = String(afterData.message || "");
 
     const nowMs = Date.now();
     const lastNotifiedAtMs = toMillis(afterData.lastNotifiedAt ?? afterData.lastNotifiedAtMs);
@@ -85,33 +76,29 @@ const beforeData = before?.exists ? before.data() : null;
       return;
     }
 
-    const parentEventKey = `tracking.${newStatus}.parent`;
-
-    const payloadForHistory = {
-      childUid,
-      childName,
-      familyId,
-      status: newStatus,
-      message,
-      timestamp: String(nowMs),
-    };
-
     const parentUids = await getParentUids(familyId, childUid);
 
     for (const parentUid of parentUids) {
-      const payloadForParent = {
-        ...payloadForHistory,
-        toUid: parentUid,
-      };
+      const locale = await resolveUserLanguage(parentUid);
+      const notification = buildTrackingLocationNotificationRecord({
+        locale,
+        childUid,
+        childName,
+        familyId,
+        status: newStatus,
+        nowMs,
+      });
 
       await createGlobalNotificationRecord({
         receiverId: parentUid,
         senderId: "system",
         type: "TRACKING",
-        title: parentEventKey,
-        body: message,
-        eventKey: parentEventKey,
-        data: payloadForParent,
+        title: notification.title,
+        body: notification.body,
+        eventKey: notification.eventKey,
+        eventCategory: notification.eventCategory,
+        expiresAt: notification.expiresAt,
+        data: notification.data,
         familyId,
       });
     }

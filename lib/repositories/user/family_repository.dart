@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_subscription.dart';
 import 'package:kid_manager/models/user/user_types.dart';
@@ -9,11 +10,15 @@ import 'package:kid_manager/utils/date_utils.dart';
 class FamilyRepository {
   FamilyRepository(
     this._db,
-    this._profileRepository,
-  );
+    this._profileRepository, {
+    FirebaseFunctions? functions,
+  }) : _functions =
+           functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
   final FirebaseFirestore _db;
   final ProfileRepository _profileRepository;
+  final FirebaseFunctions _functions;
+  final Set<String> _syncAttemptedFamilies = <String>{};
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');
@@ -129,6 +134,31 @@ class FamilyRepository {
       return null;
     }
     return snap.data()?['familyId'] as String?;
+  }
+
+  Future<void> syncPublicMembersIfNeeded(String familyId) async {
+    final normalizedFamilyId = familyId.trim();
+    if (normalizedFamilyId.isEmpty ||
+        _syncAttemptedFamilies.contains(normalizedFamilyId)) {
+      return;
+    }
+
+    _syncAttemptedFamilies.add(normalizedFamilyId);
+    try {
+      await _functions.httpsCallable('syncFamilyMemberPublicData').call({
+        'familyId': normalizedFamilyId,
+      });
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'not-found' ||
+          e.code == 'permission-denied' ||
+          e.code == 'unauthenticated' ||
+          e.code == 'unimplemented') {
+        return;
+      }
+      return;
+    } catch (_) {
+      return;
+    }
   }
 
   Stream<List<AppUser>> watchFamilyMembers(String familyId) {

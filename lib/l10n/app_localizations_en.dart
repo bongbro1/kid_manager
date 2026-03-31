@@ -267,6 +267,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get zoneStatusLiveUnavailable => 'Current zone status is unavailable';
+
+  @override
   String zoneStatusDurationMinutes(int minutes) {
     return '$minutes min';
   }
@@ -637,7 +640,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'We have sent a verification code to your email address';
 
   @override
-  String get otpNeed4Digits => 'Please enter all 4 OTP digits';
+  String get otpNeed4Digits => 'Please enter all 6 OTP digits';
 
   @override
   String get otpDigitsOnly => 'OTP must contain digits only';
@@ -2285,6 +2288,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tracking_ok_parent_title => 'Location is active again';
+
+  @override
+  String tracking_location_service_off_parent_body(String childName) {
+    return '$childName turned off GPS or location on the device.';
+  }
+
+  @override
+  String tracking_location_permission_denied_parent_body(String childName) {
+    return '$childName disabled the app\'s location permission.';
+  }
+
+  @override
+  String tracking_background_disabled_parent_body(String childName) {
+    return '$childName turned off background location sharing.';
+  }
+
+  @override
+  String tracking_location_stale_parent_body(String childName) {
+    return '$childName has not updated location for more than 2 minutes.';
+  }
+
+  @override
+  String tracking_ok_parent_body(String childName) {
+    return '$childName has turned location back on and updates are working normally.';
+  }
 
   @override
   String get tracking_location_service_off_child_title =>

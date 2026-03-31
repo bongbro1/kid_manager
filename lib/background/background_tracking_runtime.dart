@@ -280,8 +280,7 @@ class BackgroundTrackingRuntime {
               }
             },
             onError: (Object error, StackTrace stackTrace) {
-              debugPrint('BackgroundTrackingRuntime GPS stream error: $error');
-              debugPrint('$stackTrace');
+              unawaited(_handleGpsStreamError(error, stackTrace));
             },
           );
 
@@ -582,5 +581,33 @@ class BackgroundTrackingRuntime {
       fallbackLang: fallbackLang,
     );
     return _l10nFuture!;
+  }
+
+  bool _isLocationServiceDisabledError(Object error) {
+    final normalized = error.toString().toLowerCase();
+    return normalized.contains('location service on the device is disabled') ||
+        normalized.contains('service_status_error') ||
+        normalized.contains('location service is disabled');
+  }
+
+  Future<void> _handleGpsStreamError(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    if (_isLocationServiceDisabledError(error)) {
+      final l10n = await _getL10n();
+      debugPrint(
+        'BackgroundTrackingRuntime GPS stream paused because location '
+        'service is disabled.',
+      );
+      await _reportTrackingStatusIfChanged(
+        'location_service_off',
+        message: l10n.trackingStatusLocationServiceOffMessage,
+      );
+      return;
+    }
+
+    debugPrint('BackgroundTrackingRuntime GPS stream error: $error');
+    debugPrint('$stackTrace');
   }
 }

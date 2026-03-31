@@ -193,6 +193,10 @@ class MapEngine {
     if (sorted.length < 2) {
       if (enableHistory) await history.render(sorted);
       await startEndMarkers.renderSinglePoint(sorted.last);
+      if (!_didInitialFit) {
+        _didInitialFit = true;
+        await camera.focusOnPoint(sorted.last);
+      }
 
       if (enableInteraction) {
         interaction = InteractionController(

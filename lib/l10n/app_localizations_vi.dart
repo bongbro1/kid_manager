@@ -267,6 +267,10 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
+  String get zoneStatusLiveUnavailable =>
+      'Không xác định được trạng thái vùng hiện tại';
+
+  @override
   String zoneStatusDurationMinutes(int minutes) {
     return '$minutes phút';
   }
@@ -634,7 +638,7 @@ class AppLocalizationsVi extends AppLocalizations {
       'Chúng tôi đã gửi mã xác minh đến địa chỉ email của bạn';
 
   @override
-  String get otpNeed4Digits => 'Vui lòng nhập đủ 4 số OTP';
+  String get otpNeed4Digits => 'Vui lòng nhập đủ 6 số OTP';
 
   @override
   String get otpDigitsOnly => 'OTP chỉ được chứa số';
@@ -2284,6 +2288,31 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get tracking_ok_parent_title => 'Định vị đã hoạt động lại';
+
+  @override
+  String tracking_location_service_off_parent_body(String childName) {
+    return '$childName vừa tắt GPS hoặc vị trí trên thiết bị.';
+  }
+
+  @override
+  String tracking_location_permission_denied_parent_body(String childName) {
+    return '$childName đã tắt quyền truy cập vị trí của ứng dụng.';
+  }
+
+  @override
+  String tracking_background_disabled_parent_body(String childName) {
+    return '$childName đã tắt chia sẻ vị trí nền.';
+  }
+
+  @override
+  String tracking_location_stale_parent_body(String childName) {
+    return '$childName chưa cập nhật vị trí trong hơn 2 phút.';
+  }
+
+  @override
+  String tracking_ok_parent_body(String childName) {
+    return '$childName đã bật lại định vị và vị trí đang cập nhật bình thường.';
+  }
 
   @override
   String get tracking_location_service_off_child_title => 'Định vị đang tắt';

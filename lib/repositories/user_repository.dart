@@ -55,7 +55,8 @@ class UserRepository {
   Stream<AppUser?> watchUserById(String uid) =>
       _profileRepository.watchUserById(uid);
 
-  Future<List<UserItem>> loadAllUsers() => _profileRepository.loadAllUsers();
+  Future<List<UserItem>> loadFamilyUsers(String familyId) =>
+      _profileRepository.loadFamilyUsers(familyId);
 
   Future<void> createParentIfMissing({
     required String uid,
@@ -107,6 +108,9 @@ class UserRepository {
 
   Stream<List<AppUser>> watchFamilyMembers(String familyId) =>
       _familyRepository.watchFamilyMembers(familyId);
+
+  Future<void> syncFamilyMemberPublicData(String familyId) =>
+      _familyRepository.syncPublicMembersIfNeeded(familyId);
 
   Stream<List<AppUser>> watchTrackableLocationMembers(
     String familyId, {

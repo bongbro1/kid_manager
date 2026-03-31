@@ -753,6 +753,8 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
           scheduledStartAt: scheduledStartAt,
           repeatWeekdays: _state.repeatWeekdays,
           lastLocation: null,
+          previewRoute: route,
+          previewAlternativeRoutes: _state.suggestedRoutes,
         ),
       );
       if (_isStaleLifecycle(generation)) return;

@@ -241,6 +241,32 @@ class UserVm extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<String?> _resolveUserListFamilyId() async {
+    final fromMe = me?.familyId?.trim();
+    if (fromMe != null && fromMe.isNotEmpty) {
+      return fromMe;
+    }
+
+    final fromProfile = profile?.familyId?.trim();
+    if (fromProfile != null && fromProfile.isNotEmpty) {
+      return fromProfile;
+    }
+
+    final currentUid = _storage.getString(StorageKeys.uid)?.trim();
+    if (currentUid == null || currentUid.isEmpty) {
+      return null;
+    }
+
+    final currentUser = await _userRepo.getUserById(currentUid);
+    final resolvedFamilyId = currentUser?.familyId?.trim();
+    if (resolvedFamilyId == null || resolvedFamilyId.isEmpty) {
+      return null;
+    }
+
+    me ??= currentUser;
+    return resolvedFamilyId;
+  }
+
   Future<void> setCurrentUser(String uid) async {
     if (uid.isEmpty) return;
     if (_currentWatchedUid == uid && _currentProfileUid == uid) return;
@@ -282,7 +308,15 @@ class UserVm extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      users = await _userRepo.loadAllUsers();
+      final resolvedFamilyId = await _resolveUserListFamilyId();
+      if (resolvedFamilyId == null || resolvedFamilyId.isEmpty) {
+        _error = runtimeL10n().userVmFamilyIdNotFound;
+        users = [];
+        return;
+      }
+
+      unawaited(_userRepo.syncFamilyMemberPublicData(resolvedFamilyId));
+      users = await _userRepo.loadFamilyUsers(resolvedFamilyId);
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -328,6 +362,7 @@ class UserVm extends ChangeNotifier {
 
   void watchFamilyMembers(String familyId) {
     _familySub?.cancel();
+    unawaited(_userRepo.syncFamilyMemberPublicData(familyId));
 
     _familySub = _userRepo.watchFamilyMembers(familyId).listen((list) {
       _allFamilyMembers
@@ -339,6 +374,7 @@ class UserVm extends ChangeNotifier {
 
   void watchLocationMembers(String familyId, {String? excludeUid}) {
     _locationMembersSub?.cancel();
+    unawaited(_userRepo.syncFamilyMemberPublicData(familyId));
 
     final myUid = excludeUid ?? _storage.getString(StorageKeys.uid);
 

@@ -4,6 +4,8 @@
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
     "build:watch": "tsc --watch",
+    "cleanup:legacy:dry-run": "npm run build && node lib/scripts/cleanupLegacyFirebaseData.js",
+    "cleanup:legacy:execute": "npm run build && node lib/scripts/cleanupLegacyFirebaseData.js --execute",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",

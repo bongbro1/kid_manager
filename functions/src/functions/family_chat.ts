@@ -8,6 +8,7 @@ import {
   groupInstallationsByToken,
   listInstallationsByFamilyId,
 } from "../services/fcmInstallations";
+import { consumeFamilyChatRateLimit } from "../services/familyChatRateLimit";
 
 const MAX_TEXT_LENGTH = 1000;
 const MAX_LEGACY_STICKER_TEXT_LENGTH = 32;
@@ -478,6 +479,21 @@ async function finalizePendingFamilyMessage(params: {
   }
 
   const previewText = resolveMessagePreviewText(type, normalizedText);
+  try {
+    await consumeFamilyChatRateLimit({
+      familyId,
+      senderUid,
+    });
+  } catch (error) {
+    if (error instanceof HttpsError && error.code === "resource-exhausted") {
+      await markPendingMessageFailed({
+        ref,
+        reason: "rate_limited",
+      });
+      return;
+    }
+    throw error;
+  }
 
   const now = admin.firestore.FieldValue.serverTimestamp();
   const batch = db.batch();
@@ -645,6 +661,11 @@ export const sendFamilyMessage = onCall({ region: REGION }, async (req) => {
     (typeof userData.displayName === "string" && userData.displayName.trim()) ||
     (typeof userData.email === "string" && userData.email.trim()) ||
     "Family member";
+
+  await consumeFamilyChatRateLimit({
+    familyId,
+    senderUid: uid,
+  });
 
   const messageRef = familyRef.collection("messages").doc();
   const now = admin.firestore.FieldValue.serverTimestamp();

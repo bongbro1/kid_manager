@@ -180,6 +180,7 @@
       }
     }
   },
+  "zoneStatusLiveUnavailable": "Không xác định được trạng thái vùng hiện tại",
   "zoneStatusDurationMinutes": "{minutes} phút",
   "@zoneStatusDurationMinutes": {
     "placeholders": {
@@ -373,7 +374,7 @@
   "authSendOtpFailed": "Gửi OTP thất bại",
   "otpTitle": "NHẬP MÃ OTP",
   "otpInstruction": "Chúng tôi đã gửi mã xác minh đến địa chỉ email của bạn",
-  "otpNeed4Digits": "Vui lòng nhập đủ 4 số OTP",
+  "otpNeed4Digits": "Vui lòng nhập đủ 6 số OTP",
   "otpDigitsOnly": "OTP chỉ được chứa số",
   "otpIncorrect": "OTP không đúng",
   "otpExpired": "OTP đã hết hạn",
@@ -1621,6 +1622,46 @@
   "tracking_background_disabled_parent_title": "Định vị nền đã bị tắt",
   "tracking_location_stale_parent_title": "Không nhận được vị trí mới",
   "tracking_ok_parent_title": "Định vị đã hoạt động lại",
+  "tracking_location_service_off_parent_body": "{childName} vừa tắt GPS hoặc vị trí trên thiết bị.",
+  "@tracking_location_service_off_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "tracking_location_permission_denied_parent_body": "{childName} đã tắt quyền truy cập vị trí của ứng dụng.",
+  "@tracking_location_permission_denied_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "tracking_background_disabled_parent_body": "{childName} đã tắt chia sẻ vị trí nền.",
+  "@tracking_background_disabled_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "tracking_location_stale_parent_body": "{childName} chưa cập nhật vị trí trong hơn 2 phút.",
+  "@tracking_location_stale_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
+  "tracking_ok_parent_body": "{childName} đã bật lại định vị và vị trí đang cập nhật bình thường.",
+  "@tracking_ok_parent_body": {
+    "placeholders": {
+      "childName": {
+        "type": "String"
+      }
+    }
+  },
 
   "tracking_location_service_off_child_title": "Định vị đang tắt",
   "tracking_location_permission_denied_child_title": "Quyền vị trí đang tắt",

@@ -86,16 +86,6 @@ service cloud.firestore {
         && userDoc(childUid).data.familyId == userDoc(parentUid).data.familyId;
     }
     
-     function canAccessSafeRouteChild(childUid) {
-      return isSignedIn()
-        && userExists(childUid)
-        && isChildUser(childUid)
-        && (
-          isSelf(childUid)
-          || isAdultManagerOfParent(userDoc(childUid).data.parentUid)
-        );
-    }
-
     function canAccessSafeRouteChild(childUid) {
       return isSignedIn()
         && userExists(childUid)
@@ -105,6 +95,50 @@ service cloud.firestore {
           || isSelf(userDoc(childUid).data.parentUid)
           || isGuardianAssignedToChild(childUid)
         );
+    }
+
+    function canAccessBlockedItemsUser(userId) {
+      return isSignedIn()
+        && userExists(userId)
+        && isChildUser(userId)
+        && (
+          isSelf(userId)
+          || isSelf(userDoc(userId).data.parentUid)
+          || isGuardianAssignedToChild(userId)
+        );
+    }
+
+    function canCreateParentFamilyMember(familyId, uid) {
+      return isSignedIn()
+        && isSelf(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.role == "parent"
+        && request.resource.data.familyId == familyId
+        && existsAfter(/databases/$(database)/documents/users/$(uid))
+        && getAfter(/databases/$(database)/documents/users/$(uid)).data.familyId == familyId
+        && getAfter(/databases/$(database)/documents/users/$(uid)).data.role == "parent";
+    }
+
+    function canCreateManagedFamilyMember(familyId, uid) {
+      return isSignedIn()
+        && userExists(request.auth.uid)
+        && isParentUser(request.auth.uid)
+        && userDoc(request.auth.uid).data.familyId == familyId
+        && request.resource.data.uid == uid
+        && request.resource.data.role in ["child", "guardian"]
+        && request.resource.data.familyId == familyId
+        && existsAfter(/databases/$(database)/documents/users/$(uid))
+        && getAfter(/databases/$(database)/documents/users/$(uid)).data.familyId == familyId
+        && getAfter(/databases/$(database)/documents/users/$(uid)).data.parentUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(uid)).data.role == request.resource.data.role;
+    }
+
+    function isParentOfSignedInChild(uid) {
+      return isSignedIn()
+        && isChildUser(request.auth.uid)
+        && isParentUser(uid)
+        && userDoc(request.auth.uid).data.parentUid == uid
+        && userDoc(request.auth.uid).data.familyId == userDoc(uid).data.familyId;
     }
 
     function isParentManagingGuardianAssignments(uid) {
@@ -155,14 +189,15 @@ service cloud.firestore {
     match /users/{uid} {
       allow get: if isSelf(uid)
         || (resource != null && resource.data.parentUid == request.auth.uid)
-        || (
-          resource != null
-          && isSignedIn()
-          && userExists(request.auth.uid)
-          && resource.data.familyId == userDoc(request.auth.uid).data.familyId
-        );
+        || isGuardianAssignedToChild(uid)
+        || isGuardianOfParent(uid)
+        || isParentOfSignedInChild(uid);
 
-      allow list: if isSignedIn();
+      allow list: if isSignedIn()
+        && (
+          resource.data.parentUid == request.auth.uid
+          || uid == request.auth.uid
+        );
 
       allow create: if isSignedIn() && (
         (isSelf(uid) && request.resource.data.role == "parent")
@@ -170,6 +205,8 @@ service cloud.firestore {
         (
           request.resource.data.role in ["child", "guardian"]
           && request.auth.uid == request.resource.data.parentUid
+          && userExists(request.auth.uid)
+          && request.resource.data.familyId == userDoc(request.auth.uid).data.familyId
         )
       );
 
@@ -215,13 +252,6 @@ service cloud.firestore {
         && request.resource.data.lastMessageText.size() <= 1000;
 
       allow delete: if false;
-
-      match /members/{memberId} {
-        allow read: if isFamilyMember(familyId);
-        allow create: if isSignedIn();
-        allow update: if isSignedIn();
-        allow delete: if false;
-      }
 
       match /chatStates/{uid} {
         allow get, list: if isFamilyMember(familyId);
@@ -376,14 +406,8 @@ service cloud.firestore {
       // ============================
 
       match /members/{uid} {
-        allow create: if isSignedIn() && (
-          (isSelf(uid) && request.resource.data.role == "parent")
-          ||
-          (request.resource.data.role == "child"
-            && request.resource.data.uid == uid
-            && request.resource.data.familyId == familyId
-            && userDoc(request.auth.uid).data.familyId == familyId)
-        );
+        allow create: if canCreateParentFamilyMember(familyId, uid)
+          || canCreateManagedFamilyMember(familyId, uid);
 
         allow read: if isFamilyMember(familyId);
         allow update, delete: if false;
@@ -430,42 +454,19 @@ service cloud.firestore {
     // ================================
 
     match /blocked_items/{userId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if canAccessBlockedItemsUser(userId);
 
       match /{sub=**} {
-        allow read, write: if request.auth != null;
+        allow read, write: if canAccessBlockedItemsUser(userId);
       }
     }
     
-    // ================================
-    // SAFE ROUTE
-    // ================================
-
-    match /trips/{tripId} {
-      allow read: if resource.data.childId is string
-        && canAccessSafeRouteChild(resource.data.childId);
-      allow create, update, delete: if false;
-    }
-
-    match /routes/{routeId} {
-      allow read: if resource.data.childId is string
-        && canAccessSafeRouteChild(resource.data.childId);
-      allow create, update, delete: if false;
-    }
-
     // ================================
     // NOTIFICATIONS
     // ================================
 
     match /notifications/{notificationId} {
-      allow create: if request.auth != null
-        && request.resource.data.receiverId is string
-        && request.resource.data.senderId is string
-        && request.resource.data.type is string
-        && request.resource.data.title is string
-        && request.resource.data.body is string
-        && request.resource.data.isRead == false
-        && request.resource.data.status == "pending";
+      allow create: if false;
 
       allow read: if request.auth != null
         && resource.data.receiverId == request.auth.uid;

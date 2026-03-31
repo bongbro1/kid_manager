@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/async/polling_backoff.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class ZoneBubbleState {
@@ -37,6 +38,7 @@ class ZoneStatusVm extends ChangeNotifier {
         _cancelFocusStreams();
         _activePresence = null;
         _lastEvent = null;
+        _presenceUnavailable = false;
         _setBubble(null);
         return;
       }
@@ -54,11 +56,18 @@ class ZoneStatusVm extends ChangeNotifier {
   StreamSubscription<DatabaseEvent>? _presenceSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _lastEventSub;
   Timer? _presencePollTimer;
+  Timer? _presenceRetryTimer;
   Timer? _tick;
+  final PollingBackoff _presenceFallbackBackoff = PollingBackoff(
+    initialDelay: Duration(seconds: 10),
+    maxDelay: Duration(minutes: 1),
+  );
+  static const Duration _presenceRealtimeRetryInterval = Duration(minutes: 1);
 
   Map<String, dynamic>? _activePresence; // zone đang inside (danger ưu tiên)
   Map<String, dynamic>? _lastEvent; // notif ZONE gần nhất
 
+  bool _presenceUnavailable = false;
   int _nowMs = DateTime.now().millisecondsSinceEpoch;
 
   ZoneBubbleState? _bubble;
@@ -73,6 +82,7 @@ class ZoneStatusVm extends ChangeNotifier {
     _cancelFocusStreams();
     _activePresence = null;
     _lastEvent = null;
+    _presenceUnavailable = false;
 
     _tick ??= Timer.periodic(const Duration(seconds: 1), (_) {
       _nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -90,6 +100,7 @@ class ZoneStatusVm extends ChangeNotifier {
     _cancelFocusStreams();
     _activePresence = null;
     _lastEvent = null;
+    _presenceUnavailable = false;
     _bubble = null;
     notifyListeners();
   }
@@ -99,6 +110,9 @@ class ZoneStatusVm extends ChangeNotifier {
     _presenceSub = null;
     _presencePollTimer?.cancel();
     _presencePollTimer = null;
+    _presenceRetryTimer?.cancel();
+    _presenceRetryTimer = null;
+    _presenceFallbackBackoff.reset();
     _lastEventSub?.cancel();
     _lastEventSub = null;
   }
@@ -136,6 +150,7 @@ class ZoneStatusVm extends ChangeNotifier {
     final ref = _rtdb.ref('zonePresenceByChild/$childId');
 
     _presenceSub = ref.onValue.listen((e) {
+      _restoreRealtimePresenceIfNeeded(childId);
       _applyPresenceValue(e.snapshot.value);
     }, onError: (Object e, StackTrace st) {
       debugPrint(
@@ -144,11 +159,14 @@ class ZoneStatusVm extends ChangeNotifier {
       debugPrint('$st');
       unawaited(_presenceSub?.cancel());
       _presenceSub = null;
+      _presenceUnavailable = true;
       _startPresenceFallbackPolling(childId);
+      _schedulePresenceRealtimeRetry(childId);
     });
   }
 
   void _applyPresenceValue(dynamic value) {
+    _presenceUnavailable = false;
     if (value == null) {
       _activePresence = null;
       _recompute();
@@ -192,17 +210,73 @@ class ZoneStatusVm extends ChangeNotifier {
       debugPrint('[ZoneStatusVm] zonePresence callable error child=$childId error=$e');
       debugPrint('$st');
       _activePresence = null;
+      _presenceUnavailable = true;
       _recompute();
+    } finally {
+      if (_presencePollTimer != null) {
+        _schedulePresenceRealtimeRetry(childId);
+        _schedulePresenceFallbackPoll(childId);
+      }
     }
   }
 
   void _startPresenceFallbackPolling(String childId) {
     if (_presencePollTimer != null) return;
 
+    _presenceFallbackBackoff.reset();
+    debugPrint(
+      '[ZoneStatusVm] enter fallback polling for zone presence child=$childId',
+    );
     unawaited(_pollPresenceOnce(childId));
-    _presencePollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      unawaited(_pollPresenceOnce(childId));
+    _schedulePresenceFallbackPoll(childId);
+    _schedulePresenceRealtimeRetry(childId);
+  }
+
+  void _schedulePresenceFallbackPoll(String childId) {
+    _presencePollTimer?.cancel();
+    if (_childId != childId) {
+      return;
+    }
+
+    final delay = _presenceFallbackBackoff.nextDelay();
+    debugPrint(
+      '[ZoneStatusVm] fallback polling zone presence child=$childId '
+      'attempt=${_presenceFallbackBackoff.attemptCount} nextInMs=${delay.inMilliseconds}',
+    );
+    _presencePollTimer = Timer(delay, () {
+      if (_childId == childId && _presenceSub == null) {
+        unawaited(_pollPresenceOnce(childId));
+      }
     });
+  }
+
+  void _schedulePresenceRealtimeRetry(String childId) {
+    if (_presenceRetryTimer != null) {
+      return;
+    }
+
+    _presenceRetryTimer = Timer(_presenceRealtimeRetryInterval, () {
+      _presenceRetryTimer = null;
+      if (_childId == childId && _presenceSub == null) {
+        debugPrint(
+          '[ZoneStatusVm] retry realtime zone presence listener child=$childId',
+        );
+        _listenPresence(childId);
+      }
+    });
+  }
+
+  void _restoreRealtimePresenceIfNeeded(String childId) {
+    if (_presencePollTimer != null || _presenceRetryTimer != null) {
+      debugPrint(
+        '[ZoneStatusVm] restored realtime zone presence listener child=$childId',
+      );
+    }
+    _presencePollTimer?.cancel();
+    _presencePollTimer = null;
+    _presenceRetryTimer?.cancel();
+    _presenceRetryTimer = null;
+    _presenceFallbackBackoff.reset();
   }
 
   void _listenLastZoneEvent(String viewerUid, String childId) {
@@ -258,9 +332,19 @@ class ZoneStatusVm extends ChangeNotifier {
     }
 
     // 2) Không inside -> fallback last event (thường là exit)
+    if (_presenceUnavailable) {
+      _setBubble(
+        ZoneBubbleState(
+          icon: Icons.location_disabled_outlined,
+          text: l10n.zoneStatusLiveUnavailable,
+        ),
+      );
+      return;
+    }
+
     final ev = _lastEvent;
     if (ev != null) {
-      final body = (ev['body'] ?? '').toString(); // bạn đang lưu bodyText = zoneName hoặc zoneName • phút
+      final body = _buildLastEventBody(ev);
       final createdAt = ev['createdAt'];
       DateTime? dt;
       if (createdAt is Timestamp) dt = createdAt.toDate();
@@ -292,11 +376,95 @@ class ZoneStatusVm extends ChangeNotifier {
 
   String _fmtDuration(int sec) {
     final l10n = runtimeL10n();
-    final m = (sec / 60).floor();
-    final h = (m / 60).floor();
-    final mm = m % 60;
-    if (h <= 0) return l10n.zoneStatusDurationMinutes(mm);
-    return l10n.zoneStatusDurationHoursMinutes(h, mm);
+    final locale = l10n.localeName.toLowerCase();
+    final isVietnamese = locale.startsWith('vi');
+    final normalizedSeconds = sec <= 0 ? 0 : sec;
+    final totalMinutes = normalizedSeconds <= 0
+        ? 0
+        : ((normalizedSeconds + 59) / 60).floor();
+    final days = totalMinutes ~/ (24 * 60);
+    final hours = (totalMinutes % (24 * 60)) ~/ 60;
+    final minutes = totalMinutes % 60;
+
+    if (days <= 0 && hours <= 0) {
+      return l10n.zoneStatusDurationMinutes(minutes);
+    }
+    if (days <= 0) {
+      return l10n.zoneStatusDurationHoursMinutes(hours, minutes);
+    }
+
+    final parts = <String>[
+      _formatDurationUnit(days, isVietnamese: isVietnamese, vi: 'ngày', en: 'day'),
+    ];
+    if (hours > 0) {
+      parts.add(
+        _formatDurationUnit(
+          hours,
+          isVietnamese: isVietnamese,
+          vi: 'giờ',
+          en: 'hour',
+        ),
+      );
+    }
+    if (minutes > 0) {
+      parts.add(
+        _formatDurationUnit(
+          minutes,
+          isVietnamese: isVietnamese,
+          vi: 'phút',
+          en: 'minute',
+        ),
+      );
+    }
+    return parts.join(' ');
+  }
+
+  String _buildLastEventBody(Map<String, dynamic> event) {
+    final rawData = event['data'];
+    final payload = rawData is Map
+        ? rawData.map((key, value) => MapEntry('$key', value))
+        : const <String, dynamic>{};
+
+    final zoneName = _normalizeZoneLabel(
+      (payload['zoneName'] ?? event['body'] ?? '').toString(),
+    );
+    if (zoneName.isEmpty) {
+      return '';
+    }
+
+    final durationSec = int.tryParse('${payload['durationSec'] ?? ''}') ?? 0;
+    if (durationSec > 0) {
+      return '$zoneName • ${_fmtDuration(durationSec)}';
+    }
+
+    final durationMin = int.tryParse('${payload['durationMin'] ?? ''}') ?? 0;
+    if (durationMin > 0) {
+      return '$zoneName • ${_fmtDuration(durationMin * 60)}';
+    }
+
+    return zoneName;
+  }
+
+  String _normalizeZoneLabel(String raw) {
+    final body = raw.trim();
+    final bulletIndex = body.indexOf('•');
+    if (bulletIndex <= 0) {
+      return body;
+    }
+    return body.substring(0, bulletIndex).trim();
+  }
+
+  String _formatDurationUnit(
+    int value, {
+    required bool isVietnamese,
+    required String vi,
+    required String en,
+  }) {
+    if (isVietnamese) {
+      return '$value $vi';
+    }
+    final suffix = value == 1 ? en : '${en}s';
+    return '$value $suffix';
   }
 
   String _timeAgo(DateTime t) {

@@ -4,11 +4,16 @@ import '../../../models/location/location_data.dart';
 
 class CameraController {
   final MapboxMap map;
+  static const double _singlePointZoom = 16.4;
 
   CameraController(this.map);
 
   Future<void> fitToRoute(List<LocationData> history) async {
     if (history.isEmpty) return;
+    if (history.length == 1) {
+      await focusOnPoint(history.first);
+      return;
+    }
 
     double minLat = history.first.latitude;
     double maxLat = history.first.latitude;
@@ -45,6 +50,24 @@ class CameraController {
     await map.easeTo(
       cameraOptions,
       MapAnimationOptions(duration: 1200),
+    );
+  }
+
+  Future<void> focusOnPoint(
+    LocationData loc, {
+    double zoom = _singlePointZoom,
+  }) async {
+    final cameraState = await map.getCameraState();
+    await map.easeTo(
+      CameraOptions(
+        center: Point(
+          coordinates: Position(loc.longitude, loc.latitude),
+        ),
+        zoom: cameraState.zoom > zoom ? cameraState.zoom : zoom,
+        bearing: cameraState.bearing,
+        pitch: cameraState.pitch,
+      ),
+      MapAnimationOptions(duration: 850),
     );
   }
 

@@ -8,31 +8,31 @@
     },
     "locations": {
       "$childUid": {
-        ".read": "auth != null && (auth.uid === $childUid || root.child('locations').child($childUid).child('meta').child('parentUid').val() === auth.uid)",
+        ".read": "auth != null && (auth.uid === $childUid || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child($childUid).child('parentUid').val() === auth.uid) || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child(auth.uid).child('role').val() === 'guardian' && root.child('users').child(auth.uid).child('parentUid').val() === root.child('users').child($childUid).child('parentUid').val() && root.child('users').child(auth.uid).child('familyId').val() === root.child('users').child($childUid).child('familyId').val() && root.child('users').child(auth.uid).child('managedChildIdsMap').child($childUid).val() === true))",
         ".write": "auth != null && auth.uid === $childUid"
       }
     },
     "live_locations": {
       "$childUid": {
-        ".read": "auth != null && (auth.uid === $childUid || root.child('locations').child($childUid).child('meta').child('parentUid').val() === auth.uid)",
+        ".read": "auth != null && (auth.uid === $childUid || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child($childUid).child('parentUid').val() === auth.uid) || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child(auth.uid).child('role').val() === 'guardian' && root.child('users').child(auth.uid).child('parentUid').val() === root.child('users').child($childUid).child('parentUid').val() && root.child('users').child(auth.uid).child('familyId').val() === root.child('users').child($childUid).child('familyId').val() && root.child('users').child(auth.uid).child('managedChildIdsMap').child($childUid).val() === true))",
         ".write": false
       }
     },
     "zonesByChild": {
       "$childUid": {
-        ".read": "auth != null && (auth.uid === $childUid || root.child('locations').child($childUid).child('meta').child('parentUid').val() === auth.uid)",
+        ".read": "auth != null && (auth.uid === $childUid || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child($childUid).child('parentUid').val() === auth.uid) || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child(auth.uid).child('role').val() === 'guardian' && root.child('users').child(auth.uid).child('parentUid').val() === root.child('users').child($childUid).child('parentUid').val() && root.child('users').child(auth.uid).child('familyId').val() === root.child('users').child($childUid).child('familyId').val() && root.child('users').child(auth.uid).child('managedChildIdsMap').child($childUid).val() === true))",
         ".write": false
       }
     },
     "zoneEventsByChild": {
       "$childUid": {
-        ".read": "auth != null && (auth.uid === $childUid || root.child('locations').child($childUid).child('meta').child('parentUid').val() === auth.uid)",
+        ".read": "auth != null && (auth.uid === $childUid || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child($childUid).child('parentUid').val() === auth.uid) || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child(auth.uid).child('role').val() === 'guardian' && root.child('users').child(auth.uid).child('parentUid').val() === root.child('users').child($childUid).child('parentUid').val() && root.child('users').child(auth.uid).child('familyId').val() === root.child('users').child($childUid).child('familyId').val() && root.child('users').child(auth.uid).child('managedChildIdsMap').child($childUid).val() === true))",
         ".write": false
       }
     },
     "zonePresenceByChild": {
       "$childUid": {
-        ".read": "auth != null && (auth.uid === $childUid || root.child('locations').child($childUid).child('meta').child('parentUid').val() === auth.uid)",
+        ".read": "auth != null && (auth.uid === $childUid || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child($childUid).child('parentUid').val() === auth.uid) || (root.child('users').child($childUid).child('allowTracking').val() === true && root.child('users').child(auth.uid).child('role').val() === 'guardian' && root.child('users').child(auth.uid).child('parentUid').val() === root.child('users').child($childUid).child('parentUid').val() && root.child('users').child(auth.uid).child('familyId').val() === root.child('users').child($childUid).child('familyId').val() && root.child('users').child(auth.uid).child('managedChildIdsMap').child($childUid).val() === true))",
         ".write": false
       }
     }

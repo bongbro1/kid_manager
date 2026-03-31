@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
@@ -10,12 +11,55 @@ import 'package:kid_manager/models/notifications/notification_source.dart';
 class NotificationRepository {
   final FirebaseFirestore _fs;
   final FirebaseFunctions _functions;
-  NotificationRepository({FirebaseFirestore? fs})
+  final FirebaseAuth _auth;
+  NotificationRepository({
+    FirebaseFirestore? fs,
+    FirebaseFunctions? functions,
+    FirebaseAuth? auth,
+  })
     : _fs = fs ?? FirebaseFirestore.instance,
-      _functions = FirebaseFunctions.instanceFor(region: 'asia-southeast1');
+      _auth = auth ?? FirebaseAuth.instance,
+      _functions =
+          functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
   final int _maxCountInPage = 20;
   static const int _maxBatchDeleteSize = 450;
+
+  Future<User?> _waitForAuthenticatedUser({
+    Duration timeout = const Duration(seconds: 3),
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      return currentUser;
+    }
+
+    try {
+      return await _auth
+          .authStateChanges()
+          .firstWhere((user) => user != null)
+          .timeout(timeout);
+    } catch (_) {
+      return _auth.currentUser;
+    }
+  }
+
+  Future<void> _ensureCallableAuthReady() async {
+    final user = await _waitForAuthenticatedUser();
+    final currentUid = user?.uid;
+    debugPrint(
+      '[NotificationRepository] auth preflight currentUid=$currentUid',
+    );
+    if (user == null) {
+      return;
+    }
+
+    try {
+      await user.getIdToken(true);
+    } catch (e, st) {
+      debugPrint('[NotificationRepository] token refresh error: $e');
+      debugPrintStack(stackTrace: st);
+    }
+  }
 
   Stream<int> watchUnreadCount(
     String uid, {
@@ -208,9 +252,6 @@ class NotificationRepository {
       'title': title,
       'body': body,
       'data': data ?? {},
-      'isRead': false,
-      'status': 'pending',
-      'createdAt': FieldValue.serverTimestamp(),
     };
 
     debugPrint(
@@ -220,11 +261,37 @@ class NotificationRepository {
     );
 
     try {
-      final docRef = await _fs.collection('notifications').add(payload);
+      await _ensureCallableAuthReady();
+
+      final callable = _functions.httpsCallable('enqueueAuthorizedNotification');
+      final response = await callable.call(payload);
 
       debugPrint(
-        '[NotificationRepository] create success docId=${docRef.id}',
+        '[NotificationRepository] create success '
+        'notificationId=${response.data is Map ? response.data['notificationId'] : null}',
       );
+    } on FirebaseFunctionsException catch (e, st) {
+      if (e.code == 'unauthenticated') {
+        debugPrint(
+          '[NotificationRepository] create unauthenticated -> retry after token refresh',
+        );
+        debugPrintStack(stackTrace: st);
+
+        await _ensureCallableAuthReady();
+        final response = await _functions
+            .httpsCallable('enqueueAuthorizedNotification')
+            .call(payload);
+
+        debugPrint(
+          '[NotificationRepository] create success after retry '
+          'notificationId=${response.data is Map ? response.data['notificationId'] : null}',
+        );
+        return;
+      }
+
+      debugPrint('[NotificationRepository] create error: $e');
+      debugPrintStack(stackTrace: st);
+      rethrow;
     } catch (e, st) {
       debugPrint('[NotificationRepository] create error: $e');
       debugPrintStack(stackTrace: st);
@@ -313,6 +380,12 @@ class NotificationRepository {
     final map = doc.data()!;
     final type = (map['type'] ?? '').toString();
     final data = Map<String, dynamic>.from(map['data'] ?? {});
+    if (!data.containsKey('eventCategory') && map['eventCategory'] != null) {
+      data['eventCategory'] = map['eventCategory'];
+    }
+    if (!data.containsKey('expiresAt') && map['expiresAt'] != null) {
+      data['expiresAt'] = map['expiresAt'];
+    }
     final rawContent = (map['body'] ?? '').toString();
     final content = rawContent.startsWith('tracking.')
         ? (data['message']?.toString() ?? rawContent)
@@ -376,6 +449,12 @@ class NotificationRepository {
     final map = doc.data()!;
     final type = map['type'] ?? '';
     final data = Map<String, dynamic>.from(map['data'] ?? {});
+    if (!data.containsKey('eventCategory') && map['eventCategory'] != null) {
+      data['eventCategory'] = map['eventCategory'];
+    }
+    if (!data.containsKey('expiresAt') && map['expiresAt'] != null) {
+      data['expiresAt'] = map['expiresAt'];
+    }
 
     final rawContent = (map['body'] ?? '').toString();
     String content = rawContent.startsWith('tracking.')
