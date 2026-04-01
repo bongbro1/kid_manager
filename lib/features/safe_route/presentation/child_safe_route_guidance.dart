@@ -1,10 +1,13 @@
 import 'dart:math' as math;
 
+import 'package:flutter/widgets.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_hazard.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
-import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 
 enum ChildSafeRouteSeverity { safe, offRoute, danger, arrived }
@@ -41,7 +44,8 @@ ChildSafeRouteGuidance buildChildSafeRouteGuidance({
   required LocationData location,
   required String languageCode,
 }) {
-  final strings = _ChildSafeRouteStrings(languageCode);
+  final l10n = lookupAppLocalizations(Locale(languageCode));
+  final strings = _ChildSafeRouteStrings(l10n);
   final points = _normalizedRoutePoints(route);
   if (points.isEmpty) {
     return ChildSafeRouteGuidance(
@@ -451,118 +455,86 @@ class _RouteProjection {
 }
 
 class _ChildSafeRouteStrings {
-  _ChildSafeRouteStrings(String languageCode)
-    : _isEnglish = languageCode.toLowerCase().startsWith('en');
+  const _ChildSafeRouteStrings(this.l10n);
 
-  final bool _isEnglish;
+  final AppLocalizations l10n;
 
-  String get routeLoading =>
-      _isEnglish ? 'Loading route...' : 'Đang tải tuyến đường...';
-
-  String get safeStatus => _isEnglish ? 'On route' : 'Đúng tuyến';
-
-  String get dangerArea => _isEnglish ? 'danger area' : 'vùng nguy hiểm';
-
-  String get returnToSafeRoute =>
-      _isEnglish ? 'Return to the safe route' : 'Quay lại tuyến an toàn';
-
-  String get arrivedInstruction =>
-      _isEnglish ? 'You are almost there' : 'Sắp tới nơi rồi';
-
-  String get arrivedDescription => _isEnglish
-      ? 'Keep going to the destination marker.'
-      : 'Đi tiếp đến điểm đích để hoàn thành hành trình.';
+  String get routeLoading => l10n.safeRouteGuidanceLoadingRoute;
+  String get safeStatus => l10n.safeRouteGuidanceStatusOnRoute;
+  String get dangerArea => l10n.safeRouteGuidanceDangerArea;
+  String get returnToSafeRoute => l10n.safeRouteGuidanceReturnToSafeRoute;
+  String get arrivedInstruction => l10n.safeRouteGuidanceArrivedInstruction;
+  String get arrivedDescription => l10n.safeRouteGuidanceArrivedDescription;
 
   String statusLabel(ChildSafeRouteSeverity severity) {
     switch (severity) {
       case ChildSafeRouteSeverity.danger:
-        return _isEnglish ? 'Danger' : 'Nguy hiểm';
+        return l10n.safeRouteVisualDangerBadge;
       case ChildSafeRouteSeverity.offRoute:
-        return _isEnglish ? 'Off route' : 'Lệch tuyến';
+        return l10n.safeRouteGuidanceStatusOffRoute;
       case ChildSafeRouteSeverity.arrived:
-        return _isEnglish ? 'Almost there' : 'Sắp đến nơi';
+        return l10n.safeRouteGuidanceStatusAlmostThere;
       case ChildSafeRouteSeverity.safe:
-        return _isEnglish ? 'Safe route' : 'Tuyến an toàn';
+        return l10n.safeRouteGuidanceStatusSafeRoute;
     }
   }
 
   String leaveDangerZone(String hazardName) {
-    return _isEnglish
-        ? 'Leave $hazardName immediately'
-        : 'Rời khỏi $hazardName ngay';
+    return l10n.safeRouteGuidanceLeaveDangerZone(hazardName);
   }
 
   String dangerDescription(String hazardName) {
-    return _isEnglish
-        ? 'Move back to the route and away from $hazardName.'
-        : 'Đi ra khỏi $hazardName và quay lại tuyến an toàn.';
+    return l10n.safeRouteGuidanceDangerDescription(hazardName);
   }
 
   String offRouteDescription(String distanceLabel) {
-    return _isEnglish
-        ? 'You are about $distanceLabel away from the route.'
-        : 'Bạn đang cách tuyến khoảng $distanceLabel.';
+    return l10n.safeRouteGuidanceOffRouteDescription(distanceLabel);
   }
 
   String remainingDescription(String distanceLabel) {
-    return _isEnglish
-        ? '$distanceLabel left to the destination.'
-        : 'Còn $distanceLabel để đến điểm đích.';
+    return l10n.safeRouteGuidanceRemainingDescription(distanceLabel);
   }
 
   String continueStraight(String distanceLabel) {
-    return _isEnglish
-        ? 'Continue straight for $distanceLabel'
-        : 'Đi thẳng $distanceLabel';
+    return l10n.safeRouteGuidanceContinueStraight(distanceLabel);
   }
 
   String turnLeft(String distanceLabel) {
-    return _isEnglish
-        ? 'Turn left in $distanceLabel'
-        : 'Rẽ trái sau $distanceLabel';
+    return l10n.safeRouteGuidanceTurnLeft(distanceLabel);
   }
 
   String turnRight(String distanceLabel) {
-    return _isEnglish
-        ? 'Turn right in $distanceLabel'
-        : 'Rẽ phải sau $distanceLabel';
+    return l10n.safeRouteGuidanceTurnRight(distanceLabel);
   }
 
   String keepLeft(String distanceLabel) {
-    return _isEnglish
-        ? 'Keep left in $distanceLabel'
-        : 'Chếch trái sau $distanceLabel';
+    return l10n.safeRouteGuidanceKeepLeft(distanceLabel);
   }
 
   String keepRight(String distanceLabel) {
-    return _isEnglish
-        ? 'Keep right in $distanceLabel'
-        : 'Chếch phải sau $distanceLabel';
+    return l10n.safeRouteGuidanceKeepRight(distanceLabel);
   }
 
   String makeUTurn(String distanceLabel) {
-    return _isEnglish
-        ? 'Make a U-turn in $distanceLabel'
-        : 'Quay đầu sau $distanceLabel';
+    return l10n.safeRouteGuidanceMakeUTurn(distanceLabel);
   }
 
   String etaLabel(double seconds) {
     if (seconds <= 0) {
-      return _isEnglish ? 'ETA now' : 'Đến ngay bây giờ';
+      return l10n.safeRouteGuidanceEtaNow;
     }
     if (seconds >= 3600) {
       final hours = seconds ~/ 3600;
       final minutes = ((seconds % 3600) / 60).round();
-      return _isEnglish ? '$hours h ${minutes}m' : '$hours giờ ${minutes} phút';
+      if (minutes == 0) {
+        return l10n.safeRouteDurationHours(hours);
+      }
+      return l10n.safeRouteDurationHoursMinutesShort(hours, minutes);
     }
-    final minutes = math.max(1, (seconds / 60).round());
-    return _isEnglish ? '$minutes min' : '$minutes phút';
+    return l10n.safeRouteDurationMinutes(math.max(1, (seconds / 60).round()));
   }
 
   String distanceLabel(double meters) {
-    if (meters >= 1000) {
-      return '${(meters / 1000).toStringAsFixed(1)} km';
-    }
-    return '${math.max(1, meters.round())} m';
+    return l10n.safeRouteDistanceLabel(math.max(1, meters));
   }
 }

@@ -11,8 +11,6 @@ import 'package:kid_manager/widgets/parent/schedule/schedule_period_selector.dar
 
 import '../../../models/schedule.dart';
 
-enum ScheduleFormFieldStyle { hint, floatingLabel }
-
 class ScheduleFormData {
   final String title;
   final String description;
@@ -75,8 +73,7 @@ class ScheduleFormData {
 
   bool get isTimeInvalid {
     if (startTime == null || endTime == null) return false;
-    return scheduleTimeToMinutes(endTime!) <=
-        scheduleTimeToMinutes(startTime!);
+    return scheduleTimeToMinutes(endTime!) <= scheduleTimeToMinutes(startTime!);
   }
 
   bool get isValid {
@@ -94,7 +91,9 @@ class ScheduleFormData {
       title: title.trim(),
       description: description.trim(),
       date: normalizeScheduleDate(date),
-      period: normalizedStart == null ? period : inferSchedulePeriod(normalizedStart),
+      period: normalizedStart == null
+          ? period
+          : inferSchedulePeriod(normalizedStart),
     );
   }
 
@@ -111,14 +110,8 @@ class ScheduleFormData {
   }
 
   @override
-  int get hashCode => Object.hash(
-    title,
-    description,
-    date,
-    startTime,
-    endTime,
-    period,
-  );
+  int get hashCode =>
+      Object.hash(title, description, date, startTime, endTime, period);
 }
 
 int scheduleTimeToMinutes(TimeOfDay time) => time.hour * 60 + time.minute;
@@ -129,13 +122,8 @@ String formatScheduleTime24(TimeOfDay time) =>
 DateTime normalizeScheduleDate(DateTime date) =>
     DateTime(date.year, date.month, date.day);
 
-DateTime combineScheduleDateTime(DateTime date, TimeOfDay time) => DateTime(
-  date.year,
-  date.month,
-  date.day,
-  time.hour,
-  time.minute,
-);
+DateTime combineScheduleDateTime(DateTime date, TimeOfDay time) =>
+    DateTime(date.year, date.month, date.day, time.hour, time.minute);
 
 SchedulePeriod inferSchedulePeriod(TimeOfDay start) {
   if (start.hour < 12) return SchedulePeriod.morning;
@@ -147,7 +135,6 @@ class ScheduleFormSheet extends StatefulWidget {
   final String headerTitle;
   final String submitButtonText;
   final String successMessage;
-  final ScheduleFormFieldStyle fieldStyle;
   final bool allowDateEditing;
   final bool requireChangesToSubmit;
   final ScheduleFormData initialData;
@@ -158,7 +145,6 @@ class ScheduleFormSheet extends StatefulWidget {
     required this.headerTitle,
     required this.submitButtonText,
     required this.successMessage,
-    required this.fieldStyle,
     required this.allowDateEditing,
     required this.requireChangesToSubmit,
     required this.initialData,
@@ -282,7 +268,6 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
       context,
       title: label,
       initial: initial,
-      primaryColor: const Color(0xFF3F7CFF),
       minuteInterval: 1,
     );
 
@@ -352,15 +337,15 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final currentData = _currentData;
+    final scheme = Theme.of(context).colorScheme;
 
-    // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: _onBack,
       child: Container(
         height: 622,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: SafeArea(
           top: false,
@@ -408,6 +393,8 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
   }
 
   Widget _buildHeader() {
+    final scheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
       child: Stack(
@@ -416,7 +403,7 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back),
+              icon: Icon(Icons.arrow_back, color: scheme.onSurface),
               onPressed: () async {
                 final canPop = await _onBack();
                 if (!mounted || !canPop) return;
@@ -426,7 +413,11 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
           ),
           Text(
             widget.headerTitle,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
           ),
         ],
       ),
@@ -439,95 +430,103 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
     int maxLines = 1,
     int? maxLength,
   }) {
-    final baseDecoration = InputDecoration(
+    final scheme = Theme.of(context).colorScheme;
+
+    final decoration = InputDecoration(
       filled: true,
-      fillColor: const Color(0xFFF5F6F8),
+      fillColor: scheme.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
       ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: scheme.outline.withOpacity(0.5)),
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFF3F7CFF), width: 1.2),
+        borderSide: BorderSide(color: scheme.primary, width: 1.2),
       ),
       counterText: '',
+      labelText: text,
+      alignLabelWithHint: maxLines > 1,
+      labelStyle: _compactFieldLabelStyle(scheme),
+      floatingLabelStyle: _compactFieldLabelStyle(scheme),
+      floatingLabelBehavior: FloatingLabelBehavior.always,
     );
-
-    final decoration = widget.fieldStyle == ScheduleFormFieldStyle.hint
-        ? baseDecoration.copyWith(hintText: text)
-        : baseDecoration.copyWith(
-            labelText: text,
-            floatingLabelBehavior: FloatingLabelBehavior.auto,
-          );
 
     return TextField(
       controller: controller,
       maxLines: maxLines,
       maxLength: maxLength,
+      style: TextStyle(color: scheme.onSurface),
       decoration: decoration,
     );
   }
 
   Widget _buildCounter() {
+    final scheme = Theme.of(context).colorScheme;
+
     return Align(
       alignment: Alignment.centerRight,
       child: Text(
         '${_titleCtrl.text.length}/50',
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
+        style: TextStyle(
+          fontSize: 12,
+          color: scheme.onSurface.withOpacity(0.6),
+        ),
       ),
+    );
+  }
+
+  TextStyle _compactFieldValueStyle(ColorScheme scheme) {
+    return TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: scheme.onSurface,
+    );
+  }
+
+  TextStyle _compactFieldLabelStyle(ColorScheme scheme) {
+    return TextStyle(
+      fontSize: 17,
+      fontWeight: FontWeight.w500,
+      color: scheme.onSurface.withOpacity(0.7),
     );
   }
 
   Widget _buildDateField(AppLocalizations l10n) {
-    final dateText = DateFormat('dd/MM/yyyy').format(_selectedDate);
-
-    if (widget.fieldStyle == ScheduleFormFieldStyle.floatingLabel) {
-      return TextFormField(
-        readOnly: true,
-        controller: _dateCtrl,
-        onTap: widget.allowDateEditing ? _pickDate : null,
-        decoration: InputDecoration(
-          labelText: l10n.scheduleFormDateLabel,
-          floatingLabelBehavior: FloatingLabelBehavior.auto,
-          filled: true,
-          fillColor: const Color(0xFFF5F6F8),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF3F7CFF), width: 1.2),
-          ),
-        ),
-      );
-    }
-
-    return InkWell(
+    final scheme = Theme.of(context).colorScheme;
+    return TextFormField(
+      readOnly: true,
+      controller: _dateCtrl,
       onTap: widget.allowDateEditing ? _pickDate : null,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F6F8),
+      style: _compactFieldValueStyle(scheme),
+      decoration: InputDecoration(
+        labelText: l10n.scheduleFormDateLabel,
+        labelStyle: _compactFieldLabelStyle(scheme),
+        floatingLabelStyle: _compactFieldLabelStyle(scheme),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        contentPadding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+        filled: true,
+        fillColor: scheme.surface,
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            dateText,
-            style: const TextStyle(fontSize: 14, color: Colors.black),
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.outline.withOpacity(0.5)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.primary, width: 1.2),
         ),
       ),
     );
   }
 
-  Widget _buildTimeRow(
-    AppLocalizations l10n,
-    ScheduleFormData currentData,
-  ) {
+  Widget _buildTimeRow(AppLocalizations l10n, ScheduleFormData currentData) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -578,48 +577,63 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
     required VoidCallback onTap,
     String? errorText,
   }) {
+    final scheme = Theme.of(context).colorScheme;
+
     return TextFormField(
       readOnly: true,
       controller: controller,
       onTap: onTap,
+      style: _compactFieldValueStyle(scheme),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: _compactFieldLabelStyle(scheme),
+        floatingLabelStyle: _compactFieldLabelStyle(scheme),
         errorText: errorText,
         helperText: ' ',
         helperStyle: const TextStyle(fontSize: 1, height: 0.1),
-        errorStyle: const TextStyle(fontSize: 12, height: 0.9),
-        suffixIcon: const Padding(
-          padding: EdgeInsets.only(right: 4),
-          child: Icon(Icons.access_time_rounded, size: 18, color: Colors.grey),
+        errorStyle: TextStyle(fontSize: 12, height: 0.9, color: scheme.error),
+        suffixIcon: Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Icon(
+            Icons.access_time_rounded,
+            size: 18,
+            color: scheme.onSurface.withOpacity(0.6),
+          ),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 12,
+          vertical: 14,
         ),
-        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        floatingLabelBehavior: FloatingLabelBehavior.always,
         filled: true,
-        fillColor: const Color(0xFFF5F6F8),
+        fillColor: scheme.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.outline.withOpacity(0.5)),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF3F7CFF), width: 1.2),
+          borderSide: BorderSide(color: scheme.primary, width: 1.2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: BorderSide(color: scheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderSide: BorderSide(color: scheme.error, width: 1.5),
         ),
       ),
     );
   }
 
   Widget _buildSubmitButton(AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: SizedBox(
@@ -627,21 +641,35 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: _canSubmit ? _submit : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF3F7CFF),
-            disabledBackgroundColor: Colors.grey.shade300,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(26),
+          style: ButtonStyle(
+            elevation: const MaterialStatePropertyAll(0),
+            backgroundColor: MaterialStateProperty.resolveWith((states) {
+              if (states.contains(MaterialState.disabled)) {
+                return scheme.onSurface.withOpacity(0.12);
+              }
+              return scheme.primary;
+            }),
+            foregroundColor: MaterialStateProperty.resolveWith((states) {
+              if (states.contains(MaterialState.disabled)) {
+                return scheme.onSurface.withOpacity(0.38);
+              }
+              return scheme.onPrimary;
+            }),
+            textStyle: const MaterialStatePropertyAll(
+              TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            shape: MaterialStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
             ),
           ),
           child: Text(
-            _submitting ? l10n.scheduleFormSavingButton : widget.submitButtonText,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            _submitting
+                ? l10n.scheduleFormSavingButton
+                : widget.submitButtonText,
           ),
         ),
       ),

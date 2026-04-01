@@ -5,9 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:kid_manager/core/location/map_focus_bus.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/chat/family_chat_repository.dart';
 import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/services/schedule/schedule_service.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/zones/zone_status_vm.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
@@ -21,6 +23,7 @@ import 'package:kid_manager/features/presentation/shared/state/mapbox_controller
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/location/child_info_sheet.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 
 class ParentAllChildrenMapScreen extends StatefulWidget {
@@ -100,7 +103,8 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
     if (childUid.isNotEmpty) {
       final canOpenSheet =
-          focus.openSheet && _userVm.children.any((child) => child.uid == childUid);
+          focus.openSheet &&
+          _userVm.locationMembers.any((member) => member.uid == childUid);
       await _focusChild(
         childId: childUid,
         openSheet: canOpenSheet,
@@ -149,9 +153,9 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   Future<void> _focusFirstChildOnce() async {
     if (_didInitialFocus) return;
     if (_map == null) return;
-    if (_userVm.children.isEmpty) return;
+    if (_userVm.locationMembers.isEmpty) return;
 
-    final firstChildId = _userVm.children.first.uid;
+    final firstChildId = _userVm.locationMembers.first.uid;
     final loc = _locationVm.childrenLocations[firstChildId];
     if (loc == null) return;
 
@@ -185,10 +189,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
         bearing: 0,
       );
       if (animate) {
-        await _map!.easeTo(
-          camera,
-          mbx.MapAnimationOptions(duration: 700),
-        );
+        await _map!.easeTo(camera, mbx.MapAnimationOptions(duration: 700));
       } else {
         await _map!.setCamera(camera);
       }
@@ -261,7 +262,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     final headings = <String, double>{};
     final names = <String, String>{};
 
-    final childMap = {for (final c in _userVm.children) c.uid: c};
+    final childMap = {for (final c in _userVm.locationMembers) c.uid: c};
 
     for (final entry in _locationVm.childrenLocations.entries) {
       final child = childMap[entry.key];
@@ -284,7 +285,30 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     required String childId,
     required DateTime date,
   }) async {
-    final parentUid = (_userVm.me?.uid ?? '').trim();
+    final viewer = _userVm.me;
+    final accessControl = context.read<AccessControlService>();
+    AppUser? target;
+    for (final member in _userVm.locationMembers) {
+      if (member.uid == childId) {
+        target = member;
+        break;
+      }
+    }
+    if (viewer == null || target == null || !target.isChild) {
+      return <Schedule>[];
+    }
+
+    if (!accessControl.canManageChild(
+      actor: viewer,
+      childUid: childId,
+      child: target,
+    )) {
+      return <Schedule>[];
+    }
+
+    final parentUid = viewer.isGuardian
+        ? (viewer.parentUid ?? '').trim()
+        : viewer.uid.trim();
     if (parentUid.isEmpty) return <Schedule>[];
 
     try {
@@ -301,7 +325,16 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   }
 
   void _openChildInfo(String childId) async {
-    final child = _userVm.children.firstWhere((c) => c.uid == childId);
+    AppUser? foundChild;
+    for (final member in _userVm.locationMembers) {
+      if (member.uid == childId) {
+        foundChild = member;
+        break;
+      }
+    }
+    if (foundChild == null) return;
+
+    final child = foundChild; // non-null local
     final latest = _locationVm.childrenLocations[child.uid];
     final schedules = await _loadChildSchedulesByDate(
       childId: child.uid,
@@ -334,7 +367,11 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
           }
 
           try {
-            await _chatRepo.sendTextMessage(text: msg);
+            await _chatRepo.sendTextMessage(
+              familyId: familyId,
+              sender: me,
+              text: msg,
+            );
           } catch (e, st) {
             debugPrint('sendTextMessage error: $e');
             debugPrint('$st');
@@ -348,18 +385,19 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final userVm = context.watch<UserVm>();
     final me = userVm.me;
     if (me == null) {
-      return const Scaffold(
+      return Scaffold(
         body: ColoredBox(
-          color: Color(0xFFF5F5F5),
-          child: Center(child: CircularProgressIndicator()),
+          color: locationPanelMutedColor(scheme),
+          child: const Center(child: CircularProgressIndicator()),
         ),
       );
     }
 
-    final children = List.of(userVm.children);
+    final children = List.of(userVm.locationMembers);
 
     return Scaffold(
       body: Stack(
@@ -370,6 +408,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
               opacity: _isMapVisualReady ? 1 : 0,
               duration: const Duration(milliseconds: 250),
               child: AppMapView(
+                followThemeForStreetStyle: false,
                 onMapCreated: (map) {
                   _map = map;
                   _controller.attach(map);
@@ -401,7 +440,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                     await _syncToMap();
                     await _focusFirstChildOnce();
 
-                    for (final c in _userVm.children) {
+                    for (final c in _userVm.locationMembers) {
                       unawaited(
                         _controller.setAvatarSmart(
                           childId: c.uid,
@@ -451,23 +490,29 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
               ),
             ),
           ),
-
-            Positioned(
-              left: 12,
-              top: 90,
-              child: SafeArea(
-                child: SosCircleButton(
-                  onPressed: () async {
-                    final sosVm = context.read<SosViewModel>();
-                    final myLocation = _locationVm.myLocation;
-                    debugPrint('Vo denn day');
-                    final displayName =
-                        context.read<UserVm>().me?.displayName ??
-                        l10n.parentLocationUnknownUser;
+          Positioned(
+            left: 12,
+            top: 90,
+            child: SafeArea(
+              child: SosCircleButton(
+                onPressed: () async {
+                  final sosVm = context.read<SosViewModel>();
+                  var myLocation = _locationVm.myLocation;
+                  debugPrint('Vo denn day');
+                  final displayName =
+                      context.read<UserVm>().me?.displayName ??
+                      l10n.parentLocationUnknownUser;
 
                   debugPrint('myLocation=$myLocation');
                   debugPrint('sending=${sosVm.sending}');
-                  if (myLocation == null) return;
+                  myLocation ??= await _locationVm.getMyLocationOnce();
+                  if (!context.mounted) return;
+                  if (myLocation == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.currentLocationError)),
+                    );
+                    return;
+                  }
                   if (sosVm.sending) return;
 
                   final sosId = await sosVm.triggerSos(
@@ -477,20 +522,20 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                     createdByName: displayName,
                   );
 
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          sosId != null
-                              ? l10n.parentLocationSosSent
-                              : l10n.parentLocationSosFailed,
-                        ),
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        sosId != null
+                            ? l10n.parentLocationSosSent
+                            : l10n.parentLocationSosFailed,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             ),
+          ),
 
           Positioned(
             left: 12,
@@ -558,11 +603,14 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 class _MapLoadingPlaceholder extends StatelessWidget {
   const _MapLoadingPlaceholder();
 
-  Widget _fakeMarker({
+  Widget _fakeMarker(
+    BuildContext context, {
     required double top,
     required double left,
     double size = 18,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Positioned(
       top: top,
       left: left,
@@ -570,7 +618,7 @@ class _MapLoadingPlaceholder extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
+          color: colorScheme.surface.withOpacity(0.9),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -580,7 +628,7 @@ class _MapLoadingPlaceholder extends StatelessWidget {
             ),
           ],
           border: Border.all(
-            color: const Color(0xFF4F46E5).withOpacity(0.18),
+            color: colorScheme.primary.withOpacity(0.18),
             width: 1.5,
           ),
         ),
@@ -588,8 +636,8 @@ class _MapLoadingPlaceholder extends StatelessWidget {
           child: Container(
             width: size * 0.42,
             height: size * 0.42,
-            decoration: const BoxDecoration(
-              color: Color(0xFF4F46E5),
+            decoration: BoxDecoration(
+              color: colorScheme.primary,
               shape: BoxShape.circle,
             ),
           ),
@@ -601,6 +649,9 @@ class _MapLoadingPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -620,9 +671,9 @@ class _MapLoadingPlaceholder extends StatelessWidget {
           ),
         ),
 
-        _fakeMarker(top: 160, left: 72),
-        _fakeMarker(top: 240, left: 250, size: 20),
-        _fakeMarker(top: 380, left: 140, size: 16),
+        _fakeMarker(context, top: 160, left: 72),
+        _fakeMarker(context, top: 240, left: 250, size: 20),
+        _fakeMarker(context, top: 380, left: 140, size: 16),
 
         Align(
           alignment: Alignment.center,
@@ -631,7 +682,7 @@ class _MapLoadingPlaceholder extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             constraints: const BoxConstraints(maxWidth: 270),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.94),
+              color: colorScheme.surface.withOpacity(0.94),
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
@@ -640,14 +691,18 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                   offset: const Offset(0, 8),
                 ),
               ],
+              border: Border.all(color: colorScheme.outline),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(
+                SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -657,18 +712,18 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                     children: [
                       Text(
                         l10n.parentLocationMapLoadingTitle,
-                        style: const TextStyle(
+                        style: textTheme.titleMedium?.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         l10n.parentLocationMapLoadingSubtitle,
-                        style: const TextStyle(
+                        style: textTheme.bodySmall?.copyWith(
                           fontSize: 12.5,
-                          color: Color(0xFF6B7280),
+                          color: colorScheme.onSurfaceVariant,
                           height: 1.35,
                         ),
                       ),

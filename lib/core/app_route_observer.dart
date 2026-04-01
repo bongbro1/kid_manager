@@ -5,5 +5,6 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 
 final notificationTabIndexNotifier = ValueNotifier<int>(0);
 final mapTabIndexNotifier = ValueNotifier<int>(0);
+final scheduleTabIndexNotifier = ValueNotifier<int>(0);
 
 final ValueNotifier<int> activeTabNotifier = ValueNotifier<int>(0);

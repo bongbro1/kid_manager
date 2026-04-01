@@ -34,20 +34,28 @@ class ParentChildListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = child.displayLabel;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final onlineColor = Colors.green;
+    final offlineColor = colorScheme.onSurface.withOpacity(0.5);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200, width: 1),
-          boxShadow: const [
+          border: Border.all(
+            color: colorScheme.outline.withOpacity(0.5),
+            width: 1,
+          ),
+          boxShadow: [
             BoxShadow(
-              color: Color(0x0A000000),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 8,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -69,9 +77,12 @@ class ParentChildListItem extends StatelessWidget {
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: isOnline ? Colors.green : Colors.grey,
+                              color: isOnline ? onlineColor : offlineColor,
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
+                              border: Border.all(
+                                color: colorScheme.surface,
+                                width: 2,
+                              ),
                             ),
                           ),
                         ),
@@ -86,18 +97,18 @@ class ParentChildListItem extends StatelessWidget {
                             name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: textTheme.titleMedium?.copyWith(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF222B45),
+                              color: colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             isOnline ? 'Online' : 'Offline',
-                            style: TextStyle(
+                            style: textTheme.bodySmall?.copyWith(
                               fontSize: 12,
-                              color: isOnline ? Colors.green : Colors.grey,
+                              color: isOnline ? onlineColor : offlineColor,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -134,12 +145,16 @@ class _ActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       height: 43,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: colorScheme.outline.withOpacity(0.7),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -155,8 +170,8 @@ class _ActionPill extends StatelessWidget {
                 "assets/icons/message.svg",
                 width: 24,
                 height: 24,
-                colorFilter: const ColorFilter.mode(
-                  Color(0xFF2563EB),
+                colorFilter: ColorFilter.mode(
+                  colorScheme.primary,
                   BlendMode.srcIn,
                 ),
               ),
@@ -165,23 +180,23 @@ class _ActionPill extends StatelessWidget {
           Container(
             width: 1,
             height: 20,
-            color: Colors.grey.shade300,
+            color: colorScheme.outline.withOpacity(0.7),
           ),
           InkWell(
             onTap: onPhone,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Icon(
                 Icons.call_rounded,
                 size: 22,
-                color: Color(0xFF2563EB),
+                color: colorScheme.primary,
               ),
             ),
           ),
           Container(
             width: 1,
             height: 20,
-            color: Colors.grey.shade300,
+            color: colorScheme.outline.withOpacity(0.7),
           ),
           InkWell(
             onTap: onLocate,
@@ -194,8 +209,8 @@ class _ActionPill extends StatelessWidget {
                 "assets/icons/gps.svg",
                 width: 24,
                 height: 24,
-                colorFilter: const ColorFilter.mode(
-                  Color(0xFF2563EB),
+                colorFilter: ColorFilter.mode(
+                  colorScheme.primary,
                   BlendMode.srcIn,
                 ),
               ),

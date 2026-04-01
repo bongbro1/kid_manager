@@ -1,10 +1,11 @@
+﻿import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
-/// Gọi hàm này để mở modal
 Future<void> showImageModal(
   BuildContext context, {
   required List<ImageProvider> images,
@@ -18,7 +19,9 @@ Future<void> showImageModal(
   return showGeneralDialog(
     context: context,
     barrierDismissible: false,
-    barrierLabel: 'image_modal',
+    barrierLabel: AppLocalizations.of(
+      context,
+    ).accessibilityImageModalBarrierLabel,
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 180),
     pageBuilder: (ctx, _, _) {
@@ -88,13 +91,15 @@ class _ImageModalState extends State<_ImageModal> {
       context: context,
       showDragHandle: true,
       builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
+
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Thay đổi ảnh'),
+                title: Text(l10n.appImageReplaceOption),
                 onTap: () async {
                   Navigator.of(ctx).pop();
                   // await Future.delayed(const Duration(milliseconds: 120));
@@ -103,7 +108,7 @@ class _ImageModalState extends State<_ImageModal> {
               ),
               ListTile(
                 leading: const Icon(Icons.close),
-                title: const Text('Đóng'),
+                title: Text(l10n.birthdayCloseButton),
                 onTap: () => Navigator.of(ctx).pop(),
               ),
             ],
@@ -120,19 +125,16 @@ class _ImageModalState extends State<_ImageModal> {
     try {
       final XFile? xfile = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 82,
-        maxWidth: widget.cropType == CropPhotoType.avatar ? 1200 : 1600,
-        maxHeight: widget.cropType == CropPhotoType.avatar ? 1200 : 1600,
+        imageQuality: 70,
+        maxWidth: widget.cropType == CropPhotoType.avatar ? 1000 : 1300,
+        maxHeight: widget.cropType == CropPhotoType.avatar ? 1000 : 1300,
       );
 
       if (xfile == null) return false;
 
       final rawFile = File(xfile.path);
 
-      // đóng image modal trước
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      // ❌ bỏ pop ở đây
 
       final croppedFile = await Navigator.of(context, rootNavigator: true)
           .push<File>(
@@ -144,9 +146,14 @@ class _ImageModalState extends State<_ImageModal> {
 
       if (croppedFile == null) return false;
 
-      if (widget.onReplace != null) {
-        await widget.onReplace!(_index, croppedFile);
+      // ✅ gọi replace (VM sẽ handle update UI ngay)
+      unawaited(widget.onReplace?.call(_index, croppedFile));
+
+      // ✅ đóng modal SAU khi xong
+      if (mounted) {
+        Navigator.of(context).pop();
       }
+
       return true;
     } finally {
       if (mounted) {
@@ -157,7 +164,7 @@ class _ImageModalState extends State<_ImageModal> {
 
   @override
   Widget build(BuildContext context) {
-    final overlay = const Color(0xB2696969); // #696969B2
+    final overlay = const Color(0xB2696969);
 
     return Material(
       type: MaterialType.transparency,
@@ -171,7 +178,6 @@ class _ImageModalState extends State<_ImageModal> {
               child: Container(color: overlay),
             ),
           ),
-
           if (widget.onReplace != null)
             // ✅ Nút ... ở góc trên-trái của overlay
             Positioned(
@@ -212,7 +218,7 @@ class _ImageModalState extends State<_ImageModal> {
                         maxWidth: MediaQuery.of(context).size.width * 0.92,
                         maxHeight: MediaQuery.of(context).size.height * 0.75,
                       ),
-                      child: (_images.length == 1)
+                      child: _images.length == 1
                           ? _ZoomableImage(image: _images.first)
                           : PageView.builder(
                               controller: _controller,
@@ -227,7 +233,6 @@ class _ImageModalState extends State<_ImageModal> {
               ),
             ),
           ),
-
           if (_busy)
             const Positioned.fill(
               child: IgnorePointer(
@@ -268,18 +273,24 @@ class _ImageLoadFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Container(
       color: Colors.black.withOpacity(0.22),
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.broken_image_outlined, color: Colors.white, size: 40),
-          SizedBox(height: 10),
+          const Icon(
+            Icons.broken_image_outlined,
+            color: Colors.white,
+            size: 40,
+          ),
+          const SizedBox(height: 10),
           Text(
-            'Không tải được ảnh',
-            style: TextStyle(
+            l10n.appImageLoadFailed,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.w600,

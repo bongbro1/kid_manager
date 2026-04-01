@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/alert_service.dart';
-import 'package:kid_manager/core/app_colors.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/core/validators.dart';
+import 'package:kid_manager/models/auth/auth_models.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -33,7 +34,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     final email = _emailController.text.trim();
 
-    /// Validate
     if (email.isEmpty) {
       AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
@@ -44,9 +44,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    final uid = await authVm.forgotPassword(email);
+    final ok = await authVm.forgotPassword(email);
 
-    if (uid == null) {
+    if (!ok) {
       AlertService.showSnack(
         authVm.error ?? l10n.authSendOtpFailed,
         isError: true,
@@ -54,18 +54,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    /// start cooldown ngay lập tức
-
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => OtpScreen(
-          uid: uid,
-          email: email,
-          purpose: OtpPurpose.resetPassword,
-        ),
+        builder: (_) =>
+            OtpScreen(email: email, purpose: OtpPurpose.resetPassword),
       ),
     );
   }
@@ -74,104 +71,132 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthVM>();
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final horizontalPadding = context.adaptiveHorizontalPadding(
+      compact: 16,
+      regular: 24,
+    );
+
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: theme.scaffoldBackgroundColor,
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: SvgPicture.asset(
-                        'assets/icons/back.svg',
-                        width: 17,
-                        height: 12.5,
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                0,
+                horizontalPadding,
+                MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxContentWidth = constraints.maxWidth > 420
+                      ? 420.0
+                      : constraints.maxWidth;
+
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  // Title + description
-                  Padding(
-                    padding: EdgeInsets.only(left: 14),
-                    child: SizedBox(
-                      width: 289,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.authForgotPasswordTitle,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              height: 1.42,
-                              letterSpacing: -0.19,
-                            ),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: maxContentWidth,
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            l10n.authForgotPasswordSubtitle,
-                            style: TextStyle(
-                              color: Color(0xFF4A4A4A),
-                              fontSize: 15,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w500,
-                            ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  GestureDetector(
+                                    onTap: () => Navigator.pop(context),
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
+                                      child: SvgPicture.asset(
+                                        'assets/icons/back.svg',
+                                        width: 17,
+                                        height: 12.5,
+                                        colorFilter: ColorFilter.mode(
+                                          colorScheme.onSurface,
+                                          BlendMode.srcIn,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 22),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.authForgotPasswordTitle,
+                                        style: textTheme.headlineSmall
+                                            ?.copyWith(
+                                              fontSize: 24,
+                                              fontFamily: 'Poppins',
+                                              fontWeight: FontWeight.w600,
+                                              height: 1.42,
+                                              letterSpacing: -0.19,
+                                              color: colorScheme.onSurface,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        l10n.authForgotPasswordSubtitle,
+                                        style: textTheme.bodyLarge?.copyWith(
+                                          color: colorScheme.onSurface
+                                              .withValues(alpha: 0.75),
+                                          fontSize: 15,
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 32),
+                                  AuthTextField(
+                                    label: l10n.authEnterYourEmailLabel,
+                                    controller: _emailController,
+                                    hintText: l10n.authEnterEmailHint,
+                                    keyboardType: TextInputType.emailAddress,
+                                    prefixSvg: 'assets/icons/user.svg',
+                                  ),
+                                ],
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 24,
+                                  bottom: 24,
+                                ),
+                                child: AppButton(
+                                  height: 60,
+                                  text: l10n.authContinueButton,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  onPressed: _sendOtp,
+                                  backgroundColor: colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Label
-                  Padding(
-                    padding: EdgeInsets.only(left: 14, bottom: 8),
-                    child: Text(
-                      l10n.authEnterYourEmailLabel,
-                      style: TextStyle(
-                        color: Color(0xFF4A4A4A),
-                        fontSize: 15,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  // Email input
-                  AuthTextField(
-                    controller: _emailController,
-                    hintText: l10n.authEnterEmailHint,
-                    keyboardType: TextInputType.emailAddress,
-                    prefixSvg: 'assets/icons/user.svg',
-                  ),
-
-                  const Spacer(),
-
-                  // Button bottom
-                  AppButton(
-                    height: 60,
-                    text: l10n.authContinueButton,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    onPressed: _sendOtp,
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-
-                  const SizedBox(height: 24),
-                ],
+                  );
+                },
               ),
             ),
           ),

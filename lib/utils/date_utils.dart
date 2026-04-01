@@ -1,11 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 /// Parse "Xh Ym" -> total minutes
 int parseUsageTimeToMinutes(String? text) {
   if (text == null || text.isEmpty) return 0;
 
-  final hourMatch = RegExp(r'(\d+)h').firstMatch(text);
-  final minMatch = RegExp(r'(\d+)m').firstMatch(text);
+  final normalized = text.toLowerCase().trim();
+  final hourMatch = RegExp(
+    r'(\d+)\s*(h|g|giờ|gio|hour|hours|hr|hrs)\b',
+  ).firstMatch(normalized);
+  final minMatch = RegExp(
+    r'(\d+)\s*(m|p|phút|phut|min|mins|minute|minutes)\b',
+  ).firstMatch(normalized);
 
   final hours = hourMatch != null ? int.parse(hourMatch.group(1)!) : 0;
   final minutes = minMatch != null ? int.parse(minMatch.group(1)!) : 0;
@@ -14,10 +20,13 @@ int parseUsageTimeToMinutes(String? text) {
 }
 
 /// Format minutes -> "Xh Ym"
-String formatUsageMinutes(int minutes) {
+String formatUsageMinutes(int minutes, {AppLocalizations? l10n}) {
   final h = minutes ~/ 60;
   final m = minutes % 60;
-  return "${h}h ${m}m";
+  if (l10n == null) {
+    return "${h}h ${m}m";
+  }
+  return _formatCompactUsageLabel(l10n, h, m);
 }
 
 int calculateAgeFromDateString(String dobString) {
@@ -186,12 +195,18 @@ DateTime startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 DateTime endOfDayExclusive(DateTime d) =>
     startOfDay(d).add(const Duration(days: 1));
 
-String formatDuration(int ms) {
-  if (ms <= 0) return "0m";
+String formatDuration(int ms, {AppLocalizations? l10n}) {
+  if (ms <= 0) {
+    return l10n?.parentStatsDurationZero ?? "0m";
+  }
 
   final totalSeconds = ms ~/ 1000;
   final hours = totalSeconds ~/ 3600;
   final minutes = (totalSeconds % 3600) ~/ 60;
+
+  if (l10n != null) {
+    return _formatCompactUsageLabel(l10n, hours, minutes);
+  }
 
   if (hours > 0) {
     return "${hours}h ${minutes}m";
@@ -199,11 +214,17 @@ String formatDuration(int ms) {
   return "${minutes}m";
 }
 
-String formatMinutes(int minutes) {
-  if (minutes <= 0) return "0m";
+String formatMinutes(int minutes, {AppLocalizations? l10n}) {
+  if (minutes <= 0) {
+    return l10n?.parentStatsDurationZero ?? "0m";
+  }
 
   final h = minutes ~/ 60;
   final m = minutes % 60;
+
+  if (l10n != null) {
+    return _formatCompactUsageLabel(l10n, h, m);
+  }
 
   if (h == 0) return "${m}m";
   if (m == 0) return "${h}h";
@@ -224,6 +245,19 @@ String formatDateDDMMYYYY(DateTime date) {
   final year = d.year.toString();
 
   return "$day/$month/$year";
+}
+
+String _formatCompactUsageLabel(AppLocalizations l10n, int hours, int minutes) {
+  if (hours <= 0 && minutes <= 0) {
+    return l10n.parentStatsDurationZero;
+  }
+  if (hours <= 0) {
+    return l10n.parentStatsDurationMinutes(minutes);
+  }
+  if (minutes <= 0) {
+    return l10n.parentStatsDurationHours(hours);
+  }
+  return l10n.parentStatsDurationHoursMinutes(hours, minutes);
 }
 
 bool sameDay(DateTime a, DateTime b) {

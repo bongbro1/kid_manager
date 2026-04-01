@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class AppOverlaySheet extends StatefulWidget {
   final Widget child;
@@ -63,12 +62,7 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     _controller.forward();
   }
@@ -98,6 +92,9 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
     final scheme = Theme.of(context).colorScheme;
     final media = MediaQuery.of(context);
     final screenSize = media.size;
+    final availableMaxHeight = (screenSize.height - media.padding.top - 8)
+        .clamp(0.0, screenSize.height);
+    final effectiveMaxHeight = widget.height.clamp(0.0, availableMaxHeight);
 
     return Material(
       type: MaterialType.transparency,
@@ -111,9 +108,7 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: widget.dismissOnBarrierTap ? close : null,
-                child: Container(
-                  color: widget.barrierColor,
-                ),
+                child: Container(color: widget.barrierColor),
               ),
             ),
 
@@ -126,18 +121,17 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                   onTap: () {},
                   child: Container(
                     width: widget.width ?? screenSize.width,
-                    constraints: BoxConstraints(
-                      maxHeight: widget.height,
-                    ),
+                    constraints: BoxConstraints(maxHeight: effectiveMaxHeight),
                     decoration: ShapeDecoration(
                       color: widget.backgroundColor ?? scheme.surface,
                       shape: RoundedRectangleBorder(
                         borderRadius: widget.borderRadius,
                       ),
-                      shadows: widget.shadows ??
+                      shadows:
+                          widget.shadows ??
                           [
                             BoxShadow(
-                              color: scheme.shadow.withOpacity(0.2),
+                              color: scheme.shadow.withValues(alpha: 0.2),
                               blurRadius: 30,
                               offset: const Offset(0, 3),
                             ),
@@ -145,7 +139,7 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                     ),
                     child: SafeArea(
                       top: false,
-                      child: Padding(
+                      child: SingleChildScrollView(
                         padding: widget.padding,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -156,7 +150,9 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                                   width: 55,
                                   height: 5,
                                   decoration: BoxDecoration(
-                                    color: scheme.onSurfaceVariant.withOpacity(0.5),
+                                    color: scheme.onSurfaceVariant.withValues(
+                                      alpha: 0.5,
+                                    ),
                                     borderRadius: BorderRadius.circular(100),
                                   ),
                                 ),

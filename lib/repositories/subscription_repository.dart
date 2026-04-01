@@ -51,13 +51,13 @@ class SubscriptionRepository {
 
   Future<void> activatePlan({
     required String uid,
-    required String plan,
+    required SubscriptionPlan plan,
     DateTime? startAt,
     DateTime? endAt,
   }) async {
     final subscription = SubscriptionInfo(
       plan: plan,
-      status: 'active',
+      status: SubscriptionStatus.active,
       startAt: startAt ?? DateTime.now(),
       endAt: endAt,
     );
@@ -69,12 +69,7 @@ class SubscriptionRepository {
     final current = await getSubscription(uid);
     if (current == null) return;
 
-    final updated = SubscriptionInfo(
-      plan: current.plan,
-      status: 'expired',
-      startAt: current.startAt,
-      endAt: current.endAt,
-    );
+    final updated = current.copyWith(status: SubscriptionStatus.expired);
 
     await updateSubscription(uid: uid, subscription: updated);
   }
@@ -86,8 +81,8 @@ class SubscriptionRepository {
     final now = DateTime.now();
 
     final subscription = SubscriptionInfo(
-      plan: 'pro',
-      status: 'trial',
+      plan: SubscriptionPlan.pro,
+      status: SubscriptionStatus.trial,
       startAt: now,
       endAt: now.add(Duration(days: trialDays)),
     );
@@ -97,14 +92,7 @@ class SubscriptionRepository {
 
   Future<bool> isSubscriptionActive(String uid) async {
     final sub = await getSubscription(uid);
-    if (sub == null) return false;
-
-    final now = DateTime.now();
-
-    if (sub.status != 'active' && sub.status != 'trial') return false;
-    if (sub.endAt != null && sub.endAt!.isBefore(now)) return false;
-
-    return true;
+    return sub?.isActiveNow ?? false;
   }
 
   Future<AppUser?> getUser(String uid) async {

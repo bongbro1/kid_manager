@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/responsive.dart';
 
 class NotificationModal extends StatefulWidget {
   final Widget child;
@@ -62,6 +65,21 @@ class _NotificationModalState extends State<NotificationModal>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final media = MediaQuery.of(context);
+    final size = media.size;
+    final horizontalGap = context.adaptiveHorizontalPadding(
+      compact: 12,
+      regular: 24,
+    );
+    final availableWidth = math.max(0, size.width - (horizontalGap * 2));
+    final availableHeight = math.max(
+      0,
+      size.height - media.padding.vertical - 24,
+    );
+    final dialogMaxWidth = math.min(widget.width, availableWidth).toDouble();
+    final dialogMaxHeight = math
+        .min(widget.maxHeight, availableHeight)
+        .toDouble();
 
     return Material(
       color: Colors.transparent,
@@ -75,8 +93,8 @@ class _NotificationModalState extends State<NotificationModal>
               opacity: _fade,
               child: Container(
                 color: theme.brightness == Brightness.dark
-                    ? Colors.black.withOpacity(0.7)
-                    : Colors.black.withOpacity(0.4),
+                    ? Colors.black.withValues(alpha: 0.7)
+                    : Colors.black.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -89,8 +107,8 @@ class _NotificationModalState extends State<NotificationModal>
                   position: _slide,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxWidth: widget.width,
-                      maxHeight: widget.maxHeight,
+                      maxWidth: dialogMaxWidth,
+                      maxHeight: dialogMaxHeight,
                     ),
                     child: Material(
                       color: colorScheme.surface,

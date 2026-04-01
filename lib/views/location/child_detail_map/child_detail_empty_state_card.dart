@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
 
 class ChildDetailEmptyStateCard extends StatelessWidget {
@@ -15,6 +16,7 @@ class ChildDetailEmptyStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -52,9 +54,9 @@ class ChildDetailEmptyStateCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Chưa có dữ liệu',
+                    l10n.childLocationNoDataTitle,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -84,7 +86,7 @@ class ChildDetailEmptyStateCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Không có hành trình trong khoảng thời gian đã chọn.',
+              l10n.childLocationNoDataSubtitle,
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.35,
@@ -96,9 +98,12 @@ class ChildDetailEmptyStateCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                ChildDetailMapSummaryChip(label: 'Ngày', value: dayLabel),
                 ChildDetailMapSummaryChip(
-                  label: 'Khung giờ',
+                  label: l10n.childLocationSummaryDateLabel,
+                  value: dayLabel,
+                ),
+                ChildDetailMapSummaryChip(
+                  label: l10n.childLocationSummaryTimeRangeLabel,
                   value: rangeLabel,
                 ),
               ],

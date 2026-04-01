@@ -8,13 +8,16 @@
   "fullNameLabel": "Full name",
   "fullNameHint": "Enter full name",
   "phoneLabel": "Phone number",
-  "phoneHint": "+84 012345678",
+  "phoneHint": "example: +84 012345678",
   "genderLabel": "Gender",
-  "genderHint": "Male",
+  "genderHint": "Select gender",
+  "genderMaleOption": "Male",
+  "genderFemaleOption": "Female",
+  "genderOtherOption": "Other",
   "birthDateLabel": "Birth date",
-  "birthDateHint": "12/12/2003",
+  "birthDateHint": "Enter date of birth",
   "addressLabel": "Address",
-  "addressHint": "Diem Thuy commune, Thai Nguyen province",
+  "addressHint": "Enter address",
   "locationTrackingLabel": "Location tracking",
   "allowLocationTrackingText": "Allow others to track location",
   "yearsOld": "%d years old",
@@ -25,6 +28,10 @@
   "confirmLogoutQuestion": "Do you want to logout?",
   "cancelButton": "Cancel",
   "confirmButton": "Confirm",
+  "cropPhotoAvatarTitle": "Edit avatar",
+  "cropPhotoCoverTitle": "Edit cover photo",
+  "cropPhotoDoneButton": "Done",
+  "cropPhotoFailedMessage": "Could not crop the image",
   "languageSetting": "Language",
   "vietnamese": "Vietnamese",
   "english": "English",
@@ -34,8 +41,250 @@
   "appAppearanceThemeSystem": "Follow system",
   "appAppearanceThemeLight": "Light",
   "appAppearanceThemeDark": "Dark",
+  "appAppearanceSectionApp": "APP",
+  "appAppearanceThemeSubtitle": "Change light/dark appearance",
+  "appAppearanceSectionSecurity": "SECURITY",
+  "appAppearanceChangePasswordTitle": "Change password",
+  "appAppearanceChangePasswordSubtitle": "Update your password",
+  "appAppearanceNotificationsTitle": "Notifications",
+  "appAppearanceNotificationsSubtitle": "Manage notification preferences",
   "addAccountSuccessMessage": "Child account created successfully",
+  "addAccountNameRequired": "Please enter a name",
+  "addAccountAccessLabel": "Access role",
+  "addAccountRoleChild": "Child",
+  "addAccountRoleGuardian": "Guardian",
+  "addAccountSelectBirthDateTitle": "Select birth date",
+  "addAccountSelectButton": "Select",
   "sessionExpiredLoginAgain": "Session expired. Please sign in again.",
+  "userVmLoadUserError": "Failed to load user: {error}",
+  "@userVmLoadUserError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmLoadChildrenError": "Failed to load children: {error}",
+  "@userVmLoadChildrenError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmLoadMembersError": "Failed to load members: {error}",
+  "@userVmLoadMembersError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmFamilyIdNotFound": "Family ID was not found",
+  "userVmLoadFamilyError": "Failed to load family: {error}",
+  "@userVmLoadFamilyError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userVmUserIdNotFound": "User ID was not found",
+  "userVmFullNameRequired": "Full name cannot be empty",
+  "userVmUpdatePhotoFailed": "Failed to update photo",
+  "subscriptionLoadError": "Failed to load subscription: {error}",
+  "@subscriptionLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionWatchError": "Failed to watch subscription: {error}",
+  "@subscriptionWatchError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpdateError": "Failed to update subscription: {error}",
+  "@subscriptionUpdateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionActivateError": "Failed to activate plan: {error}",
+  "@subscriptionActivateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionStartTrialError": "Failed to start trial: {error}",
+  "@subscriptionStartTrialError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionMarkExpiredError": "Failed to mark subscription as expired: {error}",
+  "@subscriptionMarkExpiredError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionClearError": "Failed to clear subscription: {error}",
+  "@subscriptionClearError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "appManagementSyncFailed": "Could not sync apps",
+  "appManagementUserIdNotFound": "User ID was not found",
+  "zoneStatusAtText": "at {zoneName} • {duration}",
+  "@zoneStatusAtText": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneStatusWasAtText": "was at {zoneName}",
+  "@zoneStatusWasAtText": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneStatusWasAtWithAgoText": "was at {zoneName} • {ago}",
+  "@zoneStatusWasAtWithAgoText": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      },
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneStatusDurationMinutes": "{minutes} min",
+  "@zoneStatusDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusDurationHoursMinutes": "{hours} h {minutes} min",
+  "@zoneStatusDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusJustNow": "just now",
+  "zoneStatusMinutesAgo": "{minutes} min ago",
+  "@zoneStatusMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusHoursAgo": "{hours} h ago",
+  "@zoneStatusHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneStatusDaysAgo": "{days} days ago",
+  "@zoneStatusDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "otpResendCooldownError": "Please wait before requesting another OTP",
+  "otpResendLockedError": "You requested OTP too many times. Please try again later",
+  "otpResendMaxError": "You requested OTP too many times",
+  "otpRepositoryLockedMessage": "OTP sending is temporarily locked. Please try again in {seconds}s",
+  "@otpRepositoryLockedMessage": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authLoginCancelled": "Login was cancelled",
+  "continueButton": "Continue",
+  "zoneDetailsRadiusLabel": "Radius {radius}m",
+  "@zoneDetailsRadiusLabel": {
+    "placeholders": {
+      "radius": {
+        "type": "String"
+      }
+    }
+  },
+  "zoneDetailsNoCoordinates": "No coordinates available to display the map",
+  "birthdaySpecialDayHeadline": "It's {name}'s special day!",
+  "@birthdaySpecialDayHeadline": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapTopBarTitle": "Location",
+  "childGroupMarkerCount": "{count} children",
+  "@childGroupMarkerCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "changePasswordTitle": "Change password",
+  "changePasswordSuccessMessage": "Password changed successfully",
+  "changePasswordCurrentPasswordLabel": "Current password",
+  "changePasswordCurrentPasswordHint": "Enter current password",
+  "changePasswordNewPasswordLabel": "New password",
+  "changePasswordNewPasswordHint": "Enter new password",
+  "changePasswordConfirmPasswordLabel": "Confirm password",
+  "changePasswordConfirmPasswordHint": "Re-enter new password",
+  "changePasswordUpdateButton": "Update password",
+  "memberManagementTitle": "Member management",
+  "memberManagementAddMemberTitle": "Add member",
+  "memberManagementAddMemberSubtitle": "Connect a new device for your child",
+  "memberManagementAddNowButton": "Add now",
+  "memberManagementFamilyMembersLabel": "FAMILY MEMBERS",
+  "memberManagementEmpty": "No members yet",
+  "memberManagementOnline": "Online",
+  "memberManagementOffline": "Offline",
+  "memberManagementMessageButton": "Message",
+  "memberManagementLocationButton": "Location",
+  "userRoleParent": "Parent",
+  "userRoleChild": "Child",
+  "userRoleGuardian": "Guardian",
   "aboutAppName": "My Application",
   "aboutAppVersionLabel": "Version: {version}",
   "@aboutAppVersionLabel": {
@@ -47,6 +296,27 @@
   },
   "aboutAppDescription": "This app helps manage accounts, track activity, and personalize the user experience.",
   "aboutAppCopyright": "© 2026 My Company",
+  "themeSelectorTitle": "Customize appearance",
+  "themeSelectorSubtitle": "Choose the primary color and light/dark mode",
+  "themeSelectorDarkMode": "Dark mode",
+  "themeSelectorApplyButton": "Apply appearance",
+  "phoneAuthTitle": "Login with phone number",
+  "phoneAuthSendOtpButton": "Send OTP",
+  "phoneAuthOtpTitle": "Enter verification code",
+  "phoneAuthOtpInstruction": "Please enter the OTP sent to your phone number",
+  "termsTitle": "Terms",
+  "termsNoData": "No data available",
+  "termsLastUpdated": "Last updated: {date}",
+  "@termsLastUpdated": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "homeTitle": "Home",
+  "homeGreeting": "Hello",
+  "homeManageChildButton": "Manage child",
   "accountNotFound": "Account not found",
   "accountNotActivated": "Account not activated",
   "emailNotRegistered": "Email not registered",
@@ -136,7 +406,7 @@
   "authRegisterCongratsMessage": "Congratulations! You have registered successfully",
   "authBackToLogin": "Back to login",
   "flashWelcomeTitle": "Welcome to the app",
-  "flashWelcomeSubtitle": "Child tracking application",
+  "flashWelcomeSubtitle": "Child management application",
   "flashNext": "Next",
   "scheduleScreenTitle": "Schedule",
   "scheduleNoChild": "No child yet",
@@ -463,9 +733,86 @@
   },
   "notificationDetailTitle": "Notification details",
   "notificationDetailSectionTitle": "DETAILS",
+  "accessibilityNoticeBarrierLabel": "Notice dialog",
+  "accessibilityImageModalBarrierLabel": "Image viewer",
   "notificationChildFallback": "Child",
   "notificationChildInfoNotFound": "Child information could not be found",
   "notificationMapLocationNotFound": "Location could not be found to open the map",
+  "notificationTrackingDetailNotFound": "Could not find the child's journey information",
+  "notificationTrackingUnknownValue": "Unknown",
+  "notificationTrackingChildLabel": "Child",
+  "notificationTrackingRouteLabel": "Route",
+  "notificationTrackingDistanceToRouteLabel": "Distance to route",
+  "notificationTrackingHazardLabel": "Danger zone",
+  "notificationTrackingStationaryLabel": "Stationary",
+  "notificationTrackingTimeLabel": "Time",
+  "notificationTrackingOpenHint": "Open the tracking page to review the child's current location, followed route, and full journey status on the map.",
+  "notificationTrackingOpenButton": "Open journey tracking",
+  "notificationTrackingStatusOffRoute": "Off route",
+  "notificationTrackingStatusBackOnRoute": "Back on route",
+  "notificationTrackingStatusReturnedToStart": "Returned to start",
+  "notificationTrackingStatusStationary": "Stopped too long",
+  "notificationTrackingStatusArrived": "Arrived safely",
+  "notificationTrackingStatusDanger": "Danger",
+  "notificationTrackingStatusDefault": "Safe Route",
+  "notificationTrackingHeadlineOffRoute": "The child is moving away from the selected route",
+  "notificationTrackingHeadlineBackOnRoute": "The child is back on the safe route",
+  "notificationTrackingHeadlineReturnedToStart": "The child is moving back near the starting point",
+  "notificationTrackingHeadlineStationary": "The child has stayed still longer than usual",
+  "notificationTrackingHeadlineArrived": "The child has arrived safely",
+  "notificationTrackingHeadlineDanger": "The child is entering a danger zone",
+  "notificationTrackingFallbackOffRoute": "The system detected that the child moved outside the safe corridor of route {routeName}.",
+  "@notificationTrackingFallbackOffRoute": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackBackOnRoute": "The system recorded that the child returned to the safe corridor of route {routeName}.",
+  "@notificationTrackingFallbackBackOnRoute": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackReturnedToStart": "The child is moving back near the starting point of route {routeName}.",
+  "@notificationTrackingFallbackReturnedToStart": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackStationary": "The child has remained near the same location for too long while on route {routeName}.",
+  "@notificationTrackingFallbackStationary": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackArrived": "The child has reached the destination of route {routeName}.",
+  "@notificationTrackingFallbackArrived": {
+    "placeholders": {
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationTrackingFallbackDangerGeneric": "The child entered a danger zone on the current journey.",
+  "notificationTrackingFallbackDangerWithHazard": "The child entered {hazardName} while following route {routeName}.",
+  "@notificationTrackingFallbackDangerWithHazard": {
+    "placeholders": {
+      "hazardName": {
+        "type": "String"
+      },
+      "routeName": {
+        "type": "String"
+      }
+    }
+  },
   "notificationScheduleCreatedTitle": "New schedule for {childName}",
   "@notificationScheduleCreatedTitle": {
     "placeholders": {
@@ -651,6 +998,11 @@
   "memoryDayFormTitleLabel": "Title",
   "memoryDayFormDateLabel": "Date",
   "memoryDayFormNoteLabel": "Note",
+  "memoryDayReminderLabel": "Remind before",
+  "memoryDayReminderNone": "No reminder",
+  "memoryDayReminderOneDay": "1 day before",
+  "memoryDayReminderThreeDays": "3 days before",
+  "memoryDayReminderSevenDays": "7 days before",
   "memoryDayRepeatYearlyLabel": "Repeat yearly",
   "memoryDayEditHeaderTitle": "Edit memorable day",
   "memoryDayAddHeaderTitle": "Add memorable day",
@@ -660,6 +1012,8 @@
   "memoryDaySavingButton": "Saving...",
   "memoryDaySaveChangesButton": "Save changes",
   "memoryDayAddButton": "Add memorable day",
+  "memoryDayEditAction": "Edit",
+  "memoryDayDeleteAction": "Delete",
   "notificationsEmptyTitle": "No notifications yet",
   "notificationsEmptySubtitle": "New notifications will appear here",
   "notificationsDefaultChildName": "Child",
@@ -748,6 +1102,32 @@
   },
   "notificationsZoneViewOnMainMapButton": "View on main map",
   "notificationsContactNowButton": "Contact now",
+  "notificationsLocalChannelName": "Default",
+  "notificationsLocalChannelDescription": "Default notifications",
+  "notificationsDefaultTitle": "Notifications",
+  "notificationsDefaultBody": "You have a new notification",
+  "notificationsFamilyChatTitle": "Family chat",
+  "notificationsFamilyChatBody": "You have a new message",
+  "notificationsFamilyEventTitle": "Family event",
+  "notificationsFamilyEventBody": "Your family has a new event",
+  "notificationsBirthdayTitle": "Birthday",
+  "notificationsBirthdayUpcomingBody": "{name}'s birthday is coming soon!",
+  "@notificationsBirthdayUpcomingBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsBirthdayTodayBody": "Today is {name}'s birthday!",
+  "@notificationsBirthdayTodayBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsTrackingDefaultBody": "Tracking status has changed.",
   "scheduleOverlapConflictMessage": "Conflicts with schedule \"{title}\" ({start} - {end}). Please choose another time.",
   "@scheduleOverlapConflictMessage": {
     "placeholders": {
@@ -934,6 +1314,32 @@
   "memoryDayNotifyTitleUpdated": "Memorable day updated",
   "memoryDayNotifyTitleDeleted": "Memorable day deleted",
   "memoryDayNotifyTitleChanged": "Memorable day changed",
+  "memoryDayNotifyTitleReminder": "Upcoming memory day",
+  "memoryDayNotifyBodyReminderTomorrow": "Tomorrow is \"{title}\" ({date}).",
+  "@memoryDayNotifyBodyReminderTomorrow": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryDayNotifyBodyReminderInDays": "\"{title}\" is in {days} days ({date}).",
+  "@memoryDayNotifyBodyReminderInDays": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "memoryDayNotifyBodyParentCreated": "Parent added memorable day \"{title}\".",
   "@memoryDayNotifyBodyParentCreated": {
     "placeholders": {
@@ -1038,7 +1444,7 @@
   "parentDashboardTabStatistics": "Statistics",
   "parentDashboardNoDeviceTitle": "No linked devices yet",
   "parentDashboardNoDeviceSubtitle": "To monitor app usage time, add your child's device to the system.",
-  "parentDashboardAddDeviceButton": "Add device",
+  "parentDashboardAddDeviceButton": "Add child",
   "parentDashboardHowItWorksButton": "Learn how it works",
   "parentStatsTotalToday": "TOTAL TIME TODAY",
   "parentStatsTotalThisWeek": "TOTAL TIME THIS WEEK",
@@ -1061,6 +1467,42 @@
   "parentStatsAppDetailsTitle": "App details",
   "parentStatsCollapse": "COLLAPSE",
   "parentStatsViewAll": "VIEW ALL",
+  "parentStatsDurationZero": "0m",
+  "parentStatsDurationMinutes": "{minutes}m",
+  "@parentStatsDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "parentStatsDurationHours": "{hours}h",
+  "@parentStatsDurationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "parentStatsDurationHoursMinutes": "{hours}h {minutes}m",
+  "@parentStatsDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "parentStatsHourLabel": "{hour}h",
+  "@parentStatsHourLabel": {
+    "placeholders": {
+      "hour": {
+        "type": "int"
+      }
+    }
+  },
   "parentUsageNoAvailableSlot": "No available time slot",
   "parentUsageStartBeforeEnd": "Start time must be earlier than end time",
   "parentUsageOverlapTimeRange": "Time range overlaps another slot",
@@ -1119,6 +1561,7 @@
   "zonesNameFieldLabel": "Zone name",
   "zonesTypeFieldLabel": "Zone type",
   "zonesRadiusLabel": "Radius",
+  "zonesOverlappingPrefix": "Overlapping with: ",
   "zonesOverlappingWith": "Overlapping with: {name}",
   "@zonesOverlappingWith": {
     "placeholders": {
@@ -1134,6 +1577,9 @@
   "parentLocationMapLoadingTitle": "Loading map",
   "parentLocationMapLoadingSubtitle": "Preparing the children's locations",
   "parentChildrenListTitle": "Member list",
+  "personalInfoManageAccountsTitle": "Account management",
+  "personalInfoManageAccountsSubtitle": "Manage member accounts",
+  "personalInfoDetailsButton": "Details",
   "childLocationTransportWalking": "Walking",
   "childLocationTransportBicycle": "Cycling",
   "childLocationTransportVehicle": "In vehicle",
@@ -1181,6 +1627,874 @@
   "tracking_background_disabled_child_title": "Background location is off",
   "tracking_location_stale_child_title": "Location is not updating",
   "tracking_ok_child_title": "Location is working again",
-
-  "tracking_default_title": "Tracking notification"
+  "tracking_default_title": "Tracking notification",
+  "sosChannelName": "SOS Alerts",
+  "sosChannelDescription": "Emergency SOS alerts",
+  "sosFallbackTitle": "Emergency SOS",
+  "sosFallbackBody": "A family member is asking for help.",
+  "localAlarmDangerChannelName": "Danger zone alerts",
+  "localAlarmDangerChannelDescription": "Alerts when a child enters or leaves a danger zone",
+  "localAlarmDangerEnterTitle": "Danger zone alert",
+  "localAlarmDangerEnterBody": "You entered: {zoneName}",
+  "@localAlarmDangerEnterBody": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "localAlarmDangerExitTitle": "Left danger zone",
+  "localAlarmDangerExitBody": "You left: {zoneName}",
+  "@localAlarmDangerExitBody": {
+    "placeholders": {
+      "zoneName": {
+        "type": "String"
+      }
+    }
+  },
+  "trackingStatusLocationServiceOffMessage": "Please turn on GPS or Location Services on the device so location updates can continue.",
+  "trackingStatusLocationPermissionDeniedMessage": "Please allow location permission for the app on the device so location updates can continue.",
+  "trackingStatusPreciseLocationDeniedMessage": "Device has not granted precise location",
+  "trackingStatusBackgroundDisabledMessage": "Background location sharing is off",
+  "trackingStatusOkMessage": "Location is working normally",
+  "trackingErrorEnableLocationService": "Please turn on GPS/location on the device.",
+  "trackingErrorEnablePreciseLocation": "Please allow precise location.",
+  "trackingErrorEnableBackgroundLocation": "Please allow background location sharing (Allow all the time).",
+  "locationForegroundServiceTitle": "Sharing location",
+  "locationForegroundServiceSubtitle": "The app runs in background to help protect your child",
+  "parentLocationGpsError": "GPS error: {error}",
+  "@parentLocationGpsError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationEnableGpsError": "Failed to enable GPS: {error}",
+  "@parentLocationEnableGpsError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationCurrentLocationError": "Could not get current location: {error}",
+  "@parentLocationCurrentLocationError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationHistoryLoadError": "Failed to load history: {error}",
+  "@parentLocationHistoryLoadError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentLocationWatchChildError": "Failed to watch {childId}: {error}",
+  "@parentLocationWatchChildError": {
+    "placeholders": {
+      "childId": {},
+      "error": {}
+    }
+  },
+  "authLoginRequired": "Not logged in",
+  "firebaseAuthCurrentPasswordIncorrect": "Current password is incorrect",
+  "firebaseAuthUserMismatch": "Authenticated account does not match",
+  "firebaseAuthTooManyRequests": "Too many failed attempts. Please try again later",
+  "firebaseAuthNetworkFailed": "Network connection error. Please check your internet",
+  "firebaseAuthChangePasswordFailed": "Could not change password. Please try again",
+  "permissionLocationTitle": "Enable location access",
+  "permissionLocationSubtitle": "The app needs location permission to track your child's position and support safety features.",
+  "permissionLocationRecommendation": "Recommended: allow location while using the app first. If background tracking is needed later, you can grant Always permission after that.",
+  "permissionLocationAllowButton": "Allow location",
+  "permissionNotificationTitle": "Enable SOS Alerts",
+  "permissionNotificationSubtitle": "The app needs notification permission to send emergency SOS alerts even when the app is closed.",
+  "permissionNotificationRecommendation": "After granting permission, make sure the \"SOS Alerts\" notification channel has sound enabled in system settings.",
+  "permissionNotificationAllowButton": "Allow notifications",
+  "permissionSosTitle": "Enable SOS access",
+  "permissionSosSubtitle": "The app needs notification permission to send emergency SOS alerts and play alarm sounds.",
+  "permissionSosRecommendation": "Please enable notifications and make sure the \"SOS Alerts\" channel has sound enabled.",
+  "permissionSosAllowButton": "Allow SOS",
+  "permissionOpenSettingsButton": "Open settings",
+  "permissionLaterButton": "Later",
+  "permissionSkipButton": "Skip",
+  "permissionStepLabel": "Step {current}/{total}",
+  "@permissionStepLabel": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "permissionOnboardingAccessibilityTitle": "Enable accessibility access",
+  "permissionOnboardingAccessibilitySubtitle": "Needed for some protection features on Android.",
+  "permissionOnboardingAccessibilityPrimaryButton": "Allow",
+  "permissionOnboardingAccessibilitySettingsButton": "Open general settings",
+  "permissionOnboardingBackgroundLocationTitle": "Choose \"Allow all the time\"",
+  "permissionOnboardingBackgroundLocationSubtitle": "So location can still update when the app runs in the background.",
+  "permissionOnboardingBackgroundLocationPrimaryButton": "Continue",
+  "permissionOnboardingBackgroundLocationSettingsButton": "Open location settings",
+  "permissionOnboardingBatteryTitle": "Turn off battery restrictions",
+  "permissionOnboardingBatterySubtitle": "So the app is not stopped while running in the background.",
+  "permissionOnboardingBatteryPrimaryButton": "Allow",
+  "permissionOnboardingBatterySettingsButton": "Open general settings",
+  "permissionOnboardingLocationTitle": "Turn on \"Location access\"",
+  "permissionOnboardingLocationSubtitle": "Otherwise, the app will not be able to track location.",
+  "permissionOnboardingLocationPrimaryButton": "Go to settings",
+  "permissionOnboardingLocationSettingsButton": "Open app settings",
+  "permissionOnboardingMediaTitle": "Allow photos and media",
+  "permissionOnboardingMediaSubtitle": "To change the profile photo and choose images in the app.",
+  "permissionOnboardingMediaPrimaryButton": "Allow",
+  "permissionOnboardingMediaSettingsButton": "Open settings",
+  "permissionOnboardingNotificationTitle": "Turn on notifications",
+  "permissionOnboardingNotificationSubtitle": "To receive SOS and safety alerts immediately.",
+  "permissionOnboardingNotificationPrimaryButton": "Allow",
+  "permissionOnboardingNotificationSettingsButton": "Open notification settings",
+  "permissionOnboardingUsageTitle": "Enable app usage access",
+  "permissionOnboardingUsageSubtitle": "To manage app usage time on Android.",
+  "permissionOnboardingUsagePrimaryButton": "Allow",
+  "permissionOnboardingUsageSettingsButton": "Open general settings",
+  "permissionOnboardingStepNotificationsLabel": "Notifications",
+  "permissionOnboardingStepLocationLabel": "Location",
+  "permissionOnboardingStepBackgroundLocationLabel": "Allow all the time",
+  "permissionOnboardingStepMediaLabel": "Photos",
+  "permissionOnboardingStepUsageLabel": "Usage",
+  "permissionOnboardingStepAccessibilityLabel": "Accessibility",
+  "permissionOnboardingStepBatteryLabel": "Battery",
+  "permissionOnboardingSystemDeniedMessage": "This permission is blocked by the system. Open settings to grant it again.",
+  "permissionOnboardingNotGrantedMessage": "This permission has not been granted yet. You can try again or set it up later.",
+  "permissionOnboardingNotificationHelperText": "First, just allow permission while using the app. Right after this, the app will guide you to enable \"Allow all the time\" for stable background tracking.",
+  "permissionOnboardingGuideVideoLoadFailed": "Could not load the guide video",
+  "permissionOnboardingGuideVideoPlaceholder": "The guide video will appear here",
+  "applyButton": "Apply",
+  "commonStartLabel": "Start",
+  "commonEndLabel": "End",
+  "childLocationSosSending": "Sending SOS...",
+  "childLocationSosError": "SOS error: {error}",
+  "@childLocationSosError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationCurrentJourneyTitle": "Current journey",
+  "childLocationTravelHistoryTitle": "Movement history",
+  "childLocationSelectedHistoryLabel": "Selected history",
+  "childLocationTodayLabel": "Today",
+  "childLocationUpdatedJustNow": "Updated just now",
+  "childLocationUpdatedOneMinuteAgo": "Updated 1 minute ago",
+  "childLocationUpdatedMinutesAgo": "Updated {minutes} minutes ago",
+  "@childLocationUpdatedMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationRangeAllDay": "All day",
+  "childLocationTooltipManageZones": "Manage zones",
+  "childLocationTooltipSafeRoute": "Safe route",
+  "childLocationTooltipChooseMap": "Choose map",
+  "childLocationTagStart": "Start",
+  "childLocationTagEnd": "End",
+  "childLocationTagGpsVeryWeak": "Very weak GPS",
+  "childLocationTagGpsLost": "GPS lost",
+  "childLocationStayedHereLabel": "Stayed here",
+  "childLocationStayedHereUnavailable": "Unavailable",
+  "childLocationStopDurationHint": "Stop duration",
+  "childLocationSpeedLabel": "Speed",
+  "childLocationSpeedUnavailable": "Unavailable",
+  "childLocationGpsTitle": "GPS",
+  "childLocationPointCountTitle": "Points",
+  "childLocationPointCountUnit": "points",
+  "childLocationGpsAccuracyLabel": "GPS accuracy",
+  "childLocationMockGpsLabel": "Mock GPS",
+  "childLocationMockGpsDetected": "Detected",
+  "childLocationNoLabel": "No",
+  "childLocationDeviceStatusHint": "Device status",
+  "childLocationTechnicalDetailsTitle": "Technical details",
+  "childLocationDetailFullTimeLabel": "Timestamp",
+  "childLocationDetailHeadingLabel": "Heading",
+  "childLocationDetailCoordinatesLabel": "Coordinates",
+  "childLocationDetailAccuracyLabel": "Accuracy",
+  "childLocationDurationZeroMinutes": "0 min",
+  "childLocationDurationHoursMinutes": "{hours} h {minutes} min",
+  "@childLocationDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationDurationMinutes": "{minutes} min",
+  "@childLocationDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationDurationSeconds": "{seconds} sec",
+  "@childLocationDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationGpsLostTitle": "GPS signal lost",
+  "childLocationGpsVeryWeakSubtitle": "GPS signal is very weak. The location may be inaccurate.",
+  "childLocationGpsLostSubtitle": "Accuracy is worse than {meters} m",
+  "@childLocationGpsLostSubtitle": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationStoppedNowTitle": "Currently stopped",
+  "childLocationStoppedNowSubtitle": "Stopped here for {duration}",
+  "@childLocationStoppedNowSubtitle": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationStoppedHereTitle": "Stopped here",
+  "childLocationStoppedHereSubtitle": "Stopped for about {duration}",
+  "@childLocationStoppedHereSubtitle": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationJourneyStartSubtitle": "Journey starting point",
+  "childLocationJourneyEndSubtitle": "Journey ending point",
+  "childLocationUpdatedAt": "Updated at {time}",
+  "@childLocationUpdatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationPassedAt": "Passed this point at {time}",
+  "@childLocationPassedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationHeadlineWalking": "Walking",
+  "childLocationHeadlineBicycle": "Cycling",
+  "childLocationHeadlineVehicle": "In vehicle",
+  "childLocationHeadlineStill": "Standing still",
+  "childLocationHeadlineUnknown": "Unknown status",
+  "childLocationSpeedAlmostStill": "Almost not moving",
+  "childLocationAccuracySevere": "Severe GPS loss",
+  "childLocationAccuracyLost": "GPS lost",
+  "childLocationAccuracyGood": "Fairly accurate ({meters} m)",
+  "@childLocationAccuracyGood": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationAccuracyModerate": "Moderate accuracy ({meters} m)",
+  "@childLocationAccuracyModerate": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "childLocationTimeWindowTitle": "Choose a time range",
+  "childLocationTimeWindowSubtitle": "Only load and show history within the selected time range.",
+  "childLocationPresetMorning": "Morning",
+  "childLocationPresetAfternoon": "Afternoon",
+  "childLocationPresetEvening": "Evening",
+  "childLocationNoDataTitle": "No data in this range",
+  "childLocationNoDataSubtitle": "Try another time range or another day to review the journey.",
+  "childLocationSummaryDateLabel": "Date",
+  "childLocationSummaryTimeRangeLabel": "Time range",
+  "childLocationLiveLabel": "Live",
+  "childLocationRecentPointsTitle": "Recent points",
+  "childLocationLoadMoreRecentHours": "Load more {label}",
+  "@childLocationLoadMoreRecentHours": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "childLocationViewAllButton": "View all",
+  "childLocationTapToSeeDetails": "Tap to view details",
+  "childLocationWeakGpsSignal": "Weak GPS signal",
+  "childLocationPointCount": "{count} points",
+  "@childLocationPointCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "childLocationNetworkGapTitle": "Network lost",
+  "childLocationNetworkGapSubtitle": "The map temporarily connects both ends because the data was interrupted for {duration}.",
+  "@childLocationNetworkGapSubtitle": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "childLocationNetworkGapChip": "Connection lost",
+  "childLocationNetworkGapFromLabel": "Lost from",
+  "childLocationNetworkGapToLabel": "Back at",
+  "childLocationMapSearchSubtitle": "Search for a place to quickly pick it on the map.",
+  "childLocationMapSearchInputHint": "Enter a street, school, or address...",
+  "childLocationMapSearchMinChars": "Enter at least 2 characters to search for a place.",
+  "childLocationMapSearchNoResults": "No matching places found.",
+  "childLocationSafeRouteRecoveredBanner": "Back on the safe route",
+  "locationNoLocationYet": "No location yet",
+  "locationCoordinatesSummary": "Lat {lat} • Lng {lng}",
+  "@locationCoordinatesSummary": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "locationSearchHint": "Search",
+  "locationMessageSent": "Message sent",
+  "locationChildInfoTitle": "Information",
+  "locationQuickMessageHint": "Send a quick message...",
+  "locationStatusStudying": "Studying",
+  "locationStopSearching": "Stop searching",
+  "incomingSosConfirmFailed": "Confirmation failed: {error}",
+  "@incomingSosConfirmFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "incomingSosEmergencyTitle": "🚨 Emergency SOS alert!",
+  "incomingSosResolvingButton": "PROCESSING",
+  "incomingSosConfirmButton": "CONFIRM",
+  "sosConfirmedRoleParent": "Parent",
+  "sosConfirmedRoleChild": "Child",
+  "sosConfirmedNameLabel": "Name",
+  "sosConfirmedSenderLabel": "Sender",
+  "sosConfirmedSentAtLabel": "Sent at",
+  "sosConfirmedConfirmedAtLabel": "Confirmed at",
+  "sosConfirmedAccuracyLabel": "Accuracy",
+  "sosConfirmedTitle": "SOS confirmed",
+  "sosConfirmedCloseButton": "CLOSE",
+  "sosButtonLabel": "SOS",
+  "parentPhoneSaveFailed": "Could not save the phone number",
+  "parentPhoneAddTitle": "Add your child's phone number",
+  "parentPhoneAddSubtitle": "Contact your child even when their phone is in silent mode",
+  "parentPhoneAddButton": "Add",
+  "parentPhoneContactHasNoNumber": "This contact has no phone number",
+  "parentPhonePickFailed": "Could not get the phone number from contacts: {error}",
+  "@parentPhonePickFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "parentPhonePickTitle": "Choose phone number",
+  "parentPhoneOpenContactsButton": "Open contacts",
+  "appImageReplaceOption": "Change image",
+  "appImageLoadFailed": "Could not load image",
+  "photoUpdateFailedMessage": "Failed to update photo",
+  "mapTypeSheetTitle": "Map type",
+  "mapTypeDefault": "Default",
+  "mapTypeSatellite": "Satellite",
+  "mapTypeTerrain": "Terrain",
+  "phoneHelperSaveSuccessTitle": "Added successfully",
+  "phoneHelperSaveSuccessMessage": "The child's phone number has been saved successfully",
+  "phoneHelperCallActionFailed": "Could not complete the call action: {error}",
+  "@phoneHelperCallActionFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "phoneHelperOpenDialerFailed": "Could not open the phone app",
+  "phoneHelperLaunchCallFailed": "Phone call failed: {error}",
+  "@phoneHelperLaunchCallFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "scheduleRepositoryNotFound": "Schedule not found",
+  "scheduleRepositoryCurrentNotFound": "Current schedule not found",
+  "scheduleRepositoryHistoryNotFound": "History record not found",
+  "locationRepositoryLoginRequired": "Not logged in. Unable to send location",
+  "locationRepositoryParentIdNotFound": "Parent account not found",
+  "safeRouteTripStatusActive": "Tracking",
+  "safeRouteTripStatusTemporarilyDeviated": "Temporarily off route",
+  "safeRouteTripStatusDeviated": "Off route",
+  "safeRouteTripStatusCompleted": "Arrived",
+  "safeRouteTripStatusCancelled": "Cancelled",
+  "safeRouteTripStatusPlanned": "Scheduled",
+  "safeRouteTripStatusNoTrip": "No trip yet",
+  "safeRouteTravelModeWalking": "Walking",
+  "safeRouteTravelModeMotorbike": "Motorbike",
+  "safeRouteTravelModePickup": "Pickup",
+  "safeRouteTravelModeOtherVehicle": "Other vehicle",
+  "safeRouteDistanceMeters": "{value} m",
+  "@safeRouteDistanceMeters": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteDistanceKilometers": "{value} km",
+  "@safeRouteDistanceKilometers": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "safeRouteDurationMinutes": "{minutes} min",
+  "@safeRouteDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteDurationHours": "{hours} h",
+  "@safeRouteDurationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteDurationHoursMinutes": "{hours} h {minutes} min",
+  "@safeRouteDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteDurationHoursMinutesShort": "{hours} h {minutes}m",
+  "@safeRouteDurationHoursMinutesShort": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteEtaApproxMinutes": "~{minutes} min",
+  "@safeRouteEtaApproxMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteEtaApproxHours": "~{hours} h",
+  "@safeRouteEtaApproxHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteEtaApproxHoursMinutes": "~{hours} h {minutes}m",
+  "@safeRouteEtaApproxHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteTodayLabel": "Today",
+  "safeRouteTomorrowLabel": "Tomorrow",
+  "safeRouteNowLabel": "Now",
+  "safeRouteSecondsAgo": "{seconds}s",
+  "@safeRouteSecondsAgo": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteFormatTime": "{hour}:{minute}",
+  "@safeRouteFormatTime": {
+    "placeholders": {
+      "hour": {},
+      "minute": {}
+    }
+  },
+  "safeRouteTrackNowLabel": "Track now",
+  "safeRouteNoRepeatSummary": "No repeat. This route will be used for the nearest tracking session.",
+  "safeRouteRepeatSummaryText": "Repeats on: {labels}",
+  "@safeRouteRepeatSummaryText": {
+    "placeholders": {
+      "labels": {}
+    }
+  },
+  "safeRouteCurrentRoutePrimary": "Currently on the primary route",
+  "safeRouteCurrentRouteAlternativeIndexed": "Currently on alternative route {index}",
+  "@safeRouteCurrentRouteAlternativeIndexed": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteCurrentRouteAlternative": "Currently on an alternative route",
+  "safeRouteRouteFallbackNameText": "Route {id}",
+  "@safeRouteRouteFallbackNameText": {
+    "placeholders": {
+      "id": {}
+    }
+  },
+  "safeRouteSelectedRouteFallbackName": "Selected route",
+  "safeRouteGuidanceLoadingRoute": "Loading route...",
+  "safeRouteGuidanceDangerArea": "danger area",
+  "safeRouteGuidanceReturnToSafeRoute": "Return to the safe route",
+  "safeRouteGuidanceArrivedInstruction": "You are almost there",
+  "safeRouteGuidanceArrivedDescription": "Keep going to the destination marker.",
+  "safeRouteGuidanceStatusOnRoute": "On route",
+  "safeRouteGuidanceStatusOffRoute": "Off route",
+  "safeRouteGuidanceStatusAlmostThere": "Almost there",
+  "safeRouteGuidanceStatusSafeRoute": "Safe route",
+  "safeRouteGuidanceLeaveDangerZone": "Leave {hazardName} immediately",
+  "@safeRouteGuidanceLeaveDangerZone": {
+    "placeholders": {
+      "hazardName": {}
+    }
+  },
+  "safeRouteGuidanceDangerDescription": "Move back to the route and away from {hazardName}.",
+  "@safeRouteGuidanceDangerDescription": {
+    "placeholders": {
+      "hazardName": {}
+    }
+  },
+  "safeRouteGuidanceOffRouteDescription": "You are about {distanceLabel} away from the route.",
+  "@safeRouteGuidanceOffRouteDescription": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceRemainingDescription": "{distanceLabel} left to the destination.",
+  "@safeRouteGuidanceRemainingDescription": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceContinueStraight": "Continue straight for {distanceLabel}",
+  "@safeRouteGuidanceContinueStraight": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceTurnLeft": "Turn left in {distanceLabel}",
+  "@safeRouteGuidanceTurnLeft": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceTurnRight": "Turn right in {distanceLabel}",
+  "@safeRouteGuidanceTurnRight": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceKeepLeft": "Keep left in {distanceLabel}",
+  "@safeRouteGuidanceKeepLeft": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceKeepRight": "Keep right in {distanceLabel}",
+  "@safeRouteGuidanceKeepRight": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceMakeUTurn": "Make a U-turn in {distanceLabel}",
+  "@safeRouteGuidanceMakeUTurn": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteGuidanceEtaNow": "ETA now",
+  "safeRouteVisualDangerTitle": "Entered a danger zone!",
+  "safeRouteVisualDangerSubtitle": "Your child is near {hazardName}.",
+  "@safeRouteVisualDangerSubtitle": {
+    "placeholders": {
+      "hazardName": {}
+    }
+  },
+  "safeRouteVisualDangerBadge": "DANGER",
+  "safeRouteVisualOffRouteTitle": "Off route ~{distanceLabel}",
+  "@safeRouteVisualOffRouteTitle": {
+    "placeholders": {
+      "distanceLabel": {}
+    }
+  },
+  "safeRouteVisualOffRouteSubtitle": "Your child is leaving the selected safe corridor.",
+  "safeRouteVisualOffRouteBadge": "OFF ROUTE",
+  "safeRouteVisualCompletedTitle": "Child arrived safely",
+  "safeRouteVisualCompletedSubtitle": "This journey was marked as completed.",
+  "safeRouteVisualCompletedBadge": "COMPLETED",
+  "safeRouteVisualCancelledTitle": "Journey tracking stopped",
+  "safeRouteVisualCancelledSubtitle": "The parent ended the current monitoring session.",
+  "safeRouteVisualCancelledBadge": "STOPPED",
+  "safeRouteVisualPlannedTitle": "Route is waiting to start",
+  "safeRouteVisualPlannedSubtitle": "Safe Route will start automatically at the scheduled time.",
+  "safeRouteVisualPlannedBadge": "SCHEDULED",
+  "safeRouteVisualActiveTitle": "Following the route",
+  "safeRouteVisualActiveSubtitle": "Your child is inside the selected safe corridor.",
+  "safeRouteVisualActiveBadge": "SAFE",
+  "safeRouteErrorMaxAlternative": "You should select at most 2 alternative routes per trip.",
+  "safeRouteErrorNoCurrentLocation": "The child does not have a current location yet.",
+  "safeRouteErrorNeedStartEnd": "Please choose point A and point B first.",
+  "safeRouteErrorLoadHistoryRoute": "Could not load the route from history.",
+  "safeRouteErrorNeedRoute": "Please choose a safe route first.",
+  "safeRouteErrorLoginAgain": "Please sign in again to start the trip.",
+  "safeRouteErrorSelectTimeForRepeat": "Choose a time if you want the route to repeat by day.",
+  "safeRouteUseCurrentLocationLabel": "Current location",
+  "safeRouteStartPointOfRoute": "Route start point",
+  "safeRouteEndPointOfRoute": "Route destination",
+  "safeRouteCancelledByParentReason": "Cancelled by parent",
+  "safeRouteSpeedValue": "{value} km/h",
+  "@safeRouteSpeedValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "safeRoutePageSelectRouteTitle": "Choose a safe route",
+  "safeRoutePageJourneyTitle": "Safe journey",
+  "safeRouteSnackbarAutoFollowEnabled": "Auto follow turned on",
+  "safeRouteSnackbarAutoFollowDisabled": "Auto follow turned off",
+  "safeRouteSearchStartTitle": "Search starting point",
+  "safeRouteSearchStartHint": "Search for home, pickup point, or journey start.",
+  "safeRouteSearchEndTitle": "Search destination",
+  "safeRouteSearchEndHint": "Search for a school, relative's house, or the destination to monitor.",
+  "safeRouteScheduledAutoActivationPrefix": "Auto-activates on schedule · {summary}",
+  "@safeRouteScheduledAutoActivationPrefix": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "safeRouteTopSubtitleWarning": "Off route",
+  "safeRouteTopSubtitleDanger": "Danger alert",
+  "safeRouteTopSubtitleReady": "Start and destination are ready",
+  "safeRouteTopSubtitleOnlyStart": "Starting point selected, now choose the destination",
+  "safeRouteTopSubtitleChoosePoints": "Choose start and destination on the map",
+  "safeRouteSelectScheduleDateHelp": "Choose the effective date",
+  "safeRouteSelectScheduleTimeTitle": "Choose the effective time",
+  "safeRouteArrivedDialogTitle": "Child arrived safely",
+  "safeRouteArrivedDialogMessage": "This journey has been completed. You can go back to choose a new route for your child.",
+  "safeRouteArrivedDialogConfirm": "Go back and choose a route",
+  "safeRouteCancelPlannedTitle": "Confirm Safe Route schedule cancellation",
+  "safeRouteCancelActiveTitle": "Confirm Safe Route cancellation",
+  "safeRouteCancelPlannedMessage": "This scheduled tracking will no longer start automatically. Are you sure you want to cancel it?",
+  "safeRouteCancelActiveMessage": "The current safe route will stop tracking immediately. Are you sure you want to cancel it?",
+  "safeRouteCancelPlannedConfirm": "Confirm schedule cancellation",
+  "safeRouteCancelActiveConfirm": "Confirm route cancellation",
+  "safeRouteDialogBack": "Back",
+  "safeRouteTooltipFocusChild": "Center the camera on the child",
+  "safeRouteTooltipDisableAutoFollow": "Turn off Auto follow",
+  "safeRouteTooltipEnableAutoFollow": "Turn on Auto follow",
+  "safeRouteAutoFollowLabel": "Auto follow",
+  "safeRouteTooltipHideHazards": "Hide danger zones",
+  "safeRouteTooltipShowHazards": "Show danger zones",
+  "safeRouteTooltipMapType": "Choose map type",
+  "safeRouteMapHintPlaceStart": "Tap on the map to place the starting point",
+  "safeRouteMapHintPlaceEnd": "Tap on the map to place the destination",
+  "safeRouteMapHintTapStart": "Tap on the map to choose the child's starting point.",
+  "safeRouteMapHintTapEnd": "Tap on the map to choose the child's destination.",
+  "safeRouteSnackbarSelectedEndPoint": "Destination selected on the map",
+  "safeRouteSnackbarSelectedStartPoint": "Starting point selected on the map",
+  "safeRouteSelectSafeRouteTitle": "Choose a safe route",
+  "safeRouteSuggestedRoutesTitle": "Suggested routes",
+  "safeRouteSuggestedRoutesSubtitle": "Prioritizes safety, easy monitoring, and fewer danger zones",
+  "safeRouteHistoryButton": "History",
+  "safeRouteRefreshingRoutes": "Searching...",
+  "safeRouteRefreshButton": "Refresh",
+  "safeRouteConfirmingRoute": "Confirming route...",
+  "safeRouteFetchSuggestedRoutes": "Get route suggestions",
+  "safeRouteHintSelectingStart": "Tap on the map to choose the child's starting point.",
+  "safeRouteHintSelectingEnd": "Tap on the map to choose the child's destination.",
+  "safeRouteHintMissingPoints": "Choose point A and point B on the map, then review the suggested routes.",
+  "safeRouteHintReadyChooseRoute": "Start and destination are ready. You can now choose the safest route to begin monitoring.",
+  "safeRouteEmptyRoutesNeedPoints": "Choose both the starting point and destination so the app can suggest safe routes.",
+  "safeRouteEmptyRoutesRefresh": "Tap \"Refresh\" or the button below to request the route suggestions again.",
+  "safeRoutePrimaryActionSaveSchedule": "Save route and schedule tracking",
+  "safeRoutePrimaryActionStartSelectedRoutes": "Start tracking the selected routes",
+  "safeRoutePrimaryActionSelectThisRoute": "Select this route and start tracking",
+  "safeRouteSelectedRoutesNeedPrimary": "Choose 1 primary route and optionally add up to 2 alternatives.",
+  "safeRouteSelectedRoutesPrimaryOnly": "1 primary route selected. You can add up to 2 alternatives.",
+  "safeRouteSelectedRoutesWithAlternatives": "1 primary route and {count} alternative routes selected.",
+  "@safeRouteSelectedRoutesWithAlternatives": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteActionStopTracking": "Stop tracking",
+  "safeRouteActionViewRoute": "View route",
+  "safeRouteActionMarkArrived": "Mark as arrived",
+  "safeRouteActionCancelSchedule": "Cancel schedule",
+  "safeRouteActionChooseNewRoute": "Choose a new route",
+  "safeRouteActionRouteDetails": "Route details",
+  "safeRouteStatusSubtitleActive": "Your child is closely following the selected route",
+  "safeRouteStatusSubtitleTemporarilyDeviated": "A slight deviation was detected. The system is still monitoring.",
+  "safeRouteStatusSubtitleDeviated": "Your child has left the safe corridor",
+  "safeRouteStatusSubtitleCompleted": "The journey has been completed",
+  "safeRouteStatusSubtitleCancelled": "The parent stopped monitoring",
+  "safeRouteStatusSubtitlePlanned": "The route is waiting for its scheduled time to start",
+  "safeRouteStatusSubtitleNoData": "No tracking data yet",
+  "safeRouteSpeedStanding": "Standing still",
+  "safeRouteSpeedWalking": "Walking",
+  "safeRouteSpeedCycling": "Cycling",
+  "safeRouteSpeedMoving": "Moving",
+  "safeRouteMetricSpeed": "Speed",
+  "safeRouteMetricOffRoute": "Off route",
+  "safeRouteMetricOffCorridor": "Outside corridor",
+  "safeRouteMetricEta": "ETA",
+  "safeRouteMetricEtaEstimate": "Estimate",
+  "safeRouteDangerCheckNow": "Check immediately",
+  "safeRouteDeviceBatteryLabel": "Device battery",
+  "safeRouteProgressTitle": "Journey progress",
+  "safeRouteProgressCompletedPercent": "Completed {percent}%",
+  "@safeRouteProgressCompletedPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteProgressTraveled": "Traveled {traveled}/{total}",
+  "@safeRouteProgressTraveled": {
+    "placeholders": {
+      "traveled": {},
+      "total": {}
+    }
+  },
+  "safeRouteProgressRemainingPercent": "Remaining {percent}%",
+  "@safeRouteProgressRemainingPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteProgressRemaining": "Remaining {distance}",
+  "@safeRouteProgressRemaining": {
+    "placeholders": {
+      "distance": {}
+    }
+  },
+  "safeRouteFromLabel": "From",
+  "safeRouteToLabel": "To",
+  "safeRouteSearchOrSelectStart": "Search or choose a starting point",
+  "safeRouteSearchOrSelectEnd": "Search or choose a destination",
+  "safeRouteScheduleTitle": "Route schedule",
+  "safeRouteScheduleSubtitle": "Set the date, time, and repeating days for this safe route.",
+  "safeRouteDateLabel": "Date",
+  "safeRouteTimeLabel": "Time",
+  "safeRouteRepeatByDayLabel": "Repeat by day",
+  "safeRouteHistoryTripsTitle": "Safe route trip history",
+  "safeRouteHistoryTripsEmpty": "No trips have been saved for your child yet.",
+  "safeRouteHistoryTripsSubtitle": "Tap any trip to review the route and movement status.",
+  "safeRouteHistoryPageTitle": "Route history",
+  "safeRouteHistoryPageReviewSaved": "Review all saved safe journeys",
+  "safeRouteHistoryEmptyState": "No safe routes have been saved in history yet.",
+  "safeRouteNoRepeatLabel": "No repeat",
+  "safeRouteBadgeSafest": "Safest",
+  "safeRouteBadgeFewerHazards": "Fewer hazards",
+  "safeRouteBadgeFaster": "Faster",
+  "safeRouteBadgeAlternative": "Alternative",
+  "safeRouteRolePrimary": "Primary",
+  "safeRouteRoleAlternative": "Alternative",
+  "safeRouteCorridorLabel": "{distance} corridor",
+  "@safeRouteCorridorLabel": {
+    "placeholders": {
+      "distance": {}
+    }
+  },
+  "safeRouteActionPrimarySelected": "Primary route selected",
+  "safeRouteActionSetPrimary": "Set as primary route",
+  "safeRouteActionRemoveAlternative": "Remove alternative",
+  "safeRouteActionSelectAlternative": "Select alternative",
+  "safeRouteActionAlternativeLimitReached": "Alternative limit reached",
+  "safeRouteRouteDescriptionStable": "This route is quite stable and almost avoids danger zones.",
+  "safeRouteRouteDescriptionOneHazard": "There is 1 point to watch, but it is still suitable for safe monitoring.",
+  "safeRouteRouteDescriptionMoreHazards": "This route is faster but needs more attention because it passes more warning zones.",
+  "safeRouteHazardCount": "{count} danger zones",
+  "@safeRouteHazardCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "safeRouteAlternativeRouteCount": "+{count} alternatives",
+  "@safeRouteAlternativeRouteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cupertinoTimePickerDoneButton": "Done",
+  "childLocationUpdatedOneHourAgo": "Updated 1 hour ago",
+  "childLocationUpdatedHoursAgo": "Updated {hours} hours ago",
+  "@childLocationUpdatedHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "validationPasswordRequired": "Please enter a password",
+  "validationPasswordMinLength": "Password must be at least 6 characters",
+  "validationPasswordUppercaseRequired": "Password must include at least 1 uppercase letter",
+  "validationPasswordLowercaseRequired": "Password must include at least 1 lowercase letter",
+  "validationPasswordNumberRequired": "Password must include at least 1 number",
+  "validationPasswordConfirmRequired": "Please re-enter the password",
+  "firebaseAuthOperationNotAllowed": "Account creation is not enabled in Firebase Auth",
+  "userRepositoryCreateAccountFailed": "Could not create the account",
+  "firestorePermissionDenied": "You do not have permission to write data",
+  "firestoreUnavailable": "Firestore is temporarily unavailable",
+  "firestoreGenericError": "Firestore error",
+  "userRepositoryCreateChildFailed": "Could not create the child account",
+  "mapPlaceSearchMissingAccessToken": "Missing Mapbox ACCESS_TOKEN for place search.",
+  "mapPlaceSearchRequestFailed": "Place search failed ({statusCode}).",
+  "@mapPlaceSearchRequestFailed": {
+    "placeholders": {
+      "statusCode": {
+        "type": "int"
+      }
+    }
+  },
+  "mapPlaceSearchInvalidResponse": "The response from Mapbox is invalid.",
+  "mapPlaceSearchTimeout": "Place search timed out. Please try again.",
+  "mapPlaceSearchDecodeFailed": "Could not read the place data.",
+  "mapPlaceSearchUnexpectedError": "An error occurred while searching for a place.",
+  "mapPlaceSearchNoAddress": "No address available",
+  "mapPlaceSearchDefaultName": "Place"
 }

@@ -1,20 +1,25 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/core/sos/sos_alarm_player.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/notifications/sos_notification_service.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:provider/provider.dart';
 
 class IncomingSosOverlay extends StatefulWidget {
   final String familyId;
   final String myUid;
+  final UserRole? viewerRole;
 
   const IncomingSosOverlay({
     super.key,
     required this.familyId,
     required this.myUid,
+    required this.viewerRole,
   });
 
   @override
@@ -30,11 +35,14 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   String? _ignoredSosId;
   int _permissionRetryCount = 0;
 
+  bool get _canResolveSos =>
+      widget.viewerRole?.isAdultManager ?? false;
+
   @override
   void initState() {
     super.initState();
     debugPrint(
-      "OVERLAY initState familyId=${widget.familyId} hash=$hashCode",
+      'OVERLAY initState familyId=${widget.familyId} hash=$hashCode',
     );
     _subscribe();
   }
@@ -53,11 +61,13 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
           .limit(1);
 
       _sub = q.snapshots().listen(
-            (qs) {
+        (qs) {
           if (!mounted) return;
           _permissionRetryCount = 0;
 
           if (qs.docs.isEmpty) {
+            _resolving = false;
+            _ignoredSosId = null;
             _clearOverlayAndStopAlarm();
             return;
           }
@@ -80,6 +90,11 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
           if (_ignoredSosId != null && doc.id == _ignoredSosId) {
             debugPrint('Ignore active snapshot for resolving sosId=${doc.id}');
             return;
+          }
+
+          if (_ignoredSosId != null && doc.id != _ignoredSosId) {
+            _ignoredSosId = null;
+            _resolving = false;
           }
 
           if (!mounted) return;
@@ -135,11 +150,18 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       _ringing = false;
       unawaited(SosAlarmPlayer.instance.stop());
     }
+
+    unawaited(SosNotificationService.instance.clearActiveAlert());
   }
 
   Future<void> _handleConfirm() async {
+    if (!_canResolveSos) return;
+
     final previousDoc = _doc;
     if (previousDoc == null) return;
+    final sosViewModel = context.read<SosViewModel>();
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     final sosId = previousDoc.id;
     final data = previousDoc.data() ?? {};
@@ -176,16 +198,11 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
     }
 
     try {
-      await context.read<SosViewModel>().resolve(
+      await sosViewModel.resolve(
         familyId: widget.familyId,
         sosId: sosId,
       );
-
-      // Đợi rất ngắn để Firestore kịp phát snapshot resolved / query rỗng
-      await Future.delayed(const Duration(milliseconds: 400));
-
-      _resolving = false;
-      _ignoredSosId = null;
+      await SosNotificationService.instance.clearActiveAlert();
 
       debugPrint('Confirm success sosId=$sosId');
     } catch (e) {
@@ -203,8 +220,12 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
         await SosAlarmPlayer.instance.startLoop();
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Xác nhận thất bại: $e')),
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.incomingSosConfirmFailed('$e'),
+          ),
+        ),
       );
     }
   }
@@ -224,6 +245,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final doc = _doc;
     if (doc == null) return const SizedBox.shrink();
 
@@ -238,24 +260,29 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
             children: [
               const Icon(Icons.sos, color: Colors.white),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  '🚨 Có SOS khẩn cấp!',
-                  style: TextStyle(
+                  l10n.incomingSosEmergencyTitle,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.red,
-                  shape: const StadiumBorder(),
+              if (_canResolveSos)
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.red,
+                    shape: const StadiumBorder(),
+                  ),
+                  onPressed: _resolving ? null : _handleConfirm,
+                  child: Text(
+                    _resolving
+                        ? l10n.incomingSosResolvingButton
+                        : l10n.incomingSosConfirmButton,
+                  ),
                 ),
-                onPressed: _resolving ? null : _handleConfirm,
-                child: Text(_resolving ? 'ĐANG XỬ LÝ' : 'XÁC NHẬN'),
-              ),
             ],
           ),
         ),
@@ -268,7 +295,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
     _sub?.cancel();
     unawaited(SosAlarmPlayer.instance.stop());
     debugPrint(
-      "OVERLAY dispose familyId=${widget.familyId} hash=$hashCode",
+      'OVERLAY dispose familyId=${widget.familyId} hash=$hashCode',
     );
     super.dispose();
   }

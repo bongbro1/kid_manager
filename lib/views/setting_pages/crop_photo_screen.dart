@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 
 enum CropPhotoType { avatar, cover }
@@ -45,12 +46,12 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
     }
   }
 
-  String get _title {
+  String _title(AppLocalizations l10n) {
     switch (widget.type) {
       case CropPhotoType.avatar:
-        return 'Chỉnh ảnh đại diện';
+        return l10n.cropPhotoAvatarTitle;
       case CropPhotoType.cover:
-        return 'Chỉnh ảnh bìa';
+        return l10n.cropPhotoCoverTitle;
     }
   }
 
@@ -65,15 +66,18 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+
+    final radius = BorderRadius.circular(20);
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text(_title),
+        title: Text(_title(l10n)),
         actions: [
           TextButton(
             onPressed: _isCropping || _imageData == null
@@ -82,7 +86,7 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
                     setState(() => _isCropping = true);
                     _controller.crop();
                   },
-            child: const Text('Xong'),
+            child: Text(l10n.cropPhotoDoneButton),
           ),
         ],
       ),
@@ -124,8 +128,8 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
                               setState(() => _isCropping = false);
 
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Không thể crop ảnh'),
+                                SnackBar(
+                                  content: Text(l10n.cropPhotoFailedMessage),
                                 ),
                               );
                             }
@@ -141,7 +145,12 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () => Navigator.pop(context),
-                                  child: const Text('Hủy'),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: radius,
+                                    ),
+                                  ),
+                                  child: Text(l10n.cancelButton),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -151,7 +160,12 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
                                     setState(() => _isCropping = true);
                                     _controller.crop();
                                   },
-                                  child: const Text('Xác nhận'),
+                                  style: FilledButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: radius,
+                                    ),
+                                  ),
+                                  child: Text(l10n.confirmButton),
                                 ),
                               ),
                             ],

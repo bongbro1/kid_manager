@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/enums/enums.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/map/map_ornaments.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -9,6 +11,7 @@ class AppMapView extends StatefulWidget {
   final void Function(MapContentGestureContext context)? onTapListener;
   final AppMapViewController? controller;
   final bool showInternalMapTypeButton;
+  final bool followThemeForStreetStyle;
 
   const AppMapView({
     super.key,
@@ -17,6 +20,7 @@ class AppMapView extends StatefulWidget {
     this.onTapListener,
     this.controller,
     this.showInternalMapTypeButton = true,
+    this.followThemeForStreetStyle = true,
   });
 
   @override
@@ -42,6 +46,8 @@ class AppMapViewController {
 class _AppMapViewState extends State<AppMapView> {
   MapboxMap? _map;
   AppMapType _type = AppMapType.street;
+  bool _disposed = false;
+  int _mapGeneration = 0;
 
   /// Lưu camera để restore khi đổi style (tránh zoom lại)
   CameraOptions? _pendingCameraRestore;
@@ -69,6 +75,9 @@ class _AppMapViewState extends State<AppMapView> {
 
   @override
   void dispose() {
+    _disposed = true;
+    _mapGeneration++;
+    _map = null;
     widget.controller?._unbind();
     super.dispose();
   }
@@ -76,23 +85,24 @@ class _AppMapViewState extends State<AppMapView> {
   String get _styleUri {
     switch (_type) {
       case AppMapType.street:
-        return Theme.of(context).brightness == Brightness.dark
-            ? "mapbox://styles/mapbox/dark-v11"
-            : "mapbox://styles/mapbox/streets-v12";
+        return widget.followThemeForStreetStyle &&
+                Theme.of(context).brightness == Brightness.dark
+            ? 'mapbox://styles/mapbox/dark-v11'
+            : 'mapbox://styles/mapbox/streets-v12';
       case AppMapType.satellite:
-        return "mapbox://styles/mapbox/satellite-streets-v12";
+        return 'mapbox://styles/mapbox/satellite-streets-v12';
       case AppMapType.terrain:
-        return "mapbox://styles/mapbox/outdoors-v12";
+        return 'mapbox://styles/mapbox/outdoors-v12';
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Stack(
       children: [
         MapWidget(
-          // key theo style => đổi style sẽ reload đúng
-          key: ValueKey("app-map-$_styleUri"),
+          key: ValueKey('app-map-$_styleUri'),
           styleUri: _styleUri,
 
           // ✅ set camera ngay từ đầu để tránh flash "zoom trái đất"
@@ -102,27 +112,39 @@ class _AppMapViewState extends State<AppMapView> {
           mapOptions: MapOptions(
             pixelRatio: MediaQuery.of(context).devicePixelRatio,
           ),
-
           onMapCreated: (map) {
+            _mapGeneration++;
             _map = map;
             widget.onMapCreated(map);
           },
           onTapListener: widget.onTapListener,
-
           onStyleLoadedListener: (_) async {
-            final map = _map;
-            if (map == null) return;
+            try {
+              final map = _map;
+              final generation = _mapGeneration;
+              if (map == null) return;
+              if (!_isMapGenerationActive(generation, map)) return;
 
-            await hideMapOrnaments(map);
+              await hideMapOrnaments(map);
+              if (!_isMapGenerationActive(generation, map)) return;
 
-            // ✅ restore camera sau khi style load xong
-            if (_pendingCameraRestore != null) {
-              await map.setCamera(_pendingCameraRestore!);
-              _pendingCameraRestore = null;
+              // ✅ restore camera sau khi style load xong
+              if (_pendingCameraRestore != null) {
+                await map.setCamera(_pendingCameraRestore!);
+                if (!_isMapGenerationActive(generation, map)) return;
+                _pendingCameraRestore = null;
+              }
+
+              final cb = widget.onStyleLoaded;
+              if (cb != null && _isMapGenerationActive(generation, map)) {
+                await cb(map);
+              }
+            } catch (error) {
+              if (_isMapLifecycleError(error)) {
+                return;
+              }
+              rethrow;
             }
-
-            final cb = widget.onStyleLoaded;
-            if (cb != null) await cb(map);
           },
         ),
 
@@ -132,25 +154,29 @@ class _AppMapViewState extends State<AppMapView> {
             bottom: 120,
             child: FloatingActionButton(
               mini: true,
-              backgroundColor: Colors.white,
+              backgroundColor: locationPanelColor(scheme),
+              foregroundColor: scheme.primary,
               onPressed: _showMapSelector,
-              child: const Icon(Icons.layers, color: Colors.black),
+              child: const Icon(Icons.layers),
             ),
           ),
-
       ],
     );
   }
 
   Future<void> _showMapSelector() async {
-    showModalBottomSheet(
+    if (!mounted || _disposed) return;
+    final scheme = Theme.of(context).colorScheme;
+    await showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: locationPanelColor(scheme),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) {
+        final l10n = AppLocalizations.of(context);
+
         return SafeArea(
           top: false,
           child: Padding(
@@ -161,10 +187,10 @@ class _AppMapViewState extends State<AppMapView> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        "Loại bản đồ",
-                        style: TextStyle(
+                        l10n.mapTypeSheetTitle,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
@@ -186,17 +212,17 @@ class _AppMapViewState extends State<AppMapView> {
                   childAspectRatio: 0.92,
                   children: [
                     _mapTypeCard(
-                      title: "Mặc định",
+                      title: l10n.mapTypeDefault,
                       type: AppMapType.street,
                       preview: _previewDefault(),
                     ),
                     _mapTypeCard(
-                      title: "Vệ tinh",
+                      title: l10n.mapTypeSatellite,
                       type: AppMapType.satellite,
                       preview: _previewSatellite(),
                     ),
                     _mapTypeCard(
-                      title: "Địa hình",
+                      title: l10n.mapTypeTerrain,
                       type: AppMapType.terrain,
                       preview: _previewTerrain(),
                     ),
@@ -215,15 +241,18 @@ class _AppMapViewState extends State<AppMapView> {
     required AppMapType type,
     required Widget preview,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     final selected = _type == type;
 
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: () async {
+        if (!mounted || _disposed) return;
         // ✅ lưu camera hiện tại trước khi đổi style
         final map = _map;
         if (map != null) {
           final cs = await map.getCameraState();
+          if (!mounted || _disposed) return;
           _pendingCameraRestore = CameraOptions(
             center: cs.center,
             zoom: cs.zoom,
@@ -244,7 +273,9 @@ class _AppMapViewState extends State<AppMapView> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: selected ? const Color(0xFF1A73E8) : Colors.transparent,
+                color: selected
+                    ? scheme.primary
+                    : locationPanelBorderColor(scheme),
                 width: 2,
               ),
             ),
@@ -263,7 +294,7 @@ class _AppMapViewState extends State<AppMapView> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              color: selected ? const Color(0xFF1A73E8) : null,
+              color: selected ? scheme.primary : scheme.onSurface,
             ),
           ),
         ],
@@ -312,5 +343,19 @@ class _AppMapViewState extends State<AppMapView> {
       ),
       child: const Center(child: Icon(Icons.terrain_outlined)),
     );
+  }
+
+  bool _isMapGenerationActive(int generation, MapboxMap map) {
+    return mounted &&
+        !_disposed &&
+        generation == _mapGeneration &&
+        identical(_map, map);
+  }
+
+  bool _isMapLifecycleError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('mapboxcontroller was used after being disposed') ||
+        text.contains('unable to establish connection on channel') ||
+        text.contains('flutterjni was detached');
   }
 }

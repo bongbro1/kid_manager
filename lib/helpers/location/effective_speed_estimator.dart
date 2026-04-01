@@ -7,6 +7,8 @@ class EffectiveSpeedEstimator {
   static const double _minDeriveSeconds = 2.0;
   static const double _maxDeriveSeconds = 180.0;
   static const double _maxAccuracyForDerive = 50.0;
+  static const double _minAccuracyForNoiseEnvelope = 8.0;
+  static const double _noiseEnvelopeFactor = 1.25;
   static const double _minDerivedDistanceMeters = 3.0;
   static const double _maxReasonableDerivedMps = 45.0;
 
@@ -92,6 +94,15 @@ class EffectiveSpeedEstimator {
 
     final distanceMeters = from.distanceTo(to) * 1000.0;
     if (!distanceMeters.isFinite) return null;
+
+    // Indoor/school jitter often creates a fake segment whose displacement is
+    // still inside the combined accuracy envelope. Treat it as stationary
+    // instead of converting it into a derived walking speed.
+    if (worstAccuracy >= _minAccuracyForNoiseEnvelope &&
+        distanceMeters <= worstAccuracy * _noiseEnvelopeFactor) {
+      return 0.0;
+    }
+
     if (distanceMeters < _minDerivedDistanceMeters) {
       return 0.0;
     }

@@ -93,3 +93,12 @@ export type TripRecord = {
   stationarySinceAt?: number | null;
   hasStationaryAlertActive?: boolean | null;
 };
+
+export type SafeRouteCurrentTripSnapshotRecord = {
+  childId: string;
+  adultCurrentTrip: TripRecord | null;
+  adultRecentCompletedTrip: TripRecord | null;
+  adultCurrentTripVisibleUntil: number | null;
+  childMonitorTrip: TripRecord | null;
+  updatedAt: number;
+};

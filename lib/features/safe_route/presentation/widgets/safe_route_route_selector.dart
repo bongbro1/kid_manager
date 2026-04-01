@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class SafeRouteRouteSelector extends StatelessWidget {
   const SafeRouteRouteSelector({
@@ -24,13 +27,14 @@ class SafeRouteRouteSelector extends StatelessWidget {
     if (routes.isEmpty) {
       return const SizedBox.shrink();
     }
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       children: [
         for (var index = 0; index < routes.length; index++) ...[
           _RouteTile(
             route: routes[index],
-            highlightedLabel: _routeBadgeLabel(index, routes[index]),
+            highlightedLabel: _routeBadgeLabel(l10n, index, routes[index]),
             isPrimary: routes[index].id == selectedRoute?.id,
             isAlternative: selectedAlternativeRouteIds.contains(routes[index].id),
             canAddAlternative:
@@ -44,11 +48,11 @@ class SafeRouteRouteSelector extends StatelessWidget {
     );
   }
 
-  String _routeBadgeLabel(int index, SafeRoute route) {
-    if (index == 0) return 'An toàn nhất';
-    if (route.hazards.isEmpty) return 'Ít vùng nguy hiểm';
-    if (index == 1) return 'Nhanh hơn';
-    return 'Tuyến phụ';
+  String _routeBadgeLabel(AppLocalizations l10n, int index, SafeRoute route) {
+    if (index == 0) return l10n.safeRouteBadgeSafest;
+    if (route.hazards.isEmpty) return l10n.safeRouteBadgeFewerHazards;
+    if (index == 1) return l10n.safeRouteBadgeFaster;
+    return l10n.safeRouteBadgeAlternative;
   }
 }
 
@@ -73,19 +77,24 @@ class _RouteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final safetyScore = _buildSafetyScore(route);
     final roleLabel = isPrimary
-        ? 'Tuyến chính'
+        ? l10n.safeRouteRolePrimary
         : isAlternative
-            ? 'Tuyến phụ'
-            : null;
+        ? l10n.safeRouteRoleAlternative
+        : null;
 
     return Material(
       color: isPrimary
-          ? const Color(0xFFEDF4FF)
+          ? locationPanelHighlightColor(scheme)
           : isAlternative
-              ? const Color(0xFFF2FBF6)
-              : const Color(0xFFF8FAFC),
+          ? Color.alphaBlend(
+              Colors.green.withOpacity(0.08),
+              locationPanelMutedColor(scheme),
+            )
+          : locationPanelMutedColor(scheme),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onSelectPrimary,
@@ -97,10 +106,10 @@ class _RouteTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: isPrimary
-                  ? const Color(0xFFBFDBFE)
+                  ? locationPanelBorderColor(scheme)
                   : isAlternative
-                      ? const Color(0xFFBBF7D0)
-                      : const Color(0xFFE7EDF4),
+                  ? const Color(0xFFBBF7D0)
+                  : locationPanelBorderColor(scheme),
               width: isPrimary || isAlternative ? 1.4 : 1,
             ),
           ),
@@ -117,7 +126,7 @@ class _RouteTile extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              _durationLabel(route.durationSeconds),
+                              l10n.safeRouteDurationLabel(route.durationSeconds),
                               style: const TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w800,
@@ -126,11 +135,11 @@ class _RouteTile extends StatelessWidget {
                             const SizedBox(width: 8),
                             _LabelChip(
                               label: highlightedLabel,
-                              color: highlightedLabel == 'An toàn nhất'
+                              color: highlightedLabel == l10n.safeRouteBadgeSafest
                                   ? const Color(0xFF1A73E8)
-                                  : highlightedLabel == 'Nhanh hơn'
-                                      ? const Color(0xFFB45309)
-                                      : const Color(0xFF15803D),
+                                  : highlightedLabel == l10n.safeRouteBadgeFaster
+                                  ? const Color(0xFFB45309)
+                                  : const Color(0xFF15803D),
                             ),
                             if (roleLabel != null) ...[
                               const SizedBox(width: 6),
@@ -145,10 +154,10 @@ class _RouteTile extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${_distanceLabel(route.distanceMeters)} · ${_hazardsLabel(route.hazards.length)}',
-                          style: const TextStyle(
+                          '${l10n.safeRouteDistanceLabel(route.distanceMeters)} · ${l10n.safeRouteHazardCount(route.hazards.length)}',
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF627287),
+                            color: scheme.onSurfaceVariant,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -157,14 +166,16 @@ class _RouteTile extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: safetyScore >= 9
                           ? const Color(0xFFEAF8EF)
                           : safetyScore >= 8
-                              ? const Color(0xFFFFF3E4)
-                              : const Color(0xFFFFE9E9),
+                          ? const Color(0xFFFFF3E4)
+                          : const Color(0xFFFFE9E9),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -175,8 +186,8 @@ class _RouteTile extends StatelessWidget {
                         color: safetyScore >= 9
                             ? const Color(0xFF15803D)
                             : safetyScore >= 8
-                                ? const Color(0xFFB45309)
-                                : const Color(0xFFB91C1C),
+                            ? const Color(0xFFB45309)
+                            : const Color(0xFFB91C1C),
                       ),
                     ),
                   ),
@@ -188,24 +199,26 @@ class _RouteTile extends StatelessWidget {
                   Expanded(
                     child: _MetaPill(
                       icon: Icons.shield_outlined,
-                      label: '${route.corridorWidthMeters.round()} m corridor',
+                      label: l10n.safeRouteCorridorLabel(
+                        route.corridorWidthMeters.round(),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _MetaPill(
                       icon: Icons.warning_amber_rounded,
-                      label: _hazardsLabel(route.hazards.length),
+                      label: l10n.safeRouteHazardCount(route.hazards.length),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
               Text(
-                _routeDescription(route),
-                style: const TextStyle(
+                _routeDescription(l10n, route),
+                style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF526074),
+                  color: scheme.onSurfaceVariant,
                   height: 1.35,
                 ),
               ),
@@ -214,7 +227,9 @@ class _RouteTile extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _RouteActionButton(
-                      label: isPrimary ? 'Đang là tuyến chính' : 'Đặt làm tuyến chính',
+                      label: isPrimary
+                          ? l10n.safeRouteActionPrimarySelected
+                          : l10n.safeRouteActionSetPrimary,
                       icon: isPrimary
                           ? Icons.check_circle_rounded
                           : Icons.flag_rounded,
@@ -233,10 +248,10 @@ class _RouteTile extends StatelessWidget {
                   Expanded(
                     child: _RouteActionButton(
                       label: isAlternative
-                          ? 'Bỏ tuyến phụ'
+                          ? l10n.safeRouteActionRemoveAlternative
                           : canAddAlternative
-                              ? 'Chọn tuyến phụ'
-                              : 'Đã đủ tuyến phụ',
+                          ? l10n.safeRouteActionSelectAlternative
+                          : l10n.safeRouteActionAlternativeLimitReached,
                       icon: isAlternative
                           ? Icons.remove_circle_outline_rounded
                           : Icons.alt_route_rounded,
@@ -280,36 +295,14 @@ class _RouteTile extends StatelessWidget {
     return score.clamp(6.5, 9.8).toDouble();
   }
 
-  String _routeDescription(SafeRoute route) {
+  String _routeDescription(AppLocalizations l10n, SafeRoute route) {
     if (route.hazards.isEmpty) {
-      return 'Tuyến khá ổn định, gần như không đi vào vùng nguy hiểm.';
+      return l10n.safeRouteRouteDescriptionStable;
     }
     if (route.hazards.length == 1) {
-      return 'Có 1 điểm cần lưu ý nhưng vẫn phù hợp để theo dõi an toàn.';
+      return l10n.safeRouteRouteDescriptionOneHazard;
     }
-    return 'Tuyến đi nhanh hơn nhưng cần chú ý vì có nhiều vùng cảnh báo hơn.';
-  }
-
-  String _distanceLabel(double distanceMeters) {
-    if (distanceMeters >= 1000) {
-      return '${(distanceMeters / 1000).toStringAsFixed(1)} km';
-    }
-    return '${distanceMeters.round()} m';
-  }
-
-  String _durationLabel(double durationSeconds) {
-    final minutes = (durationSeconds / 60).round();
-    if (minutes < 60) return '$minutes phút';
-    final hours = minutes ~/ 60;
-    final remainMinutes = minutes % 60;
-    if (remainMinutes == 0) return '$hours giờ';
-    return '$hours giờ $remainMinutes phút';
-  }
-
-  String _hazardsLabel(int count) {
-    if (count == 0) return '0 vùng nguy hiểm';
-    if (count == 1) return '1 vùng nguy hiểm';
-    return '$count vùng nguy hiểm';
+    return l10n.safeRouteRouteDescriptionMoreHazards;
   }
 }
 
@@ -353,26 +346,27 @@ class _MetaPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: locationPanelColor(scheme),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF1A73E8)),
+          Icon(icon, size: 14, color: scheme.primary),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF526074),
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),

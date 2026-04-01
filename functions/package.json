@@ -7,6 +7,7 @@
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
+    "test:user-auth": "npm run build && node --test --test-isolation=none test/user_auth.test.cjs",
     "deploy": "firebase deploy --only functions",
     "deploy:birthday": "firebase deploy --only functions:mirrorUserToFamilyMembers,functions:syncFamilyMemberPublicData --project kidmanager-b4a8f",
     "deploy:birthday-notifications": "firebase deploy --only functions:sendBirthdayNotifications --project kidmanager-b4a8f",

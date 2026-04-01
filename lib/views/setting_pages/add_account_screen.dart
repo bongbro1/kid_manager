@@ -4,9 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
+import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
+import 'package:kid_manager/services/location/device_time_zone_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
@@ -26,22 +29,13 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final _passwordCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
 
-  String role = "child";
+  UserRole role = UserRole.child;
   bool hidePassword = true;
 
   final String localeString =
       WidgetsBinding.instance.platformDispatcher.locale.countryCode == null
       ? WidgetsBinding.instance.platformDispatcher.locale.languageCode
       : '${WidgetsBinding.instance.platformDispatcher.locale.languageCode}_${WidgetsBinding.instance.platformDispatcher.locale.countryCode}';
-
-  final String timezone = DateTime.now().timeZoneName.isNotEmpty
-      ? DateTime.now().timeZoneName
-      : 'Asia/Ho_Chi_Minh';
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -58,7 +52,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
   Future<void> pickDate() async {
     final now = DateTime.now();
-    DateTime initial = DateTime(now.year - 10, now.month, now.day);
+    var initial = DateTime(now.year - 10, now.month, now.day);
 
     final parsed = _parseDate(_dobCtrl.text);
     if (parsed != null) {
@@ -71,7 +65,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     );
 
     if (date != null) {
-      _dobCtrl.text = "${date.day}/${date.month}/${date.year}";
+      _dobCtrl.text = '${date.day}/${date.month}/${date.year}';
     }
   }
 
@@ -79,7 +73,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     try {
       if (text.isEmpty) return null;
 
-      final parts = text.split("/");
+      final parts = text.split('/');
       if (parts.length != 3) return null;
 
       final day = int.tryParse(parts[0]);
@@ -98,14 +92,12 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   // ROLE CHIP
   // -------------------------
 
-  Widget roleChip(String value, String label) {
+  Widget roleChip(UserRole value, String label) {
     return ChoiceChip(
       label: Text(label),
       selected: role == value,
       onSelected: (_) {
-        setState(() {
-          role = value;
-        });
+        setState(() => role = value);
       },
     );
   }
@@ -116,23 +108,32 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
   Future<void> _onAddAccount() async {
     final l10n = AppLocalizations.of(context);
+    final actor = context.read<UserVm>().actorSnapshot;
+    if (actor == null ||
+        !context.read<AccessControlService>().canAddManagedAccounts(
+          actor: actor,
+        )) {
+      AlertService.showSnack(l10n.firestorePermissionDenied, isError: true);
+      return;
+    }
+
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
     final dobText = _dobCtrl.text;
 
     if (name.isEmpty) {
-      AlertService.showSnack('Vui lòng nhập tên', isError: true);
+      AlertService.showSnack(l10n.addAccountNameRequired, isError: true);
       return;
     }
 
     if (!Validators.isValidEmail(email)) {
-      AlertService.showSnack('Email không hợp lệ', isError: true);
+      AlertService.showSnack(l10n.emailInvalid, isError: true);
       return;
     }
 
     if (password.length < 6) {
-      AlertService.showSnack('Mật khẩu phải ít nhất 6 ký tự', isError: true);
+      AlertService.showSnack(l10n.weakPassword, isError: true);
       return;
     }
 
@@ -141,11 +142,12 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     try {
       dob = DateFormat('dd/MM/yyyy').parseStrict(dobText);
     } catch (_) {
-      AlertService.showSnack('Ngày sinh không hợp lệ', isError: true);
+      AlertService.showSnack(l10n.invalidBirthDate, isError: true);
       return;
     }
 
     final vm = context.read<UserVm>();
+    final timezone = await DeviceTimeZoneService.instance.getDeviceTimeZone();
 
     try {
       await vm.addChildAccount(
@@ -181,11 +183,45 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final vm = context.watch<UserVm>();
+    final actor = context.select<UserVm, AppUser?>((value) => value.actorSnapshot);
+    final canAddAccount = actor != null &&
+        context.read<AccessControlService>().canAddManagedAccounts(actor: actor);
+
+    if (!canAddAccount) {
+      return Scaffold(
+        backgroundColor: scheme.background,
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: scheme.surface,
+          centerTitle: true,
+          title: Text(
+            l10n.addAccountTitle,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+          iconTheme: IconThemeData(color: scheme.onSurface),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              l10n.firestorePermissionDenied,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Stack(
       children: [
         Scaffold(
           backgroundColor: scheme.background,
-
           appBar: AppBar(
             elevation: 0,
             backgroundColor: scheme.surface,
@@ -199,7 +235,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             ),
             iconTheme: IconThemeData(color: scheme.onSurface),
           ),
-
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -224,17 +259,13 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         hint: l10n.fullNameHint,
                         controller: _nameCtrl,
                       ),
-
                       const SizedBox(height: 16),
-
                       AppLabeledTextField(
                         label: l10n.authEmailLabel,
                         hint: l10n.authEnterEmailHint,
                         controller: _emailCtrl,
                       ),
-
                       const SizedBox(height: 16),
-
                       AppLabeledTextField(
                         label: l10n.authPasswordLabel,
                         hint: l10n.authEnterPasswordHint,
@@ -250,15 +281,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                             size: 18,
                           ),
                           onPressed: () {
-                            setState(() {
-                              hidePassword = !hidePassword;
-                            });
+                            setState(() => hidePassword = !hidePassword);
                           },
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       AppLabeledTextField(
                         label: l10n.birthDateLabel,
                         hint: l10n.birthDateHint,
@@ -267,31 +294,30 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         onTap: pickDate,
                         suffixIcon: const Icon(Icons.calendar_today, size: 18),
                       ),
-
                       const SizedBox(height: 20),
 
                       /// ROLE
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          "Quyền truy cập",
+                          l10n.addAccountAccessLabel,
                           style: Theme.of(context).textTheme.labelMedium,
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       Wrap(
                         spacing: 10,
                         children: [
-                          roleChip("child", "Con"),
-                          roleChip("guardian", "Phụ huynh"),
+                          roleChip(UserRole.child, l10n.addAccountRoleChild),
+                          roleChip(
+                            UserRole.guardian,
+                            l10n.addAccountRoleGuardian,
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
 
                 /// BUTTON
@@ -319,8 +345,172 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             ),
           ),
         ),
-        if (vm.loading) LoadingOverlay(),
+        if (vm.loading) const LoadingOverlay(),
       ],
+    );
+  }
+}
+
+class _WheelDatePicker extends StatefulWidget {
+  final DateTime initialDate;
+
+  const _WheelDatePicker({required this.initialDate});
+
+  @override
+  State<_WheelDatePicker> createState() => _WheelDatePickerState();
+}
+
+class _WheelDatePickerState extends State<_WheelDatePicker> {
+  late int day;
+  late int month;
+  late int year;
+
+  @override
+  void initState() {
+    super.initState();
+
+    day = widget.initialDate.day;
+    month = widget.initialDate.month;
+    year = widget.initialDate.year;
+  }
+
+  final List<int> years = List.generate(60, (i) => 1970 + i);
+
+  int daysInMonth(int year, int month) {
+    final date = DateTime(year, month + 1, 0);
+    return date.day;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final maxDay = daysInMonth(year, month);
+
+    return Container(
+      height: 320,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          /// handle
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: scheme.outlineVariant,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          Text(
+            l10n.addAccountSelectBirthDateTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: Row(
+              children: [
+                /// DAY
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    scrollController: FixedExtentScrollController(
+                      initialItem: day - 1,
+                    ),
+                    onSelectedItemChanged: (i) {
+                      setState(() {
+                        day = i + 1;
+                      });
+                    },
+                    children: List.generate(
+                      maxDay,
+                      (i) => Center(child: Text('${i + 1}')),
+                    ),
+                  ),
+                ),
+
+                /// MONTH
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    scrollController: FixedExtentScrollController(
+                      initialItem: month - 1,
+                    ),
+                    onSelectedItemChanged: (i) {
+                      setState(() {
+                        month = i + 1;
+
+                        if (day > daysInMonth(year, month)) {
+                          day = daysInMonth(year, month);
+                        }
+                      });
+                    },
+                    children: List.generate(
+                      12,
+                      (i) => Center(child: Text('${i + 1}')),
+                    ),
+                  ),
+                ),
+
+                /// YEAR
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    scrollController: FixedExtentScrollController(
+                      initialItem: years.indexOf(year),
+                    ),
+                    onSelectedItemChanged: (i) {
+                      setState(() {
+                        year = years[i];
+
+                        if (day > daysInMonth(year, month)) {
+                          day = daysInMonth(year, month);
+                        }
+                      });
+                    },
+                    children: years
+                        .map((value) => Center(child: Text('$value')))
+                        .toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: FilledButton(
+              onPressed: () {
+                Navigator.pop(context, DateTime(year, month, day));
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                l10n.addAccountSelectButton,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: scheme.onPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

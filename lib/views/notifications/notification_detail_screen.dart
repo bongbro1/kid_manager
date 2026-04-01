@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/core/location/map_focus_bus.dart';
 import 'package:kid_manager/features/safe_route/presentation/pages/tracking_page.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_access.dart';
 import 'package:kid_manager/helpers/phone/phone_helps.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
+import 'package:kid_manager/repositories/user/profile_repository.dart';
 import 'package:kid_manager/services/notifications/tracking_notification_style.dart';
 import 'package:kid_manager/services/notifications/zone_i18n.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -152,10 +156,32 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     if (isDanger && !isEnter) return Icons.verified_rounded;
     return Icons.location_on_outlined;
   }
+  SafeRouteAccessResult? _resolveKnownSafeRouteAccess(String childId) {
+    final userVm = context.read<UserVm>();
+    final actor = userVm.me;
+    if (actor == null) {
+      return null;
+    }
 
+    for (final member in <AppUser>[
+      ...userVm.locationMembers,
+      ...userVm.children,
+      ...userVm.familyMembers,
+    ]) {
+      if (member.uid != childId) {
+        continue;
+      }
 
-  void _handleZoneViewMap(NotificationDetailModel detail) {
-    _openZoneOnMainMap(detail);
+      return evaluateSafeRouteAccess(
+        accessControl: context.read<AccessControlService>(),
+        actor: actor,
+        child: member,
+        requireManageChild: true,
+        requireViewLocation: true,
+      );
+    }
+
+    return null;
   }
 
   Future<void> _handleOpenSafeRouteTracking(NotificationDetailModel detail) async {
@@ -166,9 +192,30 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     if (childId.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Không tìm thấy thông tin hành trình của bé'),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).notificationTrackingDetailNotFound,
+          ),
         ),
+      );
+      return;
+    }
+
+    final access = await loadSafeRouteAccess(
+      childId: childId,
+      profileRepository: context.read<ProfileRepository>(),
+      accessControl: context.read<AccessControlService>(),
+      requireManageChild: true,
+      requireViewLocation: true,
+    );
+    if (!access.isAllowed) {
+      if (!mounted) return;
+      final issue = access.issue;
+      final message = issue == null
+          ? AppLocalizations.of(context).safeRouteErrorLoginAgain
+          : resolveSafeRouteAccessMessage(AppLocalizations.of(context), issue);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
       );
       return;
     }
@@ -199,9 +246,13 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
 
     try {
       final userVm = context.read<UserVm>();
-      for (final child in userVm.children) {
-        if (child.uid == childId) {
-          final avatarUrl = child.avatarUrl?.trim() ?? '';
+      for (final member in <dynamic>[
+        ...userVm.locationMembers,
+        ...userVm.children,
+        ...userVm.familyMembers,
+      ]) {
+        if (member.uid == childId) {
+          final avatarUrl = member.avatarUrl?.trim() ?? '';
           return avatarUrl.isEmpty ? null : avatarUrl;
         }
       }
@@ -266,6 +317,14 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<NotificationVM>();
     final detail = vm.notificationDetail;
+    final knownSafeRouteAccess = detail == null ||
+            detail.notificationType != NotificationType.tracking
+        ? null
+        : _resolveKnownSafeRouteAccess(
+            (detail.data['childUid'] ?? detail.data['childId'] ?? '')
+                .toString()
+                .trim(),
+          );
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
@@ -328,7 +387,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                             height: 1.3,
-                            fontSize: 20
+                            fontSize: 20,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -402,14 +461,16 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                           detail: detail,
                           onZoneViewMap:
                               detail.notificationType == NotificationType.zone
-                              ? () => _openZoneOnMainMap(detail)
-                              : null,
+                                  ? () => _openZoneOnMainMap(detail)
+                                  : null,
                           onZonePhone:
                               detail.notificationType == NotificationType.zone
-                              ? () => _handleZonePhone(detail)
-                              : null,
+                                  ? () => _handleZonePhone(detail)
+                                  : null,
                           onOpenSafeRouteTracking:
-                              detail.notificationType == NotificationType.tracking
+                              detail.notificationType == NotificationType.tracking &&
+                                      (knownSafeRouteAccess == null ||
+                                          knownSafeRouteAccess.isAllowed)
                                   ? () => _handleOpenSafeRouteTracking(detail)
                                   : null,
                         ),

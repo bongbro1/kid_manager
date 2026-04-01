@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
@@ -21,16 +22,6 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
     data: detail.data,
   );
 
-  String get _childName =>
-      (_data['childName'] ?? _data['displayName'] ?? _data['name'] ?? 'Bé')
-          .toString()
-          .trim();
-
-  String get _routeName =>
-      (_data['routeName'] ?? _data['routeTitle'] ?? 'Tuyến an toàn')
-          .toString()
-          .trim();
-
   String get _hazardName => (_data['hazardName'] ?? '').toString().trim();
 
   String get _childUid =>
@@ -51,12 +42,15 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
       data: detail.data,
       fallback: detail.notificationType.style,
     );
+    final childName = _childName(l10n);
+    final routeName = _routeName(l10n);
+    final unknownValue = l10n.notificationTrackingUnknownValue;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StatusPill(
-          label: _statusLabel(),
+          label: _statusLabel(l10n),
           icon: style.icon,
           foreground: style.iconColor,
           background: style.bgColor,
@@ -64,7 +58,7 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          _headline(),
+          _headline(l10n),
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
@@ -74,9 +68,7 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          detail.content.trim().isNotEmpty
-              ? detail.content.trim()
-              : _fallbackBody(),
+          detail.content.trim().isNotEmpty ? detail.content.trim() : _fallbackBody(l10n),
           style: const TextStyle(
             fontSize: 14.5,
             height: 1.6,
@@ -97,28 +89,28 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
             children: [
               _InfoRow(
                 icon: Icons.child_care_rounded,
-                label: 'Bé',
-                value: _childName.isEmpty ? 'Không rõ' : _childName,
+                label: l10n.notificationTrackingChildLabel,
+                value: childName.isEmpty ? unknownValue : childName,
               ),
               const SizedBox(height: 12),
               _InfoRow(
                 icon: Icons.route_rounded,
-                label: 'Tuyến đường',
-                value: _routeName.isEmpty ? 'Tuyến an toàn' : _routeName,
+                label: l10n.notificationTrackingRouteLabel,
+                value: routeName.isEmpty ? l10n.safeRouteSelectedRouteFallbackName : routeName,
               ),
               if (_distanceFromRouteMeters != null) ...[
                 const SizedBox(height: 12),
                 _InfoRow(
                   icon: Icons.alt_route_rounded,
-                  label: 'Khoảng cách tới tuyến',
-                  value: _distanceLabel(_distanceFromRouteMeters!),
+                  label: l10n.notificationTrackingDistanceToRouteLabel,
+                  value: l10n.safeRouteDistanceLabel(_distanceFromRouteMeters!),
                 ),
               ],
               if (_hazardName.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 _InfoRow(
                   icon: Icons.warning_amber_rounded,
-                  label: 'Vùng nguy hiểm',
+                  label: l10n.notificationTrackingHazardLabel,
                   value: _hazardName,
                 ),
               ],
@@ -127,14 +119,16 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
                 const SizedBox(height: 12),
                 _InfoRow(
                   icon: Icons.pause_circle_rounded,
-                  label: 'Đứng yên',
-                  value: '${_stationaryDurationMinutes!} phút',
+                  label: l10n.notificationTrackingStationaryLabel,
+                  value: l10n.parentStatsDurationMinutes(
+                    _stationaryDurationMinutes!,
+                  ),
                 ),
               ],
               const SizedBox(height: 12),
               _InfoRow(
                 icon: Icons.access_time_rounded,
-                label: 'Thời điểm',
+                label: l10n.notificationTrackingTimeLabel,
                 value: detail.formatTimeDisplay(l10n),
               ),
             ],
@@ -149,15 +143,15 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: const Color(0xFFBFDBFE)),
           ),
-          child: const Row(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.map_rounded, color: Color(0xFF1D4ED8), size: 18),
-              SizedBox(width: 10),
+              const Icon(Icons.map_rounded, color: Color(0xFF1D4ED8), size: 18),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Mở trang theo dõi để xem vị trí hiện tại của bé, tuyến đang bám và toàn bộ trạng thái hành trình trên bản đồ.',
-                  style: TextStyle(
+                  l10n.notificationTrackingOpenHint,
+                  style: const TextStyle(
                     fontSize: 13,
                     height: 1.5,
                     color: Color(0xFF1E3A8A),
@@ -174,9 +168,9 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
           child: ElevatedButton.icon(
             onPressed: _childUid.isEmpty ? null : onOpenTracking,
             icon: const Icon(Icons.navigation_rounded, size: 18),
-            label: const Text(
-              'Mở theo dõi hành trình',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            label: Text(
+              l10n.notificationTrackingOpenButton,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
             ),
             style: ElevatedButton.styleFrom(
               elevation: 0,
@@ -194,70 +188,85 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
     );
   }
 
-  String _statusLabel() {
+  String _childName(AppLocalizations l10n) {
+    return (_data['childName'] ??
+            _data['displayName'] ??
+            _data['name'] ??
+            l10n.notificationChildFallback)
+        .toString()
+        .trim();
+  }
+
+  String _routeName(AppLocalizations l10n) {
+    return (_data['routeName'] ??
+            _data['routeTitle'] ??
+            l10n.safeRouteSelectedRouteFallbackName)
+        .toString()
+        .trim();
+  }
+
+  String _statusLabel(AppLocalizations l10n) {
     switch (_status) {
       case 'safe_route_deviated':
-        return 'Lệch tuyến';
+        return l10n.notificationTrackingStatusOffRoute;
       case 'safe_route_back_on_route':
-        return 'Quay lại tuyến';
+        return l10n.notificationTrackingStatusBackOnRoute;
       case 'safe_route_returned_to_start':
-        return 'Về điểm đầu';
+        return l10n.notificationTrackingStatusReturnedToStart;
       case 'safe_route_stationary':
-        return 'Đứng yên quá lâu';
+        return l10n.notificationTrackingStatusStationary;
       case 'safe_route_arrived':
-        return 'Đã đến nơi';
+        return l10n.notificationTrackingStatusArrived;
       case 'safe_route_danger_zone':
-        return 'Nguy hiểm';
+        return l10n.notificationTrackingStatusDanger;
       default:
-        return 'Safe Route';
+        return l10n.notificationTrackingStatusDefault;
     }
   }
 
-  String _headline() {
+  String _headline(AppLocalizations l10n) {
     switch (_status) {
       case 'safe_route_deviated':
-        return 'Bé đang đi lệch khỏi tuyến đã chọn';
+        return l10n.notificationTrackingHeadlineOffRoute;
       case 'safe_route_back_on_route':
-        return 'Bé đã quay lại tuyến an toàn';
+        return l10n.notificationTrackingHeadlineBackOnRoute;
       case 'safe_route_returned_to_start':
-        return 'Bé đang quay lại gần điểm xuất phát';
+        return l10n.notificationTrackingHeadlineReturnedToStart;
       case 'safe_route_stationary':
-        return 'Bé đang đứng yên lâu hơn bình thường';
+        return l10n.notificationTrackingHeadlineStationary;
       case 'safe_route_arrived':
-        return 'Bé đã đến nơi an toàn';
+        return l10n.notificationTrackingHeadlineArrived;
       case 'safe_route_danger_zone':
-        return 'Bé đang đi vào vùng nguy hiểm';
+        return l10n.notificationTrackingHeadlineDanger;
       default:
         return detail.title;
     }
   }
 
-  String _fallbackBody() {
+  String _fallbackBody(AppLocalizations l10n) {
+    final routeName = _routeName(l10n);
+
     switch (_status) {
       case 'safe_route_deviated':
-        return 'Hệ thống phát hiện bé đã ra ngoài hành lang an toàn của tuyến $_routeName.';
+        return l10n.notificationTrackingFallbackOffRoute(routeName);
       case 'safe_route_back_on_route':
-        return 'Hệ thống ghi nhận bé đã quay lại hành lang an toàn của tuyến $_routeName.';
+        return l10n.notificationTrackingFallbackBackOnRoute(routeName);
       case 'safe_route_returned_to_start':
-        return 'Bé đang quay lại gần vị trí xuất phát của tuyến $_routeName.';
+        return l10n.notificationTrackingFallbackReturnedToStart(routeName);
       case 'safe_route_stationary':
-        return 'Bé đã đứng gần cùng một vị trí quá lâu khi đang đi trên $_routeName.';
+        return l10n.notificationTrackingFallbackStationary(routeName);
       case 'safe_route_arrived':
-        return 'Bé đã đến điểm đích của $_routeName.';
+        return l10n.notificationTrackingFallbackArrived(routeName);
       case 'safe_route_danger_zone':
         return _hazardName.isEmpty
-            ? 'Bé đã đi vào một vùng nguy hiểm trên hành trình hiện tại.'
-            : 'Bé đã đi vào $_hazardName khi đang theo tuyến $_routeName.';
+            ? l10n.notificationTrackingFallbackDangerGeneric
+            : l10n.notificationTrackingFallbackDangerWithHazard(
+                _hazardName,
+                routeName,
+              );
       default:
         return detail.content;
     }
-  }
-
-  String _distanceLabel(double meters) {
-    if (meters >= 1000) {
-      return '${(meters / 1000).toStringAsFixed(1)} km';
-    }
-    return '${meters.round()} m';
   }
 }
 

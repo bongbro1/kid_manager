@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 
 class ScheduleImportDetailWidget extends StatelessWidget {
   final NotificationDetailModel detail;
@@ -16,25 +17,39 @@ class ScheduleImportDetailWidget extends StatelessWidget {
         .toString()
         .trim();
     final importCount = (data['importCount'] ?? '').toString().trim();
-    final actorRole = (data['actorRole'] ?? '').toString().toLowerCase();
-    final actorChildName = (data['actorChildName'] ?? '').toString().trim();
+    final actorRole = tryParseUserRole(data['actorRole']);
+    final actorDisplayName =
+        ((data['actorDisplayName'] ?? data['actorChildName']) ?? '')
+            .toString()
+            .trim();
 
-    final actorText = actorRole == 'parent'
-        ? l10n.notificationsActorParent
-        : (actorChildName.isEmpty
-              ? l10n.notificationsActorChild
-              : actorChildName);
+    final actorText = switch (actorRole) {
+      UserRole.parent => l10n.notificationsActorParent,
+      UserRole.guardian =>
+        actorDisplayName.isEmpty
+            ? l10n.notificationsActorParent
+            : actorDisplayName,
+      UserRole.child =>
+        actorDisplayName.isEmpty
+            ? l10n.notificationsActorChild
+            : actorDisplayName,
+      null => actorDisplayName.isEmpty
+          ? l10n.notificationsActorChild
+          : actorDisplayName,
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _infoTile(
+          context: context,
           icon: Icons.person_outline_rounded,
           label: l10n.notificationsImportOperatorLabel,
           value: actorText,
         ),
         const SizedBox(height: 14),
         _infoTile(
+          context: context,
           icon: Icons.child_care_rounded,
           label: l10n.notificationsChildLabel,
           value: childName.isEmpty
@@ -43,6 +58,7 @@ class ScheduleImportDetailWidget extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         _infoTile(
+          context: context,
           icon: Icons.playlist_add_check_circle_rounded,
           label: l10n.notificationsImportAddedCountLabel,
           value: importCount.isEmpty ? '0' : importCount,
@@ -52,10 +68,15 @@ class ScheduleImportDetailWidget extends StatelessWidget {
   }
 
   Widget _infoTile({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required String value,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -63,10 +84,14 @@ class ScheduleImportDetailWidget extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, size: 18, color: const Color(0xFF475569)),
+          child: Icon(
+            icon,
+            size: 18,
+            color: colorScheme.onSurface.withOpacity(0.7),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -75,8 +100,8 @@ class ScheduleImportDetailWidget extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurface.withOpacity(0.65),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -84,8 +109,8 @@ class ScheduleImportDetailWidget extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   height: 1.35,

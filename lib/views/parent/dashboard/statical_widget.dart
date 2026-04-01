@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:table_calendar/table_calendar.dart';
 class BarWidget extends StatelessWidget {
@@ -105,7 +106,7 @@ class TooltipWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
-          formatMinutes(value),
+          formatMinutes(value, l10n: AppLocalizations.of(context)),
           style: textTheme.labelSmall?.copyWith(
             fontSize: 10,
             fontWeight: FontWeight.w600,

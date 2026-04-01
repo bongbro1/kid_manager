@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/location/effective_speed_estimator.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
 
@@ -60,6 +61,7 @@ class LocationHistoryPresenter {
   }
 
   static ({String title, String subtitle}) buildPointSummary({
+    required AppLocalizations l10n,
     required List<LocationData> history,
     required LocationData point,
     required Duration stopDuration,
@@ -89,45 +91,51 @@ class LocationHistoryPresenter {
 
     if (gpsVeryBad) {
       return (
-        title: 'Mất GPS định vị',
-        subtitle: 'Tín hiệu GPS rất yếu, vị trí có thể không chính xác',
+        title: l10n.childLocationGpsLostTitle,
+        subtitle: l10n.childLocationGpsVeryWeakSubtitle,
       );
     }
     if (gpsLost) {
       return (
-        title: 'Mất GPS định vị',
-        subtitle: 'Sai số lớn hơn ${point.accuracy.toStringAsFixed(0)} m',
+        title: l10n.childLocationGpsLostTitle,
+        subtitle: l10n.childLocationGpsLostSubtitle(
+          point.accuracy.toStringAsFixed(0),
+        ),
       );
     }
     if (isStoppedLongEnough) {
       if (isEnd && isToday) {
         return (
-          title: 'Đang đứng yên',
-          subtitle: 'Dừng tại đây ${formatDuration(stopDuration)}',
+          title: l10n.childLocationStoppedNowTitle,
+          subtitle: l10n.childLocationStoppedNowSubtitle(
+            formatDuration(l10n, stopDuration),
+          ),
         );
       }
       return (
-        title: 'Đang đứng yên tại đây',
-        subtitle: 'Dừng khoảng ${formatDuration(stopDuration)}',
+        title: l10n.childLocationStoppedHereTitle,
+        subtitle: l10n.childLocationStoppedHereSubtitle(
+          formatDuration(l10n, stopDuration),
+        ),
       );
     }
     if (isStart) {
       return (
-        title: transportHeadline(effectiveTransport),
-        subtitle: 'Điểm bắt đầu hành trình',
+        title: transportHeadline(l10n, effectiveTransport),
+        subtitle: l10n.childLocationJourneyStartSubtitle,
       );
     }
     if (isEnd) {
       return (
-        title: transportHeadline(effectiveTransport),
+        title: transportHeadline(l10n, effectiveTransport),
         subtitle: isToday
-            ? 'Cập nhật lúc ${point.timeLabel}'
-            : 'Điểm kết thúc hành trình',
+            ? l10n.childLocationUpdatedAt(point.timeLabel)
+            : l10n.childLocationJourneyEndSubtitle,
       );
     }
     return (
-      title: transportHeadline(effectiveTransport),
-      subtitle: 'Đi qua điểm này lúc ${point.timeLabel}',
+      title: transportHeadline(l10n, effectiveTransport),
+      subtitle: l10n.childLocationPassedAt(point.timeLabel),
     );
   }
 
@@ -148,38 +156,45 @@ class LocationHistoryPresenter {
     return _resolveEffectiveTransportAt(history, resolvedIndex);
   }
 
-  static String transportHeadline(TransportMode transport) {
+  static String transportHeadline(
+    AppLocalizations l10n,
+    TransportMode transport,
+  ) {
     switch (transport) {
       case TransportMode.walking:
-        return 'Đang đi bộ';
+        return l10n.childLocationHeadlineWalking;
       case TransportMode.bicycle:
-        return 'Đang đi xe đạp';
+        return l10n.childLocationHeadlineBicycle;
       case TransportMode.vehicle:
-        return 'Đang đi xe';
+        return l10n.childLocationHeadlineVehicle;
       case TransportMode.still:
-        return 'Đang đứng yên';
+        return l10n.childLocationHeadlineStill;
       default:
-        return 'Không rõ trạng thái';
+        return l10n.childLocationHeadlineUnknown;
     }
   }
 
-  static String speedLabel(List<LocationData> history, LocationData point) {
+  static String speedLabel(
+    AppLocalizations l10n,
+    List<LocationData> history,
+    LocationData point,
+  ) {
     final index = history.indexWhere(
       (entry) => entry.timestamp == point.timestamp,
     );
     final kmh = index == -1
         ? point.speedKmh
         : resolveEffectiveSpeedKmh(history, index);
-    if (kmh <= 1) return 'Gần như không di chuyển';
+    if (kmh <= 1) return l10n.childLocationSpeedAlmostStill;
     return '${kmh.toStringAsFixed(1)} km/h';
   }
 
-  static String accuracyLabel(LocationData point) {
+  static String accuracyLabel(AppLocalizations l10n, LocationData point) {
     final acc = point.accuracy.toStringAsFixed(0);
-    if (point.accuracy > 80) return 'Mất GPS nghiêm trọng';
-    if (point.accuracy > 30) return 'Mất GPS định vị';
-    if (point.accuracy <= 15) return 'Khá chính xác ($acc m)';
-    return 'Chính xác vừa ($acc m)';
+    if (point.accuracy > 80) return l10n.childLocationAccuracySevere;
+    if (point.accuracy > 30) return l10n.childLocationAccuracyLost;
+    if (point.accuracy <= 15) return l10n.childLocationAccuracyGood(acc);
+    return l10n.childLocationAccuracyModerate(acc);
   }
 
   static Color transportColor(TransportMode transport) {
@@ -197,18 +212,21 @@ class LocationHistoryPresenter {
     }
   }
 
-  static String transportLabel(TransportMode transport) {
+  static String transportLabel(
+    AppLocalizations l10n,
+    TransportMode transport,
+  ) {
     switch (transport) {
       case TransportMode.walking:
-        return 'Đi bộ';
+        return l10n.childLocationTransportWalking;
       case TransportMode.bicycle:
-        return 'Xe đạp';
+        return l10n.childLocationTransportBicycle;
       case TransportMode.vehicle:
-        return 'Đang đi xe';
+        return l10n.childLocationTransportVehicle;
       case TransportMode.still:
-        return 'Đang đứng yên';
+        return l10n.childLocationTransportStill;
       default:
-        return 'Không rõ';
+        return l10n.childLocationTransportUnknown;
     }
   }
 
@@ -227,14 +245,16 @@ class LocationHistoryPresenter {
     }
   }
 
-  static String formatDuration(Duration duration) {
-    if (duration.inSeconds <= 0) return '0 phút';
+  static String formatDuration(AppLocalizations l10n, Duration duration) {
+    if (duration.inSeconds <= 0) return l10n.childLocationDurationZeroMinutes;
     final hours = duration.inHours;
     final minutes = duration.inMinutes % 60;
     final seconds = duration.inSeconds % 60;
-    if (hours > 0) return '$hours giờ $minutes phút';
-    if (minutes > 0) return '$minutes phút';
-    return '$seconds giây';
+    if (hours > 0) {
+      return l10n.childLocationDurationHoursMinutes(hours, minutes);
+    }
+    if (minutes > 0) return l10n.childLocationDurationMinutes(minutes);
+    return l10n.childLocationDurationSeconds(seconds);
   }
 
   static String formatTime(DateTime value) =>

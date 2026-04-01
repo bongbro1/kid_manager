@@ -1,30 +1,32 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
+import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
+import 'package:kid_manager/widgets/sos/sos_view.dart';
 import 'package:provider/provider.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import 'package:kid_manager/features/map_engine/map_engine.dart';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:kid_manager/features/safe_route/data/datasources/safe_route_remote_data_source.dart';
 import 'package:kid_manager/features/safe_route/data/repositories/safe_route_repository_impl.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_active_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/domain/usecases/get_route_by_id_usecase.dart';
+import 'package:kid_manager/features/safe_route/domain/usecases/watch_current_trip_by_child_id_usecase.dart';
 import 'package:kid_manager/features/safe_route/presentation/child_safe_route_guidance.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/child_safe_route_state.dart';
 import 'package:kid_manager/features/safe_route/presentation/viewmodels/child_safe_route_view_model.dart';
 import 'package:kid_manager/features/safe_route/presentation/widgets/child_safe_route_hud.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
-import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/locale_vm.dart';
-import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 import 'package:kid_manager/widgets/location/map_top_bar.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
-import 'package:kid_manager/widgets/sos/incoming_sos_overlay.dart';
-import 'package:kid_manager/widgets/sos/sos_view.dart';
 
 class ChildLocationScreen extends StatefulWidget {
   const ChildLocationScreen({super.key});
@@ -32,6 +34,7 @@ class ChildLocationScreen extends StatefulWidget {
   @override
   State<ChildLocationScreen> createState() => _ChildLocationScreenState();
 }
+
 class _ChildLocationScreenState extends State<ChildLocationScreen> {
   MapboxMap? _map;
   MapEngine? _engine;
@@ -46,6 +49,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   ChildSafeRouteSeverity? _lastSafeRouteSeverity;
   String? _transientSafeRouteBanner;
   Timer? _transientSafeRouteBannerTimer;
+  bool _disposed = false;
+  int _mapGeneration = 0;
+  AuthVM? _authVm;
 
   late ChildLocationViewModel _vm;
 
@@ -53,8 +59,11 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChildLocationViewModel>().startLocationSharing(
-        background: true,
+      if (!mounted) return;
+      unawaited(
+        context.read<ChildLocationViewModel>().startLocationSharing(
+          background: true,
+        ),
       );
     });
   }
@@ -63,22 +72,40 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _vm = context.read<ChildLocationViewModel>();
+
+    final nextAuthVm = context.read<AuthVM>();
+    if (!identical(_authVm, nextAuthVm)) {
+      _authVm?.removeListener(_handleAuthStateChanged);
+      _authVm = nextAuthVm;
+      _authVm?.addListener(_handleAuthStateChanged);
+    }
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    _authVm?.removeListener(_handleAuthStateChanged);
+    _invalidateMapLifecycle();
     if (_vmListener != null) {
       _vm.removeListener(_vmListener!);
+      _vmListener = null;
     }
     _disposeSafeRouteVm();
     super.dispose();
   }
 
+  void _handleAuthStateChanged() {
+    if (_authVm?.logoutInProgress != true) return;
+    _invalidateMapLifecycle();
+  }
+
   void _disposeSafeRouteVm() {
-    if (_safeRouteVm != null && _safeRouteListener != null) {
-      _safeRouteVm!.removeListener(_safeRouteListener!);
+    final vm = _safeRouteVm;
+    final listener = _safeRouteListener;
+    if (vm != null && listener != null) {
+      vm.removeListener(listener);
     }
-    _safeRouteVm?.dispose();
+    vm?.dispose();
     _safeRouteVm = null;
     _safeRouteListener = null;
     _safeRouteChildId = null;
@@ -108,6 +135,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     required String languageCode,
     LocationData? initialLocation,
   }) {
+    if (_disposed) return;
     if (_safeRouteVm != null && _safeRouteChildId == childId) {
       if (_safeRouteLanguageCode != languageCode) {
         _safeRouteLanguageCode = languageCode;
@@ -124,6 +152,9 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     final viewModel = ChildSafeRouteViewModel(
       childId: childId,
       getActiveTripByChildIdUseCase: GetActiveTripByChildIdUseCase(repository),
+      watchCurrentTripByChildIdUseCase: WatchCurrentTripByChildIdUseCase(
+        repository,
+      ),
       getRouteByIdUseCase: GetRouteByIdUseCase(repository),
     );
 
@@ -131,17 +162,17 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
     _safeRouteChildId = childId;
     _safeRouteLanguageCode = languageCode;
     _safeRouteListener = () {
+      if (_disposed || !mounted || !identical(_safeRouteVm, viewModel)) {
+        return;
+      }
       final nextSeverity = viewModel.state.guidance?.severity;
-      final languageCode = _safeRouteLanguageCode;
       final recoveredToRoute =
           _lastSafeRouteSeverity == ChildSafeRouteSeverity.offRoute &&
           (nextSeverity == ChildSafeRouteSeverity.safe ||
               nextSeverity == ChildSafeRouteSeverity.arrived);
       if (recoveredToRoute) {
         _showTransientSafeRouteBanner(
-          languageCode.startsWith('en')
-              ? 'Back on the safe route'
-              : 'Đã quay lại tuyến an toàn',
+          AppLocalizations.of(context).childLocationSafeRouteRecoveredBanner,
         );
       }
       _lastSafeRouteSeverity = nextSeverity;
@@ -158,15 +189,22 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
   }
 
   Future<void> _syncSafeRouteOverlay() async {
+    if (_disposed) return;
+    final generation = _mapGeneration;
     final engine = _engine;
     final route = _safeRouteVm?.state.activeRoute;
-    if (engine == null) return;
+    if (engine == null || !_isMapGenerationActive(generation, engine: engine)) {
+      return;
+    }
 
     if (route == null) {
       if (_renderedSafeRouteId == null) return;
       await engine.route.renderRoad(const []);
+      if (!_isMapGenerationActive(generation, engine: engine)) return;
       await engine.route.renderStraightSegments(const []);
+      if (!_isMapGenerationActive(generation, engine: engine)) return;
       await engine.startEndMarkers.clear();
+      if (!_isMapGenerationActive(generation, engine: engine)) return;
       _renderedSafeRouteId = null;
       return;
     }
@@ -179,13 +217,16 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         .toList(growable: false);
 
     await engine.route.renderRoad(coords);
+    if (!_isMapGenerationActive(generation, engine: engine)) return;
     await engine.route.renderStraightSegments(const []);
+    if (!_isMapGenerationActive(generation, engine: engine)) return;
 
     final markers = [
       _routePointToLocation(points.first, 0),
       _routePointToLocation(points.last, 1),
     ];
     await engine.startEndMarkers.render(markers);
+    if (!_isMapGenerationActive(generation, engine: engine)) return;
 
     final fitPoints = points
         .asMap()
@@ -194,6 +235,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         .toList(growable: false);
     if (fitPoints.length >= 2) {
       await engine.camera.fitToRoute(fitPoints);
+      if (!_isMapGenerationActive(generation, engine: engine)) return;
     }
 
     _renderedSafeRouteId = route.id;
@@ -222,209 +264,373 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<ChildLocationViewModel>();
-    final familyId = context.watch<UserVm>().familyId;
+    final l10n = AppLocalizations.of(context);
+    final familyId = context.select<UserVm, String?>(
+      (userVm) => userVm.familyId,
+    );
     final myUid = context.select<UserVm, String?>((userVm) => userVm.me?.uid);
-    final localeCode = context.watch<LocaleVm>().locale.languageCode;
-    final hasSosOverlay = familyId != null && myUid != null;
+    final isChildActor = context.select<UserVm, bool>(
+      (userVm) => userVm.me?.isChild ?? false,
+    );
+    final localeCode = context.select<LocaleVm, String>(
+      (localeVm) => localeVm.locale.languageCode,
+    );
+    final childError = context.select<ChildLocationViewModel, String?>(
+      (vm) => vm.error,
+    );
+    final canShowSos = familyId != null && myUid != null;
+    final currentLocation = _vm.currentLocation;
+    final safeRouteState =
+        _safeRouteVm?.state ?? ChildSafeRouteState.initial(myUid ?? '');
 
-    if (myUid != null) {
+    if (isChildActor && myUid != null) {
       _ensureSafeRouteVm(
         childId: myUid,
         languageCode: localeCode,
-        initialLocation: vm.currentLocation,
+        initialLocation: currentLocation,
       );
+    } else {
+      _disposeSafeRouteVm();
     }
 
-    final safeRouteState =
-        _safeRouteVm?.state ?? ChildSafeRouteState.initial(myUid ?? '');
-    final combinedError = vm.error ?? safeRouteState.errorMessage;
+    final combinedError = childError ?? safeRouteState.errorMessage;
 
-    return Stack(
-      children: [
-        AppMapView(
-          onMapCreated: (map) {
-            _map = map;
-          },
-          onStyleLoaded: (map) async {
-            _engine = MapEngine(map, enableChildDot: true);
-            await _engine!.init();
-            _renderedSafeRouteId = null;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight;
+        final compactLayout = availableHeight < 760;
+        final ultraCompactLayout = availableHeight < 680;
+        final bottomSafeInset = MediaQuery.paddingOf(context).bottom;
+        final floatingRailBottom =
+            bottomSafeInset + (ultraCompactLayout ? 74.0 : 88.0);
+        final safeRouteHudBottomOffset = compactLayout ? 80.0 : 96.0;
+        final errorBannerBottom =
+            floatingRailBottom + (compactLayout ? 138.0 : 154.0);
 
-            final liveVm = context.read<ChildLocationViewModel>();
+        return Stack(
+          children: [
+            AppMapView(
+              followThemeForStreetStyle: false,
+              onMapCreated: (map) {
+                _map = map;
+              },
+              onStyleLoaded: (map) async {
+                if (_disposed) return;
+                final generation = _beginMapLifecycle(map);
+                final engine = MapEngine(map, enableChildDot: true);
+                _engine = engine;
+                await engine.init();
+                if (!_isMapGenerationActive(generation, engine: engine)) {
+                  engine.dispose();
+                  return;
+                }
+                _renderedSafeRouteId = null;
 
-            if (_vmListener != null) {
-              liveVm.removeListener(_vmListener!);
-            }
+                final vm = _vm;
 
-            _vmListener = () {
-              final loc = liveVm.currentLocation;
-              if (loc == null) return;
+                if (_vmListener != null) {
+                  vm.removeListener(_vmListener!);
+                }
 
-              _safeRouteVm?.updateCurrentLocation(loc);
-              _engine?.updateChildRealtime(loc);
+                _vmListener = () {
+                  if (!_isMapGenerationActive(generation, engine: engine)) {
+                    return;
+                  }
+                  final loc = vm.currentLocation;
+                  if (loc == null) return;
 
-              if (_autoFollow) {
-                _map?.easeTo(
-                  CameraOptions(
-                    center: Point(
-                      coordinates: Position(loc.longitude, loc.latitude),
+                  _safeRouteVm?.updateCurrentLocation(loc);
+                  unawaited(
+                    _runMapTask(
+                      generation: generation,
+                      task: () => engine.updateChildRealtime(loc),
                     ),
-                    zoom: 16,
+                  );
+
+                  if (_autoFollow) {
+                    unawaited(
+                      _safeEaseTo(
+                        generation: generation,
+                        map: map,
+                        camera: CameraOptions(
+                          center: Point(
+                            coordinates: Position(loc.longitude, loc.latitude),
+                          ),
+                          zoom: 16,
+                        ),
+                        options: MapAnimationOptions(duration: 600),
+                      ),
+                    );
+                  }
+                };
+
+                vm.addListener(_vmListener!);
+
+                final loc = vm.currentLocation;
+                if (loc != null) {
+                  _safeRouteVm?.updateCurrentLocation(loc);
+                  await _runMapTask(
+                    generation: generation,
+                    task: () => engine.updateChildRealtime(loc),
+                  );
+                  if (!_isMapGenerationActive(generation, engine: engine)) {
+                    return;
+                  }
+                }
+                await _syncSafeRouteOverlay();
+              },
+            ),
+
+            MapTopBar(onMenuTap: () {}, onAvatarTap: () {}),
+
+            if (_transientSafeRouteBanner != null)
+              Positioned(
+                left: 20,
+                right: 20,
+                top: 54,
+                child: SafeArea(
+                  bottom: false,
+                  child: IgnorePointer(
+                    child: _SafeRouteNoticeBanner(
+                      message: _transientSafeRouteBanner!,
+                    ),
                   ),
-                  MapAnimationOptions(duration: 600),
-                );
-              }
-            };
-
-            liveVm.addListener(_vmListener!);
-
-            final loc = liveVm.currentLocation;
-            if (loc != null) {
-              _safeRouteVm?.updateCurrentLocation(loc);
-              await _engine!.updateChildRealtime(loc);
-            }
-            await _syncSafeRouteOverlay();
-          },
-        ),
-
-        MapTopBar(onMenuTap: () {}, onAvatarTap: () {}),
-
-        if (_transientSafeRouteBanner != null)
-          Positioned(
-            left: 20,
-            right: 20,
-            top: 54,
-            child: SafeArea(
-              bottom: false,
-              child: IgnorePointer(
-                child: _SafeRouteNoticeBanner(
-                  message: _transientSafeRouteBanner!,
                 ),
               ),
-            ),
-          ),
 
-        if (safeRouteState.guidance != null)
-          ChildSafeRouteHud(
-            state: safeRouteState,
-            languageCode: localeCode,
-            topOffset: 88,
-            bottomOffset: hasSosOverlay ? 190 : 96,
-          ),
+            if (safeRouteState.guidance != null)
+              ChildSafeRouteHud(
+                state: safeRouteState,
+                languageCode: localeCode,
+                topOffset: 88,
+                bottomOffset: safeRouteHudBottomOffset,
+                showBottomStatusPill: !ultraCompactLayout,
+              ),
 
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: 16,
-          child: SafeArea(
-            top: false,
-            child: MapBottomControls(
-              children: const [],
-              onMyLocation: () {
-                final loc = vm.currentLocation;
-                if (loc == null) return;
+            Positioned(
+              right: 16,
+              bottom: floatingRailBottom,
+              child: _ChildFloatingActionRail(
+                showSos: canShowSos,
+                onSosPressed: canShowSos
+                    ? () async {
+                        final loc = _vm.currentLocation;
+                        final displayName =
+                            context.read<UserVm>().me?.displayName ??
+                            l10n.parentLocationUnknownUser;
+                        final sosVm = context.read<SosViewModel>();
 
-                _autoFollow = true;
+                        debugPrint('SOS child tapped');
+                        debugPrint('SOS loc=$loc');
+                        debugPrint('SOS sending=${sosVm.sending}');
+                        debugPrint(
+                          'SOS familyId=${context.read<UserVm>().familyId}',
+                        );
+                        debugPrint('SOS uid=${context.read<UserVm>().me?.uid}');
 
-                _map?.easeTo(
-                  CameraOptions(
-                    center: Point(
-                      coordinates: Position(loc.longitude, loc.latitude),
-                    ),
-                    zoom: 16,
-                  ),
-                  MapAnimationOptions(duration: 600),
-                );
-              },
-            ),
-          ),
-        ),
-        Positioned(
-          left: 12,
-          top: safeRouteState.guidance != null ? 196 : 90,
-          child: SafeArea(
-            top: false,
-            child: SosCircleButton(
-              onPressed: () async {
-                final liveVm = context.read<ChildLocationViewModel>();
-                final loc = liveVm.currentLocation;
-                final displayName =
-                    context.read<UserVm>().me?.displayName ?? 'Unknown';
-                final sosVm = context.read<SosViewModel>();
+                        if (loc == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.currentLocationError)),
+                          );
+                          return;
+                        }
 
-                debugPrint('SOS child tapped');
-                debugPrint('SOS loc=$loc');
-                debugPrint('SOS sending=${sosVm.sending}');
-                debugPrint('SOS familyId=${context.read<UserVm>().familyId}');
-                debugPrint('SOS uid=${context.read<UserVm>().me?.uid}');
+                        if (sosVm.sending) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.childLocationSosSending),
+                            ),
+                          );
+                          return;
+                        }
 
-                if (loc == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Chưa lấy được vị trí hiện tại'),
-                    ),
-                  );
-                  return;
-                }
+                        try {
+                          final sosId = await sosVm.triggerSos(
+                            lat: loc.latitude,
+                            lng: loc.longitude,
+                            acc: loc.accuracy,
+                            createdByName: displayName,
+                          );
 
-                if (sosVm.sending) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đang gửi SOS...')),
-                  );
-                  return;
-                }
+                          if (!context.mounted) return;
 
-                try {
-                  final sosId = await sosVm.triggerSos(
-                    lat: loc.latitude,
-                    lng: loc.longitude,
-                    acc: loc.accuracy,
-                    createdByName: displayName,
-                  );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                sosId != null
+                                    ? l10n.parentLocationSosSent
+                                    : l10n.parentLocationSosFailed,
+                              ),
+                            ),
+                          );
+                        } catch (error, stackTrace) {
+                          debugPrint('triggerSos error: $error');
+                          debugPrint('$stackTrace');
 
-                  if (!context.mounted) return;
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                l10n.childLocationSosError('$error'),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    : null,
+                onMyLocationPressed: () {
+                  final loc = _vm.currentLocation;
+                  if (loc == null) return;
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        sosId != null ? 'Đã gửi SOS' : 'Gửi SOS thất bại',
+                  _autoFollow = true;
+
+                  final map = _map;
+                  if (map == null) return;
+                  final generation = _mapGeneration;
+                  unawaited(
+                    _safeEaseTo(
+                      generation: generation,
+                      map: map,
+                      camera: CameraOptions(
+                        center: Point(
+                          coordinates: Position(loc.longitude, loc.latitude),
+                        ),
+                        zoom: 16,
                       ),
+                      options: MapAnimationOptions(duration: 600),
                     ),
                   );
-                } catch (error, stackTrace) {
-                  debugPrint('triggerSos error: $error');
-                  debugPrint('$stackTrace');
-
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Lỗi gửi SOS: $error')),
-                  );
-                }
-              },
+                },
+              ),
             ),
-          ),
+            if (combinedError != null)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: errorBannerBottom,
+                child: _ErrorBanner(message: combinedError),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  int _beginMapLifecycle(MapboxMap map) {
+    _mapGeneration++;
+    _engine?.dispose();
+    _engine = null;
+    _map = map;
+    return _mapGeneration;
+  }
+
+  void _invalidateMapLifecycle() {
+    _mapGeneration++;
+    _engine?.dispose();
+    _engine = null;
+    _map = null;
+    _renderedSafeRouteId = null;
+  }
+
+  bool _isMapGenerationActive(int generation, {MapEngine? engine}) {
+    if (_disposed || generation != _mapGeneration) {
+      return false;
+    }
+    if (engine != null && !identical(_engine, engine)) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _runMapTask({
+    required int generation,
+    required Future<void> Function() task,
+  }) async {
+    if (!_isMapGenerationActive(generation)) return;
+    try {
+      await task();
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isMapGenerationActive(generation)) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _safeEaseTo({
+    required int generation,
+    required MapboxMap map,
+    required CameraOptions camera,
+    required MapAnimationOptions options,
+  }) async {
+    if (!_isMapGenerationActive(generation)) return;
+    try {
+      await map.easeTo(camera, options);
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isMapGenerationActive(generation)) {
+        return;
+      }
+      rethrow;
+    }
+  }
+}
+
+class _ChildFloatingActionRail extends StatelessWidget {
+  const _ChildFloatingActionRail({
+    required this.showSos,
+    required this.onSosPressed,
+    required this.onMyLocationPressed,
+  }) : assert(!showSos || onSosPressed != null);
+
+  final bool showSos;
+  final VoidCallback? onSosPressed;
+  final VoidCallback onMyLocationPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (showSos) ...[
+          SosCircleButton(onPressed: onSosPressed!),
+          const SizedBox(height: 12),
+        ],
+        _RailCircleButton(
+          icon: Icons.my_location,
+          onPressed: onMyLocationPressed,
         ),
-        if (combinedError != null)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: hasSosOverlay ? 260 : 150,
-            child: _ErrorBanner(message: combinedError),
-          ),
-
-        if (familyId != null && myUid != null)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 110,
-            child: IncomingSosOverlay(
-              key: ValueKey('sos-$familyId'),
-              familyId: familyId,
-              myUid: myUid,
-            ),
-          ),
       ],
+    );
+  }
+}
+
+class _RailCircleButton extends StatelessWidget {
+  const _RailCircleButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: colorScheme.surface,
+      shape: const CircleBorder(),
+      elevation: 6,
+      shadowColor: Colors.black.withOpacity(0.2),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: colorScheme.outline),
+          ),
+          child: Icon(icon, size: 26, color: colorScheme.primary),
+        ),
+      ),
     );
   }
 }

@@ -1,15 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/features/sessionguard/session_guard.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/utils/date_utils.dart';
-import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
-import 'package:kid_manager/viewmodels/app_management_vm.dart';
-import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
-import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
@@ -35,6 +32,10 @@ class PersonalInfoScreen extends StatefulWidget {
 }
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+  static const _genderMaleValue = 'Nam';
+  static const _genderFemaleValue = 'Nữ';
+  static const _genderOtherValue = 'Khác';
+
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
@@ -103,7 +104,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final ok = await vm.updateUserInfo(
       name: _nameCtrl.text,
       phone: _phoneCtrl.text,
-      gender: _selectedGender ?? "Nam",
+      gender: _selectedGender ?? _genderMaleValue,
       dob: _dobCtrl.text,
       address: _addressCtrl.text,
       allowTracking: allowLocationTracking,
@@ -174,7 +175,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     return SmartNetworkImage(
       imageUrl: coverUrl,
       fallbackAsset: "assets/images/cover.png",
-      width: 500,
+      width: double.infinity,
       height: 200,
       fit: BoxFit.cover,
     );
@@ -199,66 +200,72 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       return const LoadingOverlay();
     }
 
-    final isParent = p?.role.toString() == roleToString(UserRole.parent);
-    final isChild = p?.role.toString() == roleToString(UserRole.child);
+    final isAdultManager = p?.isAdultManager == true;
+    final isChild = p?.role == UserRole.child;
 
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final horizontalPadding = context.adaptiveHorizontalPadding(
+      compact: 12,
+      regular: 16,
+    );
+    const compactLabelSpacing = 6.0;
+    const compactTextFieldMinHeight = 50.0;
+    const compactDropdownFieldHeight = 50.0;
+    const compactDropdownMinHeight = 50.0;
+    const compactTextFieldPadding = EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 12,
+    );
+    const compactDropdownPadding = EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 10,
+    );
 
     return Scaffold(
-      backgroundColor: scheme.background,
-      extendBodyBehindAppBar: true,
-      body: Column(
-        children: [
-          /// HEADER
-          SafeArea(
-            bottom: false,
-            child: Row(
-              children: [
-                InkWell(
-                  onTap: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      RawDialogRoute<void>(
-                        barrierDismissible: true,
-                        barrierLabel: 'Close',
-                        barrierColor: Colors.black.withOpacity(0.12),
-                        transitionDuration: const Duration(milliseconds: 280),
-                        pageBuilder: (_, __, ___) {
-                          return const MoreActionSheet();
-                        },
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                    child: AppIcon(
-                      path: "assets/icons/menu.svg",
-                      type: AppIconType.svg,
-                      size: 30,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      l10n.personalInfoTitle,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: scheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 40),
-              ],
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: scheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        leadingWidth: 60,
+        leading: InkWell(
+          onTap: () {
+            Navigator.of(context, rootNavigator: true).push(
+              RawDialogRoute<void>(
+                barrierDismissible: true,
+                barrierLabel: l10n.birthdayCloseButton,
+                barrierColor: Colors.black.withValues(alpha: 0.12),
+                transitionDuration: const Duration(milliseconds: 280),
+                pageBuilder: (routeContext, animation, secondaryAnimation) {
+                  return const MoreActionSheet();
+                },
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+            child: AppIcon(
+              path: "assets/icons/menu.svg",
+              type: AppIconType.svg,
+              size: 20,
             ),
           ),
-
+        ),
+        title: Text(
+          l10n.personalInfoTitle,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
+        actions: const [SizedBox(width: 60)],
+      ),
+      body: Column(
+        children: [
           /// BODY
           Expanded(
             child: RefreshIndicator(
@@ -270,7 +277,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     const SizedBox(height: 16),
                     SizedBox(
                       width: 500,
-                      height: 220,
+                      height: 210,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -285,7 +292,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 url: p?.coverUrl,
                                 fallbackAsset: "assets/images/cover.png",
                                 cropType: CropPhotoType.cover,
-                                onReplace: (index, file) {
+                                onReplace: (index, file) async {
+                                  vm.updateLocalPhoto(
+                                    file,
+                                    UserPhotoType.cover,
+                                  );
                                   return vm.updateUserPhoto(
                                     file: file,
                                     type: UserPhotoType.cover,
@@ -327,7 +338,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           url: p?.avatarUrl,
                                           fallbackAsset: "assets/images/u1.png",
                                           cropType: CropPhotoType.avatar,
-                                          onReplace: (index, file) {
+                                          onReplace: (index, file) async {
+                                            vm.updateLocalPhoto(
+                                              file,
+                                              UserPhotoType.avatar,
+                                            );
                                             return vm.updateUserPhoto(
                                               file: file,
                                               type: UserPhotoType.avatar,
@@ -408,32 +423,56 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        0,
+                        horizontalPadding,
+                        16,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 12),
 
                           AppLabeledTextField(
                             label: l10n.fullNameLabel,
                             hint: l10n.fullNameHint,
                             controller: _nameCtrl,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                           ),
 
                           AppLabeledTextField(
                             label: l10n.phoneLabel,
                             hint: l10n.phoneHint,
                             controller: _phoneCtrl,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                           ),
 
                           AppLabeledDropdownField<String>(
                             label: l10n.genderLabel,
                             hint: l10n.genderHint,
                             value: _selectedGender,
-                            items: const [
-                              DropdownMenuEntry(value: 'Nam', label: 'Nam'),
-                              DropdownMenuEntry(value: 'Nữ', label: 'Nữ'),
-                              DropdownMenuEntry(value: 'Khác', label: 'Khác'),
+                            fieldHeight: compactDropdownFieldHeight,
+                            minFieldHeight: compactDropdownMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactDropdownPadding,
+                            items: [
+                              DropdownMenuEntry(
+                                value: _genderMaleValue,
+                                label: l10n.genderMaleOption,
+                              ),
+                              DropdownMenuEntry(
+                                value: _genderFemaleValue,
+                                label: l10n.genderFemaleOption,
+                              ),
+                              DropdownMenuEntry(
+                                value: _genderOtherValue,
+                                label: l10n.genderOtherOption,
+                              ),
                             ],
                             onChanged: (value) {
                               setState(() {
@@ -447,6 +486,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             controller: _dobCtrl,
                             readOnly: true,
                             onTap: pickDate,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                             suffixIcon: const Icon(
                               Icons.calendar_today,
                               size: 18,
@@ -457,6 +499,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             label: l10n.addressLabel,
                             hint: l10n.addressHint,
                             controller: _addressCtrl,
+                            minFieldHeight: compactTextFieldMinHeight,
+                            labelBottomSpacing: compactLabelSpacing,
+                            contentPadding: compactTextFieldPadding,
                           ),
 
                           if (!isChild)
@@ -464,6 +509,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                               label: l10n.locationTrackingLabel,
                               text: l10n.allowLocationTrackingText,
                               value: allowLocationTracking,
+                              labelBottomSpacing: compactLabelSpacing,
                               onChanged: (v) {
                                 setState(() {
                                   allowLocationTracking = v;
@@ -472,7 +518,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                               },
                             ),
 
-                          if (isParent) ...[
+                          if (isAdultManager) ...[
                             const SizedBox(height: 10),
                             Builder(
                               builder: (context) {
@@ -481,20 +527,22 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
                                 return Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: scheme.surface,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: scheme.outline.withOpacity(0.3),
+                                      color: scheme.outline.withValues(
+                                        alpha: 0.3,
+                                      ),
                                       width: 1,
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       Container(
-                                        height: 40,
-                                        width: 40,
+                                        height: 36,
+                                        width: 36,
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: scheme.primary,
@@ -507,35 +555,38 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           color: scheme.onPrimary,
                                         ),
                                       ),
-
                                       const SizedBox(width: 12),
-
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'Quản lý tài khoản',
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                    color: scheme.onSurface,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
+                                              l10n.personalInfoManageAccountsTitle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: scheme.onSurface,
+                                                fontSize: 16,
+                                                fontFamily: 'Poppins',
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              'Quản lý tài khoản của thành viên',
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                    color:
-                                                        scheme.onSurfaceVariant,
-                                                  ),
+                                              l10n.personalInfoManageAccountsSubtitle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: scheme.onSurface,
+                                                fontSize: 12,
+                                                fontFamily: 'Poppins',
+                                              ),
                                             ),
                                           ],
                                         ),
                                       ),
-
+                                      const SizedBox(width: 10),
                                       InkWell(
                                         borderRadius: BorderRadius.circular(8),
                                         onTap: () {
@@ -550,7 +601,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 16,
-                                            vertical: 8,
+                                            vertical: 7,
                                           ),
                                           decoration: BoxDecoration(
                                             color: scheme.primary,
@@ -559,12 +610,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                             ),
                                           ),
                                           child: Text(
-                                            'Chi tiết',
-                                            style: theme.textTheme.labelLarge
-                                                ?.copyWith(
-                                                  color: scheme.onPrimary,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
+                                            l10n.personalInfoDetailsButton,
+                                            style: TextStyle(
+                                              color: scheme.onPrimary,
+                                              fontSize: 14,
+                                              fontFamily: 'Poppins',
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -592,14 +644,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 class MoreActionSheet extends StatelessWidget {
   const MoreActionSheet({super.key});
 
+  void _navigateFromSheet(BuildContext context, Widget page) {
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+    rootNavigator.pop();
+
+    // Wait one tick so the sheet route is removed before pushing next screen.
+    Future<void>.delayed(Duration.zero, () {
+      if (!rootNavigator.mounted) return;
+      rootNavigator.push(MaterialPageRoute(builder: (_) => page));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    final role = context.watch<UserVm>().profile?.role;
-    final isParent = roleFromString(role ?? 'child') == UserRole.parent;
-
     return AppOverlaySheet(
       showHandle: true,
       child: Padding(
@@ -614,14 +671,8 @@ class MoreActionSheet extends StatelessWidget {
               iconPath: "assets/icons/color_palette.svg",
               iconType: AppIconType.svg,
               iconSize: 20,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AppAppearanceScreen(),
-                  ),
-                );
-              },
+              onTap: () =>
+                  _navigateFromSheet(context, const AppAppearanceScreen()),
             ),
 
             const SizedBox(height: 10),
@@ -631,12 +682,7 @@ class MoreActionSheet extends StatelessWidget {
               iconPath: "assets/icons/info.png",
               iconType: AppIconType.png,
               iconSize: 17,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AboutAppScreen()),
-                );
-              },
+              onTap: () => _navigateFromSheet(context, const AboutAppScreen()),
             ),
 
             const SizedBox(height: 10),
@@ -647,16 +693,23 @@ class MoreActionSheet extends StatelessWidget {
               iconType: AppIconType.png,
               iconSize: 17,
               onTap: () {
-                Navigator.pop(context);
-
-                Future.microtask(() {
-                  showModalBottomSheet(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    isScrollControlled: true,
-                    builder: (_) => const ConfirmLogoutSheet(),
-                  );
-                });
+                final rootNavigator = Navigator.of(
+                  context,
+                  rootNavigator: true,
+                );
+                rootNavigator.pushReplacement(
+                  RawDialogRoute<void>(
+                    barrierDismissible: true,
+                    barrierLabel: AppLocalizations.of(
+                      context,
+                    ).birthdayCloseButton,
+                    barrierColor: Colors.transparent,
+                    transitionDuration: const Duration(milliseconds: 280),
+                    pageBuilder: (routeContext, animation, secondaryAnimation) {
+                      return const ConfirmLogoutSheet();
+                    },
+                  ),
+                );
               },
             ),
 
@@ -679,23 +732,13 @@ class ConfirmLogoutSheet extends StatelessWidget {
 
     Future<void> logout() async {
       final authVM = context.read<AuthVM>();
-      final userVm = context.read<UserVm>();
-      final appManagementVm = context.read<AppManagementVM>();
-      final parentLocationVm = context.read<ParentLocationVm>();
-      final notiVM = context.read<NotificationVM>();
       final rootNav = Navigator.of(context, rootNavigator: true);
 
-      await parentLocationVm.stopWatchingAllChildren();
-      await parentLocationVm.stopMyLocation();
-      await notiVM.clear();
-      await userVm.clear();
-      await appManagementVm.clear();
       await authVM.logout();
-
-      rootNav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const SessionGuard()),
-        (_) => false,
-      );
+      if (!rootNav.mounted) return;
+      if (rootNav.canPop()) {
+        rootNav.pop();
+      }
     }
 
     final vm = context.watch<AuthVM>();
@@ -709,21 +752,25 @@ class ConfirmLogoutSheet extends StatelessWidget {
     return Stack(
       children: [
         AppOverlaySheet(
-          height: 210,
           showHandle: true,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
+            padding: EdgeInsets.symmetric(
+              horizontal: context.adaptiveHorizontalPadding(
+                compact: 16,
+                regular: 30,
+              ),
+            ),
             child: Column(
-              mainAxisSize: MainAxisSize.max,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 6),
 
                 /// divider
                 Container(
-                  width: 345,
+                  width: double.infinity,
                   decoration: ShapeDecoration(
                     shape: RoundedRectangleBorder(
-                      side: BorderSide(width: 1, color: scheme.outlineVariant),
+                      side: BorderSide(width: 1, color: scheme.outline),
                     ),
                   ),
                 ),

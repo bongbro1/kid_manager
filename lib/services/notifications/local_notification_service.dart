@@ -1,69 +1,107 @@
+import 'dart:ui' show Locale, PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class LocalNotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
+
+  static const String generalChannelId = 'general_notifications';
+  static const String chatChannelId = 'chat_messages';
+
+  static Future<AppLocalizations> _loadL10n([String? lang]) {
+    final normalized = (lang ?? PlatformDispatcher.instance.locale.languageCode)
+        .toLowerCase();
+    return AppLocalizations.delegate.load(
+      Locale(normalized.startsWith('en') ? 'en' : 'vi'),
+    );
+  }
+
+  static String? initialPayload;
   static Future<void> init() async {
-    // debugPrint('STEP INIT START');
-    // ✅ Tạo notification channel cho Android 8+
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    const iosSettings = DarwinInitializationSettings();
+
+    const settings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
+    await _plugin.initialize(settings);
+
+    // 👇 phần cũ của bạn
     final androidPlugin = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
 
+    final l10n = await _loadL10n();
+
     await androidPlugin?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        'default_channel',
-        'Default',
-        description: 'Default notifications',
+      AndroidNotificationChannel(
+        generalChannelId,
+        l10n.notificationsLocalChannelName,
+        description: l10n.notificationsLocalChannelDescription,
         importance: Importance.max,
       ),
     );
 
-    // debugPrint('STEP INIT DONE');
+    await androidPlugin?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        chatChannelId,
+        'Chat Messages',
+        description: 'Family group chat notifications',
+        importance: Importance.max,
+      ),
+    );
+
+    // await androidPlugin?.requestNotificationsPermission();
   }
 
   static Future<void> show({
     required String title,
     required String body,
     String? payload,
+    String channelId = generalChannelId,
   }) async {
-    // debugPrint("========== LOCAL NOTIFICATION DEBUG ==========");
-    // debugPrint("TIME: ${DateTime.now()}");
-    // debugPrint("TITLE: $title");
-    // debugPrint("BODY: $body");
-    // debugPrint("PAYLOAD: $payload");
-
     try {
-      const androidDetails = AndroidNotificationDetails(
-        'default_channel',
-        'Default',
-        channelDescription: 'Default notifications',
+      final l10n = await _loadL10n();
+
+      final isChat = channelId == chatChannelId;
+
+      final androidDetails = AndroidNotificationDetails(
+        channelId,
+        isChat ? 'Chat Messages' : l10n.notificationsLocalChannelName,
+        channelDescription: isChat
+            ? 'Family group chat notifications'
+            : l10n.notificationsLocalChannelDescription,
         importance: Importance.max,
         priority: Priority.high,
-        category: AndroidNotificationCategory.message,
+        category: isChat
+            ? AndroidNotificationCategory.message
+            : AndroidNotificationCategory.recommendation,
       );
 
-      const details = NotificationDetails(android: androidDetails);
+      const iosDetails = DarwinNotificationDetails();
+
+      final details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
 
       final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
+      debugPrint(
+        '[LocalNotificationService] show channelId=$channelId title="$title" body="$body"',
+      );
+
       await _plugin.show(id, title, body, details, payload: payload);
     } catch (e, s) {
-      debugPrint("LOCAL NOTIFICATION ERROR: $e");
-      debugPrint("$s");
+      debugPrint('LOCAL NOTIFICATION ERROR: $e');
+      debugPrint('$s');
     }
-
-    debugPrint("==============================================");
   }
 }
-
-
-
-// LocalNotificationService.show()
-//         ↓
-// User tap notification
-//         ↓
-// onDidReceiveNotificationResponse
-//         ↓
-// _storePayload(payload)

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:kid_manager/core/app_colors.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -25,7 +25,15 @@ class UserCarouselCard extends StatefulWidget {
 class _UserCarouselCardState extends State<UserCarouselCard> {
   final _pageController = PageController();
   int _page = 0;
-  int _pageCount(List users) => (users.length / 3).ceil();
+  int _pageCount(List users, int itemsPerPage) =>
+      (users.length / itemsPerPage).ceil();
+
+  int _resolveItemsPerPage(double width) {
+    if (width < ResponsiveBreakpoints.compactPhone) {
+      return 2;
+    }
+    return 3;
+  }
 
   void _goPrev() {
     if (_page > 0) {
@@ -36,9 +44,9 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
     }
   }
 
-  void _goNext() {
+  void _goNext(int itemsPerPage) {
     final users = context.read<AppManagementVM>().children;
-    final pageCount = _pageCount(users);
+    final pageCount = _pageCount(users, itemsPerPage);
 
     if (_page < pageCount - 1) {
       _pageController.nextPage(
@@ -65,8 +73,6 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
     final scheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    final pageCount = (users.length / 3).ceil();
-
     if (vm.error != null) {
       return Center(
         child: Text(
@@ -76,155 +82,206 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
       );
     }
 
-    return Container(
-      height: 190,
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.shadow.withOpacity(0.15),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: scheme.shadow.withOpacity(0.25),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _ArrowBtn(
-                asset: 'assets/icons/chevron_left.svg',
-                enabled: _page > 0,
-                onTap: _goPrev,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth;
+        final itemsPerPage = _resolveItemsPerPage(cardWidth);
+        final pageCount = _pageCount(users, itemsPerPage);
+        final horizontalPadding = cardWidth < 360 ? 8.0 : 12.0;
+        final itemGap = cardWidth < 360 ? 8.0 : 10.0;
+        final availablePageWidth = (cardWidth - (horizontalPadding * 2) - 64)
+            .clamp(0.0, cardWidth);
+        final itemWidth =
+            ((availablePageWidth - itemGap * (itemsPerPage - 1)) / itemsPerPage)
+                .clamp(62.0, 84.0);
+
+        if (pageCount == 0 && _page != 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _page = 0);
+            if (_pageController.hasClients) {
+              _pageController.jumpToPage(0);
+            }
+          });
+        } else if (pageCount > 0 && _page > pageCount - 1) {
+          final safePage = pageCount - 1;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _page = safePage);
+            if (_pageController.hasClients) {
+              _pageController.jumpToPage(safePage);
+            }
+          });
+        }
+
+        return Container(
+          constraints: const BoxConstraints(minHeight: 190),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.shadow.withValues(alpha: 0.15),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+                spreadRadius: 1,
               ),
-
-              Expanded(
-                child: SizedBox(
-                  height: 120,
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: pageCount,
-                    onPageChanged: (i) => setState(() => _page = i),
-                    itemBuilder: (context, pageIndex) {
-                      final start = pageIndex * 3;
-                      final end = (start + 3).clamp(0, users.length);
-                      final slice = users.sublist(start, end);
-
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: List.generate(3, (i) {
-                          if (i >= slice.length) {
-                            return const SizedBox(width: 70);
-                          }
-
-                          final user = slice[i];
-
-                          return SizedBox(
-                            width: 70,
-                            child: GestureDetector(
-                              onTap: () {
-                                context.read<AppManagementVM>().selectChild(
-                                  user.id,
-                                );
-                                widget.onTapApps();
-                              },
-                              child: UserItemWidget(
-                                name: user.name,
-                                avatarUrl: user.avatarUrl,
-                                isOnline: user.isOnline,
-                                isSelected: selectedId == user.id,
-                              ),
-                            ),
-                          );
-                        }),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              _ArrowBtn(
-                asset: 'assets/icons/chevron_right.svg',
-                enabled: _page < pageCount - 1,
-                onTap: _goNext,
+              BoxShadow(
+                color: scheme.shadow.withValues(alpha: 0.25),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
-
-          Container(
-            width: 301,
-            height: 1,
-            color: theme.dividerTheme.color ?? scheme.outline.withOpacity(0.3),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            8,
+            horizontalPadding,
+            10,
           ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  _ArrowBtn(
+                    asset: 'assets/icons/chevron_left.svg',
+                    enabled: _page > 0,
+                    onTap: _goPrev,
+                  ),
+                  Expanded(
+                    child: SizedBox(
+                      height: 120,
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: pageCount,
+                        onPageChanged: (i) => setState(() => _page = i),
+                        itemBuilder: (context, pageIndex) {
+                          final start = pageIndex * itemsPerPage;
+                          final end = (start + itemsPerPage).clamp(
+                            0,
+                            users.length,
+                          );
+                          final slice = users.sublist(start, end);
+                          final rowChildren = <Widget>[];
 
-          const SizedBox(height: 12),
+                          for (int i = 0; i < itemsPerPage; i++) {
+                            if (i > 0) {
+                              rowChildren.add(SizedBox(width: itemGap));
+                            }
 
-          SizedBox(
-            width: 300,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                AppButton(
-                  width: 147,
-                  height: 40,
-                  text: l10n.parentDashboardTabApps,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  onPressed: widget.onTapApps,
-                  backgroundColor: widget.currentIndex == 0
-                      ? scheme.primary
-                      : scheme.primary.withOpacity(0.12),
-                  foregroundColor: scheme.onSurface,
-                  fontFamily: 'Roboto',
-                  lineHeight: 1.43,
-                  letterSpacing: 0.10,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 0,
-                    vertical: 0,
+                            if (i >= slice.length) {
+                              rowChildren.add(SizedBox(width: itemWidth));
+                              continue;
+                            }
+
+                            final user = slice[i];
+                            rowChildren.add(
+                              SizedBox(
+                                width: itemWidth,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    context.read<AppManagementVM>().selectChild(
+                                      user.id,
+                                    );
+                                    widget.onTapApps();
+                                  },
+                                  child: UserItemWidget(
+                                    name: user.name,
+                                    avatarUrl: user.avatarUrl,
+                                    isOnline: user.isOnline,
+                                    isSelected: selectedId == user.id,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: rowChildren,
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                  icon: SvgPicture.asset(
-                    'assets/icons/apps.svg',
-                    width: 18,
-                    height: 18,
+                  _ArrowBtn(
+                    asset: 'assets/icons/chevron_right.svg',
+                    enabled: _page < pageCount - 1,
+                    onTap: () => _goNext(itemsPerPage),
                   ),
-                ),
-                AppButton(
-                  width: 147,
-                  height: 40,
-                  text: l10n.parentDashboardTabStatistics,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  onPressed: widget.onTapStats,
-                  backgroundColor: widget.currentIndex == 1
-                      ? scheme.primary
-                      : scheme.primary.withOpacity(0.12),
-                  foregroundColor: scheme.onSurface,
-                  fontFamily: 'Roboto',
-                  lineHeight: 1.43,
-                  letterSpacing: 0.10,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 0,
-                    vertical: 0,
+                ],
+              ),
+              Container(
+                width: double.infinity,
+                height: 1,
+                color:
+                    theme.dividerTheme.color ??
+                    scheme.outline.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      height: 40,
+                      text: l10n.parentDashboardTabApps,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      onPressed: widget.onTapApps,
+                      backgroundColor: widget.currentIndex == 0
+                          ? scheme.primary
+                          : scheme.primary.withValues(alpha: 0.12),
+                      foregroundColor: widget.currentIndex == 0
+                          ? scheme.onPrimary
+                          : scheme.onSurface,
+                      fontFamily: 'Roboto',
+                      lineHeight: 1.43,
+                      letterSpacing: 0.10,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 0,
+                      ),
+                      icon: SvgPicture.asset(
+                        'assets/icons/apps.svg',
+                        width: 18,
+                        height: 18,
+                      ),
+                    ),
                   ),
-                  icon: SvgPicture.asset(
-                    'assets/icons/stats-chart.svg',
-                    width: 18,
-                    height: 18,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppButton(
+                      height: 40,
+                      text: l10n.parentDashboardTabStatistics,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      onPressed: widget.onTapStats,
+                      backgroundColor: widget.currentIndex == 1
+                          ? scheme.primary
+                          : scheme.primary.withValues(alpha: 0.12),
+                      foregroundColor: widget.currentIndex == 1
+                          ? scheme.onPrimary
+                          : scheme.onSurface,
+                      fontFamily: 'Roboto',
+                      lineHeight: 1.43,
+                      letterSpacing: 0.10,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 0,
+                      ),
+                      icon: SvgPicture.asset(
+                        'assets/icons/stats-chart.svg',
+                        width: 18,
+                        height: 18,
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -246,7 +303,7 @@ class _ArrowBtn extends StatelessWidget {
 
     final iconColor = enabled
         ? scheme.onSurface
-        : scheme.onSurface.withOpacity(0.3);
+        : scheme.onSurface.withValues(alpha: 0.3);
 
     return InkWell(
       onTap: enabled ? onTap : null,

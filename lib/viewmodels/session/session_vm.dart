@@ -29,12 +29,16 @@ class SessionVM extends ChangeNotifier {
   void _bootstrap() {
     _sub = _repo.watchSessionUser().listen(
       (user) {
-        debugPrint("[SESSION_VM] user=${user?.uid}");
-        debugPrint("[SESSION_VM] status=$_authStatus");
         _user = user;
         _authStatus = user == null
             ? SessionStatus.unauthenticated
             : SessionStatus.authenticated;
+        debugPrint("[SESSION_VM] user=${_user?.uid}");
+        debugPrint("[SESSION_VM] status=$_authStatus");
+
+        if (!_splashDone) {
+          _splashDone = true;
+        }
 
         notifyListeners();
       },
@@ -55,6 +59,8 @@ class SessionVM extends ChangeNotifier {
 
   bool get isParent => _user?.role == UserRole.parent;
   bool get isChild => _user?.role == UserRole.child;
+  bool get isGuardian => _user?.role == UserRole.guardian;
+  bool get isLocationViewer => isParent || isGuardian;
 
   @override
   void dispose() {

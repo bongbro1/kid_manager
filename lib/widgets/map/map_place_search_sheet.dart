@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/map_place_search_result.dart';
 import 'package:kid_manager/services/location/mapbox_place_search_service.dart';
 
@@ -11,8 +12,10 @@ Future<MapPlaceSearchResult?> showMapPlaceSearchSheet({
   String initialQuery = '',
   double? proximityLatitude,
   double? proximityLongitude,
-  MapboxPlaceSearchService service = const MapboxPlaceSearchService(),
+  MapboxPlaceSearchService? service,
 }) {
+  final resolvedService = service ?? MapboxPlaceSearchService();
+
   return showModalBottomSheet<MapPlaceSearchResult>(
     context: context,
     isScrollControlled: true,
@@ -24,7 +27,7 @@ Future<MapPlaceSearchResult?> showMapPlaceSearchSheet({
         initialQuery: initialQuery,
         proximityLatitude: proximityLatitude,
         proximityLongitude: proximityLongitude,
-        service: service,
+        service: resolvedService,
       );
     },
   );
@@ -162,6 +165,7 @@ class _MapPlaceSearchSheetState extends State<_MapPlaceSearchSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return SafeArea(
@@ -202,7 +206,7 @@ class _MapPlaceSearchSheetState extends State<_MapPlaceSearchSheet> {
                     const SizedBox(height: 4),
                     Text(
                       widget.hintText ??
-                          'Tìm kiếm địa điểm để chọn nhanh trên bản đồ.',
+                          l10n.childLocationMapSearchSubtitle,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF667085),
@@ -216,7 +220,7 @@ class _MapPlaceSearchSheetState extends State<_MapPlaceSearchSheet> {
                       onSubmitted: _searchNow,
                       textInputAction: TextInputAction.search,
                       decoration: InputDecoration(
-                        hintText: 'Nhập tên đường, trường học, địa chỉ...',
+                        hintText: l10n.childLocationMapSearchInputHint,
                         prefixIcon: const Icon(Icons.search_rounded),
                         suffixIcon: _controller.text.isNotEmpty
                             ? IconButton(
@@ -262,14 +266,15 @@ class _MapPlaceSearchSheetState extends State<_MapPlaceSearchSheet> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     final query = _controller.text.trim();
 
     if (query.length < _minQueryLength) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Text(
-            'Nhập ít nhất 2 ký tự để tìm địa điểm.',
+            l10n.childLocationMapSearchMinChars,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -303,11 +308,11 @@ class _MapPlaceSearchSheetState extends State<_MapPlaceSearchSheet> {
     }
 
     if (_results.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Text(
-            'Không tìm thấy địa điểm phù hợp.',
+            l10n.childLocationMapSearchNoResults,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: Color(0xFF667085)),
           ),

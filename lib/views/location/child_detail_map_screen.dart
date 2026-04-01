@@ -2,33 +2,46 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/map_engine/map_engine.dart';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_access.dart';
 import 'package:kid_manager/features/safe_route/presentation/pages/tracking_page.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/services/access_control/access_control_service.dart';
+import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_cards.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_controls.dart';
 import 'package:kid_manager/views/parent/zones/child_zones_screen.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/map/app_map_view.dart';
 import 'package:provider/provider.dart';
 
 class ChildDetailMapScreen extends StatelessWidget {
   final String childId;
   final String? childAvatarUrl;
+  final String? childTimeZone;
 
   const ChildDetailMapScreen({
     super.key,
     required this.childId,
     this.childAvatarUrl,
+    this.childTimeZone,
   });
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) =>
-          ChildDetailMapVm(context.read<ParentLocationVm>(), childId: childId),
+      create: (context) => ChildDetailMapVm(
+        context.read<ParentLocationVm>(),
+        childId: childId,
+        childTimeZone: childTimeZone,
+      ),
       child: _ChildDetailMapBody(
         childId: childId,
         childAvatarUrl: childAvatarUrl,
@@ -41,10 +54,7 @@ class _ChildDetailMapBody extends StatefulWidget {
   final String childId;
   final String? childAvatarUrl;
 
-  const _ChildDetailMapBody({
-    required this.childId,
-    this.childAvatarUrl,
-  });
+  const _ChildDetailMapBody({required this.childId, this.childAvatarUrl});
 
   @override
   State<_ChildDetailMapBody> createState() => _ChildDetailMapBodyState();
@@ -68,6 +78,9 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   late final Animation<double> _cardFade;
 
   bool _hideEmptyCard = false;
+  bool _disposed = false;
+  int _mapGeneration = 0;
+  AuthVM? _authVm;
 
   ChildDetailMapVm get _vm => context.read<ChildDetailMapVm>();
   ParentLocationVm get _parentVm => context.read<ParentLocationVm>();
@@ -98,13 +111,32 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextAuthVm = context.read<AuthVM>();
+    if (!identical(_authVm, nextAuthVm)) {
+      _authVm?.removeListener(_handleAuthStateChanged);
+      _authVm = nextAuthVm;
+      _authVm?.addListener(_handleAuthStateChanged);
+    }
+  }
+
+  @override
   void dispose() {
+    _disposed = true;
+    _authVm?.removeListener(_handleAuthStateChanged);
+    _invalidateMapLifecycle();
     _sub?.cancel();
     _animTick?.cancel();
     _renderDebounce?.cancel();
     _cardAnim.dispose();
     _sheetController.dispose();
     super.dispose();
+  }
+
+  void _handleAuthStateChanged() {
+    if (_authVm?.logoutInProgress != true) return;
+    _invalidateMapLifecycle();
   }
 
   void _syncCardAnimation() {
@@ -155,26 +187,43 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   }
 
   void _startAnimTick() {
+    final generation = _mapGeneration;
     _animTick ??= Timer.periodic(const Duration(milliseconds: 16), (_) async {
-      if (!mounted || _engine == null) return;
+      if (!_isMapGenerationActive(generation)) return;
+      final engine = _engine;
+      if (engine == null) return;
       if (_mover.isAnimating) {
         final smoothed = _mover.current();
-        await _engine!.updateChildDot(smoothed);
+        await _runMapTask(
+          generation: generation,
+          task: () => engine.updateChildDot(smoothed),
+        );
       }
     });
   }
 
-  Future<void> _renderOnMap() async {
+  Future<void> _renderOnMap({int? generation}) async {
+    final activeGeneration = generation ?? _mapGeneration;
     final engine = _engine;
-    if (!mounted || engine == null) return;
+    if (engine == null ||
+        !_isMapGenerationActive(activeGeneration, engine: engine)) {
+      return;
+    }
 
-    await engine.resetForNewHistory();
+    await _runMapTask(
+      generation: activeGeneration,
+      task: () => engine.resetForNewHistory(),
+    );
+    if (!_isMapGenerationActive(activeGeneration, engine: engine)) return;
     final history = _vm.cachedHistory;
 
     if (history.isEmpty) {
-      await engine.setHistoryDotsVisible(_vm.showDots);
+      await _runMapTask(
+        generation: activeGeneration,
+        task: () => engine.setHistoryDotsVisible(_vm.showDots),
+      );
       if (_vm.isToday && _vm.rangeIncludesNow) {
-        await _startRealtime();
+        await _startRealtime(generation: activeGeneration);
       } else {
         await _sub?.cancel();
         _sub = null;
@@ -183,12 +232,19 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       return;
     }
 
-    await engine.loadHistory(history, context);
-    await engine.setHistoryDotsVisible(_vm.showDots);
+    await _runMapTask(
+      generation: activeGeneration,
+      task: () => engine.loadHistory(history, context),
+    );
+    if (!_isMapGenerationActive(activeGeneration, engine: engine)) return;
+    await _runMapTask(
+      generation: activeGeneration,
+      task: () => engine.setHistoryDotsVisible(_vm.showDots),
+    );
     _lastMapMatchAt = DateTime.now();
 
     if (_vm.isToday && _vm.rangeIncludesNow) {
-      await _startRealtime();
+      await _startRealtime(generation: activeGeneration);
     } else {
       await _sub?.cancel();
       _sub = null;
@@ -200,28 +256,20 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   Future<void> _loadForDay(DateTime day) async {
     setState(() => _hideEmptyCard = false);
     final dayOnly = DateTime(day.year, day.month, day.day);
-    final today = DateTime.now();
-    final isToday =
-        dayOnly.year == today.year &&
-        dayOnly.month == today.month &&
-        dayOnly.day == today.day;
-
-    if (!isToday) {
-      await _sub?.cancel();
-      _sub = null;
-    }
+    await _sub?.cancel();
+    _sub = null;
 
     await _vm.loadForDay(dayOnly);
     if (!mounted) return;
 
     _syncCardAnimation();
-    await _renderOnMap();
+    await _renderOnMap(generation: _mapGeneration);
   }
 
-  Future<void> _startRealtime() async {
+  Future<void> _startRealtime({required int generation}) async {
     await _sub?.cancel();
     _sub = _parentVm.watchChildLocation(widget.childId).listen((loc) async {
-      if (!mounted || !_vm.isToday) return;
+      if (!_isMapGenerationActive(generation) || !_vm.isToday) return;
       if (!_vm.isTsInSelectedRange(loc.timestamp)) {
         await _sub?.cancel();
         _sub = null;
@@ -236,18 +284,25 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
 
       _renderDebounce?.cancel();
       _renderDebounce = Timer(const Duration(milliseconds: 300), () async {
-        if (!mounted || _engine == null) return;
-        await _engine!.renderHistoryFast(_vm.cachedHistory, context);
+        if (!_isMapGenerationActive(generation)) return;
+        final engine = _engine;
+        if (engine == null) return;
+        await _runMapTask(
+          generation: generation,
+          task: () => engine.renderHistoryFast(_vm.cachedHistory, context),
+        );
       });
 
       final now = DateTime.now();
-      if (_engine != null &&
+      final engine = _engine;
+      if (engine != null &&
           now.difference(_lastMapMatchAt) >= const Duration(seconds: 20) &&
           _vm.cachedHistory.length >= 6) {
         _lastMapMatchAt = now;
-        await _engine!.updateMatchedRouteIncremental(
-          _vm.cachedHistory,
-          context,
+        await _runMapTask(
+          generation: generation,
+          task: () =>
+              engine.updateMatchedRouteIncremental(_vm.cachedHistory, context),
         );
       }
     });
@@ -258,7 +313,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
     await _vm.applyTimeWindow(startMinute, endMinute);
     if (!mounted) return;
     _syncCardAnimation();
-    await _renderOnMap();
+    await _renderOnMap(generation: _mapGeneration);
   }
 
   Future<void> _pickTimeWindow() async {
@@ -277,16 +332,21 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       context: context,
       initialDate: _vm.selectedDay,
       firstDate: DateTime(2024, 1, 1),
-      lastDate: DateTime.now(),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: Theme.of(ctx).colorScheme.primary,
-            onSurface: Colors.black87,
+      lastDate: _vm.currentLocalDay,
+      builder: (ctx, child) {
+        final theme = Theme.of(ctx);
+        final scheme = theme.colorScheme;
+        return Theme(
+          data: theme.copyWith(
+            colorScheme: scheme.copyWith(
+              primary: scheme.primary,
+              onSurface: scheme.onSurface,
+              surface: locationPanelColor(scheme),
+            ),
           ),
-        ),
-        child: child!,
-      ),
+          child: child!,
+        );
+      },
     );
     if (picked == null) return;
     await _loadForDay(picked);
@@ -294,7 +354,13 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
 
   Future<void> _toggleDots() async {
     _vm.toggleDots();
-    await _engine?.setHistoryDotsVisible(_vm.showDots);
+    final generation = _mapGeneration;
+    final engine = _engine;
+    if (engine == null) return;
+    await _runMapTask(
+      generation: generation,
+      task: () => engine.setHistoryDotsVisible(_vm.showDots),
+    );
   }
 
   String _fmtDay(DateTime value) =>
@@ -302,20 +368,21 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       '${value.month.toString().padLeft(2, '0')}/'
       '${value.year}';
 
-  String _buildAppBarSubtitle(ChildDetailMapVm vm) {
+  String _buildAppBarSubtitle(AppLocalizations l10n, ChildDetailMapVm vm) {
     final latest = vm.latest;
     if (latest == null) {
-      return '${_fmtDay(vm.selectedDay)} \u00B7 ${vm.rangeLabel}';
+      return '${_fmtDay(vm.selectedDay)} · ${vm.rangeLabel}';
     }
 
-    final diff = DateTime.now().difference(latest.dateTime);
+    final diffMs = DateTime.now().millisecondsSinceEpoch - latest.timestamp;
+    final diff = Duration(milliseconds: diffMs < 0 ? 0 : diffMs);
     final freshness = diff.inMinutes <= 0
-        ? 'C\u1EADp nh\u1EADt v\u1EEBa xong'
+        ? l10n.childLocationUpdatedJustNow
         : diff.inMinutes == 1
-        ? 'C\u1EADp nh\u1EADt 1 ph\u00FAt tr\u01B0\u1EDBc'
-        : 'C\u1EADp nh\u1EADt ${diff.inMinutes} ph\u00FAt tr\u01B0\u1EDBc';
+        ? l10n.childLocationUpdatedOneMinuteAgo
+        : l10n.childLocationUpdatedMinutesAgo(diff.inMinutes);
 
-    return '$freshness \u00B7 ${vm.rangeLabel}';
+    return '$freshness · ${vm.rangeLabel}';
   }
 
   String _buildAvatarLabel() {
@@ -329,7 +396,49 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
     return 'BE';
   }
 
+  AppUser? _resolveTrackedMember() {
+    final userVm = context.read<UserVm>();
+    for (final member in userVm.locationMembers) {
+      if (member.uid == widget.childId) {
+        return member;
+      }
+    }
+    for (final member in userVm.familyMembers) {
+      if (member.uid == widget.childId) {
+        return member;
+      }
+    }
+    return null;
+  }
+
+  SafeRouteAccessResult? _resolveSafeRouteAccess() {
+    final viewer = context.read<UserVm>().me;
+    final target = _resolveTrackedMember();
+    if (viewer == null || target == null) {
+      return null;
+    }
+
+    return evaluateSafeRouteAccess(
+      accessControl: context.read<AccessControlService>(),
+      actor: viewer,
+      child: target,
+      requireManageChild: true,
+      requireViewLocation: true,
+    );
+  }
+
+  bool _canOpenSafeRoute() {
+    return _resolveSafeRouteAccess()?.isAllowed ?? false;
+  }
+
+  bool _canManageZones() {
+    final viewer = context.read<UserVm>().me;
+    final target = _resolveTrackedMember();
+    return viewer?.isAdultManager == true && target?.isChild == true;
+  }
+
   Widget _buildAvatarBadge() {
+    final scheme = Theme.of(context).colorScheme;
     final avatarUrl = widget.childAvatarUrl?.trim() ?? '';
     return Container(
       width: 36,
@@ -337,7 +446,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF4CAF7D),
+        color: locationPanelHighlightColor(scheme),
       ),
       child: ClipOval(
         child: avatarUrl.isEmpty
@@ -380,6 +489,8 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   }
 
   PreferredSizeWidget _buildAppBar(ChildDetailMapVm vm) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -392,9 +503,9 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.86),
+            color: locationPanelColor(scheme).withOpacity(0.92),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.90)),
+            border: Border.all(color: locationPanelBorderColor(scheme)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.10),
@@ -414,14 +525,14 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                     child: Ink(
                       width: 34,
                       height: 34,
-                      decoration: const BoxDecoration(
-                        color: Color(0x1A2196F3),
+                      decoration: BoxDecoration(
+                        color: locationPanelHighlightColor(scheme),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_ios_new_rounded,
                         size: 16,
-                        color: Color(0xFF2196F3),
+                        color: scheme.primary,
                       ),
                     ),
                   ),
@@ -432,20 +543,20 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                       children: [
                         Text(
                           vm.isToday
-                              ? 'H\u00E0nh tr\u00ECnh hi\u1EC7n t\u1EA1i'
-                              : 'L\u1ECBch s\u1EED di chuy\u1EC3n',
-                          style: const TextStyle(
+                              ? l10n.childLocationCurrentJourneyTitle
+                              : l10n.childLocationTravelHistoryTitle,
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: Colors.black87,
+                            color: scheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _buildAppBarSubtitle(vm),
+                          _buildAppBarSubtitle(l10n, vm),
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade700,
+                            color: scheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -463,7 +574,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                     child: ChildDetailMapAppBarChip(
                       icon: Icons.calendar_today_rounded,
                       label: vm.isToday
-                          ? 'H\u00F4m nay'
+                          ? l10n.childLocationTodayLabel
                           : _fmtDay(vm.selectedDay),
                       onTap: _pickDay,
                       highlighted: true,
@@ -487,6 +598,9 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   }
 
   Widget _buildFabColumn(ChildDetailMapVm vm) {
+    final l10n = AppLocalizations.of(context);
+    final canOpenSafeRoute = _canOpenSafeRoute();
+    final canManageZones = _canManageZones();
     final startPointSource = vm.selectedPoint ?? vm.latest;
     final startPoint = startPointSource == null
         ? null
@@ -499,42 +613,47 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
     return Column(
       children: [
         ChildDetailMapFab(
-          tooltip: 'Ẩn điểm dừng/Hiện điểm dừng',
+          tooltip: vm.showDots
+              ? l10n.childLocationTooltipHideDots
+              : l10n.childLocationTooltipShowDots,
           icon: Icons.more_vert_rounded,
           active: vm.showDots,
           onTap: _toggleDots,
         ),
-        const SizedBox(height: 10),
-        ChildDetailMapFab(
-          tooltip: 'Quản lý vùng',
-          icon: Icons.hexagon_outlined,
-          active: false,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ChildZonesScreen(childId: widget.childId),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        ChildDetailMapFab(
-          tooltip: 'Tuyến đường an toàn',
-          icon: Icons.route_rounded,
-          active: false,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TrackingPage(
-                childId: widget.childId,
-                childAvatarUrl: widget.childAvatarUrl,
-                initialStartPoint: startPoint,
+        if (canManageZones) ...[
+          const SizedBox(height: 10),
+          ChildDetailMapFab(
+            tooltip: l10n.childLocationTooltipManageZones,
+            icon: Icons.hexagon_outlined,
+            active: false,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChildZonesScreen(childId: widget.childId),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
+        ],
+        if (canOpenSafeRoute) ...[
+          ChildDetailMapFab(
+            tooltip: l10n.childLocationTooltipSafeRoute,
+            icon: Icons.route_rounded,
+            active: false,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TrackingPage(
+                  childId: widget.childId,
+                  childAvatarUrl: widget.childAvatarUrl,
+                  initialStartPoint: startPoint,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         ChildDetailMapFab(
-          tooltip: 'Chọn bản đồ',
+          tooltip: l10n.childLocationTooltipChooseMap,
           icon: Icons.layers_outlined,
           active: false,
           onTap: _mapViewController.showMapSelector,
@@ -546,8 +665,8 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
   Widget _buildOverlay(ChildDetailMapVm vm) {
     final topInset = MediaQuery.of(context).padding.top;
 
-    // chiÃ¡Â»Âu cao vÃƒÂ¹ng header Ã„â€˜ang dÃƒÂ¹ng:
-    // AppBar 110 + khoÃ¡ÂºÂ£ng Ã„â€˜Ã¡Â»â€¡m nhÃƒÂ¬n thÃ¡Â»Â±c tÃ¡ÂºÂ¿ thÃƒÂªm mÃ¡Â»â„¢t chÃƒÂºt
+    // chiều cao vùng header đang dùng:
+    // AppBar 110 + khoảng đệm nhìn thực tế thêm một chút
     final fabTop = topInset + 112 + 18;
 
     return Stack(
@@ -617,26 +736,37 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
       body: Stack(
         children: [
           AppMapView(
+            followThemeForStreetStyle: false,
             controller: _mapViewController,
             showInternalMapTypeButton: false,
-
             onMapCreated: (_) {},
             onTapListener: (gesture) {
               _engine?.handleMapTap(gesture);
             },
             onStyleLoaded: (map) async {
-              _engine = MapEngine(
+              final generation = _beginMapLifecycle();
+              final engine = MapEngine(
                 map,
                 enableChildDot: true,
                 childAvatarUrl: widget.childAvatarUrl,
                 onHistoryPointSelected: (point) async {
-                  if (!mounted) return;
+                  if (!_isMapGenerationActive(generation)) {
+                    return;
+                  }
                   await _showPointDetails(point);
                 },
               );
-              await _engine!.init();
+              _engine = engine;
+              await _runMapTask(
+                generation: generation,
+                task: () => engine.init(),
+              );
+              if (!_isMapGenerationActive(generation, engine: engine)) {
+                engine.dispose();
+                return;
+              }
               if (_vm.historyLoaded) {
-                await _renderOnMap();
+                await _renderOnMap(generation: generation);
               }
             },
           ),
@@ -646,5 +776,61 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
         ],
       ),
     );
+  }
+
+  int _beginMapLifecycle() {
+    _mapGeneration++;
+    final currentSub = _sub;
+    if (currentSub != null) {
+      unawaited(currentSub.cancel());
+    }
+    _sub = null;
+    _renderDebounce?.cancel();
+    _renderDebounce = null;
+    _animTick?.cancel();
+    _animTick = null;
+    _engine?.dispose();
+    _engine = null;
+    return _mapGeneration;
+  }
+
+  void _invalidateMapLifecycle() {
+    _mapGeneration++;
+    final currentSub = _sub;
+    if (currentSub != null) {
+      unawaited(currentSub.cancel());
+    }
+    _sub = null;
+    _renderDebounce?.cancel();
+    _renderDebounce = null;
+    _animTick?.cancel();
+    _animTick = null;
+    _engine?.dispose();
+    _engine = null;
+  }
+
+  bool _isMapGenerationActive(int generation, {MapEngine? engine}) {
+    if (_disposed || !mounted || generation != _mapGeneration) {
+      return false;
+    }
+    if (engine != null && !identical(_engine, engine)) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _runMapTask({
+    required int generation,
+    required Future<void> Function() task,
+  }) async {
+    if (!_isMapGenerationActive(generation)) return;
+    try {
+      await task();
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isMapGenerationActive(generation)) {
+        return;
+      }
+      rethrow;
+    }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/terms_vm.dart';
 import 'package:provider/provider.dart';
 
@@ -14,110 +15,121 @@ class _TermsScreenScreenState extends State<TermsScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      if (!mounted) return;
       context.read<TermsVM>().loadTerms();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = context.watch<TermsVM>();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: vm.isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(
+                child: CircularProgressIndicator(color: colorScheme.primary),
+              )
             : vm.terms == null
-            ? const Center(child: Text("Không có dữ liệu"))
+            ? Center(
+                child: Text(
+                  l10n.termsNoData,
+                  style: textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              )
             : Column(
                 children: [
-                  /// HEADER
                   SizedBox(
                     height: 48,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        /// back button
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
                             padding: const EdgeInsets.all(8),
                             onPressed: () => Navigator.pop(context),
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.arrow_back_ios_new,
                               size: 20,
+                              color: colorScheme.onSurface,
                             ),
                           ),
                         ),
 
-                        /// title
-                        const Text(
-                          "Điều khoản",
-                          style: TextStyle(
+                        Text(
+                          l10n.termsTitle,
+                          style: textTheme.titleLarge?.copyWith(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 20),
 
-                  /// CONTENT
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          /// title
                           Text(
                             vm.terms!.title,
-                            style: const TextStyle(
+                            style: textTheme.headlineSmall?.copyWith(
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
                               letterSpacing: -0.2,
+                              color: colorScheme.onSurface,
                             ),
                           ),
-
                           const SizedBox(height: 8),
 
-                          /// last updated
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.schedule,
                                 size: 14,
-                                color: Color(0xFF6C7278),
+                                color: colorScheme.onSurface.withOpacity(0.65),
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                "Cập nhật lần cuối: ${vm.terms!.lastUpdated}",
-                                style: const TextStyle(
-                                  color: Color(0xFF6C7278),
+                                l10n.termsLastUpdated(vm.terms!.lastUpdated),
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurface.withOpacity(
+                                    0.65,
+                                  ),
                                   fontSize: 13,
                                 ),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 16),
+
+                          Container(
+                            height: 1,
+                            color: colorScheme.outline.withOpacity(0.35),
+                          ),
 
                           const SizedBox(height: 16),
 
-                          /// divider
-                          Container(height: 1, color: const Color(0xFFEDEDED)),
-
-                          const SizedBox(height: 16),
-
-                          /// content
                           Expanded(
                             child: SingleChildScrollView(
                               child: Text(
                                 vm.terms!.content.trim(),
-                                style: const TextStyle(
+                                style: textTheme.bodyMedium?.copyWith(
                                   fontSize: 15,
                                   height: 1.7,
-                                  color: Color(0xFF2B2B2B),
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                             ),

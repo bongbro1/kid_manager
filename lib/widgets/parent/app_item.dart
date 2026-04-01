@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/utils/date_utils.dart';
+
 class AppItem extends StatelessWidget {
   final String appName;
   final String usageTimeText;
@@ -12,7 +13,7 @@ class AppItem extends StatelessWidget {
   final VoidCallback? onTap;
 
   /// Optional styling
-  final double width;
+  final double? width;
   final double height;
   final Color? backgroundColor;
   final EdgeInsetsGeometry padding;
@@ -29,7 +30,7 @@ class AppItem extends StatelessWidget {
     required this.app,
     this.iconBase64,
     this.onTap,
-    this.width = 366,
+    this.width,
     this.height = 70,
     this.backgroundColor,
     this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -64,122 +65,129 @@ class AppItem extends StatelessWidget {
     final defaultSubtitleStyle = textTheme.bodySmall?.copyWith(
       fontSize: 13,
       fontWeight: FontWeight.w500,
-      color: scheme.onSurface.withOpacity(0.7),
+      color: scheme.onSurface.withValues(alpha: 0.7),
       fontFamily: "Poppins",
       height: 1.33,
     );
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: width,
-          height: height,
-          padding: padding,
-          decoration: ShapeDecoration(
-            color: backgroundColor ?? scheme.surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            shadows: [
-              BoxShadow(
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-                color: scheme.shadow.withOpacity(0.08),
-              ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 40,
-                height: 40,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: app.iconBytes != null
-                      ? Image.memory(
-                          app.iconBytes!,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.contain,
-                          gaplessPlayback: true,
-                        )
-                      : Icon(
-                          Icons.apps,
-                          size: 24,
-                          color: scheme.onSurface.withOpacity(0.5),
-                        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double? effectiveWidth = width;
+        if (effectiveWidth != null && constraints.maxWidth.isFinite) {
+          effectiveWidth = effectiveWidth.clamp(0, constraints.maxWidth);
+        }
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: effectiveWidth ?? double.infinity,
+              constraints: BoxConstraints(minHeight: height),
+              padding: padding,
+              decoration: ShapeDecoration(
+                color: backgroundColor ?? scheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-              ),
-
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: SizedBox.expand(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 2),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              appName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: titleStyle ?? defaultTitleStyle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            usageTimeText,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: subtitleStyle ?? defaultSubtitleStyle,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 8,
-                        backgroundColor: scheme.outline.withOpacity(0.18),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          scheme.primary,
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ],
+                shadows: [
+                  BoxShadow(
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                    color: scheme.shadow.withValues(alpha: 0.08),
                   ),
-                ),
+                ],
               ),
-
-              if (showRightIcon) ...[
-                const SizedBox(width: 6),
-                InkResponse(
-                  onTap: onTap,
-                  radius: 22,
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Icon(
-                      Icons.chevron_right,
-                      size: 20,
-                      color: scheme.onSurface.withOpacity(0.65),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: app.iconBytes != null
+                          ? Image.memory(
+                              app.iconBytes!,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                              gaplessPlayback: true,
+                            )
+                          : Icon(
+                              Icons.apps,
+                              size: 24,
+                              color: scheme.onSurface.withValues(alpha: 0.5),
+                            ),
                     ),
                   ),
-                ),
-              ],
-            ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                appName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: titleStyle ?? defaultTitleStyle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 88),
+                              child: Text(
+                                usageTimeText,
+                                textAlign: TextAlign.end,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: subtitleStyle ?? defaultSubtitleStyle,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 8,
+                          backgroundColor: scheme.outline.withValues(
+                            alpha: 0.18,
+                          ),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            scheme.primary,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (showRightIcon) ...[
+                    const SizedBox(width: 6),
+                    InkResponse(
+                      onTap: onTap,
+                      radius: 22,
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(
+                          Icons.chevron_right,
+                          size: 20,
+                          color: scheme.onSurface.withValues(alpha: 0.65),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

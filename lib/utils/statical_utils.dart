@@ -1,3 +1,5 @@
+import 'package:kid_manager/l10n/app_localizations.dart';
+
 enum ChartMode { today, week, range }
 
 class ChartPoint {
@@ -68,10 +70,8 @@ class ChartUiBuilder {
     switch (mode) {
       case ChartMode.today:
         return index == now.hour;
-
       case ChartMode.week:
         return index == now.weekday - 1;
-
       case ChartMode.range:
         return false;
     }
@@ -81,10 +81,8 @@ class ChartUiBuilder {
     switch (mode) {
       case ChartMode.today:
         return index > now.hour;
-
       case ChartMode.week:
         return index > now.weekday - 1;
-
       case ChartMode.range:
         return false;
     }
@@ -98,16 +96,15 @@ class ChartDataHelper {
     Map<DateTime, Map<int, int>>? hourlyMap,
     DateTime? fromDate,
     DateTime? toDate,
+    AppLocalizations? l10n,
   }) {
     final now = DateTime.now();
 
     switch (mode) {
       case ChartMode.today:
-        return _buildDay(now, hourlyMap);
-
+        return _buildDay(now, hourlyMap, l10n);
       case ChartMode.week:
-        return _buildWeek(now, usageMap);
-
+        return _buildWeek(now, usageMap, l10n);
       case ChartMode.range:
         if (fromDate != null && toDate != null) {
           return _buildRange(fromDate, toDate, usageMap);
@@ -119,6 +116,7 @@ class ChartDataHelper {
   static List<ChartPoint> _buildDay(
     DateTime now,
     Map<DateTime, Map<int, int>>? hourlyMap,
+    AppLocalizations? l10n,
   ) {
     final day = normalizeDay(now);
 
@@ -127,13 +125,17 @@ class ChartDataHelper {
     return List.generate(24, (hour) {
       final minutes = hours[hour] ?? 0;
 
-      return ChartPoint(label: "${hour}h", minutes: minutes);
+      return ChartPoint(
+        label: l10n?.parentStatsHourLabel(hour) ?? "${hour}h",
+        minutes: minutes,
+      );
     });
   }
 
   static List<ChartPoint> _buildWeek(
     DateTime now,
     Map<DateTime, int> usageMap,
+    AppLocalizations? l10n,
   ) {
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
 
@@ -146,7 +148,10 @@ class ChartDataHelper {
 
       final minutes = usageMap[day] ?? 0;
 
-      return ChartPoint(label: _weekdayLabel(day.weekday), minutes: minutes);
+      return ChartPoint(
+        label: _weekdayLabel(day.weekday, l10n),
+        minutes: minutes,
+      );
     });
   }
 
@@ -173,9 +178,29 @@ class ChartDataHelper {
     });
   }
 
-  static String _weekdayLabel(int weekday) {
-    const labels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-    return labels[weekday - 1];
+  static String _weekdayLabel(int weekday, AppLocalizations? l10n) {
+    if (l10n == null) {
+      const labels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+      return labels[weekday - 1];
+    }
+
+    switch (weekday) {
+      case 1:
+        return l10n.scheduleWeekdayMon;
+      case 2:
+        return l10n.scheduleWeekdayTue;
+      case 3:
+        return l10n.scheduleWeekdayWed;
+      case 4:
+        return l10n.scheduleWeekdayThu;
+      case 5:
+        return l10n.scheduleWeekdayFri;
+      case 6:
+        return l10n.scheduleWeekdaySat;
+      case 7:
+        return l10n.scheduleWeekdaySun;
+    }
+    return '';
   }
 }
 

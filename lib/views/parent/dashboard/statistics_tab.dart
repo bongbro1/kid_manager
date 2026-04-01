@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/utils/date_utils.dart';
@@ -182,18 +183,12 @@ class _StatisticsTabState extends State<StatisticsTab> {
   void initState() {
     super.initState();
 
-    _chartScrollController.addListener(() {
-      if (selectedBarIndex != null) {
-        setState(() {});
-      }
-    });
-
     widget.vm.addListener(_onVmChanged);
     _buildChart();
   }
 
   void _onVmChanged() {
-    _buildChart();
+    _buildChart(l10n: AppLocalizations.of(context));
     setState(() {});
   }
 
@@ -204,13 +199,20 @@ class _StatisticsTabState extends State<StatisticsTab> {
     if (_lastUsageVersion != widget.vm.usageVersion) {
       _lastUsageVersion = widget.vm.usageVersion;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _buildChart();
+        _buildChart(l10n: AppLocalizations.of(context));
       });
     }
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _buildChart(l10n: AppLocalizations.of(context));
+  }
+
+  @override
   void dispose() {
+    _chartScrollController.dispose();
     widget.vm.removeListener(_onVmChanged);
     super.dispose();
   }
@@ -223,7 +225,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
     return ChartMode.range;
   }
 
-  void _buildChart() {
+  void _buildChart({AppLocalizations? l10n}) {
     final mode = _resolveMode();
     final points = ChartDataHelper.generate(
       mode: mode,
@@ -231,6 +233,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
       hourlyMap: widget.vm.hourlyUsage,
       fromDate: fromDate,
       toDate: toDate,
+      l10n: l10n,
     );
 
     chartBars = ChartUiBuilder.build(points, mode);
@@ -273,7 +276,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
         toDate = end;
       });
 
-      _buildChart();
+      _buildChart(l10n: AppLocalizations.of(context));
     }
   }
 
@@ -308,6 +311,12 @@ class _StatisticsTabState extends State<StatisticsTab> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final isCompactPhone = context.isCompactPhone;
+    final chartContainerPadding = isCompactPhone
+        ? const EdgeInsets.fromLTRB(16, 20, 16, 24)
+        : const EdgeInsets.fromLTRB(24, 24, 24, 32);
+    final chartHeight = isCompactPhone ? 180.0 : 200.0;
+    final headerHorizontalPadding = isCompactPhone ? 4.0 : 8.0;
 
     return Column(
       children: [
@@ -360,14 +369,16 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                  padding: chartContainerPadding,
                   decoration: BoxDecoration(
                     color: scheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: scheme.outline.withOpacity(0.2)),
+                    border: Border.all(
+                      color: scheme.outline.withValues(alpha: 0.2),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: scheme.shadow.withOpacity(0.08),
+                        color: scheme.shadow.withValues(alpha: 0.08),
                         blurRadius: 2,
                         offset: const Offset(0, 1),
                       ),
@@ -386,7 +397,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
                               Text(
                                 _totalTitle(l10n),
                                 style: textTheme.labelSmall?.copyWith(
-                                  color: scheme.onSurface.withOpacity(0.6),
+                                  color: scheme.onSurface.withValues(
+                                    alpha: 0.6,
+                                  ),
                                   fontSize: 12,
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w700,
@@ -395,7 +408,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                formatMinutes(totalMinutes),
+                                formatMinutes(totalMinutes, l10n: l10n),
                                 style: textTheme.headlineMedium?.copyWith(
                                   color: scheme.onSurface,
                                   fontSize: 30,
@@ -411,7 +424,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
                       /// CHART
                       SizedBox(
-                        height: 200,
+                        height: chartHeight,
                         child: _resolveMode() == ChartMode.today
                             ? _buildLineChart(context: context)
                             : _buildBarChart(),
@@ -421,7 +434,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 ),
                 const SizedBox(height: 16),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: headerHorizontalPadding,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -466,7 +481,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                       key: ValueKey('stats_${app.packageName}'),
                       appName: app.name,
                       app: app,
-                      usageTimeText: formatMinutes(row.minutes),
+                      usageTimeText: formatMinutes(row.minutes, l10n: l10n),
                       iconBase64: app.iconBase64,
                       showRightIcon: false,
                     ),
@@ -518,7 +533,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                   lineColor: scheme.primary,
                   pointColor: scheme.primary,
                   selectedPointColor: scheme.tertiary,
-                  labelColor: scheme.onSurface.withOpacity(0.6),
+                  labelColor: scheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
 
@@ -565,7 +580,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
   Widget _buildBarChart() {
     const maxChartHeight = 150.0;
-    final scheme = Theme.of(context).colorScheme;
+    if (chartBars.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     final maxMinutes = chartBars.isEmpty
         ? 0
@@ -574,6 +591,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = chartBars.length;
+        if (count == 0) {
+          return const SizedBox.shrink();
+        }
 
         double barWidth;
 
@@ -657,7 +677,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
         onTap: () {
           setState(() {
             activeIndex = index;
-            _buildChart();
+            _buildChart(l10n: AppLocalizations.of(context));
           });
         },
         child: AnimatedContainer(
@@ -666,11 +686,11 @@ class _StatisticsTabState extends State<StatisticsTab> {
           alignment: Alignment.center,
           decoration: isActive
               ? BoxDecoration(
-                  color: scheme.primary.withOpacity(0.08),
+                  color: scheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: scheme.shadow.withOpacity(0.08),
+                      color: scheme.shadow.withValues(alpha: 0.08),
                       blurRadius: 2,
                       offset: const Offset(0, 1),
                     ),
@@ -679,6 +699,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
               : null,
           child: Text(
             text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: textTheme.labelLarge?.copyWith(
               color: isActive ? scheme.primary : scheme.onSurfaceVariant,
               fontSize: 14,

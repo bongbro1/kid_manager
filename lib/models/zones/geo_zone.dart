@@ -63,12 +63,12 @@ class GeoZone {
   };
 
   factory GeoZone.fromJson(String id, Map<String, dynamic> json) {
-    double _toDouble(dynamic v) {
+    double toDouble(dynamic v) {
       if (v is num) return v.toDouble();
       return double.tryParse(v?.toString() ?? "") ?? 0;
     }
 
-    int _toInt(dynamic v) {
+    int toInt(dynamic v) {
       if (v is int) return v;
       if (v is num) return v.toInt();
       return int.tryParse(v?.toString() ?? "") ?? 0;
@@ -78,13 +78,13 @@ class GeoZone {
       id: id,
       name: (json["name"] ?? "").toString(),
       type: ZoneTypeX.parse(json["type"]),
-      lat: _toDouble(json["lat"]),
-      lng: _toDouble(json["lng"]),
-      radiusM: _toDouble(json["radiusM"]),
+      lat: toDouble(json["lat"]),
+      lng: toDouble(json["lng"]),
+      radiusM: toDouble(json["radiusM"]),
       enabled: (json["enabled"] ?? true) == true,
       createdBy: (json["createdBy"] ?? "").toString(),
-      createdAt: _toInt(json["createdAt"]),
-      updatedAt: _toInt(json["updatedAt"]),
+      createdAt: toInt(json["createdAt"]),
+      updatedAt: toInt(json["updatedAt"]),
     );
   }
 }
@@ -95,7 +95,7 @@ extension ZoneTypeX on ZoneType {
   static ZoneType parse(dynamic v) {
     final s = (v ?? "").toString().trim();
     return ZoneType.values.firstWhere(
-          (e) => e.name == s,
+      (e) => e.name == s,
       orElse: () => ZoneType.safe,
     );
   }

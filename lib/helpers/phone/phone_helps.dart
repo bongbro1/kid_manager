@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/widgets/parent/phone/add_children_phone.dart';
@@ -11,14 +12,14 @@ Future<void> handleCallChildByProfile({
   required String childName,
 }) async {
   final repo = context.read<UserRepository>();
+  final navigator = Navigator.of(context);
 
   try {
     final profile = await repo.getUserProfile(childId);
     final phone = (profile?.phone ?? '').trim();
 
     if (phone.isEmpty) {
-      final result = await Navigator.push<String>(
-        context,
+      final result = await navigator.push<String>(
         MaterialPageRoute(
           builder: (_) =>
               AddChildPhoneScreen(childId: childId, childName: childName),
@@ -33,6 +34,7 @@ Future<void> handleCallChildByProfile({
         barrierDismissible: true,
         barrierColor: Colors.black.withOpacity(0.3),
         builder: (dialogContext) {
+          final l10n = AppLocalizations.of(dialogContext);
           final config = DialogConfig.from(DialogType.success);
 
           return Dialog(
@@ -49,10 +51,10 @@ Future<void> handleCallChildByProfile({
                 children: [
                   config.iconBuilder(),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Thêm thành công',
+                  Text(
+                    l10n.phoneHelperSaveSuccessTitle,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -60,7 +62,7 @@ Future<void> handleCallChildByProfile({
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Số điện thoại của bé đã được lưu thành công',
+                    l10n.phoneHelperSaveSuccessMessage,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
@@ -82,9 +84,9 @@ Future<void> handleCallChildByProfile({
                         ),
                       ),
                       onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: const Text(
-                        'Đóng',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.birthdayCloseButton,
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
@@ -106,9 +108,10 @@ Future<void> handleCallChildByProfile({
   } catch (e) {
     if (!context.mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Không thể thực hiện cuộc gọi: $e')));
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.phoneHelperCallActionFailed('$e'))),
+    );
   }
 }
 
@@ -120,15 +123,17 @@ Future<void> launchPhoneCall(BuildContext context, String phone) async {
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
 
     if (!ok && context.mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không thể mở ứng dụng điện thoại')),
+        SnackBar(content: Text(l10n.phoneHelperOpenDialerFailed)),
       );
     }
   } catch (e) {
     if (!context.mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Gọi điện thất bại: $e')));
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.phoneHelperLaunchCallFailed('$e'))),
+    );
   }
 }

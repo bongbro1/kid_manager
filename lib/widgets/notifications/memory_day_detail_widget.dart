@@ -15,6 +15,8 @@ class MemoryDayDetailWidget extends StatelessWidget {
         return l10n.notificationsActionUpdated;
       case 'deleted':
         return l10n.notificationsActionDeleted;
+      case 'reminder':
+        return l10n.notificationFilterReminder;
       default:
         return l10n.notificationsActionChanged;
     }
@@ -28,6 +30,8 @@ class MemoryDayDetailWidget extends StatelessWidget {
         return Icons.edit_calendar_rounded;
       case 'deleted':
         return Icons.delete_outline_rounded;
+      case 'reminder':
+        return Icons.notifications_active_outlined;
       default:
         return Icons.info_outline_rounded;
     }
@@ -41,6 +45,8 @@ class MemoryDayDetailWidget extends StatelessWidget {
         return const Color(0xFF7C3AED);
       case 'deleted':
         return const Color(0xFFDC2626);
+      case 'reminder':
+        return const Color(0xFFD97706);
       default:
         return const Color(0xFF475569);
     }
@@ -55,6 +61,7 @@ class MemoryDayDetailWidget extends StatelessWidget {
     final memoryDayTitle = (data['memoryDayTitle'] ?? '').toString().trim();
     final date = (data['date'] ?? '').toString();
     final note = (data['note'] ?? '').toString().trim();
+    final daysUntil = int.tryParse((data['daysUntil'] ?? '').toString());
     final repeatYearlyRaw = (data['repeatYearly'] ?? '')
         .toString()
         .toLowerCase();
@@ -95,6 +102,17 @@ class MemoryDayDetailWidget extends StatelessWidget {
               ? l10n.notificationsRepeatYearly
               : l10n.notificationsRepeatNone,
         ),
+
+        if (action == 'reminder' && daysUntil != null) ...[
+          const SizedBox(height: 14),
+          _infoTile(
+            icon: Icons.timelapse_rounded,
+            label: l10n.memoryDayReminderLabel,
+            value: daysUntil == 0
+                ? l10n.memoryDayToday
+                : l10n.memoryDayDaysLeft(daysUntil),
+          ),
+        ],
 
         if (note.isNotEmpty) ...[
           const SizedBox(height: 18),

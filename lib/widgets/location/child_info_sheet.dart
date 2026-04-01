@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/schedule.dart';
 import 'package:kid_manager/widgets/common/avatar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/widgets/location/batterIcon.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class ChildInfoSheet extends StatefulWidget {
   final AppUser child;
@@ -51,12 +53,12 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã gửi tin nhắn')),
+        SnackBar(content: Text(AppLocalizations.of(context).locationMessageSent)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gửi thất bại: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).familyChatSendFailed('$e'))),
       );
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -92,25 +94,34 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
 
   String _formatScheduleTime(DateTime startAt, DateTime endAt) {
     String two(int v) => v.toString().padLeft(2, '0');
-    final start = '${two(startAt.hour)}h${two(startAt.minute)}p';
-    final end = '${two(endAt.hour)}h${two(endAt.minute)}p';
-    return '$start – $end';
+    final start = '${two(startAt.hour)}:${two(startAt.minute)}';
+    final end = '${two(endAt.hour)}:${two(endAt.minute)}';
+    return '$start - $end';
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final child = widget.child;
     final latest = widget.latest;
+    final panelColor = locationPanelColor(scheme);
+    final panelMutedColor = locationPanelMutedColor(scheme);
+    final panelBorderColor = locationPanelBorderColor(scheme);
+    final panelHighlightColor = locationPanelHighlightColor(scheme);
 
-    final name = child.displayName!.isNotEmpty ? child.displayName : child.email;
-    final initial = name!.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    final name = (child.displayName?.isNotEmpty ?? false)
+        ? child.displayName!
+        : (child.email ?? '');
     final  double circularBorder =49;
     final schedules = List<Schedule>.from(widget.daySchedules)
       ..sort((a, b) => a.startAt.compareTo(b.startAt));
     final shownSchedules = schedules.take(4).toList();
+    
     // ✅ TODO: thay bằng dữ liệu thật từ widget.child hoặc widget.latest
     const int batteryLevel = 20; // thử thay 90, 45, 15 để thấy màu thay đổi
-    const statusText = 'Đang học';
+    final statusText = l10n.locationStatusStudying;
 
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
@@ -126,7 +137,7 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
           child: Align(
             alignment: Alignment.bottomCenter,
             child: Material(
-              color: Colors.white,
+              color: panelColor,
               borderRadius: BorderRadius.circular(28),
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: maxHeight),
@@ -139,20 +150,20 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                         width: 44,
                         height: 5,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: panelBorderColor,
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        'Thông tin',
+                      Text(
+                        l10n.locationChildInfoTitle,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: textTheme.titleLarge?.copyWith(
                           fontSize: 20,
                           height: 1.1,
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF222B45),
+                          color: scheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -161,7 +172,8 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade200),
+                          color: panelMutedColor,
+                          border: Border.all(color: panelBorderColor),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -176,9 +188,10 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                     name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w800,
                                       fontSize: 14,
+                                      color: scheme.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -193,9 +206,12 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      const Text(
-                                        'Online',
-                                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                                      Text(
+                                        l10n.memberManagementOnline,
+                                        style: TextStyle(
+                                          color: scheme.onSurfaceVariant,
+                                          fontSize: 12,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -209,12 +225,16 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                 width: 38,
                                 height: 38,
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
+                                  color: panelHighlightColor,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: SvgPicture.asset(
                                   "assets/icons/message.svg",
                                   fit: BoxFit.contain,
+                                  colorFilter: ColorFilter.mode(
+                                    scheme.primary,
+                                    BlendMode.srcIn,
+                                  ),
                                 ),
                               ),
                             ),
@@ -229,10 +249,10 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                         width: 350,
                         height: 49,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: panelMutedColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFFDADADA),
+                            color: panelBorderColor,
                             width: 1,
                           ),
                         ),
@@ -240,19 +260,19 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                           children: [
                             TextField(
                               controller: _msgCtl,
-                              decoration: const InputDecoration(
-                                hintText: 'Gửi tin nhắn nhanh...',
+                              decoration: InputDecoration(
+                                hintText: l10n.locationQuickMessageHint,
                                 hintStyle: TextStyle(
                                   fontSize: 14,
-                                  color: Color(0xFF9CA3AF),
+                                  color: scheme.onSurfaceVariant,
                                 ),
                                 border: InputBorder.none,
                                 isDense: true,
                                 contentPadding: EdgeInsets.fromLTRB(12, 14, 44, 14),
                               ),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF303336),
+                                color: scheme.onSurface,
                               ),
                               textInputAction: TextInputAction.send,
                               onSubmitted: (_) => _send(),
@@ -274,6 +294,10 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                       : SvgPicture.asset(
                                     "assets/icons/send-message.svg",
                                     fit: BoxFit.contain,
+                                    colorFilter: ColorFilter.mode(
+                                      scheme.primary,
+                                      BlendMode.srcIn,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -294,10 +318,10 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
 
                               padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: panelMutedColor,
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
-                                  color: const Color(0xFFDADADA),
+                                  color: panelBorderColor,
                                   width: 1,
                                 ),
                               ),
@@ -307,23 +331,28 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: panelColor,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: const Color(0xFFDADADA),
+                                        color: panelBorderColor,
                                         width: 1,
                                       ),
                                     ),
-                                    child: const Row(
+                                    child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.calendar_month, size: 16),
-                                        SizedBox(width: 6),
+                                        Icon(
+                                          Icons.calendar_month,
+                                          size: 16,
+                                          color: scheme.primary,
+                                        ),
+                                        const SizedBox(width: 6),
                                         Text(
-                                          'Lịch trình',
+                                          l10n.scheduleScreenTitle,
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
+                                            color: scheme.onSurface,
                                           ),
                                         ),
                                       ],
@@ -331,11 +360,11 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                   ),
                                   const SizedBox(height: 12),
                                   if (shownSchedules.isEmpty)
-                                    const Text(
-                                      'Không có lịch trong ngày',
+                                    Text(
+                                      l10n.scheduleNoEventsInDay,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: Color(0xFF6B7280),
+                                        color: scheme.onSurfaceVariant,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     )
@@ -376,7 +405,7 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                               height: 50,
                               padding: const EdgeInsets.all(1), // khoảng cách cho border
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade300, // border màu xám
+                                color: panelBorderColor, // border theo theme
                                 borderRadius: BorderRadius.circular(circularBorder),
                                 boxShadow: [
                                   BoxShadow(
@@ -388,7 +417,7 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                               ),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white, // nền trắng bên trong
+                                  color: panelColor, // nền theo theme
                                   borderRadius: BorderRadius.circular(circularBorder),
                                 ),
                                 child: Stack(
@@ -474,7 +503,7 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                               level: batteryLevel,
                                               color: batteryLevel > 30
                                                   ? Colors.white
-                                                  : Colors.grey.shade700,
+                                                  : scheme.onSurfaceVariant,
                                             ),
                                           ),
                                           const SizedBox(width: 6),
@@ -486,7 +515,9 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                               return Text(
                                                 '$value%',
                                                 style: TextStyle(
-                                                  color: batteryLevel > 30 ? Colors.white : Colors.grey.shade700,
+                                                  color: batteryLevel > 30
+                                                      ? Colors.white
+                                                      : scheme.onSurfaceVariant,
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 14,
                                                   shadows: batteryLevel > 30 ? [
@@ -530,7 +561,9 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                     "assets/icons/gps.svg",
                                     fit: BoxFit.contain,
                                   ),
-                                  label: widget.isSearching ? 'Tắt tìm kiếm' : 'Tìm kiếm',
+                                  label: widget.isSearching
+                                      ? l10n.locationStopSearching
+                                      : l10n.locationSearchHint,
                                   onTap: widget.onToggleSearch,
                                 ),
                               ],
@@ -542,8 +575,14 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                       if (latest != null) ...[
                         const SizedBox(height: 10),
                         Text(
-                          'Lat ${latest.latitude.toStringAsFixed(4)} • Lng ${latest.longitude.toStringAsFixed(4)}',
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          l10n.locationCoordinatesSummary(
+                            latest.latitude.toStringAsFixed(4),
+                            latest.longitude.toStringAsFixed(4),
+                          ),
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ],
@@ -569,6 +608,7 @@ class _ScheduleItemStyled extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -576,8 +616,8 @@ class _ScheduleItemStyled extends StatelessWidget {
           margin: const EdgeInsets.only(top: 6),
           width: 8,
           height: 8,
-          decoration: const BoxDecoration(
-            color: Color(0xFF2563EB),
+          decoration: BoxDecoration(
+            color: scheme.primary,
             shape: BoxShape.circle,
           ),
         ),
@@ -588,18 +628,18 @@ class _ScheduleItemStyled extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF2563EB),
+                  color: scheme.primary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 time,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF6B7280),
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -615,21 +655,20 @@ class _RightPill extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  final Color backgroundColor;
-  final Color foregroundColor;
-
   static const double circularBorder = 49;
 
   const _RightPill({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.backgroundColor = const Color(0xFF2563EB), // nền xanh
-    this.foregroundColor = Colors.white,            // chữ + icon trắng
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final backgroundColor = scheme.primary;
+    final foregroundColor = scheme.onPrimary;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(circularBorder),
@@ -640,7 +679,7 @@ class _RightPill extends StatelessWidget {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(circularBorder),
           border: Border.all(
-            color: backgroundColor, // viền cùng màu nền
+            color: backgroundColor,
             width: 1,
           ),
         ),
@@ -652,7 +691,13 @@ class _RightPill extends StatelessWidget {
                 color: foregroundColor,
                 size: 18,
               ),
-              child: icon,
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                  foregroundColor,
+                  BlendMode.srcIn,
+                ),
+                child: icon,
+              ),
             ),
             const SizedBox(width: 8),
             Text(

@@ -29,6 +29,14 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        TrackingServiceChannel.register(
+            flutterEngine.dartExecutor.binaryMessenger,
+            applicationContext,
+        )
+        DeviceTimeZoneChannel.register(
+            flutterEngine.dartExecutor.binaryMessenger,
+        )
+
         // WATCHER CHANNEL
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WATCHER_CONFIG_CHANNEL)
             .setMethodCallHandler { call, result ->

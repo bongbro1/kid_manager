@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
+
 import '../models/schedule.dart';
 import '../models/schedule_history.dart';
 
@@ -8,6 +10,8 @@ class ScheduleRepository {
   ScheduleRepository(this._firestore);
 
   CollectionReference<Map<String, dynamic>> _scheduleCol(String parentUid) {
+    // Phase 2: parentUid here is the explicit owner namespace passed from the
+    // ViewModel, so guardian can reuse parents/{ownerParentUid}/...
     return _firestore
         .collection('parents')
         .doc(parentUid)
@@ -37,8 +41,8 @@ class ScheduleRepository {
         .get();
 
     return snapshot.docs
-    .map((doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid))
-    .toList();
+        .map((doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid))
+        .toList();
   }
 
   Future<List<Schedule>> getSchedulesByRange({
@@ -55,8 +59,8 @@ class ScheduleRepository {
         .get();
 
     return snapshot.docs
-    .map((doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid))
-    .toList();
+        .map((doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid))
+        .toList();
   }
 
   Future<String> createSchedule(String parentUid, Schedule s) async {
@@ -64,15 +68,16 @@ class ScheduleRepository {
     return ref.id;
   }
 
-  /// update có lưu history snapshot của bản cũ
+  /// Updates a schedule and stores a history snapshot of the previous version.
   Future<void> updateSchedule(String parentUid, Schedule newSchedule) async {
+    final l10n = runtimeL10n();
     final scheduleRef = _scheduleCol(parentUid).doc(newSchedule.id);
     final historyRef = _historyCol(parentUid, newSchedule.id).doc();
 
     await _firestore.runTransaction((tx) async {
       final currentSnap = await tx.get(scheduleRef);
       if (!currentSnap.exists) {
-        throw Exception('Lịch trình không tồn tại');
+        throw Exception(l10n.scheduleRepositoryNotFound);
       }
 
       final currentSchedule = Schedule.fromFirestore(currentSnap);
@@ -112,6 +117,7 @@ class ScheduleRepository {
     required String scheduleId,
     required String historyId,
   }) async {
+    final l10n = runtimeL10n();
     final scheduleRef = _scheduleCol(parentUid).doc(scheduleId);
     final selectedHistoryRef = _historyCol(parentUid, scheduleId).doc(historyId);
 
@@ -124,12 +130,12 @@ class ScheduleRepository {
     await _firestore.runTransaction((tx) async {
       final currentSnap = await tx.get(scheduleRef);
       if (!currentSnap.exists) {
-        throw Exception('Lịch trình hiện tại không tồn tại');
+        throw Exception(l10n.scheduleRepositoryCurrentNotFound);
       }
 
       final selectedHistorySnap = await tx.get(selectedHistoryRef);
       if (!selectedHistorySnap.exists) {
-        throw Exception('Bản lịch sử không tồn tại');
+        throw Exception(l10n.scheduleRepositoryHistoryNotFound);
       }
 
       final currentSchedule = Schedule.fromFirestore(currentSnap);
@@ -177,7 +183,7 @@ class ScheduleRepository {
   Future<void> deleteSchedule(String parentUid, String id) async {
     final historySnapshot = await _historyCol(parentUid, id).get();
 
-    WriteBatch batch = _firestore.batch();
+    final batch = _firestore.batch();
 
     for (final doc in historySnapshot.docs) {
       batch.delete(doc.reference);

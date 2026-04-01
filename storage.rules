@@ -1,0 +1,42 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isFamilyMember(familyId) {
+      return isSignedIn() && firestore.exists(
+        /databases/(default)/documents/families/$(familyId)/members/$(request.auth.uid)
+      );
+    }
+
+    match /users/{uid}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSelf(uid)
+        && request.resource != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /families/{familyId}/chat/{uid}/{fileName} {
+      allow read: if isFamilyMember(familyId);
+      allow write: if isFamilyMember(familyId)
+        && isSelf(uid)
+        && fileName.matches('^[A-Za-z0-9_-]{1,120}\\.jpg$')
+        && request.resource != null
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.metadata.familyId == familyId
+        && request.resource.metadata.senderUid == uid
+        && request.resource.metadata.messageId is string
+        && request.resource.metadata.messageId.size() > 0
+        && request.resource.metadata.messageId.size() <= 120
+        && fileName == request.resource.metadata.messageId + '.jpg';
+    }
+  }
+}

@@ -3,7 +3,6 @@ import 'app_colors.dart';
 import 'constants.dart';
 
 class AppTheme {
-
   /// LIGHT THEME
   static ThemeData light({Color seedColor = AppColors.primary}) {
     final base = ColorScheme.fromSeed(
@@ -16,6 +15,7 @@ class AppTheme {
       secondary: seedColor,
       background: const Color(0xFFF7F7F7),
       surface: Colors.white,
+      onPrimary: Colors.white,
       outline: const Color.fromARGB(255, 172, 173, 175),
     );
 
@@ -31,9 +31,7 @@ class AppTheme {
       ),
 
       /// ICON
-      iconTheme: IconThemeData(
-        color: scheme.onSurface,
-      ),
+      iconTheme: IconThemeData(color: scheme.onSurface),
 
       /// APPBAR
       appBarTheme: AppBarTheme(
@@ -54,10 +52,7 @@ class AppTheme {
       ),
 
       /// DIVIDER
-      dividerTheme: DividerThemeData(
-        color: scheme.outline,
-        thickness: 1,
-      ),
+      dividerTheme: DividerThemeData(color: scheme.outline, thickness: 1),
 
       /// INPUT
       inputDecorationTheme: InputDecorationTheme(
@@ -104,17 +99,13 @@ class AppTheme {
 
       /// TEXT BUTTON
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: scheme.primary,
-        ),
+        style: TextButton.styleFrom(foregroundColor: scheme.primary),
       ),
 
       /// SNACKBAR
       snackBarTheme: SnackBarThemeData(
         backgroundColor: scheme.surface,
-        contentTextStyle: TextStyle(
-          color: scheme.onSurface,
-        ),
+        contentTextStyle: TextStyle(color: scheme.onSurface),
         behavior: SnackBarBehavior.floating,
       ),
 
@@ -147,6 +138,7 @@ class AppTheme {
       secondary: seedColor,
       background: const Color(0xFF0F172A),
       surface: const Color(0xFF242E40),
+      onPrimary: Colors.white,
       outline: const Color(0xFF334155),
     );
 
@@ -160,9 +152,7 @@ class AppTheme {
         displayColor: scheme.onSurface,
       ),
 
-      iconTheme: IconThemeData(
-        color: scheme.onSurface,
-      ),
+      iconTheme: IconThemeData(color: scheme.onSurface),
 
       appBarTheme: AppBarTheme(
         backgroundColor: scheme.surface,
@@ -179,10 +169,7 @@ class AppTheme {
         ),
       ),
 
-      dividerTheme: DividerThemeData(
-        color: scheme.outline,
-        thickness: 1,
-      ),
+      dividerTheme: DividerThemeData(color: scheme.outline, thickness: 1),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -225,16 +212,12 @@ class AppTheme {
       ),
 
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: scheme.primary,
-        ),
+        style: TextButton.styleFrom(foregroundColor: scheme.primary),
       ),
 
       snackBarTheme: SnackBarThemeData(
         backgroundColor: scheme.surface,
-        contentTextStyle: TextStyle(
-          color: scheme.onSurface,
-        ),
+        contentTextStyle: TextStyle(color: scheme.onSurface),
         behavior: SnackBarBehavior.floating,
       ),
 

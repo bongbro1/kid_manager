@@ -1,11 +1,11 @@
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 
 class WheelDatePicker extends StatefulWidget {
   final DateTime initialDate;
 
-  const WheelDatePicker({required this.initialDate});
+  const WheelDatePicker({super.key, required this.initialDate});
 
   @override
   State<WheelDatePicker> createState() => _WheelDatePickerState();
@@ -25,7 +25,7 @@ class _WheelDatePickerState extends State<WheelDatePicker> {
     year = widget.initialDate.year;
   }
 
-  List<int> years = List.generate(60, (i) => 1970 + i);
+  final List<int> years = List.generate(60, (i) => 1970 + i);
 
   int daysInMonth(int year, int month) {
     final date = DateTime(year, month + 1, 0);
@@ -34,6 +34,7 @@ class _WheelDatePickerState extends State<WheelDatePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final maxDay = daysInMonth(year, month);
@@ -43,7 +44,7 @@ class _WheelDatePickerState extends State<WheelDatePicker> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -57,17 +58,14 @@ class _WheelDatePickerState extends State<WheelDatePicker> {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-
           Text(
-            "Chọn ngày sinh",
+            l10n.addAccountSelectBirthDateTitle,
             style: theme.textTheme.titleMedium?.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
-
           const SizedBox(height: 20),
-
           Expanded(
             child: Row(
               children: [
@@ -85,7 +83,7 @@ class _WheelDatePickerState extends State<WheelDatePicker> {
                     },
                     children: List.generate(
                       maxDay,
-                      (i) => Center(child: Text("${i + 1}")),
+                      (i) => Center(child: Text('${i + 1}')),
                     ),
                   ),
                 ),
@@ -108,7 +106,7 @@ class _WheelDatePickerState extends State<WheelDatePicker> {
                     },
                     children: List.generate(
                       12,
-                      (i) => Center(child: Text("${i + 1}")),
+                      (i) => Center(child: Text('${i + 1}')),
                     ),
                   ),
                 ),
@@ -130,16 +128,14 @@ class _WheelDatePickerState extends State<WheelDatePicker> {
                       });
                     },
                     children: years
-                        .map((y) => Center(child: Text("$y")))
+                        .map((y) => Center(child: Text('$y')))
                         .toList(),
                   ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -156,7 +152,7 @@ class _WheelDatePickerState extends State<WheelDatePicker> {
                 elevation: 0,
               ),
               child: Text(
-                "Chọn",
+                l10n.addAccountSelectButton,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: scheme.onPrimary,
                   fontWeight: FontWeight.w600,

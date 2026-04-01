@@ -1,7 +1,8 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:kid_manager/services/location/location_day_key_resolver.dart';
 
 class SeedDemoHistoryRtdb {
-  static const Duration _trackingTzOffset = Duration(hours: 7);
+  static final LocationDayKeyResolver _dayKeyResolver = LocationDayKeyResolver();
 
   // ====== CHỈNH DEVICE ID Ở ĐÂY ======
   static const String deviceId = "uzwA0A9JEGXS3Ce4nZYxghP8q2y1";
@@ -31,14 +32,6 @@ class SeedDemoHistoryRtdb {
     "h20": {"accuracy": 5, "latitude": 21.57786,  "longitude": 105.805528, "timestamp": 1707700095000},
   };
 
-  static String _dayKeyFromTs(int ts) {
-    final d = DateTime.fromMillisecondsSinceEpoch(ts, isUtc: true)
-        .add(_trackingTzOffset);
-    return "${d.year.toString().padLeft(4, '0')}-"
-        "${d.month.toString().padLeft(2, '0')}-"
-        "${d.day.toString().padLeft(2, '0')}";
-  }
-
   /// Seed demo -> RTDB new schema:
   /// - /locations/{deviceId}/historyByDay/{day}/{ts}
   /// - /locations/{deviceId}/current = last point
@@ -49,6 +42,7 @@ class SeedDemoHistoryRtdb {
     String transport = "vehicle",
     double speed = 6.0,
     double heading = 0.0,
+    String timeZone = 'Asia/Ho_Chi_Minh',
   }) async {
     final db = database ?? FirebaseDatabase.instance;
     final did = overrideDeviceId ?? deviceId;
@@ -63,7 +57,10 @@ class SeedDemoHistoryRtdb {
 
     for (final p in points) {
       final ts = (p["timestamp"] as int);
-      final day = _dayKeyFromTs(ts);
+      final day = await _dayKeyResolver.dayKeyForTimestamp(
+        timestampMs: ts,
+        timeZone: timeZone,
+      );
 
       final point = <String, dynamic>{
         "accuracy": p["accuracy"],

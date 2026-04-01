@@ -249,18 +249,7 @@ class UsageSyncManager(private val context: Context) {
             try {
 
                 val pm = context.packageManager
-                val packageName = "com.example.kid_manager"
-
-                var installed = true
-
-                try {
-
-                    pm.getPackageInfo(packageName, 0)
-
-                } catch (e: Exception) {
-
-                    installed = false
-                }
+                val packageName = context.packageName
 
                 val firestore = FirebaseFirestore.getInstance()
 

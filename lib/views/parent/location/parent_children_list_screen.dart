@@ -16,12 +16,13 @@ class ParentChildrenListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<UserVm>();
-    final children = vm.children;
+    final children = vm.locationMembers;
     final locationVm = context.watch<ParentLocationVm>();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.parentChildrenListTitle)),
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: colorScheme.background,
       body: ListView.builder(
         padding: const EdgeInsets.only(top: 8, bottom: 12),
         itemCount: children.length,
@@ -39,6 +40,7 @@ class ParentChildrenListScreen extends StatelessWidget {
                   builder: (_) => ChildDetailMapScreen(
                     childId: child.uid,
                     childAvatarUrl: child.avatarUrl,
+                    childTimeZone: child.timezone,
                   ),
                 ),
               );

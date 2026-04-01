@@ -10,6 +10,7 @@ SOS_DAILY_LIMIT,
 SOS_MIN_INTERVAL_SEC,
 RATE_DOC_TTL_DAYS,
 REMIND_MAX_SECONDS,
+getSosReminderRuntimeConfig,
 } from "../config";
 import {
 mustString,
@@ -17,12 +18,10 @@ mustNumber,
 dayKeyInTZ,
 validateLatLng,
 } from "../helpers";
-import { getUserFamilyAndRole, requireFamilyMember } from "../services/user";
+import { getUserFamilyAndRole, requireFamilyActor } from "../services/user";
 import { sendSosPush } from "../services/sosPush";
 import { enqueueSosReminder } from "../services/tasks";
 
-const TASK_CALLER_SA = (process.env.SOS_TASK_CALLER_SA ?? "").trim();
-const WORKER_AUDIENCE = (process.env.SOS_REMINDER_WORKER_URL ?? "").trim();
 const REMINDER_LEASE_MS = 120_000;
 const WORKER_MIN_INTERVAL_MS = 5_000;
 const ALLOWED_OIDC_ISSUERS = new Set([
@@ -31,9 +30,7 @@ const ALLOWED_OIDC_ISSUERS = new Set([
 ]);
 const oidcClient = new OAuth2Client();
 
-const sosReminderWorkerOptions = TASK_CALLER_SA
-  ? { region: REGION, invoker: [TASK_CALLER_SA] }
-  : { region: REGION, invoker: "private" as const };
+const sosReminderWorkerOptions = { region: REGION, invoker: "private" as const };
 
 function parseFiniteNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -53,7 +50,9 @@ async function verifyReminderWorkerRequest(req: any): Promise<{
   status: number;
   message: string;
 }> {
-  if (!TASK_CALLER_SA || !WORKER_AUDIENCE) {
+  const runtimeConfig = getSosReminderRuntimeConfig();
+
+  if (!runtimeConfig.taskCallerServiceAccount || !runtimeConfig.workerUrl) {
     console.error("[SOS] Worker auth is not configured");
     return {
       ok: false,
@@ -75,7 +74,7 @@ async function verifyReminderWorkerRequest(req: any): Promise<{
   try {
     const ticket = await oidcClient.verifyIdToken({
       idToken,
-      audience: WORKER_AUDIENCE,
+      audience: runtimeConfig.workerUrl,
     });
     const payload = ticket.getPayload();
 
@@ -89,7 +88,7 @@ async function verifyReminderWorkerRequest(req: any): Promise<{
     }
 
     const email = String(payload.email ?? "").trim().toLowerCase();
-    const expectedEmail = TASK_CALLER_SA.toLowerCase();
+    const expectedEmail = runtimeConfig.taskCallerServiceAccount.toLowerCase();
     const emailVerified =
       payload.email_verified === undefined || payload.email_verified === true;
 
@@ -289,7 +288,7 @@ export const sosReminderWorker = onRequest(
       const pushRes = await sendSosPush({
         familyId,
         sosId,
-        childUid: String(childUid),
+        createdByUid: String(childUid),
         lat: loc.lat != null ? Number(loc.lat) : null,
         lng: loc.lng != null ? Number(loc.lng) : null,
         createdByName: String(createdByName),
@@ -383,14 +382,11 @@ export const createSos = onCall({ region: REGION }, async (req) => {
       ? createdByNameRaw.trim().slice(0, 80)
       : "";
 
-  if (role !== "child" && role !== "parent") {
-    throw new HttpsError(
-      "permission-denied",
-      "Only family members can trigger SOS"
-    );
-  }
-
-  await requireFamilyMember(familyId, uid);
+  await requireFamilyActor({
+    familyId,
+    uid,
+    allowedRoles: ["child", "parent", "guardian"],
+  });
 
   const sosRef = db.doc(`families/${familyId}/sos/${eventId}`);
   const rateRef = db.doc(`families/${familyId}/rateLimits/sosDaily_${uid}_${dayKey}`);
@@ -491,7 +487,11 @@ export const resolveSos = onCall({ region: REGION }, async (req) => {
   const familyId = mustString(req.data?.familyId, "familyId");
   const sosId = mustString(req.data?.sosId, "sosId");
 
-  await requireFamilyMember(familyId, uid);
+  await requireFamilyActor({
+    familyId,
+    uid,
+    allowedRoles: ["parent", "guardian"],
+  });
 
   const ref = db.doc(`families/${familyId}/sos/${sosId}`);
 
@@ -573,7 +573,7 @@ export const onSosCreated = onDocumentCreated(
       const pushRes = await sendSosPush({
         familyId,
         sosId,
-        childUid: String(createdBy),
+        createdByUid: String(createdBy),
         lat: loc.lat != null ? Number(loc.lat) : null,
         lng: loc.lng != null ? Number(loc.lng) : null,
         createdByName: sos.createdByName ?? "",

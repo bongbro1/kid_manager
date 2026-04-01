@@ -13,6 +13,10 @@ abstract class SafeRouteRepository {
   });
   Future<Trip> startTrip(Trip trip);
   Stream<LiveLocation> streamLiveLocation(String childId);
+  Stream<Trip?> watchCurrentTripByChildId(
+    String childId, {
+    required TripVisibilityAudience audience,
+  });
   Future<void> updateTripStatus(String tripId, TripStatus status, {String? reason});
   Future<Trip?> getActiveTripByChildId(String childId);
   Future<List<Trip>> getTripHistoryByChildId(String childId);

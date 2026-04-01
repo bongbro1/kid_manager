@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -118,9 +119,7 @@ class _SmartNetworkImageState extends State<SmartNetworkImage> {
         }
 
         if (attempt < widget.maxRetries) {
-          await Future.delayed(
-            widget.retryDelay * (attempt + 1),
-          );
+          await Future.delayed(widget.retryDelay * (attempt + 1));
         }
       }
       debugPrint('SmartNetworkImage fail url=$url err=$lastError');
@@ -132,6 +131,24 @@ class _SmartNetworkImageState extends State<SmartNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
+    final raw = (widget.imageUrl ?? '').trim();
+
+    // ✅ FIX: support local file
+    if (raw.startsWith('/')) {
+      return Image.file(
+        File(raw),
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        errorBuilder: (_, _, _) => Image.asset(
+          widget.fallbackAsset,
+          width: widget.width,
+          height: widget.height,
+          fit: widget.fit,
+        ),
+      );
+    }
+
     if (_bytes != null) {
       return Image.memory(
         _bytes!,

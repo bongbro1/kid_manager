@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,6 +24,7 @@ class ChildDetailMapAppBarChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -30,13 +33,13 @@ class ChildDetailMapAppBarChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: highlighted
-              ? const Color(0x1A2196F3)
-              : const Color(0xFFF6F8FA),
+              ? locationPanelHighlightColor(scheme)
+              : locationPanelMutedColor(scheme),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: highlighted
-                ? const Color(0x4D2196F3)
-                : const Color(0xFFE3E7EB),
+                ? scheme.primary.withOpacity(0.45)
+                : locationPanelBorderColor(scheme),
           ),
         ),
         child: Row(
@@ -45,7 +48,7 @@ class ChildDetailMapAppBarChip extends StatelessWidget {
             Icon(
               icon,
               size: 14,
-              color: highlighted ? const Color(0xFF2196F3) : Colors.black87,
+              color: highlighted ? scheme.primary : scheme.onSurface,
             ),
             const SizedBox(width: 6),
             Expanded(
@@ -54,9 +57,7 @@ class ChildDetailMapAppBarChip extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
-                  color: highlighted
-                      ? const Color(0xFF2196F3)
-                      : Colors.black87,
+                  color: highlighted ? scheme.primary : scheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -91,6 +92,7 @@ class ChildDetailMapFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final scheme = Theme.of(context).colorScheme;
 
     return Tooltip(
       message: tooltip,
@@ -103,12 +105,12 @@ class ChildDetailMapFab extends StatelessWidget {
           decoration: BoxDecoration(
             color: active
                 ? primary.withOpacity(0.14)
-                : Colors.white.withOpacity(0.96),
+                : locationPanelColor(scheme).withOpacity(0.96),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: active
                   ? primary.withOpacity(0.35)
-                  : const Color(0xFFE5E7EB),
+                  : locationPanelBorderColor(scheme),
             ),
             boxShadow: [
               BoxShadow(
@@ -118,7 +120,11 @@ class ChildDetailMapFab extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(icon, size: 21, color: active ? primary : Colors.black87),
+          child: Icon(
+            icon,
+            size: 21,
+            color: active ? primary : scheme.onSurface,
+          ),
         ),
       ),
     );
@@ -149,12 +155,14 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
   required int initialEndMinute,
   required String Function(int minuteOfDay) minuteLabel,
 }) {
+  final scheme = Theme.of(context).colorScheme;
   return showModalBottomSheet<ChildDetailTimeWindowSelection>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    backgroundColor: Colors.white,
+    backgroundColor: locationPanelColor(scheme),
     builder: (context) {
+      final l10n = AppLocalizations.of(context);
       var draftStart = initialStartMinute.toDouble();
       var draftEnd = initialEndMinute.toDouble();
 
@@ -178,21 +186,21 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Title ──────────────────────────────────────────────
-                  const Text(
-                    'Chọn khung giờ',
+                  Text(
+                    l10n.childLocationTimeWindowTitle,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Colors.black87,
+                      color: scheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Chỉ tải và hiển thị lịch sử trong khoảng giờ đang chọn.',
+                    l10n.childLocationTimeWindowSubtitle,
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.35,
-                      color: Colors.grey.shade700,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
 
@@ -204,7 +212,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                     runSpacing: 8,
                     children: [
                       _RangePresetChip(
-                        label: 'Cả ngày',
+                        label: l10n.childLocationRangeAllDay,
                         selected:
                             draftStart.round() == 0 &&
                             draftEnd.round() == (24 * 60) - 1,
@@ -212,7 +220,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                             applyPreset(setSheetState, 0, (24 * 60) - 1),
                       ),
                       _RangePresetChip(
-                        label: 'Sáng',
+                        label: l10n.childLocationPresetMorning,
                         selected:
                             draftStart.round() == 6 * 60 &&
                             draftEnd.round() == (11 * 60) + 59,
@@ -220,7 +228,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                             applyPreset(setSheetState, 6 * 60, (11 * 60) + 59),
                       ),
                       _RangePresetChip(
-                        label: 'Chiều',
+                        label: l10n.childLocationPresetAfternoon,
                         selected:
                             draftStart.round() == 12 * 60 &&
                             draftEnd.round() == (17 * 60) + 59,
@@ -228,7 +236,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                             applyPreset(setSheetState, 12 * 60, (17 * 60) + 59),
                       ),
                       _RangePresetChip(
-                        label: 'Tối',
+                        label: l10n.childLocationPresetEvening,
                         selected:
                             draftStart.round() == 18 * 60 &&
                             draftEnd.round() == (23 * 60) + 59,
@@ -247,24 +255,26 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                       vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FA),
+                      color: locationPanelMutedColor(scheme),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFE8EAED)),
+                      border: Border.all(
+                        color: locationPanelBorderColor(scheme),
+                      ),
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           child: ChildDetailMapSummaryChip(
-                            backgroundColor: Colors.white,
-                            label: 'Bắt đầu',
+                            backgroundColor: locationPanelColor(scheme),
+                            label: l10n.childLocationTagStart,
                             value: startLabel,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: ChildDetailMapSummaryChip(
-                            backgroundColor: Colors.white,
-                            label: 'Kết thúc',
+                            backgroundColor: locationPanelColor(scheme),
+                            label: l10n.childLocationTagEnd,
                             value: endLabel,
                           ),
                         ),
@@ -300,7 +310,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(48),
                           ),
-                          child: const Text('Hủy'),
+                          child: Text(l10n.cancelButton),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -315,7 +325,7 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size.fromHeight(48),
                           ),
-                          child: const Text('Áp dụng'),
+                          child: Text(l10n.confirmButton),
                         ),
                       ),
                     ],
@@ -348,16 +358,19 @@ class _RangePresetChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Ink(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? primary.withOpacity(0.14) : const Color(0xFFF1F3F4),
+          color: selected
+              ? primary.withOpacity(0.14)
+              : locationPanelMutedColor(scheme),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? primary : const Color(0xFFE0E3E7),
+            color: selected ? primary : locationPanelBorderColor(scheme),
           ),
         ),
         child: Text(
@@ -365,7 +378,7 @@ class _RangePresetChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: selected ? primary : Colors.black87,
+            color: selected ? primary : scheme.onSurface,
           ),
         ),
       ),

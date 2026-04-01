@@ -1,4 +1,4 @@
-﻿import { admin } from "../bootstrap";
+import { admin, db } from "../bootstrap";
 import { chunk, isInvalidTokenErrorCode } from "../helpers";
 import {
   deleteInstallationsByIds,
@@ -6,10 +6,37 @@ import {
   listInstallationsByFamilyId,
 } from "./fcmInstallations";
 
+async function listAdultManagerRecipientUids(
+  familyId: string,
+): Promise<Set<string>> {
+  const membersSnap = await db.collection(`families/${familyId}/members`).get();
+  const recipientUids = new Set<string>();
+
+  for (const doc of membersSnap.docs) {
+    const data = doc.data() ?? {};
+    const role = typeof data.role === "string" ? data.role.trim() : "";
+    if (role !== "parent" && role !== "guardian") {
+      continue;
+    }
+
+    const uid =
+      typeof data.uid === "string" && data.uid.trim()
+        ? data.uid.trim()
+        : doc.id.trim();
+    if (!uid) {
+      continue;
+    }
+
+    recipientUids.add(uid);
+  }
+
+  return recipientUids;
+}
+
 export async function sendSosPush(params: {
   familyId: string;
   sosId: string;
-  childUid: string;
+  createdByUid: string;
   lat?: number | null;
   lng?: number | null;
   createdByName?: string | null;
@@ -18,17 +45,21 @@ export async function sendSosPush(params: {
   const {
     familyId,
     sosId,
-    childUid,
+    createdByUid,
     lat,
     lng,
     createdByName,
     attempt = 0,
   } = params;
 
+  const recipientUids = await listAdultManagerRecipientUids(familyId);
+
   const tokenGroups = groupInstallationsByToken(
     (await listInstallationsByFamilyId(familyId)).filter(
-      (installation) => installation.uid !== childUid
-    )
+      (installation) =>
+        installation.uid !== createdByUid &&
+        recipientUids.has(installation.uid),
+    ),
   ).map((group) => ({
     token: group.token,
     records: group.records.map((installation) => ({
@@ -47,12 +78,12 @@ export async function sendSosPush(params: {
   }
 
   const title =
-    attempt > 0 ? "ðŸš¨ NHáº®C Láº I SOS KHáº¨N Cáº¤P" : "ðŸš¨ SOS KHáº¨N Cáº¤P";
+    attempt > 0 ? "🚨 NHẮC LẠI SOS KHẨN CẤP" : "🚨 SOS KHẨN CẤP";
 
   const body =
     attempt > 0
-      ? `${createdByName || "Má»™t thÃ nh viÃªn"} váº«n chÆ°a Ä‘Æ°á»£c xÃ¡c nháº­n an toÃ n. Cháº¡m Ä‘á»ƒ xem vá»‹ trÃ­.`
-      : `${createdByName || "Má»™t thÃ nh viÃªn"} Ä‘ang cáº§u cá»©u. Cháº¡m Ä‘á»ƒ xem vá»‹ trÃ­.`;
+      ? `${createdByName || "Một thành viên"} vẫn chưa được xác nhận an toàn. Chạm để xem vị trí.`
+      : `${createdByName || "Một thành viên"} đang cầu cứu. Chạm để xem vị trí.`;
 
   const baseMessage: Omit<admin.messaging.MulticastMessage, "tokens"> = {
     notification: {
@@ -63,7 +94,8 @@ export async function sendSosPush(params: {
       type: "SOS",
       familyId: String(familyId),
       sosId: String(sosId),
-      childUid: String(childUid),
+      createdByUid: String(createdByUid),
+      childUid: String(createdByUid),
       lat: lat != null ? String(lat) : "",
       lng: lng != null ? String(lng) : "",
       createdByName: createdByName ? String(createdByName) : "",
@@ -119,7 +151,7 @@ export async function sendSosPush(params: {
         if (!meta) return;
         invalidRemoved += meta.records.length;
         invalidInstallationIds.push(
-          ...meta.records.map((record) => record.installationId)
+          ...meta.records.map((record) => record.installationId),
         );
       }
     });

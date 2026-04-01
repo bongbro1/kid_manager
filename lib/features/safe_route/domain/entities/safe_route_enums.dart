@@ -1,10 +1,21 @@
-﻿enum TripStatus {
+enum TripStatus {
   planned,
   active,
   temporarilyDeviated,
   deviated,
   completed,
   cancelled,
+}
+
+enum TripVisibilityAudience {
+  childMonitor,
+  adultManager,
+}
+
+enum TripMutationState {
+  none,
+  completing,
+  cancelling,
 }
 
 TripStatus parseTripStatus(dynamic value) {

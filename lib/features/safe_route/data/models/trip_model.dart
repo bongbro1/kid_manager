@@ -1,4 +1,5 @@
 ﻿import 'package:kid_manager/features/safe_route/data/models/live_location_model.dart';
+import 'package:kid_manager/features/safe_route/data/models/safe_route_timestamp_parser.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
 
@@ -39,14 +40,18 @@ class TripModel extends Trip {
       reason: map['reason']?.toString(),
       consecutiveDeviationCount: (map['consecutiveDeviationCount'] as num?)?.toInt() ?? 0,
       currentDistanceFromRouteMeters: (map['currentDistanceFromRouteMeters'] as num?)?.toDouble() ?? 0,
-      startedAt: DateTime.fromMillisecondsSinceEpoch((map['startedAt'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch((map['updatedAt'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch),
-      scheduledStartAt: map['scheduledStartAt'] == null
-          ? null
-          : DateTime.fromMillisecondsSinceEpoch(
-              int.tryParse(map['scheduledStartAt'].toString()) ??
-                  DateTime.now().millisecondsSinceEpoch,
-            ),
+      startedAt: parseRequiredSafeRouteTimestamp(
+        map['startedAt'],
+        fieldName: 'Trip.startedAt',
+      ),
+      updatedAt: parseRequiredSafeRouteTimestamp(
+        map['updatedAt'],
+        fieldName: 'Trip.updatedAt',
+      ),
+      scheduledStartAt: parseOptionalSafeRouteTimestamp(
+        map['scheduledStartAt'],
+        fieldName: 'Trip.scheduledStartAt',
+      ),
       repeatWeekdays: (map['repeatWeekdays'] as List? ?? const [])
           .map((item) => int.tryParse(item.toString()))
           .whereType<int>()

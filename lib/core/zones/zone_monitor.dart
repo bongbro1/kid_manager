@@ -7,7 +7,7 @@ import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 
 class ZoneMonitor {
-  final ZoneRepository repo;
+  final ZoneRepositoryInterface repo;
   final String childUid;
 
   ZoneMonitor({required this.repo, required this.childUid});
@@ -17,18 +17,22 @@ class ZoneMonitor {
 
   int _lastEventAtMs = 0;
   int _lastZoneRefreshAtMs = 0;
+  int _lastNoZonesLogAtMs = 0;
   bool _zoneRefreshInFlight = false;
 
   static const int _zoneReloadCooldownMs = 15000;
+  static const int _noZonesLogCooldownMs = 30000;
 
   void updateZones(List<GeoZone> zones) {
     _zones = zones.where((z) => z.enabled).toList();
 
-    // Keep inside-state consistent when zones are removed/disabled.
+    // Keep inside-state consistent when zones are removed or disabled.
     final zoneIds = _zones.map((z) => z.id).toSet();
     _inside.removeWhere((id) => !zoneIds.contains(id));
 
-    debugPrint('🧭 ZoneMonitor.updateZones enabled=${_zones.length} childUid=$childUid');
+    debugPrint(
+      'ZoneMonitor.updateZones enabled=${_zones.length} childUid=$childUid',
+    );
   }
 
   Future<void> _reloadZonesIfNeeded() async {
@@ -44,21 +48,31 @@ class ZoneMonitor {
     try {
       final zones = await repo.getZonesOnce(childUid);
       updateZones(zones);
-      debugPrint('🧭 ZoneMonitor.reloadZones fetched=${zones.length} childUid=$childUid');
+      debugPrint(
+        'ZoneMonitor.reloadZones fetched=${zones.length} childUid=$childUid',
+      );
     } catch (e, st) {
-      debugPrint('🧭 ZoneMonitor.reloadZones error: $e');
+      debugPrint('ZoneMonitor.reloadZones error: $e');
       debugPrint('$st');
     } finally {
       _zoneRefreshInFlight = false;
     }
   }
 
-  /// Call for every location update
+  /// Call for every location update.
   Future<void> onLocation(LocationData loc) async {
     await _reloadZonesIfNeeded();
 
     if (_zones.isEmpty) {
-      debugPrint('🧭 ZoneMonitor.onLocation skip: no enabled zones for childUid=$childUid');
+      if (kDebugMode) {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (now - _lastNoZonesLogAtMs >= _noZonesLogCooldownMs) {
+          _lastNoZonesLogAtMs = now;
+          debugPrint(
+            'ZoneMonitor.onLocation skip: no enabled zones for childUid=$childUid',
+          );
+        }
+      }
       return;
     }
 
@@ -80,34 +94,20 @@ class ZoneMonitor {
           await LocalAlarmService.I.showDangerEnter(zoneName: z.name);
         }
 
-        await repo.pushZoneEvent(childUid, {
-          'zoneId': z.id,
-          'zoneType': z.type.name, // safe/danger
-          'action': 'enter',
-          'zoneName': z.name,
-          'lat': loc.latitude,
-          'lng': loc.longitude,
-          'timestamp': loc.timestamp,
-        });
-
-        debugPrint('🧭 ZONE ENTER: ${z.name} (${z.type.name}) d=${d.toStringAsFixed(1)}m');
+        debugPrint(
+          'ZONE ENTER (local observation only): ${z.name} (${z.type.name}) '
+          'd=${d.toStringAsFixed(1)}m',
+        );
       }
 
       if (!isIn && wasIn) {
         _inside.remove(z.id);
         _lastEventAtMs = now;
 
-        await repo.pushZoneEvent(childUid, {
-          'zoneId': z.id,
-          'zoneType': z.type.name,
-          'action': 'exit',
-          'zoneName': z.name,
-          'lat': loc.latitude,
-          'lng': loc.longitude,
-          'timestamp': loc.timestamp,
-        });
-
-        debugPrint('🧭 ZONE EXIT: ${z.name} (${z.type.name}) d=${d.toStringAsFixed(1)}m');
+        debugPrint(
+          'ZONE EXIT (local observation only): ${z.name} (${z.type.name}) '
+          'd=${d.toStringAsFixed(1)}m',
+        );
       }
     }
   }

@@ -24,7 +24,6 @@ class AddScheduleScreen extends StatelessWidget {
       headerTitle: l10n.scheduleAddHeaderTitle,
       submitButtonText: l10n.scheduleAddSubmitButton,
       successMessage: l10n.scheduleAddSuccessMessage,
-      fieldStyle: ScheduleFormFieldStyle.hint,
       allowDateEditing: true,
       requireChangesToSubmit: false,
       initialData: ScheduleFormData.create(date: selectedDate),

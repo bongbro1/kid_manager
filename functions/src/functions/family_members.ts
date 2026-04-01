@@ -131,6 +131,17 @@ function buildBirthdayStorageFields(birthDate: Date | null): Record<string, unkn
   };
 }
 
+function readTrimmedStringList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .map((item) => String(item ?? "").trim())
+    .filter((item) => item.length > 0)
+    .filter((item, index, list) => list.indexOf(item) === index);
+}
+
 function buildFamilyMemberPublicFields(
   uid: string,
   userData: FirebaseFirestore.DocumentData
@@ -142,16 +153,40 @@ function buildFamilyMemberPublicFields(
     : "member";
   const displayName =
     typeof userData.displayName === "string" ? userData.displayName.trim() : "";
+  const email =
+    typeof userData.email === "string" ? userData.email.trim() : "";
   const avatarUrl =
     typeof userData.avatarUrl === "string" ? userData.avatarUrl : "";
+  const timezone =
+    typeof userData.timezone === "string" ? userData.timezone.trim() : "";
+  const parentUid =
+    typeof userData.parentUid === "string" ? userData.parentUid.trim() : "";
+  const isActive = userData.isActive === true;
+  const allowTracking = role === "child" || userData.allowTracking === true;
+  const managedChildIds = readTrimmedStringList(
+    userData.managedChildIds ?? userData.assignedChildIds ?? userData.childIds
+  );
   const birthDate = parseFlexibleBirthDate(userData.dob, userData.dobIso);
+  const lastActiveAt =
+    userData.lastActiveAt instanceof admin.firestore.Timestamp
+      ? userData.lastActiveAt
+      : userData.lastActiveAt instanceof Date
+        ? admin.firestore.Timestamp.fromDate(userData.lastActiveAt)
+        : null;
 
   return {
     uid,
     role,
     ...(familyId ? { familyId } : {}),
     ...(displayName ? { displayName } : {}),
+    ...(email ? { email } : {}),
     avatarUrl,
+    ...(timezone ? { timezone } : {}),
+    ...(parentUid ? { parentUid } : {}),
+    isActive,
+    allowTracking,
+    ...(managedChildIds.length > 0 ? { managedChildIds } : {}),
+    ...(lastActiveAt ? { lastActiveAt } : {}),
     ...buildBirthdayStorageFields(birthDate),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };

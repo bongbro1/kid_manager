@@ -52,98 +52,103 @@ class _AuthTextFieldState extends State<AuthTextField> {
 
   @override
   Widget build(BuildContext context) {
-    const horizontalPadding = 18.0;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Label
         if (widget.label != null)
-          Padding(
-            padding: const EdgeInsets.only(left: horizontalPadding),
-            child: Text(
-              widget.label!,
-              style: const TextStyle(
-                color: Color(0xFF8E8E93),
-                fontSize: 14,
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w500,
-              ),
+          Text(
+            widget.label!,
+            style: const TextStyle(
+              color: Color(0xFF8E8E93),
+              fontSize: 14,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w500,
             ),
           ),
         const SizedBox(height: 6),
 
         SizedBox(
           width: widget.width ?? double.infinity,
-          height: widget.height,
-          child: TextField(
-            controller: widget.controller,
-            obscureText: _obscure,
-            keyboardType: widget.keyboardType,
-            textInputAction: widget.textInputAction,
-            onEditingComplete: widget.onEditingComplete,
-            style: const TextStyle(
-              color: AppColors.authText,
-              fontSize: 14,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w500,
-            ),
-            decoration: InputDecoration(
-              hintText: widget.hintText,
-              hintStyle: const TextStyle(
-                color: Color(0xFFB0B0B0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: widget.height),
+            child: TextField(
+              controller: widget.controller,
+              obscureText: _obscure,
+              keyboardType: widget.keyboardType,
+              textInputAction: widget.textInputAction,
+              onEditingComplete: widget.onEditingComplete,
+              minLines: 1,
+              maxLines: 1,
+              textAlignVertical: TextAlignVertical.center,
+              style: const TextStyle(
+                color: AppColors.authText,
                 fontSize: 14,
                 fontFamily: 'Poppins',
-                fontWeight: FontWeight.w400,
+                fontWeight: FontWeight.w500,
               ),
-              filled: true,
-              fillColor: Colors.white,
+              decoration: InputDecoration(
+                hintText: widget.hintText,
+                hintStyle: const TextStyle(
+                  color: Color(0xFFB0B0B0),
+                  fontSize: 14,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w400,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 50,
+                  vertical: 16,
+                ),
 
-              contentPadding: const EdgeInsets.symmetric(horizontal: 50),
-
-              // Prefix SVG
-              prefixIcon: widget.prefixSvg == null
-                  ? null
-                  : Padding(
-                      padding: const EdgeInsets.only(left: 14, right: 10),
-                      child: SvgPicture.asset(
-                        widget.prefixSvg!,
-                        width: widget.prefixSize,
-                        height: widget.prefixSize,
+                // Prefix SVG
+                prefixIcon: widget.prefixSvg == null
+                    ? null
+                    : Padding(
+                        padding: const EdgeInsets.only(left: 14, right: 10),
+                        child: SvgPicture.asset(
+                          widget.prefixSvg!,
+                          width: widget.prefixSize,
+                          height: widget.prefixSize,
+                        ),
                       ),
-                    ),
-              prefixIconConstraints: const BoxConstraints(
-                minWidth: 0,
-                minHeight: 0,
-              ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 0,
+                  minHeight: 0,
+                ),
 
-              // 👁 Eye icon (suffix)
-              suffixIcon: widget.isPassword
-                  ? IconButton(
-                      icon: Icon(
-                        _obscure
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: AppColors.textDisabled,
-                        size: 20,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscure = !_obscure;
-                        });
-                      },
-                    )
-                  : null,
+                // Eye icon (suffix)
+                suffixIcon: widget.isPassword
+                    ? IconButton(
+                        icon: Icon(
+                          _obscure
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: AppColors.textDisabled,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscure = !_obscure;
+                          });
+                        },
+                      )
+                    : null,
 
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(widget.borderRadius),
-                borderSide: const BorderSide(color: AppColors.border, width: 1),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(widget.borderRadius),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 1,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(widget.borderRadius),
+                  borderSide: const BorderSide(
+                    color: AppColors.border,
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(widget.borderRadius),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1,
+                  ),
                 ),
               ),
             ),

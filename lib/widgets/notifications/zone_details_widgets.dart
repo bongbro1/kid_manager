@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -234,6 +234,7 @@ class _ZoneMapPreviewState extends State<_ZoneMapPreview> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: Container(
@@ -301,7 +302,9 @@ class _ZoneMapPreviewState extends State<_ZoneMapPreview> {
                         if ((widget.radiusM ?? 0) > 0) ...[
                           const SizedBox(height: 2),
                           Text(
-                            'Bán kính ${(widget.radiusM ?? 0).toStringAsFixed(0)}m',
+                            l10n.zoneDetailsRadiusLabel(
+                              (widget.radiusM ?? 0).toStringAsFixed(0),
+                            ),
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF64748B),
@@ -523,6 +526,7 @@ class _ZoneMapFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: Container(
@@ -545,9 +549,9 @@ class _ZoneMapFallback extends StatelessWidget {
                         : const Color(0xFF2563EB),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Không có tọa độ để hiển thị bản đồ',
-                    style: TextStyle(
+                  Text(
+                    l10n.zoneDetailsNoCoordinates,
+                    style: const TextStyle(
                       color: Color(0xFF475569),
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -597,3 +601,4 @@ double? _readDouble(dynamic value) {
   if (value is String) return double.tryParse(value.trim());
   return null;
 }
+

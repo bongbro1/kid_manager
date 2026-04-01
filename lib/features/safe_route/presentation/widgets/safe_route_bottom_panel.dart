@@ -1,11 +1,14 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
+import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_tracking_visuals.dart';
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
 import 'package:kid_manager/features/safe_route/presentation/widgets/safe_route_route_selector.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class SafeRouteBottomPanel extends StatelessWidget {
   const SafeRouteBottomPanel({
@@ -71,8 +74,11 @@ class SafeRouteBottomPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final trackingVisuals = resolveSafeRouteTrackingVisuals(
       state,
+      l10n: l10n,
       fallbackStatusLabel: safetyStatusLabel,
     );
 
@@ -80,7 +86,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
       children: [
         DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.95),
+            color: locationPanelColor(scheme).withOpacity(0.95),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
             boxShadow: [
               BoxShadow(
@@ -106,7 +112,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
                           height: 4,
                           margin: const EdgeInsets.only(bottom: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD3DCE7),
+                            color: locationPanelBorderColor(scheme),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -114,6 +120,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
                       if (_hasActiveTrip)
                         _TrackingStatusContent(
                           state: state,
+                          l10n: l10n,
                           safetyStatusLabel: safetyStatusLabel,
                           speedLabel: speedLabel,
                           batteryLabel: batteryLabel,
@@ -126,6 +133,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
                       else
                         _RouteSelectionContent(
                           state: state,
+                          l10n: l10n,
                           onUseLiveLocationAsStart: onUseLiveLocationAsStart,
                           onSearchStart: onSearchStart,
                           onSearchEnd: onSearchEnd,
@@ -177,6 +185,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
 class _RouteSelectionContent extends StatelessWidget {
   const _RouteSelectionContent({
     required this.state,
+    required this.l10n,
     required this.onUseLiveLocationAsStart,
     required this.onSearchStart,
     required this.onSearchEnd,
@@ -198,6 +207,7 @@ class _RouteSelectionContent extends StatelessWidget {
   });
 
   final SafeRouteTrackingState state;
+  final AppLocalizations l10n;
   final VoidCallback onUseLiveLocationAsStart;
   final VoidCallback onSearchStart;
   final VoidCallback onSearchEnd;
@@ -226,24 +236,25 @@ class _RouteSelectionContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Chọn tuyến an toàn',
+        Text(
+          l10n.safeRouteSelectSafeRouteTitle,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
+            color: scheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           _hintText(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF667085),
+            color: scheme.onSurfaceVariant,
             height: 1.35,
           ),
         ),
@@ -266,18 +277,18 @@ class _RouteSelectionContent extends StatelessWidget {
           runSpacing: 8,
           children: [
             _QuickActionChip(
-              label: 'Dùng vị trí hiện tại',
+              label: l10n.safeRouteUseCurrentLocationLabel,
               icon: Icons.my_location_rounded,
               highlighted: true,
               onTap: onUseLiveLocationAsStart,
             ),
             _QuickActionChip(
-              label: 'Chọn điểm đi trên bản đồ',
+              label: l10n.safeRouteMapHintTapStart,
               icon: Icons.trip_origin_rounded,
               onTap: onStartSelectingStart,
             ),
             _QuickActionChip(
-              label: 'Chọn điểm đến trên bản đồ',
+              label: l10n.safeRouteMapHintTapEnd,
               icon: Icons.place_rounded,
               onTap: onStartSelectingEnd,
             ),
@@ -302,23 +313,24 @@ class _RouteSelectionContent extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Các tuyến đường gợi ý',
+                    l10n.safeRouteSuggestedRoutesTitle,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
+                      color: scheme.onSurface,
                     ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
-                    'Ưu tiên an toàn, dễ theo dõi và ít đi qua vùng nguy hiểm',
+                    l10n.safeRouteSuggestedRoutesSubtitle,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF667085),
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -329,13 +341,15 @@ class _RouteSelectionContent extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _GhostButton(
-                  label: 'Lịch sử',
+                  label: l10n.safeRouteHistoryButton,
                   icon: Icons.history_rounded,
                   onTap: onShowHistory,
                 ),
                 const SizedBox(height: 8),
                 _GhostButton(
-                  label: state.isFetchingSuggestions ? 'Đang tìm...' : 'Làm mới',
+                  label: state.isFetchingSuggestions
+                      ? l10n.safeRouteRefreshingRoutes
+                      : l10n.safeRouteRefreshButton,
                   icon: Icons.refresh_rounded,
                   onTap: state.isFetchingSuggestions ? null : onFetchSuggestedRoutes,
                 ),
@@ -349,15 +363,15 @@ class _RouteSelectionContent extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F9FC),
+              color: locationPanelMutedColor(scheme),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE7EDF4)),
+              border: Border.all(color: locationPanelBorderColor(scheme)),
             ),
             child: Text(
               _emptyRoutesText(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFF617182),
+                color: scheme.onSurfaceVariant,
                 height: 1.35,
               ),
             ),
@@ -369,10 +383,10 @@ class _RouteSelectionContent extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
                 _selectedRoutesSummary(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF526074),
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -392,18 +406,18 @@ class _RouteSelectionContent extends StatelessWidget {
                 ? onStartTrip
                 : (_canFetch ? onFetchSuggestedRoutes : null),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF1A73E8),
-              foregroundColor: Colors.white,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
               minimumSize: const Size.fromHeight(50),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
               ),
             ),
             child: state.isStartingTrip
-                ? const Row(
+                ? Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
@@ -411,10 +425,10 @@ class _RouteSelectionContent extends StatelessWidget {
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Text(
-                        'Đang xác nhận tuyến...',
-                        style: TextStyle(
+                        l10n.safeRouteConfirmingRoute,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                         ),
@@ -422,7 +436,9 @@ class _RouteSelectionContent extends StatelessWidget {
                     ],
                   )
                 : Text(
-                    _canStart ? _primaryActionLabel() : 'Lấy gợi ý tuyến đường',
+                    _canStart
+                        ? _primaryActionLabel()
+                        : l10n.safeRouteFetchSuggestedRoutes,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -437,50 +453,50 @@ class _RouteSelectionContent extends StatelessWidget {
   String _hintText() {
     switch (state.selectionMode) {
       case RouteSelectionMode.selectingStart:
-        return 'Chạm trên bản đồ để chọn điểm đi cho bé.';
+        return l10n.safeRouteHintSelectingStart;
       case RouteSelectionMode.selectingEnd:
-        return 'Chạm trên bản đồ để chọn điểm đến của bé.';
+        return l10n.safeRouteHintSelectingEnd;
       case RouteSelectionMode.none:
         if (!_hasStart || !_hasEnd) {
-          return 'Chọn điểm A và điểm B theo phong cách bản đồ, sau đó xem các tuyến gợi ý.';
+          return l10n.safeRouteHintMissingPoints;
         }
-        return 'Đã có đủ điểm đi và điểm đến. Bạn có thể chọn tuyến an toàn nhất để bắt đầu giám sát.';
+        return l10n.safeRouteHintReadyChooseRoute;
     }
   }
 
   String _emptyRoutesText() {
     if (!_hasStart || !_hasEnd) {
-      return 'Hãy chọn cả điểm đi và điểm đến để app đề xuất các tuyến đường an toàn.';
+      return l10n.safeRouteEmptyRoutesNeedPoints;
     }
-    return 'Nhấn “Làm mới” hoặc nút phía dưới để lấy lại danh sách tuyến gợi ý.';
+    return l10n.safeRouteEmptyRoutesRefresh;
   }
 
   String _primaryActionLabel() {
     if (state.repeatWeekdays.isNotEmpty || state.scheduledDate != null) {
-      return 'Lưu tuyến và lên lịch theo dõi';
+      return l10n.safeRoutePrimaryActionSaveSchedule;
     }
     if (state.selectedAlternativeRouteIds.isNotEmpty) {
-      return 'Bắt đầu theo dõi các tuyến đã chọn';
+      return l10n.safeRoutePrimaryActionStartSelectedRoutes;
     }
-    return 'Chọn tuyến này và bắt đầu theo dõi';
+    return l10n.safeRoutePrimaryActionSelectThisRoute;
   }
 
   String _selectedRoutesSummary() {
     final primary = state.selectedRoute;
     final alternativeCount = state.selectedAlternativeRouteIds.length;
     if (primary == null) {
-      return 'Hãy chọn 1 tuyến chính và có thể thêm tối đa 2 tuyến phụ.';
+      return l10n.safeRouteSelectedRoutesNeedPrimary;
     }
     if (alternativeCount == 0) {
-      return 'Đã chọn 1 tuyến chính. Bạn có thể thêm tối đa 2 tuyến phụ.';
+      return l10n.safeRouteSelectedRoutesPrimaryOnly;
     }
-    return 'Đã chọn 1 tuyến chính và $alternativeCount tuyến phụ.';
+    return l10n.safeRouteSelectedRoutesWithAlternatives(alternativeCount);
   }
 }
-
 class _TrackingStatusContent extends StatelessWidget {
   const _TrackingStatusContent({
     required this.state,
+    required this.l10n,
     required this.safetyStatusLabel,
     required this.speedLabel,
     required this.batteryLabel,
@@ -492,6 +508,7 @@ class _TrackingStatusContent extends StatelessWidget {
   });
 
   final SafeRouteTrackingState state;
+  final AppLocalizations l10n;
   final String safetyStatusLabel;
   final String speedLabel;
   final String batteryLabel;
@@ -501,10 +518,16 @@ class _TrackingStatusContent extends StatelessWidget {
   final VoidCallback onFocusRoute;
   final VoidCallback onShowHistory;
 
+  bool get _isCompleting => state.tripMutation == TripMutationState.completing;
+  bool get _isCancelling => state.tripMutation == TripMutationState.cancelling;
+  bool get _hasTripMutation => state.tripMutation != TripMutationState.none;
+
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final visuals = resolveSafeRouteTrackingVisuals(
       state,
+      l10n: l10n,
       fallbackStatusLabel: safetyStatusLabel,
     );
     final isDanger = visuals.severity == SafeRouteTrackingSeverity.danger;
@@ -545,18 +568,18 @@ class _TrackingStatusContent extends StatelessWidget {
                   children: [
                     Text(
                       visuals.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
+                        color: scheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       visuals.subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: Color(0xFF667085),
+                        color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),
                     ),
@@ -588,12 +611,10 @@ class _TrackingStatusContent extends StatelessWidget {
             children: [
               Expanded(
                 child: _TrackingMetricCard(
-                  label: 'Tốc độ',
+                  label: l10n.safeRouteMetricSpeed,
                   value: speedLabel,
                   subtitle: _speedSubtitle(state),
-                  tint: isDanger
-                      ? const Color(0xFFFEF2F2)
-                      : visuals.softColor,
+                  tint: isDanger ? const Color(0xFFFEF2F2) : visuals.softColor,
                   borderColor: isDanger
                       ? const Color(0xFFFECACA)
                       : visuals.borderColor.withOpacity(0.55),
@@ -608,29 +629,29 @@ class _TrackingStatusContent extends StatelessWidget {
                   fillColor: isDanger
                       ? const Color(0xFFEF4444)
                       : isWarning
-                          ? const Color(0xFFF59E0B)
-                          : const Color(0xFF10B981),
+                      ? const Color(0xFFF59E0B)
+                      : const Color(0xFF10B981),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _TrackingMetricCard(
                   label: isDanger
-                      ? 'Lệch tuyến'
+                      ? l10n.safeRouteMetricOffRoute
                       : isWarning
-                          ? 'Lệch khỏi'
-                          : 'Đến nơi',
+                      ? l10n.safeRouteMetricOffCorridor
+                      : l10n.safeRouteMetricEta,
                   value: isDanger || isWarning
-                      ? '${distanceFromRoute}m'
+                      ? l10n.safeRouteDistanceCompactLabel(
+                          distanceFromRoute.toDouble(),
+                        )
                       : _etaLabel(state),
                   subtitle: isDanger
-                      ? (hazard?.name ?? 'Cần kiểm tra ngay')
+                      ? (hazard?.name ?? l10n.safeRouteDangerCheckNow)
                       : isWarning
-                          ? 'Ngoài corridor'
-                          : 'Ước tính',
-                  tint: isDanger
-                      ? const Color(0xFFFEF2F2)
-                      : visuals.softColor,
+                      ? l10n.safeRouteVisualOffRouteSubtitle
+                      : l10n.safeRouteMetricEtaEstimate,
+                  tint: isDanger ? const Color(0xFFFEF2F2) : visuals.softColor,
                   borderColor: isDanger
                       ? const Color(0xFFFECACA)
                       : visuals.borderColor.withOpacity(0.55),
@@ -644,9 +665,9 @@ class _TrackingStatusContent extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: locationPanelMutedColor(scheme),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE7EDF4)),
+              border: Border.all(color: locationPanelBorderColor(scheme)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -656,10 +677,10 @@ class _TrackingStatusContent extends StatelessWidget {
                     Expanded(
                       child: Text(
                         state.activeRoute!.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF111827),
+                          color: scheme.onSurface,
                         ),
                       ),
                     ),
@@ -681,27 +702,35 @@ class _TrackingStatusContent extends StatelessWidget {
                   children: [
                     _InlineChip(
                       icon: Icons.route_rounded,
-                      label: _distanceLabel(state.activeRoute!.distanceMeters),
+                      label: l10n.safeRouteDistanceLabel(
+                        state.activeRoute!.distanceMeters,
+                      ),
                     ),
                     _InlineChip(
                       icon: Icons.schedule_rounded,
-                      label: _durationLabel(state.activeRoute!.durationSeconds),
+                      label: l10n.safeRouteDurationLabel(
+                        state.activeRoute!.durationSeconds,
+                      ),
                     ),
                     _InlineChip(
                       icon: Icons.warning_amber_rounded,
-                      label: '${state.activeRoute!.hazards.length} vùng nguy hiểm',
+                      label: l10n.safeRouteHazardCount(
+                        state.activeRoute!.hazards.length,
+                      ),
                     ),
                     if (state.activeTrip?.scheduledStartAt != null)
                       _InlineChip(
                         icon: Icons.event_rounded,
-                        label: _scheduledLabel(state.activeTrip!.scheduledStartAt!),
+                        label: l10n.safeRouteDateTimeLabel(
+                          state.activeTrip!.scheduledStartAt!,
+                        ),
                       ),
                     if (state.activeTrip?.repeatWeekdays.isNotEmpty == true)
                       _InlineChip(
                         icon: Icons.repeat_rounded,
-                        label: state.activeTrip!.repeatWeekdays
-                            .map(_weekdayLabel)
-                            .join(', '),
+                        label: l10n.safeRouteRepeatSummary(
+                          state.activeTrip!.repeatWeekdays,
+                        ),
                       ),
                     _InlineChip(
                       icon: Icons.traffic_rounded,
@@ -710,7 +739,9 @@ class _TrackingStatusContent extends StatelessWidget {
                     if (state.activeAlternativeRoutes.isNotEmpty)
                       _InlineChip(
                         icon: Icons.alt_route_rounded,
-                        label: '+${state.activeAlternativeRoutes.length} tuyến phụ',
+                        label: l10n.safeRouteAlternativeRouteCount(
+                          state.activeAlternativeRoutes.length,
+                        ),
                       ),
                   ],
                 ),
@@ -725,7 +756,7 @@ class _TrackingStatusContent extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: _GhostButton(
-              label: 'Lịch sử',
+              label: l10n.safeRouteHistoryButton,
               icon: Icons.history_rounded,
               onTap: onShowHistory,
             ),
@@ -737,22 +768,23 @@ class _TrackingStatusContent extends StatelessWidget {
             children: [
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Dừng theo dõi',
+                  label: l10n.safeRouteActionStopTracking,
                   icon: Icons.close_rounded,
                   backgroundColor: const Color(0xFFFEF2F2),
                   foregroundColor: const Color(0xFF991B1B),
                   borderColor: const Color(0xFFFCA5A5),
-                  onTap: onCancelTrip,
+                  onTap: _hasTripMutation ? null : onCancelTrip,
+                  isLoading: _isCancelling,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Xem tuyến',
+                  label: l10n.safeRouteActionViewRoute,
                   icon: Icons.route_rounded,
                   backgroundColor: const Color(0xFFDC2626),
                   foregroundColor: Colors.white,
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
             ],
@@ -762,33 +794,35 @@ class _TrackingStatusContent extends StatelessWidget {
             children: [
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Dừng theo dõi',
+                  label: l10n.safeRouteActionStopTracking,
                   icon: Icons.close_rounded,
                   backgroundColor: const Color(0xFFF8FAFC),
                   foregroundColor: const Color(0xFF475569),
                   borderColor: const Color(0xFFCBD5E1),
-                  onTap: onCancelTrip,
+                  onTap: _hasTripMutation ? null : onCancelTrip,
+                  isLoading: _isCancelling,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Xem tuyến',
+                  label: l10n.safeRouteActionViewRoute,
                   icon: Icons.route_rounded,
                   backgroundColor: const Color(0xFFFFF7ED),
                   foregroundColor: const Color(0xFFB45309),
                   borderColor: const Color(0xFFFCD34D),
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Đánh dấu đã đến',
+                  label: l10n.safeRouteActionMarkArrived,
                   icon: Icons.flag_rounded,
                   backgroundColor: const Color(0xFFF59E0B),
                   foregroundColor: Colors.white,
-                  onTap: onCompleteTrip,
+                  onTap: _hasTripMutation ? null : onCompleteTrip,
+                  isLoading: _isCompleting,
                 ),
               ),
             ],
@@ -798,23 +832,24 @@ class _TrackingStatusContent extends StatelessWidget {
             children: [
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Hủy lịch',
+                  label: l10n.safeRouteActionCancelSchedule,
                   icon: Icons.close_rounded,
                   backgroundColor: const Color(0xFFF8FAFC),
                   foregroundColor: const Color(0xFF475569),
                   borderColor: const Color(0xFFCBD5E1),
-                  onTap: onCancelTrip,
+                  onTap: _hasTripMutation ? null : onCancelTrip,
+                  isLoading: _isCancelling,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Xem tuyến',
+                  label: l10n.safeRouteActionViewRoute,
                   icon: Icons.route_rounded,
                   backgroundColor: const Color(0xFFEFF6FF),
                   foregroundColor: const Color(0xFF1D4ED8),
                   borderColor: const Color(0xFFBFDBFE),
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
             ],
@@ -824,23 +859,23 @@ class _TrackingStatusContent extends StatelessWidget {
             children: [
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Xem tuyến',
+                  label: l10n.safeRouteActionViewRoute,
                   icon: Icons.route_rounded,
                   backgroundColor: const Color(0xFFEFF6FF),
                   foregroundColor: const Color(0xFF1D4ED8),
                   borderColor: const Color(0xFFBFDBFE),
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Chọn tuyến mới',
+                  label: l10n.safeRouteActionChooseNewRoute,
                   icon: Icons.alt_route_rounded,
                   backgroundColor: const Color(0xFFF0FDF4),
                   foregroundColor: const Color(0xFF15803D),
                   borderColor: const Color(0xFFBBF7D0),
-                  onTap: onCompleteTrip,
+                  onTap: _hasTripMutation ? null : onCompleteTrip,
                 ),
               ),
             ],
@@ -850,22 +885,23 @@ class _TrackingStatusContent extends StatelessWidget {
             children: [
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Chi tiết tuyến',
+                  label: l10n.safeRouteActionRouteDetails,
                   icon: Icons.route_rounded,
                   backgroundColor: const Color(0xFFEFF6FF),
                   foregroundColor: const Color(0xFF1D4ED8),
                   borderColor: const Color(0xFFBFDBFE),
-                  onTap: onFocusRoute,
+                  onTap: _hasTripMutation ? null : onFocusRoute,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _TrackingActionButton(
-                  label: 'Đánh dấu đã đến',
+                  label: l10n.safeRouteActionMarkArrived,
                   icon: Icons.check_circle_rounded,
                   backgroundColor: const Color(0xFF1A73E8),
                   foregroundColor: Colors.white,
-                  onTap: onCompleteTrip,
+                  onTap: _hasTripMutation ? null : onCompleteTrip,
+                  isLoading: _isCompleting,
                 ),
               ),
             ],
@@ -895,40 +931,26 @@ class _TrackingStatusContent extends StatelessWidget {
 
   String _speedSubtitle(SafeRouteTrackingState state) {
     final speed = state.liveLocation?.speedKmh ?? 0;
-    if (speed < 1) return 'Đứng yên';
-    if (speed < 7) return 'Đi bộ';
-    if (speed < 18) return 'Đi xe đạp';
-    return 'Di chuyển';
+    if (speed < 1) return l10n.safeRouteSpeedStanding;
+    if (speed < 7) return l10n.safeRouteSpeedWalking;
+    if (speed < 18) return l10n.safeRouteSpeedCycling;
+    return l10n.safeRouteSpeedMoving;
   }
 
   String _etaLabel(SafeRouteTrackingState state) {
-    final durationSeconds = state.activeRoute?.durationSeconds ?? 0;
-    final minutes = (durationSeconds / 60).round();
-    if (minutes <= 0) return '--';
-    if (minutes < 60) return '~$minutes phút';
-    final hours = minutes ~/ 60;
-    final remainMinutes = minutes % 60;
-    if (remainMinutes == 0) return '~$hours giờ';
-    return '~$hours giờ ${remainMinutes}p';
+    return l10n.safeRouteEtaApproxLabel(
+      state.activeRoute?.durationSeconds ?? 0,
+    );
   }
 
   String _currentRouteUsageLabel(SafeRouteTrackingState state) {
     final trip = state.activeTrip;
     final activeRoute = state.activeRoute;
-    if (trip == null || activeRoute == null) {
-      return 'Đang đi trên tuyến chính';
-    }
-
-    if (activeRoute.id == trip.routeId) {
-      return 'Đang đi trên tuyến chính';
-    }
-
-    final alternativeIndex = trip.alternativeRouteIds.indexOf(activeRoute.id);
-    if (alternativeIndex >= 0) {
-      return 'Đang đi trên tuyến phụ ${alternativeIndex + 1}';
-    }
-
-    return 'Đang đi trên tuyến phụ';
+    return l10n.safeRouteCurrentRouteUsageLabel(
+      activeRoute?.id,
+      trip?.routeId,
+      trip?.alternativeRouteIds ?? const [],
+    );
   }
 
   _RouteProgressDetails _routeProgressDetails(SafeRouteTrackingState state) {
@@ -1077,32 +1099,7 @@ class _TrackingStatusContent extends StatelessWidget {
   }
 
   double _toRadians(double degrees) => degrees * math.pi / 180.0;
-
-  String _scheduledLabel(DateTime value) {
-    return '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')} · ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-  }
-
-  String _weekdayLabel(int weekday) {
-    switch (weekday) {
-      case 1:
-        return 'T2';
-      case 2:
-        return 'T3';
-      case 3:
-        return 'T4';
-      case 4:
-        return 'T5';
-      case 5:
-        return 'T6';
-      case 6:
-        return 'T7';
-      case 7:
-        return 'CN';
-    }
-    return '';
-  }
 }
-
 class _TrackingMetricCard extends StatelessWidget {
   const _TrackingMetricCard({
     required this.label,
@@ -1122,6 +1119,7 @@ class _TrackingMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       constraints: const BoxConstraints(minHeight: 88),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -1135,10 +1133,10 @@ class _TrackingMetricCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF6B7280),
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -1147,15 +1145,15 @@ class _TrackingMetricCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: valueColor ?? const Color(0xFF111827),
+              color: valueColor ?? scheme.onSurface,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10.5,
-              color: Color(0xFF667085),
+              color: scheme.onSurfaceVariant,
               height: 1.25,
             ),
           ),
@@ -1174,41 +1172,46 @@ class _RouteProgressSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: locationPanelColor(scheme),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.timeline_rounded,
                 size: 16,
-                color: Color(0xFF1A73E8),
+                color: scheme.primary,
               ),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Tiến độ hành trình',
+                  l10n.safeRouteProgressTitle,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                'Đã đi ${(details.progress * 100).round()}%',
-                style: const TextStyle(
+                l10n.safeRouteProgressCompletedPercent(
+                  (details.progress * 100).round(),
+                ),
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A73E8),
+                  color: scheme.primary,
                 ),
               ),
             ],
@@ -1230,47 +1233,49 @@ class _RouteProgressSummary extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Đã đi ${_distanceCompactLabel(details.traveledMeters)}/${_distanceCompactLabel(details.totalMeters)}',
-                  style: const TextStyle(
+                  l10n.safeRouteProgressTraveled(
+                    l10n.safeRouteDistanceCompactLabel(details.traveledMeters),
+                    l10n.safeRouteDistanceCompactLabel(details.totalMeters),
+                  ),
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                'Còn lại ${((1 - details.progress).clamp(0.0, 1.0) * 100).round()}%',
-                style: const TextStyle(
+                l10n.safeRouteProgressRemainingPercent(
+                  ((1 - details.progress).clamp(0.0, 1.0) * 100).round(),
+                ),
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            'Còn ${_distanceCompactLabel((details.totalMeters - details.traveledMeters).clamp(0.0, details.totalMeters).toDouble())}',
-            style: const TextStyle(
+            l10n.safeRouteProgressRemaining(
+              l10n.safeRouteDistanceCompactLabel(
+                (details.totalMeters - details.traveledMeters)
+                    .clamp(0.0, details.totalMeters)
+                    .toDouble(),
+              ),
+            ),
+            style: TextStyle(
               fontSize: 10.5,
-              color: Color(0xFF64748B),
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
       ),
     );
   }
-
-  String _distanceCompactLabel(double meters) {
-    if (meters <= 0) return '0 m';
-    if (meters >= 1000) {
-      return '${(meters / 1000).toStringAsFixed(meters >= 10000 ? 0 : 1)} km';
-    }
-    return '${meters.round()} m';
-  }
 }
-
 class _PanelRouteProjection {
   const _PanelRouteProjection({
     required this.segmentIndex,
@@ -1310,6 +1315,7 @@ class _BatteryMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final normalized = batteryLabel.replaceAll('%', '').trim();
     final value = double.tryParse(normalized) ?? 0;
     final progress = (value / 100).clamp(0.0, 1.0).toDouble();
@@ -1320,17 +1326,17 @@ class _BatteryMetricCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: tint,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Pin thiết bị',
+          Text(
+            AppLocalizations.of(context).safeRouteDeviceBatteryLabel,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF6B7280),
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
@@ -1346,10 +1352,10 @@ class _BatteryMetricCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             batteryLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF111827),
+              color: scheme.onSurface,
             ),
           ),
         ],
@@ -1357,7 +1363,6 @@ class _BatteryMetricCard extends StatelessWidget {
     );
   }
 }
-
 class _TrackingActionButton extends StatelessWidget {
   const _TrackingActionButton({
     required this.label,
@@ -1366,6 +1371,7 @@ class _TrackingActionButton extends StatelessWidget {
     required this.foregroundColor,
     required this.onTap,
     this.borderColor,
+    this.isLoading = false,
   });
 
   final String label;
@@ -1373,15 +1379,17 @@ class _TrackingActionButton extends StatelessWidget {
   final Color backgroundColor;
   final Color foregroundColor;
   final Color? borderColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
+    final disabled = onTap == null && !isLoading;
     return Material(
-      color: backgroundColor,
+      color: disabled ? backgroundColor.withOpacity(0.58) : backgroundColor,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: onTap,
+        onTap: isLoading ? null : onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           height: 46,
@@ -1393,7 +1401,23 @@ class _TrackingActionButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: foregroundColor),
+              if (isLoading)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(foregroundColor),
+                  ),
+                )
+              else
+                Icon(
+                  icon,
+                  size: 16,
+                  color: disabled
+                      ? foregroundColor.withOpacity(0.75)
+                      : foregroundColor,
+                ),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
@@ -1402,7 +1426,9 @@ class _TrackingActionButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: foregroundColor,
+                    color: disabled
+                        ? foregroundColor.withOpacity(0.75)
+                        : foregroundColor,
                   ),
                 ),
               ),
@@ -1423,9 +1449,9 @@ class _LocationPickerCard extends StatelessWidget {
     required this.selectionMode,
     required this.onStartTap,
     required this.onEndTap,
-    required this.onClearStart,
-    required this.onClearEnd,
-    required this.onSwapTap,
+    this.onClearStart,
+    this.onClearEnd,
+    this.onSwapTap,
   });
 
   final RoutePoint? start;
@@ -1441,63 +1467,55 @@ class _LocationPickerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Stack(
         children: [
-          Positioned(
-            left: 20,
-            top: 28,
-            bottom: 28,
-            child: Container(
-              width: 2,
-              decoration: BoxDecoration(
-                color: const Color(0xFFDAE6F5),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 12,
-            top: 50,
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                onTap: onSwapTap,
+          if (onSwapTap != null)
+            Positioned(
+              right: 12,
+              top: 50,
+              child: Material(
+                color: locationPanelColor(scheme),
                 borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE7EDF4)),
-                  ),
-                  child: Icon(
-                    Icons.swap_vert_rounded,
-                    size: 20,
-                    color: onSwapTap == null
-                        ? const Color(0xFFB0BDC9)
-                        : const Color(0xFF526074),
+                child: InkWell(
+                  onTap: onSwapTap,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: locationPanelBorderColor(scheme)),
+                    ),
+                    child: Icon(
+                      Icons.swap_vert_rounded,
+                      size: 20,
+                      color: onSwapTap == null
+                          ? const Color(0xFFB0BDC9)
+                          : scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 14, 56, 14),
             child: Column(
               children: [
                 _LocationRow(
-                  title: 'Từ',
+                  title: l10n.safeRouteFromLabel,
                   value: _pointLabel(
                     start,
                     label: startLabel,
-                    fallback: 'Tìm hoặc chọn điểm đi',
+                    fallback: l10n.safeRouteSearchOrSelectStart,
                   ),
                   dotColor: const Color(0xFF1A73E8),
                   selected: selectionMode == RouteSelectionMode.selectingStart,
@@ -1506,11 +1524,11 @@ class _LocationPickerCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _LocationRow(
-                  title: 'Đến',
+                  title: l10n.safeRouteToLabel,
                   value: _pointLabel(
                     end,
                     label: endLabel,
-                    fallback: 'Tìm hoặc chọn điểm đến',
+                    fallback: l10n.safeRouteSearchOrSelectEnd,
                   ),
                   dotColor: const Color(0xFF16A05F),
                   selected: selectionMode == RouteSelectionMode.selectingEnd,
@@ -1535,7 +1553,6 @@ class _LocationPickerCard extends StatelessWidget {
     return '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}';
   }
 }
-
 class _LocationRow extends StatelessWidget {
   const _LocationRow({
     required this.title,
@@ -1555,8 +1572,9 @@ class _LocationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: selected ? const Color(0xFFEFF5FF) : Colors.transparent,
+      color: selected ? locationPanelHighlightColor(scheme) : Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -1587,10 +1605,10 @@ class _LocationRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF7B8799),
+                        color: scheme.onSurfaceVariant,
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -1610,26 +1628,26 @@ class _LocationRow extends StatelessWidget {
               const SizedBox(width: 8),
               if (onClearTap != null)
                 Material(
-                  color: Colors.white,
+                  color: locationPanelColor(scheme),
                   borderRadius: BorderRadius.circular(999),
                   child: InkWell(
                     onTap: onClearTap,
                     borderRadius: BorderRadius.circular(999),
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.all(6),
                       child: Icon(
                         Icons.close_rounded,
                         size: 16,
-                        color: Color(0xFF94A3B8),
+                        color: scheme.onSurfaceVariant.withOpacity(0.8),
                       ),
                     ),
                   ),
                 )
               else
-                const Icon(
+                Icon(
                   Icons.search_rounded,
                   size: 18,
-                  color: Color(0xFF94A3B8),
+                  color: scheme.onSurfaceVariant.withOpacity(0.8),
                 ),
             ],
           ),
@@ -1650,31 +1668,33 @@ class _TravelModesRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         _ModeChip(
           icon: Icons.directions_walk_rounded,
-          label: SafeRouteTravelMode.walking.label,
+          label: l10n.safeRouteTravelModeLabel(SafeRouteTravelMode.walking),
           active: selectedMode == SafeRouteTravelMode.walking,
           onTap: () => onSelected(SafeRouteTravelMode.walking),
         ),
         _ModeChip(
           icon: Icons.two_wheeler_rounded,
-          label: SafeRouteTravelMode.motorbike.label,
+          label: l10n.safeRouteTravelModeLabel(SafeRouteTravelMode.motorbike),
           active: selectedMode == SafeRouteTravelMode.motorbike,
           onTap: () => onSelected(SafeRouteTravelMode.motorbike),
         ),
         _ModeChip(
           icon: Icons.family_restroom_rounded,
-          label: SafeRouteTravelMode.pickup.label,
+          label: l10n.safeRouteTravelModeLabel(SafeRouteTravelMode.pickup),
           active: selectedMode == SafeRouteTravelMode.pickup,
           onTap: () => onSelected(SafeRouteTravelMode.pickup),
         ),
         _ModeChip(
           icon: Icons.directions_car_filled_rounded,
-          label: SafeRouteTravelMode.otherVehicle.label,
+          label: l10n.safeRouteTravelModeLabel(SafeRouteTravelMode.otherVehicle),
           active: selectedMode == SafeRouteTravelMode.otherVehicle,
           onTap: () => onSelected(SafeRouteTravelMode.otherVehicle),
         ),
@@ -1682,7 +1702,6 @@ class _TravelModesRow extends StatelessWidget {
     );
   }
 }
-
 class _ModeChip extends StatelessWidget {
   const _ModeChip({
     required this.icon,
@@ -1698,8 +1717,9 @@ class _ModeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: active ? Colors.white : const Color(0xFFF4F7FB),
+      color: active ? locationPanelColor(scheme) : locationPanelMutedColor(scheme),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -1710,7 +1730,7 @@ class _ModeChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: active ? const Color(0xFFCEE0FA) : const Color(0xFFE7EDF4),
+              color: locationPanelBorderColor(scheme),
             ),
             boxShadow: active
                 ? [
@@ -1728,7 +1748,7 @@ class _ModeChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 16,
-                color: active ? const Color(0xFF1A73E8) : const Color(0xFF607182),
+                color: active ? scheme.primary : scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
@@ -1736,7 +1756,7 @@ class _ModeChip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: active ? const Color(0xFF1A73E8) : const Color(0xFF607182),
+                  color: active ? scheme.primary : scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -1768,13 +1788,16 @@ class _ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
+        border: Border.all(color: locationPanelBorderColor(scheme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1782,24 +1805,24 @@ class _ScheduleCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Lịch áp dụng tuyến',
+                      l10n.safeRouteScheduleTitle,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
+                        color: scheme.onSurface,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      'Đặt ngày, giờ và chọn các ngày lặp lại cho tuyến đường an toàn này.',
+                      l10n.safeRouteScheduleSubtitle,
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: Color(0xFF667085),
+                        color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),
                     ),
@@ -1808,7 +1831,7 @@ class _ScheduleCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               _GhostButton(
-                label: 'Theo dõi ngay',
+                label: l10n.safeRouteTrackNowLabel,
                 icon: Icons.bolt_rounded,
                 onTap: onReset,
               ),
@@ -1820,8 +1843,8 @@ class _ScheduleCard extends StatelessWidget {
               Expanded(
                 child: _ScheduleSelectorTile(
                   icon: Icons.calendar_today_rounded,
-                  title: 'Ngày',
-                  value: _dateLabel(scheduledDate),
+                  title: l10n.safeRouteDateLabel,
+                  value: l10n.safeRouteFormattedDateLabel(scheduledDate),
                   onTap: onPickDate,
                 ),
               ),
@@ -1829,20 +1852,20 @@ class _ScheduleCard extends StatelessWidget {
               Expanded(
                 child: _ScheduleSelectorTile(
                   icon: Icons.schedule_rounded,
-                  title: 'Giờ',
-                  value: _timeLabel(scheduledTime),
+                  title: l10n.safeRouteTimeLabel,
+                  value: l10n.safeRouteFormattedTimeLabel(scheduledTime),
                   onTap: onPickTime,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Lặp lại theo ngày',
+          Text(
+            l10n.safeRouteRepeatByDayLabel,
             style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF526074),
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -1854,9 +1877,7 @@ class _ScheduleCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
                   child: Material(
-                    color: selected
-                        ? const Color(0xFF1A73E8)
-                        : Colors.white,
+                    color: selected ? scheme.primary : locationPanelColor(scheme),
                     borderRadius: BorderRadius.circular(10),
                     child: InkWell(
                       onTap: () => onToggleWeekday(weekday),
@@ -1868,18 +1889,18 @@ class _ScheduleCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: selected
-                                ? const Color(0xFF1A73E8)
-                                : const Color(0xFFE7EDF4),
+                                ? scheme.primary
+                                : locationPanelBorderColor(scheme),
                           ),
                         ),
                         child: Text(
-                          _weekdayLabel(weekday),
+                          l10n.safeRouteWeekdayShort(weekday),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: selected
                                 ? Colors.white
-                                : const Color(0xFF607182),
+                                : scheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -1891,10 +1912,10 @@ class _ScheduleCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            _repeatSummary(repeatWeekdays),
-            style: const TextStyle(
+            l10n.safeRouteRepeatSummary(repeatWeekdays),
+            style: TextStyle(
               fontSize: 11,
-              color: Color(0xFF667085),
+              color: scheme.onSurfaceVariant,
               height: 1.3,
             ),
           ),
@@ -1902,55 +1923,7 @@ class _ScheduleCard extends StatelessWidget {
       ),
     );
   }
-
-  String _dateLabel(DateTime? value) {
-    if (value == null) return 'Hôm nay';
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(const Duration(days: 1));
-    final normalized = DateTime(value.year, value.month, value.day);
-    if (normalized == today) return 'Hôm nay';
-    if (normalized == tomorrow) return 'Ngày mai';
-    return '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
-  }
-
-  String _timeLabel(TimeOfDay? value) {
-    if (value == null) {
-      return 'Bây giờ';
-    }
-    final effective = value;
-    return '${effective.hour.toString().padLeft(2, '0')}:${effective.minute.toString().padLeft(2, '0')}';
-  }
-
-  String _weekdayLabel(int weekday) {
-    switch (weekday) {
-      case 1:
-        return 'T2';
-      case 2:
-        return 'T3';
-      case 3:
-        return 'T4';
-      case 4:
-        return 'T5';
-      case 5:
-        return 'T6';
-      case 6:
-        return 'T7';
-      case 7:
-        return 'CN';
-    }
-    return '';
-  }
-
-  String _repeatSummary(List<int> weekdays) {
-    if (weekdays.isEmpty) {
-      return 'Không lặp lại, tuyến sẽ được áp dụng cho một lịch theo dõi gần nhất.';
-    }
-    final labels = weekdays.map(_weekdayLabel).join(', ');
-    return 'Lặp lại vào: $labels';
-  }
 }
-
 class _ScheduleSelectorTile extends StatelessWidget {
   const _ScheduleSelectorTile({
     required this.icon,
@@ -1966,8 +1939,9 @@ class _ScheduleSelectorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: Colors.white,
+      color: locationPanelColor(scheme),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -1976,7 +1950,7 @@ class _ScheduleSelectorTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE7EDF4)),
+            border: Border.all(color: locationPanelBorderColor(scheme)),
           ),
           child: Row(
             children: [
@@ -1984,13 +1958,13 @@ class _ScheduleSelectorTile extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF2FF),
+                  color: locationPanelHighlightColor(scheme),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
                   size: 17,
-                  color: const Color(0xFF1A73E8),
+                  color: scheme.primary,
                 ),
               ),
               const SizedBox(width: 10),
@@ -2000,19 +1974,19 @@ class _ScheduleSelectorTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF667085),
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       value,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
+                        color: scheme.onSurface,
                       ),
                     ),
                   ],
@@ -2041,8 +2015,11 @@ class _QuickActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: highlighted ? const Color(0xFFEAF2FF) : const Color(0xFFF4F7FB),
+      color: highlighted
+          ? locationPanelHighlightColor(scheme)
+          : locationPanelMutedColor(scheme),
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -2055,9 +2032,7 @@ class _QuickActionChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 15,
-                color: highlighted
-                    ? const Color(0xFF1A73E8)
-                    : const Color(0xFF526074),
+                color: highlighted ? scheme.primary : scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
@@ -2066,8 +2041,8 @@ class _QuickActionChip extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: highlighted
-                      ? const Color(0xFF1A73E8)
-                      : const Color(0xFF526074),
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -2091,11 +2066,12 @@ class _GhostButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFF1A73E8),
-        side: const BorderSide(color: Color(0xFFDCE8F8)),
+        foregroundColor: scheme.primary,
+        side: BorderSide(color: locationPanelBorderColor(scheme)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
@@ -2119,138 +2095,6 @@ class _GhostButton extends StatelessWidget {
   }
 }
 
-class _StatusHighlightCard extends StatelessWidget {
-  const _StatusHighlightCard({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.icon,
-    required this.backgroundColor,
-    required this.foregroundColor,
-  });
-
-  final String title;
-  final String value;
-  final String subtitle;
-  final IconData icon;
-  final Color backgroundColor;
-  final Color foregroundColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: foregroundColor),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF667085),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: foregroundColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF526074),
-                    height: 1.25,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniMetricCard extends StatelessWidget {
-  const _MiniMetricCard({
-    required this.label,
-    required this.value,
-    required this.subtitle,
-  });
-
-  final String label;
-  final String value;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE7EDF4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF667085),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF78859A),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _InlineChip extends StatelessWidget {
   const _InlineChip({
     required this.icon,
@@ -2262,22 +2106,24 @@ class _InlineChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F7FB),
+        color: locationPanelMutedColor(scheme),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF1A73E8)),
+          Icon(icon, size: 14, color: scheme.primary),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
             ),
           ),
         ],
@@ -2286,75 +2132,10 @@ class _InlineChip extends StatelessWidget {
   }
 }
 
-String _distanceLabel(double distanceMeters) {
-  if (distanceMeters >= 1000) {
-    return '${(distanceMeters / 1000).toStringAsFixed(1)} km';
-  }
-  return '${distanceMeters.round()} m';
-}
 
-String _durationLabel(double durationSeconds) {
-  final minutes = (durationSeconds / 60).round();
-  if (minutes < 60) return '$minutes phút';
-  final hours = minutes ~/ 60;
-  final remainMinutes = minutes % 60;
-  if (remainMinutes == 0) return '$hours giờ';
-  return '$hours giờ $remainMinutes phút';
-}
 
-Color _statusColor(TripStatus? status) {
-  switch (status) {
-    case TripStatus.active:
-      return const Color(0xFF15803D);
-    case TripStatus.temporarilyDeviated:
-      return const Color(0xFFB45309);
-    case TripStatus.deviated:
-      return const Color(0xFFB91C1C);
-    case TripStatus.completed:
-      return const Color(0xFF1D4ED8);
-    case TripStatus.cancelled:
-      return const Color(0xFF64748B);
-    case TripStatus.planned:
-      return const Color(0xFF1D4ED8);
-    case null:
-      return const Color(0xFF0F172A);
-  }
-}
 
-Color _statusBackground(TripStatus? status) {
-  switch (status) {
-    case TripStatus.active:
-      return const Color(0xFFEAF8EF);
-    case TripStatus.temporarilyDeviated:
-      return const Color(0xFFFFF3E4);
-    case TripStatus.deviated:
-      return const Color(0xFFFFE9E9);
-    case TripStatus.completed:
-      return const Color(0xFFEAF2FF);
-    case TripStatus.cancelled:
-      return const Color(0xFFF1F5F9);
-    case TripStatus.planned:
-      return const Color(0xFFEAF2FF);
-    case null:
-      return const Color(0xFFF1F5F9);
-  }
-}
 
-IconData _statusIcon(TripStatus? status) {
-  switch (status) {
-    case TripStatus.active:
-      return Icons.shield_rounded;
-    case TripStatus.temporarilyDeviated:
-      return Icons.near_me_outlined;
-    case TripStatus.deviated:
-      return Icons.warning_amber_rounded;
-    case TripStatus.completed:
-      return Icons.flag_circle_rounded;
-    case TripStatus.cancelled:
-      return Icons.pause_circle_outline_rounded;
-    case TripStatus.planned:
-      return Icons.route_rounded;
-    case null:
-      return Icons.route_rounded;
-  }
-}
+
+
+

@@ -6,11 +6,13 @@ import 'package:kid_manager/models/location/transport_mode.dart';
 class TrackingResult {
   final LocationData filteredLocation;
   final bool shouldSend;
+  final bool indoorSuppressed;
   final MotionState motion;
   final TransportMode transport;
   TrackingResult({
     required this.filteredLocation,
     required this.shouldSend,
+    required this.indoorSuppressed,
     required this.motion,
     required this.transport,
   });

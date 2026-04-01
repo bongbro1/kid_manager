@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/schedule.dart';
 import '../../../models/schedule_history.dart';
+import '../../../services/schedule/schedule_notification_service.dart';
+import '../../../viewmodels/auth_vm.dart';
 import '../../../viewmodels/schedule/schedule_history_vm.dart';
 import '../../../viewmodels/schedule/schedule_vm.dart';
 import '../../../widgets/app/app_notification_dialog.dart';
@@ -27,13 +30,11 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
   void initState() {
     super.initState();
     _historyVm = context.read<ScheduleHistoryViewModel>();
+    _historyVm.setScheduleOwnerUid(widget.schedule.parentUid);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      await _historyVm.loadHistories(
-        parentUid: widget.schedule.parentUid,
-        scheduleId: widget.schedule.id,
-      );
+      await _historyVm.loadHistories(scheduleId: widget.schedule.id);
     });
   }
 
@@ -47,6 +48,10 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<ScheduleHistoryViewModel>();
+    final horizontalPadding = context.adaptiveHorizontalPadding(
+      compact: 12,
+      regular: 16,
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.scheduleHistoryTitle)),
@@ -66,17 +71,28 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
 
           final grouped = _groupHistories(vm.histories);
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            children: grouped.entries.map((entry) {
-              return _HistorySection(
-                title: entry.key,
-                items: entry.value,
-                currentTitle: widget.schedule.title,
-                restoring: _restoring,
-                onRestore: _onRestore,
-              );
-            }).toList(),
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  12,
+                  horizontalPadding,
+                  24,
+                ),
+                children: grouped.entries.map((entry) {
+                  return _HistorySection(
+                    title: entry.key,
+                    items: entry.value,
+                    currentTitle: widget.schedule.title,
+                    restoring: _restoring,
+                    onRestore: _onRestore,
+                  );
+                }).toList(),
+              ),
+            ),
           );
         },
       ),
@@ -114,6 +130,8 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
 
     final historyVm = context.read<ScheduleHistoryViewModel>();
     final scheduleVm = context.read<ScheduleViewModel>();
+    final authVm = context.read<AuthVM>();
+    final notificationService = context.read<ScheduleNotificationService>();
     final pageNavigator = Navigator.of(context);
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     final rootContext = rootNavigator.context;
@@ -146,19 +164,30 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
 
     try {
       await historyVm.restoreHistory(
-        parentUid: widget.schedule.parentUid,
         scheduleId: widget.schedule.id,
         historyId: item.id,
       );
+
+      final actorUid = authVm.user?.uid;
+      if (actorUid != null && actorUid.isNotEmpty) {
+        // Phase 4: Restore now participates in the same cross-role
+        // notification contract as other schedule CRUD actions.
+        await notificationService.notifyRestored(
+          actorUid: actorUid,
+          scheduleOwnerUid: widget.schedule.parentUid,
+          schedule: item.toSchedule(
+            currentScheduleId: widget.schedule.id,
+            editCount: widget.schedule.editCount + 1,
+            updatedAt: DateTime.now(),
+          ),
+        );
+      }
 
       if (!mounted) return;
       await scheduleVm.loadMonth();
 
       if (!mounted) return;
-      await historyVm.loadHistories(
-        parentUid: widget.schedule.parentUid,
-        scheduleId: widget.schedule.id,
-      );
+      await historyVm.loadHistories(scheduleId: widget.schedule.id);
 
       if (!mounted) return;
       rootNavigator.pop();
@@ -329,6 +358,8 @@ class _HistoryCardState extends State<_HistoryCard> {
                       children: [
                         Text(
                           currentTitle.isNotEmpty ? currentTitle : historyTitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
@@ -400,30 +431,44 @@ class _HistoryCardState extends State<_HistoryCard> {
                     value: timeText,
                   ),
                   const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: SizedBox(
-                      height: 40,
-                      child: ElevatedButton.icon(
-                        onPressed: widget.onRestore,
-                        icon: const Icon(Icons.history, size: 18),
-                        label: Text(
-                          widget.restoring
-                              ? l10n.scheduleHistoryRestoringButton
-                              : l10n.scheduleHistoryRestoreButton,
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF3F7CFF),
-                          elevation: 0,
-                          side: const BorderSide(color: Color(0xFFE0E0E0)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final maxButtonWidth = (constraints.maxWidth * 0.68)
+                          .clamp(180.0, 260.0);
+
+                      return Align(
+                        alignment: Alignment.centerRight,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: 40,
+                            maxWidth: maxButtonWidth,
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: ElevatedButton.icon(
+                            onPressed: widget.onRestore,
+                            icon: const Icon(Icons.history, size: 18),
+                            label: Text(
+                              widget.restoring
+                                  ? l10n.scheduleHistoryRestoringButton
+                                  : l10n.scheduleHistoryRestoreButton,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF3F7CFF),
+                              elevation: 0,
+                              side: const BorderSide(color: Color(0xFFE0E0E0)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -443,31 +488,41 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 86,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-              color: Color(0xFF202124),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final labelWidth = (constraints.maxWidth * 0.32).clamp(72.0, 120.0);
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: labelWidth,
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: Color(0xFF202124),
+                ),
+              ),
             ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF3C4043),
-              height: 1.35,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                value,
+                softWrap: true,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF3C4043),
+                  height: 1.35,
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

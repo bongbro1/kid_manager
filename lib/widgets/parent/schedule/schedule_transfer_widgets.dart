@@ -1,5 +1,5 @@
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/core/app_colors.dart';
 import 'package:kid_manager/core/app_text_styles.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
@@ -11,14 +11,17 @@ class ScheduleTransferSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outline.withOpacity(0.6)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: scheme.shadow.withOpacity(0.08),
             blurRadius: 20,
             offset: const Offset(0, 3),
           ),
@@ -36,22 +39,24 @@ class ScheduleTransferLockedChildBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.primarySoft,
+        color: scheme.primary.withOpacity(0.10),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: scheme.outline),
       ),
       child: Row(
         children: [
-          const Icon(Icons.lock_outline, size: 18),
+          Icon(Icons.lock_outline, size: 18, color: scheme.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               label,
-              style: AppTextStyles.body,
+              style: AppTextStyles.body.copyWith(color: scheme.onSurface),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -76,36 +81,60 @@ class ScheduleTransferChildDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
     if (children.isEmpty) {
-      return Text(l10n.scheduleNoChild, style: AppTextStyles.body);
+      return Text(
+        l10n.scheduleNoChild,
+        style: AppTextStyles.body.copyWith(color: scheme.onSurface),
+      );
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.primarySoft,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: selectedId ?? children.first.uid,
-          items: children
-              .map(
-                (c) => DropdownMenuItem(
-                  value: c.uid,
-                  child: Text(
-                    c.displayName ?? c.email ?? c.uid,
-                    style: AppTextStyles.body,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const horizontalPadding = 12.0;
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
+          decoration: BoxDecoration(
+            color: scheme.primary.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: scheme.outline),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton2<String>(
+              isExpanded: true,
+              value: selectedId ?? children.last.uid,
+              dropdownStyleData: DropdownStyleData(
+                width: constraints.maxWidth,
+                offset: const Offset(-horizontalPadding, -5),
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              )
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ),
+              ),
+              iconStyleData: IconStyleData(iconEnabledColor: scheme.onSurface),
+              style: AppTextStyles.body.copyWith(color: scheme.onSurface),
+              items: children
+                  .map(
+                    (c) => DropdownMenuItem<String>(
+                      value: c.uid,
+                      child: Text(
+                        c.displayName ?? c.email ?? c.uid,
+                        style: AppTextStyles.body.copyWith(
+                          color: scheme.onSurface,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: onChanged,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -126,6 +155,8 @@ class ScheduleTransferPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: onTap,
       child: Opacity(
@@ -133,7 +164,7 @@ class ScheduleTransferPrimaryButton extends StatelessWidget {
         child: Container(
           height: 48,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: scheme.primary,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Padding(
@@ -142,21 +173,26 @@ class ScheduleTransferPrimaryButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (onTap == null && isLoading)
-                  const SizedBox(
+                  SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        scheme.onPrimary,
+                      ),
                     ),
                   )
                 else
-                  Icon(icon, color: Colors.white, size: 18),
+                  Icon(icon, color: scheme.onPrimary, size: 18),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     text,
-                    style: AppTextStyles.scheduleCreateButton,
+                    style: AppTextStyles.scheduleCreateButton.copyWith(
+                      color: scheme.onPrimary,
+                      fontSize: 14,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
@@ -185,6 +221,8 @@ class ScheduleTransferOutlineButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: onTap,
       child: Opacity(
@@ -192,22 +230,22 @@ class ScheduleTransferOutlineButton extends StatelessWidget {
         child: Container(
           height: 48,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: scheme.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.primary),
+            border: Border.all(color: scheme.primary),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: AppColors.primary, size: 18),
+                Icon(icon, color: scheme.primary, size: 18),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     text,
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.primary,
+                      color: scheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
@@ -236,6 +274,8 @@ class ScheduleTransferDateBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: onTap,
       child: Opacity(
@@ -244,22 +284,22 @@ class ScheduleTransferDateBox extends StatelessWidget {
           height: 52,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
+            color: scheme.background,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: scheme.outline),
           ),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.calendar_today_outlined,
                 size: 18,
-                color: AppColors.secondaryText,
+                color: scheme.onSurface.withOpacity(0.65),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   text,
-                  style: AppTextStyles.body,
+                  style: AppTextStyles.body.copyWith(color: scheme.onSurface),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -277,11 +317,16 @@ Future<void> showScheduleTransferSuccessDialog(
   required String message,
   required String confirmText,
 }) {
+
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (dialogCtx) {
+      
+      final dialogScheme = Theme.of(dialogCtx).colorScheme;
+
       return Dialog(
+        backgroundColor: dialogScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
@@ -291,30 +336,34 @@ Future<void> showScheduleTransferSuccessDialog(
               Container(
                 width: 86,
                 height: 86,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8F0FF),
+                decoration: BoxDecoration(
+                  color: dialogScheme.primary.withOpacity(0.10),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
-                  child: Icon(Icons.check, size: 42, color: AppColors.primary),
+                child: Center(
+                  child: Icon(
+                    Icons.check,
+                    size: 42,
+                    color: dialogScheme.primary,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.darkText,
+                  color: dialogScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.secondaryText,
+                  color: dialogScheme.onSurface.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 18),
@@ -323,7 +372,8 @@ Future<void> showScheduleTransferSuccessDialog(
                 height: 46,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF3F4F6),
+                    backgroundColor: dialogScheme.background,
+                    foregroundColor: dialogScheme.onBackground,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -332,10 +382,10 @@ Future<void> showScheduleTransferSuccessDialog(
                   onPressed: () => Navigator.of(dialogCtx).pop(),
                   child: Text(
                     confirmText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.darkText,
+                      color: dialogScheme.onBackground,
                     ),
                   ),
                 ),

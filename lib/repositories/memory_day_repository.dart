@@ -1,18 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/memory_day.dart';
 
 class MemoryDayRepository {
-  final FirebaseFirestore _firestore;
   MemoryDayRepository(this._firestore);
 
-    CollectionReference<Map<String, dynamic>> _col(String ownerParentUid) {
+  final FirebaseFirestore _firestore;
+
+  CollectionReference<Map<String, dynamic>> _col(String ownerParentUid) {
+    // Phase 2: The repository never infers the current user. Callers must pass
+    // the resolved parent owner uid so guardian uses the parent's namespace.
     return _firestore
         .collection('parents')
         .doc(ownerParentUid)
         .collection('memories');
   }
 
-  /// Query theo tháng bằng field month (tối ưu cho repeatYearly)
   Future<List<MemoryDay>> getByMonth({
     required String ownerParentUid,
     required DateTime month,
@@ -25,29 +28,32 @@ class MemoryDayRepository {
         .orderBy('day')
         .get();
 
-    return snapshot.docs.map((d) => MemoryDay.fromFirestore(d)).toList();
+    return snapshot.docs.map((doc) => MemoryDay.fromFirestore(doc)).toList();
   }
 
   Future<List<MemoryDay>> getAll({
-  required String ownerParentUid,
-}) async {
-  final snapshot = await _firestore
-      .collection('parents')
-      .doc(ownerParentUid)
-      .collection('memories')
-      .orderBy('month')
-      .orderBy('day')
-      .get();
+    required String ownerParentUid,
+  }) async {
+    final snapshot = await _firestore
+        .collection('parents')
+        .doc(ownerParentUid)
+        .collection('memories')
+        .orderBy('month')
+        .orderBy('day')
+        .get();
 
-  return snapshot.docs.map((d) => MemoryDay.fromFirestore(d)).toList();
-}
-
-  Future<void> create(String ownerParentUid, MemoryDay m) async {
-    await _col(ownerParentUid).add(m.toMap());
+    return snapshot.docs.map((doc) => MemoryDay.fromFirestore(doc)).toList();
   }
 
-  Future<void> update(String ownerParentUid, MemoryDay m) async {
-    await _col(ownerParentUid).doc(m.id).update(m.toMap());
+  Future<MemoryDay> create(String ownerParentUid, MemoryDay memory) async {
+    final ref = _col(ownerParentUid).doc();
+    final persisted = memory.copyWith(id: ref.id);
+    await ref.set(persisted.toMap());
+    return persisted;
+  }
+
+  Future<void> update(String ownerParentUid, MemoryDay memory) async {
+    await _col(ownerParentUid).doc(memory.id).update(memory.toMap());
   }
 
   Future<void> delete(String ownerParentUid, String id) async {

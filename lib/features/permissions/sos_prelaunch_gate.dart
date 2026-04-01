@@ -1,5 +1,6 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SosPrelaunchGate extends StatefulWidget {
@@ -18,7 +19,6 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
     with WidgetsBindingObserver {
   bool _ready = false;
   bool _openedSettings = false;
-  PermissionStatus? _status;
 
   @override
   void initState() {
@@ -39,12 +39,10 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
 
     if (status.isGranted) {
       setState(() {
-        _status = status;
         _ready = true;
       });
     } else {
       setState(() {
-        _status = status;
         _ready = false;
       });
     }
@@ -65,14 +63,12 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
 
     if (status.isGranted) {
       setState(() {
-        _status = status;
         _ready = true;
       });
       return;
     }
 
     setState(() {
-      _status = status;
       _ready = false;
     });
   }
@@ -85,6 +81,8 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
   @override
   Widget build(BuildContext context) {
     if (_ready) return widget.child;
+
+    final l10n = AppLocalizations.of(context);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -102,19 +100,19 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
                   color: Colors.red,
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Bật quyền SOS',
+                Text(
+                  l10n.permissionSosTitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Ứng dụng cần quyền thông báo để gửi cảnh báo SOS khẩn cấp và phát âm thanh cảnh báo.',
+                Text(
+                  l10n.permissionSosSubtitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     height: 1.5,
                     color: Colors.black87,
@@ -127,10 +125,10 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
                     color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Hãy bật thông báo và đảm bảo kênh "SOS Alerts" có âm thanh.',
+                  child: Text(
+                    l10n.permissionSosRecommendation,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.black54,
                     ),
@@ -144,7 +142,7 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text('Cho phép SOS'),
+                    child: Text(l10n.permissionSosAllowButton),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -155,7 +153,7 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text('Mở cài đặt'),
+                    child: Text(l10n.permissionOpenSettingsButton),
                   ),
                 ),
                 const SizedBox(height: 12),

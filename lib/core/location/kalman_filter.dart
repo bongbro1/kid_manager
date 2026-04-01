@@ -20,11 +20,9 @@ class Kalman2D {
 
     _variance *= (1 - k);
 
-    return LocationData(
+    return input.copyWith(
       latitude: _lat,
       longitude: _lng,
-      accuracy: input.accuracy,
-      timestamp: input.timestamp,
     );
   }
 }

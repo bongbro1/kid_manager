@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 
 class ChildDetailMapRecentPointsHourSection extends StatelessWidget {
+  final ChildDetailMapVm vm;
   final ChildDetailMapRecentHourGroup group;
   final List<LocationData> history;
   final Future<void> Function(LocationData point) onPointSelected;
 
   const ChildDetailMapRecentPointsHourSection({
     super.key,
+    required this.vm,
     required this.group,
     required this.history,
     required this.onPointSelected,
@@ -40,6 +43,7 @@ class ChildDetailMapRecentPointsHourSection extends StatelessWidget {
           ),
           ...group.points.map(
             (point) => ChildDetailMapRecentPointRow(
+              vm: vm,
               point: point,
               history: history,
               onTap: () => onPointSelected(point),
@@ -52,12 +56,14 @@ class ChildDetailMapRecentPointsHourSection extends StatelessWidget {
 }
 
 class ChildDetailMapRecentPointRow extends StatelessWidget {
+  final ChildDetailMapVm vm;
   final LocationData point;
   final List<LocationData> history;
   final VoidCallback onTap;
 
   const ChildDetailMapRecentPointRow({
     super.key,
+    required this.vm,
     required this.point,
     required this.history,
     required this.onTap,
@@ -65,6 +71,7 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final pointIndex = history.indexWhere(
       (entry) => entry.timestamp == point.timestamp,
     );
@@ -110,8 +117,9 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
                   children: [
                     Text(
                       point.accuracy > 30
-                          ? 'Tín hiệu GPS yếu'
+                          ? l10n.childLocationWeakGpsSignal
                           : LocationHistoryPresenter.transportLabel(
+                              l10n,
                               effectiveTransport,
                             ),
                       style: const TextStyle(
@@ -122,7 +130,7 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Bấm để xem chi tiết',
+                      l10n.childLocationTapToSeeDetails,
                       style: TextStyle(
                         fontSize: 11.5,
                         color: Colors.grey.shade600,
@@ -133,7 +141,7 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
                 ),
               ),
               Text(
-                point.timeLabel,
+                vm.formatTimeLabelForTimestamp(point.timestamp),
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade600,

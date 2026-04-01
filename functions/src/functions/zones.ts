@@ -3,20 +3,49 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { admin } from "../bootstrap";
 import { REGION } from "../config";
 import { mustString, mustNumber, validateLatLng } from "../helpers";
-import { requireParentOfChild } from "../services/child";
-import { db } from "../bootstrap";
+import {
+  requireZoneManagerAccess,
+  requireZoneViewerAccess,
+} from "../services/zoneAccess";
+import {
+  enforceQuota,
+  FREE_ZONE_LIMIT,
+  getQuotaOwnerUidForChild,
+  ZONE_LIMIT_ERROR,
+} from "../services/subscriptionQuota";
 
 // upsertChildZone
 export const upsertChildZone = onCall({ region: REGION }, async (req) => {
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
-  const parentUid = req.auth.uid;
+  const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
-  await requireParentOfChild(parentUid, childUid);
+  await requireZoneManagerAccess(viewerUid, childUid);
+
+  const zonesRef = admin.database().ref(`zonesByChild/${childUid}`);
+  const existingZonesSnap = await zonesRef.get();
+  const existingZones =
+    existingZonesSnap.exists() &&
+    typeof existingZonesSnap.val() === "object" &&
+    existingZonesSnap.val() !== null
+      ? (existingZonesSnap.val() as Record<string, unknown>)
+      : {};
 
   const zoneIdRaw = req.data?.zoneId;
   const zoneId =
     typeof zoneIdRaw === "string" && zoneIdRaw.trim() ? zoneIdRaw.trim() : randomUUID();
+  const isCreatingNewZone = existingZones[zoneId] == null;
+
+  if (isCreatingNewZone) {
+    const ownerUid = await getQuotaOwnerUidForChild(childUid, viewerUid);
+    await enforceQuota({
+      ownerUid,
+      currentCount: Object.keys(existingZones).length,
+      limit: FREE_ZONE_LIMIT,
+      errorMessage: ZONE_LIMIT_ERROR,
+      feature: "zone",
+    });
+  }
 
   const name = mustString(req.data?.name, "name").slice(0, 60);
   const type = mustString(req.data?.type, "type"); // safe|danger
@@ -43,23 +72,23 @@ export const upsertChildZone = onCall({ region: REGION }, async (req) => {
     lng,
     radiusM,
     enabled,
-    createdBy: parentUid,
+    createdBy: viewerUid,
     createdAt: req.data?.createdAt ?? nowMs,
     updatedAt: nowMs,
   };
 
-  await admin.database().ref(`zonesByChild/${childUid}/${zoneId}`).update(zone);
+  await zonesRef.child(zoneId).update(zone);
   return { ok: true, childUid, zoneId };
 });
 
 // deleteChildZone
 export const deleteChildZone = onCall({ region: REGION }, async (req) => {
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
-  const parentUid = req.auth.uid;
+  const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
   const zoneId = mustString(req.data?.zoneId, "zoneId");
-  await requireParentOfChild(parentUid, childUid);
+  await requireZoneManagerAccess(viewerUid, childUid);
 
   await admin.database().ref(`zonesByChild/${childUid}/${zoneId}`).remove();
   return { ok: true };
@@ -68,20 +97,28 @@ export const deleteChildZone = onCall({ region: REGION }, async (req) => {
 // getChildZones
 export const getChildZones = onCall({ region: REGION }, async (req) => {
   if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
-  const uid = req.auth.uid;
+  const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
-
-  const childSnap = await db.doc(`users/${childUid}`).get();
-  if (!childSnap.exists) throw new HttpsError("not-found", "Child not found");
-  const child = childSnap.data() as any;
-
-  if (uid !== childUid && uid !== child.parentUid) {
-    throw new HttpsError("permission-denied", "Not allowed");
-  }
+  await requireZoneViewerAccess(viewerUid, childUid);
 
   const snap = await admin.database().ref(`zonesByChild/${childUid}`).get();
   const zones = snap.exists() ? snap.val() : null;
 
   return { ok: true, childUid, zones };
+});
+
+export const getChildZonePresence = onCall({ region: REGION }, async (req) => {
+  if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Login required");
+  const viewerUid = req.auth.uid;
+
+  const childUid = mustString(req.data?.childUid, "childUid");
+  await requireZoneViewerAccess(viewerUid, childUid);
+
+  const snap = await admin.database().ref(`zonePresenceByChild/${childUid}`).get();
+  return {
+    ok: true,
+    childUid,
+    presence: snap.exists() ? snap.val() : null,
+  };
 });

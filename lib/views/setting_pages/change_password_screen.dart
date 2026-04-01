@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/models/auth/password_validator.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
@@ -21,40 +24,67 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool hideOld = true;
   bool hideNew = true;
   bool hideConfirm = true;
-
   Future<void> _handleChangePassword() async {
-    final authVm = context.read<AuthVM>();
+    final vm = context.read<AuthVM>();
+    final l10n = AppLocalizations.of(context);
 
-    await authVm.changePassword(
-      oldPassword: _oldCtrl.text.trim(),
-      newPassword: _newCtrl.text.trim(),
-      confirmPassword: _confirmCtrl.text.trim(),
-    );
+    final oldPassword = _oldCtrl.text.trim();
+    final newPassword = _newCtrl.text.trim();
+    final confirmPassword = _confirmCtrl.text.trim();
 
-    if (!mounted) return;
+    // Validate
+    if (oldPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+      AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
+      return;
+    }
 
-    if (authVm.error != null) {
-      NotificationDialog.show(
-        context,
-        type: DialogType.error,
-        title: 'Thất bại',
-        message: authVm.error!,
+    if (newPassword != confirmPassword) {
+      AlertService.showSnack(l10n.authPasswordMismatch, isError: true);
+      return;
+    }
+
+    final passwordResult = PasswordValidator.validate(newPassword);
+    if (!passwordResult.isValid) {
+      AlertService.showSnack(
+        'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.',
+        isError: true,
       );
       return;
     }
 
-    NotificationDialog.show(
-      context,
-      type: DialogType.success,
-      title: 'Thành công',
-      message: 'Đổi mật khẩu thành công',
-    );
+    try {
+      // 🔥 không còn return bool nữa
+      await vm.changePassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+      );
 
-    Navigator.pop(context);
+      if (!mounted) return;
+
+      await NotificationDialog.show(
+        context,
+        type: DialogType.success,
+        title: l10n.updateSuccessTitle,
+        message: l10n.changePasswordSuccessMessage,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      AlertService.showSnack(
+        e.toString().replaceFirst("Exception: ", ""),
+        isError: true,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = context.watch<AuthVM>();
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -63,13 +93,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       children: [
         Scaffold(
           backgroundColor: scheme.background,
-
           appBar: AppBar(
             elevation: 0,
             backgroundColor: scheme.surface,
             centerTitle: true,
             title: Text(
-              "Đổi mật khẩu",
+              l10n.changePasswordTitle,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: scheme.onSurface,
@@ -77,7 +106,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             ),
             iconTheme: IconThemeData(color: scheme.onSurface),
           ),
-
           body: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
@@ -98,12 +126,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ),
                       ],
                     ),
-
                     child: Column(
                       children: [
                         AppLabeledTextField(
-                          label: "Mật khẩu hiện tại",
-                          hint: "Nhập mật khẩu hiện tại",
+                          label: l10n.changePasswordCurrentPasswordLabel,
+                          hint: l10n.changePasswordCurrentPasswordHint,
                           controller: _oldCtrl,
                           obscureText: hideOld,
                           suffixIcon: IconButton(
@@ -112,18 +139,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               color: scheme.onSurfaceVariant,
                             ),
                             onPressed: () {
-                              setState(() {
-                                hideOld = !hideOld;
-                              });
+                              setState(() => hideOld = !hideOld);
                             },
                           ),
                         ),
-
                         const SizedBox(height: 20),
-
                         AppLabeledTextField(
-                          label: "Mật khẩu mới",
-                          hint: "Nhập mật khẩu mới",
+                          label: l10n.changePasswordNewPasswordLabel,
+                          hint: l10n.changePasswordNewPasswordHint,
                           controller: _newCtrl,
                           obscureText: hideNew,
                           suffixIcon: IconButton(
@@ -132,18 +155,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               color: scheme.onSurfaceVariant,
                             ),
                             onPressed: () {
-                              setState(() {
-                                hideNew = !hideNew;
-                              });
+                              setState(() => hideNew = !hideNew);
                             },
                           ),
                         ),
-
                         const SizedBox(height: 20),
-
                         AppLabeledTextField(
-                          label: "Xác nhận mật khẩu",
-                          hint: "Nhập lại mật khẩu mới",
+                          label: l10n.changePasswordConfirmPasswordLabel,
+                          hint: l10n.changePasswordConfirmPasswordHint,
                           controller: _confirmCtrl,
                           obscureText: hideConfirm,
                           suffixIcon: IconButton(
@@ -154,19 +173,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               color: scheme.onSurfaceVariant,
                             ),
                             onPressed: () {
-                              setState(() {
-                                hideConfirm = !hideConfirm;
-                              });
+                              setState(() => hideConfirm = !hideConfirm);
                             },
                           ),
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 28),
-
-                  /// button
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -179,7 +193,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ),
                       ),
                       child: Text(
-                        "Cập nhật mật khẩu",
+                        l10n.changePasswordUpdateButton,
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: scheme.onPrimary,
                           fontWeight: FontWeight.w600,
@@ -192,7 +206,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             ),
           ),
         ),
-
         if (vm.loading) const LoadingOverlay(),
       ],
     );

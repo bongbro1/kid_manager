@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -11,23 +12,27 @@ import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_payload.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
+import 'package:kid_manager/services/notifications/sos_tap_router.dart';
 import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
-import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:kid_manager/widgets/notifications/birthday_notification_experience.dart';
-
-// TODO: import đúng màn hình này nếu project đang dùng
-// import 'package:kid_manager/views/family/family_group_chat_screen.dart';
 
 class NotificationService {
   static bool _initialized = false;
-  static String? _lastHandledNotificationId;
 
   NotificationService._();
 
   static const String _systemSender = 'system';
   static const MethodChannel _channel = MethodChannel('notification_intent');
   static final NotificationRepository _repo = NotificationRepository();
+
+  static Future<AppLocalizations> _loadL10n([String? lang]) {
+    final normalized = (lang ?? PlatformDispatcher.instance.locale.languageCode)
+        .toLowerCase();
+    return AppLocalizations.delegate.load(
+      Locale(normalized.startsWith('en') ? 'en' : 'vi'),
+    );
+  }
 
   static Future<void> init() async {
     if (_initialized) return;
@@ -51,13 +56,14 @@ class NotificationService {
     // App bị kill hẳn, user bấm push để mở app
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      debugPrint(
-        '🔔 getInitialMessage id=${initialMessage.messageId} data=${initialMessage.data}',
-      );
+      // debugPrint(
+      //   '🔔 getInitialMessage kill id=${initialMessage.messageId} data=${initialMessage.data}',
+      // );
+      // debugPrint('🔥KILL BEFORE handleTap');
 
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await handleTap(Map<String, dynamic>.from(initialMessage.data));
-      });
+      await handleTap(Map<String, dynamic>.from(initialMessage.data));
+
+      // debugPrint('🔥KILL END handleTap');
     }
 
     // Local notification tap / native channel cũ
@@ -72,15 +78,7 @@ class NotificationService {
     });
   }
 
-  static Future<void> handleInitialMessage() async {
-    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
-      debugPrint(
-        '🔔 handleInitialMessage id=${initialMessage.messageId} data=${initialMessage.data}',
-      );
-      await handleTap(initialMessage.data);
-    }
-  }
+  static String? _lastHandledTapKey;
 
   static Future<void> handleTap(Map<String, dynamic> data) async {
     final rawType = data["type"]?.toString();
@@ -91,34 +89,42 @@ class NotificationService {
     final eventId = data['eventId']?.toString();
     final route = data['route']?.toString();
 
-    debugPrint(
-      '🔔 handleTap type=$rawType normalizedType=$type notificationId=$notificationId familyId=$familyId messageId=$messageId eventId=$eventId route=$route',
-    );
+    final tapKey = [
+      type,
+      notificationId ?? '',
+      familyId ?? '',
+      messageId ?? '',
+      eventId ?? '',
+      route ?? '',
+    ].join('|');
 
-    if (type == 'test') {
-      debugPrint('🔔 TEST NOTIFICATION CLICKED');
+    if (_lastHandledTapKey == tapKey) {
+      return;
+    }
+    _lastHandledTapKey = tapKey;
+
+    // debugPrint(
+    //   '🔔 handleTap type=$rawType normalizedType=$type notificationId=$notificationId familyId=$familyId messageId=$messageId eventId=$eventId route=$route',
+    // );
+
+    if (type == 'test') return;
+
+    if (type == 'sos') {
+      await SosTapRouter.handleTap(data);
       return;
     }
 
     final navigator = AppNavigator.navigatorKey.currentState;
     if (navigator == null) {
-      debugPrint('🔔 Navigator is null, cannot navigate');
-      return;
-    }
-
-    if (type == 'sos') {
-      debugPrint('🔔 Navigate to SOS screen');
-      // TODO: push SOS screen here
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        handleTap(data);
+      });
       return;
     }
 
     if (type == 'family_chat' || route == 'family_group_chat') {
-      if (familyId == null || familyId.isEmpty) {
-        debugPrint('🔔 family_chat tapped but familyId missing');
-        return;
-      }
+      if (familyId == null || familyId.isEmpty) return;
 
-      // TODO: mở lại khi đã import FamilyGroupChatScreen
       navigator.push(
         MaterialPageRoute(
           builder: (_) => FamilyGroupChatScreen(
@@ -132,30 +138,22 @@ class NotificationService {
 
     if (type == 'family_event') {
       debugPrint('🔔 family_event tapped eventId=$eventId');
-      // TODO: navigate event detail
       return;
     }
 
     if (type == 'zone') {
-      debugPrint('🔔 zone notification tapped -> open notifications tab');
       activeTabNotifier.value = notificationTabIndexNotifier.value;
       return;
     }
 
     if (notificationId == null || notificationId.isEmpty) {
-      debugPrint('🔔 notificationId missing, skip detail navigation');
+      // debugPrint('🔔 notificationId missing, skip detail navigation');
       return;
     }
-
-    if (_lastHandledNotificationId == notificationId) {
-      debugPrint('🔔 duplicate tap ignored: $notificationId');
-      return;
-    }
-    _lastHandledNotificationId = notificationId;
 
     final item = await _repo.getItemById(notificationId);
     if (item == null) {
-      debugPrint('🔔 notification not found: $notificationId');
+      // debugPrint('🔔 notification not found: $notificationId');
       return;
     }
 
@@ -167,31 +165,16 @@ class NotificationService {
         final sheetNavigator =
             NotificationTabNavigator.key.currentState ??
             AppNavigator.navigatorKey.currentState;
-        if (sheetNavigator == null) {
-          debugPrint('birthday tap: no context to open sheet');
-          return;
-        }
+        if (sheetNavigator == null) return;
 
         showBirthdayNotificationSheet(sheetNavigator.context, item: item);
       });
       return;
     }
 
-    if (type != "sos") {
-      activeTabNotifier.value = notificationTabIndexNotifier.value;
-      Future.microtask(() {
-        final nav = NotificationTabNavigator.key.currentState;
-        if (nav == null) return;
+    activeTabNotifier.value = notificationTabIndexNotifier.value;
 
-        nav.push(
-          MaterialPageRoute(
-            builder: (_) => NotificationDetailScreen(item: item),
-          ),
-        );
-      });
-
-      return;
-    }
+    NotificationNavigationState.set(item, type: type);
   }
 
   static Future<void> _markNotificationAsRead(AppNotification item) async {
@@ -216,12 +199,14 @@ class NotificationService {
     final type = data['type']?.toString().toLowerCase() ?? '';
 
     // Guard riêng cho schedule + memory_day
-    if (type == 'schedule' || type == 'memory_day') {
+    if (type == 'schedule' ||
+        type == 'memoryday' ||
+        type == 'memory_day' ||
+        type == 'importexcel' ||
+        type == 'schedule_import') {
       final currentUid = FirebaseAuth.instance.currentUser?.uid;
       final actorUid = data['actorUid']?.toString();
-      final actorRole = data['actorRole']?.toString().toLowerCase();
-      final childId = data['childId']?.toString();
-      final ownerParentUid = data['ownerParentUid']?.toString();
+      final directReceiverId = data['receiverId']?.toString();
 
       if (currentUid == null || currentUid.isEmpty) {
         debugPrint('🔕 [$type] skip: no current user');
@@ -236,37 +221,29 @@ class NotificationService {
         return;
       }
 
-      String? expectedReceiverId;
-
-      if (actorRole == 'child') {
-        expectedReceiverId = ownerParentUid;
-      } else if (actorRole == 'parent') {
-        expectedReceiverId = childId;
-      } else {
-        expectedReceiverId = ownerParentUid;
-      }
-
-      if (expectedReceiverId == null || expectedReceiverId.isEmpty) {
-        debugPrint('🔕 [$type] skip: expectedReceiverId is null/empty');
+      if (directReceiverId == null || directReceiverId.isEmpty) {
+        debugPrint('ðŸ”• [$type] skip: receiverId is null/empty');
         return;
       }
 
-      if (expectedReceiverId != currentUid) {
+      if (directReceiverId != currentUid) {
         debugPrint(
-          '🔕 [$type] skip wrong receiver: currentUid=$currentUid expectedReceiverId=$expectedReceiverId actorUid=$actorUid',
+          '🔕 [$type] skip wrong receiver: currentUid=$currentUid receiverId=$directReceiverId actorUid=$actorUid',
         );
         return;
       }
 
+      final l10n = await _loadL10n(data['lang']?.toString());
+
       final title =
           message.notification?.title ??
           data['title']?.toString() ??
-          'Thông báo';
+          l10n.notificationsDefaultTitle;
 
       final body =
           message.notification?.body ??
           data['body']?.toString() ??
-          'Bạn có thông báo mới';
+          l10n.notificationsDefaultBody;
 
       await LocalNotificationService.show(
         title: title,
@@ -333,15 +310,17 @@ class NotificationService {
   }
 
   static Future<void> _showDefaultNotification(RemoteMessage message) async {
+    final l10n = await _loadL10n(message.data['lang']?.toString());
+
     final title =
         message.notification?.title ??
         message.data['title']?.toString() ??
-        'Thông báo';
+        l10n.notificationsDefaultTitle;
 
     final body =
         message.notification?.body ??
         message.data['body']?.toString() ??
-        'Bạn có thông báo mới';
+        l10n.notificationsDefaultBody;
 
     debugPrint(
       '🔔 show default local notification title="$title" body="$body"',
@@ -351,19 +330,22 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.generalChannelId,
     );
   }
 
   static Future<void> _showFamilyChatNotification(RemoteMessage message) async {
+    final l10n = await _loadL10n(message.data['lang']?.toString());
+
     final title =
         message.notification?.title ??
         message.data['title']?.toString() ??
-        'Tin nhắn gia đình';
+        l10n.notificationsFamilyChatTitle;
 
     final body =
         message.notification?.body ??
         message.data['body']?.toString() ??
-        'Bạn có tin nhắn mới';
+        l10n.notificationsFamilyChatBody;
 
     debugPrint(
       '🔔 show family chat local notification title="$title" body="$body"',
@@ -373,21 +355,24 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.generalChannelId,
     );
   }
 
   static Future<void> _showFamilyEventNotification(
     RemoteMessage message,
   ) async {
+    final l10n = await _loadL10n(message.data['lang']?.toString());
+
     final title =
         message.notification?.title ??
         message.data['title']?.toString() ??
-        'Sự kiện gia đình';
+        l10n.notificationsFamilyEventTitle;
 
     final body =
         message.notification?.body ??
         message.data['body']?.toString() ??
-        'Gia đình bạn có sự kiện mới';
+        l10n.notificationsFamilyEventBody;
 
     debugPrint(
       '🔔 show family event local notification title="$title" body="$body"',
@@ -397,6 +382,7 @@ class NotificationService {
       title: title,
       body: body,
       payload: jsonEncode(message.data),
+      channelId: LocalNotificationService.chatChannelId,
     );
   }
 
@@ -404,16 +390,19 @@ class NotificationService {
     final data = message.data;
     final daysUntil = int.tryParse(data['daysUntil']?.toString() ?? '0') ?? 0;
     final birthdayName = data['birthdayName']?.toString() ?? '';
+    final l10n = await _loadL10n(data['lang']?.toString());
 
     final title =
-        message.notification?.title ?? data['title']?.toString() ?? 'Sinh nhật';
+        message.notification?.title ??
+        data['title']?.toString() ??
+        l10n.notificationsBirthdayTitle;
 
     final body =
         message.notification?.body ??
         data['body']?.toString() ??
         (daysUntil > 0
-            ? 'Sắp tới sinh nhật của $birthdayName!'
-            : 'Hôm nay là sinh nhật của $birthdayName!');
+            ? l10n.notificationsBirthdayUpcomingBody(birthdayName)
+            : l10n.notificationsBirthdayTodayBody(birthdayName));
 
     debugPrint(
       '🎂 show birthday local notification title="$title" body="$body" daysUntil=$daysUntil',
@@ -464,9 +453,7 @@ class NotificationService {
       title = l10n.tracking_default_title;
     }
 
-    final fallbackBody = lang.startsWith('en')
-        ? 'Tracking status has changed.'
-        : 'Trang thai dinh vi da thay doi.';
+    final fallbackBody = l10n.notificationsTrackingDefaultBody;
 
     var body =
         message.notification?.body ??

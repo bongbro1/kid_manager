@@ -1,12 +1,17 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
+import 'package:kid_manager/features/safe_route/data/models/current_trip_snapshot_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/live_location_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/route_point_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/safe_route_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/trip_model.dart';
+import 'package:kid_manager/features/safe_route/data/models/trip_model_decoder.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
+import 'package:kid_manager/services/location/canonical_live_location_stream.dart';
 
 abstract class SafeRouteRemoteDataSource {
   Future<List<SafeRouteModel>> getSuggestedRoutes(
@@ -19,6 +24,11 @@ abstract class SafeRouteRemoteDataSource {
   Future<TripModel> startTrip(TripModel trip);
 
   Stream<LiveLocationModel> streamLiveLocation(String childId);
+
+  Stream<TripModel?> watchCurrentTripByChildId(
+    String childId, {
+    required TripVisibilityAudience audience,
+  });
 
   Future<void> updateTripStatus(String tripId, String status, {String? reason});
 
@@ -33,12 +43,20 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
   FirebaseSafeRouteRemoteDataSource({
     FirebaseFunctions? functions,
     FirebaseDatabase? database,
-  })  : _functions = functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1'),
-        _database = database ?? FirebaseDatabase.instance;
+    FirebaseFirestore? firestore,
+  }) : _functions =
+           functions ??
+           FirebaseFunctions.instanceFor(region: 'asia-southeast1'),
+       _database = database ?? FirebaseDatabase.instance,
+       _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFunctions _functions;
   final FirebaseDatabase _database;
+  final FirebaseFirestore _firestore;
   static const Duration _liveLocationPollingInterval = Duration(seconds: 2);
+  static const Duration _currentTripFallbackPollingInterval = Duration(
+    seconds: 4,
+  );
 
   @override
   Future<List<SafeRouteModel>> getSuggestedRoutes(
@@ -77,10 +95,6 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
 
   @override
   Stream<LiveLocationModel> streamLiveLocation(String childId) {
-    final controller = StreamController<LiveLocationModel>();
-    StreamSubscription<DatabaseEvent>? rtdbSub;
-    Timer? pollTimer;
-    var fallbackStarted = false;
     var lastTimestamp = 0;
 
     LiveLocationModel? parseValue(dynamic value) {
@@ -96,14 +110,51 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
       return location;
     }
 
-    Future<void> pollOnce() async {
-      try {
+    return streamCanonicalLiveLocation<LiveLocationModel>(
+      reference: _database.ref('locations/$childId/current'),
+      pollCanonicalSnapshot: () async {
         final callable = _functions.httpsCallable('getChildLocationCurrent');
         final response = await callable.call({'childUid': childId});
         final data = Map<String, dynamic>.from(response.data as Map);
-        final location = parseValue(data['current']);
-        if (location != null && !controller.isClosed) {
-          controller.add(location);
+        return data['current'];
+      },
+      parseSnapshot: parseValue,
+      pollingInterval: _liveLocationPollingInterval,
+    );
+  }
+
+  @override
+  Stream<TripModel?> watchCurrentTripByChildId(
+    String childId, {
+    required TripVisibilityAudience audience,
+  }) {
+    final docRef = _firestore
+        .collection('safe_route_current_trips')
+        .doc(childId);
+
+    late final StreamController<TripModel?> controller;
+    StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? subscription;
+    Timer? expiryTimer;
+    Timer? fallbackPollTimer;
+    CurrentTripSnapshotModel? latestSnapshot;
+    bool usingCallableFallback = false;
+
+    late void Function() emitCurrent;
+
+    bool shouldFallbackToCallable(Object error) {
+      return error is FirebaseException &&
+          (error.code == 'permission-denied' || error.code == 'unavailable');
+    }
+
+    Future<void> pollCurrentTripFromCallable() async {
+      if (controller.isClosed) {
+        return;
+      }
+
+      try {
+        final trip = await getActiveTripByChildId(childId);
+        if (!controller.isClosed) {
+          controller.add(trip);
         }
       } catch (error, stackTrace) {
         if (!controller.isClosed) {
@@ -112,76 +163,162 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
       }
     }
 
-    void startFallbackPolling() {
-      if (fallbackStarted) return;
-      fallbackStarted = true;
-      pollTimer?.cancel();
-      unawaited(pollOnce());
-      pollTimer = Timer.periodic(_liveLocationPollingInterval, (_) {
-        unawaited(pollOnce());
+    void startCallableFallback(Object error) {
+      if (usingCallableFallback || controller.isClosed) {
+        return;
+      }
+      usingCallableFallback = true;
+      expiryTimer?.cancel();
+      expiryTimer = null;
+      debugPrint(
+        '[SafeRoute] fallback to getActiveSafeRouteTripByChildId for '
+        'safe_route_current_trips/$childId because snapshot listen failed: '
+        '$error',
+      );
+      unawaited(subscription?.cancel());
+      subscription = null;
+      unawaited(pollCurrentTripFromCallable());
+      fallbackPollTimer = Timer.periodic(
+        _currentTripFallbackPollingInterval,
+        (_) => unawaited(pollCurrentTripFromCallable()),
+      );
+    }
+
+    void scheduleExpiryIfNeeded() {
+      expiryTimer?.cancel();
+      expiryTimer = null;
+
+      if (usingCallableFallback ||
+          audience != TripVisibilityAudience.adultManager) {
+        return;
+      }
+
+      final trip = latestSnapshot?.adultRecentCompletedTrip;
+      final visibleUntil = latestSnapshot?.adultCurrentTripVisibleUntil;
+      if (trip == null ||
+          trip.status != TripStatus.completed ||
+          visibleUntil == null) {
+        return;
+      }
+
+      final remaining = visibleUntil.difference(DateTime.now());
+      if (remaining <= Duration.zero) {
+        return;
+      }
+
+      expiryTimer = Timer(remaining, () {
+        if (!controller.isClosed) {
+          emitCurrent();
+        }
       });
     }
 
-    rtdbSub = _database.ref('live_locations/$childId').onValue.listen(
-      (event) {
-        final location = parseValue(event.snapshot.value);
-        if (location != null && !controller.isClosed) {
-          if (fallbackStarted) {
-            pollTimer?.cancel();
-            fallbackStarted = false;
-          }
-          controller.add(location);
-          return;
-        }
-
-        if (event.snapshot.value == null) {
-          startFallbackPolling();
-        }
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        unawaited(rtdbSub?.cancel());
-        rtdbSub = null;
-        startFallbackPolling();
-      },
-      cancelOnError: false,
-    );
-
-    controller.onCancel = () async {
-      pollTimer?.cancel();
-      await rtdbSub?.cancel();
+    emitCurrent = () {
+      if (controller.isClosed) {
+        return;
+      }
+      controller.add(
+        latestSnapshot?.tripForAudience(audience, now: DateTime.now()),
+      );
+      scheduleExpiryIfNeeded();
     };
+
+    controller = StreamController<TripModel?>(
+      onListen: () {
+        subscription = docRef.snapshots().listen(
+          (snapshot) {
+            if (!snapshot.exists) {
+              latestSnapshot = null;
+              emitCurrent();
+              return;
+            }
+
+            final data = snapshot.data();
+            if (data == null) {
+              latestSnapshot = null;
+              emitCurrent();
+              return;
+            }
+
+            try {
+              latestSnapshot = CurrentTripSnapshotModel.fromMap(data);
+            } catch (error, stackTrace) {
+              latestSnapshot = null;
+              debugPrint(
+                '[SafeRoute] skip invalid safe_route_current_trips/$childId '
+                'snapshot: $error\n$stackTrace',
+              );
+              emitCurrent();
+              return;
+            }
+
+            emitCurrent();
+          },
+          onError: (error, stackTrace) {
+            if (shouldFallbackToCallable(error)) {
+              startCallableFallback(error);
+              return;
+            }
+            if (!controller.isClosed) {
+              controller.addError(error, stackTrace);
+            }
+          },
+        );
+      },
+      onCancel: () async {
+        expiryTimer?.cancel();
+        expiryTimer = null;
+        fallbackPollTimer?.cancel();
+        fallbackPollTimer = null;
+        await subscription?.cancel();
+        subscription = null;
+      },
+    );
 
     return controller.stream;
   }
 
   @override
-  Future<void> updateTripStatus(String tripId, String status, {String? reason}) async {
+  Future<void> updateTripStatus(
+    String tripId,
+    String status, {
+    String? reason,
+  }) async {
     final callable = _functions.httpsCallable('updateSafeRouteTripStatus');
-    await callable.call({
-      'tripId': tripId,
-      'status': status,
-      'reason': reason,
-    });
+    await callable.call({'tripId': tripId, 'status': status, 'reason': reason});
   }
 
   @override
   Future<TripModel?> getActiveTripByChildId(String childId) async {
-    final callable = _functions.httpsCallable('getActiveSafeRouteTripByChildId');
+    final callable = _functions.httpsCallable(
+      'getActiveSafeRouteTripByChildId',
+    );
     final response = await callable.call({'childId': childId});
     final data = Map<String, dynamic>.from(response.data as Map);
     final trip = data['trip'];
     if (trip is! Map) return null;
-    return TripModel.fromMap(Map<String, dynamic>.from(trip));
+    return tryParseTripModel(
+      Map<String, dynamic>.from(trip),
+      source: 'getActiveSafeRouteTripByChildId',
+    );
   }
 
   @override
   Future<List<TripModel>> getTripHistoryByChildId(String childId) async {
-    final callable = _functions.httpsCallable('getSafeRouteTripHistoryByChildId');
+    final callable = _functions.httpsCallable(
+      'getSafeRouteTripHistoryByChildId',
+    );
     final response = await callable.call({'childId': childId});
     final data = Map<String, dynamic>.from(response.data as Map);
     final rawTrips = (data['trips'] as List? ?? const [])
         .whereType<Map>()
-        .map((item) => TripModel.fromMap(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => tryParseTripModel(
+            Map<String, dynamic>.from(item),
+            source: 'getSafeRouteTripHistoryByChildId',
+          ),
+        )
+        .whereType<TripModel>()
         .toList(growable: false);
     return rawTrips;
   }

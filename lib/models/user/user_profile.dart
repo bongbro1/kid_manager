@@ -1,3 +1,4 @@
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 
 class UserProfile {
@@ -8,11 +9,14 @@ class UserProfile {
   final String dob;
   final String address;
   final bool allowTracking;
-  final String? role;
+  final UserRole role;
   final String? parentUid;
+  final String? familyId;
   final String? avatarUrl;
   final String? coverUrl;
   final String? locale;
+  final String? timezone;
+  final List<String> managedChildIds;
 
   UserProfile({
     required this.id,
@@ -22,30 +26,41 @@ class UserProfile {
     required this.dob,
     required this.address,
     required this.allowTracking,
-    this.role,
+    required this.role,
     this.avatarUrl,
     this.coverUrl,
     this.parentUid,
     this.locale,
+    this.timezone,
+    this.familyId,
+    this.managedChildIds = const <String>[],
   });
+
+  bool get isParent => role == UserRole.parent;
+  bool get isChild => role == UserRole.child;
+  bool get isGuardian => role == UserRole.guardian;
+  bool get isAdultManager => role.isAdultManager;
+  String get roleKey => roleToString(role);
 
   Map<String, dynamic> toMap() {
     final parsedDob = parseFlexibleBirthDate(dob);
-    final data = {
-      "displayName": name,
-      "phone": phone,
-      "gender": gender,
+    // Keep self-service profile serialization limited to editable fields.
+    final data = <String, dynamic>{
+      'displayName': name,
+      'phone': phone,
+      'gender': gender,
       if (parsedDob != null)
         ...buildBirthdayStorageFields(parsedDob)
       else
         "dob": dob,
       "address": address,
       "allowTracking": allowTracking,
-      "role": role,
       "avatarUrl": avatarUrl,
       "coverUrl": coverUrl,
-      "parentUid": parentUid,
       "locale": locale,
+      "timezone": timezone,
+      "familyId": familyId,
+      if (managedChildIds.isNotEmpty) 'managedChildIds': managedChildIds,
     };
 
     data.removeWhere((key, value) => value == null);
@@ -60,11 +75,14 @@ class UserProfile {
     String? dob,
     String? address,
     bool? allowTracking,
-    String? role,
+    UserRole? role,
     String? avatarUrl,
     String? coverUrl,
     String? parentUid,
+    String? familyId,
     String? locale,
+    String? timezone,
+    List<String>? managedChildIds,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -78,11 +96,15 @@ class UserProfile {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       coverUrl: coverUrl ?? this.coverUrl,
       parentUid: parentUid ?? this.parentUid,
+      familyId: familyId ?? this.familyId,
       locale: locale ?? this.locale ?? 'vi',
+      timezone: timezone ?? this.timezone,
+      managedChildIds: managedChildIds ?? this.managedChildIds,
     );
   }
 
   factory UserProfile.fromMap(String id, Map<String, dynamic> data) {
+    final role = UserRole.fromValue(data['role']);
     final date =
         parseFlexibleBirthDate(data['dob']) ??
         parseFlexibleBirthDate(data['dobIso']);
@@ -94,17 +116,49 @@ class UserProfile {
 
     return UserProfile(
       id: id,
-      name: (data["displayName"] ?? "").toString(),
-      phone: (data["phone"] ?? "").toString(),
-      gender: (data["gender"] ?? "").toString(),
+      name: (data['displayName'] ?? '').toString(),
+      phone: (data['phone'] ?? '').toString(),
+      gender: (data['gender'] ?? '').toString(),
       dob: dobStr,
-      address: (data["address"] ?? "").toString(),
-      allowTracking: data["allowTracking"] ?? false,
-      role: (data["role"] ?? "child").toString(),
-      avatarUrl: data["avatarUrl"]?.toString(),
-      coverUrl: data["coverUrl"]?.toString(),
-      parentUid: data["parentUid"]?.toString(),
-      locale: data["locale"]?.toString() ?? 'vi',
+      address: (data['address'] ?? '').toString(),
+      allowTracking: _readAllowTracking(data, role: role),
+      role: role,
+      avatarUrl: data['avatarUrl']?.toString(),
+      coverUrl: data['coverUrl']?.toString(),
+      parentUid: data['parentUid']?.toString(),
+      locale: data['locale']?.toString() ?? 'vi',
+      timezone: data['timezone']?.toString(),
+      familyId: data["familyId"]?.toString(),
+      managedChildIds: _readManagedChildIds(data),
     );
+  }
+
+  static List<String> _readManagedChildIds(Map<String, dynamic> data) {
+    final raw =
+        data['managedChildIds'] ?? data['assignedChildIds'] ?? data['childIds'];
+    if (raw is! Iterable) {
+      return const <String>[];
+    }
+
+    final values = raw
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    return values;
+  }
+
+  static bool _readAllowTracking(
+    Map<String, dynamic> data, {
+    required UserRole role,
+  }) {
+    final raw = data['allowTracking'];
+    if (raw is bool) {
+      return raw;
+    }
+    if (role == UserRole.child) {
+      return true;
+    }
+    return false;
   }
 }
