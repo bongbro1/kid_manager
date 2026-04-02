@@ -343,7 +343,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final fallbackText = _nameInitial(selected);
 
     return CircleAvatar(
-      radius: 18,
+      radius: 16,
       foregroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
       onForegroundImageError: avatar.isNotEmpty ? (_, _) {} : null,
       child: Text(
@@ -379,7 +379,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: Icon(Icons.menu, color: scheme.onSurface),
+            icon: Icon(Icons.menu, color: scheme.onSurface, size: 26,),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
@@ -387,6 +387,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           l10n.scheduleScreenTitle,
           style: AppTextStyles.scheduleAppBarTitle.copyWith(
             color: scheme.onSurface,
+            fontSize: 18
           ),
         ),
         centerTitle: true,

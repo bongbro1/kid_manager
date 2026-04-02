@@ -70,7 +70,9 @@ class _AppManagementScreenState extends State<AppManagementScreen>
   }
 
   Future<void> _reloadApps() async {
-    await context.read<AppManagementVM>().loadAppsForSelectedChild();
+    await context.read<AppManagementVM>().loadAppsForSelectedChild(
+      forceRefresh: true,
+    );
   }
 
   void _goTab(int index) {
@@ -114,17 +116,22 @@ class _AppManagementScreenState extends State<AppManagementScreen>
       regular: 18,
     );
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final topDecorationHeight = screenHeight < 700 ? 270.0 : 290.0;
 
     return Container(
       color: theme.scaffoldBackgroundColor,
       child: SafeArea(
         top: false,
-        child: Stack(
-          clipBehavior: Clip.none,
+        child: Column(
           children: [
+            // 🔵 Header + Carousel (background xanh)
             Container(
-              height: topDecorationHeight,
+              width: double.infinity,
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                screenHeight < 700 ? 44 : 50,
+                horizontalPadding,
+                16, // 👈 khoảng cách với carousel
+              ),
               decoration: BoxDecoration(
                 color: scheme.primary,
                 borderRadius: const BorderRadius.only(
@@ -132,15 +139,11 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                   bottomRight: Radius.circular(24),
                 ),
               ),
-            ),
-
-            Column(
-              children: [
-                SizedBox(height: screenHeight < 700 ? 44 : 50),
-
-                Padding(
-                  padding: EdgeInsets.only(left: horizontalPadding + 8),
-                  child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title row
+                  Row(
                     children: [
                       SvgPicture.asset(
                         'assets/icons/icon_setting.svg',
@@ -158,82 +161,69 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                           color: Colors.white,
                           fontWeight: FontWeight.w500,
                           fontSize: 18,
-                          height: 1.33,
-                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
                   ),
-                ),
 
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 14),
-                        Center(
-                          child: UserCarouselCard(
-                            currentIndex: _tabController.index,
-                            onTapApps: () => _goTab(0),
-                            onTapStats: () => _goTab(1),
-                          ),
-                        ),
+                  const SizedBox(height: 14),
 
-                        const SizedBox(height: 24),
-
-                        Expanded(
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              RefreshIndicator(
-                                color: scheme.primary,
-                                backgroundColor: scheme.surface,
-                                onRefresh: _reloadApps,
-                                child: ListView.builder(
-                                  padding: const EdgeInsets.only(
-                                    top: 0,
-                                    bottom: 16,
-                                  ),
-                                  itemCount: apps.length,
-                                  itemBuilder: (context, index) {
-                                    final app = apps[index];
-                                    return Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12,
-                                      ),
-                                      child: AppItem(
-                                        key: ValueKey(app.packageName),
-                                        appName: app.name,
-                                        app: app,
-                                        usageTimeText: app.usageTime ?? "0h 0m",
-                                        iconBase64: app.iconBase64,
-                                        onTap: () => openUsageTimeEdit(
-                                          context: context,
-                                          app: app,
-                                          onUpdated: _reloadApps,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-
-                              StatisticsTab(
-                                vm: appVm,
-                                apps: apps,
-                                onRefresh: _reloadApps,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                  // 👇 Carousel
+                  Center(
+                    child: UserCarouselCard(
+                      currentIndex: _tabController.index,
+                      onTapApps: () => _goTab(0),
+                      onTapStats: () => _goTab(1),
                     ),
                   ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // 🔽 Content
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    RefreshIndicator(
+                      color: scheme.primary,
+                      backgroundColor: scheme.surface,
+                      onRefresh: _reloadApps,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        itemCount: apps.length,
+                        itemBuilder: (context, index) {
+                          final app = apps[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: AppItem(
+                              key: ValueKey(app.packageName),
+                              appName: app.name,
+                              app: app,
+                              usageTimeText: app.usageTime ?? "0h 0m",
+                              iconBase64: app.iconBase64,
+                              onTap: () => openUsageTimeEdit(
+                                context: context,
+                                app: app,
+                                onUpdated: _reloadApps,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    StatisticsTab(
+                      vm: appVm,
+                      apps: apps,
+                      onRefresh: _reloadApps,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),

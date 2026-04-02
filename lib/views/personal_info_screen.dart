@@ -20,9 +20,10 @@ import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/common/smart_network_image.dart';
-import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/common/tappable_photo.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
@@ -40,30 +41,45 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final _phoneCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
+
   String? _selectedGender;
   bool allowLocationTracking = false;
   bool _initialized = false;
   int _age = 0;
+  bool _isInitializing = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialData();
+    });
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final authUid = FirebaseAuth.instance.currentUser?.uid;
-      final vm = context.read<UserVm>();
+  Future<void> _loadInitialData() async {
+    final authUid = FirebaseAuth.instance.currentUser?.uid;
+    final vm = context.read<UserVm>();
 
+    try {
       final profile = await vm.loadProfile(
         uid: authUid,
         caller: 'PersonalInfoScreen',
       );
 
-      if (!mounted || profile == null || _initialized) return;
+      if (!mounted) return;
 
+      if (profile != null && !_initialized) {
+        setState(() {
+          _fillForm(profile);
+          _initialized = true;
+        });
+      }
+    } finally {
+      if (!mounted) return;
       setState(() {
-        _fillForm(profile);
+        _isInitializing = false;
       });
-    });
+    }
   }
 
   @override
@@ -110,11 +126,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       allowTracking: allowLocationTracking,
     );
 
-    if (!mounted) return;
-
     if (ok) {
-      if (!mounted) return;
-
       NotificationDialog.show(
         context,
         type: DialogType.success,
@@ -168,7 +180,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   }
 
   Future<void> _onRefresh() async {
-    context.read<UserVm>().listenProfile();
+    await context.read<UserVm>().refreshProfile();
   }
 
   Widget _buildCoverPhoto(String? coverUrl) {
@@ -191,15 +203,98 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
+  Widget _buildProfileHeaderSkeleton() {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 35,
+          child: Container(
+            height: 170,
+            decoration: BoxDecoration(color: scheme.surfaceContainerHighest),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              height: 82,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: scheme.shadow.withOpacity(0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: scheme.surfaceContainerHighest,
+                      border: Border.all(width: 2, color: scheme.primary),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: scheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: 80,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: scheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<UserVm>();
     final p = vm.profile;
-    if (vm.loading) {
-      return const LoadingOverlay();
-    }
-
     final isAdultManager = p?.isAdultManager == true;
     final isChild = p?.role == UserRole.child;
 
@@ -230,7 +325,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leadingWidth: 60,
-        leading: InkWell(
+        leading: GestureDetector(
           onTap: () {
             Navigator.of(context, rootNavigator: true).push(
               RawDialogRoute<void>(
@@ -244,14 +339,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               ),
             );
           },
-          borderRadius: BorderRadius.circular(12),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-            child: AppIcon(
-              path: "assets/icons/menu.svg",
-              type: AppIconType.svg,
-              size: 20,
-            ),
+          // borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Icon(Icons.menu, size: 26, color: scheme.onSurface),
           ),
         ),
         title: Text(
@@ -259,382 +350,439 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: theme.textTheme.titleLarge?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: 18,
           ),
         ),
         actions: const [SizedBox(width: 60)],
       ),
-      body: Column(
-        children: [
-          /// BODY
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _onRefresh,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: 500,
-                      height: 210,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 35,
-                            child: Center(
-                              child: tappablePhoto(
-                                context: context,
-                                vm: vm,
-                                url: p?.coverUrl,
-                                fallbackAsset: "assets/images/cover.png",
-                                cropType: CropPhotoType.cover,
-                                onReplace: (index, file) async {
-                                  vm.updateLocalPhoto(
-                                    file,
-                                    UserPhotoType.cover,
-                                  );
-                                  return vm.updateUserPhoto(
-                                    file: file,
-                                    type: UserPhotoType.cover,
-                                  );
-                                },
-                                child: _buildCoverPhoto(p?.coverUrl),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                            child: Align(
-                              alignment: Alignment.bottomCenter,
-                              child: Builder(
-                                builder: (context) {
-                                  return Container(
-                                    height: 82,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: scheme.surface,
-                                      borderRadius: BorderRadius.circular(18),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: scheme.shadow.withOpacity(
-                                            0.15,
-                                          ),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        tappablePhoto(
+      body: Skeletonizer(
+        enabled: _isInitializing,
+        child: Column(
+          children: [
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 16),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 190,
+                        child: _isInitializing
+                            ? _buildProfileHeaderSkeleton()
+                            : Skeleton.ignore(
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 35,
+                                      child: Center(
+                                        child: tappablePhoto(
                                           context: context,
                                           vm: vm,
-                                          url: p?.avatarUrl,
-                                          fallbackAsset: "assets/images/u1.png",
-                                          cropType: CropPhotoType.avatar,
+                                          url: p?.coverUrl,
+                                          fallbackAsset:
+                                              "assets/images/cover.png",
+                                          cropType: CropPhotoType.cover,
                                           onReplace: (index, file) async {
                                             vm.updateLocalPhoto(
                                               file,
-                                              UserPhotoType.avatar,
+                                              UserPhotoType.cover,
                                             );
                                             return vm.updateUserPhoto(
                                               file: file,
-                                              type: UserPhotoType.avatar,
+                                              type: UserPhotoType.cover,
                                             );
                                           },
-                                          child: Container(
-                                            width: 60,
-                                            height: 60,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                width: 2,
-                                                color: scheme.primary,
-                                              ),
-                                            ),
-                                            child: ClipOval(
-                                              child: _buildAvatarPhoto(
-                                                p?.avatarUrl,
-                                              ),
-                                            ),
-                                          ),
+                                          child: _buildCoverPhoto(p?.coverUrl),
                                         ),
-
-                                        const SizedBox(width: 14),
-
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                p?.name ?? '',
-                                                style: theme
-                                                    .textTheme
-                                                    .titleMedium
-                                                    ?.copyWith(
-                                                      color: scheme.onSurface,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                l10n.yearsOld.replaceFirst(
-                                                  '%d',
-                                                  _age.toString(),
-                                                ),
-                                                style: theme.textTheme.bodySmall
-                                                    ?.copyWith(
-                                                      color: scheme
-                                                          .onSurfaceVariant,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-
-                                        GestureDetector(
-                                          onTap: _updateUserInfo,
-                                          child: Icon(
-                                            Icons.edit,
-                                            size: 18,
-                                            color: scheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
-                                  );
-                                },
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        0,
+                                        16,
+                                        0,
+                                      ),
+                                      child: Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: Builder(
+                                          builder: (context) {
+                                            return Container(
+                                              height: 82,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 18,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: scheme.surface,
+                                                borderRadius:
+                                                    BorderRadius.circular(18),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: scheme.shadow
+                                                        .withOpacity(0.15),
+                                                    blurRadius: 6,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  tappablePhoto(
+                                                    context: context,
+                                                    vm: vm,
+                                                    url: p?.avatarUrl,
+                                                    fallbackAsset:
+                                                        "assets/images/u1.png",
+                                                    cropType:
+                                                        CropPhotoType.avatar,
+                                                    onReplace:
+                                                        (index, file) async {
+                                                          vm.updateLocalPhoto(
+                                                            file,
+                                                            UserPhotoType
+                                                                .avatar,
+                                                          );
+                                                          return vm
+                                                              .updateUserPhoto(
+                                                                file: file,
+                                                                type:
+                                                                    UserPhotoType
+                                                                        .avatar,
+                                                              );
+                                                        },
+                                                    child: Container(
+                                                      width: 60,
+                                                      height: 60,
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(
+                                                          width: 2,
+                                                          color: scheme.primary,
+                                                        ),
+                                                      ),
+                                                      child: ClipOval(
+                                                        child:
+                                                            _buildAvatarPhoto(
+                                                              p?.avatarUrl,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ),
+
+                                                  const SizedBox(width: 14),
+
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Text(
+                                                          p?.name ?? '',
+                                                          style: theme
+                                                              .textTheme
+                                                              .titleMedium
+                                                              ?.copyWith(
+                                                                color: scheme
+                                                                    .onSurface,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                              ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 4,
+                                                        ),
+                                                        Text(
+                                                          l10n.yearsOld
+                                                              .replaceFirst(
+                                                                '%d',
+                                                                _age.toString(),
+                                                              ),
+                                                          style: theme
+                                                              .textTheme
+                                                              .bodySmall
+                                                              ?.copyWith(
+                                                                color: scheme
+                                                                    .onSurfaceVariant,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+
+                                                  Material(
+                                                    color: Colors.transparent,
+                                                    child: InkWell(
+                                                      onTap: _updateUserInfo,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                      child: Ink(
+                                                        decoration: BoxDecoration(
+                                                          color: Colors
+                                                              .transparent,
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                8,
+                                                              ),
+                                                        ),
+                                                        child: const Padding(
+                                                          padding:
+                                                              EdgeInsets.all(8),
+                                                          child: Icon(
+                                                            Icons.edit,
+                                                            size: 18,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        0,
-                        horizontalPadding,
-                        16,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 12),
 
-                          AppLabeledTextField(
-                            label: l10n.fullNameLabel,
-                            hint: l10n.fullNameHint,
-                            controller: _nameCtrl,
-                            minFieldHeight: compactTextFieldMinHeight,
-                            labelBottomSpacing: compactLabelSpacing,
-                            contentPadding: compactTextFieldPadding,
-                          ),
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          0,
+                          horizontalPadding,
+                          16,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 12),
 
-                          AppLabeledTextField(
-                            label: l10n.phoneLabel,
-                            hint: l10n.phoneHint,
-                            controller: _phoneCtrl,
-                            minFieldHeight: compactTextFieldMinHeight,
-                            labelBottomSpacing: compactLabelSpacing,
-                            contentPadding: compactTextFieldPadding,
-                          ),
-
-                          AppLabeledDropdownField<String>(
-                            label: l10n.genderLabel,
-                            hint: l10n.genderHint,
-                            value: _selectedGender,
-                            fieldHeight: compactDropdownFieldHeight,
-                            minFieldHeight: compactDropdownMinHeight,
-                            labelBottomSpacing: compactLabelSpacing,
-                            contentPadding: compactDropdownPadding,
-                            items: [
-                              DropdownMenuEntry(
-                                value: _genderMaleValue,
-                                label: l10n.genderMaleOption,
-                              ),
-                              DropdownMenuEntry(
-                                value: _genderFemaleValue,
-                                label: l10n.genderFemaleOption,
-                              ),
-                              DropdownMenuEntry(
-                                value: _genderOtherValue,
-                                label: l10n.genderOtherOption,
-                              ),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedGender = value;
-                              });
-                            },
-                          ),
-                          AppLabeledTextField(
-                            label: l10n.birthDateLabel,
-                            hint: l10n.birthDateHint,
-                            controller: _dobCtrl,
-                            readOnly: true,
-                            onTap: pickDate,
-                            minFieldHeight: compactTextFieldMinHeight,
-                            labelBottomSpacing: compactLabelSpacing,
-                            contentPadding: compactTextFieldPadding,
-                            suffixIcon: const Icon(
-                              Icons.calendar_today,
-                              size: 18,
-                            ),
-                          ),
-
-                          AppLabeledTextField(
-                            label: l10n.addressLabel,
-                            hint: l10n.addressHint,
-                            controller: _addressCtrl,
-                            minFieldHeight: compactTextFieldMinHeight,
-                            labelBottomSpacing: compactLabelSpacing,
-                            contentPadding: compactTextFieldPadding,
-                          ),
-
-                          if (!isChild)
-                            AppLabeledCheckbox(
-                              label: l10n.locationTrackingLabel,
-                              text: l10n.allowLocationTrackingText,
-                              value: allowLocationTracking,
+                            AppLabeledTextField(
+                              label: l10n.fullNameLabel,
+                              hint: l10n.fullNameHint,
+                              controller: _nameCtrl,
+                              minFieldHeight: compactTextFieldMinHeight,
                               labelBottomSpacing: compactLabelSpacing,
-                              onChanged: (v) {
+                              contentPadding: compactTextFieldPadding,
+                            ),
+
+                            AppLabeledTextField(
+                              label: l10n.phoneLabel,
+                              hint: l10n.phoneHint,
+                              controller: _phoneCtrl,
+                              minFieldHeight: compactTextFieldMinHeight,
+                              labelBottomSpacing: compactLabelSpacing,
+                              contentPadding: compactTextFieldPadding,
+                            ),
+
+                            AppLabeledDropdownField<String>(
+                              label: l10n.genderLabel,
+                              hint: l10n.genderHint,
+                              value: _selectedGender,
+                              fieldHeight: compactDropdownFieldHeight,
+                              minFieldHeight: compactDropdownMinHeight,
+                              labelBottomSpacing: compactLabelSpacing,
+                              contentPadding: compactDropdownPadding,
+                              items: [
+                                DropdownMenuEntry(
+                                  value: _genderMaleValue,
+                                  label: l10n.genderMaleOption,
+                                ),
+                                DropdownMenuEntry(
+                                  value: _genderFemaleValue,
+                                  label: l10n.genderFemaleOption,
+                                ),
+                                DropdownMenuEntry(
+                                  value: _genderOtherValue,
+                                  label: l10n.genderOtherOption,
+                                ),
+                              ],
+                              onChanged: (value) {
                                 setState(() {
-                                  allowLocationTracking = v;
+                                  _selectedGender = value;
                                 });
-                                debugPrint("changed: $allowLocationTracking");
                               },
                             ),
 
-                          if (isAdultManager) ...[
-                            const SizedBox(height: 10),
-                            Builder(
-                              builder: (context) {
-                                final theme = Theme.of(context);
-                                final scheme = theme.colorScheme;
+                            AppLabeledTextField(
+                              label: l10n.birthDateLabel,
+                              hint: l10n.birthDateHint,
+                              controller: _dobCtrl,
+                              readOnly: true,
+                              onTap: pickDate,
+                              minFieldHeight: compactTextFieldMinHeight,
+                              labelBottomSpacing: compactLabelSpacing,
+                              contentPadding: compactTextFieldPadding,
+                              suffixIcon: const Icon(
+                                Icons.calendar_today,
+                                size: 18,
+                              ),
+                            ),
 
-                                return Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: scheme.surface,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: scheme.outline.withValues(
-                                        alpha: 0.3,
+                            AppLabeledTextField(
+                              label: l10n.addressLabel,
+                              hint: l10n.addressHint,
+                              controller: _addressCtrl,
+                              minFieldHeight: compactTextFieldMinHeight,
+                              labelBottomSpacing: compactLabelSpacing,
+                              contentPadding: compactTextFieldPadding,
+                            ),
+
+                            if (!isChild)
+                              AppLabeledCheckbox(
+                                label: l10n.locationTrackingLabel,
+                                text: l10n.allowLocationTrackingText,
+                                value: allowLocationTracking,
+                                labelBottomSpacing: compactLabelSpacing,
+                                onChanged: (v) {
+                                  setState(() {
+                                    allowLocationTracking = v;
+                                  });
+                                  debugPrint("changed: $allowLocationTracking");
+                                },
+                              ),
+
+                            if (isAdultManager) ...[
+                              const SizedBox(height: 10),
+                              Builder(
+                                builder: (context) {
+                                  final theme = Theme.of(context);
+                                  final scheme = theme.colorScheme;
+
+                                  return Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: scheme.surface,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: scheme.outline.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                        width: 1,
                                       ),
-                                      width: 1,
                                     ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        height: 36,
-                                        width: 36,
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: scheme.primary,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.manage_accounts,
-                                          color: scheme.onPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              l10n.personalInfoManageAccountsTitle,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                color: scheme.onSurface,
-                                                fontSize: 16,
-                                                fontFamily: 'Poppins',
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              l10n.personalInfoManageAccountsSubtitle,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                color: scheme.onSurface,
-                                                fontSize: 12,
-                                                fontFamily: 'Poppins',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      InkWell(
-                                        borderRadius: BorderRadius.circular(8),
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const MemberManagementScreen(),
-                                            ),
-                                          );
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 7,
-                                          ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          height: 36,
+                                          width: 36,
+                                          padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             color: scheme.primary,
                                             borderRadius: BorderRadius.circular(
                                               8,
                                             ),
                                           ),
-                                          child: Text(
-                                            l10n.personalInfoDetailsButton,
-                                            style: TextStyle(
-                                              color: scheme.onPrimary,
-                                              fontSize: 14,
-                                              fontFamily: 'Poppins',
-                                              fontWeight: FontWeight.w600,
+                                          child: Icon(
+                                            Icons.manage_accounts,
+                                            color: scheme.onPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                l10n.personalInfoManageAccountsTitle,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: scheme.onSurface,
+                                                  fontSize: 16,
+                                                  fontFamily: 'Poppins',
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                l10n.personalInfoManageAccountsSubtitle,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: scheme.onSurface,
+                                                  fontSize: 12,
+                                                  fontFamily: 'Poppins',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        InkWell(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const MemberManagementScreen(),
+                                              ),
+                                            );
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 7,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: scheme.primary,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              l10n.personalInfoDetailsButton,
+                                              style: TextStyle(
+                                                color: scheme.onPrimary,
+                                                fontSize: 14,
+                                                fontFamily: 'Poppins',
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+
+                      if (vm.loading) const LoadingOverlay(),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -670,7 +818,7 @@ class MoreActionSheet extends StatelessWidget {
               title: AppLocalizations.of(context).appAppearanceTitle,
               iconPath: "assets/icons/color_palette.svg",
               iconType: AppIconType.svg,
-              iconSize: 20,
+              iconSize: 19,
               onTap: () =>
                   _navigateFromSheet(context, const AppAppearanceScreen()),
             ),
@@ -679,9 +827,9 @@ class MoreActionSheet extends StatelessWidget {
 
             SettingItem(
               title: AppLocalizations.of(context).aboutAppTitle,
-              iconPath: "assets/icons/info.png",
-              iconType: AppIconType.png,
-              iconSize: 17,
+              iconPath: "assets/icons/info.svg",
+              iconType: AppIconType.svg,
+              iconSize: 20,
               onTap: () => _navigateFromSheet(context, const AboutAppScreen()),
             ),
 
@@ -689,9 +837,9 @@ class MoreActionSheet extends StatelessWidget {
 
             SettingItem(
               title: AppLocalizations.of(context).logoutTitle,
-              iconPath: "assets/icons/log_out.png",
-              iconType: AppIconType.png,
-              iconSize: 17,
+              iconPath: "assets/icons/logout.svg",
+              iconType: AppIconType.svg,
+              iconSize: 20,
               onTap: () {
                 final rootNavigator = Navigator.of(
                   context,

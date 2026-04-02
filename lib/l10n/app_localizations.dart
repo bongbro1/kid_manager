@@ -311,7 +311,7 @@ abstract class AppLocalizations {
   /// No description provided for @changeLanguagePrompt.
   ///
   /// In en, this message translates to:
-  /// **'Change language, app will restart'**
+  /// **'Select display language'**
   String get changeLanguagePrompt;
 
   /// No description provided for @appAppearanceThemeLabel.
@@ -353,7 +353,7 @@ abstract class AppLocalizations {
   /// No description provided for @appAppearanceThemeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Change light/dark appearance'**
+  /// **'Change appearance'**
   String get appAppearanceThemeSubtitle;
 
   /// No description provided for @appAppearanceSectionSecurity.
@@ -3576,7 +3576,7 @@ abstract class AppLocalizations {
   /// No description provided for @parentUsageDayRuleModalHint.
   ///
   /// In en, this message translates to:
-  /// **'Choose the rule for this day'**
+  /// **'Choose the rule for day'**
   String get parentUsageDayRuleModalHint;
 
   /// No description provided for @parentUsageRuleFollowScheduleTitle.

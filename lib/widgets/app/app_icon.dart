@@ -33,13 +33,15 @@ class AppIcon extends StatelessWidget {
         );
 
       case AppIconType.png:
-        return Image.asset(
-          path,
-          width: size,
-          height: size,
-          fit: BoxFit.contain,
-          color: iconColor,
-          colorBlendMode: BlendMode.srcIn,
+        return ColorFiltered(
+          colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+          child: Image.asset(
+            path,
+            width: size,
+            height: size,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          ),
         );
     }
   }

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_item_model.dart';
@@ -13,6 +12,7 @@ import 'package:kid_manager/services/access_control/access_control_service.dart'
 import 'package:kid_manager/services/access_control/feature_policy.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
+import 'package:kid_manager/utils/statical_utils.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
 
 class AppManagementVM extends ChangeNotifier {
@@ -153,8 +153,11 @@ class AppManagementVM extends ChangeNotifier {
 
     _selectedChildId = normalizedUid;
     _error = null;
+
+    // chỉ notify để update selected state ở carousel
     notifyListeners();
-    await loadAppsForSelectedChild();
+
+    unawaited(loadAppsForSelectedChild());
   }
 
   Future<void> watchChildren(String parentUid) async {
@@ -230,7 +233,10 @@ class AppManagementVM extends ChangeNotifier {
         );
   }
 
-  Future<void> loadAppsForSelectedChild() async {
+  final Map<String, List<AppItemModel>> _appsCache = {};
+  final Map<String, UsageHistoryResult> _usageCache = {};
+
+  Future<void> loadAppsForSelectedChild({bool forceRefresh = false}) async {
     final childId = _selectedChildId?.trim();
     final loadGeneration = ++_loadGeneration;
 
@@ -240,6 +246,22 @@ class AppManagementVM extends ChangeNotifier {
       _loading = false;
       notifyListeners();
       return;
+    }
+
+    if (!forceRefresh) {
+      final cachedApps = _appsCache[childId];
+      final cachedUsage = _usageCache[childId];
+
+      if (cachedApps != null && cachedUsage != null) {
+        _apps = cachedApps;
+        _usageMap = cachedUsage.totalUsage;
+        _appUsageMap = cachedUsage.perAppUsage;
+        _hourlyUsage = cachedUsage.hourlyUsage;
+        _error = null;
+        _usageVersion++;
+        notifyListeners();
+        return;
+      }
     }
 
     _loading = true;
@@ -254,24 +276,24 @@ class AppManagementVM extends ChangeNotifier {
         return;
       }
 
-      final loadedApps = await _repo.loadAppsFromFirestore(authorizedChildId);
+      final results = await Future.wait<dynamic>([
+        _repo.loadAppsFromFirestore(authorizedChildId),
+        _repo.loadUsageHistory(authorizedChildId),
+      ]);
+
       if (_isStaleLoad(loadGeneration, childId)) return;
 
-      final usageResult = await _repo.loadUsageHistory(authorizedChildId);
-      if (_isStaleLoad(loadGeneration, childId)) return;
+      final loadedApps = results[0] as List<AppItemModel>;
+      final usageResult = results[1] as UsageHistoryResult;
+
+      _appsCache[childId] = loadedApps;
+      _usageCache[childId] = usageResult;
 
       _apps = loadedApps;
       _usageMap = usageResult.totalUsage;
       _appUsageMap = usageResult.perAppUsage;
       _hourlyUsage = usageResult.hourlyUsage;
       _usageVersion++;
-    } on FirebaseException catch (e, stack) {
-      debugPrint('loadApps ERROR: $e');
-      debugPrint('STACK: $stack');
-
-      if (_isStaleLoad(loadGeneration, childId)) return;
-      _resetLoadedData();
-      _error = runtimeL10n().appManagementSyncFailed;
     } catch (e, stack) {
       debugPrint('loadApps ERROR: $e');
       debugPrint('STACK: $stack');
@@ -390,8 +412,9 @@ class AppManagementVM extends ChangeNotifier {
 
   Future<void> loadUsageHistory(String selectedChildId) async {
     try {
-      final authorizedChildId =
-          await _requireAuthorizedManagedChildId(selectedChildId);
+      final authorizedChildId = await _requireAuthorizedManagedChildId(
+        selectedChildId,
+      );
       if (authorizedChildId == null) {
         throw StateError('Not allowed to manage this child');
       }

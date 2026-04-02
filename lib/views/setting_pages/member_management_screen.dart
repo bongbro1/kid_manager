@@ -1011,7 +1011,7 @@ class _ActionCell extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: GestureDetector(
         onTap: () {},
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 13),

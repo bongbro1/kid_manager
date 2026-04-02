@@ -328,7 +328,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: Icon(Icons.menu, color: colorScheme.onSurface),
+            icon: Icon(Icons.menu, color: colorScheme.onSurface, size: 26,),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
@@ -337,6 +337,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
           style: textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
+            fontSize: 18
           ),
         ),
         centerTitle: true,

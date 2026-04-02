@@ -325,7 +325,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
         /// ===== SEGMENT KHÔNG SCROLL =====
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: scheme.surface,
             borderRadius: BorderRadius.circular(16),
@@ -682,7 +681,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           alignment: Alignment.center,
           decoration: isActive
               ? BoxDecoration(

@@ -114,7 +114,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get english => 'English';
 
   @override
-  String get changeLanguagePrompt => 'Change language, app will restart';
+  String get changeLanguagePrompt => 'Select display language';
 
   @override
   String get appAppearanceThemeLabel => 'Theme';
@@ -135,7 +135,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appAppearanceSectionApp => 'APP';
 
   @override
-  String get appAppearanceThemeSubtitle => 'Change light/dark appearance';
+  String get appAppearanceThemeSubtitle => 'Change appearance';
 
   @override
   String get appAppearanceSectionSecurity => 'SECURITY';
@@ -2047,7 +2047,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveButton => 'Save';
 
   @override
-  String get parentUsageDayRuleModalHint => 'Choose the rule for this day';
+  String get parentUsageDayRuleModalHint => 'Choose the rule for day';
 
   @override
   String get parentUsageRuleFollowScheduleTitle => 'Follow schedule';

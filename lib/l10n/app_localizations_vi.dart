@@ -114,8 +114,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get english => 'English';
 
   @override
-  String get changeLanguagePrompt =>
-      'Thay đổi ngôn ngữ, ứng dụng sẽ khởi động lại';
+  String get changeLanguagePrompt => 'Chọn ngôn ngữ hiển thị';
 
   @override
   String get appAppearanceThemeLabel => 'Chủ đề';
@@ -136,7 +135,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get appAppearanceSectionApp => 'ỨNG DỤNG';
 
   @override
-  String get appAppearanceThemeSubtitle => 'Thay đổi giao diện sáng/tối';
+  String get appAppearanceThemeSubtitle => 'Thay đổi giao diện';
 
   @override
   String get appAppearanceSectionSecurity => 'BẢO MẬT';
@@ -2046,7 +2045,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get saveButton => 'Lưu';
 
   @override
-  String get parentUsageDayRuleModalHint => 'Chọn quy tắc cho ngày này';
+  String get parentUsageDayRuleModalHint => 'Chọn quy tắc cho ngày';
 
   @override
   String get parentUsageRuleFollowScheduleTitle => 'Theo lịch đã đặt';

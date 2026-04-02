@@ -15,8 +15,8 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
   final List<Color> colors = const [
     Color(0xFFFF9EB7),
     Color(0xFFFCB022),
-    Color(0xFF12B669),
-    Color(0xFF2E90FA),
+    Color.fromARGB(255, 62, 179, 124),
+    Color(0xFF4BA2FF),
   ];
 
   int selectedColor = 0;
@@ -31,13 +31,14 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
   Future<void> _loadTheme() async {
     final storage = context.read<StorageService>();
     final savedColorValue =
-        storage.getInt(StorageKeys.themeColor) ?? colors[colors.length-1].value;
+        storage.getInt(StorageKeys.themeColor) ??
+        colors[colors.length - 1].value;
     final savedDark = storage.getBool(StorageKeys.isDarkMode) ?? false;
 
     final index = colors.indexWhere((c) => c.value == savedColorValue);
 
     setState(() {
-      selectedColor = index != -1 ? index : colors.length-1;
+      selectedColor = index != -1 ? index : colors.length - 1;
       isDark = savedDark;
     });
   }
@@ -46,9 +47,15 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        bottomInset > 0 ? bottomInset + 10 : 28,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -56,7 +63,6 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          /// drag indicator
           Container(
             width: 40,
             height: 4,
@@ -67,7 +73,6 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
           ),
           const SizedBox(height: 16),
 
-          /// title
           Text(
             l10n.themeSelectorTitle,
             style: theme.textTheme.titleLarge?.copyWith(
@@ -80,12 +85,11 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
             l10n.themeSelectorSubtitle,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(.6),
-              fontFamily: 'Public Sans',
+              fontFamily: 'Poppins',
             ),
           ),
           const SizedBox(height: 22),
 
-          /// COLOR THEMES
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -125,7 +129,6 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
           ),
           const SizedBox(height: 26),
 
-          /// LIGHT / DARK MODE
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
@@ -154,9 +157,10 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
                   value: isDark,
                   activeColor: colors[selectedColor],
                   activeTrackColor: colors[selectedColor].withOpacity(.45),
-                  inactiveThumbColor: theme.colorScheme.onSurface.withOpacity(.7),
+                  inactiveThumbColor: theme.colorScheme.onSurface.withOpacity(
+                    .7,
+                  ),
                   inactiveTrackColor: theme.colorScheme.surfaceContainerHighest,
-
                   onChanged: (v) {
                     setState(() {
                       isDark = v;
@@ -168,7 +172,6 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
           ),
           const SizedBox(height: 24),
 
-          /// APPLY BUTTON
           SizedBox(
             width: double.infinity,
             height: 46,

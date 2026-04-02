@@ -301,7 +301,7 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12,

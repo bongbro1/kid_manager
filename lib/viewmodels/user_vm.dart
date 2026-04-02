@@ -182,6 +182,13 @@ class UserVm extends ChangeNotifier {
         .toList(growable: false);
   }
 
+  Future<void> refreshProfile() async {
+    final authUid = FirebaseAuth.instance.currentUser?.uid;
+    if (authUid == null) return;
+
+    await loadProfile(uid: authUid, caller: 'refresh');
+  }
+
   List<AppUser> _filterFamilyMembersByAccess(List<AppUser> list) {
     final actor = actorSnapshot;
     if (actor == null) {

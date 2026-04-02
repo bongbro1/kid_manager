@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -159,8 +160,9 @@ class _NotificationScreenState extends State<NotificationScreen>
       behavior: HitTestBehavior.translucent,
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
+        backgroundColor: colorScheme.background,
         body: SafeArea(
+          top: false,
           child: Column(
             children: [
               _NotificationHeader(
@@ -436,25 +438,47 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) {
-          final slide =
-              Tween<Offset>(
-                begin: const Offset(0.0, -0.2),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              );
+    final topInset = MediaQuery.of(context).padding.top;
+    final scheme = Theme.of(context).colorScheme;
 
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(position: slide, child: child),
-          );
-        },
-        child: _isSearching ? _buildSearchBox() : _buildNormalHeader(),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: scheme.surface, // 👈 màu nền status bar
+        statusBarIconBrightness: Brightness.dark, // icon đen
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Container(
+        color: scheme.surface,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(height: topInset),
+            SizedBox(
+              height: 56,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, animation) {
+                  final slide =
+                      Tween<Offset>(
+                        begin: const Offset(0.0, -0.2),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      );
+
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(position: slide, child: child),
+                  );
+                },
+                child: _isSearching ? _buildSearchBox() : _buildNormalHeader(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -468,44 +492,48 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
     final hasFilter = widget.activeFilter != NotificationFilter.all;
     final hasSearch = widget.searchKeyword.isNotEmpty;
 
-    return Stack(
-      key: const ValueKey('normal'),
-      alignment: Alignment.center,
-      children: [
-        Center(
-          child: Text(
-            l10n.notificationScreenTitle,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: colorScheme.onSurface,
-              fontSize: 20,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      decoration: BoxDecoration(color: colorScheme.surface),
+      child: Stack(
+        key: const ValueKey('normal'),
+        alignment: Alignment.center,
+        children: [
+          Center(
+            child: Text(
+              l10n.notificationScreenTitle,
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onSurface,
+                fontSize: 18,
+              ),
             ),
           ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _CircleIconButton(
-              icon: Icons.tune,
-              color: hasFilter ? colorScheme.primary : colorScheme.onSurface,
-              onTap: _showFilter,
-            ),
-            _CircleIconButton(
-              icon: Icons.search,
-              color: hasSearch ? colorScheme.primary : colorScheme.onSurface,
-              onTap: () {
-                setState(() {
-                  _isSearching = true;
-                });
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _CircleIconButton(
+                icon: Icons.tune,
+                color: hasFilter ? colorScheme.primary : colorScheme.onSurface,
+                onTap: _showFilter,
+              ),
+              _CircleIconButton(
+                icon: Icons.search,
+                color: hasSearch ? colorScheme.primary : colorScheme.onSurface,
+                onTap: () {
+                  setState(() {
+                    _isSearching = true;
+                  });
 
-                Future.delayed(Duration.zero, () {
-                  _focusNode.requestFocus();
-                });
-              },
-            ),
-          ],
-        ),
-      ],
+                  Future.delayed(Duration.zero, () {
+                    _focusNode.requestFocus();
+                  });
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

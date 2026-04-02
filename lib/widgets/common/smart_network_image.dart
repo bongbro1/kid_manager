@@ -37,6 +37,8 @@ class _SmartNetworkImageState extends State<SmartNetworkImage> {
       <String, Future<Uint8List?>>{};
 
   Uint8List? _bytes;
+  bool _isLoading = false;
+  bool _hasError = false;
   int _ticket = 0;
 
   @override
@@ -64,19 +66,48 @@ class _SmartNetworkImageState extends State<SmartNetworkImage> {
 
   Future<void> _resolveImage() async {
     final currentTicket = ++_ticket;
-    final url = _normalizeUrl(widget.imageUrl);
+    final raw = (widget.imageUrl ?? '').trim();
+    final url = _normalizeUrl(raw);
+
+    // local file
+    if (raw.startsWith('/')) {
+      if (!mounted || currentTicket != _ticket) return;
+      setState(() {
+        _bytes = null;
+        _isLoading = false;
+        _hasError = false;
+      });
+      return;
+    }
+
+    // invalid / empty url => fallback thật sự
     if (url == null) {
       if (!mounted || currentTicket != _ticket) return;
-      setState(() => _bytes = null);
+      setState(() {
+        _bytes = null;
+        _isLoading = false;
+        _hasError = false;
+      });
       return;
     }
 
     final cached = _bytesCache[url];
     if (cached != null) {
       if (!mounted || currentTicket != _ticket) return;
-      setState(() => _bytes = cached);
+      setState(() {
+        _bytes = cached;
+        _isLoading = false;
+        _hasError = false;
+      });
       return;
     }
+
+    if (!mounted || currentTicket != _ticket) return;
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      // giữ _bytes cũ nếu có để tránh flicker khi đổi ảnh cùng URL
+    });
 
     final pending = _inFlight[url] ??= _fetchWithRetry(url);
     final result = await pending;
@@ -89,29 +120,38 @@ class _SmartNetworkImageState extends State<SmartNetworkImage> {
 
     if (result != null) {
       _bytesCache[url] = result;
-      setState(() => _bytes = result);
+      setState(() {
+        _bytes = result;
+        _isLoading = false;
+        _hasError = false;
+      });
       return;
     }
 
-    // Keep the last successful bytes (if any) to avoid flicker fallback
-    // during transient network issues.
-    setState(() {});
+    setState(() {
+      _bytes = null;
+      _isLoading = false;
+      _hasError = true;
+    });
   }
 
   Future<Uint8List?> _fetchWithRetry(String url) async {
     final uri = Uri.parse(url);
     final client = http.Client();
     Object? lastError;
+
     try {
       for (var attempt = 0; attempt <= widget.maxRetries; attempt++) {
         try {
           final resp = await client.get(uri).timeout(widget.requestTimeout);
           final bytes = resp.bodyBytes;
+
           if (resp.statusCode >= 200 &&
               resp.statusCode < 300 &&
               bytes.isNotEmpty) {
             return bytes;
           }
+
           lastError =
               'HTTP ${resp.statusCode} (bytes=${bytes.length}) for $url';
         } catch (e) {
@@ -122,6 +162,7 @@ class _SmartNetworkImageState extends State<SmartNetworkImage> {
           await Future.delayed(widget.retryDelay * (attempt + 1));
         }
       }
+
       debugPrint('SmartNetworkImage fail url=$url err=$lastError');
       return null;
     } finally {
@@ -129,18 +170,26 @@ class _SmartNetworkImageState extends State<SmartNetworkImage> {
     }
   }
 
+  Widget _buildLoadingPlaceholder(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      color: scheme.surfaceContainerHighest,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final raw = (widget.imageUrl ?? '').trim();
 
-    // ✅ FIX: support local file
     if (raw.startsWith('/')) {
       return Image.file(
         File(raw),
         width: widget.width,
         height: widget.height,
         fit: widget.fit,
-        errorBuilder: (_, _, _) => Image.asset(
+        errorBuilder: (_, __, ___) => Image.asset(
           widget.fallbackAsset,
           width: widget.width,
           height: widget.height,
@@ -156,7 +205,7 @@ class _SmartNetworkImageState extends State<SmartNetworkImage> {
         height: widget.height,
         fit: widget.fit,
         gaplessPlayback: true,
-        errorBuilder: (_, _, _) => Image.asset(
+        errorBuilder: (_, __, ___) => Image.asset(
           widget.fallbackAsset,
           width: widget.width,
           height: widget.height,
@@ -165,11 +214,19 @@ class _SmartNetworkImageState extends State<SmartNetworkImage> {
       );
     }
 
-    return Image.asset(
-      widget.fallbackAsset,
-      width: widget.width,
-      height: widget.height,
-      fit: widget.fit,
-    );
+    if (_isLoading) {
+      return _buildLoadingPlaceholder(context);
+    }
+
+    if (_hasError || _normalizeUrl(raw) == null) {
+      return Image.asset(
+        widget.fallbackAsset,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+      );
+    }
+
+    return _buildLoadingPlaceholder(context);
   }
 }

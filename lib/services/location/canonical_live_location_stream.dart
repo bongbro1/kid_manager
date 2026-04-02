@@ -40,7 +40,9 @@ Stream<T> streamCanonicalLiveLocation<T>({
   }
 
   scheduleRealtimeRetry = () {
-    if (controller.isClosed || realtimeSub != null || realtimeRetryTimer != null) {
+    if (controller.isClosed ||
+        realtimeSub != null ||
+        realtimeRetryTimer != null) {
       return;
     }
 
@@ -56,6 +58,8 @@ Stream<T> streamCanonicalLiveLocation<T>({
   };
 
   Future<void> pollOnce() async {
+    var shouldContinuePolling = true;
+
     try {
       final parsed = parseSnapshot(await pollCanonicalSnapshot());
       if (parsed != null && !controller.isClosed) {
@@ -63,11 +67,29 @@ Stream<T> streamCanonicalLiveLocation<T>({
       }
     } catch (error, stackTrace) {
       onPollingError?.call(error, stackTrace);
+
+      final message = error.toString();
+      final isPermanentError =
+          message.contains('permission-denied') ||
+          message.contains('unauthenticated');
+
+      if (isPermanentError) {
+        shouldContinuePolling = false;
+        fallbackStarted = false;
+        pollTimer?.cancel();
+        cancelRealtimeRetryTimer();
+
+        debugPrint(
+          '[CanonicalLiveLocation] stop polling ref=${reference.path} '
+          'reason=permanent_error error=$error',
+        );
+      }
+
       if (forwardPollingErrorsToStream && !controller.isClosed) {
         controller.addError(error, stackTrace);
       }
     } finally {
-      if (!controller.isClosed && fallbackStarted) {
+      if (!controller.isClosed && fallbackStarted && shouldContinuePolling) {
         scheduleRealtimeRetry();
         scheduleNextPoll();
       }
