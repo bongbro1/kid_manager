@@ -22,12 +22,14 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      fontFamily: 'Poppins',
       scaffoldBackgroundColor: scheme.background,
 
       /// TEXT
       textTheme: ThemeData.light().textTheme.apply(
         bodyColor: scheme.onSurface,
         displayColor: scheme.onSurface,
+        fontFamily: 'Poppins',
       ),
 
       /// ICON
@@ -145,11 +147,13 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      fontFamily: 'Poppins',
       scaffoldBackgroundColor: scheme.background,
 
       textTheme: ThemeData.dark().textTheme.apply(
         bodyColor: scheme.onSurface,
         displayColor: scheme.onSurface,
+        fontFamily: 'Poppins',
       ),
 
       iconTheme: IconThemeData(color: scheme.onSurface),

@@ -14,7 +14,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class UsageSyncManager(private val context: Context) {
 
@@ -23,11 +25,9 @@ class UsageSyncManager(private val context: Context) {
     }
 
     private data class UsageEventsSummary(
-        val usageMsByPkg: Map<String, Long>,
         val lastUsedByPkg: MutableMap<String, Long>,
         val usageMsByHour: MutableMap<Int, Long>,
     )
-
     private fun queryUsageStats(
         usageManager: UsageStatsManager,
         start: Long,
@@ -43,14 +43,10 @@ class UsageSyncManager(private val context: Context) {
         )
 
         for (stat in stats) {
-
             val pkg = stat.packageName ?: continue
             val time = stat.totalTimeInForeground
-
             if (time > 0) {
-
-                result[pkg] =
-                    (result[pkg] ?: 0) + time
+                result[pkg] = (result[pkg] ?: 0L) + time
             }
         }
 
@@ -58,14 +54,13 @@ class UsageSyncManager(private val context: Context) {
     }
 
     fun syncUsageApps(userId: String) {
-
         CoroutineScope(Dispatchers.IO).launch {
-
             try {
                 val firestore = FirebaseFirestore.getInstance()
 
                 val now = System.currentTimeMillis()
                 val startOfDay = getStartOfDay()
+
                 val usageManager =
                     context.getSystemService(Context.USAGE_STATS_SERVICE)
                             as UsageStatsManager
@@ -80,23 +75,39 @@ class UsageSyncManager(private val context: Context) {
                     .map { it.id }
                     .toSet()
 
+                val includedPackages = if (trackedPackages.isEmpty()) {
+                    null
+                } else {
+                    trackedPackages
+                }
+
+                // 1) Reliable per-app totals for the day
+                val usageMsByPkgRaw = queryUsageStats(
+                    usageManager = usageManager,
+                    start = startOfDay,
+                    end = now
+                )
+
+                val usageMsByPkg = if (includedPackages == null) {
+                    usageMsByPkgRaw
+                } else {
+                    usageMsByPkgRaw
+                        .filterKeys { includedPackages.contains(it) }
+                        .toMutableMap()
+                }
+
+                // 2) Event-based details for hourly buckets and last used
                 val events = usageManager.queryEvents(startOfDay, now)
 
-                val usageEventsSummary =
-                    computeUsageFromEvents(
-                        events = events,
-                        startOfDay = startOfDay,
-                        now = now,
-                        includedPackages = if (trackedPackages.isEmpty()) {
-                            null
-                        } else {
-                            trackedPackages
-                        }
-                    )
+                val usageEventsSummary = computeUsageFromEvents(
+                    events = events,
+                    startOfDay = startOfDay,
+                    now = now,
+                    includedPackages = includedPackages
+                )
 
                 val lastUsedByPkg = usageEventsSummary.lastUsedByPkg
                 val usageMsByHour = usageEventsSummary.usageMsByHour
-                val usageMsByPkg = usageEventsSummary.usageMsByPkg
 
                 val totalUsageMsToday = usageMsByPkg.values.sum()
 
@@ -115,7 +126,6 @@ class UsageSyncManager(private val context: Context) {
                 val minutesByPkg = mutableMapOf<String, Int>()
 
                 for (doc in appsSnap.documents) {
-
                     val pkg = doc.id
 
                     val usageMs = usageMsByPkg[pkg]
@@ -124,22 +134,20 @@ class UsageSyncManager(private val context: Context) {
                     val shouldResetForNewDay = lastUsageDayKey != dayKey
 
                     // Skip writes when there is no new data in the same day.
-                    // On day rollover, force a reset to 0 to avoid showing stale usage from yesterday.
-                    if (usageMs == null && lastUsedMs == null && !shouldResetForNewDay) continue
-
-                    val usageMsToWrite = usageMs ?: 0L
-
-                    val minutes = usageMsToWrite / 60000
-
-                    if (minutes > 0) {
-
-                        minutesByPkg[pkg] = minutes.toInt()
-
-                        totalMinutesToday += minutes.toInt()
+                    // On day rollover, force a reset to 0 to avoid stale usage from yesterday.
+                    if (usageMs == null && lastUsedMs == null && !shouldResetForNewDay) {
+                        continue
                     }
 
-                    /// DAILY APP USAGE
+                    val usageMsToWrite = usageMs ?: 0L
+                    val minutes = (usageMsToWrite / 60000L).toInt()
 
+                    if (minutes > 0) {
+                        minutesByPkg[pkg] = minutes
+                        totalMinutesToday += minutes
+                    }
+
+                    // DAILY APP USAGE
                     val dailyRef = doc.reference
                         .collection("usage_daily")
                         .document(dayKey)
@@ -159,20 +167,15 @@ class UsageSyncManager(private val context: Context) {
                         SetOptions.merge()
                     )
 
-                    /// UPDATE APP DOC
-
+                    // UPDATE APP DOC
                     val updateData = hashMapOf<String, Any?>(
                         "todayUsageMs" to usageMsToWrite,
                         "todayUsageDayKey" to dayKey,
-                        "todayLastSeen" to lastUsedMs?.let {
-                            Timestamp(Date(it))
-                        }
+                        "todayLastSeen" to lastUsedMs?.let { Timestamp(Date(it)) }
                     )
 
                     if (lastUsedMs != null && lastUsedMs > 0) {
-
-                        updateData["lastSeen"] =
-                            Timestamp(Date(lastUsedMs))
+                        updateData["lastSeen"] = Timestamp(Date(lastUsedMs))
                     }
 
                     batch.set(
@@ -188,19 +191,17 @@ class UsageSyncManager(private val context: Context) {
                     totalMinutesToday = (totalUsageMsToday / 60000L).toInt()
                 }
 
-                /// HOURLY USAGE (DEVICE LEVEL)
-                
+                // HOURLY USAGE (DEVICE LEVEL)
                 updateHourlyUsage(
-                    batch,
-                    firestore,
-                    userId,
-                    dayKey,
-                    startOfDay,
-                    usageMsByHour
+                    batch = batch,
+                    firestore = firestore,
+                    userId = userId,
+                    dayKey = dayKey,
+                    startOfDay = startOfDay,
+                    usageMsByHour = usageMsByHour
                 )
 
-                /// DAILY FLAT SUMMARY
-
+                // DAILY FLAT SUMMARY
                 val flatRef = firestore
                     .collection("blocked_items")
                     .document(userId)
@@ -220,8 +221,7 @@ class UsageSyncManager(private val context: Context) {
                     SetOptions.merge()
                 )
 
-                /// ROOT UPDATE
-
+                // ROOT UPDATE
                 batch.set(
                     rootRef,
                     mapOf(
@@ -233,22 +233,22 @@ class UsageSyncManager(private val context: Context) {
 
                 batch.commit().await()
 
+                val totalMinutesSafe = (totalUsageMsToday / 60000L).toInt()
+                if (totalMinutesSafe > 24 * 60) {
+                    Log.w(TAG, "Suspicious total usage > 24h: $totalMinutesSafe minutes")
+                }
+
                 Log.d(TAG, "Usage sync completed")
 
             } catch (e: Exception) {
-
                 Log.e(TAG, "Usage sync error", e)
             }
         }
     }
 
     fun syncInstalledApps(userId: String) {
-
         CoroutineScope(Dispatchers.IO).launch {
-
             try {
-
-                val pm = context.packageManager
                 val packageName = context.packageName
 
                 val firestore = FirebaseFirestore.getInstance()
@@ -272,12 +272,20 @@ class UsageSyncManager(private val context: Context) {
                 Log.d(TAG, "Kid app status updated")
 
             } catch (e: Exception) {
-
                 Log.e(TAG, "Installed apps sync error", e)
             }
         }
     }
 
+    /**
+     * Event-based processing for:
+     * - hourly usage buckets
+     * - last used timestamps
+     *
+     * Important:
+     * - We only use MOVE_TO_FOREGROUND / MOVE_TO_BACKGROUND
+     * - We track ONE active package at a time to avoid overlap double counting
+     */
     private fun computeUsageFromEvents(
         events: UsageEvents,
         startOfDay: Long,
@@ -285,15 +293,15 @@ class UsageSyncManager(private val context: Context) {
         includedPackages: Set<String>? = null
     ): UsageEventsSummary {
 
-        val usageMsByPkg = mutableMapOf<String, Long>()
         val lastUsedByPkg = mutableMapOf<String, Long>()
         val usageMsByHour = mutableMapOf<Int, Long>()
-        val startTimes = mutableMapOf<String, Long>()
+
+        var activePkg: String? = null
+        var activeStart: Long? = null
 
         val event = UsageEvents.Event()
 
         while (events.hasNextEvent()) {
-
             events.getNextEvent(event)
 
             val pkg = event.packageName ?: continue
@@ -302,67 +310,60 @@ class UsageSyncManager(private val context: Context) {
             }
 
             when (event.eventType) {
-
-                UsageEvents.Event.ACTIVITY_RESUMED,
                 UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                    val newStart = maxOf(event.timeStamp, startOfDay)
 
-                    startTimes[pkg] =
-                        maxOf(event.timeStamp, startOfDay)
-                }
-
-                UsageEvents.Event.ACTIVITY_PAUSED,
-                UsageEvents.Event.MOVE_TO_BACKGROUND -> {
-
-                    val start = startTimes[pkg] ?: continue
-                    val end = event.timeStamp
-                    val delta = end - start
-
-                    if (delta <= 0) {
-                        startTimes.remove(pkg)
-                        continue
+                    // Close previous active session before opening a new one
+                    if (activePkg != null && activeStart != null) {
+                        val end = minOf(event.timeStamp, now)
+                        val delta = end - activeStart!!
+                        if (delta > 0) {
+                            addDurationToHourBuckets(
+                                startMs = activeStart!!,
+                                endMs = end,
+                                usageMsByHour = usageMsByHour
+                            )
+                            lastUsedByPkg[activePkg!!] = end
+                        }
                     }
 
-                    // per-app usage
-                    usageMsByPkg[pkg] =
-                        (usageMsByPkg[pkg] ?: 0L) + delta
+                    activePkg = pkg
+                    activeStart = newStart
+                }
 
-                    // hourly buckets
-                    addDurationToHourBuckets(
-                        start,
-                        end,
-                        usageMsByHour
-                    )
-
-                    lastUsedByPkg[pkg] = end
-
-                    startTimes.remove(pkg)
+                UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                    if (activePkg == pkg && activeStart != null) {
+                        val end = minOf(event.timeStamp, now)
+                        val delta = end - activeStart!!
+                        if (delta > 0) {
+                            addDurationToHourBuckets(
+                                startMs = activeStart!!,
+                                endMs = end,
+                                usageMsByHour = usageMsByHour
+                            )
+                            lastUsedByPkg[pkg] = end
+                        }
+                        activePkg = null
+                        activeStart = null
+                    }
                 }
             }
         }
 
-        // Handle apps still in foreground
-        for ((pkg, start) in startTimes) {
-            if (includedPackages != null && !includedPackages.contains(pkg)) {
-                continue
+        // Handle app still in foreground
+        if (activePkg != null && activeStart != null) {
+            val delta = now - activeStart!!
+            if (delta > 0) {
+                addDurationToHourBuckets(
+                    startMs = activeStart!!,
+                    endMs = now,
+                    usageMsByHour = usageMsByHour
+                )
+                lastUsedByPkg[activePkg!!] = now
             }
-
-            val delta = now - start
-            if (delta <= 0) continue
-
-            usageMsByPkg[pkg] =
-                (usageMsByPkg[pkg] ?: 0L) + delta
-
-            addDurationToHourBuckets(
-                start,
-                now,
-                usageMsByHour
-            )
-
-            lastUsedByPkg[pkg] = now
         }
 
         return UsageEventsSummary(
-            usageMsByPkg = usageMsByPkg,
             lastUsedByPkg = lastUsedByPkg,
             usageMsByHour = usageMsByHour
         )
@@ -376,7 +377,6 @@ class UsageSyncManager(private val context: Context) {
         startOfDay: Long,
         usageMsByHour: Map<Int, Long>
     ) {
-
         val hourlyRef = firestore
             .collection("blocked_items")
             .document(userId)
@@ -407,7 +407,6 @@ class UsageSyncManager(private val context: Context) {
         endMs: Long,
         usageMsByHour: MutableMap<Int, Long>
     ) {
-
         if (endMs <= startMs) return
 
         val calendar = Calendar.getInstance()
@@ -427,23 +426,17 @@ class UsageSyncManager(private val context: Context) {
             val segmentEnd = minOf(endMs, nextHourStart)
             val delta = segmentEnd - cursor
 
-            usageMsByHour[hour] =
-                (usageMsByHour[hour] ?: 0L) + delta
-
+            usageMsByHour[hour] = (usageMsByHour[hour] ?: 0L) + delta
             cursor = segmentEnd
         }
     }
 
     private fun getStartOfDay(): Long {
-
         val calendar = Calendar.getInstance()
-
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
-
         return calendar.timeInMillis
     }
-
 }

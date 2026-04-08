@@ -78,6 +78,7 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
               fontFamily: 'Poppins',
+              fontSize: 18
             ),
           ),
           const SizedBox(height: 6),
@@ -127,7 +128,6 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               );
             },
           ),
-          const SizedBox(height: 26),
 
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

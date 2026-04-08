@@ -3,11 +3,9 @@ import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 
 class AppItem extends StatelessWidget {
-  final String appName;
   final String usageTimeText;
 
   /// Icon app bên trái
-  final String? iconBase64;
 
   /// Actions
   final VoidCallback? onTap;
@@ -25,10 +23,8 @@ class AppItem extends StatelessWidget {
 
   const AppItem({
     super.key,
-    required this.appName,
     required this.usageTimeText,
     required this.app,
-    this.iconBase64,
     this.onTap,
     this.width,
     this.height = 70,
@@ -114,6 +110,7 @@ class AppItem extends StatelessWidget {
                               height: 40,
                               fit: BoxFit.contain,
                               gaplessPlayback: true,
+                              filterQuality: FilterQuality.low,
                             )
                           : Icon(
                               Icons.apps,
@@ -133,7 +130,7 @@ class AppItem extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                appName,
+                                app.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: titleStyle ?? defaultTitleStyle,

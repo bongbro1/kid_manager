@@ -74,10 +74,7 @@ class PhoneAuthDialog {
     return null;
   }
 
-  static String mapPhoneAuthErrorMessage(
-    AppLocalizations l10n,
-    Object error,
-  ) {
+  static String mapPhoneAuthErrorMessage(AppLocalizations l10n, Object error) {
     final raw = error.toString();
     final isVietnamese = l10n.localeName.toLowerCase().startsWith('vi');
 
@@ -124,12 +121,15 @@ class PhoneAuthDialog {
 
         return StatefulBuilder(
           builder: (context, setState) {
-            return Padding(
+            final mediaQuery = MediaQuery.of(context);
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
               padding: EdgeInsets.only(
                 left: 24,
                 right: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
                 top: 24,
+                bottom: mediaQuery.viewInsets.bottom + mediaQuery.padding.bottom,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -137,7 +137,6 @@ class PhoneAuthDialog {
                   Container(
                     width: 40,
                     height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
                       color: colorScheme.outline.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(10),
@@ -284,7 +283,8 @@ class PhoneAuthDialog {
                                   NotificationDialog.show(
                                     parentContext,
                                     type: DialogType.error,
-                                    title: l10n.localeName
+                                    title:
+                                        l10n.localeName
                                             .toLowerCase()
                                             .startsWith('vi')
                                         ? 'Thất bại'
@@ -307,9 +307,10 @@ class PhoneAuthDialog {
                                 NotificationDialog.show(
                                   parentContext,
                                   type: DialogType.error,
-                                  title: l10n.localeName
-                                          .toLowerCase()
-                                          .startsWith('vi')
+                                  title:
+                                      l10n.localeName.toLowerCase().startsWith(
+                                        'vi',
+                                      )
                                       ? 'Thất bại'
                                       : 'Failed',
                                   message: mapPhoneAuthErrorMessage(l10n, e),

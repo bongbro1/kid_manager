@@ -108,6 +108,7 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
           l10n.appAppearanceTitle,
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
+            fontSize: 20
           ),
         ),
         iconTheme: IconThemeData(color: scheme.onSurface),
@@ -129,10 +130,11 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.7,
                       fontFamily: 'Poppins',
+                      fontSize: 13
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _settingItem(
                   icon: Icons.dark_mode_outlined,
                   title: l10n.appAppearanceThemeLabel,
@@ -195,10 +197,11 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.7,
                       fontFamily: 'Poppins',
+                      fontSize: 13
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 if (userVm.canChangePassword)
                   _settingItem(
                     icon: Icons.lock_outline,

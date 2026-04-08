@@ -80,7 +80,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final userVM = context.read<UserVm>();
     final appVM = context.read<AppManagementVM>();
 
-    // Validate
     if (email.isEmpty || password.isEmpty) {
       AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
@@ -93,17 +92,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final cred = await authVM.login(email, password);
-      if (!mounted) return;
-
       final uid = cred.user!.uid;
 
-      // 🔥 lưu UID không cần await
       unawaited(storage.setString(StorageKeys.uid, uid));
 
-      // Load profile
       final profile = await userVM.loadProfile(uid: uid, caller: 'LoginScreen');
       if (profile == null) {
-        await _showError(l10n.authUserProfileLoadFailed);
+        if (mounted) {
+          await _showError(l10n.authUserProfileLoadFailed);
+        }
         return;
       }
 
@@ -112,7 +109,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ? uid
           : (profile.parentUid ?? '').trim();
 
-      // 🔥 lưu storage song song
       unawaited(
         Future.wait([
           storage.setString(StorageKeys.role, profile.roleKey),
@@ -135,7 +131,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ]),
       );
 
-      // remember login
       if (rememberPassword) {
         final session = LoginSession(email: email, uid: uid, remember: true);
         unawaited(
@@ -148,10 +143,11 @@ class _LoginScreenState extends State<LoginScreen> {
         unawaited(storage.remove(StorageKeys.login_preference));
       }
 
-      // xử lý role
       if (role == UserRole.child) {
         if (parentId.isEmpty) {
-          await _showError(l10n.authUserProfileLoadFailed);
+          if (mounted) {
+            await _showError(l10n.authUserProfileLoadFailed);
+          }
           return;
         }
 
@@ -162,12 +158,16 @@ class _LoginScreenState extends State<LoginScreen> {
         unawaited(AuthRuntimeManager.stop());
       }
 
-      FocusScope.of(context).unfocus();
+      if (mounted) {
+        FocusScope.of(context).unfocus();
+      }
     } catch (e, st) {
       debugPrint('Login error: $e');
       debugPrintStack(stackTrace: st);
 
-      await _handleLoginError(context, e, mounted);
+      if (mounted) {
+        await _handleLoginError(context, e, mounted);
+      }
     }
   }
 
@@ -498,9 +498,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   maxWidth: 360,
                                 ),
                                 child: AppButton(
-                                  height: 60,
+                                  height: 50,
                                   text: l10n.authLoginButton,
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   onPressed: _onLoginPressed,
                                   backgroundColor: colorScheme.primary,

@@ -34,9 +34,37 @@ class _StatisticsTabState extends State<StatisticsTab> {
   int _lastUsageVersion = -1;
   int? selectedBarIndex;
   int? selectedDotIndex;
+  DateTime? selectedUsageDate;
   DateTime? fromDate;
   DateTime? toDate;
   late List<double> randomHeights;
+
+  DateTime? _dateForBarIndex(int index) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (activeIndex == 1) {
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      final start = DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day,
+      );
+
+      final date = start.add(Duration(days: index));
+      return date.isAfter(today) ? today : date;
+    }
+
+    if (activeIndex == 2 && fromDate != null && toDate != null) {
+      final a = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
+      final b = DateTime(toDate!.year, toDate!.month, toDate!.day);
+      final start = a.isBefore(b) ? a : b;
+
+      return start.add(Duration(days: index));
+    }
+
+    return null;
+  }
 
   List<_UsageAppRow> get sortedUsageApps {
     if (activeIndex == 0) {
@@ -127,12 +155,19 @@ class _StatisticsTabState extends State<StatisticsTab> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // ===== TODAY =====
+    if (selectedUsageDate != null && activeIndex != 0) {
+      final d = DateTime(
+        selectedUsageDate!.year,
+        selectedUsageDate!.month,
+        selectedUsageDate!.day,
+      );
+      return _sumUsageInDateRange(appMap, d, d);
+    }
+
     if (activeIndex == 0) {
       return _sumUsageInDateRange(appMap, today, today);
     }
 
-    // ===== WEEK =====
     if (activeIndex == 1) {
       final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
       final start = DateTime(
@@ -140,14 +175,12 @@ class _StatisticsTabState extends State<StatisticsTab> {
         startOfWeek.month,
         startOfWeek.day,
       );
-      // Week mode should not include future dates.
       final endOfWeek = start.add(const Duration(days: 6));
       final end = endOfWeek.isAfter(today) ? today : endOfWeek;
 
       return _sumUsageInDateRange(appMap, start, end);
     }
 
-    // ===== RANGE =====
     if (activeIndex == 2 && fromDate != null && toDate != null) {
       final a = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
       final b = DateTime(toDate!.year, toDate!.month, toDate!.day);
@@ -188,6 +221,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
   }
 
   void _onVmChanged() {
+    if (!mounted) return;
     _buildChart(l10n: AppLocalizations.of(context));
     setState(() {});
   }
@@ -198,8 +232,11 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
     if (_lastUsageVersion != widget.vm.usageVersion) {
       _lastUsageVersion = widget.vm.usageVersion;
+      final l10n = AppLocalizations.of(context);
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _buildChart(l10n: AppLocalizations.of(context));
+        if (!mounted) return;
+        _buildChart(l10n: l10n);
       });
     }
   }
@@ -274,6 +311,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
       setState(() {
         fromDate = start;
         toDate = end;
+        selectedBarIndex = null;
+        selectedUsageDate = null;
       });
 
       _buildChart(l10n: AppLocalizations.of(context));
@@ -400,7 +439,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                                     alpha: 0.6,
                                   ),
                                   fontSize: 12,
-                                  fontFamily: 'Inter',
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.6,
                                 ),
@@ -410,8 +448,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                                 formatMinutes(totalMinutes, l10n: l10n),
                                 style: textTheme.headlineMedium?.copyWith(
                                   color: scheme.onSurface,
-                                  fontSize: 30,
-                                  fontFamily: 'Inter',
+                                  fontSize: 24,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
@@ -444,7 +481,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                         style: textTheme.titleMedium?.copyWith(
                           color: scheme.onSurface,
                           fontSize: 18,
-                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                           height: 1.56,
                         ),
@@ -460,7 +496,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                           style: textTheme.labelSmall?.copyWith(
                             color: scheme.primary,
                             fontSize: 12,
-                            fontFamily: 'Inter',
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.6,
                           ),
@@ -478,10 +513,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: AppItem(
                       key: ValueKey('stats_${app.packageName}'),
-                      appName: app.name,
                       app: app,
                       usageTimeText: formatMinutes(row.minutes, l10n: l10n),
-                      iconBase64: app.iconBase64,
                       showRightIcon: false,
                     ),
                   );
@@ -633,6 +666,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                   onTap: () {
                     setState(() {
                       selectedBarIndex = i;
+                      selectedUsageDate = _dateForBarIndex(i);
                     });
                   },
                   child: Stack(
@@ -647,7 +681,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                         active: selectedBarIndex == i,
                         faded: bar.isFuture,
                       ),
-
                       if (selectedBarIndex == i)
                         Positioned(
                           bottom: tooltipBottom.toDouble(),
@@ -676,6 +709,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
         onTap: () {
           setState(() {
             activeIndex = index;
+            selectedBarIndex = null;
+            selectedDotIndex = null;
+            selectedUsageDate = null;
             _buildChart(l10n: AppLocalizations.of(context));
           });
         },
@@ -703,7 +739,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
             style: textTheme.labelLarge?.copyWith(
               color: isActive ? scheme.primary : scheme.onSurfaceVariant,
               fontSize: 14,
-              fontFamily: 'Inter',
               fontWeight: FontWeight.w600,
               height: 1.43,
             ),

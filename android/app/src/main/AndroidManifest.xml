@@ -30,7 +30,7 @@
 
 
     <application
-        android:label="kid_manager"
+        android:label="Cyber Fam"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"

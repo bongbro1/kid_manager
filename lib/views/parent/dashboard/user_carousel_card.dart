@@ -219,6 +219,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   Expanded(
                     child: AppButton(
                       height: 40,
+                      skeleton: vm.loading,
                       text: l10n.parentDashboardTabApps,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -240,6 +241,12 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                         'assets/icons/apps.svg',
                         width: 18,
                         height: 18,
+                        colorFilter: ColorFilter.mode(
+                          widget.currentIndex == 0
+                              ? scheme.onPrimary
+                              : scheme.onSurface,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
@@ -247,6 +254,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   Expanded(
                     child: AppButton(
                       height: 40,
+                      skeleton: vm.loading,
                       text: l10n.parentDashboardTabStatistics,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -268,6 +276,12 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                         'assets/icons/stats-chart.svg',
                         width: 18,
                         height: 18,
+                        colorFilter: ColorFilter.mode(
+                          widget.currentIndex == 1
+                              ? scheme.onPrimary
+                              : scheme.onSurface,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),

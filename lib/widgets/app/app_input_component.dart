@@ -50,6 +50,7 @@ class AppLabeledTextField extends StatelessWidget {
             style: theme.textTheme.labelLarge?.copyWith(
               color: scheme.onSurface,
               fontWeight: FontWeight.w500,
+              fontSize: 14
             ),
           ),
 

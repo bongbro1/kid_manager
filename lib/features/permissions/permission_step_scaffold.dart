@@ -59,7 +59,7 @@ class PermissionStepScaffold extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 24,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                         color: Color(0xFF111827),
                         height: 1.2,
                       ),
@@ -302,7 +302,7 @@ class _BottomActions extends StatelessWidget {
             onPressed: busy ? null : onSkip,
             child: Text(
               optional ? l10n.permissionLaterButton : l10n.permissionSkipButton,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF667085)),
+              style: const TextStyle(fontSize: 15, color: Color(0xFF667085)),
             ),
           ),
         ],

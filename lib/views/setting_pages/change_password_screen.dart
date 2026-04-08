@@ -102,6 +102,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: scheme.onSurface,
+                fontSize: 20
               ),
             ),
             iconTheme: IconThemeData(color: scheme.onSurface),

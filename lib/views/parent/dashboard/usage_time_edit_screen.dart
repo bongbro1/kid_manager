@@ -408,6 +408,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
               fontWeight: FontWeight.w600,
               height: 1.10,
               fontFamily: 'Poppins',
+              fontSize: 20
             ),
           ),
 
@@ -644,7 +645,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                   height: 50,
                   backgroundColor: scheme.primaryContainer,
                   foregroundColor: scheme.primary,
-                  fontSize: 16,
+                  fontSize: 15,
                   lineHeight: 1.38,
                   fontWeight: FontWeight.w700,
                   onPressed: onCancel,
@@ -659,7 +660,7 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
                   height: 50,
                   backgroundColor: scheme.primary,
                   foregroundColor: scheme.onPrimary,
-                  fontSize: 16,
+                  fontSize: 15,
                   lineHeight: 1.38,
                   fontWeight: FontWeight.w700,
                   onPressed: onSavePressed,

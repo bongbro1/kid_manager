@@ -18,7 +18,6 @@ import 'package:kid_manager/widgets/app/app_icon.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
-import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/common/smart_network_image.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/widgets/common/tappable_photo.dart';
@@ -350,7 +349,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: theme.textTheme.titleLarge?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 18,
+            fontSize: 20,
           ),
         ),
         actions: const [SizedBox(width: 60)],
@@ -499,6 +498,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w700,
+                                                                fontSize: 18,
                                                               ),
                                                         ),
                                                         const SizedBox(
@@ -774,8 +774,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           ],
                         ),
                       ),
-
-                      if (vm.loading) const LoadingOverlay(),
                     ],
                   ),
                 ),
@@ -963,7 +961,11 @@ class ConfirmLogoutSheet extends StatelessWidget {
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           onPressed: () async {
-                            await logout();
+                            final authVM = context.read<AuthVM>();
+
+                            Navigator.of(context, rootNavigator: true).pop();
+
+                            await Future.microtask(() => authVM.logout());
                           },
                           backgroundColor: scheme.primary,
                           foregroundColor: scheme.onPrimary,
@@ -976,8 +978,6 @@ class ConfirmLogoutSheet extends StatelessWidget {
             ),
           ),
         ),
-
-        if (vm.loading) const LoadingOverlay(),
       ],
     );
   }
@@ -1028,6 +1028,7 @@ class SettingItem extends StatelessWidget {
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: scheme.onSurface,
                   fontWeight: FontWeight.w500,
+                  fontSize: 16,
                 ),
               ),
             ),

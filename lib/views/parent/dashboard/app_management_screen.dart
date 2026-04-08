@@ -8,9 +8,9 @@ import 'package:kid_manager/views/parent/dashboard/no_child_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/statistics_tab.dart';
 import 'package:kid_manager/views/parent/dashboard/usage_time_edit_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/user_carousel_card.dart';
-import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/parent/app_item.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class AppManagementScreen extends StatefulWidget {
   const AppManagementScreen({super.key});
@@ -84,24 +84,14 @@ class _AppManagementScreenState extends State<AppManagementScreen>
   @override
   Widget build(BuildContext context) {
     final appVm = context.watch<AppManagementVM>();
-    if (!appVm.hasChild) {
+
+    if (!appVm.loading && !appVm.hasChild) {
       return const NoChildScreen();
     }
-
-    return Stack(
-      children: [
-        // ✅ UI chính của bạn (giữ nguyên)
-        _buildMain(context, appVm),
-
-        // ✅ overlay loading phủ lên toàn bộ
-        if (appVm.loading)
-          const Positioned.fill(
-            child: AbsorbPointer(
-              absorbing: true, // chặn tap/scroll
-              child: LoadingOverlay(),
-            ),
-          ),
-      ],
+    return Skeletonizer(
+      enabled: appVm.loading,
+      enableSwitchAnimation: true,
+      child: _buildMain(context, appVm),
     );
   }
 
@@ -116,6 +106,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
       regular: 18,
     );
     final screenHeight = MediaQuery.sizeOf(context).height;
+    final isSkeleton = appVm.loading;
 
     return Container(
       color: theme.scaffoldBackgroundColor,
@@ -145,15 +136,31 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                   // Title row
                   Row(
                     children: [
-                      SvgPicture.asset(
-                        'assets/icons/icon_setting.svg',
-                        width: 24,
-                        height: 24,
-                        colorFilter: const ColorFilter.mode(
-                          Colors.white,
-                          BlendMode.srcIn,
+                      if (isSkeleton)
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.3,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        SvgPicture.asset(
+                          'assets/icons/icon_setting.svg',
+                          width: 24,
+                          height: 24,
+                          colorFilter: const ColorFilter.mode(
+                            Colors.white,
+                            BlendMode.srcIn,
+                          ),
                         ),
-                      ),
                       const SizedBox(width: 8),
                       Text(
                         l10n.parentDashboardTitle,
@@ -202,10 +209,8 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                             padding: const EdgeInsets.only(bottom: 12),
                             child: AppItem(
                               key: ValueKey(app.packageName),
-                              appName: app.name,
                               app: app,
                               usageTimeText: app.usageTime ?? "0h 0m",
-                              iconBase64: app.iconBase64,
                               onTap: () => openUsageTimeEdit(
                                 context: context,
                                 app: app,

@@ -387,7 +387,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           l10n.scheduleScreenTitle,
           style: AppTextStyles.scheduleAppBarTitle.copyWith(
             color: scheme.onSurface,
-            fontSize: 18
+            fontSize: 20
           ),
         ),
         centerTitle: true,

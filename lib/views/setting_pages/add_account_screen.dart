@@ -183,9 +183,14 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final vm = context.watch<UserVm>();
-    final actor = context.select<UserVm, AppUser?>((value) => value.actorSnapshot);
-    final canAddAccount = actor != null &&
-        context.read<AccessControlService>().canAddManagedAccounts(actor: actor);
+    final actor = context.select<UserVm, AppUser?>(
+      (value) => value.actorSnapshot,
+    );
+    final canAddAccount =
+        actor != null &&
+        context.read<AccessControlService>().canAddManagedAccounts(
+          actor: actor,
+        );
 
     if (!canAddAccount) {
       return Scaffold(
@@ -199,6 +204,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
               color: scheme.onSurface,
+              fontSize: 20,
             ),
           ),
           iconTheme: IconThemeData(color: scheme.onSurface),
@@ -231,6 +237,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: scheme.onSurface,
+                fontSize: 20
               ),
             ),
             iconTheme: IconThemeData(color: scheme.onSurface),
@@ -301,7 +308,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           l10n.addAccountAccessLabel,
-                          style: Theme.of(context).textTheme.labelMedium,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
                         ),
                       ),
                       const SizedBox(height: 10),

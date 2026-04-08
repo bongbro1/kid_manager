@@ -309,9 +309,9 @@ class _SignupScreenState extends State<SignupScreen> {
                                   maxWidth: 360,
                                 ),
                                 child: AppButton(
-                                  height: 60,
+                                  height: 50,
                                   text: l10n.authSignupButton,
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   onPressed: _onSignUpPressed,
                                   backgroundColor: colorScheme.primary,

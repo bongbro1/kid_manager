@@ -47,6 +47,7 @@ class AboutAppScreen extends StatelessWidget {
           style: textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
             color: scheme.onSurface,
+            fontSize: 20,
           ),
         ),
       ),
@@ -191,6 +192,7 @@ class _AboutHeroCard extends StatelessWidget {
             style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: scheme.onSurface,
+              fontSize: 20,
             ),
           ),
           const SizedBox(height: 8),
@@ -271,6 +273,10 @@ class _PackageCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: scheme.surface,
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: scheme.outline.withOpacity(0.2), // 👈 màu border
+                    width: 1, // 👈 độ dày
+                  ),
                 ),
                 child: Center(
                   child: AppIcon(
