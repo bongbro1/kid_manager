@@ -151,23 +151,29 @@ class LocationRepositoryImpl implements LocationRepository {
           .doc(uid)
           .get();
 
+      final role = snap.data()?['role']?.toString().trim().toLowerCase();
       final parentUid = snap.data()?['parentUid'];
       final familyId = snap.data()?['familyId'];
       final timeZone = await _dayKeyResolver.normalizeTimeZone(
         snap.data()?['timezone']?.toString(),
       );
+      final normalizedParentUid = parentUid?.toString().trim().isNotEmpty == true
+          ? parentUid.toString().trim()
+          : role == 'parent'
+          ? uid
+          : null;
       _log(
-        'loadUserRoutingContext -> Firestore parentUid=$parentUid familyId=$familyId timeZone=$timeZone',
+        'loadUserRoutingContext -> Firestore parentUid=$normalizedParentUid familyId=$familyId timeZone=$timeZone',
       );
 
-      if (parentUid == null) {
+      if (normalizedParentUid == null || normalizedParentUid.isEmpty) {
         throw Exception(l10n.locationRepositoryParentIdNotFound);
       }
       if (familyId == null || familyId.toString().trim().isEmpty) {
         throw Exception(l10n.userVmFamilyIdNotFound);
       }
 
-      _cachedParentUid = parentUid.toString();
+      _cachedParentUid = normalizedParentUid;
       _cachedParentUidForUid = uid;
       _cachedFamilyId = familyId.toString();
       _cachedFamilyIdForUid = uid;

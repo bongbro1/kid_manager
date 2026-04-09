@@ -27,26 +27,30 @@ class ParentChildrenListScreen extends StatelessWidget {
         padding: const EdgeInsets.only(top: 8, bottom: 12),
         itemCount: children.length,
         itemBuilder: (_, i) {
-          final child = children[i];
-          final location = locationVm.childrenLocations[child.uid];
+          final member = children[i];
+          final location = locationVm.childrenLocations[member.uid];
 
           return ParentChildListItem(
-            child: child,
+            member: member,
             location: location,
             onOpenHistory: () {
+              if (!member.isChild) {
+                Navigator.pop(context, member);
+                return;
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => ChildDetailMapScreen(
-                    childId: child.uid,
-                    childAvatarUrl: child.avatarUrl,
-                    childTimeZone: child.timezone,
+                    childId: member.uid,
+                    childAvatarUrl: member.avatarUrl,
+                    childTimeZone: member.timezone,
                   ),
                 ),
               );
             },
             onLocate: () {
-              Navigator.pop(context, child);
+              Navigator.pop(context, member);
             },
             onChat: () {
               Navigator.push(
@@ -59,8 +63,8 @@ class ParentChildrenListScreen extends StatelessWidget {
             onPhone: () async {
               await handleCallChildByProfile(
                 context: context,
-                childId: child.uid,
-                childName: child.displayLabel,
+                childId: member.uid,
+                childName: member.displayLabel,
               );
             },
           );

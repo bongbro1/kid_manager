@@ -64,6 +64,7 @@ class BackgroundTrackingRuntime {
   bool get isRunning => _running;
 
   bool _requireBackground = true;
+  bool _currentOnly = false;
   String? _activeSharingUid;
   Activity? _lastActivity;
   LocationData? _currentLocation;
@@ -80,12 +81,16 @@ class BackgroundTrackingRuntime {
   Future<AppLocalizations>? _l10nFuture;
   String? _l10nUid;
 
-  Future<bool> start({required bool requireBackground}) async {
+  Future<bool> start({
+    required bool requireBackground,
+    bool currentOnly = false,
+  }) async {
     try {
       if (_disposed) return false;
       if (_running) return true;
 
       _requireBackground = requireBackground;
+      _currentOnly = currentOnly;
 
       final l10n = await _getL10n();
       if (_disposed) return false;
@@ -126,8 +131,10 @@ class BackgroundTrackingRuntime {
       if (_disposed) return false;
       await _startActivityRecognition();
       if (_disposed) return false;
-      await _ensureZoneMonitor(sharingUid);
-      if (_disposed) return false;
+      if (!_currentOnly) {
+        await _ensureZoneMonitor(sharingUid);
+        if (_disposed) return false;
+      }
 
       _gpsSub = _locationService
           .getLocationStream(usePlatformPlugin: false)
@@ -166,12 +173,14 @@ class BackgroundTrackingRuntime {
               _motionState = result.motion;
               _transport = result.transport;
 
-              try {
-                if (_zonesInited) {
-                  await _zoneMonitor?.onLocation(filtered);
+              if (!_currentOnly) {
+                try {
+                  if (_zonesInited) {
+                    await _zoneMonitor?.onLocation(filtered);
+                  }
+                } catch (e) {
+                  debugPrint('BackgroundTrackingRuntime zone monitor error: $e');
                 }
-              } catch (e) {
-                debugPrint('BackgroundTrackingRuntime zone monitor error: $e');
               }
 
               final payload = TrackingPayload(
@@ -232,38 +241,40 @@ class BackgroundTrackingRuntime {
                 }
               }
 
-              final historySendWindowOpen = _canAttemptSend(
-                nowMs: nowMs,
-                lastSuccessAtMs: 0,
-                lastFailureAtMs: _lastHistoryFailureAtMs,
-                minSuccessInterval: Duration.zero,
-              );
-              if (isMoving &&
-                  goodHistoryAcc &&
-                  result.indoorSuppressed &&
-                  historySendWindowOpen &&
-                  kDebugMode) {
-                debugPrint(
-                  'BackgroundTrackingRuntime history send skipped due to '
-                  'indoor suppression acc=${accuracy.toStringAsFixed(1)}',
+              if (!_currentOnly) {
+                final historySendWindowOpen = _canAttemptSend(
+                  nowMs: nowMs,
+                  lastSuccessAtMs: 0,
+                  lastFailureAtMs: _lastHistoryFailureAtMs,
+                  minSuccessInterval: Duration.zero,
                 );
-              }
-
-              if (isMoving &&
-                  !result.indoorSuppressed &&
-                  result.shouldSend &&
-                  goodHistoryAcc &&
-                  historySendWindowOpen) {
-                try {
-                  await _locationRepository.appendMyHistory(payload);
-                  _lastHistoryFailureAtMs = 0;
-                  _engine.acknowledgeHistorySent(filtered, result.motion);
-                } catch (e) {
-                  _lastHistoryFailureAtMs = nowMs;
-                  sendError ??= e;
+                if (isMoving &&
+                    goodHistoryAcc &&
+                    result.indoorSuppressed &&
+                    historySendWindowOpen &&
+                    kDebugMode) {
                   debugPrint(
-                    'BackgroundTrackingRuntime history location send failed: $e',
+                    'BackgroundTrackingRuntime history send skipped due to '
+                    'indoor suppression acc=${accuracy.toStringAsFixed(1)}',
                   );
+                }
+
+                if (isMoving &&
+                    !result.indoorSuppressed &&
+                    result.shouldSend &&
+                    goodHistoryAcc &&
+                    historySendWindowOpen) {
+                  try {
+                    await _locationRepository.appendMyHistory(payload);
+                    _lastHistoryFailureAtMs = 0;
+                    _engine.acknowledgeHistorySent(filtered, result.motion);
+                  } catch (e) {
+                    _lastHistoryFailureAtMs = nowMs;
+                    sendError ??= e;
+                    debugPrint(
+                      'BackgroundTrackingRuntime history location send failed: $e',
+                    );
+                  }
                 }
               }
 
@@ -297,6 +308,7 @@ class BackgroundTrackingRuntime {
   Future<void> stop() async {
     await TrackingRuntimeStore.setPublisherReady(false);
     _running = false;
+    _currentOnly = false;
     _activeSharingUid = null;
     _lastTrackingStatus = null;
     _lastStatusHeartbeatAtMs = 0;

@@ -128,10 +128,9 @@ class FamilyChatRepository {
       for (final memberDoc in membersSnapshot.docs) {
         final memberData = memberDoc.data();
         final displayName = (memberData['displayName'] ?? '').toString().trim();
-        final email = (memberData['email'] ?? '').toString().trim();
         final displayNameRaw = displayName.isNotEmpty
             ? displayName
-            : email;
+            : memberDoc.id;
 
         members.add(
           FamilyChatMember(

@@ -161,7 +161,12 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
     _didInitialFocus = true;
 
-    await _focusChild(childId: firstChildId, openSheet: false, animate: false);
+    await _focusChild(
+      childId: firstChildId,
+      openSheet: false,
+      animate: false,
+      focusPosition: mbx.Position(loc.longitude, loc.latitude),
+    );
   }
 
   Future<void> _focusChild({
@@ -233,8 +238,10 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
     if (!_didFirstMapSync) {
       _didFirstMapSync = true;
-      unawaited(_syncToMap());
-      unawaited(_focusFirstChildOnce());
+      unawaited(() async {
+        await _syncToMap();
+        await _focusFirstChildOnce();
+      }());
       return;
     }
 
@@ -347,7 +354,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) => ChildInfoSheet(
-        child: child,
+        member: child,
         latest: latest,
         isSearching: false,
         daySchedules: schedules,

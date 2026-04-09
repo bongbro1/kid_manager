@@ -41,16 +41,14 @@ class MembershipRepository {
     return _db
         .collection('families')
         .doc(normalizedFamilyId)
-        .collection('members')
+        .collection('locationMembers')
         .snapshots()
         .map((qs) {
-          final inferredParentUid = _inferFamilyParentUid(qs.docs);
           final list = qs.docs
               .map(
                 (doc) => _normalizeFamilyLocationMember(
                   doc,
                   familyId: normalizedFamilyId,
-                  inferredParentUid: inferredParentUid,
                 ),
               )
               .where((user) {
@@ -64,7 +62,11 @@ class MembershipRepository {
                   return true;
                 }
 
-                return user.role == UserRole.guardian && user.allowTracking;
+                if (user.role == UserRole.guardian && user.allowTracking) {
+                  return true;
+                }
+
+                return user.role == UserRole.parent && user.allowTracking;
               })
               .toList(growable: false);
 
@@ -75,8 +77,8 @@ class MembershipRepository {
             if (roleCompare != 0) {
               return roleCompare;
             }
-            final nameA = (a.displayName ?? a.email ?? '').trim().toLowerCase();
-            final nameB = (b.displayName ?? b.email ?? '').trim().toLowerCase();
+            final nameA = (a.displayName ?? a.uid).trim().toLowerCase();
+            final nameB = (b.displayName ?? b.uid).trim().toLowerCase();
             return nameA.compareTo(nameB);
           });
 
@@ -84,47 +86,23 @@ class MembershipRepository {
         });
   }
 
-  String? _inferFamilyParentUid(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> memberDocs,
-  ) {
-    for (final memberDoc in memberDocs) {
-      final data = memberDoc.data();
-      if (UserRole.fromValue(data['role']) != UserRole.parent) {
-        continue;
-      }
-      final uid = (data['uid'] ?? memberDoc.id).toString().trim();
-      if (uid.isNotEmpty) {
-        return uid;
-      }
-    }
-    return null;
-  }
-
   AppUser _normalizeFamilyLocationMember(
     DocumentSnapshot<Map<String, dynamic>> memberDoc, {
     required String familyId,
-    required String? inferredParentUid,
   }) {
     final user = AppUser.fromDoc(memberDoc);
     final normalizedFamilyId =
         (user.familyId ?? '').trim().isEmpty ? familyId : user.familyId;
-    final normalizedParentUid =
-        (user.parentUid ?? '').trim().isEmpty &&
-            (user.role == UserRole.child || user.role == UserRole.guardian)
-        ? inferredParentUid
-        : user.parentUid;
     final normalizedAllowTracking =
         user.role == UserRole.child ? true : user.allowTracking;
 
     if (normalizedFamilyId == user.familyId &&
-        normalizedParentUid == user.parentUid &&
         normalizedAllowTracking == user.allowTracking) {
       return user;
     }
 
     return user.copyWith(
       familyId: normalizedFamilyId,
-      parentUid: normalizedParentUid,
       allowTracking: normalizedAllowTracking,
     );
   }
@@ -187,13 +165,9 @@ class MembershipRepository {
             role: role,
             familyId: familyId,
             displayName: displayName,
-            email: email.trim(),
             avatarUrl: '',
-            timezone: timezone,
             dob: dob,
-            parentUid: parentUid,
             isActive: true,
-            allowTracking: role == UserRole.child,
             lastActiveAt: FieldValue.serverTimestamp(),
           ),
           'joinedAt': FieldValue.serverTimestamp(),

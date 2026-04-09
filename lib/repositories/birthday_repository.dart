@@ -1,7 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:kid_manager/models/birthday_event.dart';
-import 'package:kid_manager/utils/date_utils.dart';
 
 class BirthdayRepository {
   BirthdayRepository(this._firestore, {FirebaseFunctions? functions})
@@ -81,16 +80,18 @@ class BirthdayRepository {
 
     for (final memberDoc in memberDocs) {
       final memberData = memberDoc.data();
-      final birthDate =
-          parseFlexibleBirthDate(memberData['dobIso']) ??
-          parseFlexibleBirthDate(memberData['dob']);
+      final birthMonth = (memberData['birthMonth'] as num?)?.toInt();
+      final birthDay = (memberData['birthDay'] as num?)?.toInt();
+      final birthYear = (memberData['birthYear'] as num?)?.toInt();
+      if (birthMonth == null || birthDay == null) continue;
 
-      if (birthDate == null) continue;
+      final normalizedYear =
+          birthYear != null && birthYear > 0 ? birthYear : 2000;
+      final birthDate = DateTime(normalizedYear, birthMonth, birthDay);
 
-      final displayName =
-          (memberData['displayName'] ?? memberData['email'] ?? memberDoc.id)
-              .toString()
-              .trim();
+      final displayName = (memberData['displayName'] ?? memberDoc.id)
+          .toString()
+          .trim();
 
       birthdays.add(
         BirthdayEvent(
@@ -120,20 +121,11 @@ class BirthdayRepository {
     return memberDocs.any((memberDoc) {
       final data = memberDoc.data();
       final displayName = (data['displayName'] ?? '').toString().trim();
-      final dobIso = (data['dobIso'] ?? '').toString().trim();
-      final birthDate =
-          parseFlexibleBirthDate(data['dobIso']) ??
-          parseFlexibleBirthDate(data['dob']);
+      final birthMonth = (data['birthMonth'] as num?)?.toInt();
+      final birthDay = (data['birthDay'] as num?)?.toInt();
 
-      return displayName.isEmpty ||
-          birthDate == null ||
-          _hasLegacyBirthdayProjection(dobIso);
+      return displayName.isEmpty || birthMonth == null || birthDay == null;
     });
-  }
-
-  bool _hasLegacyBirthdayProjection(String dobIso) {
-    if (dobIso.isEmpty) return false;
-    return dobIso.contains('T') || dobIso.endsWith('Z');
   }
 
   Future<bool> _syncFamilyMembersIfNeeded(String familyId) async {

@@ -8,11 +8,11 @@ plugins {
 android {
     namespace = "com.example.kid_manager"
 
-    compileSdk = 36 
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.kid_manager"
-        minSdk = 34   
+        minSdk = 34
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -38,11 +38,35 @@ android {
         }
     }
 
+    bundle {
+        abi {
+            enableSplit = true
+        }
+        density {
+            enableSplit = true
+        }
+        language {
+            enableSplit = false
+        }
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/LICENSE*"
+            excludes += "META-INF/NOTICE*"
+        }
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

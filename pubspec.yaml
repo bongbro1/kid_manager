@@ -62,7 +62,6 @@ dependencies:
   # Local / Network / Utils
   http: ^1.2.0
   logger: ^2.0.1
-  google_fonts: ^6.2.1
 
   # Activity / Env / Mapbox
   flutter_activity_recognition: ^4.0.0
@@ -118,9 +117,9 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
-    - assets/stickers/family_chat/
+    - assets/stickers/family_chat/celebrate.webp
     - assets/videos/
-    - assets/sounds/
+    - assets/sounds/sos.mp3
     - assets/templates/schedule_template.xlsx
     - assets/zones/i18n/
     - assets/map/
@@ -144,13 +143,4 @@ flutter:
         - asset: assets/fonts/Inter_24pt-SemiBold.ttf
           weight: 600
         - asset: assets/fonts/Inter_24pt-Bold.ttf
-          weight: 700
-
-    - family: Roboto
-      fonts:
-        - asset: assets/fonts/Roboto-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/Roboto-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Roboto-Bold.ttf
           weight: 700

@@ -101,7 +101,9 @@ function parseFlexibleBirthDate(rawDob: unknown, rawDobIso: unknown): Date | nul
   return null;
 }
 
-function buildBirthdayStorageFields(birthDate: Date | null): Record<string, unknown> {
+function buildBirthdayPublicProjectionFields(
+  birthDate: Date | null
+): Record<string, unknown> {
   if (!birthDate) return {};
 
   const normalized = new Date(
@@ -109,25 +111,11 @@ function buildBirthdayStorageFields(birthDate: Date | null): Record<string, unkn
     birthDate.getMonth(),
     birthDate.getDate()
   );
-  const utcNoon = new Date(
-    Date.UTC(
-      normalized.getFullYear(),
-      normalized.getMonth(),
-      normalized.getDate(),
-      12
-    )
-  );
-  const dobIso = [
-    normalized.getFullYear().toString().padStart(4, "0"),
-    (normalized.getMonth() + 1).toString().padStart(2, "0"),
-    normalized.getDate().toString().padStart(2, "0"),
-  ].join("-");
 
   return {
-    dob: admin.firestore.Timestamp.fromDate(utcNoon),
-    dobIso,
     birthMonth: normalized.getMonth() + 1,
     birthDay: normalized.getDate(),
+    birthYear: normalized.getFullYear(),
   };
 }
 
@@ -153,19 +141,9 @@ function buildFamilyMemberPublicFields(
     : "member";
   const displayName =
     typeof userData.displayName === "string" ? userData.displayName.trim() : "";
-  const email =
-    typeof userData.email === "string" ? userData.email.trim() : "";
   const avatarUrl =
     typeof userData.avatarUrl === "string" ? userData.avatarUrl : "";
-  const timezone =
-    typeof userData.timezone === "string" ? userData.timezone.trim() : "";
-  const parentUid =
-    typeof userData.parentUid === "string" ? userData.parentUid.trim() : "";
   const isActive = userData.isActive === true;
-  const allowTracking = role === "child" || userData.allowTracking === true;
-  const managedChildIds = readTrimmedStringList(
-    userData.managedChildIds ?? userData.assignedChildIds ?? userData.childIds
-  );
   const birthDate = parseFlexibleBirthDate(userData.dob, userData.dobIso);
   const lastActiveAt =
     userData.lastActiveAt instanceof admin.firestore.Timestamp
@@ -179,15 +157,89 @@ function buildFamilyMemberPublicFields(
     role,
     ...(familyId ? { familyId } : {}),
     ...(displayName ? { displayName } : {}),
-    ...(email ? { email } : {}),
     avatarUrl,
-    ...(timezone ? { timezone } : {}),
+    isActive,
+    ...(lastActiveAt ? { lastActiveAt } : {}),
+    ...buildBirthdayPublicProjectionFields(birthDate),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+}
+
+function buildFamilyLocationMemberFields(
+  uid: string,
+  userData: FirebaseFirestore.DocumentData
+): Record<string, unknown> | null {
+  const familyId =
+    typeof userData.familyId === "string" ? userData.familyId.trim() : "";
+  const role = typeof userData.role === "string" && userData.role
+    ? userData.role
+    : "member";
+  const displayName =
+    typeof userData.displayName === "string" ? userData.displayName.trim() : "";
+  const avatarUrl =
+    typeof userData.avatarUrl === "string" ? userData.avatarUrl : "";
+  const parentUid =
+    typeof userData.parentUid === "string" ? userData.parentUid.trim() : "";
+  const isActive = userData.isActive === true;
+  const allowTracking = role === "child" || userData.allowTracking === true;
+  const lastActiveAt =
+    userData.lastActiveAt instanceof admin.firestore.Timestamp
+      ? userData.lastActiveAt
+      : userData.lastActiveAt instanceof Date
+        ? admin.firestore.Timestamp.fromDate(userData.lastActiveAt)
+        : null;
+
+  if (!familyId) return null;
+  if (role !== "child" && role !== "guardian" && role !== "parent") {
+    return null;
+  }
+
+  return {
+    uid,
+    role,
+    familyId,
+    ...(displayName ? { displayName } : {}),
+    avatarUrl,
     ...(parentUid ? { parentUid } : {}),
     isActive,
     allowTracking,
-    ...(managedChildIds.length > 0 ? { managedChildIds } : {}),
     ...(lastActiveAt ? { lastActiveAt } : {}),
-    ...buildBirthdayStorageFields(birthDate),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+}
+
+function buildFamilyManagementMemberFields(
+  uid: string,
+  userData: FirebaseFirestore.DocumentData
+): Record<string, unknown> | null {
+  const familyId =
+    typeof userData.familyId === "string" ? userData.familyId.trim() : "";
+  const role = typeof userData.role === "string" && userData.role
+    ? userData.role
+    : "member";
+  const displayName =
+    typeof userData.displayName === "string" ? userData.displayName.trim() : "";
+  const avatarUrl =
+    typeof userData.avatarUrl === "string" ? userData.avatarUrl : "";
+  const parentUid =
+    typeof userData.parentUid === "string" ? userData.parentUid.trim() : "";
+  const managedChildIds = readTrimmedStringList(
+    userData.managedChildIds ?? userData.assignedChildIds ?? userData.childIds
+  );
+
+  if (!familyId || !parentUid) return null;
+  if (role !== "child" && role !== "guardian") {
+    return null;
+  }
+
+  return {
+    uid,
+    role,
+    familyId,
+    parentUid,
+    ...(displayName ? { displayName } : {}),
+    avatarUrl,
+    ...(managedChildIds.length > 0 ? { managedChildIds } : {}),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 }
@@ -202,9 +254,25 @@ async function syncUserToFamilyMember(
     typeof userData.familyId === "string" ? userData.familyId.trim() : "";
   if (!familyId) return;
 
-  await db
-    .doc(`families/${familyId}/members/${uid}`)
-    .set(buildFamilyMemberPublicFields(uid, userData), { merge: true });
+  const publicRef = db.doc(`families/${familyId}/members/${uid}`);
+  const locationRef = db.doc(`families/${familyId}/locationMembers/${uid}`);
+  const managementRef = db.doc(`families/${familyId}/managementMembers/${uid}`);
+
+  await publicRef.set(buildFamilyMemberPublicFields(uid, userData));
+
+  const locationFields = buildFamilyLocationMemberFields(uid, userData);
+  if (locationFields != null) {
+    await locationRef.set(locationFields);
+  } else {
+    await locationRef.delete().catch(() => {});
+  }
+
+  const managementFields = buildFamilyManagementMemberFields(uid, userData);
+  if (managementFields != null) {
+    await managementRef.set(managementFields);
+  } else {
+    await managementRef.delete().catch(() => {});
+  }
 }
 
 export const mirrorUserToFamilyMembers = onDocumentWritten(
@@ -222,12 +290,16 @@ export const mirrorUserToFamilyMembers = onDocumentWritten(
     if (!after) {
       if (beforeFamilyId) {
         await db.doc(`families/${beforeFamilyId}/members/${uid}`).delete().catch(() => {});
+        await db.doc(`families/${beforeFamilyId}/locationMembers/${uid}`).delete().catch(() => {});
+        await db.doc(`families/${beforeFamilyId}/managementMembers/${uid}`).delete().catch(() => {});
       }
       return;
     }
 
     if (beforeFamilyId && beforeFamilyId !== afterFamilyId) {
       await db.doc(`families/${beforeFamilyId}/members/${uid}`).delete().catch(() => {});
+      await db.doc(`families/${beforeFamilyId}/locationMembers/${uid}`).delete().catch(() => {});
+      await db.doc(`families/${beforeFamilyId}/managementMembers/${uid}`).delete().catch(() => {});
     }
 
     await syncUserToFamilyMember(uid, after);
@@ -258,11 +330,26 @@ export const syncFamilyMemberPublicData = onCall(
 
     const batch = db.batch();
     for (const userDoc of usersSnap.docs) {
-      batch.set(
-        db.doc(`families/${familyId}/members/${userDoc.id}`),
-        buildFamilyMemberPublicFields(userDoc.id, userDoc.data()),
-        { merge: true }
-      );
+      const publicRef = db.doc(`families/${familyId}/members/${userDoc.id}`);
+      const locationRef = db.doc(`families/${familyId}/locationMembers/${userDoc.id}`);
+      const managementRef = db.doc(`families/${familyId}/managementMembers/${userDoc.id}`);
+      const userData = userDoc.data();
+
+      batch.set(publicRef, buildFamilyMemberPublicFields(userDoc.id, userData));
+
+      const locationFields = buildFamilyLocationMemberFields(userDoc.id, userData);
+      if (locationFields != null) {
+        batch.set(locationRef, locationFields);
+      } else {
+        batch.delete(locationRef);
+      }
+
+      const managementFields = buildFamilyManagementMemberFields(userDoc.id, userData);
+      if (managementFields != null) {
+        batch.set(managementRef, managementFields);
+      } else {
+        batch.delete(managementRef);
+      }
     }
     await batch.commit();
 

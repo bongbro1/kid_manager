@@ -74,7 +74,10 @@ export function isTrackableLocationTargetDoc(data: UserDoc): boolean {
   if (role === "child") {
     return true;
   }
-  return role === "guardian" && data.allowTracking === true;
+  return (
+    (role === "guardian" || role === "parent") &&
+    data.allowTracking === true
+  );
 }
 
 export function canViewLocationForTarget(
@@ -117,10 +120,37 @@ export function canViewLocationForTarget(
         return context.requesterUid === context.targetParentUid;
       }
 
-      return context.requesterRole === "guardian";
+      return false;
     default:
       return false;
   }
+}
+
+export function canViewCurrentLocationForTarget(
+  context: LocationAccessPolicyContext
+): boolean {
+  if (context.targetRole === "parent") {
+    if (context.requesterUid === context.targetUid) {
+      return true;
+    }
+
+    if (
+      context.requesterFamilyId == null ||
+      context.targetFamilyId == null ||
+      context.requesterFamilyId !== context.targetFamilyId ||
+      !context.targetAllowTracking
+    ) {
+      return false;
+    }
+
+    return (
+      context.requesterRole === "guardian" &&
+      context.requesterParentUid != null &&
+      context.requesterParentUid === context.targetUid
+    );
+  }
+
+  return canViewLocationForTarget(context);
 }
 
 export function canListTrackableLocationMemberForViewer(params: {
@@ -139,7 +169,7 @@ export function canListTrackableLocationMemberForViewer(params: {
     return false;
   }
 
-  return canViewLocationForTarget({
+  return canViewCurrentLocationForTarget({
     requesterUid: params.viewerUid,
     requesterRole: params.viewerRole,
     requesterParentUid: params.viewerParentUid,
@@ -153,25 +183,12 @@ export function canListTrackableLocationMemberForViewer(params: {
   });
 }
 
-export async function requireLocationViewerAccess(
+function buildLocationAccessContext(
   viewerUid: string,
-  targetUid: string
-): Promise<LocationAccessContext> {
-  const [viewerSnap, targetSnap] = await Promise.all([
-    db.doc(`users/${viewerUid}`).get(),
-    db.doc(`users/${targetUid}`).get(),
-  ]);
-
-  if (!viewerSnap.exists) {
-    throw new HttpsError("not-found", "Viewer not found");
-  }
-  if (!targetSnap.exists) {
-    throw new HttpsError("not-found", "Target not found");
-  }
-
-  const viewer = (viewerSnap.data() ?? {}) as UserDoc;
-  const target = (targetSnap.data() ?? {}) as UserDoc;
-
+  viewer: UserDoc,
+  targetUid: string,
+  target: UserDoc
+): LocationAccessContext {
   const viewerRole = readRequiredString(
     viewer,
     "role",
@@ -193,20 +210,67 @@ export async function requireLocationViewerAccess(
     "Missing familyId on target profile"
   );
 
-  await requireFamilyMember(viewerFamilyId, viewerUid);
-
-  const policyContext: LocationAccessPolicyContext = {
-    requesterUid: viewerUid,
-    requesterRole: viewerRole,
-    requesterParentUid: optionalTrimmedString(viewer.parentUid),
-    requesterFamilyId: viewerFamilyId,
-    requesterManagedChildIds: readStringList(viewer, "managedChildIds"),
+  return {
+    viewerUid,
+    viewerRole,
+    viewerParentUid: optionalTrimmedString(viewer.parentUid),
+    viewerFamilyId,
+    viewerManagedChildIds: readStringList(viewer, "managedChildIds"),
     targetUid,
     targetRole,
     targetParentUid: optionalTrimmedString(target.parentUid),
     targetFamilyId,
     targetAllowTracking: target.allowTracking === true,
   };
+}
+
+function toPolicyContext(
+  context: LocationAccessContext
+): LocationAccessPolicyContext {
+  return {
+    requesterUid: context.viewerUid,
+    requesterRole: context.viewerRole,
+    requesterParentUid: context.viewerParentUid,
+    requesterFamilyId: context.viewerFamilyId,
+    requesterManagedChildIds: context.viewerManagedChildIds,
+    targetUid: context.targetUid,
+    targetRole: context.targetRole,
+    targetParentUid: context.targetParentUid,
+    targetFamilyId: context.targetFamilyId,
+    targetAllowTracking: context.targetAllowTracking,
+  };
+}
+
+async function loadLocationAccessContext(
+  viewerUid: string,
+  targetUid: string
+): Promise<LocationAccessContext> {
+  const [viewerSnap, targetSnap] = await Promise.all([
+    db.doc(`users/${viewerUid}`).get(),
+    db.doc(`users/${targetUid}`).get(),
+  ]);
+
+  if (!viewerSnap.exists) {
+    throw new HttpsError("not-found", "Viewer not found");
+  }
+  if (!targetSnap.exists) {
+    throw new HttpsError("not-found", "Target not found");
+  }
+
+  const viewer = (viewerSnap.data() ?? {}) as UserDoc;
+  const target = (targetSnap.data() ?? {}) as UserDoc;
+  const context = buildLocationAccessContext(viewerUid, viewer, targetUid, target);
+
+  await requireFamilyMember(context.viewerFamilyId, viewerUid);
+  return context;
+}
+
+export async function requireLocationViewerAccess(
+  viewerUid: string,
+  targetUid: string
+): Promise<LocationAccessContext> {
+  const context = await loadLocationAccessContext(viewerUid, targetUid);
+  const policyContext = toPolicyContext(context);
 
   if (!canViewLocationForTarget(policyContext)) {
     throw new HttpsError(
@@ -215,18 +279,24 @@ export async function requireLocationViewerAccess(
     );
   }
 
-  return {
-    viewerUid,
-    viewerRole,
-    viewerParentUid: policyContext.requesterParentUid,
-    viewerFamilyId,
-    viewerManagedChildIds: policyContext.requesterManagedChildIds,
-    targetUid,
-    targetRole,
-    targetParentUid: policyContext.targetParentUid,
-    targetFamilyId,
-    targetAllowTracking: policyContext.targetAllowTracking,
-  };
+  return context;
+}
+
+export async function requireCurrentLocationViewerAccess(
+  viewerUid: string,
+  targetUid: string
+): Promise<LocationAccessContext> {
+  const context = await loadLocationAccessContext(viewerUid, targetUid);
+  const policyContext = toPolicyContext(context);
+
+  if (!canViewCurrentLocationForTarget(policyContext)) {
+    throw new HttpsError(
+      "permission-denied",
+      "You are not allowed to view this current location"
+    );
+  }
+
+  return context;
 }
 
 export async function listTrackableLocationMembersForViewer(
@@ -258,14 +328,19 @@ export async function listTrackableLocationMembersForViewer(
   const viewerParentUid = optionalTrimmedString(viewer.parentUid);
   const viewerManagedChildIds = readStringList(viewer, "managedChildIds");
 
-  const snap = await db.collection("users").where("familyId", "==", familyId).get();
+  const snap = await db
+    .collection(`families/${familyId}/locationMembers`)
+    .get();
   const members = snap.docs
     .map((doc) => {
       const data = (doc.data() ?? {}) as UserDoc;
       return {
         uid: doc.id,
         role: typeof data.role === "string" ? data.role.trim() : "",
-        familyId,
+        familyId:
+          typeof data.familyId === "string" && data.familyId.trim()
+            ? data.familyId.trim()
+            : familyId,
         parentUid: optionalTrimmedString(data.parentUid),
         allowTracking: data.allowTracking === true,
       } as TrackableLocationMember & { parentUid: string | null };
@@ -281,7 +356,7 @@ export async function listTrackableLocationMembersForViewer(
         memberRole: member.role,
         memberParentUid: member.parentUid,
         memberFamilyId: member.familyId,
-        memberAllowTracking: member.role === "child" ? member.allowTracking : member.allowTracking,
+        memberAllowTracking: member.allowTracking,
       })
     )
     .sort((a, b) => {

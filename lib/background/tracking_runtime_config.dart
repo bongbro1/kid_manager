@@ -35,6 +35,7 @@ class TrackingRuntimeConfig {
     required this.userId,
     required this.enabled,
     required this.requireBackground,
+    this.currentOnly = false,
     this.parentUid,
     this.familyId,
     this.displayName,
@@ -44,6 +45,7 @@ class TrackingRuntimeConfig {
   final String userId;
   final bool enabled;
   final bool requireBackground;
+  final bool currentOnly;
   final String? parentUid;
   final String? familyId;
   final String? displayName;
@@ -53,6 +55,7 @@ class TrackingRuntimeConfig {
     String? userId,
     bool? enabled,
     bool? requireBackground,
+    bool? currentOnly,
     String? parentUid,
     String? familyId,
     String? displayName,
@@ -62,6 +65,7 @@ class TrackingRuntimeConfig {
       userId: userId ?? this.userId,
       enabled: enabled ?? this.enabled,
       requireBackground: requireBackground ?? this.requireBackground,
+      currentOnly: currentOnly ?? this.currentOnly,
       parentUid: parentUid ?? this.parentUid,
       familyId: familyId ?? this.familyId,
       displayName: displayName ?? this.displayName,

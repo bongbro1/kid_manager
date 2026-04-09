@@ -107,6 +107,7 @@ Map<String, dynamic> buildBirthdayStorageFields(DateTime? birthDate) {
     'dobIso': _formatIsoDateOnly(normalized),
     'birthMonth': normalized.month,
     'birthDay': normalized.day,
+    'birthYear': normalized.year,
   };
 }
 

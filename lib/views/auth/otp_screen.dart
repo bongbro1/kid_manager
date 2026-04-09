@@ -17,7 +17,6 @@ import 'package:provider/provider.dart';
 
 class OtpScreen extends StatefulWidget {
   const OtpScreen({super.key, required this.email, required this.purpose});
-  const OtpScreen({super.key, required this.email, required this.purpose});
 
   final String email;
   final OtpPurpose purpose;

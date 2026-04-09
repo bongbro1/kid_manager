@@ -709,9 +709,11 @@ class _ParentWarmupShell extends StatefulWidget {
 
 class _ParentWarmupShellState extends State<_ParentWarmupShell> {
   bool _started = false;
+  bool _backgroundCurrentSharingActive = false;
 
   late final UserVm _userVm;
   late final ParentLocationVm _locationVm;
+  late final LocationServiceInterface _locationService;
   Timer? _syncChildrenDebounce;
   Set<String> _lastSyncedChildren = <String>{};
 
@@ -723,6 +725,7 @@ class _ParentWarmupShellState extends State<_ParentWarmupShell> {
 
     _userVm = context.read<UserVm>();
     _locationVm = context.read<ParentLocationVm>();
+    _locationService = context.read<LocationServiceInterface>();
 
     _userVm.addListener(_onUserChanged);
 
@@ -730,11 +733,13 @@ class _ParentWarmupShellState extends State<_ParentWarmupShell> {
       if (!mounted) return;
       _syncChildrenWatch();
       unawaited(_locationVm.startMyLocation());
+      await _syncSelfTracking();
     });
   }
 
   void _onUserChanged() {
     _syncChildrenWatch();
+    unawaited(_syncSelfTracking());
   }
 
   void _syncChildrenWatch() {
@@ -750,6 +755,51 @@ class _ParentWarmupShellState extends State<_ParentWarmupShell> {
       _lastSyncedChildren = latestIds;
       unawaited(_locationVm.syncWatching(latestIds.toList()));
     });
+  }
+
+  Future<void> _syncSelfTracking() async {
+    final me = _userVm.me;
+    final shouldShareCurrent =
+        me?.isParent == true && me?.allowTracking == true;
+    if (!shouldShareCurrent) {
+      await _locationVm.setCurrentSharingEnabled(false);
+      if (_backgroundCurrentSharingActive) {
+        await TrackingBackgroundService.stop();
+        _backgroundCurrentSharingActive = false;
+      }
+      return;
+    }
+
+    if (_backgroundCurrentSharingActive) {
+      await _locationVm.setCurrentSharingEnabled(false);
+      return;
+    }
+
+    final hasForegroundPermission = await _locationService
+        .hasLocationPermission(requireBackground: false);
+    final serviceEnabled = await _locationService.isServiceEnabled();
+    if (!hasForegroundPermission || !serviceEnabled || me == null) {
+      await _locationVm.setCurrentSharingEnabled(true);
+      return;
+    }
+
+    final started = await TrackingBackgroundService.startForCurrentUser(
+      requireBackground: true,
+      currentOnly: true,
+      parentUid: me.uid,
+      familyId: me.familyId,
+      displayName: me.displayName,
+      timeZone: me.timezone,
+    );
+    if (!started) {
+      _backgroundCurrentSharingActive = false;
+      await _locationVm.setCurrentSharingEnabled(true);
+      return;
+    }
+
+    final ready = await TrackingBackgroundService.waitUntilReady();
+    _backgroundCurrentSharingActive = ready;
+    await _locationVm.setCurrentSharingEnabled(!ready);
   }
 
   @override

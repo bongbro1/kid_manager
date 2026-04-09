@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_subscription.dart';
 import 'package:kid_manager/models/user/user_types.dart';
@@ -11,12 +15,15 @@ class FamilyRepository {
   FamilyRepository(
     this._db,
     this._profileRepository, {
+    FirebaseAuth? auth,
     FirebaseFunctions? functions,
-  }) : _functions =
+  }) : _auth = auth ?? FirebaseAuth.instance,
+       _functions =
            functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
   final FirebaseFirestore _db;
   final ProfileRepository _profileRepository;
+  final FirebaseAuth _auth;
   final FirebaseFunctions _functions;
   final Set<String> _syncAttemptedFamilies = <String>{};
 
@@ -61,14 +68,11 @@ class FamilyRepository {
           role: UserRole.parent,
           familyId: familyId,
           displayName: data?['displayName']?.toString(),
-          email: data?['email']?.toString(),
           avatarUrl: data?['avatarUrl']?.toString(),
-          timezone: data?['timezone']?.toString(),
           dob:
               parseFlexibleBirthDate(data?['dobIso']) ??
               parseFlexibleBirthDate(data?['dob']),
           isActive: (data?['isActive'] as bool?) ?? false,
-          allowTracking: (data?['allowTracking'] as bool?) ?? false,
           lastActiveAt: data?['lastActiveAt'] ?? FieldValue.serverTimestamp(),
         ),
         'joinedAt': FieldValue.serverTimestamp(),
@@ -115,11 +119,8 @@ class FamilyRepository {
         role: UserRole.parent,
         familyId: familyId,
         displayName: displayName,
-        email: email,
         avatarUrl: '',
-        timezone: timezone,
         isActive: false,
-        allowTracking: false,
         lastActiveAt: FieldValue.serverTimestamp(),
       ),
       'joinedAt': FieldValue.serverTimestamp(),
@@ -167,19 +168,31 @@ class FamilyRepository {
         .doc(familyId)
         .collection('members');
 
-    return membersRef.snapshots().map((qs) {
-      final memberDocs = qs.docs;
+    final viewerUid = _auth.currentUser?.uid.trim();
+
+    late final StreamController<List<AppUser>> controller;
+    QuerySnapshot<Map<String, dynamic>>? latestMembers;
+    var managementByUid = <String, AppUser>{};
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? managementSub;
+    var cancelled = false;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? membersSub;
+
+    void emit() {
+      final memberDocs = latestMembers?.docs;
+      if (memberDocs == null || controller.isClosed) {
+        return;
+      }
       if (memberDocs.isEmpty) {
-        return const <AppUser>[];
+        controller.add(const <AppUser>[]);
+        return;
       }
 
-      final inferredParentUid = _inferFamilyParentUid(memberDocs);
       final users = memberDocs
           .map(
             (memberDoc) => _normalizeFamilyMember(
               memberDoc,
               familyId: familyId,
-              inferredParentUid: inferredParentUid,
+              managementMeta: managementByUid[memberDoc.id],
             ),
           )
           .toList(growable: false);
@@ -191,12 +204,65 @@ class FamilyRepository {
         if (roleCompare != 0) {
           return roleCompare;
         }
-        final nameA = (a.displayName ?? a.email ?? '').trim().toLowerCase();
-        final nameB = (b.displayName ?? b.email ?? '').trim().toLowerCase();
+        final nameA = (a.displayName ?? a.uid).trim().toLowerCase();
+        final nameB = (b.displayName ?? b.uid).trim().toLowerCase();
         return nameA.compareTo(nameB);
       });
-      return users;
-    });
+      controller.add(users);
+    }
+
+    controller = StreamController<List<AppUser>>(
+      onListen: () {
+        membersSub = membersRef.snapshots().listen(
+          (qs) {
+            latestMembers = qs;
+            emit();
+          },
+          onError: controller.addError,
+        );
+
+        unawaited(() async {
+          if (viewerUid == null || viewerUid.isEmpty) {
+            return;
+          }
+
+          try {
+            final viewer = await _profileRepository.getUserById(viewerUid);
+            if (cancelled || viewer?.role != UserRole.parent) {
+              return;
+            }
+
+            final managementQuery = _db
+                .collection('families')
+                .doc(familyId)
+                .collection('managementMembers')
+                .where('parentUid', isEqualTo: viewerUid);
+
+            managementSub = managementQuery.snapshots().listen(
+              (qs) {
+                managementByUid = {
+                  for (final doc in qs.docs) doc.id: AppUser.fromDoc(doc),
+                };
+                emit();
+              },
+              onError: controller.addError,
+            );
+          } catch (e, st) {
+            debugPrint(
+              '[FamilyRepository] watchFamilyMembers management load error: $e',
+            );
+            debugPrintStack(stackTrace: st);
+          }
+        }());
+      },
+      onCancel: () async {
+        cancelled = true;
+        await membersSub?.cancel();
+        await managementSub?.cancel();
+      },
+    );
+
+    return controller.stream;
   }
 
   Future<AppUser?> getUserById(String uid) {
@@ -214,49 +280,26 @@ class FamilyRepository {
     }
   }
 
-  String? _inferFamilyParentUid(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> memberDocs,
-  ) {
-    for (final memberDoc in memberDocs) {
-      final data = memberDoc.data();
-      if (UserRole.fromValue(data['role']) != UserRole.parent) {
-        continue;
-      }
-      final uid = (data['uid'] ?? memberDoc.id).toString().trim();
-      if (uid.isNotEmpty) {
-        return uid;
-      }
-    }
-    return null;
-  }
-
   AppUser _normalizeFamilyMember(
     DocumentSnapshot<Map<String, dynamic>> memberDoc, {
     required String familyId,
-    required String? inferredParentUid,
+    AppUser? managementMeta,
   }) {
     final data = memberDoc.data() ?? const <String, dynamic>{};
     final user = AppUser.fromMap(data, docId: memberDoc.id);
     final normalizedFamilyId =
         (user.familyId ?? '').trim().isEmpty ? familyId : user.familyId;
-    final normalizedParentUid =
-        (user.parentUid ?? '').trim().isEmpty &&
-            (user.role == UserRole.child || user.role == UserRole.guardian)
-        ? inferredParentUid
-        : user.parentUid;
-    final normalizedAllowTracking =
-        user.role == UserRole.child ? true : user.allowTracking;
+    final normalizedManagedChildIds =
+        managementMeta?.managedChildIds ?? user.managedChildIds;
 
     if (normalizedFamilyId == user.familyId &&
-        normalizedParentUid == user.parentUid &&
-        normalizedAllowTracking == user.allowTracking) {
+        listEquals(normalizedManagedChildIds, user.managedChildIds)) {
       return user;
     }
 
     return user.copyWith(
       familyId: normalizedFamilyId,
-      parentUid: normalizedParentUid,
-      allowTracking: normalizedAllowTracking,
+      managedChildIds: normalizedManagedChildIds,
     );
   }
 }

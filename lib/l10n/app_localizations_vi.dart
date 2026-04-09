@@ -9,869 +9,869 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get personalInfoTitle => 'Thông tin cá nhân';
+  String get personalInfoTitle => 'ThÃ´ng tin cÃ¡ nhÃ¢n';
 
   @override
-  String get appAppearanceTitle => 'Giao diện ứng dụng';
+  String get appAppearanceTitle => 'Giao diá»‡n á»©ng dá»¥ng';
 
   @override
-  String get aboutAppTitle => 'Về ứng dụng';
+  String get aboutAppTitle => 'Vá» á»©ng dá»¥ng';
 
   @override
-  String get addAccountTitle => 'Thêm tài khoản';
+  String get addAccountTitle => 'ThÃªm tÃ i khoáº£n';
 
   @override
-  String get logoutTitle => 'Đăng xuất';
+  String get logoutTitle => 'ÄÄƒng xuáº¥t';
 
   @override
-  String get fullNameLabel => 'Họ và tên';
+  String get fullNameLabel => 'Há» vÃ  tÃªn';
 
   @override
-  String get fullNameHint => 'Nhập họ và tên';
+  String get fullNameHint => 'Nháº­p há» vÃ  tÃªn';
 
   @override
-  String get phoneLabel => 'Số điện thoại';
+  String get phoneLabel => 'Sá»‘ Ä‘iá»‡n thoáº¡i';
 
   @override
-  String get phoneHint => 'ví dụ: +84 012345678';
+  String get phoneHint => 'vÃ­ dá»¥: +84 012345678';
 
   @override
-  String get genderLabel => 'Giới tính';
+  String get genderLabel => 'Giá»›i tÃ­nh';
 
   @override
-  String get genderHint => 'Chọn giới tính';
+  String get genderHint => 'Chá»n giá»›i tÃ­nh';
 
   @override
   String get genderMaleOption => 'Nam';
 
   @override
-  String get genderFemaleOption => 'Nữ';
+  String get genderFemaleOption => 'Ná»¯';
 
   @override
-  String get genderOtherOption => 'Khác';
+  String get genderOtherOption => 'KhÃ¡c';
 
   @override
-  String get birthDateLabel => 'Ngày sinh';
+  String get birthDateLabel => 'NgÃ y sinh';
 
   @override
-  String get birthDateHint => 'Nhập ngày sinh';
+  String get birthDateHint => 'Nháº­p ngÃ y sinh';
 
   @override
-  String get addressLabel => 'Địa chỉ';
+  String get addressLabel => 'Äá»‹a chá»‰';
 
   @override
-  String get addressHint => 'Nhập địa chỉ';
+  String get addressHint => 'Nháº­p Ä‘á»‹a chá»‰';
 
   @override
-  String get locationTrackingLabel => 'Quyền theo dõi';
+  String get locationTrackingLabel => 'Quyá»n theo dÃµi';
 
   @override
-  String get allowLocationTrackingText => 'Cho phép đối phương theo dõi vị trí';
+  String get allowLocationTrackingText => 'Cho phÃ©p Ä‘á»‘i phÆ°Æ¡ng theo dÃµi vá»‹ trÃ­';
 
   @override
-  String get yearsOld => '%d tuổi';
+  String get yearsOld => '%d tuá»•i';
 
   @override
-  String get updateSuccessTitle => 'Thành công';
+  String get updateSuccessTitle => 'ThÃ nh cÃ´ng';
 
   @override
-  String get updateSuccessMessage => 'Cập nhật thông tin thành công';
+  String get updateSuccessMessage => 'Cáº­p nháº­t thÃ´ng tin thÃ nh cÃ´ng';
 
   @override
-  String get updateErrorTitle => 'Thất bại';
+  String get updateErrorTitle => 'Tháº¥t báº¡i';
 
   @override
-  String get invalidBirthDate => 'Ngày sinh không hợp lệ';
+  String get invalidBirthDate => 'NgÃ y sinh khÃ´ng há»£p lá»‡';
 
   @override
-  String get confirmLogoutQuestion => 'Bạn muốn đăng xuất?';
+  String get confirmLogoutQuestion => 'Báº¡n muá»‘n Ä‘Äƒng xuáº¥t?';
 
   @override
-  String get cancelButton => 'Hủy bỏ';
+  String get cancelButton => 'Há»§y bá»';
 
   @override
-  String get confirmButton => 'Xác nhận';
+  String get confirmButton => 'XÃ¡c nháº­n';
 
   @override
-  String get cropPhotoAvatarTitle => 'Chỉnh ảnh đại diện';
+  String get cropPhotoAvatarTitle => 'Chá»‰nh áº£nh Ä‘áº¡i diá»‡n';
 
   @override
-  String get cropPhotoCoverTitle => 'Chỉnh ảnh bìa';
+  String get cropPhotoCoverTitle => 'Chá»‰nh áº£nh bÃ¬a';
 
   @override
   String get cropPhotoDoneButton => 'Xong';
 
   @override
-  String get cropPhotoFailedMessage => 'Không thể crop ảnh';
+  String get cropPhotoFailedMessage => 'KhÃ´ng thá»ƒ crop áº£nh';
 
   @override
-  String get languageSetting => 'Ngôn ngữ';
+  String get languageSetting => 'NgÃ´n ngá»¯';
 
   @override
-  String get vietnamese => 'Tiếng Việt';
+  String get vietnamese => 'Tiáº¿ng Viá»‡t';
 
   @override
   String get english => 'English';
 
   @override
   String get changeLanguagePrompt =>
-      'Thay đổi ngôn ngữ, ứng dụng sẽ khởi động lại';
+      'Thay Ä‘á»•i ngÃ´n ngá»¯, á»©ng dá»¥ng sáº½ khá»Ÿi Ä‘á»™ng láº¡i';
 
   @override
-  String get appAppearanceThemeLabel => 'Chủ đề';
+  String get appAppearanceThemeLabel => 'Chá»§ Ä‘á»';
 
   @override
-  String get appAppearanceSelectThemeTitle => 'Chọn chủ đề';
+  String get appAppearanceSelectThemeTitle => 'Chá»n chá»§ Ä‘á»';
 
   @override
-  String get appAppearanceThemeSystem => 'Theo hệ thống';
+  String get appAppearanceThemeSystem => 'Theo há»‡ thá»‘ng';
 
   @override
-  String get appAppearanceThemeLight => 'Sáng';
+  String get appAppearanceThemeLight => 'SÃ¡ng';
 
   @override
-  String get appAppearanceThemeDark => 'Tối';
+  String get appAppearanceThemeDark => 'Tá»‘i';
 
   @override
-  String get appAppearanceSectionApp => 'ỨNG DỤNG';
+  String get appAppearanceSectionApp => 'á»¨NG Dá»¤NG';
 
   @override
-  String get appAppearanceThemeSubtitle => 'Thay đổi giao diện sáng/tối';
+  String get appAppearanceThemeSubtitle => 'Thay Ä‘á»•i giao diá»‡n sÃ¡ng/tá»‘i';
 
   @override
-  String get appAppearanceSectionSecurity => 'BẢO MẬT';
+  String get appAppearanceSectionSecurity => 'Báº¢O Máº¬T';
 
   @override
-  String get appAppearanceChangePasswordTitle => 'Đổi mật khẩu';
+  String get appAppearanceChangePasswordTitle => 'Äá»•i máº­t kháº©u';
 
   @override
-  String get appAppearanceChangePasswordSubtitle => 'Cập nhật mật khẩu mới';
+  String get appAppearanceChangePasswordSubtitle => 'Cáº­p nháº­t máº­t kháº©u má»›i';
 
   @override
-  String get appAppearanceNotificationsTitle => 'Thông báo';
+  String get appAppearanceNotificationsTitle => 'ThÃ´ng bÃ¡o';
 
   @override
-  String get appAppearanceNotificationsSubtitle => 'Quản lý tùy chọn thông báo';
+  String get appAppearanceNotificationsSubtitle => 'Quáº£n lÃ½ tÃ¹y chá»n thÃ´ng bÃ¡o';
 
   @override
-  String get addAccountSuccessMessage => 'Tạo tài khoản con thành công';
+  String get addAccountSuccessMessage => 'Táº¡o tÃ i khoáº£n con thÃ nh cÃ´ng';
 
   @override
-  String get addAccountNameRequired => 'Vui lòng nhập tên';
+  String get addAccountNameRequired => 'Vui lÃ²ng nháº­p tÃªn';
 
   @override
-  String get addAccountAccessLabel => 'Quyền truy cập';
+  String get addAccountAccessLabel => 'Quyá»n truy cáº­p';
 
   @override
   String get addAccountRoleChild => 'Con';
 
   @override
-  String get addAccountRoleGuardian => 'Phụ huynh';
+  String get addAccountRoleGuardian => 'Phá»¥ huynh';
 
   @override
-  String get addAccountSelectBirthDateTitle => 'Chọn ngày sinh';
+  String get addAccountSelectBirthDateTitle => 'Chá»n ngÃ y sinh';
 
   @override
-  String get addAccountSelectButton => 'Chọn';
+  String get addAccountSelectButton => 'Chá»n';
 
   @override
   String get sessionExpiredLoginAgain =>
-      'Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.';
+      'PhiÃªn Ä‘Äƒng nháº­p Ä‘Ã£ háº¿t. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i.';
 
   @override
   String userVmLoadUserError(String error) {
-    return 'Lỗi load user: $error';
+    return 'Lá»—i load user: $error';
   }
 
   @override
   String userVmLoadChildrenError(String error) {
-    return 'Lỗi load children: $error';
+    return 'Lá»—i load children: $error';
   }
 
   @override
   String userVmLoadMembersError(String error) {
-    return 'Lỗi load members: $error';
+    return 'Lá»—i load members: $error';
   }
 
   @override
-  String get userVmFamilyIdNotFound => 'Không tìm thấy familyId';
+  String get userVmFamilyIdNotFound => 'KhÃ´ng tÃ¬m tháº¥y familyId';
 
   @override
   String userVmLoadFamilyError(String error) {
-    return 'Lỗi load family: $error';
+    return 'Lá»—i load family: $error';
   }
 
   @override
-  String get userVmUserIdNotFound => 'Không tìm thấy userId';
+  String get userVmUserIdNotFound => 'KhÃ´ng tÃ¬m tháº¥y userId';
 
   @override
-  String get userVmFullNameRequired => 'Họ và tên không được để trống';
+  String get userVmFullNameRequired => 'Há» vÃ  tÃªn khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng';
 
   @override
-  String get userVmUpdatePhotoFailed => 'Cập nhật ảnh thất bại';
+  String get userVmUpdatePhotoFailed => 'Cáº­p nháº­t áº£nh tháº¥t báº¡i';
 
   @override
   String subscriptionLoadError(String error) {
-    return 'Không tải được subscription: $error';
+    return 'KhÃ´ng táº£i Ä‘Æ°á»£c subscription: $error';
   }
 
   @override
   String subscriptionWatchError(String error) {
-    return 'Theo dõi subscription thất bại: $error';
+    return 'Theo dÃµi subscription tháº¥t báº¡i: $error';
   }
 
   @override
   String subscriptionUpdateError(String error) {
-    return 'Cập nhật subscription thất bại: $error';
+    return 'Cáº­p nháº­t subscription tháº¥t báº¡i: $error';
   }
 
   @override
   String subscriptionActivateError(String error) {
-    return 'Kích hoạt gói thất bại: $error';
+    return 'KÃ­ch hoáº¡t gÃ³i tháº¥t báº¡i: $error';
   }
 
   @override
   String subscriptionStartTrialError(String error) {
-    return 'Bắt đầu trial thất bại: $error';
+    return 'Báº¯t Ä‘áº§u trial tháº¥t báº¡i: $error';
   }
 
   @override
   String subscriptionMarkExpiredError(String error) {
-    return 'Đánh dấu expired thất bại: $error';
+    return 'ÄÃ¡nh dáº¥u expired tháº¥t báº¡i: $error';
   }
 
   @override
   String subscriptionClearError(String error) {
-    return 'Xóa subscription thất bại: $error';
+    return 'XÃ³a subscription tháº¥t báº¡i: $error';
   }
 
   @override
-  String get appManagementSyncFailed => 'Không thể đồng bộ ứng dụng';
+  String get appManagementSyncFailed => 'KhÃ´ng thá»ƒ Ä‘á»“ng bá»™ á»©ng dá»¥ng';
 
   @override
-  String get appManagementUserIdNotFound => 'Không tìm thấy userId';
+  String get appManagementUserIdNotFound => 'KhÃ´ng tÃ¬m tháº¥y userId';
 
   @override
   String zoneStatusAtText(String zoneName, String duration) {
-    return 'đang ở $zoneName • $duration';
+    return 'Ä‘ang á»Ÿ $zoneName â€¢ $duration';
   }
 
   @override
   String zoneStatusWasAtText(String zoneName) {
-    return 'đã ở $zoneName';
+    return 'Ä‘Ã£ á»Ÿ $zoneName';
   }
 
   @override
   String zoneStatusWasAtWithAgoText(String zoneName, String ago) {
-    return 'đã ở $zoneName • $ago';
+    return 'Ä‘Ã£ á»Ÿ $zoneName â€¢ $ago';
   }
 
   @override
   String get zoneStatusLiveUnavailable =>
-      'Không xác định được trạng thái vùng hiện tại';
+      'KhÃ´ng xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c tráº¡ng thÃ¡i vÃ¹ng hiá»‡n táº¡i';
 
   @override
   String zoneStatusDurationMinutes(int minutes) {
-    return '$minutes phút';
+    return '$minutes phÃºt';
   }
 
   @override
   String zoneStatusDurationHoursMinutes(int hours, int minutes) {
-    return '${hours}g$minutes phút';
+    return '${hours}g$minutes phÃºt';
   }
 
   @override
-  String get zoneStatusJustNow => 'vừa xong';
+  String get zoneStatusJustNow => 'vá»«a xong';
 
   @override
   String zoneStatusMinutesAgo(int minutes) {
-    return '$minutes phút trước';
+    return '$minutes phÃºt trÆ°á»›c';
   }
 
   @override
   String zoneStatusHoursAgo(int hours) {
-    return '$hours giờ trước';
+    return '$hours giá» trÆ°á»›c';
   }
 
   @override
   String zoneStatusDaysAgo(int days) {
-    return '$days ngày trước';
+    return '$days ngÃ y trÆ°á»›c';
   }
 
   @override
-  String get otpResendCooldownError => 'Vui lòng chờ trước khi gửi lại mã';
+  String get otpResendCooldownError => 'Vui lÃ²ng chá» trÆ°á»›c khi gá»­i láº¡i mÃ£';
 
   @override
   String get otpResendLockedError =>
-      'Bạn đã gửi OTP quá nhiều lần. Vui lòng thử lại sau';
+      'Báº¡n Ä‘Ã£ gá»­i OTP quÃ¡ nhiá»u láº§n. Vui lÃ²ng thá»­ láº¡i sau';
 
   @override
-  String get otpResendMaxError => 'Bạn đã gửi OTP quá nhiều lần';
+  String get otpResendMaxError => 'Báº¡n Ä‘Ã£ gá»­i OTP quÃ¡ nhiá»u láº§n';
 
   @override
   String otpRepositoryLockedMessage(int seconds) {
-    return 'Bạn đã bị khóa gửi OTP. Vui lòng thử lại sau ${seconds}s';
+    return 'Báº¡n Ä‘Ã£ bá»‹ khÃ³a gá»­i OTP. Vui lÃ²ng thá»­ láº¡i sau ${seconds}s';
   }
 
   @override
-  String get authLoginCancelled => 'Đăng nhập đã bị hủy';
+  String get authLoginCancelled => 'ÄÄƒng nháº­p Ä‘Ã£ bá»‹ há»§y';
 
   @override
-  String get continueButton => 'Tiếp tục';
+  String get continueButton => 'Tiáº¿p tá»¥c';
 
   @override
   String zoneDetailsRadiusLabel(String radius) {
-    return 'Bán kính ${radius}m';
+    return 'BÃ¡n kÃ­nh ${radius}m';
   }
 
   @override
-  String get zoneDetailsNoCoordinates => 'Không có tọa độ để hiển thị bản đồ';
+  String get zoneDetailsNoCoordinates => 'KhÃ´ng cÃ³ tá»a Ä‘á»™ Ä‘á»ƒ hiá»ƒn thá»‹ báº£n Ä‘á»“';
 
   @override
   String birthdaySpecialDayHeadline(String name) {
-    return 'Sinh nhật của $name!';
+    return 'Sinh nháº­t cá»§a $name!';
   }
 
   @override
-  String get mapTopBarTitle => 'Vị trí';
+  String get mapTopBarTitle => 'Vá»‹ trÃ­';
 
   @override
   String childGroupMarkerCount(int count) {
-    return '$count trẻ';
+    return '$count tráº»';
   }
 
   @override
-  String get changePasswordTitle => 'Đổi mật khẩu';
+  String get changePasswordTitle => 'Äá»•i máº­t kháº©u';
 
   @override
-  String get changePasswordSuccessMessage => 'Đổi mật khẩu thành công';
+  String get changePasswordSuccessMessage => 'Äá»•i máº­t kháº©u thÃ nh cÃ´ng';
 
   @override
-  String get changePasswordCurrentPasswordLabel => 'Mật khẩu hiện tại';
+  String get changePasswordCurrentPasswordLabel => 'Máº­t kháº©u hiá»‡n táº¡i';
 
   @override
-  String get changePasswordCurrentPasswordHint => 'Nhập mật khẩu hiện tại';
+  String get changePasswordCurrentPasswordHint => 'Nháº­p máº­t kháº©u hiá»‡n táº¡i';
 
   @override
-  String get changePasswordNewPasswordLabel => 'Mật khẩu mới';
+  String get changePasswordNewPasswordLabel => 'Máº­t kháº©u má»›i';
 
   @override
-  String get changePasswordNewPasswordHint => 'Nhập mật khẩu mới';
+  String get changePasswordNewPasswordHint => 'Nháº­p máº­t kháº©u má»›i';
 
   @override
-  String get changePasswordConfirmPasswordLabel => 'Xác nhận mật khẩu';
+  String get changePasswordConfirmPasswordLabel => 'XÃ¡c nháº­n máº­t kháº©u';
 
   @override
-  String get changePasswordConfirmPasswordHint => 'Nhập lại mật khẩu mới';
+  String get changePasswordConfirmPasswordHint => 'Nháº­p láº¡i máº­t kháº©u má»›i';
 
   @override
-  String get changePasswordUpdateButton => 'Cập nhật mật khẩu';
+  String get changePasswordUpdateButton => 'Cáº­p nháº­t máº­t kháº©u';
 
   @override
-  String get memberManagementTitle => 'Quản lý thành viên';
+  String get memberManagementTitle => 'Quáº£n lÃ½ thÃ nh viÃªn';
 
   @override
-  String get memberManagementAddMemberTitle => 'Thêm thành viên';
+  String get memberManagementAddMemberTitle => 'ThÃªm thÃ nh viÃªn';
 
   @override
   String get memberManagementAddMemberSubtitle =>
-      'Kết nối thiết bị mới của con';
+      'Káº¿t ná»‘i thiáº¿t bá»‹ má»›i cá»§a con';
 
   @override
-  String get memberManagementAddNowButton => 'Thêm ngay';
+  String get memberManagementAddNowButton => 'ThÃªm ngay';
 
   @override
-  String get memberManagementFamilyMembersLabel => 'THÀNH VIÊN GIA ĐÌNH';
+  String get memberManagementFamilyMembersLabel => 'THÃ€NH VIÃŠN GIA ÄÃŒNH';
 
   @override
-  String get memberManagementEmpty => 'Chưa có thành viên';
+  String get memberManagementEmpty => 'ChÆ°a cÃ³ thÃ nh viÃªn';
 
   @override
-  String get memberManagementOnline => 'Đang trực tuyến';
+  String get memberManagementOnline => 'Äang trá»±c tuyáº¿n';
 
   @override
-  String get memberManagementOffline => 'Ngoại tuyến';
+  String get memberManagementOffline => 'Ngoáº¡i tuyáº¿n';
 
   @override
-  String get memberManagementMessageButton => 'Nhắn tin';
+  String get memberManagementMessageButton => 'Nháº¯n tin';
 
   @override
-  String get memberManagementLocationButton => 'Vị trí';
+  String get memberManagementLocationButton => 'Vá»‹ trÃ­';
 
   @override
-  String get userRoleParent => 'Phụ huynh';
+  String get userRoleParent => 'Phá»¥ huynh';
 
   @override
   String get userRoleChild => 'Con';
 
   @override
-  String get userRoleGuardian => 'Người giám hộ';
+  String get userRoleGuardian => 'NgÆ°á»i giÃ¡m há»™';
 
   @override
   String get aboutAppName => 'My Application';
 
   @override
   String aboutAppVersionLabel(String version) {
-    return 'Phiên bản: $version';
+    return 'PhiÃªn báº£n: $version';
   }
 
   @override
   String get aboutAppDescription =>
-      'Ứng dụng giúp quản lý tài khoản, theo dõi hoạt động và cá nhân hóa trải nghiệm người dùng.';
+      'á»¨ng dá»¥ng giÃºp quáº£n lÃ½ tÃ i khoáº£n, theo dÃµi hoáº¡t Ä‘á»™ng vÃ  cÃ¡ nhÃ¢n hÃ³a tráº£i nghiá»‡m ngÆ°á»i dÃ¹ng.';
 
   @override
-  String get aboutAppCopyright => '© 2026 My Company';
+  String get aboutAppCopyright => 'Â© 2026 My Company';
 
   @override
-  String get themeSelectorTitle => 'Tùy chỉnh giao diện';
+  String get themeSelectorTitle => 'TÃ¹y chá»‰nh giao diá»‡n';
 
   @override
-  String get themeSelectorSubtitle => 'Chọn màu chủ đạo và chế độ sáng/tối';
+  String get themeSelectorSubtitle => 'Chá»n mÃ u chá»§ Ä‘áº¡o vÃ  cháº¿ Ä‘á»™ sÃ¡ng/tá»‘i';
 
   @override
-  String get themeSelectorDarkMode => 'Chế độ tối';
+  String get themeSelectorDarkMode => 'Cháº¿ Ä‘á»™ tá»‘i';
 
   @override
-  String get themeSelectorApplyButton => 'Áp dụng giao diện';
+  String get themeSelectorApplyButton => 'Ãp dá»¥ng giao diá»‡n';
 
   @override
-  String get phoneAuthTitle => 'Đăng nhập bằng số điện thoại';
+  String get phoneAuthTitle => 'ÄÄƒng nháº­p báº±ng sá»‘ Ä‘iá»‡n thoáº¡i';
 
   @override
-  String get phoneAuthSendOtpButton => 'Gửi mã OTP';
+  String get phoneAuthSendOtpButton => 'Gá»­i mÃ£ OTP';
 
   @override
-  String get phoneAuthOtpTitle => 'Nhập mã xác thực';
+  String get phoneAuthOtpTitle => 'Nháº­p mÃ£ xÃ¡c thá»±c';
 
   @override
   String get phoneAuthOtpInstruction =>
-      'Vui lòng nhập mã OTP được gửi đến số điện thoại của bạn';
+      'Vui lÃ²ng nháº­p mÃ£ OTP Ä‘Æ°á»£c gá»­i Ä‘áº¿n sá»‘ Ä‘iá»‡n thoáº¡i cá»§a báº¡n';
 
   @override
-  String get termsTitle => 'Điều khoản';
+  String get termsTitle => 'Äiá»u khoáº£n';
 
   @override
-  String get termsNoData => 'Không có dữ liệu';
+  String get termsNoData => 'KhÃ´ng cÃ³ dá»¯ liá»‡u';
 
   @override
   String termsLastUpdated(String date) {
-    return 'Cập nhật lần cuối: $date';
+    return 'Cáº­p nháº­t láº§n cuá»‘i: $date';
   }
 
   @override
-  String get homeTitle => 'Trang chủ';
+  String get homeTitle => 'Trang chá»§';
 
   @override
-  String get homeGreeting => 'Xin chào';
+  String get homeGreeting => 'Xin chÃ o';
 
   @override
-  String get homeManageChildButton => 'Quản lý con';
+  String get homeManageChildButton => 'Quáº£n lÃ½ con';
 
   @override
-  String get accountNotFound => 'Tài khoản không tồn tại';
+  String get accountNotFound => 'TÃ i khoáº£n khÃ´ng tá»“n táº¡i';
 
   @override
-  String get accountNotActivated => 'Tài khoản chưa được kích hoạt';
+  String get accountNotActivated => 'TÃ i khoáº£n chÆ°a Ä‘Æ°á»£c kÃ­ch hoáº¡t';
 
   @override
-  String get emailNotRegistered => 'Email chưa đăng ký';
+  String get emailNotRegistered => 'Email chÆ°a Ä‘Äƒng kÃ½';
 
   @override
-  String get noLocationPermission => 'Không có quyền vị trí';
+  String get noLocationPermission => 'KhÃ´ng cÃ³ quyá»n vá»‹ trÃ­';
 
   @override
-  String get gpsError => 'Lỗi GPS';
+  String get gpsError => 'Lá»—i GPS';
 
   @override
-  String get currentLocationError => 'Không lấy được vị trí hiện tại';
+  String get currentLocationError => 'KhÃ´ng láº¥y Ä‘Æ°á»£c vá»‹ trÃ­ hiá»‡n táº¡i';
 
   @override
-  String get invalidCode => 'Mã không đúng';
+  String get invalidCode => 'MÃ£ khÃ´ng Ä‘Ãºng';
 
   @override
-  String get codeExpired => 'Mã đã hết hạn';
+  String get codeExpired => 'MÃ£ Ä‘Ã£ háº¿t háº¡n';
 
   @override
-  String get tooManyAttempts => 'Nhập sai quá nhiều lần';
+  String get tooManyAttempts => 'Nháº­p sai quÃ¡ nhiá»u láº§n';
 
   @override
-  String get unknownError => 'Có lỗi xảy ra';
+  String get unknownError => 'CÃ³ lá»—i xáº£y ra';
 
   @override
-  String get loginFailed => 'Đăng nhập thất bại';
+  String get loginFailed => 'ÄÄƒng nháº­p tháº¥t báº¡i';
 
   @override
-  String get weakPassword => 'Mật khẩu quá yếu';
+  String get weakPassword => 'Máº­t kháº©u quÃ¡ yáº¿u';
 
   @override
-  String get emailInvalid => 'Email không hợp lệ';
+  String get emailInvalid => 'Email khÃ´ng há»£p lá»‡';
 
   @override
-  String get emailInUse => 'Email đã được sử dụng';
+  String get emailInUse => 'Email Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng';
 
   @override
-  String get wrongPassword => 'Sai mật khẩu';
+  String get wrongPassword => 'Sai máº­t kháº©u';
 
   @override
-  String get authStartTitle => 'Bắt Đầu Ngay';
+  String get authStartTitle => 'Báº¯t Äáº§u Ngay';
 
   @override
-  String get authStartSubtitle => 'Tiếp tục với ứng dụng ngay thôi!';
+  String get authStartSubtitle => 'Tiáº¿p tá»¥c vá»›i á»©ng dá»¥ng ngay thÃ´i!';
 
   @override
-  String get authContinueWithGoogle => 'Tiếp tục với Google';
+  String get authContinueWithGoogle => 'Tiáº¿p tá»¥c vá»›i Google';
 
   @override
-  String get authContinueWithFacebook => 'Tiếp tục với Facebook';
+  String get authContinueWithFacebook => 'Tiáº¿p tá»¥c vá»›i Facebook';
 
   @override
-  String get authContinueWithApple => 'Tiếp tục với Apple';
+  String get authContinueWithApple => 'Tiáº¿p tá»¥c vá»›i Apple';
 
   @override
-  String get authContinueWithPhone => 'Tiếp tục với số điện thoại';
+  String get authContinueWithPhone => 'Tiáº¿p tá»¥c vá»›i sá»‘ Ä‘iá»‡n thoáº¡i';
 
   @override
-  String get authLoginButton => 'Đăng nhập';
+  String get authLoginButton => 'ÄÄƒng nháº­p';
 
   @override
-  String get authSignupButton => 'Đăng ký';
+  String get authSignupButton => 'ÄÄƒng kÃ½';
 
   @override
-  String get authPrivacyPolicy => 'Chính sách bảo mật';
+  String get authPrivacyPolicy => 'ChÃ­nh sÃ¡ch báº£o máº­t';
 
   @override
-  String get authTermsOfService => 'Điều khoản dịch vụ';
+  String get authTermsOfService => 'Äiá»u khoáº£n dá»‹ch vá»¥';
 
   @override
-  String get authEnterAllInfo => 'Vui lòng nhập đầy đủ thông tin';
+  String get authEnterAllInfo => 'Vui lÃ²ng nháº­p Ä‘áº§y Ä‘á»§ thÃ´ng tin';
 
   @override
-  String get authInvalidCredentials => 'Thông tin tài khoản không chính xác';
+  String get authInvalidCredentials => 'ThÃ´ng tin tÃ i khoáº£n khÃ´ng chÃ­nh xÃ¡c';
 
   @override
-  String get authUserProfileLoadFailed => 'Không tải được hồ sơ người dùng';
+  String get authUserProfileLoadFailed => 'KhÃ´ng táº£i Ä‘Æ°á»£c há»“ sÆ¡ ngÆ°á»i dÃ¹ng';
 
   @override
-  String get authGenericError => 'Thông báo';
+  String get authGenericError => 'ThÃ´ng bÃ¡o';
 
   @override
-  String get authWelcomeBackTitle => 'CHÀO MỪNG TRỞ LẠI';
+  String get authWelcomeBackTitle => 'CHÃ€O Má»ªNG TRá»ž Láº I';
 
   @override
-  String get authLoginNowSubtitle => 'Đăng nhập ngay!';
+  String get authLoginNowSubtitle => 'ÄÄƒng nháº­p ngay!';
 
   @override
-  String get authEnterEmailHint => 'Nhập email';
+  String get authEnterEmailHint => 'Nháº­p email';
 
   @override
-  String get authEnterPasswordHint => 'Nhập mật khẩu';
+  String get authEnterPasswordHint => 'Nháº­p máº­t kháº©u';
 
   @override
-  String get authRememberPassword => 'Lưu mật khẩu';
+  String get authRememberPassword => 'LÆ°u máº­t kháº©u';
 
   @override
-  String get authForgotPassword => 'Quên mật khẩu?';
+  String get authForgotPassword => 'QuÃªn máº­t kháº©u?';
 
   @override
-  String get authOr => 'Hoặc';
+  String get authOr => 'Hoáº·c';
 
   @override
-  String get authNoAccount => 'Bạn chưa có tài khoản, ';
+  String get authNoAccount => 'Báº¡n chÆ°a cÃ³ tÃ i khoáº£n, ';
 
   @override
-  String get authSignUpInline => 'đăng ký';
+  String get authSignUpInline => 'Ä‘Äƒng kÃ½';
 
   @override
-  String get authSignupTitle => 'ĐĂNG KÝ\nTÀI KHOẢN NGAY';
+  String get authSignupTitle => 'ÄÄ‚NG KÃ\nTÃ€I KHOáº¢N NGAY';
 
   @override
-  String get authSignupSubtitle => 'Kiểm tra và quản lí con của bạn!';
+  String get authSignupSubtitle => 'Kiá»ƒm tra vÃ  quáº£n lÃ­ con cá»§a báº¡n!';
 
   @override
-  String get authPasswordMismatch => 'Mật khẩu xác nhận không khớp';
+  String get authPasswordMismatch => 'Máº­t kháº©u xÃ¡c nháº­n khÃ´ng khá»›p';
 
   @override
-  String get authSignupFailed => 'Đăng ký thất bại';
+  String get authSignupFailed => 'ÄÄƒng kÃ½ tháº¥t báº¡i';
 
   @override
   String get authEmailLabel => 'Email';
 
   @override
-  String get authPasswordLabel => 'Mật khẩu';
+  String get authPasswordLabel => 'Máº­t kháº©u';
 
   @override
-  String get authConfirmPasswordLabel => 'Nhập lại mật khẩu';
+  String get authConfirmPasswordLabel => 'Nháº­p láº¡i máº­t kháº©u';
 
   @override
-  String get authAgreeTermsPrefix => 'Đồng ý với điều khoản, ';
+  String get authAgreeTermsPrefix => 'Äá»“ng Ã½ vá»›i Ä‘iá»u khoáº£n, ';
 
   @override
-  String get authAgreeTermsLink => 'tại đây';
+  String get authAgreeTermsLink => 'táº¡i Ä‘Ã¢y';
 
   @override
-  String get authHaveAccount => 'Bạn đã có tài khoản, ';
+  String get authHaveAccount => 'Báº¡n Ä‘Ã£ cÃ³ tÃ i khoáº£n, ';
 
   @override
-  String get authLoginInline => 'đăng nhập';
+  String get authLoginInline => 'Ä‘Äƒng nháº­p';
 
   @override
-  String get authForgotPasswordTitle => 'QUÊN MẬT KHẨU?';
+  String get authForgotPasswordTitle => 'QUÃŠN Máº¬T KHáº¨U?';
 
   @override
   String get authForgotPasswordSubtitle =>
-      'Bạn đã quên mật khẩu? Vui lòng làm theo các bước sau để lấy lại mật khẩu của bạn!';
+      'Báº¡n Ä‘Ã£ quÃªn máº­t kháº©u? Vui lÃ²ng lÃ m theo cÃ¡c bÆ°á»›c sau Ä‘á»ƒ láº¥y láº¡i máº­t kháº©u cá»§a báº¡n!';
 
   @override
-  String get authEnterYourEmailLabel => 'Nhập Email của bạn';
+  String get authEnterYourEmailLabel => 'Nháº­p Email cá»§a báº¡n';
 
   @override
-  String get authContinueButton => 'Tiếp tục';
+  String get authContinueButton => 'Tiáº¿p tá»¥c';
 
   @override
-  String get authSendOtpFailed => 'Gửi OTP thất bại';
+  String get authSendOtpFailed => 'Gá»­i OTP tháº¥t báº¡i';
 
   @override
-  String get otpTitle => 'NHẬP MÃ OTP';
+  String get otpTitle => 'NHáº¬P MÃƒ OTP';
 
   @override
   String get otpInstruction =>
-      'Chúng tôi đã gửi mã xác minh đến địa chỉ email của bạn';
+      'ChÃºng tÃ´i Ä‘Ã£ gá»­i mÃ£ xÃ¡c minh Ä‘áº¿n Ä‘á»‹a chá»‰ email cá»§a báº¡n';
 
   @override
-  String get otpNeed4Digits => 'Vui lòng nhập đủ 6 số OTP';
+  String get otpNeed4Digits => 'Vui lÃ²ng nháº­p Ä‘á»§ 6 sá»‘ OTP';
 
   @override
-  String get otpDigitsOnly => 'OTP chỉ được chứa số';
+  String get otpDigitsOnly => 'OTP chá»‰ Ä‘Æ°á»£c chá»©a sá»‘';
 
   @override
-  String get otpIncorrect => 'OTP không đúng';
+  String get otpIncorrect => 'OTP khÃ´ng Ä‘Ãºng';
 
   @override
-  String get otpExpired => 'OTP đã hết hạn';
+  String get otpExpired => 'OTP Ä‘Ã£ háº¿t háº¡n';
 
   @override
   String get otpTooManyAttempts =>
-      'Bạn đã nhập sai quá 3 lần. Vui lòng chờ 10 phút.';
+      'Báº¡n Ä‘Ã£ nháº­p sai quÃ¡ 3 láº§n. Vui lÃ²ng chá» 10 phÃºt.';
 
   @override
-  String get otpRequestNotFound => 'Không tìm thấy yêu cầu OTP';
+  String get otpRequestNotFound => 'KhÃ´ng tÃ¬m tháº¥y yÃªu cáº§u OTP';
 
   @override
   String otpResendIn(int seconds) {
-    return 'Gửi lại mã sau ${seconds}s';
+    return 'Gá»­i láº¡i mÃ£ sau ${seconds}s';
   }
 
   @override
-  String get otpResend => 'Gửi lại mã';
+  String get otpResend => 'Gá»­i láº¡i mÃ£';
 
   @override
-  String get otpVerifyButton => 'Xác minh';
+  String get otpVerifyButton => 'XÃ¡c minh';
 
   @override
-  String get authRegisterSuccessMessage => 'Đăng ký tài khoản thành công';
+  String get authRegisterSuccessMessage => 'ÄÄƒng kÃ½ tÃ i khoáº£n thÃ nh cÃ´ng';
 
   @override
-  String get resetPasswordTitle => 'ĐẶT LẠI \nMẬT KHẨU MỚI';
+  String get resetPasswordTitle => 'Äáº¶T Láº I \nMáº¬T KHáº¨U Má»šI';
 
   @override
-  String get resetPasswordSubtitle => 'Điền mật khẩu mới của bạn!';
+  String get resetPasswordSubtitle => 'Äiá»n máº­t kháº©u má»›i cá»§a báº¡n!';
 
   @override
-  String get resetPasswordNewLabel => 'Mật khẩu mới';
+  String get resetPasswordNewLabel => 'Máº­t kháº©u má»›i';
 
   @override
-  String get resetPasswordConfirmLabel => 'Nhập lại mật khẩu';
+  String get resetPasswordConfirmLabel => 'Nháº­p láº¡i máº­t kháº©u';
 
   @override
-  String get resetPasswordConfirmMismatch => 'Mật khẩu nhập lại không khớp';
+  String get resetPasswordConfirmMismatch => 'Máº­t kháº©u nháº­p láº¡i khÃ´ng khá»›p';
 
   @override
-  String get resetPasswordRuleTitle => 'Mật khẩu cần có';
+  String get resetPasswordRuleTitle => 'Máº­t kháº©u cáº§n cÃ³';
 
   @override
-  String get resetPasswordRuleMinLength => 'Ít nhất 8 ký tự';
+  String get resetPasswordRuleMinLength => 'Ãt nháº¥t 8 kÃ½ tá»±';
 
   @override
-  String get resetPasswordRuleUppercase => 'Có chữ hoa';
+  String get resetPasswordRuleUppercase => 'CÃ³ chá»¯ hoa';
 
   @override
-  String get resetPasswordRuleLowercase => 'Có chữ thường';
+  String get resetPasswordRuleLowercase => 'CÃ³ chá»¯ thÆ°á»ng';
 
   @override
-  String get resetPasswordRuleNumber => 'Có số';
+  String get resetPasswordRuleNumber => 'CÃ³ sá»‘';
 
   @override
-  String get resetPasswordCompleteButton => 'Hoàn tất';
+  String get resetPasswordCompleteButton => 'HoÃ n táº¥t';
 
   @override
-  String get resetPasswordSuccessMessage => 'Đặt lại mật khẩu thành công';
+  String get resetPasswordSuccessMessage => 'Äáº·t láº¡i máº­t kháº©u thÃ nh cÃ´ng';
 
   @override
-  String get authCompleteTitle => 'Hoàn tất!';
+  String get authCompleteTitle => 'HoÃ n táº¥t!';
 
   @override
   String get authRegisterCongratsMessage =>
-      'Chúc mừng! Bạn đã đăng ký thành công';
+      'ChÃºc má»«ng! Báº¡n Ä‘Ã£ Ä‘Äƒng kÃ½ thÃ nh cÃ´ng';
 
   @override
-  String get authBackToLogin => 'Về trang đăng nhập';
+  String get authBackToLogin => 'Vá» trang Ä‘Äƒng nháº­p';
 
   @override
-  String get flashWelcomeTitle => 'Chào mừng đến với ứng dụng';
+  String get flashWelcomeTitle => 'ChÃ o má»«ng Ä‘áº¿n vá»›i á»©ng dá»¥ng';
 
   @override
-  String get flashWelcomeSubtitle => 'Ứng dụng quản lý con';
+  String get flashWelcomeSubtitle => 'á»¨ng dá»¥ng quáº£n lÃ½ con';
 
   @override
-  String get flashNext => 'Tiếp';
+  String get flashNext => 'Tiáº¿p';
 
   @override
-  String get scheduleScreenTitle => 'Lịch trình';
+  String get scheduleScreenTitle => 'Lá»‹ch trÃ¬nh';
 
   @override
-  String get scheduleNoChild => 'Chưa có bé';
+  String get scheduleNoChild => 'ChÆ°a cÃ³ bÃ©';
 
   @override
-  String get scheduleFormTitleHint => 'Tên lịch trình';
+  String get scheduleFormTitleHint => 'TÃªn lá»‹ch trÃ¬nh';
 
   @override
-  String get scheduleFormDescriptionHint => 'Mô tả';
+  String get scheduleFormDescriptionHint => 'MÃ´ táº£';
 
   @override
-  String get scheduleAddHeaderTitle => 'Thêm sự kiện';
+  String get scheduleAddHeaderTitle => 'ThÃªm sá»± kiá»‡n';
 
   @override
-  String get scheduleFormDateLabel => 'Ngày';
+  String get scheduleFormDateLabel => 'NgÃ y';
 
   @override
-  String get scheduleFormStartTimeLabel => 'Giờ bắt đầu';
+  String get scheduleFormStartTimeLabel => 'Giá» báº¯t Ä‘áº§u';
 
   @override
-  String get scheduleFormEndTimeLabel => 'Giờ kết thúc';
+  String get scheduleFormEndTimeLabel => 'Giá» káº¿t thÃºc';
 
   @override
-  String get scheduleFormEndTimeInvalid => 'Giờ kết thúc phải lớn hơn';
+  String get scheduleFormEndTimeInvalid => 'Giá» káº¿t thÃºc pháº£i lá»›n hÆ¡n';
 
   @override
-  String get scheduleFormSavingButton => 'Đang lưu...';
+  String get scheduleFormSavingButton => 'Äang lÆ°u...';
 
   @override
-  String get scheduleAddSubmitButton => 'Tạo lịch trình';
+  String get scheduleAddSubmitButton => 'Táº¡o lá»‹ch trÃ¬nh';
 
   @override
-  String get scheduleAddSuccessMessage => 'Bạn đã tạo lịch trình thành công';
+  String get scheduleAddSuccessMessage => 'Báº¡n Ä‘Ã£ táº¡o lá»‹ch trÃ¬nh thÃ nh cÃ´ng';
 
   @override
-  String get scheduleDialogWarningTitle => 'Cảnh báo';
+  String get scheduleDialogWarningTitle => 'Cáº£nh bÃ¡o';
 
   @override
-  String get scheduleEditHeaderTitle => 'Chỉnh sửa lịch trình';
+  String get scheduleEditHeaderTitle => 'Chá»‰nh sá»­a lá»‹ch trÃ¬nh';
 
   @override
-  String get scheduleEditSubmitButton => 'Lưu lịch trình';
+  String get scheduleEditSubmitButton => 'LÆ°u lá»‹ch trÃ¬nh';
 
   @override
-  String get scheduleEditSuccessMessage => 'Bạn đã sửa thành công';
+  String get scheduleEditSuccessMessage => 'Báº¡n Ä‘Ã£ sá»­a thÃ nh cÃ´ng';
 
   @override
-  String get scheduleSelectChildLabel => 'Chọn bé';
+  String get scheduleSelectChildLabel => 'Chá»n bÃ©';
 
   @override
-  String get scheduleYourChild => 'Bé của bạn';
+  String get scheduleYourChild => 'BÃ© cá»§a báº¡n';
 
   @override
-  String get schedulePleaseSelectChild => 'Vui lòng chọn bé';
+  String get schedulePleaseSelectChild => 'Vui lÃ²ng chá»n bÃ©';
 
   @override
-  String get scheduleExportTitle => 'Xuất file Excel';
+  String get scheduleExportTitle => 'Xuáº¥t file Excel';
 
   @override
-  String get scheduleExportDateRangeLabel => 'Khoảng thời gian';
+  String get scheduleExportDateRangeLabel => 'Khoáº£ng thá»i gian';
 
   @override
   String get scheduleExportColumnsHint =>
-      'File xuất sẽ gồm các cột: title, description, date, start, end';
+      'File xuáº¥t sáº½ gá»“m cÃ¡c cá»™t: title, description, date, start, end';
 
   @override
-  String get scheduleExportLoadingButton => 'Đang xuất...';
+  String get scheduleExportLoadingButton => 'Äang xuáº¥t...';
 
   @override
-  String get scheduleExportSubmitButton => 'Xuất file';
+  String get scheduleExportSubmitButton => 'Xuáº¥t file';
 
   @override
   String get scheduleExportInvalidDateRange =>
-      'Ngày bắt đầu không được lớn hơn ngày kết thúc';
+      'NgÃ y báº¯t Ä‘áº§u khÃ´ng Ä‘Æ°á»£c lá»›n hÆ¡n ngÃ y káº¿t thÃºc';
 
   @override
   String get scheduleExportNoDataInRange =>
-      'Không có lịch trong khoảng ngày đã chọn';
+      'KhÃ´ng cÃ³ lá»‹ch trong khoáº£ng ngÃ y Ä‘Ã£ chá»n';
 
   @override
-  String get scheduleExportSaveCanceled => 'Bạn đã huỷ lưu file';
+  String get scheduleExportSaveCanceled => 'Báº¡n Ä‘Ã£ huá»· lÆ°u file';
 
   @override
   String scheduleExportSuccessMessage(int count) {
-    return 'Xuất file Excel thành công ($count lịch)';
+    return 'Xuáº¥t file Excel thÃ nh cÃ´ng ($count lá»‹ch)';
   }
 
   @override
   String scheduleExportFailed(String error) {
-    return 'Xuất file thất bại: $error';
+    return 'Xuáº¥t file tháº¥t báº¡i: $error';
   }
 
   @override
-  String get scheduleImportTitle => 'Thêm file Excel';
+  String get scheduleImportTitle => 'ThÃªm file Excel';
 
   @override
-  String get scheduleTemplateDownloadButton => 'Tải file mẫu';
+  String get scheduleTemplateDownloadButton => 'Táº£i file máº«u';
 
   @override
-  String get scheduleTemplateSaveCanceled => 'Bạn đã huỷ lưu file mẫu';
+  String get scheduleTemplateSaveCanceled => 'Báº¡n Ä‘Ã£ huá»· lÆ°u file máº«u';
 
   @override
-  String get scheduleTemplateSavedSuccess => 'Đã lưu file mẫu thành công';
+  String get scheduleTemplateSavedSuccess => 'ÄÃ£ lÆ°u file máº«u thÃ nh cÃ´ng';
 
   @override
   String scheduleTemplateDownloadFailed(String error) {
-    return 'Tải file mẫu thất bại: $error';
+    return 'Táº£i file máº«u tháº¥t báº¡i: $error';
   }
 
   @override
-  String get scheduleImportCannotReadFile => 'Không đọc được file, thử lại.';
+  String get scheduleImportCannotReadFile => 'KhÃ´ng Ä‘á»c Ä‘Æ°á»£c file, thá»­ láº¡i.';
 
   @override
   String get scheduleImportMissingOwner =>
-      'Không xác định được chủ sở hữu lịch';
+      'KhÃ´ng xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c chá»§ sá»Ÿ há»¯u lá»‹ch';
 
   @override
-  String get scheduleImportNoValidItems => 'Không có lịch hợp lệ để import.';
+  String get scheduleImportNoValidItems => 'KhÃ´ng cÃ³ lá»‹ch há»£p lá»‡ Ä‘á»ƒ import.';
 
   @override
-  String get scheduleImportSuccessMessage => 'Thêm lịch thành công';
+  String get scheduleImportSuccessMessage => 'ThÃªm lá»‹ch thÃ nh cÃ´ng';
 
   @override
   String scheduleImportFailed(String error) {
-    return 'Import thất bại: $error';
+    return 'Import tháº¥t báº¡i: $error';
   }
 
   @override
   String scheduleImportAddCount(int count) {
-    return 'Thêm $count lịch';
+    return 'ThÃªm $count lá»‹ch';
   }
 
   @override
-  String get scheduleImportPickFileButton => 'Chọn file Excel';
+  String get scheduleImportPickFileButton => 'Chá»n file Excel';
 
   @override
-  String get scheduleImportPickAnotherFileButton => 'Chọn file khác';
+  String get scheduleImportPickAnotherFileButton => 'Chá»n file khÃ¡c';
 
   @override
   String scheduleImportSelectedFile(String fileName) {
-    return 'Đã chọn: $fileName';
+    return 'ÄÃ£ chá»n: $fileName';
   }
 
   @override
-  String get scheduleImportChangeFileButton => 'Đổi file';
+  String get scheduleImportChangeFileButton => 'Äá»•i file';
 
   @override
   String scheduleImportSummaryOk(int count) {
@@ -880,203 +880,203 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String scheduleImportSummaryDuplicate(int count) {
-    return 'Trùng: $count';
+    return 'TrÃ¹ng: $count';
   }
 
   @override
   String scheduleImportSummaryError(int count) {
-    return 'Lỗi: $count';
+    return 'Lá»—i: $count';
   }
 
   @override
-  String get scheduleImportPreviewTitle => 'Xem trước dữ liệu';
+  String get scheduleImportPreviewTitle => 'Xem trÆ°á»›c dá»¯ liá»‡u';
 
   @override
   String get scheduleImportStatusOk => 'OK';
 
   @override
-  String get scheduleImportStatusError => 'LỖI';
+  String get scheduleImportStatusError => 'Lá»–I';
 
   @override
-  String get scheduleImportStatusDuplicate => 'TRÙNG';
+  String get scheduleImportStatusDuplicate => 'TRÃ™NG';
 
   @override
   String scheduleImportRowError(int row, String error) {
-    return 'Dòng $row: $error';
+    return 'DÃ²ng $row: $error';
   }
 
   @override
-  String get birthdayMemberFallback => 'Thành viên';
+  String get birthdayMemberFallback => 'ThÃ nh viÃªn';
 
   @override
   String birthdayWishSelfWithAge(int age) {
-    return 'Chúc mừng sinh nhật tôi. Chào tuổi $age thật rực rỡ, bình an và nhiều niềm vui.';
+    return 'ChÃºc má»«ng sinh nháº­t tÃ´i. ChÃ o tuá»•i $age tháº­t rá»±c rá»¡, bÃ¬nh an vÃ  nhiá»u niá»m vui.';
   }
 
   @override
   String get birthdayWishSelfDefault =>
-      'Chúc mừng sinh nhật tôi. Chúc mình có một ngày thật vui và đáng nhớ.';
+      'ChÃºc má»«ng sinh nháº­t tÃ´i. ChÃºc mÃ¬nh cÃ³ má»™t ngÃ y tháº­t vui vÃ  Ä‘Ã¡ng nhá»›.';
 
   @override
   String birthdayWishOtherWithAge(String name, int age) {
-    return 'Chúc mừng sinh nhật $name. Chúc bạn bước sang tuổi $age luôn mạnh khỏe, vui vẻ và gặp nhiều điều may mắn.';
+    return 'ChÃºc má»«ng sinh nháº­t $name. ChÃºc báº¡n bÆ°á»›c sang tuá»•i $age luÃ´n máº¡nh khá»e, vui váº» vÃ  gáº·p nhiá»u Ä‘iá»u may máº¯n.';
   }
 
   @override
   String birthdayWishOtherDefault(String name) {
-    return 'Chúc mừng sinh nhật $name. Chúc bạn luôn vui vẻ, mạnh khỏe và có thật nhiều niềm vui.';
+    return 'ChÃºc má»«ng sinh nháº­t $name. ChÃºc báº¡n luÃ´n vui váº», máº¡nh khá»e vÃ  cÃ³ tháº­t nhiá»u niá»m vui.';
   }
 
   @override
-  String get birthdayViewWishButton => 'Xem lời chúc';
+  String get birthdayViewWishButton => 'Xem lá»i chÃºc';
 
   @override
-  String get birthdaySendWishButton => 'Gửi lời chúc';
+  String get birthdaySendWishButton => 'Gá»­i lá»i chÃºc';
 
   @override
-  String get birthdayCongratsYouTitle => 'Chúc mừng sinh nhật bạn';
+  String get birthdayCongratsYouTitle => 'ChÃºc má»«ng sinh nháº­t báº¡n';
 
   @override
-  String get birthdayCongratsTitle => 'Chúc mừng sinh nhật';
+  String get birthdayCongratsTitle => 'ChÃºc má»«ng sinh nháº­t';
 
   @override
-  String get birthdayTodayIsYourDay => 'Hôm nay là ngày của bạn';
+  String get birthdayTodayIsYourDay => 'HÃ´m nay lÃ  ngÃ y cá»§a báº¡n';
 
   @override
   String birthdayTurnsAge(int age) {
-    return 'Tròn $age tuổi';
+    return 'TrÃ²n $age tuá»•i';
   }
 
   @override
-  String get birthdaySuggestionTitle => 'Lời chúc gợi ý';
+  String get birthdaySuggestionTitle => 'Lá»i chÃºc gá»£i Ã½';
 
   @override
   String birthdayYouEnteringAge(int age) {
-    return 'Hôm nay bạn bước sang tuổi $age. Chúc bạn có một ngày thật tươi vui, nhẹ nhàng và đáng nhớ.';
+    return 'HÃ´m nay báº¡n bÆ°á»›c sang tuá»•i $age. ChÃºc báº¡n cÃ³ má»™t ngÃ y tháº­t tÆ°Æ¡i vui, nháº¹ nhÃ ng vÃ  Ä‘Ã¡ng nhá»›.';
   }
 
   @override
   String get birthdayYouSpecialDay =>
-      'Hôm nay là ngày đặc biệt của bạn. Chúc bạn có thật nhiều niềm vui và năng lượng tích cực.';
+      'HÃ´m nay lÃ  ngÃ y Ä‘áº·c biá»‡t cá»§a báº¡n. ChÃºc báº¡n cÃ³ tháº­t nhiá»u niá»m vui vÃ  nÄƒng lÆ°á»£ng tÃ­ch cá»±c.';
 
   @override
   String birthdayTodayIsBirthdayWithAge(String name, int age) {
-    return 'Hôm nay là sinh nhật của $name, tròn $age tuổi.';
+    return 'HÃ´m nay lÃ  sinh nháº­t cá»§a $name, trÃ²n $age tuá»•i.';
   }
 
   @override
   String birthdayTodayIsBirthday(String name) {
-    return 'Hôm nay là sinh nhật của $name.';
+    return 'HÃ´m nay lÃ  sinh nháº­t cá»§a $name.';
   }
 
   @override
-  String get birthdayCountdownTitle => '✨ Sắp tới sinh nhật';
+  String get birthdayCountdownTitle => 'âœ¨ Sáº¯p tá»›i sinh nháº­t';
 
   @override
-  String get birthdayCountdownSelfTitle => '✨ Sắp tới sinh nhật của bạn';
+  String get birthdayCountdownSelfTitle => 'âœ¨ Sáº¯p tá»›i sinh nháº­t cá»§a báº¡n';
 
   @override
-  String get birthdayCountdownTomorrowChip => 'Ngày mai';
+  String get birthdayCountdownTomorrowChip => 'NgÃ y mai';
 
   @override
   String birthdayCountdownDaysChip(int days) {
-    return 'Còn $days ngày';
+    return 'CÃ²n $days ngÃ y';
   }
 
   @override
   String birthdayCountdownOtherBody(String name, int days) {
-    return 'Chỉ còn $days ngày nữa là đến sinh nhật của $name.';
+    return 'Chá»‰ cÃ²n $days ngÃ y ná»¯a lÃ  Ä‘áº¿n sinh nháº­t cá»§a $name.';
   }
 
   @override
   String birthdayCountdownOtherBodyTomorrow(String name) {
-    return 'Ngày mai là sinh nhật của $name.';
+    return 'NgÃ y mai lÃ  sinh nháº­t cá»§a $name.';
   }
 
   @override
   String birthdayCountdownSelfBody(int days) {
-    return 'Chỉ còn $days ngày nữa là đến sinh nhật của bạn.';
+    return 'Chá»‰ cÃ²n $days ngÃ y ná»¯a lÃ  Ä‘áº¿n sinh nháº­t cá»§a báº¡n.';
   }
 
   @override
   String get birthdayCountdownSelfBodyTomorrow =>
-      'Ngày mai là sinh nhật của bạn.';
+      'NgÃ y mai lÃ  sinh nháº­t cá»§a báº¡n.';
 
   @override
-  String get birthdayCountdownSuggestionTitle => 'Gợi ý chuẩn bị';
+  String get birthdayCountdownSuggestionTitle => 'Gá»£i Ã½ chuáº©n bá»‹';
 
   @override
   String birthdayCountdownSuggestionOther(String name) {
-    return 'Bạn có thể chuẩn bị lời chúc, quà tặng hoặc một điều bất ngờ cho $name ngay từ bây giờ.';
+    return 'Báº¡n cÃ³ thá»ƒ chuáº©n bá»‹ lá»i chÃºc, quÃ  táº·ng hoáº·c má»™t Ä‘iá»u báº¥t ngá» cho $name ngay tá»« bÃ¢y giá».';
   }
 
   @override
   String get birthdayCountdownSuggestionSelf =>
-      'Bạn có thể chuẩn bị lời chúc, món quà nhỏ hoặc một điều bất ngờ cho chính mình ngay từ bây giờ.';
+      'Báº¡n cÃ³ thá»ƒ chuáº©n bá»‹ lá»i chÃºc, mÃ³n quÃ  nhá» hoáº·c má»™t Ä‘iá»u báº¥t ngá» cho chÃ­nh mÃ¬nh ngay tá»« bÃ¢y giá».';
 
   @override
-  String get birthdayCountdownPlanButton => 'Chuẩn bị lời chúc';
+  String get birthdayCountdownPlanButton => 'Chuáº©n bá»‹ lá»i chÃºc';
 
   @override
   String birthdayCopiedFallback(String name) {
-    return 'Không tìm thấy chat gia đình. Đã sao chép lời chúc cho $name.';
+    return 'KhÃ´ng tÃ¬m tháº¥y chat gia Ä‘Ã¬nh. ÄÃ£ sao chÃ©p lá»i chÃºc cho $name.';
   }
 
   @override
-  String get birthdayCloseButton => 'Đóng';
+  String get birthdayCloseButton => 'ÄÃ³ng';
 
   @override
-  String get birthdayAwesomeButton => 'Tuyệt vời';
+  String get birthdayAwesomeButton => 'Tuyá»‡t vá»i';
 
   @override
-  String get familyChatLoadingTitle => 'Đang tải cuộc trò chuyện';
+  String get familyChatLoadingTitle => 'Äang táº£i cuá»™c trÃ² chuyá»‡n';
 
   @override
-  String get familyChatTitle => 'Trò chuyện gia đình';
+  String get familyChatTitle => 'TrÃ² chuyá»‡n gia Ä‘Ã¬nh';
 
   @override
-  String get familyChatTitleLarge => 'Trò chuyện gia đình';
+  String get familyChatTitleLarge => 'TrÃ² chuyá»‡n gia Ä‘Ã¬nh';
 
   @override
   String familyChatSendFailed(String error) {
-    return 'Gửi tin nhắn thất bại: $error';
+    return 'Gá»­i tin nháº¯n tháº¥t báº¡i: $error';
   }
 
   @override
-  String get familyChatYou => 'Bạn';
+  String get familyChatYou => 'Báº¡n';
 
   @override
-  String get familyChatMemberFallback => 'Thành viên';
+  String get familyChatMemberFallback => 'ThÃ nh viÃªn';
 
   @override
-  String get familyChatLoadingMembers => 'Đang tải thành viên...';
+  String get familyChatLoadingMembers => 'Äang táº£i thÃ nh viÃªn...';
 
   @override
-  String get familyChatNoMembersFound => 'Không tìm thấy thành viên';
+  String get familyChatNoMembersFound => 'KhÃ´ng tÃ¬m tháº¥y thÃ nh viÃªn';
 
   @override
-  String get familyChatOneMember => '1 thành viên';
+  String get familyChatOneMember => '1 thÃ nh viÃªn';
 
   @override
   String familyChatManyMembers(int count) {
-    return '$count thành viên';
+    return '$count thÃ nh viÃªn';
   }
 
   @override
-  String get familyChatCannotLoadMessages => 'Không thể tải tin nhắn';
+  String get familyChatCannotLoadMessages => 'KhÃ´ng thá»ƒ táº£i tin nháº¯n';
 
   @override
   String get familyChatNoMessagesYet =>
-      'Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện.';
+      'ChÆ°a cÃ³ tin nháº¯n nÃ o. HÃ£y báº¯t Ä‘áº§u cuá»™c trÃ² chuyá»‡n.';
 
   @override
-  String get familyChatStatusFailed => 'thất bại';
+  String get familyChatStatusFailed => 'tháº¥t báº¡i';
 
   @override
-  String get familyChatStatusSending => 'đang gửi...';
+  String get familyChatStatusSending => 'Ä‘ang gá»­i...';
 
   @override
-  String get familyChatTypeMessageHint => 'Nhập tin nhắn...';
+  String get familyChatTypeMessageHint => 'Nháº­p tin nháº¯n...';
 
   @override
   String familyChatMemberCountOverflow(String names, int extra) {
@@ -1084,309 +1084,309 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get notificationScreenTitle => 'Thông báo';
+  String get notificationScreenTitle => 'ThÃ´ng bÃ¡o';
 
   @override
-  String get notificationDateToday => 'HÔM NAY';
+  String get notificationDateToday => 'HÃ”M NAY';
 
   @override
-  String get notificationDateYesterday => 'HÔM QUA';
+  String get notificationDateYesterday => 'HÃ”M QUA';
 
   @override
-  String get notificationFilterTitle => 'Lọc thông báo';
+  String get notificationFilterTitle => 'Lá»c thÃ´ng bÃ¡o';
 
   @override
-  String get notificationFilterAll => 'Tất cả';
+  String get notificationFilterAll => 'Táº¥t cáº£';
 
   @override
-  String get notificationFilterActivity => 'Hoạt động';
+  String get notificationFilterActivity => 'Hoáº¡t Ä‘á»™ng';
 
   @override
-  String get notificationFilterAlert => 'Cảnh báo';
+  String get notificationFilterAlert => 'Cáº£nh bÃ¡o';
 
   @override
-  String get notificationFilterReminder => 'Nhắc nhở';
+  String get notificationFilterReminder => 'Nháº¯c nhá»Ÿ';
 
   @override
-  String get notificationFilterSystem => 'Thông báo hệ thống';
+  String get notificationFilterSystem => 'ThÃ´ng bÃ¡o há»‡ thá»‘ng';
 
   @override
-  String get notificationSearchHint => 'Tìm thông báo';
+  String get notificationSearchHint => 'TÃ¬m thÃ´ng bÃ¡o';
 
   @override
-  String get notificationJustNow => 'Vừa xong';
+  String get notificationJustNow => 'Vá»«a xong';
 
   @override
   String notificationMinutesAgo(int minutes) {
-    return '${minutes}p trước';
+    return '${minutes}p trÆ°á»›c';
   }
 
   @override
   String notificationHoursAgo(int hours) {
-    return '${hours}h trước';
+    return '${hours}h trÆ°á»›c';
   }
 
   @override
-  String get notificationDetailTitle => 'Chi tiết thông báo';
+  String get notificationDetailTitle => 'Chi tiáº¿t thÃ´ng bÃ¡o';
 
   @override
-  String get notificationDetailSectionTitle => 'CHI TIẾT';
+  String get notificationDetailSectionTitle => 'CHI TIáº¾T';
 
   @override
-  String get accessibilityNoticeBarrierLabel => 'Hộp thoại thông báo';
+  String get accessibilityNoticeBarrierLabel => 'Há»™p thoáº¡i thÃ´ng bÃ¡o';
 
   @override
-  String get accessibilityImageModalBarrierLabel => 'Trình xem ảnh';
+  String get accessibilityImageModalBarrierLabel => 'TrÃ¬nh xem áº£nh';
 
   @override
-  String get notificationChildFallback => 'Bé';
+  String get notificationChildFallback => 'BÃ©';
 
   @override
-  String get notificationChildInfoNotFound => 'Không tìm thấy thông tin của bé';
+  String get notificationChildInfoNotFound => 'KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin cá»§a bÃ©';
 
   @override
   String get notificationMapLocationNotFound =>
-      'Không tìm thấy vị trí để mở bản đồ';
+      'KhÃ´ng tÃ¬m tháº¥y vá»‹ trÃ­ Ä‘á»ƒ má»Ÿ báº£n Ä‘á»“';
 
   @override
   String get notificationTrackingDetailNotFound =>
-      'Không tìm thấy thông tin hành trình của bé';
+      'KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin hÃ nh trÃ¬nh cá»§a bÃ©';
 
   @override
-  String get notificationTrackingUnknownValue => 'Không rõ';
+  String get notificationTrackingUnknownValue => 'KhÃ´ng rÃµ';
 
   @override
-  String get notificationTrackingChildLabel => 'Bé';
+  String get notificationTrackingChildLabel => 'BÃ©';
 
   @override
-  String get notificationTrackingRouteLabel => 'Tuyến đường';
+  String get notificationTrackingRouteLabel => 'Tuyáº¿n Ä‘Æ°á»ng';
 
   @override
   String get notificationTrackingDistanceToRouteLabel =>
-      'Khoảng cách tới tuyến';
+      'Khoáº£ng cÃ¡ch tá»›i tuyáº¿n';
 
   @override
-  String get notificationTrackingHazardLabel => 'Vùng nguy hiểm';
+  String get notificationTrackingHazardLabel => 'VÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get notificationTrackingStationaryLabel => 'Đứng yên';
+  String get notificationTrackingStationaryLabel => 'Äá»©ng yÃªn';
 
   @override
-  String get notificationTrackingTimeLabel => 'Thời điểm';
+  String get notificationTrackingTimeLabel => 'Thá»i Ä‘iá»ƒm';
 
   @override
   String get notificationTrackingOpenHint =>
-      'Mở trang theo dõi để xem vị trí hiện tại của bé, tuyến đang bám và toàn bộ trạng thái hành trình trên bản đồ.';
+      'Má»Ÿ trang theo dÃµi Ä‘á»ƒ xem vá»‹ trÃ­ hiá»‡n táº¡i cá»§a bÃ©, tuyáº¿n Ä‘ang bÃ¡m vÃ  toÃ n bá»™ tráº¡ng thÃ¡i hÃ nh trÃ¬nh trÃªn báº£n Ä‘á»“.';
 
   @override
-  String get notificationTrackingOpenButton => 'Mở theo dõi hành trình';
+  String get notificationTrackingOpenButton => 'Má»Ÿ theo dÃµi hÃ nh trÃ¬nh';
 
   @override
-  String get notificationTrackingStatusOffRoute => 'Lệch tuyến';
+  String get notificationTrackingStatusOffRoute => 'Lá»‡ch tuyáº¿n';
 
   @override
-  String get notificationTrackingStatusBackOnRoute => 'Quay lại tuyến';
+  String get notificationTrackingStatusBackOnRoute => 'Quay láº¡i tuyáº¿n';
 
   @override
-  String get notificationTrackingStatusReturnedToStart => 'Về điểm đầu';
+  String get notificationTrackingStatusReturnedToStart => 'Vá» Ä‘iá»ƒm Ä‘áº§u';
 
   @override
-  String get notificationTrackingStatusStationary => 'Đứng yên quá lâu';
+  String get notificationTrackingStatusStationary => 'Äá»©ng yÃªn quÃ¡ lÃ¢u';
 
   @override
-  String get notificationTrackingStatusArrived => 'Đã đến nơi';
+  String get notificationTrackingStatusArrived => 'ÄÃ£ Ä‘áº¿n nÆ¡i';
 
   @override
-  String get notificationTrackingStatusDanger => 'Nguy hiểm';
+  String get notificationTrackingStatusDanger => 'Nguy hiá»ƒm';
 
   @override
   String get notificationTrackingStatusDefault => 'Safe Route';
 
   @override
   String get notificationTrackingHeadlineOffRoute =>
-      'Bé đang đi lệch khỏi tuyến đã chọn';
+      'BÃ© Ä‘ang Ä‘i lá»‡ch khá»i tuyáº¿n Ä‘Ã£ chá»n';
 
   @override
   String get notificationTrackingHeadlineBackOnRoute =>
-      'Bé đã quay lại tuyến an toàn';
+      'BÃ© Ä‘Ã£ quay láº¡i tuyáº¿n an toÃ n';
 
   @override
   String get notificationTrackingHeadlineReturnedToStart =>
-      'Bé đang quay lại gần điểm xuất phát';
+      'BÃ© Ä‘ang quay láº¡i gáº§n Ä‘iá»ƒm xuáº¥t phÃ¡t';
 
   @override
   String get notificationTrackingHeadlineStationary =>
-      'Bé đang đứng yên lâu hơn bình thường';
+      'BÃ© Ä‘ang Ä‘á»©ng yÃªn lÃ¢u hÆ¡n bÃ¬nh thÆ°á»ng';
 
   @override
-  String get notificationTrackingHeadlineArrived => 'Bé đã đến nơi an toàn';
+  String get notificationTrackingHeadlineArrived => 'BÃ© Ä‘Ã£ Ä‘áº¿n nÆ¡i an toÃ n';
 
   @override
   String get notificationTrackingHeadlineDanger =>
-      'Bé đang đi vào vùng nguy hiểm';
+      'BÃ© Ä‘ang Ä‘i vÃ o vÃ¹ng nguy hiá»ƒm';
 
   @override
   String notificationTrackingFallbackOffRoute(String routeName) {
-    return 'Hệ thống phát hiện bé đã ra ngoài hành lang an toàn của tuyến $routeName.';
+    return 'Há»‡ thá»‘ng phÃ¡t hiá»‡n bÃ© Ä‘Ã£ ra ngoÃ i hÃ nh lang an toÃ n cá»§a tuyáº¿n $routeName.';
   }
 
   @override
   String notificationTrackingFallbackBackOnRoute(String routeName) {
-    return 'Hệ thống ghi nhận bé đã quay lại hành lang an toàn của tuyến $routeName.';
+    return 'Há»‡ thá»‘ng ghi nháº­n bÃ© Ä‘Ã£ quay láº¡i hÃ nh lang an toÃ n cá»§a tuyáº¿n $routeName.';
   }
 
   @override
   String notificationTrackingFallbackReturnedToStart(String routeName) {
-    return 'Bé đang quay lại gần vị trí xuất phát của tuyến $routeName.';
+    return 'BÃ© Ä‘ang quay láº¡i gáº§n vá»‹ trÃ­ xuáº¥t phÃ¡t cá»§a tuyáº¿n $routeName.';
   }
 
   @override
   String notificationTrackingFallbackStationary(String routeName) {
-    return 'Bé đã đứng gần cùng một vị trí quá lâu khi đang đi trên $routeName.';
+    return 'BÃ© Ä‘Ã£ Ä‘á»©ng gáº§n cÃ¹ng má»™t vá»‹ trÃ­ quÃ¡ lÃ¢u khi Ä‘ang Ä‘i trÃªn $routeName.';
   }
 
   @override
   String notificationTrackingFallbackArrived(String routeName) {
-    return 'Bé đã đến điểm đích của $routeName.';
+    return 'BÃ© Ä‘Ã£ Ä‘áº¿n Ä‘iá»ƒm Ä‘Ã­ch cá»§a $routeName.';
   }
 
   @override
   String get notificationTrackingFallbackDangerGeneric =>
-      'Bé đã đi vào một vùng nguy hiểm trên hành trình hiện tại.';
+      'BÃ© Ä‘Ã£ Ä‘i vÃ o má»™t vÃ¹ng nguy hiá»ƒm trÃªn hÃ nh trÃ¬nh hiá»‡n táº¡i.';
 
   @override
   String notificationTrackingFallbackDangerWithHazard(
     String hazardName,
     String routeName,
   ) {
-    return 'Bé đã đi vào $hazardName khi đang theo tuyến $routeName.';
+    return 'BÃ© Ä‘Ã£ Ä‘i vÃ o $hazardName khi Ä‘ang theo tuyáº¿n $routeName.';
   }
 
   @override
   String notificationScheduleCreatedTitle(String childName) {
-    return 'Lịch trình mới của $childName';
+    return 'Lá»‹ch trÃ¬nh má»›i cá»§a $childName';
   }
 
   @override
   String notificationScheduleUpdatedTitle(String childName) {
-    return 'Lịch trình của $childName đã thay đổi';
+    return 'Lá»‹ch trÃ¬nh cá»§a $childName Ä‘Ã£ thay Ä‘á»•i';
   }
 
   @override
   String notificationScheduleDeletedTitle(String childName) {
-    return 'Lịch trình của $childName đã bị xóa';
+    return 'Lá»‹ch trÃ¬nh cá»§a $childName Ä‘Ã£ bá»‹ xÃ³a';
   }
 
   @override
   String notificationScheduleRestoredTitle(String childName) {
-    return 'Lịch trình của $childName đã được khôi phục';
+    return 'Lá»‹ch trÃ¬nh cá»§a $childName Ä‘Ã£ Ä‘Æ°á»£c khÃ´i phá»¥c';
   }
 
   @override
   String notificationZoneEnteredDangerTitle(String childName) {
-    return '$childName đã vào vùng nguy hiểm';
+    return '$childName Ä‘Ã£ vÃ o vÃ¹ng nguy hiá»ƒm';
   }
 
   @override
   String notificationZoneExitedSafeTitle(String childName) {
-    return '$childName đã rời vùng an toàn';
+    return '$childName Ä‘Ã£ rá»i vÃ¹ng an toÃ n';
   }
 
   @override
   String notificationZoneExitedDangerTitle(String childName) {
-    return '$childName đã rời vùng nguy hiểm';
+    return '$childName Ä‘Ã£ rá»i vÃ¹ng nguy hiá»ƒm';
   }
 
   @override
   String scheduleImportRowTitle(int row, String title) {
-    return 'Dòng $row: $title';
+    return 'DÃ²ng $row: $title';
   }
 
   @override
   String get scheduleImportDuplicateInSystem =>
-      'Trùng với dữ liệu đã có trên hệ thống';
+      'TrÃ¹ng vá»›i dá»¯ liá»‡u Ä‘Ã£ cÃ³ trÃªn há»‡ thá»‘ng';
 
   @override
-  String get scheduleImportDuplicateInFile => 'Trùng trong file';
+  String get scheduleImportDuplicateInFile => 'TrÃ¹ng trong file';
 
   @override
-  String get scheduleHistoryTitle => 'Lịch sử chỉnh sửa';
+  String get scheduleHistoryTitle => 'Lá»‹ch sá»­ chá»‰nh sá»­a';
 
   @override
-  String get scheduleHistoryEmpty => 'Chưa có lịch sử chỉnh sửa';
+  String get scheduleHistoryEmpty => 'ChÆ°a cÃ³ lá»‹ch sá»­ chá»‰nh sá»­a';
 
   @override
-  String get scheduleHistoryToday => 'Hôm nay';
+  String get scheduleHistoryToday => 'HÃ´m nay';
 
   @override
-  String get scheduleHistoryYesterday => 'Hôm qua';
+  String get scheduleHistoryYesterday => 'HÃ´m qua';
 
   @override
-  String get scheduleHistoryRestoreDialogTitle => 'Khôi phục lịch trình';
+  String get scheduleHistoryRestoreDialogTitle => 'KhÃ´i phá»¥c lá»‹ch trÃ¬nh';
 
   @override
   String get scheduleHistoryRestoreDialogMessage =>
-      'Bạn có chắc muốn khôi phục phiên bản này không?';
+      'Báº¡n cÃ³ cháº¯c muá»‘n khÃ´i phá»¥c phiÃªn báº£n nÃ y khÃ´ng?';
 
   @override
-  String get scheduleHistoryRestoreButton => 'Khôi phục';
+  String get scheduleHistoryRestoreButton => 'KhÃ´i phá»¥c';
 
   @override
-  String get scheduleHistoryRestoringButton => 'Đang khôi phục...';
+  String get scheduleHistoryRestoringButton => 'Äang khÃ´i phá»¥c...';
 
   @override
   String get scheduleHistoryRestoreSuccessMessage =>
-      'Bạn đã khôi phục thành công';
+      'Báº¡n Ä‘Ã£ khÃ´i phá»¥c thÃ nh cÃ´ng';
 
   @override
   String scheduleHistoryRestoreFailed(String error) {
-    return 'Khôi phục thất bại: $error';
+    return 'KhÃ´i phá»¥c tháº¥t báº¡i: $error';
   }
 
   @override
   String scheduleHistoryEditedAt(String time) {
-    return 'Đã sửa lúc $time';
+    return 'ÄÃ£ sá»­a lÃºc $time';
   }
 
   @override
-  String get scheduleHistoryLabelTitle => 'Tên lịch trình:';
+  String get scheduleHistoryLabelTitle => 'TÃªn lá»‹ch trÃ¬nh:';
 
   @override
-  String get scheduleHistoryLabelDescription => 'Mô tả:';
+  String get scheduleHistoryLabelDescription => 'MÃ´ táº£:';
 
   @override
-  String get scheduleHistoryLabelDate => 'Ngày:';
+  String get scheduleHistoryLabelDate => 'NgÃ y:';
 
   @override
-  String get scheduleHistoryLabelTime => 'Thời gian:';
+  String get scheduleHistoryLabelTime => 'Thá»i gian:';
 
   @override
   String get scheduleDrawerMenuTitle => 'Menu';
 
   @override
-  String get scheduleCreateButtonAddEvent => '+ Thêm sự kiện';
+  String get scheduleCreateButtonAddEvent => '+ ThÃªm sá»± kiá»‡n';
 
   @override
-  String get schedulePeriodTitle => 'Thời gian';
+  String get schedulePeriodTitle => 'Thá»i gian';
 
   @override
-  String get schedulePeriodMorning => 'Sáng';
+  String get schedulePeriodMorning => 'SÃ¡ng';
 
   @override
-  String get schedulePeriodAfternoon => 'Chiều';
+  String get schedulePeriodAfternoon => 'Chiá»u';
 
   @override
-  String get schedulePeriodEvening => 'Tối';
+  String get schedulePeriodEvening => 'Tá»‘i';
 
   @override
-  String get scheduleCalendarFormatMonth => 'Tháng';
+  String get scheduleCalendarFormatMonth => 'ThÃ¡ng';
 
   @override
-  String get scheduleCalendarFormatWeek => 'Tuần';
+  String get scheduleCalendarFormatWeek => 'Tuáº§n';
 
   @override
   String scheduleCalendarMonthLabel(int month) {
-    return 'Tháng $month';
+    return 'ThÃ¡ng $month';
   }
 
   @override
@@ -1411,234 +1411,234 @@ class AppLocalizationsVi extends AppLocalizations {
   String get scheduleWeekdaySun => 'CN';
 
   @override
-  String get scheduleNoEventsInDay => 'Không có lịch trong ngày';
+  String get scheduleNoEventsInDay => 'KhÃ´ng cÃ³ lá»‹ch trong ngÃ y';
 
   @override
-  String get scheduleDeleteTitle => 'Xóa lịch trình';
+  String get scheduleDeleteTitle => 'XÃ³a lá»‹ch trÃ¬nh';
 
   @override
-  String get scheduleDeleteConfirmMessage => 'Bạn có chắc muốn xóa?';
+  String get scheduleDeleteConfirmMessage => 'Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a?';
 
   @override
-  String get scheduleDeleteSuccessMessage => 'Bạn đã xóa thành công';
+  String get scheduleDeleteSuccessMessage => 'Báº¡n Ä‘Ã£ xÃ³a thÃ nh cÃ´ng';
 
   @override
   String scheduleDeleteFailed(String error) {
-    return 'Xóa thất bại: $error';
+    return 'XÃ³a tháº¥t báº¡i: $error';
   }
 
   @override
-  String get memoryDayTitle => 'Ngày đáng nhớ';
+  String get memoryDayTitle => 'NgÃ y Ä‘Ã¡ng nhá»›';
 
   @override
-  String get memoryDayEmpty => 'Chưa có ngày đáng nhớ';
+  String get memoryDayEmpty => 'ChÆ°a cÃ³ ngÃ y Ä‘Ã¡ng nhá»›';
 
   @override
-  String get memoryDayDeleteTitle => 'Xóa ngày đáng nhớ';
+  String get memoryDayDeleteTitle => 'XÃ³a ngÃ y Ä‘Ã¡ng nhá»›';
 
   @override
-  String get memoryDayDeleteConfirmMessage => 'Bạn có chắc muốn xóa?';
+  String get memoryDayDeleteConfirmMessage => 'Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a?';
 
   @override
-  String get memoryDayDeleteSuccessMessage => 'Bạn đã xóa thành công';
+  String get memoryDayDeleteSuccessMessage => 'Báº¡n Ä‘Ã£ xÃ³a thÃ nh cÃ´ng';
 
   @override
-  String get memoryDayDeleteFailedMessage => 'Xóa thất bại, vui lòng thử lại';
+  String get memoryDayDeleteFailedMessage => 'XÃ³a tháº¥t báº¡i, vui lÃ²ng thá»­ láº¡i';
 
   @override
   String memoryDayDeleteFailedWithError(String error) {
-    return 'Xóa thất bại: $error';
+    return 'XÃ³a tháº¥t báº¡i: $error';
   }
 
   @override
   String memoryDayDaysPassed(int days) {
-    return 'Đã qua $days ngày';
+    return 'ÄÃ£ qua $days ngÃ y';
   }
 
   @override
-  String get memoryDayToday => 'Hôm nay';
+  String get memoryDayToday => 'HÃ´m nay';
 
   @override
   String memoryDayDaysLeft(int days) {
-    return 'Còn $days ngày';
+    return 'CÃ²n $days ngÃ y';
   }
 
   @override
   String memoryDayDateText(String date) {
-    return 'Ngày: $date';
+    return 'NgÃ y: $date';
   }
 
   @override
   String memoryDayDateRepeatText(String date) {
-    return 'Ngày: $date (lặp lại hằng năm)';
+    return 'NgÃ y: $date (láº·p láº¡i háº±ng nÄƒm)';
   }
 
   @override
-  String get memoryDayUnsavedTitle => 'Chưa lưu';
+  String get memoryDayUnsavedTitle => 'ChÆ°a lÆ°u';
 
   @override
   String get memoryDayUnsavedExitMessage =>
-      'Bạn chưa lưu, bạn có chắc muốn thoát?';
+      'Báº¡n chÆ°a lÆ°u, báº¡n cÃ³ cháº¯c muá»‘n thoÃ¡t?';
 
   @override
-  String get memoryDayFormTitleLabel => 'Tiêu đề';
+  String get memoryDayFormTitleLabel => 'TiÃªu Ä‘á»';
 
   @override
-  String get memoryDayFormDateLabel => 'Ngày';
+  String get memoryDayFormDateLabel => 'NgÃ y';
 
   @override
-  String get memoryDayFormNoteLabel => 'Ghi chú';
+  String get memoryDayFormNoteLabel => 'Ghi chÃº';
 
   @override
-  String get memoryDayReminderLabel => 'Nhắc nhở trước';
+  String get memoryDayReminderLabel => 'Nháº¯c nhá»Ÿ trÆ°á»›c';
 
   @override
-  String get memoryDayReminderNone => 'Không nhắc';
+  String get memoryDayReminderNone => 'KhÃ´ng nháº¯c';
 
   @override
-  String get memoryDayReminderOneDay => 'Trước 1 ngày';
+  String get memoryDayReminderOneDay => 'TrÆ°á»›c 1 ngÃ y';
 
   @override
-  String get memoryDayReminderThreeDays => 'Trước 3 ngày';
+  String get memoryDayReminderThreeDays => 'TrÆ°á»›c 3 ngÃ y';
 
   @override
-  String get memoryDayReminderSevenDays => 'Trước 7 ngày';
+  String get memoryDayReminderSevenDays => 'TrÆ°á»›c 7 ngÃ y';
 
   @override
-  String get memoryDayRepeatYearlyLabel => 'Lặp lại hàng năm';
+  String get memoryDayRepeatYearlyLabel => 'Láº·p láº¡i hÃ ng nÄƒm';
 
   @override
-  String get memoryDayEditHeaderTitle => 'Chỉnh sửa ngày đáng nhớ';
+  String get memoryDayEditHeaderTitle => 'Chá»‰nh sá»­a ngÃ y Ä‘Ã¡ng nhá»›';
 
   @override
-  String get memoryDayAddHeaderTitle => 'Thêm ngày đáng nhớ';
+  String get memoryDayAddHeaderTitle => 'ThÃªm ngÃ y Ä‘Ã¡ng nhá»›';
 
   @override
-  String get memoryDayEditSuccessMessage => 'Bạn đã lưu thay đổi thành công';
+  String get memoryDayEditSuccessMessage => 'Báº¡n Ä‘Ã£ lÆ°u thay Ä‘á»•i thÃ nh cÃ´ng';
 
   @override
   String get memoryDayAddSuccessMessage =>
-      'Bạn đã thêm ngày đáng nhớ thành công';
+      'Báº¡n Ä‘Ã£ thÃªm ngÃ y Ä‘Ã¡ng nhá»› thÃ nh cÃ´ng';
 
   @override
-  String get memoryDaySaveFailedMessage => 'Đã có lỗi xảy ra, vui lòng thử lại';
+  String get memoryDaySaveFailedMessage => 'ÄÃ£ cÃ³ lá»—i xáº£y ra, vui lÃ²ng thá»­ láº¡i';
 
   @override
-  String get memoryDaySavingButton => 'Đang lưu...';
+  String get memoryDaySavingButton => 'Äang lÆ°u...';
 
   @override
-  String get memoryDaySaveChangesButton => 'Lưu thay đổi';
+  String get memoryDaySaveChangesButton => 'LÆ°u thay Ä‘á»•i';
 
   @override
-  String get memoryDayAddButton => 'Thêm ngày đáng nhớ';
+  String get memoryDayAddButton => 'ThÃªm ngÃ y Ä‘Ã¡ng nhá»›';
 
   @override
-  String get memoryDayEditAction => 'Sửa';
+  String get memoryDayEditAction => 'Sá»­a';
 
   @override
-  String get memoryDayDeleteAction => 'Xóa';
+  String get memoryDayDeleteAction => 'XÃ³a';
 
   @override
-  String get notificationsEmptyTitle => 'Chưa có thông báo';
+  String get notificationsEmptyTitle => 'ChÆ°a cÃ³ thÃ´ng bÃ¡o';
 
   @override
   String get notificationsEmptySubtitle =>
-      'Các thông báo mới sẽ xuất hiện tại đây';
+      'CÃ¡c thÃ´ng bÃ¡o má»›i sáº½ xuáº¥t hiá»‡n táº¡i Ä‘Ã¢y';
 
   @override
-  String get notificationsDefaultChildName => 'Bé';
+  String get notificationsDefaultChildName => 'BÃ©';
 
   @override
-  String get notificationsNoTitle => 'Không có tiêu đề';
+  String get notificationsNoTitle => 'KhÃ´ng cÃ³ tiÃªu Ä‘á»';
 
   @override
-  String get notificationsActionCreated => 'Đã thêm';
+  String get notificationsActionCreated => 'ÄÃ£ thÃªm';
 
   @override
-  String get notificationsActionUpdated => 'Đã chỉnh sửa';
+  String get notificationsActionUpdated => 'ÄÃ£ chá»‰nh sá»­a';
 
   @override
-  String get notificationsActionDeleted => 'Đã xóa';
+  String get notificationsActionDeleted => 'ÄÃ£ xÃ³a';
 
   @override
-  String get notificationsActionRestored => 'Đã khôi phục';
+  String get notificationsActionRestored => 'ÄÃ£ khÃ´i phá»¥c';
 
   @override
-  String get notificationsActionChanged => 'Đã thay đổi';
+  String get notificationsActionChanged => 'ÄÃ£ thay Ä‘á»•i';
 
   @override
-  String get notificationsScheduleTitleLabel => 'Tên lịch';
+  String get notificationsScheduleTitleLabel => 'TÃªn lá»‹ch';
 
   @override
-  String get notificationsChildNameLabel => 'Tên bé';
+  String get notificationsChildNameLabel => 'TÃªn bÃ©';
 
   @override
-  String get notificationsDateLabel => 'Ngày';
+  String get notificationsDateLabel => 'NgÃ y';
 
   @override
-  String get notificationsTimeLabel => 'Thời gian';
+  String get notificationsTimeLabel => 'Thá»i gian';
 
   @override
-  String get notificationsViewScheduleButton => 'Xem lịch';
+  String get notificationsViewScheduleButton => 'Xem lá»‹ch';
 
   @override
-  String get notificationsRepeatLabel => 'Lặp lại';
+  String get notificationsRepeatLabel => 'Láº·p láº¡i';
 
   @override
-  String get notificationsRepeatYearly => 'Hằng năm';
+  String get notificationsRepeatYearly => 'Háº±ng nÄƒm';
 
   @override
-  String get notificationsRepeatNone => 'Không lặp lại';
+  String get notificationsRepeatNone => 'KhÃ´ng láº·p láº¡i';
 
   @override
-  String get notificationsImportOperatorLabel => 'Người thao tác';
+  String get notificationsImportOperatorLabel => 'NgÆ°á»i thao tÃ¡c';
 
   @override
-  String get notificationsChildLabel => 'Bé';
+  String get notificationsChildLabel => 'BÃ©';
 
   @override
-  String get notificationsImportAddedCountLabel => 'Số lịch đã thêm';
+  String get notificationsImportAddedCountLabel => 'Sá»‘ lá»‹ch Ä‘Ã£ thÃªm';
 
   @override
-  String get notificationsActorParent => 'Ba/Mẹ';
+  String get notificationsActorParent => 'Ba/Máº¹';
 
   @override
   String get notificationsActorChild => 'Con';
 
   @override
-  String get notificationsBlockedAccountLabel => 'Tài khoản';
+  String get notificationsBlockedAccountLabel => 'TÃ i khoáº£n';
 
   @override
-  String get notificationsBlockedAppLabel => 'Ứng dụng';
+  String get notificationsBlockedAppLabel => 'á»¨ng dá»¥ng';
 
   @override
-  String get notificationsBlockedTimeLabel => 'Thời điểm';
+  String get notificationsBlockedTimeLabel => 'Thá»i Ä‘iá»ƒm';
 
   @override
-  String get notificationsBlockedAllowedWindowLabel => 'Khung giờ cho phép';
+  String get notificationsBlockedAllowedWindowLabel => 'Khung giá» cho phÃ©p';
 
   @override
   String get notificationsBlockedWarningMessage =>
-      'Ứng dụng đã bị chặn tự động bởi hệ thống.';
+      'á»¨ng dá»¥ng Ä‘Ã£ bá»‹ cháº·n tá»± Ä‘á»™ng bá»Ÿi há»‡ thá»‘ng.';
 
   @override
-  String get notificationsBlockedViewConfigButton => 'Xem cấu hình thời gian';
+  String get notificationsBlockedViewConfigButton => 'Xem cáº¥u hÃ¬nh thá»i gian';
 
   @override
-  String get notificationsRemovedDeviceOfLabel => 'Thiết bị của';
+  String get notificationsRemovedDeviceOfLabel => 'Thiáº¿t bá»‹ cá»§a';
 
   @override
-  String get notificationsRemovedAppLabel => 'Ứng dụng đã gỡ';
+  String get notificationsRemovedAppLabel => 'á»¨ng dá»¥ng Ä‘Ã£ gá»¡';
 
   @override
-  String get notificationsRemovedAtLabel => 'Thời điểm gỡ';
+  String get notificationsRemovedAtLabel => 'Thá»i Ä‘iá»ƒm gá»¡';
 
   @override
   String get notificationsRemovedWarningMessage =>
-      'Ứng dụng đã bị gỡ khỏi thiết bị. Hãy kiểm tra nếu đây là ứng dụng bị quản lý.';
+      'á»¨ng dá»¥ng Ä‘Ã£ bá»‹ gá»¡ khá»i thiáº¿t bá»‹. HÃ£y kiá»ƒm tra náº¿u Ä‘Ã¢y lÃ  á»©ng dá»¥ng bá»‹ quáº£n lÃ½.';
 
   @override
-  String get notificationsRemovedViewAppsButton => 'Xem danh sách ứng dụng';
+  String get notificationsRemovedViewAppsButton => 'Xem danh sÃ¡ch á»©ng dá»¥ng';
 
   @override
   String notificationsZoneDangerEnterDescription(
@@ -1646,7 +1646,7 @@ class AppLocalizationsVi extends AppLocalizations {
     String zoneName,
     String time,
   ) {
-    return 'Vị trí của $childName đã được ghi nhận tại $zoneName. Hệ thống ghi nhận bé đã vào vùng nguy hiểm lúc $time.';
+    return 'Vá»‹ trÃ­ cá»§a $childName Ä‘Ã£ Ä‘Æ°á»£c ghi nháº­n táº¡i $zoneName. Há»‡ thá»‘ng ghi nháº­n bÃ© Ä‘Ã£ vÃ o vÃ¹ng nguy hiá»ƒm lÃºc $time.';
   }
 
   @override
@@ -1655,7 +1655,7 @@ class AppLocalizationsVi extends AppLocalizations {
     String zoneName,
     String time,
   ) {
-    return 'Vị trí của $childName đã được ghi nhận tại $zoneName. Hệ thống ghi nhận bé đã rời vùng an toàn lúc $time.';
+    return 'Vá»‹ trÃ­ cá»§a $childName Ä‘Ã£ Ä‘Æ°á»£c ghi nháº­n táº¡i $zoneName. Há»‡ thá»‘ng ghi nháº­n bÃ© Ä‘Ã£ rá»i vÃ¹ng an toÃ n lÃºc $time.';
   }
 
   @override
@@ -1664,7 +1664,7 @@ class AppLocalizationsVi extends AppLocalizations {
     String zoneName,
     String time,
   ) {
-    return 'Vị trí của $childName đã được ghi nhận tại $zoneName. Hệ thống ghi nhận bé đã rời vùng nguy hiểm lúc $time.';
+    return 'Vá»‹ trÃ­ cá»§a $childName Ä‘Ã£ Ä‘Æ°á»£c ghi nháº­n táº¡i $zoneName. Há»‡ thá»‘ng ghi nháº­n bÃ© Ä‘Ã£ rá»i vÃ¹ng nguy hiá»ƒm lÃºc $time.';
   }
 
   @override
@@ -1672,55 +1672,55 @@ class AppLocalizationsVi extends AppLocalizations {
     String childName,
     String zoneName,
   ) {
-    return 'Vị trí của $childName đã được cập nhật tại $zoneName.';
+    return 'Vá»‹ trÃ­ cá»§a $childName Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t táº¡i $zoneName.';
   }
 
   @override
-  String get notificationsZoneViewOnMainMapButton => 'Xem trên bản đồ chính';
+  String get notificationsZoneViewOnMainMapButton => 'Xem trÃªn báº£n Ä‘á»“ chÃ­nh';
 
   @override
-  String get notificationsContactNowButton => 'Liên hệ ngay';
+  String get notificationsContactNowButton => 'LiÃªn há»‡ ngay';
 
   @override
-  String get notificationsLocalChannelName => 'Mặc định';
+  String get notificationsLocalChannelName => 'Máº·c Ä‘á»‹nh';
 
   @override
-  String get notificationsLocalChannelDescription => 'Thông báo mặc định';
+  String get notificationsLocalChannelDescription => 'ThÃ´ng bÃ¡o máº·c Ä‘á»‹nh';
 
   @override
-  String get notificationsDefaultTitle => 'Thông báo';
+  String get notificationsDefaultTitle => 'ThÃ´ng bÃ¡o';
 
   @override
-  String get notificationsDefaultBody => 'Bạn có thông báo mới';
+  String get notificationsDefaultBody => 'Báº¡n cÃ³ thÃ´ng bÃ¡o má»›i';
 
   @override
-  String get notificationsFamilyChatTitle => 'Tin nhắn gia đình';
+  String get notificationsFamilyChatTitle => 'Tin nháº¯n gia Ä‘Ã¬nh';
 
   @override
-  String get notificationsFamilyChatBody => 'Bạn có tin nhắn mới';
+  String get notificationsFamilyChatBody => 'Báº¡n cÃ³ tin nháº¯n má»›i';
 
   @override
-  String get notificationsFamilyEventTitle => 'Sự kiện gia đình';
+  String get notificationsFamilyEventTitle => 'Sá»± kiá»‡n gia Ä‘Ã¬nh';
 
   @override
-  String get notificationsFamilyEventBody => 'Gia đình bạn có sự kiện mới';
+  String get notificationsFamilyEventBody => 'Gia Ä‘Ã¬nh báº¡n cÃ³ sá»± kiá»‡n má»›i';
 
   @override
-  String get notificationsBirthdayTitle => 'Sinh nhật';
+  String get notificationsBirthdayTitle => 'Sinh nháº­t';
 
   @override
   String notificationsBirthdayUpcomingBody(String name) {
-    return 'Sắp tới sinh nhật của $name!';
+    return 'Sáº¯p tá»›i sinh nháº­t cá»§a $name!';
   }
 
   @override
   String notificationsBirthdayTodayBody(String name) {
-    return 'Hôm nay là sinh nhật của $name!';
+    return 'HÃ´m nay lÃ  sinh nháº­t cá»§a $name!';
   }
 
   @override
   String get notificationsTrackingDefaultBody =>
-      'Trạng thái định vị đã thay đổi.';
+      'Tráº¡ng thÃ¡i Ä‘á»‹nh vá»‹ Ä‘Ã£ thay Ä‘á»•i.';
 
   @override
   String scheduleOverlapConflictMessage(
@@ -1728,39 +1728,39 @@ class AppLocalizationsVi extends AppLocalizations {
     String start,
     String end,
   ) {
-    return 'Trùng với lịch \"$title\" ($start - $end). Vui lòng chọn giờ khác.';
+    return 'TrÃ¹ng vá»›i lá»‹ch \"$title\" ($start - $end). Vui lÃ²ng chá»n giá» khÃ¡c.';
   }
 
   @override
-  String get scheduleExportErrorCreateExcelFile => 'Không tạo được file Excel';
+  String get scheduleExportErrorCreateExcelFile => 'KhÃ´ng táº¡o Ä‘Æ°á»£c file Excel';
 
   @override
-  String get scheduleImportTemplateSampleTitle1 => 'Học Toán';
+  String get scheduleImportTemplateSampleTitle1 => 'Há»c ToÃ¡n';
 
   @override
-  String get scheduleImportTemplateSampleDescription1 => 'Làm bài 1-5';
+  String get scheduleImportTemplateSampleDescription1 => 'LÃ m bÃ i 1-5';
 
   @override
-  String get scheduleImportTemplateSampleTitle2 => 'Đá bóng';
+  String get scheduleImportTemplateSampleTitle2 => 'ÄÃ¡ bÃ³ng';
 
   @override
   String get scheduleImportErrorCreateExcelBytes =>
-      'Không tạo được dữ liệu Excel';
+      'KhÃ´ng táº¡o Ä‘Æ°á»£c dá»¯ liá»‡u Excel';
 
   @override
-  String get scheduleImportErrorMissingTitle => 'Thiếu title';
+  String get scheduleImportErrorMissingTitle => 'Thiáº¿u title';
 
   @override
   String get scheduleImportErrorEndAfterStart =>
-      'Giờ kết thúc phải lớn hơn giờ bắt đầu';
+      'Giá» káº¿t thÃºc pháº£i lá»›n hÆ¡n giá» báº¯t Ä‘áº§u';
 
   @override
   String scheduleImportWarningDbCheckFailed(String error) {
-    return 'Không kiểm tra trùng DB do lỗi mạng: $error';
+    return 'KhÃ´ng kiá»ƒm tra trÃ¹ng DB do lá»—i máº¡ng: $error';
   }
 
   @override
-  String get scheduleImportErrorMissingDate => 'Thiếu date';
+  String get scheduleImportErrorMissingDate => 'Thiáº¿u date';
 
   @override
   String scheduleImportErrorInvalidDate(String raw) {
@@ -1769,31 +1769,31 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String scheduleImportErrorInvalidDateSupported(String raw) {
-    return 'Sai date: \"$raw\" (hỗ trợ: yyyy-MM-dd, dd/MM/yyyy, MM/dd/yyyy, ISO datetime)';
+    return 'Sai date: \"$raw\" (há»— trá»£: yyyy-MM-dd, dd/MM/yyyy, MM/dd/yyyy, ISO datetime)';
   }
 
   @override
-  String get scheduleImportErrorMissingTime => 'Thiếu time';
+  String get scheduleImportErrorMissingTime => 'Thiáº¿u time';
 
   @override
   String scheduleImportErrorInvalidTimeSupported(String raw) {
-    return 'Sai time: \"$raw\" (hỗ trợ: HH:mm, HH:mm:ss, 7:00 AM/PM)';
+    return 'Sai time: \"$raw\" (há»— trá»£: HH:mm, HH:mm:ss, 7:00 AM/PM)';
   }
 
   @override
-  String get scheduleNotifyTitleCreated => 'Lịch trình mới';
+  String get scheduleNotifyTitleCreated => 'Lá»‹ch trÃ¬nh má»›i';
 
   @override
-  String get scheduleNotifyTitleUpdated => 'Lịch trình đã thay đổi';
+  String get scheduleNotifyTitleUpdated => 'Lá»‹ch trÃ¬nh Ä‘Ã£ thay Ä‘á»•i';
 
   @override
-  String get scheduleNotifyTitleDeleted => 'Lịch trình đã bị xóa';
+  String get scheduleNotifyTitleDeleted => 'Lá»‹ch trÃ¬nh Ä‘Ã£ bá»‹ xÃ³a';
 
   @override
-  String get scheduleNotifyTitleRestored => 'Lịch trình đã được khôi phục';
+  String get scheduleNotifyTitleRestored => 'Lá»‹ch trÃ¬nh Ä‘Ã£ Ä‘Æ°á»£c khÃ´i phá»¥c';
 
   @override
-  String get scheduleNotifyTitleChanged => 'Lịch trình có thay đổi';
+  String get scheduleNotifyTitleChanged => 'Lá»‹ch trÃ¬nh cÃ³ thay Ä‘á»•i';
 
   @override
   String scheduleNotifyBodyParentCreated(
@@ -1802,27 +1802,27 @@ class AppLocalizationsVi extends AppLocalizations {
     String date,
     String time,
   ) {
-    return 'Cha đã thêm lịch \"$title\" cho $childName vào $date, $time.';
+    return 'Cha Ä‘Ã£ thÃªm lá»‹ch \"$title\" cho $childName vÃ o $date, $time.';
   }
 
   @override
   String scheduleNotifyBodyParentUpdated(String title, String childName) {
-    return 'Cha đã chỉnh sửa lịch \"$title\" của $childName.';
+    return 'Cha Ä‘Ã£ chá»‰nh sá»­a lá»‹ch \"$title\" cá»§a $childName.';
   }
 
   @override
   String scheduleNotifyBodyParentDeleted(String title, String childName) {
-    return 'Cha đã xóa lịch \"$title\" của $childName.';
+    return 'Cha Ä‘Ã£ xÃ³a lá»‹ch \"$title\" cá»§a $childName.';
   }
 
   @override
   String scheduleNotifyBodyParentRestored(String title, String childName) {
-    return 'Cha đã khôi phục một phiên bản cũ của lịch \"$title\" của $childName.';
+    return 'Cha Ä‘Ã£ khÃ´i phá»¥c má»™t phiÃªn báº£n cÅ© cá»§a lá»‹ch \"$title\" cá»§a $childName.';
   }
 
   @override
   String scheduleNotifyBodyParentChanged(String title, String childName) {
-    return 'Cha đã thay đổi lịch \"$title\" của $childName.';
+    return 'Cha Ä‘Ã£ thay Ä‘á»•i lá»‹ch \"$title\" cá»§a $childName.';
   }
 
   @override
@@ -1832,47 +1832,47 @@ class AppLocalizationsVi extends AppLocalizations {
     String date,
     String time,
   ) {
-    return '$childName đã thêm lịch \"$title\" vào $date, $time.';
+    return '$childName Ä‘Ã£ thÃªm lá»‹ch \"$title\" vÃ o $date, $time.';
   }
 
   @override
   String scheduleNotifyBodyChildUpdated(String childName, String title) {
-    return '$childName đã chỉnh sửa lịch \"$title\".';
+    return '$childName Ä‘Ã£ chá»‰nh sá»­a lá»‹ch \"$title\".';
   }
 
   @override
   String scheduleNotifyBodyChildDeleted(String childName, String title) {
-    return '$childName đã xóa lịch \"$title\".';
+    return '$childName Ä‘Ã£ xÃ³a lá»‹ch \"$title\".';
   }
 
   @override
   String scheduleNotifyBodyChildRestored(String childName, String title) {
-    return '$childName đã khôi phục lịch sử sửa của lịch \"$title\".';
+    return '$childName Ä‘Ã£ khÃ´i phá»¥c lá»‹ch sá»­ sá»­a cá»§a lá»‹ch \"$title\".';
   }
 
   @override
   String scheduleNotifyBodyChildChanged(String childName, String title) {
-    return '$childName đã thay đổi lịch \"$title\".';
+    return '$childName Ä‘Ã£ thay Ä‘á»•i lá»‹ch \"$title\".';
   }
 
   @override
-  String get memoryDayNotifyTitleCreated => 'Ngày đáng nhớ mới';
+  String get memoryDayNotifyTitleCreated => 'NgÃ y Ä‘Ã¡ng nhá»› má»›i';
 
   @override
-  String get memoryDayNotifyTitleUpdated => 'Ngày đáng nhớ đã thay đổi';
+  String get memoryDayNotifyTitleUpdated => 'NgÃ y Ä‘Ã¡ng nhá»› Ä‘Ã£ thay Ä‘á»•i';
 
   @override
-  String get memoryDayNotifyTitleDeleted => 'Ngày đáng nhớ đã bị xóa';
+  String get memoryDayNotifyTitleDeleted => 'NgÃ y Ä‘Ã¡ng nhá»› Ä‘Ã£ bá»‹ xÃ³a';
 
   @override
-  String get memoryDayNotifyTitleChanged => 'Ngày đáng nhớ có thay đổi';
+  String get memoryDayNotifyTitleChanged => 'NgÃ y Ä‘Ã¡ng nhá»› cÃ³ thay Ä‘á»•i';
 
   @override
-  String get memoryDayNotifyTitleReminder => 'Sắp đến ngày đáng nhớ';
+  String get memoryDayNotifyTitleReminder => 'Sáº¯p Ä‘áº¿n ngÃ y Ä‘Ã¡ng nhá»›';
 
   @override
   String memoryDayNotifyBodyReminderTomorrow(String title, String date) {
-    return 'Ngày mai là \"$title\" ($date).';
+    return 'NgÃ y mai lÃ  \"$title\" ($date).';
   }
 
   @override
@@ -1881,119 +1881,119 @@ class AppLocalizationsVi extends AppLocalizations {
     int days,
     String date,
   ) {
-    return 'Còn $days ngày đến \"$title\" ($date).';
+    return 'CÃ²n $days ngÃ y Ä‘áº¿n \"$title\" ($date).';
   }
 
   @override
   String memoryDayNotifyBodyParentCreated(String title) {
-    return 'Cha đã thêm ngày đáng nhớ \"$title\".';
+    return 'Cha Ä‘Ã£ thÃªm ngÃ y Ä‘Ã¡ng nhá»› \"$title\".';
   }
 
   @override
   String memoryDayNotifyBodyParentUpdated(String title) {
-    return 'Cha đã chỉnh sửa ngày đáng nhớ \"$title\".';
+    return 'Cha Ä‘Ã£ chá»‰nh sá»­a ngÃ y Ä‘Ã¡ng nhá»› \"$title\".';
   }
 
   @override
   String memoryDayNotifyBodyParentDeleted(String title) {
-    return 'Cha đã xóa ngày đáng nhớ \"$title\".';
+    return 'Cha Ä‘Ã£ xÃ³a ngÃ y Ä‘Ã¡ng nhá»› \"$title\".';
   }
 
   @override
   String memoryDayNotifyBodyParentChanged(String title) {
-    return 'Cha đã thay đổi ngày đáng nhớ \"$title\".';
+    return 'Cha Ä‘Ã£ thay Ä‘á»•i ngÃ y Ä‘Ã¡ng nhá»› \"$title\".';
   }
 
   @override
   String memoryDayNotifyBodyChildCreated(String actorChildName, String title) {
-    return '$actorChildName đã thêm ngày đáng nhớ \"$title\".';
+    return '$actorChildName Ä‘Ã£ thÃªm ngÃ y Ä‘Ã¡ng nhá»› \"$title\".';
   }
 
   @override
   String memoryDayNotifyBodyChildUpdated(String actorChildName, String title) {
-    return '$actorChildName đã chỉnh sửa ngày đáng nhớ \"$title\".';
+    return '$actorChildName Ä‘Ã£ chá»‰nh sá»­a ngÃ y Ä‘Ã¡ng nhá»› \"$title\".';
   }
 
   @override
   String memoryDayNotifyBodyChildDeleted(String actorChildName, String title) {
-    return '$actorChildName đã xóa ngày đáng nhớ \"$title\".';
+    return '$actorChildName Ä‘Ã£ xÃ³a ngÃ y Ä‘Ã¡ng nhá»› \"$title\".';
   }
 
   @override
   String memoryDayNotifyBodyChildChanged(String actorChildName, String title) {
-    return '$actorChildName đã thay đổi ngày đáng nhớ \"$title\".';
+    return '$actorChildName Ä‘Ã£ thay Ä‘á»•i ngÃ y Ä‘Ã¡ng nhá»› \"$title\".';
   }
 
   @override
-  String get scheduleImportNotifyTitle => 'Lịch trình mới được thêm';
+  String get scheduleImportNotifyTitle => 'Lá»‹ch trÃ¬nh má»›i Ä‘Æ°á»£c thÃªm';
 
   @override
   String scheduleImportNotifyBodyParent(int importCount, String childName) {
-    return 'Cha vừa thêm $importCount lịch cho $childName.';
+    return 'Cha vá»«a thÃªm $importCount lá»‹ch cho $childName.';
   }
 
   @override
   String scheduleImportNotifyBodyChild(String actorChildName, int importCount) {
-    return '$actorChildName vừa thêm $importCount lịch.';
+    return '$actorChildName vá»«a thÃªm $importCount lá»‹ch.';
   }
 
   @override
-  String get parentDashboardTitle => 'Bảng điều khiển';
+  String get parentDashboardTitle => 'Báº£ng Ä‘iá»u khiá»ƒn';
 
   @override
-  String get parentDashboardTabApps => 'Ứng dụng';
+  String get parentDashboardTabApps => 'á»¨ng dá»¥ng';
 
   @override
-  String get parentDashboardTabStatistics => 'Thống kê';
+  String get parentDashboardTabStatistics => 'Thá»‘ng kÃª';
 
   @override
   String get parentDashboardNoDeviceTitle =>
-      'Chưa có thiết bị nào được liên kết';
+      'ChÆ°a cÃ³ thiáº¿t bá»‹ nÃ o Ä‘Æ°á»£c liÃªn káº¿t';
 
   @override
   String get parentDashboardNoDeviceSubtitle =>
-      'Để theo dõi thời gian sử dụng ứng dụng, bạn cần thêm thiết bị của con vào hệ thống.';
+      'Äá»ƒ theo dÃµi thá»i gian sá»­ dá»¥ng á»©ng dá»¥ng, báº¡n cáº§n thÃªm thiáº¿t bá»‹ cá»§a con vÃ o há»‡ thá»‘ng.';
 
   @override
-  String get parentDashboardAddDeviceButton => 'Thêm con';
+  String get parentDashboardAddDeviceButton => 'ThÃªm con';
 
   @override
-  String get parentDashboardHowItWorksButton => 'Tìm hiểu cách hoạt động';
+  String get parentDashboardHowItWorksButton => 'TÃ¬m hiá»ƒu cÃ¡ch hoáº¡t Ä‘á»™ng';
 
   @override
-  String get parentStatsTotalToday => 'TỔNG THỜI GIAN HÔM NAY';
+  String get parentStatsTotalToday => 'Tá»”NG THá»œI GIAN HÃ”M NAY';
 
   @override
-  String get parentStatsTotalThisWeek => 'TỔNG THỜI GIAN TUẦN NÀY';
+  String get parentStatsTotalThisWeek => 'Tá»”NG THá»œI GIAN TUáº¦N NÃ€Y';
 
   @override
-  String get parentStatsSelectRange => 'CHỌN KHOẢNG NGÀY';
+  String get parentStatsSelectRange => 'CHá»ŒN KHOáº¢NG NGÃ€Y';
 
   @override
-  String get parentStatsSelectEndDate => 'CHỌN NGÀY KẾT THÚC';
+  String get parentStatsSelectEndDate => 'CHá»ŒN NGÃ€Y Káº¾T THÃšC';
 
   @override
   String parentStatsTotalFromRange(String startDate, String endDate) {
-    return 'TỔNG THỜI GIAN TỪ $startDate - $endDate';
+    return 'Tá»”NG THá»œI GIAN Tá»ª $startDate - $endDate';
   }
 
   @override
-  String get parentStatsSegmentDay => 'Ngày';
+  String get parentStatsSegmentDay => 'NgÃ y';
 
   @override
-  String get parentStatsSegmentWeek => 'Tuần';
+  String get parentStatsSegmentWeek => 'Tuáº§n';
 
   @override
-  String get parentStatsSegmentRange => 'Thêm';
+  String get parentStatsSegmentRange => 'ThÃªm';
 
   @override
-  String get parentStatsAppDetailsTitle => 'Chi tiết ứng dụng';
+  String get parentStatsAppDetailsTitle => 'Chi tiáº¿t á»©ng dá»¥ng';
 
   @override
-  String get parentStatsCollapse => 'THU GỌN';
+  String get parentStatsCollapse => 'THU Gá»ŒN';
 
   @override
-  String get parentStatsViewAll => 'XEM TẤT CẢ';
+  String get parentStatsViewAll => 'XEM Táº¤T Cáº¢';
 
   @override
   String get parentStatsDurationZero => '0p';
@@ -2019,1128 +2019,1128 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get parentUsageNoAvailableSlot => 'Không còn khoảng thời gian trống';
+  String get parentUsageNoAvailableSlot => 'KhÃ´ng cÃ²n khoáº£ng thá»i gian trá»‘ng';
 
   @override
   String get parentUsageStartBeforeEnd =>
-      'Giờ bắt đầu phải nhỏ hơn giờ kết thúc';
+      'Giá» báº¯t Ä‘áº§u pháº£i nhá» hÆ¡n giá» káº¿t thÃºc';
 
   @override
   String get parentUsageOverlapTimeRange =>
-      'Khoảng thời gian bị trùng với mốc khác';
+      'Khoáº£ng thá»i gian bá»‹ trÃ¹ng vá»›i má»‘c khÃ¡c';
 
   @override
   String get parentUsageEndAfterStart =>
-      'Giờ kết thúc phải lớn hơn giờ bắt đầu';
+      'Giá» káº¿t thÃºc pháº£i lá»›n hÆ¡n giá» báº¯t Ä‘áº§u';
 
   @override
-  String get parentUsageEditTitle => 'Cài đặt thời gian sử dụng';
+  String get parentUsageEditTitle => 'CÃ i Ä‘áº·t thá»i gian sá»­ dá»¥ng';
 
   @override
-  String get parentUsageEnableUsage => 'Cho phép sử dụng';
+  String get parentUsageEnableUsage => 'Cho phÃ©p sá»­ dá»¥ng';
 
   @override
-  String get parentUsageSelectAllowedDays => 'Chọn ngày được phép';
+  String get parentUsageSelectAllowedDays => 'Chá»n ngÃ y Ä‘Æ°á»£c phÃ©p';
 
   @override
-  String get saveButton => 'Lưu';
+  String get saveButton => 'LÆ°u';
 
   @override
-  String get parentUsageDayRuleModalHint => 'Chọn quy tắc cho ngày này';
+  String get parentUsageDayRuleModalHint => 'Chá»n quy táº¯c cho ngÃ y nÃ y';
 
   @override
-  String get parentUsageRuleFollowScheduleTitle => 'Theo lịch đã đặt';
+  String get parentUsageRuleFollowScheduleTitle => 'Theo lá»‹ch Ä‘Ã£ Ä‘áº·t';
 
   @override
   String get parentUsageRuleFollowScheduleSubtitle =>
-      'Áp dụng khung giờ hàng tuần';
+      'Ãp dá»¥ng khung giá» hÃ ng tuáº§n';
 
   @override
-  String get parentUsageRuleAllowAllDayTitle => 'Cho phép cả ngày';
+  String get parentUsageRuleAllowAllDayTitle => 'Cho phÃ©p cáº£ ngÃ y';
 
   @override
   String get parentUsageRuleAllowAllDaySubtitle =>
-      'Có thể sử dụng bất cứ lúc nào';
+      'CÃ³ thá»ƒ sá»­ dá»¥ng báº¥t cá»© lÃºc nÃ o';
 
   @override
-  String get parentUsageRuleBlockAllDayTitle => 'Chặn cả ngày';
+  String get parentUsageRuleBlockAllDayTitle => 'Cháº·n cáº£ ngÃ y';
 
   @override
-  String get parentUsageRuleBlockAllDaySubtitle => 'Không được sử dụng hôm nay';
+  String get parentUsageRuleBlockAllDaySubtitle => 'KhÃ´ng Ä‘Æ°á»£c sá»­ dá»¥ng hÃ´m nay';
 
   @override
-  String get zonesDeleteConfirmTitle => 'Xác nhận xoá';
+  String get zonesDeleteConfirmTitle => 'XÃ¡c nháº­n xoÃ¡';
 
   @override
   String get zonesDeleteConfirmMessage =>
-      'Bạn có chắc muốn xoá địa điểm này không?';
+      'Báº¡n cÃ³ cháº¯c muá»‘n xoÃ¡ Ä‘á»‹a Ä‘iá»ƒm nÃ y khÃ´ng?';
 
   @override
-  String get zonesDeleteButton => 'Xoá';
+  String get zonesDeleteButton => 'XoÃ¡';
 
   @override
-  String get zonesCreateSuccessTitle => 'Tạo thành công';
+  String get zonesCreateSuccessTitle => 'Táº¡o thÃ nh cÃ´ng';
 
   @override
   String zonesCreateSuccessMessage(String name) {
-    return 'Địa điểm \"$name\" đã được tạo';
+    return 'Äá»‹a Ä‘iá»ƒm \"$name\" Ä‘Ã£ Ä‘Æ°á»£c táº¡o';
   }
 
   @override
-  String get zonesFailedTitle => 'Thất bại';
+  String get zonesFailedTitle => 'Tháº¥t báº¡i';
 
   @override
   String get zonesCreateFailedMessage =>
-      'Không thể tạo địa điểm, vui lòng thử lại';
+      'KhÃ´ng thá»ƒ táº¡o Ä‘á»‹a Ä‘iá»ƒm, vui lÃ²ng thá»­ láº¡i';
 
   @override
-  String get zonesEditSuccessTitle => 'Chỉnh sửa thành công';
+  String get zonesEditSuccessTitle => 'Chá»‰nh sá»­a thÃ nh cÃ´ng';
 
   @override
-  String get zonesEditSuccessMessage => 'Địa điểm đã được cập nhật';
+  String get zonesEditSuccessMessage => 'Äá»‹a Ä‘iá»ƒm Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t';
 
   @override
   String get zonesEditFailedMessage =>
-      'Không thể cập nhật địa điểm, vui lòng thử lại';
+      'KhÃ´ng thá»ƒ cáº­p nháº­t Ä‘á»‹a Ä‘iá»ƒm, vui lÃ²ng thá»­ láº¡i';
 
   @override
-  String get zonesDeleteSuccessTitle => 'Xoá thành công';
+  String get zonesDeleteSuccessTitle => 'XoÃ¡ thÃ nh cÃ´ng';
 
   @override
-  String get zonesDeleteSuccessMessage => 'Địa điểm đã được xoá';
+  String get zonesDeleteSuccessMessage => 'Äá»‹a Ä‘iá»ƒm Ä‘Ã£ Ä‘Æ°á»£c xoÃ¡';
 
   @override
   String get zonesDeleteFailedMessage =>
-      'Không thể xoá địa điểm, vui lòng thử lại';
+      'KhÃ´ng thá»ƒ xoÃ¡ Ä‘á»‹a Ä‘iá»ƒm, vui lÃ²ng thá»­ láº¡i';
 
   @override
-  String get zonesEmptyTitle => 'Chưa có vùng nào';
+  String get zonesEmptyTitle => 'ChÆ°a cÃ³ vÃ¹ng nÃ o';
 
   @override
   String get zonesEmptySubtitle =>
-      'Thêm vùng để bắt đầu theo dõi vị trí của bé';
+      'ThÃªm vÃ¹ng Ä‘á»ƒ báº¯t Ä‘áº§u theo dÃµi vá»‹ trÃ­ cá»§a bÃ©';
 
   @override
-  String get zonesTypeSafe => 'An toàn';
+  String get zonesTypeSafe => 'An toÃ n';
 
   @override
-  String get zonesTypeDanger => 'Nguy hiểm';
+  String get zonesTypeDanger => 'Nguy hiá»ƒm';
 
   @override
-  String get zonesEditMenu => 'Sửa';
+  String get zonesEditMenu => 'Sá»­a';
 
   @override
-  String get zonesDeleteMenu => 'Xoá';
+  String get zonesDeleteMenu => 'XoÃ¡';
 
   @override
-  String get zonesScreenTitle => 'Vùng của bé';
+  String get zonesScreenTitle => 'VÃ¹ng cá»§a bÃ©';
 
   @override
-  String get zonesAddButton => 'Thêm vùng';
+  String get zonesAddButton => 'ThÃªm vÃ¹ng';
 
   @override
   String zonesErrorWithMessage(String error) {
-    return 'Lỗi: $error';
+    return 'Lá»—i: $error';
   }
 
   @override
-  String get zonesNewZoneDefaultName => 'Vùng mới';
+  String get zonesNewZoneDefaultName => 'VÃ¹ng má»›i';
 
   @override
-  String get zonesEditTitle => 'Chỉnh sửa vùng';
+  String get zonesEditTitle => 'Chá»‰nh sá»­a vÃ¹ng';
 
   @override
-  String get zonesAddAddressTitle => 'Địa chỉ của địa điểm';
+  String get zonesAddAddressTitle => 'Äá»‹a chá»‰ cá»§a Ä‘á»‹a Ä‘iá»ƒm';
 
   @override
-  String get zonesOverlapWarningText => 'Các địa điểm không nên chồng chéo';
+  String get zonesOverlapWarningText => 'CÃ¡c Ä‘á»‹a Ä‘iá»ƒm khÃ´ng nÃªn chá»“ng chÃ©o';
 
   @override
-  String get zonesNameFieldLabel => 'Tên vùng';
+  String get zonesNameFieldLabel => 'TÃªn vÃ¹ng';
 
   @override
-  String get zonesTypeFieldLabel => 'Loại vùng';
+  String get zonesTypeFieldLabel => 'Loáº¡i vÃ¹ng';
 
   @override
-  String get zonesRadiusLabel => 'Bán kính';
+  String get zonesRadiusLabel => 'BÃ¡n kÃ­nh';
 
   @override
-  String get zonesOverlappingPrefix => 'Đang chồng lên: ';
+  String get zonesOverlappingPrefix => 'Äang chá»“ng lÃªn: ';
 
   @override
   String zonesOverlappingWith(String name) {
-    return 'Đang chồng lên: $name';
+    return 'Äang chá»“ng lÃªn: $name';
   }
 
   @override
-  String get zonesDefaultNameFallback => 'Vùng';
+  String get zonesDefaultNameFallback => 'VÃ¹ng';
 
   @override
-  String get parentLocationUnknownUser => 'Không rõ';
+  String get parentLocationUnknownUser => 'KhÃ´ng rÃµ';
 
   @override
-  String get parentLocationSosSent => 'Đã gửi SOS';
+  String get parentLocationSosSent => 'ÄÃ£ gá»­i SOS';
 
   @override
-  String get parentLocationSosFailed => 'Gửi SOS thất bại';
+  String get parentLocationSosFailed => 'Gá»­i SOS tháº¥t báº¡i';
 
   @override
-  String get parentLocationMapLoadingTitle => 'Đang tải bản đồ';
+  String get parentLocationMapLoadingTitle => 'Äang táº£i báº£n Ä‘á»“';
 
   @override
   String get parentLocationMapLoadingSubtitle =>
-      'Đang chuẩn bị vị trí của các bé';
+      'Äang chuáº©n bá»‹ vá»‹ trÃ­ cá»§a cÃ¡c bÃ©';
 
   @override
-  String get parentChildrenListTitle => 'Danh sách thành viên';
+  String get parentChildrenListTitle => 'Danh sÃ¡ch thÃ nh viÃªn';
 
   @override
-  String get personalInfoManageAccountsTitle => 'Quản lý tài khoản';
+  String get personalInfoManageAccountsTitle => 'Quáº£n lÃ½ tÃ i khoáº£n';
 
   @override
   String get personalInfoManageAccountsSubtitle =>
-      'Quản lý tài khoản của thành viên';
+      'Quáº£n lÃ½ tÃ i khoáº£n cá»§a thÃ nh viÃªn';
 
   @override
-  String get personalInfoDetailsButton => 'Chi tiết';
+  String get personalInfoDetailsButton => 'Chi tiáº¿t';
 
   @override
-  String get childLocationTransportWalking => 'Đi bộ';
+  String get childLocationTransportWalking => 'Äi bá»™';
 
   @override
-  String get childLocationTransportBicycle => 'Xe đạp';
+  String get childLocationTransportBicycle => 'Xe Ä‘áº¡p';
 
   @override
-  String get childLocationTransportVehicle => 'Đi xe';
+  String get childLocationTransportVehicle => 'Äi xe';
 
   @override
-  String get childLocationTransportStill => 'Đứng yên';
+  String get childLocationTransportStill => 'Äá»©ng yÃªn';
 
   @override
-  String get childLocationTransportUnknown => 'Không rõ';
+  String get childLocationTransportUnknown => 'KhÃ´ng rÃµ';
 
   @override
-  String get childLocationDetailTitle => 'Chi tiết vị trí';
+  String get childLocationDetailTitle => 'Chi tiáº¿t vá»‹ trÃ­';
 
   @override
   String childLocationStatusTitle(String transport) {
-    return 'Trạng thái: $transport';
+    return 'Tráº¡ng thÃ¡i: $transport';
   }
 
   @override
   String childLocationHistoryTitle(String date) {
-    return 'Lịch sử • $date';
+    return 'Lá»‹ch sá»­ â€¢ $date';
   }
 
   @override
-  String get childLocationTooltipHideDots => 'Ẩn điểm';
+  String get childLocationTooltipHideDots => 'áº¨n Ä‘iá»ƒm';
 
   @override
-  String get childLocationTooltipShowDots => 'Hiện điểm';
+  String get childLocationTooltipShowDots => 'Hiá»‡n Ä‘iá»ƒm';
 
   @override
-  String get childLocationHistoryButton => 'Lịch sử';
+  String get childLocationHistoryButton => 'Lá»‹ch sá»­';
 
   @override
-  String get childLocationZonesButton => 'Vùng';
+  String get childLocationZonesButton => 'VÃ¹ng';
 
   @override
-  String get zone_default => 'Thông báo hehehe';
+  String get zone_default => 'ThÃ´ng bÃ¡o hehehe';
 
   @override
-  String get zone_enter_danger_parent => '⚠️ Bé vào vùng nguy hiểm';
+  String get zone_enter_danger_parent => 'âš ï¸ BÃ© vÃ o vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get zone_exit_danger_parent => '✅ Bé rời vùng nguy hiểm';
+  String get zone_exit_danger_parent => 'âœ… BÃ© rá»i vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get zone_enter_safe_parent => '✅ Bé vào vùng an toàn';
+  String get zone_enter_safe_parent => 'âœ… BÃ© vÃ o vÃ¹ng an toÃ n';
 
   @override
-  String get zone_exit_safe_parent => 'ℹ️ Bé rời vùng an toàn';
+  String get zone_exit_safe_parent => 'â„¹ï¸ BÃ© rá»i vÃ¹ng an toÃ n';
 
   @override
-  String get zone_enter_danger_child => '⚠️ Bạn đang vào vùng nguy hiểm';
+  String get zone_enter_danger_child => 'âš ï¸ Báº¡n Ä‘ang vÃ o vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get zone_exit_danger_child => '✅ Bạn đã ra khỏi vùng nguy hiểm';
+  String get zone_exit_danger_child => 'âœ… Báº¡n Ä‘Ã£ ra khá»i vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get zone_enter_safe_child => '✅ Bạn đang vào vùng an toàn';
+  String get zone_enter_safe_child => 'âœ… Báº¡n Ä‘ang vÃ o vÃ¹ng an toÃ n';
 
   @override
-  String get zone_exit_safe_child => 'ℹ️ Bạn đã ra khỏi vùng an toàn';
+  String get zone_exit_safe_child => 'â„¹ï¸ Báº¡n Ä‘Ã£ ra khá»i vÃ¹ng an toÃ n';
 
   @override
-  String get tracking_location_service_off_parent_title => 'Con đã tắt định vị';
+  String get tracking_location_service_off_parent_title => 'Con Ä‘Ã£ táº¯t Ä‘á»‹nh vá»‹';
 
   @override
   String get tracking_location_permission_denied_parent_title =>
-      'Con đã tắt quyền vị trí';
+      'Con Ä‘Ã£ táº¯t quyá»n vá»‹ trÃ­';
 
   @override
   String get tracking_background_disabled_parent_title =>
-      'Định vị nền đã bị tắt';
+      'Äá»‹nh vá»‹ ná»n Ä‘Ã£ bá»‹ táº¯t';
 
   @override
   String get tracking_location_stale_parent_title =>
-      'Không nhận được vị trí mới';
+      'KhÃ´ng nháº­n Ä‘Æ°á»£c vá»‹ trÃ­ má»›i';
 
   @override
-  String get tracking_ok_parent_title => 'Định vị đã hoạt động lại';
+  String get tracking_ok_parent_title => 'Äá»‹nh vá»‹ Ä‘Ã£ hoáº¡t Ä‘á»™ng láº¡i';
 
   @override
   String tracking_location_service_off_parent_body(String childName) {
-    return '$childName vừa tắt GPS hoặc vị trí trên thiết bị.';
+    return '$childName vá»«a táº¯t GPS hoáº·c vá»‹ trÃ­ trÃªn thiáº¿t bá»‹.';
   }
 
   @override
   String tracking_location_permission_denied_parent_body(String childName) {
-    return '$childName đã tắt quyền truy cập vị trí của ứng dụng.';
+    return '$childName Ä‘Ã£ táº¯t quyá»n truy cáº­p vá»‹ trÃ­ cá»§a á»©ng dá»¥ng.';
   }
 
   @override
   String tracking_background_disabled_parent_body(String childName) {
-    return '$childName đã tắt chia sẻ vị trí nền.';
+    return '$childName Ä‘Ã£ táº¯t chia sáº» vá»‹ trÃ­ ná»n.';
   }
 
   @override
   String tracking_location_stale_parent_body(String childName) {
-    return '$childName chưa cập nhật vị trí trong hơn 2 phút.';
+    return '$childName chÆ°a cáº­p nháº­t vá»‹ trÃ­ trong hÆ¡n 2 phÃºt.';
   }
 
   @override
   String tracking_ok_parent_body(String childName) {
-    return '$childName đã bật lại định vị và vị trí đang cập nhật bình thường.';
+    return '$childName Ä‘Ã£ báº­t láº¡i Ä‘á»‹nh vá»‹ vÃ  vá»‹ trÃ­ Ä‘ang cáº­p nháº­t bÃ¬nh thÆ°á»ng.';
   }
 
   @override
-  String get tracking_location_service_off_child_title => 'Định vị đang tắt';
+  String get tracking_location_service_off_child_title => 'Äá»‹nh vá»‹ Ä‘ang táº¯t';
 
   @override
   String get tracking_location_permission_denied_child_title =>
-      'Quyền vị trí đang tắt';
+      'Quyá»n vá»‹ trÃ­ Ä‘ang táº¯t';
 
   @override
-  String get tracking_background_disabled_child_title => 'Định vị nền đang tắt';
+  String get tracking_background_disabled_child_title => 'Äá»‹nh vá»‹ ná»n Ä‘ang táº¯t';
 
   @override
-  String get tracking_location_stale_child_title => 'Vị trí chưa được cập nhật';
+  String get tracking_location_stale_child_title => 'Vá»‹ trÃ­ chÆ°a Ä‘Æ°á»£c cáº­p nháº­t';
 
   @override
-  String get tracking_ok_child_title => 'Định vị đã hoạt động lại';
+  String get tracking_ok_child_title => 'Äá»‹nh vá»‹ Ä‘Ã£ hoáº¡t Ä‘á»™ng láº¡i';
 
   @override
-  String get tracking_default_title => 'Thông báo định vị';
+  String get tracking_default_title => 'ThÃ´ng bÃ¡o Ä‘á»‹nh vá»‹';
 
   @override
-  String get sosChannelName => 'Cảnh báo SOS';
+  String get sosChannelName => 'Cáº£nh bÃ¡o SOS';
 
   @override
-  String get sosChannelDescription => 'Thông báo SOS khẩn cấp';
+  String get sosChannelDescription => 'ThÃ´ng bÃ¡o SOS kháº©n cáº¥p';
 
   @override
-  String get sosFallbackTitle => 'SOS khẩn cấp';
+  String get sosFallbackTitle => 'SOS kháº©n cáº¥p';
 
   @override
-  String get sosFallbackBody => 'Có thành viên đang cầu cứu.';
+  String get sosFallbackBody => 'CÃ³ thÃ nh viÃªn Ä‘ang cáº§u cá»©u.';
 
   @override
-  String get localAlarmDangerChannelName => 'Cảnh báo vùng nguy hiểm';
+  String get localAlarmDangerChannelName => 'Cáº£nh bÃ¡o vÃ¹ng nguy hiá»ƒm';
 
   @override
   String get localAlarmDangerChannelDescription =>
-      'Thông báo khi bé vào hoặc rời vùng nguy hiểm';
+      'ThÃ´ng bÃ¡o khi bÃ© vÃ o hoáº·c rá»i vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get localAlarmDangerEnterTitle => 'Cảnh báo vùng nguy hiểm';
+  String get localAlarmDangerEnterTitle => 'Cáº£nh bÃ¡o vÃ¹ng nguy hiá»ƒm';
 
   @override
   String localAlarmDangerEnterBody(String zoneName) {
-    return 'Bạn đã vào: $zoneName';
+    return 'Báº¡n Ä‘Ã£ vÃ o: $zoneName';
   }
 
   @override
-  String get localAlarmDangerExitTitle => 'Đã rời vùng nguy hiểm';
+  String get localAlarmDangerExitTitle => 'ÄÃ£ rá»i vÃ¹ng nguy hiá»ƒm';
 
   @override
   String localAlarmDangerExitBody(String zoneName) {
-    return 'Bạn đã rời: $zoneName';
+    return 'Báº¡n Ä‘Ã£ rá»i: $zoneName';
   }
 
   @override
   String get trackingStatusLocationServiceOffMessage =>
-      'Vui lòng bật GPS hoặc Dịch vụ vị trí trên thiết bị để tiếp tục cập nhật vị trí.';
+      'Vui lÃ²ng báº­t GPS hoáº·c Dá»‹ch vá»¥ vá»‹ trÃ­ trÃªn thiáº¿t bá»‹ Ä‘á»ƒ tiáº¿p tá»¥c cáº­p nháº­t vá»‹ trÃ­.';
 
   @override
   String get trackingStatusLocationPermissionDeniedMessage =>
-      'Vui lòng cấp quyền vị trí cho ứng dụng trên thiết bị để tiếp tục cập nhật vị trí.';
+      'Vui lÃ²ng cáº¥p quyá»n vá»‹ trÃ­ cho á»©ng dá»¥ng trÃªn thiáº¿t bá»‹ Ä‘á»ƒ tiáº¿p tá»¥c cáº­p nháº­t vá»‹ trÃ­.';
 
   @override
   String get trackingStatusPreciseLocationDeniedMessage =>
-      'Thiết bị chưa cấp vị trí chính xác';
+      'Thiáº¿t bá»‹ chÆ°a cáº¥p vá»‹ trÃ­ chÃ­nh xÃ¡c';
 
   @override
   String get trackingStatusBackgroundDisabledMessage =>
-      'Đã tắt chia sẻ vị trí nền';
+      'ÄÃ£ táº¯t chia sáº» vá»‹ trÃ­ ná»n';
 
   @override
-  String get trackingStatusOkMessage => 'Định vị hoạt động bình thường';
+  String get trackingStatusOkMessage => 'Äá»‹nh vá»‹ hoáº¡t Ä‘á»™ng bÃ¬nh thÆ°á»ng';
 
   @override
   String get trackingErrorEnableLocationService =>
-      'Vui lòng bật GPS/vị trí trên thiết bị.';
+      'Vui lÃ²ng báº­t GPS/vá»‹ trÃ­ trÃªn thiáº¿t bá»‹.';
 
   @override
   String get trackingErrorEnablePreciseLocation =>
-      'Vui lòng bật vị trí chính xác.';
+      'Vui lÃ²ng báº­t vá»‹ trÃ­ chÃ­nh xÃ¡c.';
 
   @override
   String get trackingErrorEnableBackgroundLocation =>
-      'Vui lòng bật chia sẻ vị trí nền (Allow all the time).';
+      'Vui lÃ²ng báº­t chia sáº» vá»‹ trÃ­ ná»n (Allow all the time).';
 
   @override
-  String get locationForegroundServiceTitle => 'Đang chia sẻ vị trí';
+  String get locationForegroundServiceTitle => 'Äang chia sáº» vá»‹ trÃ­';
 
   @override
   String get locationForegroundServiceSubtitle =>
-      'Ứng dụng chạy nền để bảo vệ con';
+      'á»¨ng dá»¥ng cháº¡y ná»n Ä‘á»ƒ báº£o vá»‡ con';
 
   @override
   String parentLocationGpsError(Object error) {
-    return 'Lỗi GPS: $error';
+    return 'Lá»—i GPS: $error';
   }
 
   @override
   String parentLocationEnableGpsError(Object error) {
-    return 'Lỗi bật GPS: $error';
+    return 'Lá»—i báº­t GPS: $error';
   }
 
   @override
   String parentLocationCurrentLocationError(Object error) {
-    return 'Không lấy được vị trí hiện tại: $error';
+    return 'KhÃ´ng láº¥y Ä‘Æ°á»£c vá»‹ trÃ­ hiá»‡n táº¡i: $error';
   }
 
   @override
   String parentLocationHistoryLoadError(Object error) {
-    return 'Lỗi tải lịch sử: $error';
+    return 'Lá»—i táº£i lá»‹ch sá»­: $error';
   }
 
   @override
   String parentLocationWatchChildError(Object childId, Object error) {
-    return 'Lỗi theo dõi $childId: $error';
+    return 'Lá»—i theo dÃµi $childId: $error';
   }
 
   @override
-  String get authLoginRequired => 'Chưa đăng nhập';
+  String get authLoginRequired => 'ChÆ°a Ä‘Äƒng nháº­p';
 
   @override
   String get firebaseAuthCurrentPasswordIncorrect =>
-      'Mật khẩu hiện tại không đúng';
+      'Máº­t kháº©u hiá»‡n táº¡i khÃ´ng Ä‘Ãºng';
 
   @override
-  String get firebaseAuthUserMismatch => 'Tài khoản xác thực không khớp';
+  String get firebaseAuthUserMismatch => 'TÃ i khoáº£n xÃ¡c thá»±c khÃ´ng khá»›p';
 
   @override
   String get firebaseAuthTooManyRequests =>
-      'Bạn thử sai quá nhiều lần. Vui lòng thử lại sau';
+      'Báº¡n thá»­ sai quÃ¡ nhiá»u láº§n. Vui lÃ²ng thá»­ láº¡i sau';
 
   @override
   String get firebaseAuthNetworkFailed =>
-      'Lỗi kết nối mạng. Vui lòng kiểm tra Internet';
+      'Lá»—i káº¿t ná»‘i máº¡ng. Vui lÃ²ng kiá»ƒm tra Internet';
 
   @override
   String get firebaseAuthChangePasswordFailed =>
-      'Không thể đổi mật khẩu. Vui lòng thử lại';
+      'KhÃ´ng thá»ƒ Ä‘á»•i máº­t kháº©u. Vui lÃ²ng thá»­ láº¡i';
 
   @override
-  String get permissionLocationTitle => 'Bật quyền vị trí';
+  String get permissionLocationTitle => 'Báº­t quyá»n vá»‹ trÃ­';
 
   @override
   String get permissionLocationSubtitle =>
-      'Ứng dụng cần quyền vị trí để theo dõi vị trí của trẻ và hỗ trợ các tính năng an toàn.';
+      'á»¨ng dá»¥ng cáº§n quyá»n vá»‹ trÃ­ Ä‘á»ƒ theo dÃµi vá»‹ trÃ­ cá»§a tráº» vÃ  há»— trá»£ cÃ¡c tÃ­nh nÄƒng an toÃ n.';
 
   @override
   String get permissionLocationRecommendation =>
-      'Khuyến nghị: cho phép vị trí khi dùng ứng dụng trước. Nếu app cần chạy nền sau này, bạn có thể xin thêm quyền Always.';
+      'Khuyáº¿n nghá»‹: cho phÃ©p vá»‹ trÃ­ khi dÃ¹ng á»©ng dá»¥ng trÆ°á»›c. Náº¿u app cáº§n cháº¡y ná»n sau nÃ y, báº¡n cÃ³ thá»ƒ xin thÃªm quyá»n Always.';
 
   @override
-  String get permissionLocationAllowButton => 'Cho phép vị trí';
+  String get permissionLocationAllowButton => 'Cho phÃ©p vá»‹ trÃ­';
 
   @override
-  String get permissionNotificationTitle => 'Bật SOS Alerts';
+  String get permissionNotificationTitle => 'Báº­t SOS Alerts';
 
   @override
   String get permissionNotificationSubtitle =>
-      'Ứng dụng cần quyền thông báo để gửi cảnh báo SOS khẩn cấp ngay cả khi bạn không mở app.';
+      'á»¨ng dá»¥ng cáº§n quyá»n thÃ´ng bÃ¡o Ä‘á»ƒ gá»­i cáº£nh bÃ¡o SOS kháº©n cáº¥p ngay cáº£ khi báº¡n khÃ´ng má»Ÿ app.';
 
   @override
   String get permissionNotificationRecommendation =>
-      'Lưu ý: Sau khi cấp quyền, hãy đảm bảo kênh \"SOS Alerts\" được bật âm thanh trong cài đặt thông báo.';
+      'LÆ°u Ã½: Sau khi cáº¥p quyá»n, hÃ£y Ä‘áº£m báº£o kÃªnh \"SOS Alerts\" Ä‘Æ°á»£c báº­t Ã¢m thanh trong cÃ i Ä‘áº·t thÃ´ng bÃ¡o.';
 
   @override
-  String get permissionNotificationAllowButton => 'Cho phép thông báo';
+  String get permissionNotificationAllowButton => 'Cho phÃ©p thÃ´ng bÃ¡o';
 
   @override
-  String get permissionSosTitle => 'Bật quyền SOS';
+  String get permissionSosTitle => 'Báº­t quyá»n SOS';
 
   @override
   String get permissionSosSubtitle =>
-      'Ứng dụng cần quyền thông báo để gửi cảnh báo SOS khẩn cấp và phát âm thanh cảnh báo.';
+      'á»¨ng dá»¥ng cáº§n quyá»n thÃ´ng bÃ¡o Ä‘á»ƒ gá»­i cáº£nh bÃ¡o SOS kháº©n cáº¥p vÃ  phÃ¡t Ã¢m thanh cáº£nh bÃ¡o.';
 
   @override
   String get permissionSosRecommendation =>
-      'Hãy bật thông báo và đảm bảo kênh \"SOS Alerts\" có âm thanh.';
+      'HÃ£y báº­t thÃ´ng bÃ¡o vÃ  Ä‘áº£m báº£o kÃªnh \"SOS Alerts\" cÃ³ Ã¢m thanh.';
 
   @override
-  String get permissionSosAllowButton => 'Cho phép SOS';
+  String get permissionSosAllowButton => 'Cho phÃ©p SOS';
 
   @override
-  String get permissionOpenSettingsButton => 'Mở cài đặt';
+  String get permissionOpenSettingsButton => 'Má»Ÿ cÃ i Ä‘áº·t';
 
   @override
-  String get permissionLaterButton => 'Để sau';
+  String get permissionLaterButton => 'Äá»ƒ sau';
 
   @override
-  String get permissionSkipButton => 'Bỏ qua';
+  String get permissionSkipButton => 'Bá» qua';
 
   @override
   String permissionStepLabel(int current, int total) {
-    return 'Bước $current/$total';
+    return 'BÆ°á»›c $current/$total';
   }
 
   @override
-  String get permissionOnboardingAccessibilityTitle => 'Bật trợ năng';
+  String get permissionOnboardingAccessibilityTitle => 'Báº­t trá»£ nÄƒng';
 
   @override
   String get permissionOnboardingAccessibilitySubtitle =>
-      'Cần cho một số tính năng bảo vệ trên Android.';
+      'ÄÆ°á»£c dÃ¹ng cho kiá»ƒm soÃ¡t cá»§a phá»¥ huynh trÃªn Android Ä‘á»ƒ nháº­n biáº¿t á»©ng dá»¥ng nÃ o Ä‘ang má»Ÿ trÃªn thiáº¿t bá»‹ cá»§a tráº» vÃ  Ã¡p dá»¥ng quy táº¯c cháº·n do phá»¥ huynh Ä‘áº·t. ThÃ´ng tin nÃ y Ä‘Æ°á»£c hiá»ƒn thá»‹ cho phá»¥ huynh hoáº·c ngÆ°á»i giÃ¡m há»™ Ä‘Æ°á»£c chá»‰ Ä‘á»‹nh Ä‘á»ƒ phá»¥c vá»¥ an toÃ n vÃ  sá»©c khá»e sá»‘.';
 
   @override
-  String get permissionOnboardingAccessibilityPrimaryButton => 'Cho phép';
+  String get permissionOnboardingAccessibilityPrimaryButton => 'Cho phÃ©p';
 
   @override
   String get permissionOnboardingAccessibilitySettingsButton =>
-      'Mở cài đặt chung';
+      'Má»Ÿ cÃ i Ä‘áº·t chung';
 
   @override
   String get permissionOnboardingBackgroundLocationTitle =>
-      'Chọn \"Luôn cho phép\"';
+      'Chá»n \"LuÃ´n cho phÃ©p\"';
 
   @override
   String get permissionOnboardingBackgroundLocationSubtitle =>
-      'Để vị trí vẫn cập nhật khi app chạy nền.';
+      'á»¨ng dá»¥ng nÃ y thu tháº­p dá»¯ liá»‡u vá»‹ trÃ­ Ä‘á»ƒ hiá»ƒn thá»‹ vá»‹ trÃ­ trá»±c tiáº¿p cá»§a tráº», táº¡o cáº£nh bÃ¡o VÃ¹ng an toÃ n vÃ  há»— trá»£ Safe Route ngay cáº£ khi á»©ng dá»¥ng Ä‘Ã£ Ä‘Ã³ng hoáº·c khÃ´ng sá»­ dá»¥ng. Vá»‹ trÃ­ Ä‘Æ°á»£c chia sáº» vá»›i phá»¥ huynh hoáº·c ngÆ°á»i giÃ¡m há»™ Ä‘Æ°á»£c chá»‰ Ä‘á»‹nh trong cÃ¹ng gia Ä‘Ã¬nh cho cÃ¡c tÃ­nh nÄƒng an toÃ n.';
 
   @override
-  String get permissionOnboardingBackgroundLocationPrimaryButton => 'Tiếp tục';
+  String get permissionOnboardingBackgroundLocationPrimaryButton => 'Tiáº¿p tá»¥c';
 
   @override
   String get permissionOnboardingBackgroundLocationSettingsButton =>
-      'Mở cài đặt vị trí';
+      'Má»Ÿ cÃ i Ä‘áº·t vá»‹ trÃ­';
 
   @override
-  String get permissionOnboardingBatteryTitle => 'Tắt giới hạn pin';
+  String get permissionOnboardingBatteryTitle => 'Táº¯t giá»›i háº¡n pin';
 
   @override
   String get permissionOnboardingBatterySubtitle =>
-      'Để app không bị dừng khi chạy nền.';
+      'Cho phÃ©p theo dÃµi vÃ  cáº£nh bÃ¡o an toÃ n tiáº¿p tá»¥c hoáº¡t Ä‘á»™ng khi Android cÃ³ thá»ƒ dá»«ng á»©ng dá»¥ng á»Ÿ cháº¿ Ä‘á»™ ná»n.';
 
   @override
-  String get permissionOnboardingBatteryPrimaryButton => 'Cho phép';
+  String get permissionOnboardingBatteryPrimaryButton => 'Cho phÃ©p';
 
   @override
-  String get permissionOnboardingBatterySettingsButton => 'Mở cài đặt chung';
+  String get permissionOnboardingBatterySettingsButton => 'Má»Ÿ cÃ i Ä‘áº·t chung';
 
   @override
   String get permissionOnboardingLocationTitle =>
-      'Bật \"Truy cập vị trí của tôi\"';
+      'Báº­t \"Truy cáº­p vá»‹ trÃ­ cá»§a tÃ´i\"';
 
   @override
   String get permissionOnboardingLocationSubtitle =>
-      'Nếu không, app sẽ không thể theo dõi vị trí.';
+      'Náº¿u khÃ´ng, app sáº½ khÃ´ng thá»ƒ theo dÃµi vá»‹ trÃ­.';
 
   @override
-  String get permissionOnboardingLocationPrimaryButton => 'Cho phép';
+  String get permissionOnboardingLocationPrimaryButton => 'Cho phÃ©p';
 
   @override
   String get permissionOnboardingLocationSettingsButton =>
-      'Mở cài đặt ứng dụng';
+      'Má»Ÿ cÃ i Ä‘áº·t á»©ng dá»¥ng';
 
   @override
-  String get permissionOnboardingMediaTitle => 'Cho phép ảnh và media';
+  String get permissionOnboardingMediaTitle => 'Cho phÃ©p áº£nh vÃ  media';
 
   @override
   String get permissionOnboardingMediaSubtitle =>
-      'Để đổi ảnh đại diện và chọn hình trong app.';
+      'Äá»ƒ Ä‘á»•i áº£nh Ä‘áº¡i diá»‡n vÃ  chá»n hÃ¬nh trong app.';
 
   @override
-  String get permissionOnboardingMediaPrimaryButton => 'Cho phép';
+  String get permissionOnboardingMediaPrimaryButton => 'Cho phÃ©p';
 
   @override
-  String get permissionOnboardingMediaSettingsButton => 'Mở cài đặt';
+  String get permissionOnboardingMediaSettingsButton => 'Má»Ÿ cÃ i Ä‘áº·t';
 
   @override
-  String get permissionOnboardingNotificationTitle => 'Bật thông báo';
+  String get permissionOnboardingNotificationTitle => 'Báº­t thÃ´ng bÃ¡o';
 
   @override
   String get permissionOnboardingNotificationSubtitle =>
-      'Để nhận SOS và cảnh báo an toàn ngay lập tức.';
+      'Äá»ƒ nháº­n SOS vÃ  cáº£nh bÃ¡o an toÃ n ngay láº­p tá»©c.';
 
   @override
-  String get permissionOnboardingNotificationPrimaryButton => 'Cho phép';
+  String get permissionOnboardingNotificationPrimaryButton => 'Cho phÃ©p';
 
   @override
   String get permissionOnboardingNotificationSettingsButton =>
-      'Mở cài đặt thông báo';
+      'Má»Ÿ cÃ i Ä‘áº·t thÃ´ng bÃ¡o';
 
   @override
-  String get permissionOnboardingUsageTitle => 'Bật quyền sử dụng ứng dụng';
+  String get permissionOnboardingUsageTitle => 'Báº­t quyá»n sá»­ dá»¥ng á»©ng dá»¥ng';
 
   @override
   String get permissionOnboardingUsageSubtitle =>
-      'Để quản lý thời gian dùng app trên Android.';
+      'ÄÆ°á»£c dÃ¹ng Ä‘á»ƒ Ä‘o á»©ng dá»¥ng nÃ o tráº» sá»­ dá»¥ng vÃ  thá»i gian sá»­ dá»¥ng trÃªn Android, sau Ä‘Ã³ hiá»ƒn thá»‹ dá»¯ liá»‡u nÃ y cho phá»¥ huynh hoáº·c ngÆ°á»i giÃ¡m há»™ Ä‘Æ°á»£c chá»‰ Ä‘á»‹nh Ä‘á»ƒ quáº£n lÃ½ thá»i gian mÃ n hÃ¬nh.';
 
   @override
-  String get permissionOnboardingUsagePrimaryButton => 'Cho phép';
+  String get permissionOnboardingUsagePrimaryButton => 'Cho phÃ©p';
 
   @override
-  String get permissionOnboardingUsageSettingsButton => 'Mở cài đặt chung';
+  String get permissionOnboardingUsageSettingsButton => 'Má»Ÿ cÃ i Ä‘áº·t chung';
 
   @override
-  String get permissionOnboardingStepNotificationsLabel => 'Thông báo';
+  String get permissionOnboardingStepNotificationsLabel => 'ThÃ´ng bÃ¡o';
 
   @override
-  String get permissionOnboardingStepLocationLabel => 'Vị trí';
+  String get permissionOnboardingStepLocationLabel => 'Vá»‹ trÃ­';
 
   @override
-  String get permissionOnboardingStepBackgroundLocationLabel => 'Luôn cho phép';
+  String get permissionOnboardingStepBackgroundLocationLabel => 'LuÃ´n cho phÃ©p';
 
   @override
-  String get permissionOnboardingStepMediaLabel => 'Ảnh';
+  String get permissionOnboardingStepMediaLabel => 'áº¢nh';
 
   @override
-  String get permissionOnboardingStepUsageLabel => 'Sử dụng';
+  String get permissionOnboardingStepUsageLabel => 'Sá»­ dá»¥ng';
 
   @override
-  String get permissionOnboardingStepAccessibilityLabel => 'Trợ năng';
+  String get permissionOnboardingStepAccessibilityLabel => 'Trá»£ nÄƒng';
 
   @override
   String get permissionOnboardingStepBatteryLabel => 'Pin';
 
   @override
   String get permissionOnboardingSystemDeniedMessage =>
-      'Quyền này đang bị từ chối ở hệ thống. Hãy mở cài đặt để cấp lại.';
+      'Quyá»n nÃ y Ä‘ang bá»‹ tá»« chá»‘i á»Ÿ há»‡ thá»‘ng. HÃ£y má»Ÿ cÃ i Ä‘áº·t Ä‘á»ƒ cáº¥p láº¡i.';
 
   @override
   String get permissionOnboardingNotGrantedMessage =>
-      'Quyền này chưa được cấp. Bạn có thể thử lại hoặc thiết lập sau.';
+      'Quyá»n nÃ y chÆ°a Ä‘Æ°á»£c cáº¥p. Báº¡n cÃ³ thá»ƒ thá»­ láº¡i hoáº·c thiáº¿t láº­p sau.';
 
   @override
   String get permissionOnboardingNotificationHelperText =>
-      'Chỉ cần cấp quyền khi dùng app trước. Ngay sau bước này app sẽ hướng dẫn bật thêm \"Allow all the time\" để tracking nền hoạt động ổn định.';
+      'Chá»‰ cáº§n cáº¥p quyá»n khi dÃ¹ng app trÆ°á»›c. Ngay sau bÆ°á»›c nÃ y app sáº½ hÆ°á»›ng dáº«n báº­t thÃªm \"Allow all the time\" Ä‘á»ƒ tracking ná»n hoáº¡t Ä‘á»™ng á»•n Ä‘á»‹nh.';
 
   @override
   String get permissionOnboardingGuideVideoLoadFailed =>
-      'Không tải được video hướng dẫn';
+      'KhÃ´ng táº£i Ä‘Æ°á»£c video hÆ°á»›ng dáº«n';
 
   @override
   String get permissionOnboardingGuideVideoPlaceholder =>
-      'Video hướng dẫn sẽ hiển thị tại đây';
+      'Video hÆ°á»›ng dáº«n sáº½ hiá»ƒn thá»‹ táº¡i Ä‘Ã¢y';
 
   @override
-  String get applyButton => 'Áp dụng';
+  String get applyButton => 'Ãp dá»¥ng';
 
   @override
-  String get commonStartLabel => 'Bắt đầu';
+  String get commonStartLabel => 'Báº¯t Ä‘áº§u';
 
   @override
-  String get commonEndLabel => 'Kết thúc';
+  String get commonEndLabel => 'Káº¿t thÃºc';
 
   @override
-  String get childLocationSosSending => 'Đang gửi SOS...';
+  String get childLocationSosSending => 'Äang gá»­i SOS...';
 
   @override
   String childLocationSosError(String error) {
-    return 'Lỗi gửi SOS: $error';
+    return 'Lá»—i gá»­i SOS: $error';
   }
 
   @override
-  String get childLocationCurrentJourneyTitle => 'Hành trình hiện tại';
+  String get childLocationCurrentJourneyTitle => 'HÃ nh trÃ¬nh hiá»‡n táº¡i';
 
   @override
-  String get childLocationTravelHistoryTitle => 'Lịch sử di chuyển';
+  String get childLocationTravelHistoryTitle => 'Lá»‹ch sá»­ di chuyá»ƒn';
 
   @override
-  String get childLocationSelectedHistoryLabel => 'Lịch sử đã chọn';
+  String get childLocationSelectedHistoryLabel => 'Lá»‹ch sá»­ Ä‘Ã£ chá»n';
 
   @override
-  String get childLocationTodayLabel => 'Hôm nay';
+  String get childLocationTodayLabel => 'HÃ´m nay';
 
   @override
-  String get childLocationUpdatedJustNow => 'Cập nhật vừa xong';
+  String get childLocationUpdatedJustNow => 'Cáº­p nháº­t vá»«a xong';
 
   @override
-  String get childLocationUpdatedOneMinuteAgo => 'Cập nhật 1 phút trước';
+  String get childLocationUpdatedOneMinuteAgo => 'Cáº­p nháº­t 1 phÃºt trÆ°á»›c';
 
   @override
   String childLocationUpdatedMinutesAgo(int minutes) {
-    return 'Cập nhật $minutes phút trước';
+    return 'Cáº­p nháº­t $minutes phÃºt trÆ°á»›c';
   }
 
   @override
-  String get childLocationRangeAllDay => 'Cả ngày';
+  String get childLocationRangeAllDay => 'Cáº£ ngÃ y';
 
   @override
-  String get childLocationTooltipManageZones => 'Quản lý vùng';
+  String get childLocationTooltipManageZones => 'Quáº£n lÃ½ vÃ¹ng';
 
   @override
-  String get childLocationTooltipSafeRoute => 'Tuyến đường an toàn';
+  String get childLocationTooltipSafeRoute => 'Tuyáº¿n Ä‘Æ°á»ng an toÃ n';
 
   @override
-  String get childLocationTooltipChooseMap => 'Chọn bản đồ';
+  String get childLocationTooltipChooseMap => 'Chá»n báº£n Ä‘á»“';
 
   @override
-  String get childLocationTagStart => 'Bắt đầu';
+  String get childLocationTagStart => 'Báº¯t Ä‘áº§u';
 
   @override
-  String get childLocationTagEnd => 'Kết thúc';
+  String get childLocationTagEnd => 'Káº¿t thÃºc';
 
   @override
-  String get childLocationTagGpsVeryWeak => 'GPS rất yếu';
+  String get childLocationTagGpsVeryWeak => 'GPS ráº¥t yáº¿u';
 
   @override
-  String get childLocationTagGpsLost => 'Mất GPS';
+  String get childLocationTagGpsLost => 'Máº¥t GPS';
 
   @override
-  String get childLocationStayedHereLabel => 'Ở đây được';
+  String get childLocationStayedHereLabel => 'á»ž Ä‘Ã¢y Ä‘Æ°á»£c';
 
   @override
-  String get childLocationStayedHereUnavailable => 'Không xác định ổn định';
+  String get childLocationStayedHereUnavailable => 'KhÃ´ng xÃ¡c Ä‘á»‹nh á»•n Ä‘á»‹nh';
 
   @override
-  String get childLocationStopDurationHint => 'Thời gian dừng';
+  String get childLocationStopDurationHint => 'Thá»i gian dá»«ng';
 
   @override
-  String get childLocationSpeedLabel => 'Tốc độ';
+  String get childLocationSpeedLabel => 'Tá»‘c Ä‘á»™';
 
   @override
-  String get childLocationSpeedUnavailable => 'Không ổn định';
+  String get childLocationSpeedUnavailable => 'KhÃ´ng á»•n Ä‘á»‹nh';
 
   @override
   String get childLocationGpsTitle => 'GPS';
 
   @override
-  String get childLocationPointCountTitle => 'Số điểm';
+  String get childLocationPointCountTitle => 'Sá»‘ Ä‘iá»ƒm';
 
   @override
-  String get childLocationPointCountUnit => 'điểm';
+  String get childLocationPointCountUnit => 'Ä‘iá»ƒm';
 
   @override
-  String get childLocationGpsAccuracyLabel => 'Sai số GPS';
+  String get childLocationGpsAccuracyLabel => 'Sai sá»‘ GPS';
 
   @override
-  String get childLocationMockGpsLabel => 'GPS giả lập';
+  String get childLocationMockGpsLabel => 'GPS giáº£ láº­p';
 
   @override
-  String get childLocationMockGpsDetected => 'Có dấu hiệu';
+  String get childLocationMockGpsDetected => 'CÃ³ dáº¥u hiá»‡u';
 
   @override
-  String get childLocationNoLabel => 'Không';
+  String get childLocationNoLabel => 'KhÃ´ng';
 
   @override
-  String get childLocationDeviceStatusHint => 'Trạng thái thiết bị';
+  String get childLocationDeviceStatusHint => 'Tráº¡ng thÃ¡i thiáº¿t bá»‹';
 
   @override
-  String get childLocationTechnicalDetailsTitle => 'Xem chi tiết kỹ thuật';
+  String get childLocationTechnicalDetailsTitle => 'Xem chi tiáº¿t ká»¹ thuáº­t';
 
   @override
-  String get childLocationDetailFullTimeLabel => 'Thời gian đầy đủ';
+  String get childLocationDetailFullTimeLabel => 'Thá»i gian Ä‘áº§y Ä‘á»§';
 
   @override
-  String get childLocationDetailHeadingLabel => 'Hướng di chuyển';
+  String get childLocationDetailHeadingLabel => 'HÆ°á»›ng di chuyá»ƒn';
 
   @override
-  String get childLocationDetailCoordinatesLabel => 'Tọa độ';
+  String get childLocationDetailCoordinatesLabel => 'Tá»a Ä‘á»™';
 
   @override
-  String get childLocationDetailAccuracyLabel => 'Độ chính xác';
+  String get childLocationDetailAccuracyLabel => 'Äá»™ chÃ­nh xÃ¡c';
 
   @override
-  String get childLocationDurationZeroMinutes => '0 phút';
+  String get childLocationDurationZeroMinutes => '0 phÃºt';
 
   @override
   String childLocationDurationHoursMinutes(int hours, int minutes) {
-    return '$hours giờ $minutes phút';
+    return '$hours giá» $minutes phÃºt';
   }
 
   @override
   String childLocationDurationMinutes(int minutes) {
-    return '$minutes phút';
+    return '$minutes phÃºt';
   }
 
   @override
   String childLocationDurationSeconds(int seconds) {
-    return '$seconds giây';
+    return '$seconds giÃ¢y';
   }
 
   @override
-  String get childLocationGpsLostTitle => 'Mất GPS định vị';
+  String get childLocationGpsLostTitle => 'Máº¥t GPS Ä‘á»‹nh vá»‹';
 
   @override
   String get childLocationGpsVeryWeakSubtitle =>
-      'Tín hiệu GPS rất yếu, vị trí có thể không chính xác.';
+      'TÃ­n hiá»‡u GPS ráº¥t yáº¿u, vá»‹ trÃ­ cÃ³ thá»ƒ khÃ´ng chÃ­nh xÃ¡c.';
 
   @override
   String childLocationGpsLostSubtitle(String meters) {
-    return 'Sai số lớn hơn $meters m';
+    return 'Sai sá»‘ lá»›n hÆ¡n $meters m';
   }
 
   @override
-  String get childLocationStoppedNowTitle => 'Đang đứng yên';
+  String get childLocationStoppedNowTitle => 'Äang Ä‘á»©ng yÃªn';
 
   @override
   String childLocationStoppedNowSubtitle(String duration) {
-    return 'Dừng tại đây $duration';
+    return 'Dá»«ng táº¡i Ä‘Ã¢y $duration';
   }
 
   @override
-  String get childLocationStoppedHereTitle => 'Đứng yên tại đây';
+  String get childLocationStoppedHereTitle => 'Äá»©ng yÃªn táº¡i Ä‘Ã¢y';
 
   @override
   String childLocationStoppedHereSubtitle(String duration) {
-    return 'Dừng khoảng $duration';
+    return 'Dá»«ng khoáº£ng $duration';
   }
 
   @override
-  String get childLocationJourneyStartSubtitle => 'Điểm bắt đầu hành trình';
+  String get childLocationJourneyStartSubtitle => 'Äiá»ƒm báº¯t Ä‘áº§u hÃ nh trÃ¬nh';
 
   @override
-  String get childLocationJourneyEndSubtitle => 'Điểm kết thúc hành trình';
+  String get childLocationJourneyEndSubtitle => 'Äiá»ƒm káº¿t thÃºc hÃ nh trÃ¬nh';
 
   @override
   String childLocationUpdatedAt(String time) {
-    return 'Cập nhật lúc $time';
+    return 'Cáº­p nháº­t lÃºc $time';
   }
 
   @override
   String childLocationPassedAt(String time) {
-    return 'Đi qua điểm này lúc $time';
+    return 'Äi qua Ä‘iá»ƒm nÃ y lÃºc $time';
   }
 
   @override
-  String get childLocationHeadlineWalking => 'Đang đi bộ';
+  String get childLocationHeadlineWalking => 'Äang Ä‘i bá»™';
 
   @override
-  String get childLocationHeadlineBicycle => 'Đang đi xe đạp';
+  String get childLocationHeadlineBicycle => 'Äang Ä‘i xe Ä‘áº¡p';
 
   @override
-  String get childLocationHeadlineVehicle => 'Đang đi xe';
+  String get childLocationHeadlineVehicle => 'Äang Ä‘i xe';
 
   @override
-  String get childLocationHeadlineStill => 'Đang đứng yên';
+  String get childLocationHeadlineStill => 'Äang Ä‘á»©ng yÃªn';
 
   @override
-  String get childLocationHeadlineUnknown => 'Không rõ trạng thái';
+  String get childLocationHeadlineUnknown => 'KhÃ´ng rÃµ tráº¡ng thÃ¡i';
 
   @override
-  String get childLocationSpeedAlmostStill => 'Gần như không di chuyển';
+  String get childLocationSpeedAlmostStill => 'Gáº§n nhÆ° khÃ´ng di chuyá»ƒn';
 
   @override
-  String get childLocationAccuracySevere => 'Mất GPS nghiêm trọng';
+  String get childLocationAccuracySevere => 'Máº¥t GPS nghiÃªm trá»ng';
 
   @override
-  String get childLocationAccuracyLost => 'Mất GPS định vị';
+  String get childLocationAccuracyLost => 'Máº¥t GPS Ä‘á»‹nh vá»‹';
 
   @override
   String childLocationAccuracyGood(String meters) {
-    return 'Khá chính xác ($meters m)';
+    return 'KhÃ¡ chÃ­nh xÃ¡c ($meters m)';
   }
 
   @override
   String childLocationAccuracyModerate(String meters) {
-    return 'Chính xác vừa ($meters m)';
+    return 'ChÃ­nh xÃ¡c vá»«a ($meters m)';
   }
 
   @override
-  String get childLocationTimeWindowTitle => 'Chọn khung giờ';
+  String get childLocationTimeWindowTitle => 'Chá»n khung giá»';
 
   @override
   String get childLocationTimeWindowSubtitle =>
-      'Chỉ tải và hiển thị lịch sử trong khoảng giờ đang chọn.';
+      'Chá»‰ táº£i vÃ  hiá»ƒn thá»‹ lá»‹ch sá»­ trong khoáº£ng giá» Ä‘ang chá»n.';
 
   @override
-  String get childLocationPresetMorning => 'Sáng';
+  String get childLocationPresetMorning => 'SÃ¡ng';
 
   @override
-  String get childLocationPresetAfternoon => 'Chiều';
+  String get childLocationPresetAfternoon => 'Chiá»u';
 
   @override
-  String get childLocationPresetEvening => 'Tối';
+  String get childLocationPresetEvening => 'Tá»‘i';
 
   @override
-  String get childLocationNoDataTitle => 'Chưa có dữ liệu trong khung này';
+  String get childLocationNoDataTitle => 'ChÆ°a cÃ³ dá»¯ liá»‡u trong khung nÃ y';
 
   @override
   String get childLocationNoDataSubtitle =>
-      'Thử đổi khung giờ khác hoặc chọn ngày khác để xem lại hành trình.';
+      'Thá»­ Ä‘á»•i khung giá» khÃ¡c hoáº·c chá»n ngÃ y khÃ¡c Ä‘á»ƒ xem láº¡i hÃ nh trÃ¬nh.';
 
   @override
-  String get childLocationSummaryDateLabel => 'Ngày';
+  String get childLocationSummaryDateLabel => 'NgÃ y';
 
   @override
-  String get childLocationSummaryTimeRangeLabel => 'Khung giờ';
+  String get childLocationSummaryTimeRangeLabel => 'Khung giá»';
 
   @override
-  String get childLocationLiveLabel => 'Trực tiếp';
+  String get childLocationLiveLabel => 'Trá»±c tiáº¿p';
 
   @override
-  String get childLocationRecentPointsTitle => 'Các điểm gần đây';
+  String get childLocationRecentPointsTitle => 'CÃ¡c Ä‘iá»ƒm gáº§n Ä‘Ã¢y';
 
   @override
   String childLocationLoadMoreRecentHours(Object label) {
-    return 'Tải thêm $label';
+    return 'Táº£i thÃªm $label';
   }
 
   @override
-  String get childLocationViewAllButton => 'Xem tất cả';
+  String get childLocationViewAllButton => 'Xem táº¥t cáº£';
 
   @override
-  String get childLocationTapToSeeDetails => 'Bấm để xem chi tiết';
+  String get childLocationTapToSeeDetails => 'Báº¥m Ä‘á»ƒ xem chi tiáº¿t';
 
   @override
-  String get childLocationWeakGpsSignal => 'Tín hiệu GPS yếu';
+  String get childLocationWeakGpsSignal => 'TÃ­n hiá»‡u GPS yáº¿u';
 
   @override
   String childLocationPointCount(int count) {
-    return '$count điểm';
+    return '$count Ä‘iá»ƒm';
   }
 
   @override
-  String get childLocationNetworkGapTitle => 'Mất mạng';
+  String get childLocationNetworkGapTitle => 'Máº¥t máº¡ng';
 
   @override
   String childLocationNetworkGapSubtitle(Object duration) {
-    return 'Bản đồ nối tạm 2 đầu vì dữ liệu bị ngắt trong $duration.';
+    return 'Báº£n Ä‘á»“ ná»‘i táº¡m 2 Ä‘áº§u vÃ¬ dá»¯ liá»‡u bá»‹ ngáº¯t trong $duration.';
   }
 
   @override
-  String get childLocationNetworkGapChip => 'Mất kết nối';
+  String get childLocationNetworkGapChip => 'Máº¥t káº¿t ná»‘i';
 
   @override
-  String get childLocationNetworkGapFromLabel => 'Mất từ';
+  String get childLocationNetworkGapFromLabel => 'Máº¥t tá»«';
 
   @override
-  String get childLocationNetworkGapToLabel => 'Có lại lúc';
+  String get childLocationNetworkGapToLabel => 'CÃ³ láº¡i lÃºc';
 
   @override
   String get childLocationMapSearchSubtitle =>
-      'Tìm kiếm địa điểm để chọn nhanh trên bản đồ.';
+      'TÃ¬m kiáº¿m Ä‘á»‹a Ä‘iá»ƒm Ä‘á»ƒ chá»n nhanh trÃªn báº£n Ä‘á»“.';
 
   @override
   String get childLocationMapSearchInputHint =>
-      'Nhập tên đường, trường học, địa chỉ...';
+      'Nháº­p tÃªn Ä‘Æ°á»ng, trÆ°á»ng há»c, Ä‘á»‹a chá»‰...';
 
   @override
   String get childLocationMapSearchMinChars =>
-      'Nhập ít nhất 2 ký tự để tìm địa điểm.';
+      'Nháº­p Ã­t nháº¥t 2 kÃ½ tá»± Ä‘á»ƒ tÃ¬m Ä‘á»‹a Ä‘iá»ƒm.';
 
   @override
   String get childLocationMapSearchNoResults =>
-      'Không tìm thấy địa điểm phù hợp.';
+      'KhÃ´ng tÃ¬m tháº¥y Ä‘á»‹a Ä‘iá»ƒm phÃ¹ há»£p.';
 
   @override
   String get childLocationSafeRouteRecoveredBanner =>
-      'Đã quay lại tuyến an toàn';
+      'ÄÃ£ quay láº¡i tuyáº¿n an toÃ n';
 
   @override
-  String get locationNoLocationYet => 'Chưa có vị trí';
+  String get locationNoLocationYet => 'ChÆ°a cÃ³ vá»‹ trÃ­';
 
   @override
   String locationCoordinatesSummary(String lat, String lng) {
-    return 'Lat $lat • Lng $lng';
+    return 'Lat $lat â€¢ Lng $lng';
   }
 
   @override
-  String get locationSearchHint => 'Tìm kiếm';
+  String get locationSearchHint => 'TÃ¬m kiáº¿m';
 
   @override
-  String get locationMessageSent => 'Đã gửi tin nhắn';
+  String get locationMessageSent => 'ÄÃ£ gá»­i tin nháº¯n';
 
   @override
-  String get locationChildInfoTitle => 'Thông tin';
+  String get locationChildInfoTitle => 'ThÃ´ng tin';
 
   @override
-  String get locationQuickMessageHint => 'Gửi tin nhắn nhanh...';
+  String get locationQuickMessageHint => 'Gá»­i tin nháº¯n nhanh...';
 
   @override
-  String get locationStatusStudying => 'Đang học';
+  String get locationStatusStudying => 'Äang há»c';
 
   @override
-  String get locationStopSearching => 'Tắt tìm kiếm';
+  String get locationStopSearching => 'Táº¯t tÃ¬m kiáº¿m';
 
   @override
   String incomingSosConfirmFailed(Object error) {
-    return 'Xác nhận thất bại: $error';
+    return 'XÃ¡c nháº­n tháº¥t báº¡i: $error';
   }
 
   @override
-  String get incomingSosEmergencyTitle => '🚨 Có SOS khẩn cấp!';
+  String get incomingSosEmergencyTitle => 'ðŸš¨ CÃ³ SOS kháº©n cáº¥p!';
 
   @override
-  String get incomingSosResolvingButton => 'ĐANG XỬ LÝ';
+  String get incomingSosResolvingButton => 'ÄANG Xá»¬ LÃ';
 
   @override
-  String get incomingSosConfirmButton => 'XÁC NHẬN';
+  String get incomingSosConfirmButton => 'XÃC NHáº¬N';
 
   @override
-  String get sosConfirmedRoleParent => 'Phụ huynh';
+  String get sosConfirmedRoleParent => 'Phá»¥ huynh';
 
   @override
-  String get sosConfirmedRoleChild => 'Trẻ';
+  String get sosConfirmedRoleChild => 'Tráº»';
 
   @override
-  String get sosConfirmedNameLabel => 'Tên';
+  String get sosConfirmedNameLabel => 'TÃªn';
 
   @override
-  String get sosConfirmedSenderLabel => 'Người gửi';
+  String get sosConfirmedSenderLabel => 'NgÆ°á»i gá»­i';
 
   @override
-  String get sosConfirmedSentAtLabel => 'Gửi lúc';
+  String get sosConfirmedSentAtLabel => 'Gá»­i lÃºc';
 
   @override
-  String get sosConfirmedConfirmedAtLabel => 'Xác nhận lúc';
+  String get sosConfirmedConfirmedAtLabel => 'XÃ¡c nháº­n lÃºc';
 
   @override
-  String get sosConfirmedAccuracyLabel => 'Độ chính xác';
+  String get sosConfirmedAccuracyLabel => 'Äá»™ chÃ­nh xÃ¡c';
 
   @override
-  String get sosConfirmedTitle => 'Đã xác nhận SOS';
+  String get sosConfirmedTitle => 'ÄÃ£ xÃ¡c nháº­n SOS';
 
   @override
-  String get sosConfirmedCloseButton => 'ĐÓNG';
+  String get sosConfirmedCloseButton => 'ÄÃ“NG';
 
   @override
   String get sosButtonLabel => 'SOS';
 
   @override
-  String get parentPhoneSaveFailed => 'Không thể lưu số điện thoại';
+  String get parentPhoneSaveFailed => 'KhÃ´ng thá»ƒ lÆ°u sá»‘ Ä‘iá»‡n thoáº¡i';
 
   @override
-  String get parentPhoneAddTitle => 'Thêm số điện thoại của con bạn';
+  String get parentPhoneAddTitle => 'ThÃªm sá»‘ Ä‘iá»‡n thoáº¡i cá»§a con báº¡n';
 
   @override
   String get parentPhoneAddSubtitle =>
-      'Liên lạc với con ngay cả khi điện thoại của con đang ở chế độ im lặng';
+      'LiÃªn láº¡c vá»›i con ngay cáº£ khi Ä‘iá»‡n thoáº¡i cá»§a con Ä‘ang á»Ÿ cháº¿ Ä‘á»™ im láº·ng';
 
   @override
-  String get parentPhoneAddButton => 'Thêm vào';
+  String get parentPhoneAddButton => 'ThÃªm vÃ o';
 
   @override
   String get parentPhoneContactHasNoNumber =>
-      'Liên hệ này không có số điện thoại';
+      'LiÃªn há»‡ nÃ y khÃ´ng cÃ³ sá»‘ Ä‘iá»‡n thoáº¡i';
 
   @override
   String parentPhonePickFailed(Object error) {
-    return 'Không thể lấy số điện thoại từ danh bạ: $error';
+    return 'KhÃ´ng thá»ƒ láº¥y sá»‘ Ä‘iá»‡n thoáº¡i tá»« danh báº¡: $error';
   }
 
   @override
-  String get parentPhonePickTitle => 'Chọn số điện thoại';
+  String get parentPhonePickTitle => 'Chá»n sá»‘ Ä‘iá»‡n thoáº¡i';
 
   @override
-  String get parentPhoneOpenContactsButton => 'Mở danh bạ';
+  String get parentPhoneOpenContactsButton => 'Má»Ÿ danh báº¡';
 
   @override
-  String get appImageReplaceOption => 'Thay đổi ảnh';
+  String get appImageReplaceOption => 'Thay Ä‘á»•i áº£nh';
 
   @override
-  String get appImageLoadFailed => 'Không tải được ảnh';
+  String get appImageLoadFailed => 'KhÃ´ng táº£i Ä‘Æ°á»£c áº£nh';
 
   @override
-  String get photoUpdateFailedMessage => 'Cập nhật ảnh thất bại';
+  String get photoUpdateFailedMessage => 'Cáº­p nháº­t áº£nh tháº¥t báº¡i';
 
   @override
-  String get mapTypeSheetTitle => 'Loại bản đồ';
+  String get mapTypeSheetTitle => 'Loáº¡i báº£n Ä‘á»“';
 
   @override
-  String get mapTypeDefault => 'Mặc định';
+  String get mapTypeDefault => 'Máº·c Ä‘á»‹nh';
 
   @override
-  String get mapTypeSatellite => 'Vệ tinh';
+  String get mapTypeSatellite => 'Vá»‡ tinh';
 
   @override
-  String get mapTypeTerrain => 'Địa hình';
+  String get mapTypeTerrain => 'Äá»‹a hÃ¬nh';
 
   @override
-  String get phoneHelperSaveSuccessTitle => 'Thêm thành công';
+  String get phoneHelperSaveSuccessTitle => 'ThÃªm thÃ nh cÃ´ng';
 
   @override
   String get phoneHelperSaveSuccessMessage =>
-      'Số điện thoại của bé đã được lưu thành công';
+      'Sá»‘ Ä‘iá»‡n thoáº¡i cá»§a bÃ© Ä‘Ã£ Ä‘Æ°á»£c lÆ°u thÃ nh cÃ´ng';
 
   @override
   String phoneHelperCallActionFailed(Object error) {
-    return 'Không thể thực hiện cuộc gọi: $error';
+    return 'KhÃ´ng thá»ƒ thá»±c hiá»‡n cuá»™c gá»i: $error';
   }
 
   @override
-  String get phoneHelperOpenDialerFailed => 'Không thể mở ứng dụng điện thoại';
+  String get phoneHelperOpenDialerFailed => 'KhÃ´ng thá»ƒ má»Ÿ á»©ng dá»¥ng Ä‘iá»‡n thoáº¡i';
 
   @override
   String phoneHelperLaunchCallFailed(Object error) {
-    return 'Gọi điện thất bại: $error';
+    return 'Gá»i Ä‘iá»‡n tháº¥t báº¡i: $error';
   }
 
   @override
-  String get scheduleRepositoryNotFound => 'Lịch trình không tồn tại';
+  String get scheduleRepositoryNotFound => 'Lá»‹ch trÃ¬nh khÃ´ng tá»“n táº¡i';
 
   @override
   String get scheduleRepositoryCurrentNotFound =>
-      'Lịch trình hiện tại không tồn tại';
+      'Lá»‹ch trÃ¬nh hiá»‡n táº¡i khÃ´ng tá»“n táº¡i';
 
   @override
-  String get scheduleRepositoryHistoryNotFound => 'Bản lịch sử không tồn tại';
+  String get scheduleRepositoryHistoryNotFound => 'Báº£n lá»‹ch sá»­ khÃ´ng tá»“n táº¡i';
 
   @override
   String get locationRepositoryLoginRequired =>
-      'Chưa đăng nhập, không thể gửi vị trí';
+      'ChÆ°a Ä‘Äƒng nháº­p, khÃ´ng thá»ƒ gá»­i vá»‹ trÃ­';
 
   @override
   String get locationRepositoryParentIdNotFound =>
-      'Không tìm thấy tài khoản phụ huynh';
+      'KhÃ´ng tÃ¬m tháº¥y tÃ i khoáº£n phá»¥ huynh';
 
   @override
-  String get safeRouteTripStatusActive => 'Đang theo dõi';
+  String get safeRouteTripStatusActive => 'Äang theo dÃµi';
 
   @override
-  String get safeRouteTripStatusTemporarilyDeviated => 'Tạm lệch tuyến';
+  String get safeRouteTripStatusTemporarilyDeviated => 'Táº¡m lá»‡ch tuyáº¿n';
 
   @override
-  String get safeRouteTripStatusDeviated => 'Lệch tuyến';
+  String get safeRouteTripStatusDeviated => 'Lá»‡ch tuyáº¿n';
 
   @override
-  String get safeRouteTripStatusCompleted => 'Đã đến nơi';
+  String get safeRouteTripStatusCompleted => 'ÄÃ£ Ä‘áº¿n nÆ¡i';
 
   @override
-  String get safeRouteTripStatusCancelled => 'Đã hủy';
+  String get safeRouteTripStatusCancelled => 'ÄÃ£ há»§y';
 
   @override
-  String get safeRouteTripStatusPlanned => 'Đã lên lịch';
+  String get safeRouteTripStatusPlanned => 'ÄÃ£ lÃªn lá»‹ch';
 
   @override
-  String get safeRouteTripStatusNoTrip => 'Chưa có chuyến đi';
+  String get safeRouteTripStatusNoTrip => 'ChÆ°a cÃ³ chuyáº¿n Ä‘i';
 
   @override
-  String get safeRouteTravelModeWalking => 'Đi bộ';
+  String get safeRouteTravelModeWalking => 'Äi bá»™';
 
   @override
-  String get safeRouteTravelModeMotorbike => 'Xe máy';
+  String get safeRouteTravelModeMotorbike => 'Xe mÃ¡y';
 
   @override
-  String get safeRouteTravelModePickup => 'Đón con';
+  String get safeRouteTravelModePickup => 'ÄÃ³n con';
 
   @override
-  String get safeRouteTravelModeOtherVehicle => 'Phương tiện khác';
+  String get safeRouteTravelModeOtherVehicle => 'PhÆ°Æ¡ng tiá»‡n khÃ¡c';
 
   @override
   String safeRouteDistanceMeters(int value) {
@@ -3154,47 +3154,47 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String safeRouteDurationMinutes(int minutes) {
-    return '$minutes phút';
+    return '$minutes phÃºt';
   }
 
   @override
   String safeRouteDurationHours(int hours) {
-    return '$hours giờ';
+    return '$hours giá»';
   }
 
   @override
   String safeRouteDurationHoursMinutes(int hours, int minutes) {
-    return '$hours giờ $minutes phút';
+    return '$hours giá» $minutes phÃºt';
   }
 
   @override
   String safeRouteDurationHoursMinutesShort(int hours, int minutes) {
-    return '$hours giờ ${minutes}p';
+    return '$hours giá» ${minutes}p';
   }
 
   @override
   String safeRouteEtaApproxMinutes(int minutes) {
-    return '~$minutes phút';
+    return '~$minutes phÃºt';
   }
 
   @override
   String safeRouteEtaApproxHours(int hours) {
-    return '~$hours giờ';
+    return '~$hours giá»';
   }
 
   @override
   String safeRouteEtaApproxHoursMinutes(int hours, int minutes) {
-    return '~$hours giờ ${minutes}p';
+    return '~$hours giá» ${minutes}p';
   }
 
   @override
-  String get safeRouteTodayLabel => 'Hôm nay';
+  String get safeRouteTodayLabel => 'HÃ´m nay';
 
   @override
-  String get safeRouteTomorrowLabel => 'Ngày mai';
+  String get safeRouteTomorrowLabel => 'NgÃ y mai';
 
   @override
-  String get safeRouteNowLabel => 'Bây giờ';
+  String get safeRouteNowLabel => 'BÃ¢y giá»';
 
   @override
   String safeRouteSecondsAgo(int seconds) {
@@ -3207,217 +3207,217 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get safeRouteTrackNowLabel => 'Theo dõi ngay';
+  String get safeRouteTrackNowLabel => 'Theo dÃµi ngay';
 
   @override
   String get safeRouteNoRepeatSummary =>
-      'Không lặp lại, tuyến sẽ được áp dụng cho một lịch theo dõi gần nhất.';
+      'KhÃ´ng láº·p láº¡i, tuyáº¿n sáº½ Ä‘Æ°á»£c Ã¡p dá»¥ng cho má»™t lá»‹ch theo dÃµi gáº§n nháº¥t.';
 
   @override
   String safeRouteRepeatSummaryText(Object labels) {
-    return 'Lặp lại vào: $labels';
+    return 'Láº·p láº¡i vÃ o: $labels';
   }
 
   @override
-  String get safeRouteCurrentRoutePrimary => 'Đang đi trên tuyến chính';
+  String get safeRouteCurrentRoutePrimary => 'Äang Ä‘i trÃªn tuyáº¿n chÃ­nh';
 
   @override
   String safeRouteCurrentRouteAlternativeIndexed(int index) {
-    return 'Đang đi trên tuyến phụ $index';
+    return 'Äang Ä‘i trÃªn tuyáº¿n phá»¥ $index';
   }
 
   @override
-  String get safeRouteCurrentRouteAlternative => 'Đang đi trên tuyến phụ';
+  String get safeRouteCurrentRouteAlternative => 'Äang Ä‘i trÃªn tuyáº¿n phá»¥';
 
   @override
   String safeRouteRouteFallbackNameText(Object id) {
-    return 'Tuyến $id';
+    return 'Tuyáº¿n $id';
   }
 
   @override
-  String get safeRouteSelectedRouteFallbackName => 'Tuyến đã chọn';
+  String get safeRouteSelectedRouteFallbackName => 'Tuyáº¿n Ä‘Ã£ chá»n';
 
   @override
-  String get safeRouteGuidanceLoadingRoute => 'Đang tải tuyến đường...';
+  String get safeRouteGuidanceLoadingRoute => 'Äang táº£i tuyáº¿n Ä‘Æ°á»ng...';
 
   @override
-  String get safeRouteGuidanceDangerArea => 'vùng nguy hiểm';
+  String get safeRouteGuidanceDangerArea => 'vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get safeRouteGuidanceReturnToSafeRoute => 'Quay lại tuyến an toàn';
+  String get safeRouteGuidanceReturnToSafeRoute => 'Quay láº¡i tuyáº¿n an toÃ n';
 
   @override
-  String get safeRouteGuidanceArrivedInstruction => 'Sắp tới nơi rồi';
+  String get safeRouteGuidanceArrivedInstruction => 'Sáº¯p tá»›i nÆ¡i rá»“i';
 
   @override
   String get safeRouteGuidanceArrivedDescription =>
-      'Đi tiếp đến điểm đích để hoàn thành hành trình.';
+      'Äi tiáº¿p Ä‘áº¿n Ä‘iá»ƒm Ä‘Ã­ch Ä‘á»ƒ hoÃ n thÃ nh hÃ nh trÃ¬nh.';
 
   @override
-  String get safeRouteGuidanceStatusOnRoute => 'Đúng tuyến';
+  String get safeRouteGuidanceStatusOnRoute => 'ÄÃºng tuyáº¿n';
 
   @override
-  String get safeRouteGuidanceStatusOffRoute => 'Lệch tuyến';
+  String get safeRouteGuidanceStatusOffRoute => 'Lá»‡ch tuyáº¿n';
 
   @override
-  String get safeRouteGuidanceStatusAlmostThere => 'Sắp đến nơi';
+  String get safeRouteGuidanceStatusAlmostThere => 'Sáº¯p Ä‘áº¿n nÆ¡i';
 
   @override
-  String get safeRouteGuidanceStatusSafeRoute => 'Tuyến an toàn';
+  String get safeRouteGuidanceStatusSafeRoute => 'Tuyáº¿n an toÃ n';
 
   @override
   String safeRouteGuidanceLeaveDangerZone(Object hazardName) {
-    return 'Rời khỏi $hazardName ngay';
+    return 'Rá»i khá»i $hazardName ngay';
   }
 
   @override
   String safeRouteGuidanceDangerDescription(Object hazardName) {
-    return 'Đi ra khỏi $hazardName và quay lại tuyến an toàn.';
+    return 'Äi ra khá»i $hazardName vÃ  quay láº¡i tuyáº¿n an toÃ n.';
   }
 
   @override
   String safeRouteGuidanceOffRouteDescription(Object distanceLabel) {
-    return 'Bạn đang cách tuyến khoảng $distanceLabel.';
+    return 'Báº¡n Ä‘ang cÃ¡ch tuyáº¿n khoáº£ng $distanceLabel.';
   }
 
   @override
   String safeRouteGuidanceRemainingDescription(Object distanceLabel) {
-    return 'Còn $distanceLabel để đến điểm đích.';
+    return 'CÃ²n $distanceLabel Ä‘á»ƒ Ä‘áº¿n Ä‘iá»ƒm Ä‘Ã­ch.';
   }
 
   @override
   String safeRouteGuidanceContinueStraight(Object distanceLabel) {
-    return 'Đi thẳng $distanceLabel';
+    return 'Äi tháº³ng $distanceLabel';
   }
 
   @override
   String safeRouteGuidanceTurnLeft(Object distanceLabel) {
-    return 'Rẽ trái sau $distanceLabel';
+    return 'Ráº½ trÃ¡i sau $distanceLabel';
   }
 
   @override
   String safeRouteGuidanceTurnRight(Object distanceLabel) {
-    return 'Rẽ phải sau $distanceLabel';
+    return 'Ráº½ pháº£i sau $distanceLabel';
   }
 
   @override
   String safeRouteGuidanceKeepLeft(Object distanceLabel) {
-    return 'Chếch trái sau $distanceLabel';
+    return 'Cháº¿ch trÃ¡i sau $distanceLabel';
   }
 
   @override
   String safeRouteGuidanceKeepRight(Object distanceLabel) {
-    return 'Chếch phải sau $distanceLabel';
+    return 'Cháº¿ch pháº£i sau $distanceLabel';
   }
 
   @override
   String safeRouteGuidanceMakeUTurn(Object distanceLabel) {
-    return 'Quay đầu sau $distanceLabel';
+    return 'Quay Ä‘áº§u sau $distanceLabel';
   }
 
   @override
-  String get safeRouteGuidanceEtaNow => 'Đến ngay bây giờ';
+  String get safeRouteGuidanceEtaNow => 'Äáº¿n ngay bÃ¢y giá»';
 
   @override
-  String get safeRouteVisualDangerTitle => 'Đi vào vùng nguy hiểm!';
+  String get safeRouteVisualDangerTitle => 'Äi vÃ o vÃ¹ng nguy hiá»ƒm!';
 
   @override
   String safeRouteVisualDangerSubtitle(Object hazardName) {
-    return 'Bé đang ở gần $hazardName.';
+    return 'BÃ© Ä‘ang á»Ÿ gáº§n $hazardName.';
   }
 
   @override
-  String get safeRouteVisualDangerBadge => 'NGUY HIỂM';
+  String get safeRouteVisualDangerBadge => 'NGUY HIá»‚M';
 
   @override
   String safeRouteVisualOffRouteTitle(Object distanceLabel) {
-    return 'Đang lệch tuyến ~$distanceLabel';
+    return 'Äang lá»‡ch tuyáº¿n ~$distanceLabel';
   }
 
   @override
   String get safeRouteVisualOffRouteSubtitle =>
-      'Bé đang đi ra ngoài hành lang an toàn đã chọn.';
+      'BÃ© Ä‘ang Ä‘i ra ngoÃ i hÃ nh lang an toÃ n Ä‘Ã£ chá»n.';
 
   @override
-  String get safeRouteVisualOffRouteBadge => 'LỆCH TUYẾN';
+  String get safeRouteVisualOffRouteBadge => 'Lá»†CH TUYáº¾N';
 
   @override
-  String get safeRouteVisualCompletedTitle => 'Bé đã đến nơi an toàn';
+  String get safeRouteVisualCompletedTitle => 'BÃ© Ä‘Ã£ Ä‘áº¿n nÆ¡i an toÃ n';
 
   @override
   String get safeRouteVisualCompletedSubtitle =>
-      'Hành trình vừa được đánh dấu hoàn thành.';
+      'HÃ nh trÃ¬nh vá»«a Ä‘Æ°á»£c Ä‘Ã¡nh dáº¥u hoÃ n thÃ nh.';
 
   @override
-  String get safeRouteVisualCompletedBadge => 'HOÀN THÀNH';
+  String get safeRouteVisualCompletedBadge => 'HOÃ€N THÃ€NH';
 
   @override
-  String get safeRouteVisualCancelledTitle => 'Đã dừng theo dõi hành trình';
+  String get safeRouteVisualCancelledTitle => 'ÄÃ£ dá»«ng theo dÃµi hÃ nh trÃ¬nh';
 
   @override
   String get safeRouteVisualCancelledSubtitle =>
-      'Phụ huynh đã kết thúc chế độ giám sát hiện tại.';
+      'Phá»¥ huynh Ä‘Ã£ káº¿t thÃºc cháº¿ Ä‘á»™ giÃ¡m sÃ¡t hiá»‡n táº¡i.';
 
   @override
-  String get safeRouteVisualCancelledBadge => 'ĐÃ DỪNG';
+  String get safeRouteVisualCancelledBadge => 'ÄÃƒ Dá»ªNG';
 
   @override
-  String get safeRouteVisualPlannedTitle => 'Tuyến đang chờ kích hoạt';
+  String get safeRouteVisualPlannedTitle => 'Tuyáº¿n Ä‘ang chá» kÃ­ch hoáº¡t';
 
   @override
   String get safeRouteVisualPlannedSubtitle =>
-      'Safe Route sẽ tự bắt đầu theo ngày giờ đã cài đặt.';
+      'Safe Route sáº½ tá»± báº¯t Ä‘áº§u theo ngÃ y giá» Ä‘Ã£ cÃ i Ä‘áº·t.';
 
   @override
-  String get safeRouteVisualPlannedBadge => 'ĐÃ LÊN LỊCH';
+  String get safeRouteVisualPlannedBadge => 'ÄÃƒ LÃŠN Lá»ŠCH';
 
   @override
-  String get safeRouteVisualActiveTitle => 'Đang đi đúng tuyến';
+  String get safeRouteVisualActiveTitle => 'Äang Ä‘i Ä‘Ãºng tuyáº¿n';
 
   @override
   String get safeRouteVisualActiveSubtitle =>
-      'Bé đang trong hành lang an toàn đã chọn.';
+      'BÃ© Ä‘ang trong hÃ nh lang an toÃ n Ä‘Ã£ chá»n.';
 
   @override
-  String get safeRouteVisualActiveBadge => 'AN TOÀN';
+  String get safeRouteVisualActiveBadge => 'AN TOÃ€N';
 
   @override
   String get safeRouteErrorMaxAlternative =>
-      'Chỉ nên chọn tối đa 2 tuyến phụ cho mỗi chuyến.';
+      'Chá»‰ nÃªn chá»n tá»‘i Ä‘a 2 tuyáº¿n phá»¥ cho má»—i chuyáº¿n.';
 
   @override
   String get safeRouteErrorNoCurrentLocation =>
-      'Chưa có vị trí hiện tại của trẻ.';
+      'ChÆ°a cÃ³ vá»‹ trÃ­ hiá»‡n táº¡i cá»§a tráº».';
 
   @override
-  String get safeRouteErrorNeedStartEnd => 'Cần chọn điểm A và điểm B trước.';
+  String get safeRouteErrorNeedStartEnd => 'Cáº§n chá»n Ä‘iá»ƒm A vÃ  Ä‘iá»ƒm B trÆ°á»›c.';
 
   @override
   String get safeRouteErrorLoadHistoryRoute =>
-      'Không tải được tuyến đường trong lịch sử.';
+      'KhÃ´ng táº£i Ä‘Æ°á»£c tuyáº¿n Ä‘Æ°á»ng trong lá»‹ch sá»­.';
 
   @override
-  String get safeRouteErrorNeedRoute => 'Cần chọn một tuyến đường an toàn.';
+  String get safeRouteErrorNeedRoute => 'Cáº§n chá»n má»™t tuyáº¿n Ä‘Æ°á»ng an toÃ n.';
 
   @override
   String get safeRouteErrorLoginAgain =>
-      'Bạn cần đăng nhập lại để bắt đầu chuyến đi.';
+      'Báº¡n cáº§n Ä‘Äƒng nháº­p láº¡i Ä‘á»ƒ báº¯t Ä‘áº§u chuyáº¿n Ä‘i.';
 
   @override
   String get safeRouteErrorSelectTimeForRepeat =>
-      'Chọn giờ áp dụng nếu muốn lặp lại theo ngày.';
+      'Chá»n giá» Ã¡p dá»¥ng náº¿u muá»‘n láº·p láº¡i theo ngÃ y.';
 
   @override
-  String get safeRouteUseCurrentLocationLabel => 'Vị trí hiện tại';
+  String get safeRouteUseCurrentLocationLabel => 'Vá»‹ trÃ­ hiá»‡n táº¡i';
 
   @override
-  String get safeRouteStartPointOfRoute => 'Điểm bắt đầu của tuyến';
+  String get safeRouteStartPointOfRoute => 'Äiá»ƒm báº¯t Ä‘áº§u cá»§a tuyáº¿n';
 
   @override
-  String get safeRouteEndPointOfRoute => 'Điểm kết thúc của tuyến';
+  String get safeRouteEndPointOfRoute => 'Äiá»ƒm káº¿t thÃºc cá»§a tuyáº¿n';
 
   @override
-  String get safeRouteCancelledByParentReason => 'Đã hủy bởi phụ huynh';
+  String get safeRouteCancelledByParentReason => 'ÄÃ£ há»§y bá»Ÿi phá»¥ huynh';
 
   @override
   String safeRouteSpeedValue(Object value) {
@@ -3425,377 +3425,377 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get safeRoutePageSelectRouteTitle => 'Chọn tuyến an toàn';
+  String get safeRoutePageSelectRouteTitle => 'Chá»n tuyáº¿n an toÃ n';
 
   @override
-  String get safeRoutePageJourneyTitle => 'Hành trình an toàn';
+  String get safeRoutePageJourneyTitle => 'HÃ nh trÃ¬nh an toÃ n';
 
   @override
-  String get safeRouteSnackbarAutoFollowEnabled => 'Đã bật Auto follow';
+  String get safeRouteSnackbarAutoFollowEnabled => 'ÄÃ£ báº­t Auto follow';
 
   @override
-  String get safeRouteSnackbarAutoFollowDisabled => 'Đã tắt Auto follow';
+  String get safeRouteSnackbarAutoFollowDisabled => 'ÄÃ£ táº¯t Auto follow';
 
   @override
-  String get safeRouteSearchStartTitle => 'Tìm điểm đi';
+  String get safeRouteSearchStartTitle => 'TÃ¬m Ä‘iá»ƒm Ä‘i';
 
   @override
   String get safeRouteSearchStartHint =>
-      'Tìm nhà, điểm đón hoặc vị trí bắt đầu hành trình.';
+      'TÃ¬m nhÃ , Ä‘iá»ƒm Ä‘Ã³n hoáº·c vá»‹ trÃ­ báº¯t Ä‘áº§u hÃ nh trÃ¬nh.';
 
   @override
-  String get safeRouteSearchEndTitle => 'Tìm điểm đến';
+  String get safeRouteSearchEndTitle => 'TÃ¬m Ä‘iá»ƒm Ä‘áº¿n';
 
   @override
   String get safeRouteSearchEndHint =>
-      'Tìm trường học, nhà người thân hoặc điểm đến cần theo dõi.';
+      'TÃ¬m trÆ°á»ng há»c, nhÃ  ngÆ°á»i thÃ¢n hoáº·c Ä‘iá»ƒm Ä‘áº¿n cáº§n theo dÃµi.';
 
   @override
   String safeRouteScheduledAutoActivationPrefix(Object summary) {
-    return 'Tự kích hoạt theo lịch · $summary';
+    return 'Tá»± kÃ­ch hoáº¡t theo lá»‹ch Â· $summary';
   }
 
   @override
-  String get safeRouteTopSubtitleWarning => 'Đang lệch tuyến';
+  String get safeRouteTopSubtitleWarning => 'Äang lá»‡ch tuyáº¿n';
 
   @override
-  String get safeRouteTopSubtitleDanger => 'Cảnh báo nguy hiểm';
+  String get safeRouteTopSubtitleDanger => 'Cáº£nh bÃ¡o nguy hiá»ƒm';
 
   @override
-  String get safeRouteTopSubtitleReady => 'Điểm đi và điểm đến đã sẵn sàng';
+  String get safeRouteTopSubtitleReady => 'Äiá»ƒm Ä‘i vÃ  Ä‘iá»ƒm Ä‘áº¿n Ä‘Ã£ sáºµn sÃ ng';
 
   @override
   String get safeRouteTopSubtitleOnlyStart =>
-      'Đã chọn điểm đi, tiếp tục chọn điểm đến';
+      'ÄÃ£ chá»n Ä‘iá»ƒm Ä‘i, tiáº¿p tá»¥c chá»n Ä‘iá»ƒm Ä‘áº¿n';
 
   @override
   String get safeRouteTopSubtitleChoosePoints =>
-      'Chọn điểm đi và điểm đến theo phong cách bản đồ';
+      'Chá»n Ä‘iá»ƒm Ä‘i vÃ  Ä‘iá»ƒm Ä‘áº¿n theo phong cÃ¡ch báº£n Ä‘á»“';
 
   @override
-  String get safeRouteSelectScheduleDateHelp => 'Chọn ngày áp dụng';
+  String get safeRouteSelectScheduleDateHelp => 'Chá»n ngÃ y Ã¡p dá»¥ng';
 
   @override
-  String get safeRouteSelectScheduleTimeTitle => 'Chọn giờ áp dụng';
+  String get safeRouteSelectScheduleTimeTitle => 'Chá»n giá» Ã¡p dá»¥ng';
 
   @override
-  String get safeRouteArrivedDialogTitle => 'Bé đã đến nơi an toàn';
+  String get safeRouteArrivedDialogTitle => 'BÃ© Ä‘Ã£ Ä‘áº¿n nÆ¡i an toÃ n';
 
   @override
   String get safeRouteArrivedDialogMessage =>
-      'Hành trình này đã được hoàn tất. Bạn có thể quay lại để chọn tuyến đường mới cho bé.';
+      'HÃ nh trÃ¬nh nÃ y Ä‘Ã£ Ä‘Æ°á»£c hoÃ n táº¥t. Báº¡n cÃ³ thá»ƒ quay láº¡i Ä‘á»ƒ chá»n tuyáº¿n Ä‘Æ°á»ng má»›i cho bÃ©.';
 
   @override
-  String get safeRouteArrivedDialogConfirm => 'Quay lại chọn tuyến đường';
+  String get safeRouteArrivedDialogConfirm => 'Quay láº¡i chá»n tuyáº¿n Ä‘Æ°á»ng';
 
   @override
-  String get safeRouteCancelPlannedTitle => 'Xác nhận hủy lịch Safe Route';
+  String get safeRouteCancelPlannedTitle => 'XÃ¡c nháº­n há»§y lá»‹ch Safe Route';
 
   @override
-  String get safeRouteCancelActiveTitle => 'Xác nhận hủy tuyến Safe Route';
+  String get safeRouteCancelActiveTitle => 'XÃ¡c nháº­n há»§y tuyáº¿n Safe Route';
 
   @override
   String get safeRouteCancelPlannedMessage =>
-      'Lịch theo dõi này sẽ không tự kích hoạt nữa. Bạn có chắc muốn hủy không?';
+      'Lá»‹ch theo dÃµi nÃ y sáº½ khÃ´ng tá»± kÃ­ch hoáº¡t ná»¯a. Báº¡n cÃ³ cháº¯c muá»‘n há»§y khÃ´ng?';
 
   @override
   String get safeRouteCancelActiveMessage =>
-      'Tuyến đường an toàn hiện tại sẽ dừng theo dõi ngay. Bạn có chắc muốn hủy không?';
+      'Tuyáº¿n Ä‘Æ°á»ng an toÃ n hiá»‡n táº¡i sáº½ dá»«ng theo dÃµi ngay. Báº¡n cÃ³ cháº¯c muá»‘n há»§y khÃ´ng?';
 
   @override
-  String get safeRouteCancelPlannedConfirm => 'Xác nhận hủy lịch';
+  String get safeRouteCancelPlannedConfirm => 'XÃ¡c nháº­n há»§y lá»‹ch';
 
   @override
-  String get safeRouteCancelActiveConfirm => 'Xác nhận hủy tuyến';
+  String get safeRouteCancelActiveConfirm => 'XÃ¡c nháº­n há»§y tuyáº¿n';
 
   @override
-  String get safeRouteDialogBack => 'Quay lại';
+  String get safeRouteDialogBack => 'Quay láº¡i';
 
   @override
-  String get safeRouteTooltipFocusChild => 'Đưa camera tới bé';
+  String get safeRouteTooltipFocusChild => 'ÄÆ°a camera tá»›i bÃ©';
 
   @override
-  String get safeRouteTooltipDisableAutoFollow => 'Tắt Auto follow';
+  String get safeRouteTooltipDisableAutoFollow => 'Táº¯t Auto follow';
 
   @override
-  String get safeRouteTooltipEnableAutoFollow => 'Bật Auto follow';
+  String get safeRouteTooltipEnableAutoFollow => 'Báº­t Auto follow';
 
   @override
   String get safeRouteAutoFollowLabel => 'Auto follow';
 
   @override
-  String get safeRouteTooltipHideHazards => 'Ẩn vùng nguy hiểm';
+  String get safeRouteTooltipHideHazards => 'áº¨n vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get safeRouteTooltipShowHazards => 'Hiện vùng nguy hiểm';
+  String get safeRouteTooltipShowHazards => 'Hiá»‡n vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get safeRouteTooltipMapType => 'Chọn kiểu bản đồ';
+  String get safeRouteTooltipMapType => 'Chá»n kiá»ƒu báº£n Ä‘á»“';
 
   @override
-  String get safeRouteMapHintPlaceStart => 'Chạm trên bản đồ để đặt điểm đi';
+  String get safeRouteMapHintPlaceStart => 'Cháº¡m trÃªn báº£n Ä‘á»“ Ä‘á»ƒ Ä‘áº·t Ä‘iá»ƒm Ä‘i';
 
   @override
-  String get safeRouteMapHintPlaceEnd => 'Chạm trên bản đồ để đặt điểm đến';
+  String get safeRouteMapHintPlaceEnd => 'Cháº¡m trÃªn báº£n Ä‘á»“ Ä‘á»ƒ Ä‘áº·t Ä‘iá»ƒm Ä‘áº¿n';
 
   @override
   String get safeRouteMapHintTapStart =>
-      'Chạm trên bản đồ để chọn điểm đi cho bé.';
+      'Cháº¡m trÃªn báº£n Ä‘á»“ Ä‘á»ƒ chá»n Ä‘iá»ƒm Ä‘i cho bÃ©.';
 
   @override
   String get safeRouteMapHintTapEnd =>
-      'Chạm trên bản đồ để chọn điểm đến của bé.';
+      'Cháº¡m trÃªn báº£n Ä‘á»“ Ä‘á»ƒ chá»n Ä‘iá»ƒm Ä‘áº¿n cá»§a bÃ©.';
 
   @override
   String get safeRouteSnackbarSelectedEndPoint =>
-      'Đã chọn điểm đến trên bản đồ';
+      'ÄÃ£ chá»n Ä‘iá»ƒm Ä‘áº¿n trÃªn báº£n Ä‘á»“';
 
   @override
   String get safeRouteSnackbarSelectedStartPoint =>
-      'Đã chọn điểm đi trên bản đồ';
+      'ÄÃ£ chá»n Ä‘iá»ƒm Ä‘i trÃªn báº£n Ä‘á»“';
 
   @override
-  String get safeRouteSelectSafeRouteTitle => 'Chọn tuyến an toàn';
+  String get safeRouteSelectSafeRouteTitle => 'Chá»n tuyáº¿n an toÃ n';
 
   @override
-  String get safeRouteSuggestedRoutesTitle => 'Các tuyến đường gợi ý';
+  String get safeRouteSuggestedRoutesTitle => 'CÃ¡c tuyáº¿n Ä‘Æ°á»ng gá»£i Ã½';
 
   @override
   String get safeRouteSuggestedRoutesSubtitle =>
-      'Ưu tiên an toàn, dễ theo dõi và ít đi qua vùng nguy hiểm';
+      'Æ¯u tiÃªn an toÃ n, dá»… theo dÃµi vÃ  Ã­t Ä‘i qua vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get safeRouteHistoryButton => 'Lịch sử';
+  String get safeRouteHistoryButton => 'Lá»‹ch sá»­';
 
   @override
-  String get safeRouteRefreshingRoutes => 'Đang tìm...';
+  String get safeRouteRefreshingRoutes => 'Äang tÃ¬m...';
 
   @override
-  String get safeRouteRefreshButton => 'Làm mới';
+  String get safeRouteRefreshButton => 'LÃ m má»›i';
 
   @override
-  String get safeRouteConfirmingRoute => 'Đang xác nhận tuyến...';
+  String get safeRouteConfirmingRoute => 'Äang xÃ¡c nháº­n tuyáº¿n...';
 
   @override
-  String get safeRouteFetchSuggestedRoutes => 'Lấy gợi ý tuyến đường';
+  String get safeRouteFetchSuggestedRoutes => 'Láº¥y gá»£i Ã½ tuyáº¿n Ä‘Æ°á»ng';
 
   @override
   String get safeRouteHintSelectingStart =>
-      'Chạm trên bản đồ để chọn điểm đi cho bé.';
+      'Cháº¡m trÃªn báº£n Ä‘á»“ Ä‘á»ƒ chá»n Ä‘iá»ƒm Ä‘i cho bÃ©.';
 
   @override
   String get safeRouteHintSelectingEnd =>
-      'Chạm trên bản đồ để chọn điểm đến của bé.';
+      'Cháº¡m trÃªn báº£n Ä‘á»“ Ä‘á»ƒ chá»n Ä‘iá»ƒm Ä‘áº¿n cá»§a bÃ©.';
 
   @override
   String get safeRouteHintMissingPoints =>
-      'Chọn điểm A và điểm B theo phong cách bản đồ, sau đó xem các tuyến gợi ý.';
+      'Chá»n Ä‘iá»ƒm A vÃ  Ä‘iá»ƒm B theo phong cÃ¡ch báº£n Ä‘á»“, sau Ä‘Ã³ xem cÃ¡c tuyáº¿n gá»£i Ã½.';
 
   @override
   String get safeRouteHintReadyChooseRoute =>
-      'Đã có đủ điểm đi và điểm đến. Bạn có thể chọn tuyến an toàn nhất để bắt đầu giám sát.';
+      'ÄÃ£ cÃ³ Ä‘á»§ Ä‘iá»ƒm Ä‘i vÃ  Ä‘iá»ƒm Ä‘áº¿n. Báº¡n cÃ³ thá»ƒ chá»n tuyáº¿n an toÃ n nháº¥t Ä‘á»ƒ báº¯t Ä‘áº§u giÃ¡m sÃ¡t.';
 
   @override
   String get safeRouteEmptyRoutesNeedPoints =>
-      'Hãy chọn cả điểm đi và điểm đến để app đề xuất các tuyến đường an toàn.';
+      'HÃ£y chá»n cáº£ Ä‘iá»ƒm Ä‘i vÃ  Ä‘iá»ƒm Ä‘áº¿n Ä‘á»ƒ app Ä‘á» xuáº¥t cÃ¡c tuyáº¿n Ä‘Æ°á»ng an toÃ n.';
 
   @override
   String get safeRouteEmptyRoutesRefresh =>
-      'Nhấn \"Làm mới\" hoặc nút phía dưới để lấy lại danh sách tuyến gợi ý.';
+      'Nháº¥n \"LÃ m má»›i\" hoáº·c nÃºt phÃ­a dÆ°á»›i Ä‘á»ƒ láº¥y láº¡i danh sÃ¡ch tuyáº¿n gá»£i Ã½.';
 
   @override
   String get safeRoutePrimaryActionSaveSchedule =>
-      'Lưu tuyến và lên lịch theo dõi';
+      'LÆ°u tuyáº¿n vÃ  lÃªn lá»‹ch theo dÃµi';
 
   @override
   String get safeRoutePrimaryActionStartSelectedRoutes =>
-      'Bắt đầu theo dõi các tuyến đã chọn';
+      'Báº¯t Ä‘áº§u theo dÃµi cÃ¡c tuyáº¿n Ä‘Ã£ chá»n';
 
   @override
   String get safeRoutePrimaryActionSelectThisRoute =>
-      'Chọn tuyến này và bắt đầu theo dõi';
+      'Chá»n tuyáº¿n nÃ y vÃ  báº¯t Ä‘áº§u theo dÃµi';
 
   @override
   String get safeRouteSelectedRoutesNeedPrimary =>
-      'Hãy chọn 1 tuyến chính và có thể thêm tối đa 2 tuyến phụ.';
+      'HÃ£y chá»n 1 tuyáº¿n chÃ­nh vÃ  cÃ³ thá»ƒ thÃªm tá»‘i Ä‘a 2 tuyáº¿n phá»¥.';
 
   @override
   String get safeRouteSelectedRoutesPrimaryOnly =>
-      'Đã chọn 1 tuyến chính. Bạn có thể thêm tối đa 2 tuyến phụ.';
+      'ÄÃ£ chá»n 1 tuyáº¿n chÃ­nh. Báº¡n cÃ³ thá»ƒ thÃªm tá»‘i Ä‘a 2 tuyáº¿n phá»¥.';
 
   @override
   String safeRouteSelectedRoutesWithAlternatives(int count) {
-    return 'Đã chọn 1 tuyến chính và $count tuyến phụ.';
+    return 'ÄÃ£ chá»n 1 tuyáº¿n chÃ­nh vÃ  $count tuyáº¿n phá»¥.';
   }
 
   @override
-  String get safeRouteActionStopTracking => 'Dừng theo dõi';
+  String get safeRouteActionStopTracking => 'Dá»«ng theo dÃµi';
 
   @override
-  String get safeRouteActionViewRoute => 'Xem tuyến';
+  String get safeRouteActionViewRoute => 'Xem tuyáº¿n';
 
   @override
-  String get safeRouteActionMarkArrived => 'Đánh dấu đã đến';
+  String get safeRouteActionMarkArrived => 'ÄÃ¡nh dáº¥u Ä‘Ã£ Ä‘áº¿n';
 
   @override
-  String get safeRouteActionCancelSchedule => 'Hủy lịch';
+  String get safeRouteActionCancelSchedule => 'Há»§y lá»‹ch';
 
   @override
-  String get safeRouteActionChooseNewRoute => 'Chọn tuyến mới';
+  String get safeRouteActionChooseNewRoute => 'Chá»n tuyáº¿n má»›i';
 
   @override
-  String get safeRouteActionRouteDetails => 'Chi tiết tuyến';
+  String get safeRouteActionRouteDetails => 'Chi tiáº¿t tuyáº¿n';
 
   @override
-  String get safeRouteStatusSubtitleActive => 'Bé đang bám sát tuyến đã chọn';
+  String get safeRouteStatusSubtitleActive => 'BÃ© Ä‘ang bÃ¡m sÃ¡t tuyáº¿n Ä‘Ã£ chá»n';
 
   @override
   String get safeRouteStatusSubtitleTemporarilyDeviated =>
-      'Có dấu hiệu lệch nhẹ, hệ thống đang tiếp tục theo dõi';
+      'CÃ³ dáº¥u hiá»‡u lá»‡ch nháº¹, há»‡ thá»‘ng Ä‘ang tiáº¿p tá»¥c theo dÃµi';
 
   @override
   String get safeRouteStatusSubtitleDeviated =>
-      'Bé đã lệch khỏi corridor an toàn';
+      'BÃ© Ä‘Ã£ lá»‡ch khá»i corridor an toÃ n';
 
   @override
-  String get safeRouteStatusSubtitleCompleted => 'Hành trình đã hoàn tất';
+  String get safeRouteStatusSubtitleCompleted => 'HÃ nh trÃ¬nh Ä‘Ã£ hoÃ n táº¥t';
 
   @override
-  String get safeRouteStatusSubtitleCancelled => 'Phụ huynh đã dừng giám sát';
+  String get safeRouteStatusSubtitleCancelled => 'Phá»¥ huynh Ä‘Ã£ dá»«ng giÃ¡m sÃ¡t';
 
   @override
   String get safeRouteStatusSubtitlePlanned =>
-      'Tuyến đang chờ tới giờ để tự kích hoạt';
+      'Tuyáº¿n Ä‘ang chá» tá»›i giá» Ä‘á»ƒ tá»± kÃ­ch hoáº¡t';
 
   @override
-  String get safeRouteStatusSubtitleNoData => 'Chưa có dữ liệu giám sát';
+  String get safeRouteStatusSubtitleNoData => 'ChÆ°a cÃ³ dá»¯ liá»‡u giÃ¡m sÃ¡t';
 
   @override
-  String get safeRouteSpeedStanding => 'Đứng yên';
+  String get safeRouteSpeedStanding => 'Äá»©ng yÃªn';
 
   @override
-  String get safeRouteSpeedWalking => 'Đi bộ';
+  String get safeRouteSpeedWalking => 'Äi bá»™';
 
   @override
-  String get safeRouteSpeedCycling => 'Đi xe đạp';
+  String get safeRouteSpeedCycling => 'Äi xe Ä‘áº¡p';
 
   @override
-  String get safeRouteSpeedMoving => 'Di chuyển';
+  String get safeRouteSpeedMoving => 'Di chuyá»ƒn';
 
   @override
-  String get safeRouteMetricSpeed => 'Tốc độ';
+  String get safeRouteMetricSpeed => 'Tá»‘c Ä‘á»™';
 
   @override
-  String get safeRouteMetricOffRoute => 'Lệch tuyến';
+  String get safeRouteMetricOffRoute => 'Lá»‡ch tuyáº¿n';
 
   @override
-  String get safeRouteMetricOffCorridor => 'Ngoài corridor';
+  String get safeRouteMetricOffCorridor => 'NgoÃ i corridor';
 
   @override
-  String get safeRouteMetricEta => 'Đến nơi';
+  String get safeRouteMetricEta => 'Äáº¿n nÆ¡i';
 
   @override
-  String get safeRouteMetricEtaEstimate => 'Ước tính';
+  String get safeRouteMetricEtaEstimate => 'Æ¯á»›c tÃ­nh';
 
   @override
-  String get safeRouteDangerCheckNow => 'Cần kiểm tra ngay';
+  String get safeRouteDangerCheckNow => 'Cáº§n kiá»ƒm tra ngay';
 
   @override
-  String get safeRouteDeviceBatteryLabel => 'Pin thiết bị';
+  String get safeRouteDeviceBatteryLabel => 'Pin thiáº¿t bá»‹';
 
   @override
-  String get safeRouteProgressTitle => 'Tiến độ hành trình';
+  String get safeRouteProgressTitle => 'Tiáº¿n Ä‘á»™ hÃ nh trÃ¬nh';
 
   @override
   String safeRouteProgressCompletedPercent(int percent) {
-    return 'Đã đi $percent%';
+    return 'ÄÃ£ Ä‘i $percent%';
   }
 
   @override
   String safeRouteProgressTraveled(Object traveled, Object total) {
-    return 'Đã đi $traveled/$total';
+    return 'ÄÃ£ Ä‘i $traveled/$total';
   }
 
   @override
   String safeRouteProgressRemainingPercent(int percent) {
-    return 'Còn lại $percent%';
+    return 'CÃ²n láº¡i $percent%';
   }
 
   @override
   String safeRouteProgressRemaining(Object distance) {
-    return 'Còn $distance';
+    return 'CÃ²n $distance';
   }
 
   @override
-  String get safeRouteFromLabel => 'Từ';
+  String get safeRouteFromLabel => 'Tá»«';
 
   @override
-  String get safeRouteToLabel => 'Đến';
+  String get safeRouteToLabel => 'Äáº¿n';
 
   @override
-  String get safeRouteSearchOrSelectStart => 'Tìm hoặc chọn điểm đi';
+  String get safeRouteSearchOrSelectStart => 'TÃ¬m hoáº·c chá»n Ä‘iá»ƒm Ä‘i';
 
   @override
-  String get safeRouteSearchOrSelectEnd => 'Tìm hoặc chọn điểm đến';
+  String get safeRouteSearchOrSelectEnd => 'TÃ¬m hoáº·c chá»n Ä‘iá»ƒm Ä‘áº¿n';
 
   @override
-  String get safeRouteScheduleTitle => 'Lịch áp dụng tuyến';
+  String get safeRouteScheduleTitle => 'Lá»‹ch Ã¡p dá»¥ng tuyáº¿n';
 
   @override
   String get safeRouteScheduleSubtitle =>
-      'Đặt ngày, giờ và chọn các ngày lặp lại cho tuyến đường an toàn này.';
+      'Äáº·t ngÃ y, giá» vÃ  chá»n cÃ¡c ngÃ y láº·p láº¡i cho tuyáº¿n Ä‘Æ°á»ng an toÃ n nÃ y.';
 
   @override
-  String get safeRouteDateLabel => 'Ngày';
+  String get safeRouteDateLabel => 'NgÃ y';
 
   @override
-  String get safeRouteTimeLabel => 'Giờ';
+  String get safeRouteTimeLabel => 'Giá»';
 
   @override
-  String get safeRouteRepeatByDayLabel => 'Lặp lại theo ngày';
+  String get safeRouteRepeatByDayLabel => 'Láº·p láº¡i theo ngÃ y';
 
   @override
-  String get safeRouteHistoryTripsTitle => 'Lịch sử chuyến đường an toàn';
+  String get safeRouteHistoryTripsTitle => 'Lá»‹ch sá»­ chuyáº¿n Ä‘Æ°á»ng an toÃ n';
 
   @override
   String get safeRouteHistoryTripsEmpty =>
-      'Chưa có chuyến nào được lưu cho bé.';
+      'ChÆ°a cÃ³ chuyáº¿n nÃ o Ä‘Æ°á»£c lÆ°u cho bÃ©.';
 
   @override
   String get safeRouteHistoryTripsSubtitle =>
-      'Chạm vào từng chuyến để xem lại tuyến đường và trạng thái di chuyển.';
+      'Cháº¡m vÃ o tá»«ng chuyáº¿n Ä‘á»ƒ xem láº¡i tuyáº¿n Ä‘Æ°á»ng vÃ  tráº¡ng thÃ¡i di chuyá»ƒn.';
 
   @override
-  String get safeRouteHistoryPageTitle => 'Lịch sử tuyến đường';
+  String get safeRouteHistoryPageTitle => 'Lá»‹ch sá»­ tuyáº¿n Ä‘Æ°á»ng';
 
   @override
   String get safeRouteHistoryPageReviewSaved =>
-      'Xem lại toàn bộ hành trình an toàn đã lưu';
+      'Xem láº¡i toÃ n bá»™ hÃ nh trÃ¬nh an toÃ n Ä‘Ã£ lÆ°u';
 
   @override
   String get safeRouteHistoryEmptyState =>
-      'Chưa có tuyến đường nào được lưu trong lịch sử Safe Route.';
+      'ChÆ°a cÃ³ tuyáº¿n Ä‘Æ°á»ng nÃ o Ä‘Æ°á»£c lÆ°u trong lá»‹ch sá»­ Safe Route.';
 
   @override
-  String get safeRouteNoRepeatLabel => 'Không lặp lại';
+  String get safeRouteNoRepeatLabel => 'KhÃ´ng láº·p láº¡i';
 
   @override
-  String get safeRouteBadgeSafest => 'An toàn nhất';
+  String get safeRouteBadgeSafest => 'An toÃ n nháº¥t';
 
   @override
-  String get safeRouteBadgeFewerHazards => 'Ít vùng nguy hiểm';
+  String get safeRouteBadgeFewerHazards => 'Ãt vÃ¹ng nguy hiá»ƒm';
 
   @override
-  String get safeRouteBadgeFaster => 'Nhanh hơn';
+  String get safeRouteBadgeFaster => 'Nhanh hÆ¡n';
 
   @override
-  String get safeRouteBadgeAlternative => 'Tuyến phụ';
+  String get safeRouteBadgeAlternative => 'Tuyáº¿n phá»¥';
 
   @override
-  String get safeRouteRolePrimary => 'Tuyến chính';
+  String get safeRouteRolePrimary => 'Tuyáº¿n chÃ­nh';
 
   @override
-  String get safeRouteRoleAlternative => 'Tuyến phụ';
+  String get safeRouteRoleAlternative => 'Tuyáº¿n phá»¥';
 
   @override
   String safeRouteCorridorLabel(Object distance) {
@@ -3803,120 +3803,120 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get safeRouteActionPrimarySelected => 'Đang là tuyến chính';
+  String get safeRouteActionPrimarySelected => 'Äang lÃ  tuyáº¿n chÃ­nh';
 
   @override
-  String get safeRouteActionSetPrimary => 'Đặt làm tuyến chính';
+  String get safeRouteActionSetPrimary => 'Äáº·t lÃ m tuyáº¿n chÃ­nh';
 
   @override
-  String get safeRouteActionRemoveAlternative => 'Bỏ tuyến phụ';
+  String get safeRouteActionRemoveAlternative => 'Bá» tuyáº¿n phá»¥';
 
   @override
-  String get safeRouteActionSelectAlternative => 'Chọn tuyến phụ';
+  String get safeRouteActionSelectAlternative => 'Chá»n tuyáº¿n phá»¥';
 
   @override
-  String get safeRouteActionAlternativeLimitReached => 'Đã đủ tuyến phụ';
+  String get safeRouteActionAlternativeLimitReached => 'ÄÃ£ Ä‘á»§ tuyáº¿n phá»¥';
 
   @override
   String get safeRouteRouteDescriptionStable =>
-      'Tuyến khá ổn định, gần như không đi vào vùng nguy hiểm.';
+      'Tuyáº¿n khÃ¡ á»•n Ä‘á»‹nh, gáº§n nhÆ° khÃ´ng Ä‘i vÃ o vÃ¹ng nguy hiá»ƒm.';
 
   @override
   String get safeRouteRouteDescriptionOneHazard =>
-      'Có 1 điểm cần lưu ý nhưng vẫn phù hợp để theo dõi an toàn.';
+      'CÃ³ 1 Ä‘iá»ƒm cáº§n lÆ°u Ã½ nhÆ°ng váº«n phÃ¹ há»£p Ä‘á»ƒ theo dÃµi an toÃ n.';
 
   @override
   String get safeRouteRouteDescriptionMoreHazards =>
-      'Tuyến đi nhanh hơn nhưng cần chú ý vì có nhiều vùng cảnh báo hơn.';
+      'Tuyáº¿n Ä‘i nhanh hÆ¡n nhÆ°ng cáº§n chÃº Ã½ vÃ¬ cÃ³ nhiá»u vÃ¹ng cáº£nh bÃ¡o hÆ¡n.';
 
   @override
   String safeRouteHazardCount(int count) {
-    return '$count vùng nguy hiểm';
+    return '$count vÃ¹ng nguy hiá»ƒm';
   }
 
   @override
   String safeRouteAlternativeRouteCount(int count) {
-    return '+$count tuyến phụ';
+    return '+$count tuyáº¿n phá»¥';
   }
 
   @override
   String get cupertinoTimePickerDoneButton => 'Xong';
 
   @override
-  String get childLocationUpdatedOneHourAgo => 'Cập nhật 1 giờ trước';
+  String get childLocationUpdatedOneHourAgo => 'Cáº­p nháº­t 1 giá» trÆ°á»›c';
 
   @override
   String childLocationUpdatedHoursAgo(int hours) {
-    return 'Cập nhật $hours giờ trước';
+    return 'Cáº­p nháº­t $hours giá» trÆ°á»›c';
   }
 
   @override
-  String get validationPasswordRequired => 'Vui lòng nhập mật khẩu';
+  String get validationPasswordRequired => 'Vui lÃ²ng nháº­p máº­t kháº©u';
 
   @override
-  String get validationPasswordMinLength => 'Mật khẩu phải có ít nhất 6 ký tự';
+  String get validationPasswordMinLength => 'Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±';
 
   @override
   String get validationPasswordUppercaseRequired =>
-      'Mật khẩu phải có ít nhất 1 chữ hoa';
+      'Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 1 chá»¯ hoa';
 
   @override
   String get validationPasswordLowercaseRequired =>
-      'Mật khẩu phải có ít nhất 1 chữ thường';
+      'Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 1 chá»¯ thÆ°á»ng';
 
   @override
   String get validationPasswordNumberRequired =>
-      'Mật khẩu phải có ít nhất 1 chữ số';
+      'Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 1 chá»¯ sá»‘';
 
   @override
-  String get validationPasswordConfirmRequired => 'Vui lòng nhập lại mật khẩu';
+  String get validationPasswordConfirmRequired => 'Vui lÃ²ng nháº­p láº¡i máº­t kháº©u';
 
   @override
   String get firebaseAuthOperationNotAllowed =>
-      'Chức năng tạo tài khoản chưa được bật trong Firebase Auth';
+      'Chá»©c nÄƒng táº¡o tÃ i khoáº£n chÆ°a Ä‘Æ°á»£c báº­t trong Firebase Auth';
 
   @override
-  String get userRepositoryCreateAccountFailed => 'Không thể tạo tài khoản';
+  String get userRepositoryCreateAccountFailed => 'KhÃ´ng thá»ƒ táº¡o tÃ i khoáº£n';
 
   @override
-  String get firestorePermissionDenied => 'Bạn không có quyền ghi dữ liệu';
+  String get firestorePermissionDenied => 'Báº¡n khÃ´ng cÃ³ quyá»n ghi dá»¯ liá»‡u';
 
   @override
-  String get firestoreUnavailable => 'Firestore tạm thời không khả dụng';
+  String get firestoreUnavailable => 'Firestore táº¡m thá»i khÃ´ng kháº£ dá»¥ng';
 
   @override
-  String get firestoreGenericError => 'Lỗi Firestore';
+  String get firestoreGenericError => 'Lá»—i Firestore';
 
   @override
-  String get userRepositoryCreateChildFailed => 'Không thể tạo tài khoản con';
+  String get userRepositoryCreateChildFailed => 'KhÃ´ng thá»ƒ táº¡o tÃ i khoáº£n con';
 
   @override
   String get mapPlaceSearchMissingAccessToken =>
-      'Thiếu ACCESS_TOKEN Mapbox cho tìm kiếm địa điểm.';
+      'Thiáº¿u ACCESS_TOKEN Mapbox cho tÃ¬m kiáº¿m Ä‘á»‹a Ä‘iá»ƒm.';
 
   @override
   String mapPlaceSearchRequestFailed(int statusCode) {
-    return 'Tìm kiếm địa điểm thất bại ($statusCode).';
+    return 'TÃ¬m kiáº¿m Ä‘á»‹a Ä‘iá»ƒm tháº¥t báº¡i ($statusCode).';
   }
 
   @override
   String get mapPlaceSearchInvalidResponse =>
-      'Dữ liệu trả về từ Mapbox không hợp lệ.';
+      'Dá»¯ liá»‡u tráº£ vá» tá»« Mapbox khÃ´ng há»£p lá»‡.';
 
   @override
   String get mapPlaceSearchTimeout =>
-      'Tìm kiếm địa điểm quá thời gian, vui lòng thử lại.';
+      'TÃ¬m kiáº¿m Ä‘á»‹a Ä‘iá»ƒm quÃ¡ thá»i gian, vui lÃ²ng thá»­ láº¡i.';
 
   @override
-  String get mapPlaceSearchDecodeFailed => 'Không thể đọc dữ liệu địa điểm.';
+  String get mapPlaceSearchDecodeFailed => 'KhÃ´ng thá»ƒ Ä‘á»c dá»¯ liá»‡u Ä‘á»‹a Ä‘iá»ƒm.';
 
   @override
   String get mapPlaceSearchUnexpectedError =>
-      'Có lỗi xảy ra khi tìm kiếm địa điểm.';
+      'CÃ³ lá»—i xáº£y ra khi tÃ¬m kiáº¿m Ä‘á»‹a Ä‘iá»ƒm.';
 
   @override
-  String get mapPlaceSearchNoAddress => 'Không có địa chỉ';
+  String get mapPlaceSearchNoAddress => 'KhÃ´ng cÃ³ Ä‘á»‹a chá»‰';
 
   @override
-  String get mapPlaceSearchDefaultName => 'Địa điểm';
+  String get mapPlaceSearchDefaultName => 'Äá»‹a Ä‘iá»ƒm';
 }

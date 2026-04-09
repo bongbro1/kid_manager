@@ -52,6 +52,9 @@ function addDays(base: Date, days: number) {
 }
 
 function parseBirthYear(rawDob: unknown, rawDobIso: unknown): number | null {
+  if (typeof rawDob === "number" && Number.isInteger(rawDob) && rawDob > 0) {
+    return rawDob;
+  }
   const candidates = [rawDobIso, rawDob];
 
   for (const candidate of candidates) {
@@ -114,78 +117,78 @@ function buildBirthdayText(opts: {
     if (opts.isSelf) {
       if (isEn) {
         return {
-          title: "Birthday countdown🎂",
+          title: "Birthday countdownðŸŽ‚",
           body:
             opts.daysUntil === 1
-              ? "Tomorrow is your birthday 🎂"
+              ? "Tomorrow is your birthday ðŸŽ‚"
               : `Your birthday is in ${opts.daysUntil} days`,
         };
       }
 
       return {
-        title: "Đếm ngược sinh nhật🎂",
+        title: "Äáº¿m ngÆ°á»£c sinh nháº­tðŸŽ‚",
         body:
           opts.daysUntil === 1
-            ? "Ngày mai là sinh nhật của bạn 🎂"
-            : `Sinh nhật của bạn còn ${opts.daysUntil} ngày nữa`,
+            ? "NgÃ y mai lÃ  sinh nháº­t cá»§a báº¡n ðŸŽ‚"
+            : `Sinh nháº­t cá»§a báº¡n cÃ²n ${opts.daysUntil} ngÃ y ná»¯a`,
       };
     }
 
     if (isEn) {
       return {
-        title: "Upcoming birthday 🎂",
+        title: "Upcoming birthday ðŸŽ‚",
         body:
           opts.daysUntil === 1
-            ? `Tomorrow is ${opts.birthdayName}'s birthday 🎂`
+            ? `Tomorrow is ${opts.birthdayName}'s birthday ðŸŽ‚`
             : `${opts.birthdayName}'s birthday is in ${opts.daysUntil} days.`,
       };
     }
 
     return {
-      title: "Sinh nhật sắp tới 🎂",
+      title: "Sinh nháº­t sáº¯p tá»›i ðŸŽ‚",
       body:
         opts.daysUntil === 1
-          ? `Ngày mai là sinh nhật của ${opts.birthdayName} 🎂`
-          : `Sắp tới sinh nhật của ${opts.birthdayName}! Còn ${opts.daysUntil} ngày nữa`,
+          ? `NgÃ y mai lÃ  sinh nháº­t cá»§a ${opts.birthdayName} ðŸŽ‚`
+          : `Sáº¯p tá»›i sinh nháº­t cá»§a ${opts.birthdayName}! CÃ²n ${opts.daysUntil} ngÃ y ná»¯a`,
     };
   }
 
   if (opts.isSelf) {
     if (isEn) {
       return {
-        title: "Happy birthday 🎂",
+        title: "Happy birthday ðŸŽ‚",
         body:
           opts.ageTurning != null && opts.ageTurning > 0
-            ? `Today you turn ${opts.ageTurning} 🎂`
+            ? `Today you turn ${opts.ageTurning} ðŸŽ‚`
             : "Today is your birthday.",
       };
     }
 
     return {
-      title: "Chúc mừng sinh nhật 🎂",
+      title: "ChÃºc má»«ng sinh nháº­t ðŸŽ‚",
       body:
         opts.ageTurning != null && opts.ageTurning > 0
-          ? `Hôm nay bạn tròn ${opts.ageTurning} tuổi 🎂`
-          : "Hôm nay là sinh nhật của bạn.",
+          ? `HÃ´m nay báº¡n trÃ²n ${opts.ageTurning} tuá»•i ðŸŽ‚`
+          : "HÃ´m nay lÃ  sinh nháº­t cá»§a báº¡n.",
     };
   }
 
   if (isEn) {
     return {
-      title: "Birthday today 🎂",
+      title: "Birthday today ðŸŽ‚",
       body:
         opts.ageTurning != null && opts.ageTurning > 0
-          ? `Today is ${opts.birthdayName}'s birthday, turning ${opts.ageTurning} 🎂`
+          ? `Today is ${opts.birthdayName}'s birthday, turning ${opts.ageTurning} ðŸŽ‚`
           : `Today is ${opts.birthdayName}'s birthday.`,
     };
   }
 
   return {
-    title: "Sinh nhật hôm nay 🎂",
+    title: "Sinh nháº­t hÃ´m nay ðŸŽ‚",
     body:
       opts.ageTurning != null && opts.ageTurning > 0
-        ? `Hôm nay là sinh nhật của ${opts.birthdayName}, tròn ${opts.ageTurning} tuổi 🎂`
-        : `Hôm nay là sinh nhật của ${opts.birthdayName}.`,
+        ? `HÃ´m nay lÃ  sinh nháº­t cá»§a ${opts.birthdayName}, trÃ²n ${opts.ageTurning} tuá»•i ðŸŽ‚`
+        : `HÃ´m nay lÃ  sinh nháº­t cá»§a ${opts.birthdayName}.`,
   };
 }
 
@@ -324,8 +327,8 @@ export async function runBirthdayNotifications(
     const birthdayData = birthdayDoc.data();
     const daysUntil = birthdayItem.daysUntil;
     const birthdayName =
-      String(birthdayData.displayName ?? birthdayData.email ?? birthdayUid).trim() ||
-      "ThÃ nh viÃªn";
+      String(birthdayData.displayName ?? birthdayUid).trim() ||
+      "ThÃƒÂ nh viÃƒÂªn";
     const receiverIds = familyMembersCache.get(familyId) ?? [];
     const notificationRefs = receiverIds.map((receiverId) => ({
       receiverId,
@@ -334,7 +337,10 @@ export async function runBirthdayNotifications(
         : `birthday_countdown_${dayKey}_${birthdayUid}_${receiverId}`,
     }));
 
-    const birthYear = parseBirthYear(birthdayData.dob, birthdayData.dobIso);
+    const birthYear = parseBirthYear(
+      birthdayData.birthYear ?? birthdayData.dob,
+      birthdayData.dobIso,
+    );
     const ageTurning =
       birthYear != null && birthYear <= year ? year - birthYear : null;
     const existingNotificationPaths = await loadExistingDocumentPaths(

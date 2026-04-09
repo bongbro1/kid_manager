@@ -11,6 +11,7 @@ class TrackingBackgroundService {
 
   static Future<bool> startForCurrentUser({
     required bool requireBackground,
+    bool currentOnly = false,
     String? parentUid,
     String? familyId,
     String? displayName,
@@ -32,6 +33,7 @@ class TrackingBackgroundService {
       userId: userId,
       enabled: true,
       requireBackground: requireBackground,
+      currentOnly: currentOnly,
       parentUid: parentUid?.trim() ?? preservedConfig?.parentUid,
       familyId: familyId?.trim() ?? preservedConfig?.familyId,
       displayName: displayName?.trim() ?? preservedConfig?.displayName,

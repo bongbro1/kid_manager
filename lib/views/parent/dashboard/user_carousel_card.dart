@@ -234,7 +234,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                       foregroundColor: widget.currentIndex == 0
                           ? scheme.onPrimary
                           : scheme.onSurface,
-                      fontFamily: 'Roboto',
+                      fontFamily: 'Inter',
                       lineHeight: 1.43,
                       letterSpacing: 0.10,
                       padding: const EdgeInsets.symmetric(
@@ -262,7 +262,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                       foregroundColor: widget.currentIndex == 1
                           ? scheme.onPrimary
                           : scheme.onSurface,
-                      fontFamily: 'Roboto',
+                      fontFamily: 'Inter',
                       lineHeight: 1.43,
                       letterSpacing: 0.10,
                       padding: const EdgeInsets.symmetric(

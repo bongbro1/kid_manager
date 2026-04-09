@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/user/app_user_extensions.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/widgets/common/avatar.dart';
 
 class ParentChildListItem extends StatelessWidget {
-  final AppUser child;
+  final AppUser member;
   final LocationData? location;
 
   final VoidCallback onOpenHistory;
@@ -16,7 +18,7 @@ class ParentChildListItem extends StatelessWidget {
 
   const ParentChildListItem({
     super.key,
-    required this.child,
+    required this.member,
     this.location,
     required this.onOpenHistory,
     required this.onLocate,
@@ -31,9 +33,21 @@ class ParentChildListItem extends StatelessWidget {
     return DateTime.now().difference(last).inMinutes <= 5;
   }
 
+  String _roleLabel(AppLocalizations l10n) {
+    switch (member.role) {
+      case UserRole.parent:
+        return l10n.userRoleParent;
+      case UserRole.child:
+        return l10n.userRoleChild;
+      case UserRole.guardian:
+        return l10n.userRoleGuardian;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final name = child.displayLabel;
+    final l10n = AppLocalizations.of(context);
+    final name = member.displayLabel;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -69,7 +83,7 @@ class ParentChildListItem extends StatelessWidget {
                   children: [
                     Stack(
                       children: [
-                        AppAvatar(user: child, size: 61),
+                        AppAvatar(user: member, size: 61),
                         Positioned(
                           right: 0,
                           bottom: 0,
@@ -105,7 +119,8 @@ class ParentChildListItem extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            isOnline ? 'Online' : 'Offline',
+                            '${_roleLabel(l10n)} • '
+                            '${isOnline ? l10n.memberManagementOnline : l10n.memberManagementOffline}',
                             style: textTheme.bodySmall?.copyWith(
                               fontSize: 12,
                               color: isOnline ? onlineColor : offlineColor,
