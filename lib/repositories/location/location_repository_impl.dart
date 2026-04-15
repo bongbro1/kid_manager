@@ -76,6 +76,8 @@ class LocationRepositoryImpl implements LocationRepository {
       'timestamp': p.location.timestamp,
       'acc': j['accuracy'] ?? j['location']?['accuracy'],
       'speed': j['speed'] ?? j['location']?['speed'],
+      'batteryLevel': p.location.batteryLevel,
+      'isCharging': p.location.isCharging,
     };
   }
 
@@ -376,6 +378,8 @@ class LocationRepositoryImpl implements LocationRepository {
       "longitude": loc.longitude,
       "speed": loc.speed,
       "heading": loc.heading,
+      if (loc.batteryLevel != null) "batteryLevel": loc.batteryLevel,
+      if (loc.isCharging != null) "isCharging": loc.isCharging,
       "isMock": loc.isMock,
       "timestamp": loc.timestamp,
       "deviceId": payload.deviceId,
@@ -507,7 +511,10 @@ class LocationRepositoryImpl implements LocationRepository {
   }
 
   @override
-  Stream<LocationData> watchChildLocation(String childId) {
+  Stream<LocationData> watchChildLocation(
+    String childId, {
+    bool preferRealtime = true,
+  }) {
     int? lastTimestamp;
 
     LocationData? parseCurrent(dynamic raw) {
@@ -529,6 +536,8 @@ class LocationRepositoryImpl implements LocationRepository {
       },
       parseSnapshot: parseCurrent,
       pollingInterval: _currentPollingInterval,
+      enableRealtime: preferRealtime,
+      usePollingBackoff: preferRealtime,
       onRealtimeError: (Object e, StackTrace st) {
         debugPrint("watchChildLocation(rtdb) error: $e");
       },

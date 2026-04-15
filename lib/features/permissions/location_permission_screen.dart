@@ -15,6 +15,8 @@ class LocationPermissionScreen extends StatelessWidget {
     this.statusMessage,
     this.media,
     this.helperText,
+    this.title,
+    this.description,
   });
 
   final int currentStep;
@@ -27,6 +29,8 @@ class LocationPermissionScreen extends StatelessWidget {
   final String? statusMessage;
   final Widget? media;
   final String? helperText;
+  final String? title;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +39,8 @@ class LocationPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: l10n.permissionOnboardingLocationTitle,
-      description: l10n.permissionOnboardingLocationSubtitle,
+      title: title ?? l10n.permissionOnboardingLocationTitle,
+      description: description ?? l10n.permissionOnboardingLocationSubtitle,
       primaryLabel: l10n.permissionOnboardingLocationPrimaryButton,
       settingsLabel: l10n.permissionOnboardingLocationSettingsButton,
       icon: Icons.location_on_rounded,

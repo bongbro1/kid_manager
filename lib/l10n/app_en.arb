@@ -1574,7 +1574,23 @@
   "zonesDefaultNameFallback": "Zone",
   "parentLocationUnknownUser": "Unknown",
   "parentLocationSosSent": "SOS sent",
-  "parentLocationSosFailed": "Failed to send SOS",
+  "sosRateLimitWaitSeconds": "You sent SOS too quickly. Please wait {seconds} seconds and try again.",
+  "@sosRateLimitWaitSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "sosDailyLimitReached": "You reached the daily SOS limit to prevent abuse. If this is a real emergency, call emergency services or contact family directly.",
+  "sosLoginRequired": "You need to sign in to send SOS.",
+  "sosNetworkError": "Network is unstable. Please try sending SOS again.",
+  "sosPermissionDenied": "This account is not allowed to send SOS.",
+  "sosSendFailed": "Failed to send SOS. Please try again.",
+  "sosResolveLoginRequired": "You need to sign in to confirm SOS.",
+  "sosResolveNetworkError": "Network is unstable. Please try confirming SOS again.",
+  "sosResolvePermissionDenied": "This account is not allowed to confirm SOS.",
+  "sosResolveFailed": "Failed to confirm SOS. Please try again.",
   "parentLocationMapLoadingTitle": "Loading map",
   "parentLocationMapLoadingSubtitle": "Preparing the children's locations",
   "parentChildrenListTitle": "Member list",
@@ -2017,12 +2033,6 @@
   "locationQuickMessageHint": "Send a quick message...",
   "locationStatusStudying": "Studying",
   "locationStopSearching": "Stop searching",
-  "incomingSosConfirmFailed": "Confirmation failed: {error}",
-  "@incomingSosConfirmFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
   "incomingSosEmergencyTitle": "🚨 Emergency SOS alert!",
   "incomingSosResolvingButton": "PROCESSING",
   "incomingSosConfirmButton": "CONFIRM",
@@ -2418,6 +2428,13 @@
   "safeRouteMetricEta": "ETA",
   "safeRouteMetricEtaEstimate": "Estimate",
   "safeRouteDangerCheckNow": "Check immediately",
+  "deviceBatteryTitle": "Battery",
+  "deviceBatteryUnavailableLabel": "Unavailable",
+  "deviceBatteryLastKnownLabel": "Last known",
+  "deviceBatteryChargingLabel": "Charging",
+  "deviceBatteryCriticalLabel": "Critical",
+  "deviceBatteryLowLabel": "Low",
+  "deviceBatteryNormalLabel": "Normal",
   "safeRouteDeviceBatteryLabel": "Device battery",
   "safeRouteProgressTitle": "Journey progress",
   "safeRouteProgressCompletedPercent": "Completed {percent}%",

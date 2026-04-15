@@ -10,8 +10,6 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
   bool get ready => _ready;
 
   bool _checkingPermissions = false;
-  bool _openedAccessibilitySettings = false;
-
   Map<String, bool> _permissions = {};
   Map<String, bool> get permissions => _permissions;
 
@@ -22,7 +20,6 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> init() async {
     debugPrint('AppInitVM init');
     _setReady(true);
-    Future.microtask(checkPermissions);
   }
 
   Future<void> checkPermissions() async {
@@ -30,9 +27,9 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
     _checkingPermissions = true;
 
     try {
-      final results = await permissionService.checkAllPermissions();
+      final results = await permissionService.checkAppEntryPermissions();
       _permissions = results;
-      debugPrint('Permissions=$_permissions');
+      debugPrint('AppEntryPermissions=$_permissions');
       notifyListeners();
     } finally {
       _checkingPermissions = false;
@@ -48,10 +45,7 @@ class AppInitVM extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && !_checkingPermissions) {
-      _openedAccessibilitySettings = false;
-      Future.delayed(const Duration(milliseconds: 400), checkPermissions);
-    }
+    // Permission checks are feature-scoped. Do not run global scans on resume.
   }
 
   void _setReady(bool value) {

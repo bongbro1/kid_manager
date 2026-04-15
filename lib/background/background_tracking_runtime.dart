@@ -22,6 +22,7 @@ import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/background/tracking_background_service.dart';
+import 'package:kid_manager/services/device_power_service.dart';
 import 'package:kid_manager/services/location/background_tracking_status_policy.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
@@ -32,8 +33,10 @@ class BackgroundTrackingRuntime {
     this._locationRepository,
     this._locationService, {
     FirebaseAuth? auth,
+    DevicePowerService? devicePowerService,
     TrackingStatusService? trackingStatusService,
   }) : _auth = auth ?? FirebaseAuth.instance,
+       _devicePowerService = devicePowerService ?? DevicePowerService(),
        _trackingStatusService =
            trackingStatusService ?? TrackingStatusService() {
     _authStateSub = _auth.authStateChanges().listen(_handleAuthStateChanged);
@@ -42,6 +45,7 @@ class BackgroundTrackingRuntime {
   final LocationRepository _locationRepository;
   final LocationServiceInterface _locationService;
   final FirebaseAuth _auth;
+  final DevicePowerService _devicePowerService;
   final TrackingStatusService _trackingStatusService;
 
   final TrackingPipeline _engine = TrackingPipeline(
@@ -169,7 +173,9 @@ class BackgroundTrackingRuntime {
                 return;
               }
 
-              _currentLocation = filtered;
+              final shouldUpdateCurrentLocation =
+                  _currentLocation == null ||
+                  accuracy <= TrackingTuning.weakAccuracyMaxM;
               _motionState = result.motion;
               _transport = result.transport;
 
@@ -183,7 +189,19 @@ class BackgroundTrackingRuntime {
                 }
               }
 
-              final payload = TrackingPayload(
+              final currentLocation = await _attachCurrentBattery(filtered);
+              if (_disposed || !_running) return;
+              if (shouldUpdateCurrentLocation) {
+                _currentLocation = currentLocation;
+              }
+
+              final currentPayload = TrackingPayload(
+                deviceId: activeSharingUid,
+                location: currentLocation,
+                motion: result.motion.name,
+                transport: _transport.name,
+              );
+              final historyPayload = TrackingPayload(
                 deviceId: activeSharingUid,
                 location: filtered,
                 motion: result.motion.name,
@@ -227,7 +245,7 @@ class BackgroundTrackingRuntime {
                   );
                 }
                 try {
-                  await _locationRepository.updateMyCurrent(payload);
+                  await _locationRepository.updateMyCurrent(currentPayload);
                   _lastCurrentSentAtMs = nowMs;
                   _lastCurrentFailureAtMs = 0;
                   _sentInitialCurrent = true;
@@ -265,7 +283,7 @@ class BackgroundTrackingRuntime {
                     goodHistoryAcc &&
                     historySendWindowOpen) {
                   try {
-                    await _locationRepository.appendMyHistory(payload);
+                    await _locationRepository.appendMyHistory(historyPayload);
                     _lastHistoryFailureAtMs = 0;
                     _engine.acknowledgeHistorySent(filtered, result.motion);
                   } catch (e) {
@@ -555,6 +573,14 @@ class BackgroundTrackingRuntime {
     final distanceMeters = prev.distanceTo(next) * 1000.0;
     final speedMps = distanceMeters / dtSec;
     return speedMps > 45;
+  }
+
+  Future<LocationData> _attachCurrentBattery(LocationData location) async {
+    final snapshot = await _devicePowerService.getSnapshot();
+    return location.copyWith(
+      batteryLevel: snapshot.batteryLevel,
+      isCharging: snapshot.isCharging,
+    );
   }
 
   Future<void> _startActivityRecognition() async {

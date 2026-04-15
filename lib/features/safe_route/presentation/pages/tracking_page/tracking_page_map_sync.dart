@@ -353,6 +353,7 @@ extension _TrackingPageMapSync on _TrackingPageBodyState {
           'properties': {
             'speed': live.speedKmh,
             'batteryLevel': live.batteryLevel,
+            'isCharging': live.isCharging,
             _TrackingPageBodyState._liveMarkerIconProperty: iconId,
             _TrackingPageBodyState._liveAccuracyProperty: live.accuracyMeters,
           },

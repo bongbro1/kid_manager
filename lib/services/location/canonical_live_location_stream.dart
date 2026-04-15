@@ -16,6 +16,8 @@ Stream<T> streamCanonicalLiveLocation<T>({
   required Duration pollingInterval,
   Duration maxPollingInterval = const Duration(seconds: 30),
   Duration realtimeRetryInterval = const Duration(minutes: 1),
+  bool enableRealtime = true,
+  bool usePollingBackoff = true,
   CanonicalLiveLocationErrorHandler? onRealtimeError,
   CanonicalLiveLocationErrorHandler? onPollingError,
   bool forwardPollingErrorsToStream = true,
@@ -25,6 +27,7 @@ Stream<T> streamCanonicalLiveLocation<T>({
   Timer? pollTimer;
   Timer? realtimeRetryTimer;
   var fallbackStarted = false;
+  var fixedPollingAttempt = 0;
   final backoff = PollingBackoff(
     initialDelay: pollingInterval,
     maxDelay: maxPollingInterval,
@@ -40,7 +43,10 @@ Stream<T> streamCanonicalLiveLocation<T>({
   }
 
   scheduleRealtimeRetry = () {
-    if (controller.isClosed || realtimeSub != null || realtimeRetryTimer != null) {
+    if (!enableRealtime ||
+        controller.isClosed ||
+        realtimeSub != null ||
+        realtimeRetryTimer != null) {
       return;
     }
 
@@ -80,10 +86,13 @@ Stream<T> streamCanonicalLiveLocation<T>({
       return;
     }
 
-    final delay = backoff.nextDelay();
+    final delay = usePollingBackoff ? backoff.nextDelay() : pollingInterval;
+    final attempt = usePollingBackoff
+        ? backoff.attemptCount
+        : ++fixedPollingAttempt;
     debugPrint(
       '[CanonicalLiveLocation] fallback polling ref=${reference.path} '
-      'attempt=${backoff.attemptCount} nextInMs=${delay.inMilliseconds}',
+      'attempt=$attempt nextInMs=${delay.inMilliseconds}',
     );
     pollTimer = Timer(delay, () {
       if (!controller.isClosed && fallbackStarted) {
@@ -99,6 +108,7 @@ Stream<T> streamCanonicalLiveLocation<T>({
     fallbackStarted = true;
     pollTimer?.cancel();
     backoff.reset();
+    fixedPollingAttempt = 0;
     debugPrint(
       '[CanonicalLiveLocation] enter fallback polling ref=${reference.path} '
       'reason=$reason',
@@ -112,6 +122,7 @@ Stream<T> streamCanonicalLiveLocation<T>({
     pollTimer = null;
     cancelRealtimeRetryTimer();
     backoff.reset();
+    fixedPollingAttempt = 0;
     if (fallbackStarted && logRestore) {
       debugPrint(
         '[CanonicalLiveLocation] restore realtime listener ref=${reference.path}',
@@ -147,7 +158,11 @@ Stream<T> streamCanonicalLiveLocation<T>({
     );
   };
 
-  startRealtimeListener();
+  if (enableRealtime) {
+    startRealtimeListener();
+  } else {
+    startFallbackPolling('realtime_disabled');
+  }
 
   controller.onCancel = () async {
     pollTimer?.cancel();

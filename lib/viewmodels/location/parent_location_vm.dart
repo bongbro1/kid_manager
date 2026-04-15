@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
+import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
@@ -203,8 +204,11 @@ class ParentLocationVm extends ChangeNotifier {
   Stream<LocationData> watchChildLocation(String childId) =>
       _locationRepo.watchChildLocation(childId);
 
-  Future<void> syncWatching(List<String> newChildIds) async {
-    final newSet = newChildIds.toSet();
+  Future<void> syncWatching(List<AppUser> members) async {
+    final memberById = <String, AppUser>{
+      for (final member in members) member.uid: member,
+    };
+    final newSet = memberById.keys.toSet();
     if (setEquals(newSet, _watchingIds)) return;
 
     if (kDebugMode) {
@@ -230,7 +234,9 @@ class ParentLocationVm extends ChangeNotifier {
     final added = newSet.difference(_watchingIds);
 
     for (final id in added) {
-      _subscribeChild(id);
+      final member = memberById[id];
+      if (member == null) continue;
+      _subscribeMember(member);
       if (kDebugMode) debugPrint('👀 Watching $id');
     }
 
@@ -328,18 +334,21 @@ class ParentLocationVm extends ChangeNotifier {
     _setError(l10n.parentLocationWatchChildError(childId, '$error'));
   }
 
-  void _subscribeChild(String childId) {
-    if (_subs.containsKey(childId)) return;
+  void _subscribeMember(AppUser member) {
+    if (_subs.containsKey(member.uid)) return;
 
-    _childrenTrails.putIfAbsent(childId, () => []);
+    _childrenTrails.putIfAbsent(member.uid, () => []);
+    final preferRealtime = member.isChild;
 
-    final sub = _locationRepo.watchChildLocation(childId).listen(
+    final sub = _locationRepo
+        .watchChildLocation(member.uid, preferRealtime: preferRealtime)
+        .listen(
       (loc) {
         if (!_isValidLocation(loc)) return;
 
-        _childrenLocations[childId] = loc;
+        _childrenLocations[member.uid] = loc;
 
-        final trail = _childrenTrails[childId]!;
+        final trail = _childrenTrails[member.uid]!;
         if (trail.isEmpty || trail.last.timestamp != loc.timestamp) {
           trail.add(loc);
           if (trail.length > 300) {
@@ -353,10 +362,10 @@ class ParentLocationVm extends ChangeNotifier {
 
         notifyListeners();
       },
-      onError: (e) => unawaited(_setChildWatchError(childId, e)),
+      onError: (e) => unawaited(_setChildWatchError(member.uid, e)),
     );
 
-    _subs[childId] = sub;
+    _subs[member.uid] = sub;
   }
 
   bool isChildOnline(String childId, {int thresholdSeconds = 30}) {

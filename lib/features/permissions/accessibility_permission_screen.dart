@@ -14,6 +14,8 @@ class AccessibilityPermissionScreen extends StatelessWidget {
     required this.onSkip,
     this.statusMessage,
     this.media,
+    this.title,
+    this.description,
   });
 
   final int currentStep;
@@ -25,6 +27,8 @@ class AccessibilityPermissionScreen extends StatelessWidget {
   final VoidCallback onSkip;
   final String? statusMessage;
   final Widget? media;
+  final String? title;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +37,9 @@ class AccessibilityPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: l10n.permissionOnboardingAccessibilityTitle,
-      description: l10n.permissionOnboardingAccessibilitySubtitle,
+      title: title ?? l10n.permissionOnboardingAccessibilityTitle,
+      description:
+          description ?? l10n.permissionOnboardingAccessibilitySubtitle,
       primaryLabel: l10n.permissionOnboardingAccessibilityPrimaryButton,
       settingsLabel: l10n.permissionOnboardingAccessibilitySettingsButton,
       icon: Icons.accessibility_new_rounded,

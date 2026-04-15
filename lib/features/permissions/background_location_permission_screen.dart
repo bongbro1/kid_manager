@@ -14,6 +14,8 @@ class BackgroundLocationPermissionScreen extends StatelessWidget {
     required this.onSkip,
     this.statusMessage,
     this.media,
+    this.title,
+    this.description,
   });
 
   final int currentStep;
@@ -25,6 +27,8 @@ class BackgroundLocationPermissionScreen extends StatelessWidget {
   final VoidCallback onSkip;
   final String? statusMessage;
   final Widget? media;
+  final String? title;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +37,9 @@ class BackgroundLocationPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: l10n.permissionOnboardingBackgroundLocationTitle,
-      description: l10n.permissionOnboardingBackgroundLocationSubtitle,
+      title: title ?? l10n.permissionOnboardingBackgroundLocationTitle,
+      description:
+          description ?? l10n.permissionOnboardingBackgroundLocationSubtitle,
       primaryLabel: l10n.permissionOnboardingBackgroundLocationPrimaryButton,
       settingsLabel: l10n.permissionOnboardingBackgroundLocationSettingsButton,
       icon: Icons.my_location_rounded,

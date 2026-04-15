@@ -135,5 +135,3 @@ export const MAIL_TEMPLATES: Record<string, MailTemplate> = {
     `,
   },
 };
-// firebase functions:secrets:set RESEND_API_KEY
-// re_aNk2vcpx_Lst9HFZTPH7hK2m2Npj43XYa

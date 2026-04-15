@@ -9,6 +9,19 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:usage_stats/usage_stats.dart';
 
 class PermissionService {
+  static const List<String> appEntryPermissionKeys = <String>[
+    'notifications',
+    'location',
+    'backgroundLocation',
+    'media',
+  ];
+
+  static const List<String> supervisionPermissionKeys = <String>[
+    'usage',
+    'accessibility',
+    'batteryOptimizationDisabled',
+  ];
+
   Future<bool> hasNotificationPermission() async {
     final status = await Permission.notification.status;
     return status.isGranted;
@@ -173,20 +186,45 @@ class PermissionService {
     }
   }
 
-  Future<Map<String, bool>> checkAllPermissions() async {
+  Future<Map<String, bool>> checkAllPermissions({
+    bool includeSupervisionPermissions = true,
+  }) async {
     final location = await hasForegroundLocationPermission();
     final notifications = await hasNotificationPermission();
     final backgroundLocation = await hasBackgroundLocationPermission();
     final media = await hasPhotosOrStoragePermission();
+    final permissions = <String, bool>{
+      'notifications': notifications,
+      'location': location,
+      'backgroundLocation': backgroundLocation,
+      'media': media,
+    };
+
+    if (includeSupervisionPermissions) {
+      final usage = await hasUsagePermission();
+      final accessibility = await hasAccessibilityPermission();
+      final battery = await hasBatteryOptimizationDisabled();
+
+      permissions.addAll({
+        'usage': usage,
+        'accessibility': accessibility,
+        'batteryOptimizationDisabled': battery,
+      });
+    }
+
+    return permissions;
+  }
+
+  Future<Map<String, bool>> checkAppEntryPermissions() {
+    return checkAllPermissions(includeSupervisionPermissions: false);
+  }
+
+  Future<Map<String, bool>> checkChildSupervisionPermissions() async {
     final usage = await hasUsagePermission();
     final accessibility = await hasAccessibilityPermission();
     final battery = await hasBatteryOptimizationDisabled();
 
     return {
-      'notifications': notifications,
-      'location': location,
-      'backgroundLocation': backgroundLocation,
-      'media': media,
       'usage': usage,
       'accessibility': accessibility,
       'batteryOptimizationDisabled': battery,

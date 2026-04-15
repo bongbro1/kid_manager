@@ -6,6 +6,7 @@ import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/user/app_user_extensions.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/widgets/common/avatar.dart';
+import 'package:kid_manager/widgets/location/device_battery_widgets.dart';
 
 class ParentChildListItem extends StatelessWidget {
   final AppUser member;
@@ -50,6 +51,11 @@ class ParentChildListItem extends StatelessWidget {
     final name = member.displayLabel;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final batteryState = DeviceBatteryUiState.fromSnapshot(
+      batteryLevel: member.isChild ? location?.batteryLevel : null,
+      isCharging: member.isChild ? location?.isCharging : null,
+      timestampMs: member.isChild ? location?.timestamp : null,
+    );
 
     final onlineColor = Colors.green;
     final offlineColor = colorScheme.onSurface.withOpacity(0.5);
@@ -118,14 +124,23 @@ class ParentChildListItem extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            '${_roleLabel(l10n)} • '
-                            '${isOnline ? l10n.memberManagementOnline : l10n.memberManagementOffline}',
-                            style: textTheme.bodySmall?.copyWith(
-                              fontSize: 12,
-                              color: isOnline ? onlineColor : offlineColor,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                '${_roleLabel(l10n)} - '
+                                '${isOnline ? l10n.memberManagementOnline : l10n.memberManagementOffline}',
+                                style: textTheme.bodySmall?.copyWith(
+                                  fontSize: 12,
+                                  color: isOnline ? onlineColor : offlineColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (member.isChild)
+                                DeviceBatteryCompactBadge(state: batteryState),
+                            ],
                           ),
                         ],
                       ),
@@ -182,7 +197,7 @@ class _ActionPill extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: SvgPicture.asset(
-                "assets/icons/message.svg",
+                'assets/icons/message.svg',
                 width: 24,
                 height: 24,
                 colorFilter: ColorFilter.mode(
@@ -221,7 +236,7 @@ class _ActionPill extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: SvgPicture.asset(
-                "assets/icons/gps.svg",
+                'assets/icons/gps.svg',
                 width: 24,
                 height: 24,
                 colorFilter: ColorFilter.mode(

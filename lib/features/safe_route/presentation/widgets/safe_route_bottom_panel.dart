@@ -8,6 +8,7 @@ import 'package:kid_manager/features/safe_route/presentation/safe_route_tracking
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
 import 'package:kid_manager/features/safe_route/presentation/widgets/safe_route_route_selector.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/widgets/location/device_battery_widgets.dart';
 import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class SafeRouteBottomPanel extends StatelessWidget {
@@ -16,7 +17,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
     required this.state,
     required this.safetyStatusLabel,
     required this.speedLabel,
-    required this.batteryLabel,
+    required this.batteryState,
     required this.lastUpdatedLabel,
     required this.scrollController,
     required this.onUseLiveLocationAsStart,
@@ -45,7 +46,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
   final SafeRouteTrackingState state;
   final String safetyStatusLabel;
   final String speedLabel;
-  final String batteryLabel;
+  final DeviceBatteryUiState batteryState;
   final String lastUpdatedLabel;
   final ScrollController scrollController;
   final VoidCallback onUseLiveLocationAsStart;
@@ -123,7 +124,7 @@ class SafeRouteBottomPanel extends StatelessWidget {
                           l10n: l10n,
                           safetyStatusLabel: safetyStatusLabel,
                           speedLabel: speedLabel,
-                          batteryLabel: batteryLabel,
+                          batteryState: batteryState,
                           lastUpdatedLabel: lastUpdatedLabel,
                           onCompleteTrip: onCompleteTrip,
                           onCancelTrip: onCancelTrip,
@@ -499,7 +500,7 @@ class _TrackingStatusContent extends StatelessWidget {
     required this.l10n,
     required this.safetyStatusLabel,
     required this.speedLabel,
-    required this.batteryLabel,
+    required this.batteryState,
     required this.lastUpdatedLabel,
     required this.onCompleteTrip,
     required this.onCancelTrip,
@@ -511,7 +512,7 @@ class _TrackingStatusContent extends StatelessWidget {
   final AppLocalizations l10n;
   final String safetyStatusLabel;
   final String speedLabel;
-  final String batteryLabel;
+  final DeviceBatteryUiState batteryState;
   final String lastUpdatedLabel;
   final VoidCallback onCompleteTrip;
   final VoidCallback onCancelTrip;
@@ -624,13 +625,7 @@ class _TrackingStatusContent extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: _BatteryMetricCard(
-                  batteryLabel: batteryLabel,
-                  tint: Colors.white,
-                  fillColor: isDanger
-                      ? const Color(0xFFEF4444)
-                      : isWarning
-                      ? const Color(0xFFF59E0B)
-                      : const Color(0xFF10B981),
+                  batteryState: batteryState,
                 ),
               ),
               const SizedBox(width: 10),
@@ -1304,62 +1299,19 @@ class _RouteProgressDetails {
 
 class _BatteryMetricCard extends StatelessWidget {
   const _BatteryMetricCard({
-    required this.batteryLabel,
-    required this.tint,
-    required this.fillColor,
+    required this.batteryState,
   });
 
-  final String batteryLabel;
-  final Color tint;
-  final Color fillColor;
+  final DeviceBatteryUiState batteryState;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final normalized = batteryLabel.replaceAll('%', '').trim();
-    final value = double.tryParse(normalized) ?? 0;
-    final progress = (value / 100).clamp(0.0, 1.0).toDouble();
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 88),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: tint,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: locationPanelBorderColor(scheme)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            AppLocalizations.of(context).safeRouteDeviceBatteryLabel,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFE5E7EB),
-              valueColor: AlwaysStoppedAnimation<Color>(fillColor),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            batteryLabel,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: scheme.onSurface,
-            ),
-          ),
-        ],
-      ),
+    return DeviceBatteryPanelCard(
+      state: batteryState,
+      title: AppLocalizations.of(context).safeRouteDeviceBatteryLabel,
+      backgroundColor: Colors.white,
+      borderColor: locationPanelBorderColor(scheme),
     );
   }
 }

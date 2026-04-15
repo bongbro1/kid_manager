@@ -14,6 +14,8 @@ class MediaPermissionScreen extends StatelessWidget {
     required this.onSkip,
     this.statusMessage,
     this.media,
+    this.title,
+    this.description,
   });
 
   final int currentStep;
@@ -25,6 +27,8 @@ class MediaPermissionScreen extends StatelessWidget {
   final VoidCallback onSkip;
   final String? statusMessage;
   final Widget? media;
+  final String? title;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +37,8 @@ class MediaPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: l10n.permissionOnboardingMediaTitle,
-      description: l10n.permissionOnboardingMediaSubtitle,
+      title: title ?? l10n.permissionOnboardingMediaTitle,
+      description: description ?? l10n.permissionOnboardingMediaSubtitle,
       primaryLabel: l10n.permissionOnboardingMediaPrimaryButton,
       settingsLabel: l10n.permissionOnboardingMediaSettingsButton,
       icon: Icons.photo_library_rounded,

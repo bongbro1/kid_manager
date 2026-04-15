@@ -436,7 +436,7 @@ service cloud.firestore {
       // ============================
 
       match /sos/{sosId} {
-        allow read: if isFamilyMember(familyId);
+        allow read: if isAdultFamilyMember(familyId);
         allow write: if false;
       }
 

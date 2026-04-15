@@ -24,6 +24,7 @@ import 'package:kid_manager/background/tracking_runtime_config.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/services/location/background_tracking_status_policy.dart';
+import 'package:kid_manager/services/device_power_service.dart';
 import 'package:kid_manager/services/location/location_day_key_resolver.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
@@ -36,9 +37,11 @@ class ChildLocationViewModel extends ChangeNotifier {
     this._locationRepository,
     this._locationService, {
     FirebaseAuth? auth,
+    DevicePowerService? devicePowerService,
     TrackingStatusService? trackingStatusService,
     LocationDayKeyResolver? dayKeyResolver,
   }) : _auth = auth ?? FirebaseAuth.instance,
+       _devicePowerService = devicePowerService ?? DevicePowerService(),
        _dayKeyResolver = dayKeyResolver ?? LocationDayKeyResolver(),
        _trackingStatusService =
            trackingStatusService ?? TrackingStatusService() {
@@ -48,6 +51,7 @@ class ChildLocationViewModel extends ChangeNotifier {
   final LocationRepository _locationRepository;
   final LocationServiceInterface _locationService;
   final FirebaseAuth _auth;
+  final DevicePowerService _devicePowerService;
   final LocationDayKeyResolver _dayKeyResolver;
   final TrackingStatusService _trackingStatusService;
   StreamSubscription<User?>? _authStateSub;
@@ -632,9 +636,8 @@ class ChildLocationViewModel extends ChangeNotifier {
       }
 
       _transport = result.transport;
-      if (_currentLocation == null || acc <= TrackingTuning.weakAccuracyMaxM) {
-        _currentLocation = filtered;
-      }
+      final shouldUpdateCurrentLocation =
+          _currentLocation == null || acc <= TrackingTuning.weakAccuracyMaxM;
 
       if (!_publishingHandledByService) {
         try {
@@ -651,8 +654,19 @@ class ChildLocationViewModel extends ChangeNotifier {
 
       _motionState = result.motion;
 
-      // build payload once
-      final payload = TrackingPayload(
+      final currentLocation = await _attachCurrentBattery(filtered);
+      if (_disposed) return;
+      if (shouldUpdateCurrentLocation) {
+        _currentLocation = currentLocation;
+      }
+
+      final currentPayload = TrackingPayload(
+        deviceId: activeSharingUid,
+        location: currentLocation,
+        motion: result.motion.name,
+        transport: _transport.name,
+      );
+      final historyPayload = TrackingPayload(
         deviceId: activeSharingUid,
         location: filtered,
         motion: result.motion.name,
@@ -698,7 +712,7 @@ class ChildLocationViewModel extends ChangeNotifier {
           );
         }
         try {
-          await _locationRepository.updateMyCurrent(payload);
+          await _locationRepository.updateMyCurrent(currentPayload);
           _lastCurrentSentAtMs = nowMs;
           _lastCurrentFailureAtMs = 0;
           _sentInitialCurrent = true;
@@ -737,7 +751,7 @@ class ChildLocationViewModel extends ChangeNotifier {
           goodHistoryAcc &&
           historySendWindowOpen) {
         try {
-          await _locationRepository.appendMyHistory(payload);
+          await _locationRepository.appendMyHistory(historyPayload);
           _lastHistoryFailureAtMs = 0;
           _engine.acknowledgeHistorySent(filtered, result.motion);
         } catch (e) {
@@ -1033,6 +1047,14 @@ class ChildLocationViewModel extends ChangeNotifier {
     if (shouldAdd) {
       _trail.add(loc);
     }
+  }
+
+  Future<LocationData> _attachCurrentBattery(LocationData location) async {
+    final snapshot = await _devicePowerService.getSnapshot();
+    return location.copyWith(
+      batteryLevel: snapshot.batteryLevel,
+      isCharging: snapshot.isCharging,
+    );
   }
 
   @override

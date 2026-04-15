@@ -253,7 +253,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String zoneStatusAtText(String zoneName, String duration) {
-    return 'at $zoneName â€¢ $duration';
+    return 'at $zoneName • $duration';
   }
 
   @override
@@ -263,7 +263,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String zoneStatusWasAtWithAgoText(String zoneName, String ago) {
-    return 'was at $zoneName â€¢ $ago';
+    return 'was at $zoneName • $ago';
   }
 
   @override
@@ -421,7 +421,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This app helps manage accounts, track activity, and personalize the user experience.';
 
   @override
-  String get aboutAppCopyright => 'Â© 2026 My Company';
+  String get aboutAppCopyright => '© 2026 My Company';
 
   @override
   String get themeSelectorTitle => 'Customize appearance';
@@ -972,10 +972,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get birthdayCountdownTitle => 'âœ¨ Upcoming birthday';
+  String get birthdayCountdownTitle => '✨ Upcoming birthday';
 
   @override
-  String get birthdayCountdownSelfTitle => 'âœ¨ Your birthday is coming';
+  String get birthdayCountdownSelfTitle => '✨ Your birthday is coming';
 
   @override
   String get birthdayCountdownTomorrowChip => 'Tomorrow';
@@ -2182,7 +2182,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get parentLocationSosSent => 'SOS sent';
 
   @override
-  String get parentLocationSosFailed => 'Failed to send SOS';
+  String sosRateLimitWaitSeconds(int seconds) {
+    return 'You sent SOS too quickly. Please wait $seconds seconds and try again.';
+  }
+
+  @override
+  String get sosDailyLimitReached =>
+      'You reached the daily SOS limit to prevent abuse. If this is a real emergency, call emergency services or contact family directly.';
+
+  @override
+  String get sosLoginRequired => 'You need to sign in to send SOS.';
+
+  @override
+  String get sosNetworkError =>
+      'Network is unstable. Please try sending SOS again.';
+
+  @override
+  String get sosPermissionDenied => 'This account is not allowed to send SOS.';
+
+  @override
+  String get sosSendFailed => 'Failed to send SOS. Please try again.';
+
+  @override
+  String get sosResolveLoginRequired => 'You need to sign in to confirm SOS.';
+
+  @override
+  String get sosResolveNetworkError =>
+      'Network is unstable. Please try confirming SOS again.';
+
+  @override
+  String get sosResolvePermissionDenied =>
+      'This account is not allowed to confirm SOS.';
+
+  @override
+  String get sosResolveFailed => 'Failed to confirm SOS. Please try again.';
 
   @override
   String get parentLocationMapLoadingTitle => 'Loading map';
@@ -2228,7 +2261,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String childLocationHistoryTitle(String date) {
-    return 'History â€¢ $date';
+    return 'History • $date';
   }
 
   @override
@@ -2247,28 +2280,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get zone_default => 'Zone notification';
 
   @override
-  String get zone_enter_danger_parent => 'âš ï¸ Child entered a danger zone';
+  String get zone_enter_danger_parent => '⚠️ Child entered a danger zone';
 
   @override
-  String get zone_exit_danger_parent => 'âœ… Child left a danger zone';
+  String get zone_exit_danger_parent => '✅ Child left a danger zone';
 
   @override
-  String get zone_enter_safe_parent => 'âœ… Child entered a safe zone';
+  String get zone_enter_safe_parent => '✅ Child entered a safe zone';
 
   @override
-  String get zone_exit_safe_parent => 'â„¹ï¸ Child left a safe zone';
+  String get zone_exit_safe_parent => 'ℹ️ Child left a safe zone';
 
   @override
-  String get zone_enter_danger_child => 'âš ï¸ You entered a danger zone';
+  String get zone_enter_danger_child => '⚠️ You entered a danger zone';
 
   @override
-  String get zone_exit_danger_child => 'âœ… You left a danger zone';
+  String get zone_exit_danger_child => '✅ You left a danger zone';
 
   @override
-  String get zone_enter_safe_child => 'âœ… You entered a safe zone';
+  String get zone_enter_safe_child => '✅ You entered a safe zone';
 
   @override
-  String get zone_exit_safe_child => 'â„¹ï¸ You left a safe zone';
+  String get zone_exit_safe_child => 'ℹ️ You left a safe zone';
 
   @override
   String get tracking_location_service_off_parent_title =>
@@ -2517,7 +2550,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionOnboardingAccessibilitySubtitle =>
-      'Used for parental control on Android to detect which app is open on the child's device and apply parent-defined blocking rules. This information is shown to the parent or assigned guardian for child safety and digital wellbeing.';
+      'Used for parental control on Android to detect which app is open on the child\'s device and apply parent-defined blocking rules. This information is shown to the parent or assigned guardian for child safety and digital wellbeing.';
 
   @override
   String get permissionOnboardingAccessibilityPrimaryButton => 'Allow';
@@ -2959,7 +2992,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String locationCoordinatesSummary(String lat, String lng) {
-    return 'Lat $lat â€¢ Lng $lng';
+    return 'Lat $lat • Lng $lng';
   }
 
   @override
@@ -2981,12 +3014,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationStopSearching => 'Stop searching';
 
   @override
-  String incomingSosConfirmFailed(Object error) {
-    return 'Confirmation failed: $error';
-  }
-
-  @override
-  String get incomingSosEmergencyTitle => 'ðŸš¨ Emergency SOS alert!';
+  String get incomingSosEmergencyTitle => '🚨 Emergency SOS alert!';
 
   @override
   String get incomingSosResolvingButton => 'PROCESSING';
@@ -3454,7 +3482,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String safeRouteScheduledAutoActivationPrefix(Object summary) {
-    return 'Auto-activates on schedule Â· $summary';
+    return 'Auto-activates on schedule · $summary';
   }
 
   @override
@@ -3707,6 +3735,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get safeRouteDangerCheckNow => 'Check immediately';
+
+  @override
+  String get deviceBatteryTitle => 'Battery';
+
+  @override
+  String get deviceBatteryUnavailableLabel => 'Unavailable';
+
+  @override
+  String get deviceBatteryLastKnownLabel => 'Last known';
+
+  @override
+  String get deviceBatteryChargingLabel => 'Charging';
+
+  @override
+  String get deviceBatteryCriticalLabel => 'Critical';
+
+  @override
+  String get deviceBatteryLowLabel => 'Low';
+
+  @override
+  String get deviceBatteryNormalLabel => 'Normal';
 
   @override
   String get safeRouteDeviceBatteryLabel => 'Device battery';

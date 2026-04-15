@@ -247,7 +247,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            l10n.incomingSosConfirmFailed('$e'),
+            sosViewModel.error ?? l10n.sosResolveFailed,
           ),
         ),
       );

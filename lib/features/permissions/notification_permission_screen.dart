@@ -15,6 +15,8 @@ class NotificationPermissionScreen extends StatelessWidget {
     this.helperText,
     this.statusMessage,
     this.media,
+    this.title,
+    this.description,
   });
 
   final int currentStep;
@@ -27,6 +29,8 @@ class NotificationPermissionScreen extends StatelessWidget {
   final String? statusMessage;
   final Widget? media;
   final String? helperText;
+  final String? title;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +39,8 @@ class NotificationPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: l10n.permissionOnboardingNotificationTitle,
-      description: l10n.permissionOnboardingNotificationSubtitle,
+      title: title ?? l10n.permissionOnboardingNotificationTitle,
+      description: description ?? l10n.permissionOnboardingNotificationSubtitle,
       primaryLabel: l10n.permissionOnboardingNotificationPrimaryButton,
       settingsLabel: l10n.permissionOnboardingNotificationSettingsButton,
       icon: Icons.notifications_active_rounded,

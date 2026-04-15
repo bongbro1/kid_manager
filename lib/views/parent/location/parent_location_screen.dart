@@ -181,9 +181,21 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
     await _controller.clearFocusBubble();
 
+    AppUser? focusedMember;
+    for (final member in _userVm.locationMembers) {
+      if (member.uid == childId) {
+        focusedMember = member;
+        break;
+      }
+    }
+
     final myUid = _userVm.me?.uid;
     if (myUid != null) {
-      _zoneVm.focus(viewerUid: myUid, childId: childId);
+      if (focusedMember?.isChild == true) {
+        _zoneVm.focus(viewerUid: myUid, childId: childId);
+      } else {
+        _zoneVm.clearFocus();
+      }
     }
 
     if (focusPosition != null) {
@@ -530,12 +542,13 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                   );
 
                   if (!context.mounted) return;
+                  final failureMessage = sosVm.error ?? l10n.sosSendFailed;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
                         sosId != null
                             ? l10n.parentLocationSosSent
-                            : l10n.parentLocationSosFailed,
+                            : failureMessage,
                       ),
                     ),
                   );

@@ -24,6 +24,7 @@ import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/repositories/user/profile_repository.dart';
 import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/services/access_control/feature_policy.dart';
+import 'package:kid_manager/widgets/location/device_battery_widgets.dart';
 
 class SafeRouteTrackingViewModel extends ChangeNotifier {
   SafeRouteTrackingViewModel({
@@ -107,11 +108,11 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     return _l10n.safeRouteSpeedValue(speedKmh);
   }
 
-  String get batteryLabel {
-    final battery = _state.liveLocation?.batteryLevel;
-    if (battery == null) return '--';
-    return '${battery.round()}%';
-  }
+  DeviceBatteryUiState get batteryState => DeviceBatteryUiState.fromSnapshot(
+    batteryLevel: _state.liveLocation?.batteryLevel,
+    isCharging: _state.liveLocation?.isCharging,
+    timestampMs: _state.liveLocation?.timestamp,
+  );
 
   bool get _isVietnamese => _l10n.localeName.toLowerCase().startsWith('vi');
 

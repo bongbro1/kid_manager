@@ -3819,11 +3819,65 @@ abstract class AppLocalizations {
   /// **'SOS sent'**
   String get parentLocationSosSent;
 
-  /// No description provided for @parentLocationSosFailed.
+  /// No description provided for @sosRateLimitWaitSeconds.
   ///
   /// In en, this message translates to:
-  /// **'Failed to send SOS'**
-  String get parentLocationSosFailed;
+  /// **'You sent SOS too quickly. Please wait {seconds} seconds and try again.'**
+  String sosRateLimitWaitSeconds(int seconds);
+
+  /// No description provided for @sosDailyLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You reached the daily SOS limit to prevent abuse. If this is a real emergency, call emergency services or contact family directly.'**
+  String get sosDailyLimitReached;
+
+  /// No description provided for @sosLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You need to sign in to send SOS.'**
+  String get sosLoginRequired;
+
+  /// No description provided for @sosNetworkError.
+  ///
+  /// In en, this message translates to:
+  /// **'Network is unstable. Please try sending SOS again.'**
+  String get sosNetworkError;
+
+  /// No description provided for @sosPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is not allowed to send SOS.'**
+  String get sosPermissionDenied;
+
+  /// No description provided for @sosSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send SOS. Please try again.'**
+  String get sosSendFailed;
+
+  /// No description provided for @sosResolveLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You need to sign in to confirm SOS.'**
+  String get sosResolveLoginRequired;
+
+  /// No description provided for @sosResolveNetworkError.
+  ///
+  /// In en, this message translates to:
+  /// **'Network is unstable. Please try confirming SOS again.'**
+  String get sosResolveNetworkError;
+
+  /// No description provided for @sosResolvePermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is not allowed to confirm SOS.'**
+  String get sosResolvePermissionDenied;
+
+  /// No description provided for @sosResolveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to confirm SOS. Please try again.'**
+  String get sosResolveFailed;
 
   /// No description provided for @parentLocationMapLoadingTitle.
   ///
@@ -4374,7 +4428,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingAccessibilitySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Needed for some protection features on Android.'**
+  /// **'Used for parental control on Android to detect which app is open on the child\'s device and apply parent-defined blocking rules. This information is shown to the parent or assigned guardian for child safety and digital wellbeing.'**
   String get permissionOnboardingAccessibilitySubtitle;
 
   /// No description provided for @permissionOnboardingAccessibilityPrimaryButton.
@@ -4398,7 +4452,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingBackgroundLocationSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'So location can still update when the app runs in the background.'**
+  /// **'This app collects location data to show live child location, trigger Safe Zone alerts, and support Safe Route even when the app is closed or not in use. Location is shared with the parent or assigned guardian in the same family for safety features.'**
   String get permissionOnboardingBackgroundLocationSubtitle;
 
   /// No description provided for @permissionOnboardingBackgroundLocationPrimaryButton.
@@ -4422,7 +4476,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingBatterySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'So the app is not stopped while running in the background.'**
+  /// **'Allows tracking and safety alerts to keep working when Android would otherwise stop the app in the background.'**
   String get permissionOnboardingBatterySubtitle;
 
   /// No description provided for @permissionOnboardingBatteryPrimaryButton.
@@ -4518,7 +4572,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionOnboardingUsageSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'To manage app usage time on Android.'**
+  /// **'Used to measure which apps the child uses and for how long on Android, then show that usage to the parent or assigned guardian for screen-time management.'**
   String get permissionOnboardingUsageSubtitle;
 
   /// No description provided for @permissionOnboardingUsagePrimaryButton.
@@ -5186,12 +5240,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop searching'**
   String get locationStopSearching;
-
-  /// No description provided for @incomingSosConfirmFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirmation failed: {error}'**
-  String incomingSosConfirmFailed(Object error);
 
   /// No description provided for @incomingSosEmergencyTitle.
   ///
@@ -6410,6 +6458,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check immediately'**
   String get safeRouteDangerCheckNow;
+
+  /// No description provided for @deviceBatteryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery'**
+  String get deviceBatteryTitle;
+
+  /// No description provided for @deviceBatteryUnavailableLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get deviceBatteryUnavailableLabel;
+
+  /// No description provided for @deviceBatteryLastKnownLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last known'**
+  String get deviceBatteryLastKnownLabel;
+
+  /// No description provided for @deviceBatteryChargingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Charging'**
+  String get deviceBatteryChargingLabel;
+
+  /// No description provided for @deviceBatteryCriticalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Critical'**
+  String get deviceBatteryCriticalLabel;
+
+  /// No description provided for @deviceBatteryLowLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get deviceBatteryLowLabel;
+
+  /// No description provided for @deviceBatteryNormalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get deviceBatteryNormalLabel;
 
   /// No description provided for @safeRouteDeviceBatteryLabel.
   ///

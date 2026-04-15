@@ -1,8 +1,7 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
@@ -10,13 +9,10 @@ import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/auth/auth_models.dart';
 import 'package:kid_manager/models/login_session.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
-import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/services/storage_service.dart';
-import 'package:kid_manager/utils/runtime_l10n.dart';
-import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
-import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/dialog/phone_auth_dialog.dart';
 import 'package:kid_manager/views/auth/forgot_pass_screen.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
@@ -77,10 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final l10n = AppLocalizations.of(context);
     final storage = context.read<StorageService>();
     final authVM = context.read<AuthVM>();
-    final userVM = context.read<UserVm>();
-    final appVM = context.read<AppManagementVM>();
 
-    // Validate
     if (email.isEmpty || password.isEmpty) {
       AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
       return;
@@ -93,49 +86,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final cred = await authVM.login(email, password);
-      if (!mounted) return;
-
       final uid = cred.user!.uid;
 
-      // 🔥 lưu UID không cần await
       unawaited(storage.setString(StorageKeys.uid, uid));
 
-      // Load profile
-      final profile = await userVM.loadProfile(uid: uid, caller: 'LoginScreen');
-      if (profile == null) {
-        await _showError(l10n.authUserProfileLoadFailed);
-        return;
-      }
-
-      final role = profile.role;
-      final parentId = role == UserRole.parent
-          ? uid
-          : (profile.parentUid ?? '').trim();
-
-      // 🔥 lưu storage song song
-      unawaited(
-        Future.wait([
-          storage.setString(StorageKeys.role, profile.roleKey),
-          storage.setString(StorageKeys.displayName, profile.name),
-          if (parentId.isNotEmpty)
-            storage.setString(StorageKeys.parentId, parentId)
-          else
-            storage.remove(StorageKeys.parentId),
-          if (profile.managedChildIds.isNotEmpty)
-            storage.setStringList(
-              StorageKeys.managedChildIds,
-              profile.managedChildIds
-                  .map((e) => e.trim())
-                  .where((e) => e.isNotEmpty)
-                  .toSet()
-                  .toList(),
-            )
-          else
-            storage.remove(StorageKeys.managedChildIds),
-        ]),
-      );
-
-      // remember login
       if (rememberPassword) {
         final session = LoginSession(email: email, uid: uid, remember: true);
         unawaited(
@@ -148,37 +102,18 @@ class _LoginScreenState extends State<LoginScreen> {
         unawaited(storage.remove(StorageKeys.login_preference));
       }
 
-      // xử lý role
-      if (role == UserRole.child) {
-        if (parentId.isEmpty) {
-          await _showError(l10n.authUserProfileLoadFailed);
-          return;
-        }
-
-        AuthRuntimeManager.start(parentId: parentId, displayName: profile.name);
-
-        await appVM.loadAndSeedApp();
-      } else {
-        unawaited(AuthRuntimeManager.stop());
-      }
-
-      FocusScope.of(context).unfocus();
+      if (!mounted) return;
+      FocusManager.instance.primaryFocus?.unfocus();
     } catch (e, st) {
       debugPrint('Login error: $e');
       debugPrintStack(stackTrace: st);
 
-      await _handleLoginError(context, e, mounted);
+      await _handleLoginError(e);
     }
   }
-
-  Future<void> _handleLoginError(
-    BuildContext context,
-    Object e,
-    bool mounted,
-  ) async {
+  Future<void> _handleLoginError(Object e) async {
     if (!mounted) return;
 
-    final l10n = AppLocalizations.of(context);
     final storage = context.read<StorageService>();
     final authVM = context.read<AuthVM>();
 
@@ -187,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (pending != null) {
-        final proceed = await _askVerifyNow(context);
+        final proceed = await _askVerifyNow();
         if (!mounted) return;
 
         if (proceed == true) {
@@ -212,9 +147,12 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (!mounted) return;
+    final dialogContext = AppNavigator.navigatorKey.currentContext;
+    if (dialogContext == null) return;
+    final l10n = AppLocalizations.of(dialogContext);
 
     await NotificationDialog.show(
-      context,
+      dialogContext,
       type: DialogType.error,
       title: l10n.updateErrorTitle,
       message: _resolveLoginErrorMessage(l10n, authVM.error ?? e.toString()),
@@ -232,33 +170,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<bool?> _askVerifyNow(BuildContext context) {
+  Future<bool?> _askVerifyNow() {
+    final dialogContext = AppNavigator.navigatorKey.currentContext;
+    if (dialogContext == null) {
+      return Future.value(false);
+    }
     return showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Tài khoản chưa kích hoạt"),
-        content: const Text("Bạn có muốn nhập OTP ngay không?"),
+      context: dialogContext,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("TÃ i khoáº£n chÆ°a kÃ­ch hoáº¡t"),
+        content: const Text("Báº¡n cÃ³ muá»‘n nháº­p OTP ngay khÃ´ng?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Để sau"),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text("Äá»ƒ sau"),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Xác thực ngay"),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text("XÃ¡c thá»±c ngay"),
           ),
         ],
       ),
-    );
-  }
-
-  Future<void> _showError(String message) async {
-    final l10n = runtimeL10n();
-    await NotificationDialog.show(
-      context,
-      type: DialogType.error,
-      title: l10n.updateErrorTitle,
-      message: message,
     );
   }
 
@@ -579,7 +511,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 40),
                               Wrap(
                                 alignment: WrapAlignment.center,
-                                crossAxisAlignment: WrapCrossAlignment.center,
+                                crossAxisAlignment:
+                                    WrapCrossAlignment.center,
                                 spacing: 4,
                                 runSpacing: 4,
                                 children: [

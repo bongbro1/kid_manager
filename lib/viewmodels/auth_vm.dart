@@ -211,7 +211,9 @@ class AuthVM extends ChangeNotifier {
     }
   }
 
-  Future<void> logout() async {
+  Future<void> logout({
+    bool clearPermissionOnboardingState = false,
+  }) async {
     if (_logoutInProgress) return;
     _logoutInProgress = true;
     _loading = true;
@@ -219,7 +221,9 @@ class AuthVM extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _safeCleanupAuthState();
+      await _safeCleanupAuthState(
+        clearPermissionOnboardingState: clearPermissionOnboardingState,
+      );
     } catch (e) {
       _error = e.toString();
       debugPrint("Logout error: $e");
@@ -251,10 +255,16 @@ class AuthVM extends ChangeNotifier {
     }
   }
 
-  Future<void> _safeCleanupAuthState() async {
+  Future<void> _safeCleanupAuthState({
+    bool clearPermissionOnboardingState = false,
+  }) async {
     await _authRepo.logout();
     await FcmPushReceiverService.onSignedOut();
     await _storage.clearAuthData();
+    if (clearPermissionOnboardingState) {
+      await _storage.remove(StorageKeys.permissionOnboardingSeenV1);
+      await _storage.remove(StorageKeys.childSupervisionSetupSeenV1);
+    }
     _user = null;
   }
 

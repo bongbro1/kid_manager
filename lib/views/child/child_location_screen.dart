@@ -276,12 +276,13 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
 
       if (!context.mounted) return;
 
+      final failureMessage = sosVm.error ?? l10n.sosSendFailed;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             sosId != null
                 ? l10n.parentLocationSosSent
-                : l10n.parentLocationSosFailed,
+                : failureMessage,
           ),
         ),
       );

@@ -68,8 +68,3 @@ export function getSosReminderRuntimeConfig(): SosReminderRuntimeConfig {
     ),
   };
 }
-
-
-
-// RESEND_API_KEY=re_aNk2vcpx_Lst9HFZTPH7hK2m2Npj43XYa
-// MAIL_FROM=Kid Manager <no-reply@homiesmart.io.vn>
