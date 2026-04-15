@@ -89,9 +89,10 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
       appBar: AppBar(
         title: Text(
           l10n.memoryDayTitle,
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
             color: colorScheme.onSurface,
+            fontSize: 20,
           ),
         ),
         centerTitle: true,
@@ -103,18 +104,12 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
         ],
       ),
       body: vm.isAllLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: colorScheme.primary,
-              ),
-            )
+          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
           : vm.allError != null
           ? Center(
               child: Text(
                 vm.allError!,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.error,
-                ),
+                style: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
               ),
             )
           : all.isEmpty
@@ -215,12 +210,7 @@ class _MemoryDayCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border(
-          left: BorderSide(
-            color: Color(0xFFE2B53B),
-            width: 3
-          ),
-        ),
+        border: Border(left: BorderSide(color: Color(0xFFE2B53B), width: 3)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
@@ -329,7 +319,7 @@ class _MemoryDayCard extends StatelessWidget {
                     color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: colorScheme.outline.withOpacity(0.5)
+                      color: colorScheme.outline.withOpacity(0.5),
                     ),
                   ),
                   alignment: Alignment.center,

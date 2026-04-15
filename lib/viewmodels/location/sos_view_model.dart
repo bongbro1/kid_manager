@@ -25,6 +25,64 @@ class SosViewModel extends ChangeNotifier {
     return lookupAppLocalizations(Locale(lang == 'en' ? 'en' : 'vi'));
   }
 
+  String _mapTriggerFunctionsError(
+    FirebaseFunctionsException error,
+    AppLocalizations l10n,
+  ) {
+    final code = error.code.trim().toLowerCase();
+    final details = '${error.details ?? ''}'.trim();
+    final raw = '${error.message ?? ''} $details'.toLowerCase();
+
+    if (code == 'resource-exhausted') {
+      if (raw.contains('daily sos limit reached')) {
+        return l10n.sosDailyLimitReached;
+      }
+
+      if (raw.contains('sos too frequent')) {
+        final seconds = RegExp(r'(\d+)\s*s').firstMatch(raw);
+        final waitSeconds = int.tryParse(seconds?.group(1) ?? '') ?? 30;
+        return l10n.sosRateLimitWaitSeconds(waitSeconds);
+      }
+
+      return l10n.sosRateLimitWaitSeconds(30);
+    }
+
+    if (code == 'unauthenticated') {
+      return l10n.sosLoginRequired;
+    }
+
+    if (code == 'unavailable' || code == 'deadline-exceeded') {
+      return l10n.sosNetworkError;
+    }
+
+    if (code == 'permission-denied') {
+      return l10n.sosPermissionDenied;
+    }
+
+    return l10n.sosSendFailed;
+  }
+
+  String _mapResolveFunctionsError(
+    FirebaseFunctionsException error,
+    AppLocalizations l10n,
+  ) {
+    final code = error.code.trim().toLowerCase();
+
+    if (code == 'unauthenticated') {
+      return l10n.sosResolveLoginRequired;
+    }
+
+    if (code == 'unavailable' || code == 'deadline-exceeded') {
+      return l10n.sosResolveNetworkError;
+    }
+
+    if (code == 'permission-denied') {
+      return l10n.sosResolvePermissionDenied;
+    }
+
+    return l10n.sosResolveFailed;
+  }
+
   Future<String?> triggerSos({
     required double lat,
     required double lng,
@@ -35,7 +93,7 @@ class SosViewModel extends ChangeNotifier {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      _error = l10n.authLoginRequired;
+      _error = l10n.sosLoginRequired;
       notifyListeners();
       return null;
     }
@@ -61,12 +119,13 @@ class SosViewModel extends ChangeNotifier {
       return res.sosId;
     } on FirebaseFunctionsException catch (e) {
       debugPrint('CODE: ${e.code}');
-      debugPrint('CODE: ${e.message}');
+      debugPrint('MESSAGE: ${e.message}');
       debugPrint('DETAILS: ${e.details}');
+      _error = _mapTriggerFunctionsError(e, l10n);
       return null;
     } catch (e) {
       debugPrint('ERROR SOS: $e');
-      _error = e.toString();
+      _error = l10n.sosSendFailed;
       return null;
     } finally {
       _sending = false;
@@ -78,10 +137,22 @@ class SosViewModel extends ChangeNotifier {
     required String familyId,
     required String sosId,
   }) async {
+    final l10n = _fallbackL10n();
+    _error = null;
+    notifyListeners();
+
     try {
       await _api.resolveSos(familyId: familyId, sosId: sosId);
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('RESOLVE CODE: ${e.code}');
+      debugPrint('RESOLVE MESSAGE: ${e.message}');
+      debugPrint('RESOLVE DETAILS: ${e.details}');
+      _error = _mapResolveFunctionsError(e, l10n);
+      notifyListeners();
+      rethrow;
     } catch (e) {
-      _error = e.toString();
+      debugPrint('RESOLVE ERROR SOS: $e');
+      _error = l10n.sosResolveFailed;
       notifyListeners();
       rethrow;
     }

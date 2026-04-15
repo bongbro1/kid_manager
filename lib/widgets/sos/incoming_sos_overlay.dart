@@ -39,6 +39,27 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   bool get _canResolveSos =>
       widget.viewerRole?.isAdultManager ?? false;
 
+  DocumentSnapshot<Map<String, dynamic>>? _selectVisibleSos(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    for (final doc in docs) {
+      final data = doc.data();
+      final createdBy = data['createdBy']?.toString();
+
+      if (createdBy == widget.myUid) {
+        continue;
+      }
+
+      if (_ignoredSosId != null && doc.id == _ignoredSosId) {
+        continue;
+      }
+
+      return doc;
+    }
+
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -58,8 +79,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
           .doc(widget.familyId)
           .collection('sos')
           .where('status', isEqualTo: 'active')
-          .orderBy('createdAt', descending: true)
-          .limit(1);
+          .orderBy('createdAt', descending: true);
 
       _sub = q.snapshots().listen(
         (qs) {
@@ -75,33 +95,33 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
             return;
           }
 
-          final doc = qs.docs.first;
-          final data = doc.data();
-          final createdBy = data['createdBy']?.toString();
+          final hasIgnoredActive = _ignoredSosId != null &&
+              qs.docs.any((doc) => doc.id == _ignoredSosId);
+          final doc = _selectVisibleSos(qs.docs);
 
           debugPrint(
-            'SOS stream doc=${doc.id} ignored=$_ignoredSosId resolving=$_resolving ringing=$_ringing',
+            'SOS stream active=${qs.docs.length} visible=${doc?.id} '
+            'ignored=$_ignoredSosId resolving=$_resolving ringing=$_ringing',
           );
 
-          // Không hiển thị SOS do chính mình tạo
-          if (createdBy == widget.myUid) {
+          if (doc == null) {
+            if (!hasIgnoredActive) {
+              _ignoredSosId = null;
+              _resolving = false;
+            }
             _clearOverlayAndStopAlarm();
             return;
           }
 
-          // Đang resolve chính SOS này -> bỏ qua snapshot active cũ
-          if (_ignoredSosId != null && doc.id == _ignoredSosId) {
-            debugPrint('Ignore active snapshot for resolving sosId=${doc.id}');
-            return;
-          }
-
-          if (_ignoredSosId != null && doc.id != _ignoredSosId) {
+          if (_ignoredSosId != null && !hasIgnoredActive) {
             _ignoredSosId = null;
             _resolving = false;
           }
 
           if (!mounted) return;
-          setState(() => _doc = doc);
+          if (_doc?.id != doc.id) {
+            setState(() => _doc = doc);
+          }
 
           if (!_ringing && !_resolving) {
             _ringing = true;
@@ -205,6 +225,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
         familyId: widget.familyId,
         sosId: sosId,
       );
+      _resolving = false;
       await SosNotificationService.instance.clearActiveAlert();
 
       debugPrint('Confirm success sosId=$sosId');
@@ -226,7 +247,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            l10n.incomingSosConfirmFailed('$e'),
+            sosViewModel.error ?? l10n.sosResolveFailed,
           ),
         ),
       );

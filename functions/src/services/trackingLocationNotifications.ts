@@ -94,6 +94,44 @@ export async function resolveUserLanguage(uid: string): Promise<string> {
   return String(user.lang ?? user.locale ?? "vi").toLowerCase();
 }
 
+export async function listManagedAdultRecipientUids(params: {
+  familyId: string;
+  childUid: string;
+}): Promise<string[]> {
+  const childSnap = await db.doc(`users/${params.childUid}`).get();
+  const childData = childSnap.data() as Record<string, unknown> | undefined;
+  const childFamilyId = String(childData?.familyId ?? "");
+  const childRole = String(childData?.role ?? "").trim().toLowerCase();
+
+  if (childFamilyId !== params.familyId || childRole !== "child") {
+    console.warn("[TRACKING] Skip recipient fan-out for non-child tracking target", {
+      familyId: params.familyId,
+      childUid: params.childUid,
+      childFamilyId,
+      childRole,
+    });
+    return [];
+  }
+
+  const membersSnap = await db.collection(`families/${params.familyId}/members`).get();
+
+  return membersSnap.docs
+    .map((doc) => ({
+      uid: doc.id,
+      role: String(doc.get("role") ?? ""),
+      data: doc.data() as Record<string, unknown>,
+    }))
+    .filter((member) =>
+      shouldReceiveTrackingLocationNotification({
+        memberUid: member.uid,
+        memberRole: member.role,
+        memberData: member.data,
+        childUid: params.childUid,
+      })
+    )
+    .map((member) => member.uid);
+}
+
 export function buildTrackingLocationNotificationRecord(params: {
   locale: string;
   childUid: string;

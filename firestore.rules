@@ -70,6 +70,11 @@ service cloud.firestore {
       return isSelf(parentUid) || isGuardianOfParent(parentUid);
     }
 
+    function isAdultFamilyMember(familyId) {
+      return isFamilyMember(familyId)
+        && (isParentUser(request.auth.uid) || isGuardianUser(request.auth.uid));
+    }
+
     function isGuardianAssignedToChild(childUid) {
       return isSignedIn()
         && userExists(childUid)
@@ -413,12 +418,25 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+      match /locationMembers/{uid} {
+        allow read: if isAdultFamilyMember(familyId);
+        allow create, update, delete: if false;
+      }
+
+      match /managementMembers/{uid} {
+        allow read: if isSignedIn()
+          && isParentUser(request.auth.uid)
+          && isFamilyMember(familyId)
+          && resource.data.parentUid == request.auth.uid;
+        allow create, update, delete: if false;
+      }
+
       // ============================
       // SOS
       // ============================
 
       match /sos/{sosId} {
-        allow read: if isFamilyMember(familyId);
+        allow read: if isAdultFamilyMember(familyId);
         allow write: if false;
       }
 

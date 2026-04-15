@@ -14,6 +14,8 @@ class BatteryOptimizationPermissionScreen extends StatelessWidget {
     required this.onSkip,
     this.statusMessage,
     this.media,
+    this.title,
+    this.description,
   });
 
   final int currentStep;
@@ -25,6 +27,8 @@ class BatteryOptimizationPermissionScreen extends StatelessWidget {
   final VoidCallback onSkip;
   final String? statusMessage;
   final Widget? media;
+  final String? title;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +37,8 @@ class BatteryOptimizationPermissionScreen extends StatelessWidget {
       currentStep: currentStep,
       totalSteps: totalSteps,
       stepLabels: stepLabels,
-      title: l10n.permissionOnboardingBatteryTitle,
-      description: l10n.permissionOnboardingBatterySubtitle,
+      title: title ?? l10n.permissionOnboardingBatteryTitle,
+      description: description ?? l10n.permissionOnboardingBatterySubtitle,
       primaryLabel: l10n.permissionOnboardingBatteryPrimaryButton,
       settingsLabel: l10n.permissionOnboardingBatterySettingsButton,
       icon: Icons.battery_charging_full_rounded,

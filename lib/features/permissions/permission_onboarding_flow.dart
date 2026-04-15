@@ -26,6 +26,8 @@ class PermissionOnboardingFlow extends StatefulWidget {
     super.key,
     required this.onFinished,
     this.mediaBuilder,
+    this.steps,
+    this.copyMode = PermissionOnboardingCopyMode.childDevice,
   });
 
   final Future<void> Function(PermissionOnboardingCompletion completion)
@@ -35,6 +37,8 @@ class PermissionOnboardingFlow extends StatefulWidget {
     PermissionOnboardingStepType step,
   )?
   mediaBuilder;
+  final List<PermissionOnboardingStepType>? steps;
+  final PermissionOnboardingCopyMode copyMode;
 
   @override
   State<PermissionOnboardingFlow> createState() =>
@@ -49,6 +53,22 @@ enum PermissionOnboardingStepType {
   usage,
   battery,
   accessibility,
+}
+
+enum PermissionOnboardingCopyMode {
+  adultDevice,
+  childDevice,
+  sharedDevice,
+}
+
+class PermissionOnboardingStepCopy {
+  const PermissionOnboardingStepCopy({
+    required this.title,
+    required this.description,
+  });
+
+  final String title;
+  final String description;
 }
 
 class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
@@ -69,7 +89,7 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _permissionService = context.read<PermissionService>();
-    _steps = _buildSteps();
+    _steps = widget.steps ?? _buildDefaultSteps();
     Future.microtask(_syncCurrentStep);
   }
 
@@ -86,7 +106,7 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
     Future.delayed(const Duration(milliseconds: 350), _syncCurrentStep);
   }
 
-  List<PermissionOnboardingStepType> _buildSteps() {
+  List<PermissionOnboardingStepType> _buildDefaultSteps() {
     final steps = <PermissionOnboardingStepType>[
       PermissionOnboardingStepType.notifications,
       PermissionOnboardingStepType.location,
@@ -127,6 +147,11 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
 
   Future<void> _syncCurrentStep() async {
     if (!mounted) return;
+
+    if (_steps.isEmpty) {
+      await _finishFlow();
+      return;
+    }
 
     for (var i = 0; i < _steps.length; i++) {
       final granted = await _isGranted(_steps[i]);
@@ -341,11 +366,283 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
     return false;
   }
 
+  PermissionOnboardingStepCopy _copyForStep(
+    PermissionOnboardingStepType step,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final isAdult = widget.copyMode == PermissionOnboardingCopyMode.adultDevice;
+    final isShared =
+        widget.copyMode == PermissionOnboardingCopyMode.sharedDevice;
+
+    switch (step) {
+      case PermissionOnboardingStepType.notifications:
+        if (isShared) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Bật thông báo',
+              en: 'Turn on notifications',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để nhận SOS, chat, cảnh báo vùng an toàn và các cảnh báo an toàn ngay khi chúng xảy ra.',
+              en:
+                  'To receive SOS, chat, safe zone, and safety alerts as soon as they happen.',
+            ),
+          );
+        }
+        if (isAdult) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Bật thông báo trên máy phụ huynh',
+              en: 'Turn on notifications on the parent device',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để nhận SOS, cảnh báo vùng an toàn và các cảnh báo an toàn từ thiết bị trẻ ngay khi chúng xảy ra.',
+              en:
+                  'To receive SOS, safe zone, and safety alerts from the child device as soon as they happen.',
+            ),
+          );
+        }
+        return PermissionOnboardingStepCopy(
+          title: l10n.permissionOnboardingNotificationTitle,
+          description: l10n.permissionOnboardingNotificationSubtitle,
+        );
+      case PermissionOnboardingStepType.location:
+        if (isShared) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Bật vị trí',
+              en: 'Turn on location',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để app dùng bản đồ, chia sẻ vị trí và các tính năng an toàn khi cần.',
+              en:
+                  'So the app can use maps, location sharing, and safety features when needed.',
+            ),
+          );
+        }
+        if (isAdult) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Bật vị trí trên máy phụ huynh',
+              en: 'Turn on location on the parent device',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để bản đồ gia đình và các tính năng an toàn có thể dùng vị trí của chính thiết bị phụ huynh khi cần.',
+              en:
+                  'So family maps and safety features can use the parent device location when needed.',
+            ),
+          );
+        }
+        return PermissionOnboardingStepCopy(
+          title: l10n.permissionOnboardingLocationTitle,
+          description: l10n.permissionOnboardingLocationSubtitle,
+        );
+      case PermissionOnboardingStepType.backgroundLocation:
+        if (isShared) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Cho phép vị trí nền',
+              en: 'Allow background location',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để app vẫn có thể cập nhật vị trí và duy trì các tính năng an toàn khi chạy nền.',
+              en:
+                  'So the app can still update location and keep safety features working in the background.',
+            ),
+          );
+        }
+        if (isAdult) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Cho phép vị trí nền trên máy phụ huynh',
+              en: 'Allow background location on the parent device',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để app vẫn có thể cập nhật vị trí của thiết bị phụ huynh khi bạn đang dùng các tính năng chia sẻ vị trí hoặc an toàn.',
+              en:
+                  'So the app can still update the parent device location while using live location sharing or safety features.',
+            ),
+          );
+        }
+        return PermissionOnboardingStepCopy(
+          title: l10n.permissionOnboardingBackgroundLocationTitle,
+          description: l10n.permissionOnboardingBackgroundLocationSubtitle,
+        );
+      case PermissionOnboardingStepType.media:
+        if (isShared) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Cho phép ảnh và media',
+              en: 'Allow photos and media',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để đổi ảnh đại diện, chọn ảnh trong chat và dùng các tính năng cần media.',
+              en:
+                  'To change profile photos, choose images in chat, and use media features.',
+            ),
+          );
+        }
+        if (isAdult) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Cho phép ảnh và media trên máy phụ huynh',
+              en: 'Allow photos and media on the parent device',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để đổi ảnh đại diện, chọn ảnh trong chat và dùng các tính năng cần media trên máy phụ huynh.',
+              en:
+                  'To change profile photos, choose images in chat, and use media-related features on the parent device.',
+            ),
+          );
+        }
+        return PermissionOnboardingStepCopy(
+          title: l10n.permissionOnboardingMediaTitle,
+          description: l10n.permissionOnboardingMediaSubtitle,
+        );
+      case PermissionOnboardingStepType.usage:
+        if (isShared) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Bật quyền sử dụng ứng dụng',
+              en: 'Enable app usage access',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để app hỗ trợ các tính năng theo dõi, thống kê và quản lý liên quan đến việc sử dụng ứng dụng.',
+              en:
+                  'So the app can support tracking, statistics, and management features related to app usage.',
+            ),
+          );
+        }
+        if (isAdult) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Bật quyền sử dụng ứng dụng trên máy phụ huynh',
+              en: 'Enable app usage access on the parent device',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để app có thể theo dõi thời gian sử dụng và hỗ trợ các tính năng quản lý, giám sát trên chính thiết bị phụ huynh khi cần.',
+              en:
+                  'So the app can read app usage and support management or supervision features on the parent device when needed.',
+            ),
+          );
+        }
+        return PermissionOnboardingStepCopy(
+          title: l10n.permissionOnboardingUsageTitle,
+          description: l10n.permissionOnboardingUsageSubtitle,
+        );
+      case PermissionOnboardingStepType.battery:
+        if (isShared) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Tắt giới hạn pin',
+              en: 'Turn off battery restrictions',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để app vẫn hoạt động ổn định trên nền và không bỏ lỡ cập nhật hoặc cảnh báo quan trọng.',
+              en:
+                  'So the app can keep running reliably in the background and not miss important updates or alerts.',
+            ),
+          );
+        }
+        if (isAdult) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Tắt giới hạn pin trên máy phụ huynh',
+              en: 'Turn off battery restrictions on the parent device',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để app vẫn tiếp tục hoạt động ổn định trên nền và không bỏ lỡ các cảnh báo an toàn hay cập nhật quan trọng.',
+              en:
+                  'So the app can keep running reliably in the background and not miss safety alerts or important updates.',
+            ),
+          );
+        }
+        return PermissionOnboardingStepCopy(
+          title: l10n.permissionOnboardingBatteryTitle,
+          description: l10n.permissionOnboardingBatterySubtitle,
+        );
+      case PermissionOnboardingStepType.accessibility:
+        if (isShared) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Bật trợ năng',
+              en: 'Enable accessibility access',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để app hỗ trợ đầy đủ các tính năng giám sát và điều khiển liên quan khi được yêu cầu.',
+              en:
+                  'So the app can fully support supervision and control-related features when required.',
+            ),
+          );
+        }
+        if (isAdult) {
+          return PermissionOnboardingStepCopy(
+            title: _localizedCopy(
+              context,
+              vi: 'Bật trợ năng trên máy phụ huynh',
+              en: 'Enable accessibility access on the parent device',
+            ),
+            description: _localizedCopy(
+              context,
+              vi:
+                  'Để app có thể hỗ trợ đầy đủ các tính năng giám sát và điều khiển liên quan trên thiết bị phụ huynh khi được yêu cầu.',
+              en:
+                  'So the app can fully support supervision and device-control features on the parent device when required.',
+            ),
+          );
+        }
+        return PermissionOnboardingStepCopy(
+          title: l10n.permissionOnboardingAccessibilityTitle,
+          description: l10n.permissionOnboardingAccessibilitySubtitle,
+        );
+    }
+  }
+
   Widget _buildStepScreen() {
     final l10n = AppLocalizations.of(context);
     final currentStep = _stepIndex + 1;
     final totalSteps = _steps.length;
     final media = _buildStepMedia();
+    final copy = _copyForStep(_currentStep);
 
     switch (_currentStep) {
       case PermissionOnboardingStepType.notifications:
@@ -357,6 +654,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           busy: _busy,
           statusMessage: _statusMessage,
           media: media,
+          title: copy.title,
+          description: copy.description,
           helperText: l10n.permissionOnboardingNotificationHelperText,
           onAllow: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
@@ -371,6 +670,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           busy: _busy,
           statusMessage: _statusMessage,
           media: media,
+          title: copy.title,
+          description: copy.description,
           onAllow: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
           onSkip: () => unawaited(_handleSkip()),
@@ -384,6 +685,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           busy: _busy,
           statusMessage: _statusMessage,
           media: media,
+          title: copy.title,
+          description: copy.description,
           onAllow: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
           onSkip: () => unawaited(_handleSkip()),
@@ -397,6 +700,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           busy: _busy,
           statusMessage: _statusMessage,
           media: media,
+          title: copy.title,
+          description: copy.description,
           onAllow: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
           onSkip: () => unawaited(_handleSkip()),
@@ -410,6 +715,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           busy: _busy,
           statusMessage: _statusMessage,
           media: media,
+          title: copy.title,
+          description: copy.description,
           onOpenUsageAccess: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
           onSkip: () => unawaited(_handleSkip()),
@@ -423,6 +730,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           busy: _busy,
           statusMessage: _statusMessage,
           media: media,
+          title: copy.title,
+          description: copy.description,
           onOpenAccessibility: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
           onSkip: () => unawaited(_handleSkip()),
@@ -436,6 +745,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           busy: _busy,
           statusMessage: _statusMessage,
           media: media,
+          title: copy.title,
+          description: copy.description,
           onOpenBatterySettings: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
           onSkip: () => unawaited(_handleSkip()),
@@ -475,4 +786,14 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
       child: _buildStepScreen(),
     );
   }
+}
+
+String _localizedCopy(
+  BuildContext context, {
+  required String vi,
+  required String en,
+}) {
+  return Localizations.localeOf(context).languageCode.toLowerCase() == 'vi'
+      ? vi
+      : en;
 }

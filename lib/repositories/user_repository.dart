@@ -29,7 +29,11 @@ class UserRepository {
            membershipRepository ?? MembershipRepository(db, secondaryAuth),
        _familyRepository =
            familyRepository ??
-           FamilyRepository(db, profileRepository ?? ProfileRepository(db));
+           FamilyRepository(
+             db,
+             profileRepository ?? ProfileRepository(db),
+             auth: auth,
+           );
 
   final FirebaseFirestore _db;
   final FirebaseAuth? _auth;

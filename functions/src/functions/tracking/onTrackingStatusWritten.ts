@@ -1,37 +1,17 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
-import { admin, db } from "../../bootstrap";
+import { admin } from "../../bootstrap";
 import { REGION } from "../../config";
 import { createGlobalNotificationRecord } from "../../services/globalNotifications";
 import {
   buildTrackingLocationNotificationRecord,
   isTrackingLocationStatus,
+  listManagedAdultRecipientUids,
   resolveUserLanguage,
-  shouldReceiveTrackingLocationNotification,
   toMillis,
 } from "../../services/trackingLocationNotifications";
 
 const FLAP_STATUSES = new Set(["location_stale", "ok"]);
 const FLAP_COOLDOWN_MS = 5 * 60 * 1000;
-
-async function getParentUids(familyId: string, childUid: string): Promise<string[]> {
-  const membersSnap = await db.collection(`families/${familyId}/members`).get();
-
-  return membersSnap.docs
-    .map((d) => ({
-      uid: d.id,
-      role: String(d.get("role") ?? ""),
-      data: d.data() as Record<string, unknown>,
-    }))
-    .filter((member) =>
-      shouldReceiveTrackingLocationNotification({
-        memberUid: member.uid,
-        memberRole: member.role,
-        memberData: member.data,
-        childUid,
-      })
-    )
-    .map((x) => x.uid);
-}
 
 export const onTrackingStatusWritten = onDocumentWritten(
   {
@@ -76,7 +56,7 @@ const beforeData = before?.exists ? before.data() : null;
       return;
     }
 
-    const parentUids = await getParentUids(familyId, childUid);
+    const parentUids = await listManagedAdultRecipientUids({ familyId, childUid });
 
     for (const parentUid of parentUids) {
       const locale = await resolveUserLanguage(parentUid);

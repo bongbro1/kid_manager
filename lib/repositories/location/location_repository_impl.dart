@@ -76,6 +76,8 @@ class LocationRepositoryImpl implements LocationRepository {
       'timestamp': p.location.timestamp,
       'acc': j['accuracy'] ?? j['location']?['accuracy'],
       'speed': j['speed'] ?? j['location']?['speed'],
+      'batteryLevel': p.location.batteryLevel,
+      'isCharging': p.location.isCharging,
     };
   }
 
@@ -151,23 +153,29 @@ class LocationRepositoryImpl implements LocationRepository {
           .doc(uid)
           .get();
 
+      final role = snap.data()?['role']?.toString().trim().toLowerCase();
       final parentUid = snap.data()?['parentUid'];
       final familyId = snap.data()?['familyId'];
       final timeZone = await _dayKeyResolver.normalizeTimeZone(
         snap.data()?['timezone']?.toString(),
       );
+      final normalizedParentUid = parentUid?.toString().trim().isNotEmpty == true
+          ? parentUid.toString().trim()
+          : role == 'parent'
+          ? uid
+          : null;
       _log(
-        'loadUserRoutingContext -> Firestore parentUid=$parentUid familyId=$familyId timeZone=$timeZone',
+        'loadUserRoutingContext -> Firestore parentUid=$normalizedParentUid familyId=$familyId timeZone=$timeZone',
       );
 
-      if (parentUid == null) {
+      if (normalizedParentUid == null || normalizedParentUid.isEmpty) {
         throw Exception(l10n.locationRepositoryParentIdNotFound);
       }
       if (familyId == null || familyId.toString().trim().isEmpty) {
         throw Exception(l10n.userVmFamilyIdNotFound);
       }
 
-      _cachedParentUid = parentUid.toString();
+      _cachedParentUid = normalizedParentUid;
       _cachedParentUidForUid = uid;
       _cachedFamilyId = familyId.toString();
       _cachedFamilyIdForUid = uid;
@@ -370,6 +378,8 @@ class LocationRepositoryImpl implements LocationRepository {
       "longitude": loc.longitude,
       "speed": loc.speed,
       "heading": loc.heading,
+      if (loc.batteryLevel != null) "batteryLevel": loc.batteryLevel,
+      if (loc.isCharging != null) "isCharging": loc.isCharging,
       "isMock": loc.isMock,
       "timestamp": loc.timestamp,
       "deviceId": payload.deviceId,
@@ -501,7 +511,10 @@ class LocationRepositoryImpl implements LocationRepository {
   }
 
   @override
-  Stream<LocationData> watchChildLocation(String childId) {
+  Stream<LocationData> watchChildLocation(
+    String childId, {
+    bool preferRealtime = true,
+  }) {
     int? lastTimestamp;
 
     LocationData? parseCurrent(dynamic raw) {
@@ -523,6 +536,8 @@ class LocationRepositoryImpl implements LocationRepository {
       },
       parseSnapshot: parseCurrent,
       pollingInterval: _currentPollingInterval,
+      enableRealtime: preferRealtime,
+      usePollingBackoff: preferRealtime,
       onRealtimeError: (Object e, StackTrace st) {
         debugPrint("watchChildLocation(rtdb) error: $e");
       },

@@ -5,6 +5,7 @@ import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_recent_points_section.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
+import 'package:kid_manager/widgets/location/device_battery_widgets.dart';
 
 class ChildDetailMapOverviewSheet extends StatelessWidget {
   final ChildDetailMapVm vm;
@@ -44,6 +45,11 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
             orderedHistory,
             latestIndex,
           );
+    final batteryState = DeviceBatteryUiState.fromSnapshot(
+      batteryLevel: latest.batteryLevel,
+      isCharging: latest.isCharging,
+      timestampMs: latest.timestamp,
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
@@ -165,6 +171,12 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          DeviceBatteryPanelCard(
+            state: batteryState,
+            backgroundColor: const Color(0xFFF8F9FA),
+            borderColor: const Color(0xFFE8EAED),
           ),
           const SizedBox(height: 18),
           Container(

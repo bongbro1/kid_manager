@@ -1574,7 +1574,23 @@
   "zonesDefaultNameFallback": "Zone",
   "parentLocationUnknownUser": "Unknown",
   "parentLocationSosSent": "SOS sent",
-  "parentLocationSosFailed": "Failed to send SOS",
+  "sosRateLimitWaitSeconds": "You sent SOS too quickly. Please wait {seconds} seconds and try again.",
+  "@sosRateLimitWaitSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "sosDailyLimitReached": "You reached the daily SOS limit to prevent abuse. If this is a real emergency, call emergency services or contact family directly.",
+  "sosLoginRequired": "You need to sign in to send SOS.",
+  "sosNetworkError": "Network is unstable. Please try sending SOS again.",
+  "sosPermissionDenied": "This account is not allowed to send SOS.",
+  "sosSendFailed": "Failed to send SOS. Please try again.",
+  "sosResolveLoginRequired": "You need to sign in to confirm SOS.",
+  "sosResolveNetworkError": "Network is unstable. Please try confirming SOS again.",
+  "sosResolvePermissionDenied": "This account is not allowed to confirm SOS.",
+  "sosResolveFailed": "Failed to confirm SOS. Please try again.",
   "parentLocationMapLoadingTitle": "Loading map",
   "parentLocationMapLoadingSubtitle": "Preparing the children's locations",
   "parentChildrenListTitle": "Member list",
@@ -1767,15 +1783,15 @@
     }
   },
   "permissionOnboardingAccessibilityTitle": "Enable accessibility access",
-  "permissionOnboardingAccessibilitySubtitle": "Needed for some protection features on Android.",
+  "permissionOnboardingAccessibilitySubtitle": "Used for parental control on Android to detect which app is open on the child's device and apply parent-defined blocking rules. This information is shown to the parent or assigned guardian for child safety and digital wellbeing.",
   "permissionOnboardingAccessibilityPrimaryButton": "Allow",
   "permissionOnboardingAccessibilitySettingsButton": "Open general settings",
   "permissionOnboardingBackgroundLocationTitle": "Choose \"Allow all the time\"",
-  "permissionOnboardingBackgroundLocationSubtitle": "So location can still update when the app runs in the background.",
+  "permissionOnboardingBackgroundLocationSubtitle": "This app collects location data to show live child location, trigger Safe Zone alerts, and support Safe Route even when the app is closed or not in use. Location is shared with the parent or assigned guardian in the same family for safety features.",
   "permissionOnboardingBackgroundLocationPrimaryButton": "Continue",
   "permissionOnboardingBackgroundLocationSettingsButton": "Open location settings",
   "permissionOnboardingBatteryTitle": "Turn off battery restrictions",
-  "permissionOnboardingBatterySubtitle": "So the app is not stopped while running in the background.",
+  "permissionOnboardingBatterySubtitle": "Allows tracking and safety alerts to keep working when Android would otherwise stop the app in the background.",
   "permissionOnboardingBatteryPrimaryButton": "Allow",
   "permissionOnboardingBatterySettingsButton": "Open general settings",
   "permissionOnboardingLocationTitle": "Turn on \"Location access\"",
@@ -1791,7 +1807,7 @@
   "permissionOnboardingNotificationPrimaryButton": "Allow",
   "permissionOnboardingNotificationSettingsButton": "Open notification settings",
   "permissionOnboardingUsageTitle": "Enable app usage access",
-  "permissionOnboardingUsageSubtitle": "To manage app usage time on Android.",
+  "permissionOnboardingUsageSubtitle": "Used to measure which apps the child uses and for how long on Android, then show that usage to the parent or assigned guardian for screen-time management.",
   "permissionOnboardingUsagePrimaryButton": "Allow",
   "permissionOnboardingUsageSettingsButton": "Open general settings",
   "permissionOnboardingStepNotificationsLabel": "Notifications",
@@ -2017,12 +2033,6 @@
   "locationQuickMessageHint": "Send a quick message...",
   "locationStatusStudying": "Studying",
   "locationStopSearching": "Stop searching",
-  "incomingSosConfirmFailed": "Confirmation failed: {error}",
-  "@incomingSosConfirmFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
   "incomingSosEmergencyTitle": "🚨 Emergency SOS alert!",
   "incomingSosResolvingButton": "PROCESSING",
   "incomingSosConfirmButton": "CONFIRM",
@@ -2418,6 +2428,13 @@
   "safeRouteMetricEta": "ETA",
   "safeRouteMetricEtaEstimate": "Estimate",
   "safeRouteDangerCheckNow": "Check immediately",
+  "deviceBatteryTitle": "Battery",
+  "deviceBatteryUnavailableLabel": "Unavailable",
+  "deviceBatteryLastKnownLabel": "Last known",
+  "deviceBatteryChargingLabel": "Charging",
+  "deviceBatteryCriticalLabel": "Critical",
+  "deviceBatteryLowLabel": "Low",
+  "deviceBatteryNormalLabel": "Normal",
   "safeRouteDeviceBatteryLabel": "Device battery",
   "safeRouteProgressTitle": "Journey progress",
   "safeRouteProgressCompletedPercent": "Completed {percent}%",

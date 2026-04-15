@@ -36,6 +36,10 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="33">
+        <meta-data
+            android:name="isMonitoringTool"
+            android:value="child_monitoring" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

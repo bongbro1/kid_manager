@@ -22,6 +22,7 @@ import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
 import 'package:kid_manager/repositories/zones/zone_repository.dart';
 import 'package:kid_manager/background/tracking_background_service.dart';
+import 'package:kid_manager/services/device_power_service.dart';
 import 'package:kid_manager/services/location/background_tracking_status_policy.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/location/tracking_status_service.dart';
@@ -32,8 +33,10 @@ class BackgroundTrackingRuntime {
     this._locationRepository,
     this._locationService, {
     FirebaseAuth? auth,
+    DevicePowerService? devicePowerService,
     TrackingStatusService? trackingStatusService,
   }) : _auth = auth ?? FirebaseAuth.instance,
+       _devicePowerService = devicePowerService ?? DevicePowerService(),
        _trackingStatusService =
            trackingStatusService ?? TrackingStatusService() {
     _authStateSub = _auth.authStateChanges().listen(_handleAuthStateChanged);
@@ -42,6 +45,7 @@ class BackgroundTrackingRuntime {
   final LocationRepository _locationRepository;
   final LocationServiceInterface _locationService;
   final FirebaseAuth _auth;
+  final DevicePowerService _devicePowerService;
   final TrackingStatusService _trackingStatusService;
 
   final TrackingPipeline _engine = TrackingPipeline(
@@ -64,6 +68,7 @@ class BackgroundTrackingRuntime {
   bool get isRunning => _running;
 
   bool _requireBackground = true;
+  bool _currentOnly = false;
   String? _activeSharingUid;
   Activity? _lastActivity;
   LocationData? _currentLocation;
@@ -80,12 +85,16 @@ class BackgroundTrackingRuntime {
   Future<AppLocalizations>? _l10nFuture;
   String? _l10nUid;
 
-  Future<bool> start({required bool requireBackground}) async {
+  Future<bool> start({
+    required bool requireBackground,
+    bool currentOnly = false,
+  }) async {
     try {
       if (_disposed) return false;
       if (_running) return true;
 
       _requireBackground = requireBackground;
+      _currentOnly = currentOnly;
 
       final l10n = await _getL10n();
       if (_disposed) return false;
@@ -126,8 +135,10 @@ class BackgroundTrackingRuntime {
       if (_disposed) return false;
       await _startActivityRecognition();
       if (_disposed) return false;
-      await _ensureZoneMonitor(sharingUid);
-      if (_disposed) return false;
+      if (!_currentOnly) {
+        await _ensureZoneMonitor(sharingUid);
+        if (_disposed) return false;
+      }
 
       _gpsSub = _locationService
           .getLocationStream(usePlatformPlugin: false)
@@ -162,19 +173,35 @@ class BackgroundTrackingRuntime {
                 return;
               }
 
-              _currentLocation = filtered;
+              final shouldUpdateCurrentLocation =
+                  _currentLocation == null ||
+                  accuracy <= TrackingTuning.weakAccuracyMaxM;
               _motionState = result.motion;
               _transport = result.transport;
 
-              try {
-                if (_zonesInited) {
-                  await _zoneMonitor?.onLocation(filtered);
+              if (!_currentOnly) {
+                try {
+                  if (_zonesInited) {
+                    await _zoneMonitor?.onLocation(filtered);
+                  }
+                } catch (e) {
+                  debugPrint('BackgroundTrackingRuntime zone monitor error: $e');
                 }
-              } catch (e) {
-                debugPrint('BackgroundTrackingRuntime zone monitor error: $e');
               }
 
-              final payload = TrackingPayload(
+              final currentLocation = await _attachCurrentBattery(filtered);
+              if (_disposed || !_running) return;
+              if (shouldUpdateCurrentLocation) {
+                _currentLocation = currentLocation;
+              }
+
+              final currentPayload = TrackingPayload(
+                deviceId: activeSharingUid,
+                location: currentLocation,
+                motion: result.motion.name,
+                transport: _transport.name,
+              );
+              final historyPayload = TrackingPayload(
                 deviceId: activeSharingUid,
                 location: filtered,
                 motion: result.motion.name,
@@ -218,7 +245,7 @@ class BackgroundTrackingRuntime {
                   );
                 }
                 try {
-                  await _locationRepository.updateMyCurrent(payload);
+                  await _locationRepository.updateMyCurrent(currentPayload);
                   _lastCurrentSentAtMs = nowMs;
                   _lastCurrentFailureAtMs = 0;
                   _sentInitialCurrent = true;
@@ -232,38 +259,40 @@ class BackgroundTrackingRuntime {
                 }
               }
 
-              final historySendWindowOpen = _canAttemptSend(
-                nowMs: nowMs,
-                lastSuccessAtMs: 0,
-                lastFailureAtMs: _lastHistoryFailureAtMs,
-                minSuccessInterval: Duration.zero,
-              );
-              if (isMoving &&
-                  goodHistoryAcc &&
-                  result.indoorSuppressed &&
-                  historySendWindowOpen &&
-                  kDebugMode) {
-                debugPrint(
-                  'BackgroundTrackingRuntime history send skipped due to '
-                  'indoor suppression acc=${accuracy.toStringAsFixed(1)}',
+              if (!_currentOnly) {
+                final historySendWindowOpen = _canAttemptSend(
+                  nowMs: nowMs,
+                  lastSuccessAtMs: 0,
+                  lastFailureAtMs: _lastHistoryFailureAtMs,
+                  minSuccessInterval: Duration.zero,
                 );
-              }
-
-              if (isMoving &&
-                  !result.indoorSuppressed &&
-                  result.shouldSend &&
-                  goodHistoryAcc &&
-                  historySendWindowOpen) {
-                try {
-                  await _locationRepository.appendMyHistory(payload);
-                  _lastHistoryFailureAtMs = 0;
-                  _engine.acknowledgeHistorySent(filtered, result.motion);
-                } catch (e) {
-                  _lastHistoryFailureAtMs = nowMs;
-                  sendError ??= e;
+                if (isMoving &&
+                    goodHistoryAcc &&
+                    result.indoorSuppressed &&
+                    historySendWindowOpen &&
+                    kDebugMode) {
                   debugPrint(
-                    'BackgroundTrackingRuntime history location send failed: $e',
+                    'BackgroundTrackingRuntime history send skipped due to '
+                    'indoor suppression acc=${accuracy.toStringAsFixed(1)}',
                   );
+                }
+
+                if (isMoving &&
+                    !result.indoorSuppressed &&
+                    result.shouldSend &&
+                    goodHistoryAcc &&
+                    historySendWindowOpen) {
+                  try {
+                    await _locationRepository.appendMyHistory(historyPayload);
+                    _lastHistoryFailureAtMs = 0;
+                    _engine.acknowledgeHistorySent(filtered, result.motion);
+                  } catch (e) {
+                    _lastHistoryFailureAtMs = nowMs;
+                    sendError ??= e;
+                    debugPrint(
+                      'BackgroundTrackingRuntime history location send failed: $e',
+                    );
+                  }
                 }
               }
 
@@ -297,6 +326,7 @@ class BackgroundTrackingRuntime {
   Future<void> stop() async {
     await TrackingRuntimeStore.setPublisherReady(false);
     _running = false;
+    _currentOnly = false;
     _activeSharingUid = null;
     _lastTrackingStatus = null;
     _lastStatusHeartbeatAtMs = 0;
@@ -543,6 +573,14 @@ class BackgroundTrackingRuntime {
     final distanceMeters = prev.distanceTo(next) * 1000.0;
     final speedMps = distanceMeters / dtSec;
     return speedMps > 45;
+  }
+
+  Future<LocationData> _attachCurrentBattery(LocationData location) async {
+    final snapshot = await _devicePowerService.getSnapshot();
+    return location.copyWith(
+      batteryLevel: snapshot.batteryLevel,
+      isCharging: snapshot.isCharging,
+    );
   }
 
   Future<void> _startActivityRecognition() async {

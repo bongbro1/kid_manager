@@ -56,6 +56,7 @@ export type LiveLocationRecord = {
   speed: number;
   heading: number;
   batteryLevel: number | null;
+  isCharging: boolean | null;
   isMock: boolean;
   timestamp: number;
   motion?: string;

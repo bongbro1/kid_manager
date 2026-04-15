@@ -9,7 +9,10 @@ abstract class LocationRepository {
   Future<void> updateMyLocation(TrackingPayload payload);
 
   // parent read via functions
-  Stream<LocationData> watchChildLocation(String childId);
+  Stream<LocationData> watchChildLocation(
+    String childId, {
+    bool preferRealtime = true,
+  });
   Future<List<LocationData>> getLocationHistoryByDay(
     String childId,
     DateTime day, {

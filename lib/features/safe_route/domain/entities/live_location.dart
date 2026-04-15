@@ -6,6 +6,7 @@
   final double speedMps;
   final double bearing;
   final double? batteryLevel;
+  final bool? isCharging;
   final bool isMock;
   final int timestamp;
 
@@ -17,6 +18,7 @@
     required this.speedMps,
     required this.bearing,
     required this.batteryLevel,
+    required this.isCharging,
     required this.isMock,
     required this.timestamp,
   });
@@ -31,6 +33,7 @@
     double? speedMps,
     double? bearing,
     double? batteryLevel,
+    bool? isCharging,
     bool? isMock,
     int? timestamp,
   }) {
@@ -42,6 +45,7 @@
       speedMps: speedMps ?? this.speedMps,
       bearing: bearing ?? this.bearing,
       batteryLevel: batteryLevel ?? this.batteryLevel,
+      isCharging: isCharging ?? this.isCharging,
       isMock: isMock ?? this.isMock,
       timestamp: timestamp ?? this.timestamp,
     );
@@ -57,6 +61,7 @@
         'speedMps: $speedMps, '
         'bearing: $bearing, '
         'batteryLevel: $batteryLevel, '
+        'isCharging: $isCharging, '
         'isMock: $isMock, '
         'timestamp: $timestamp'
         ')';

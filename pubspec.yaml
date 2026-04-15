@@ -62,7 +62,6 @@ dependencies:
   # Local / Network / Utils
   http: ^1.2.0
   logger: ^2.0.1
-  google_fonts: ^6.2.1
 
   # Activity / Env / Mapbox
   flutter_activity_recognition: ^4.0.0
@@ -93,8 +92,7 @@ dependencies:
   # Auth socials
   google_sign_in: ^6.2.1
   flutter_facebook_auth: ^6.0.4
-
-
+  battery_plus: 7.0.0
   skeletonizer: ^2.1.3
 
 dev_dependencies:
@@ -118,9 +116,9 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
-    - assets/stickers/family_chat/
+    - assets/stickers/family_chat/celebrate.webp
     - assets/videos/
-    - assets/sounds/
+    - assets/sounds/sos.mp3
     - assets/templates/schedule_template.xlsx
     - assets/zones/i18n/
     - assets/map/

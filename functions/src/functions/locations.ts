@@ -5,6 +5,7 @@ import { mustString, normalizeTimeZone, zonedDateParts } from "../helpers";
 import { parseLiveLocationRecord } from "../services/safeRouteMonitoringService";
 import {
   listTrackableLocationMembersForViewer,
+  requireCurrentLocationViewerAccess,
   requireLocationViewerAccess,
 } from "../services/locationAccess";
 import {
@@ -339,7 +340,7 @@ export const getChildLocationCurrent = onCall({ region: REGION }, async (req) =>
   const viewerUid = req.auth.uid;
 
   const childUid = mustString(req.data?.childUid, "childUid");
-  await requireLocationViewerAccess(viewerUid, childUid);
+  await requireCurrentLocationViewerAccess(viewerUid, childUid);
 
   const trustedSnap = await admin
     .database()

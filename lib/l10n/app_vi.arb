@@ -1574,7 +1574,23 @@
   "zonesDefaultNameFallback": "Vùng",
   "parentLocationUnknownUser": "Không rõ",
   "parentLocationSosSent": "Đã gửi SOS",
-  "parentLocationSosFailed": "Gửi SOS thất bại",
+  "sosRateLimitWaitSeconds": "Bạn vừa gửi SOS quá nhanh. Vui lòng chờ {seconds} giây rồi thử lại.",
+  "@sosRateLimitWaitSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "sosDailyLimitReached": "Bạn đã chạm giới hạn SOS trong ngày để chống lạm dụng. Nếu đây là tình huống khẩn cấp thực sự, hãy gọi số khẩn cấp hoặc liên hệ trực tiếp người thân.",
+  "sosLoginRequired": "Bạn cần đăng nhập để gửi SOS.",
+  "sosNetworkError": "Kết nối mạng không ổn định. Vui lòng thử gửi SOS lại.",
+  "sosPermissionDenied": "Tài khoản hiện không có quyền gửi SOS.",
+  "sosSendFailed": "Gửi SOS thất bại. Vui lòng thử lại.",
+  "sosResolveLoginRequired": "Bạn cần đăng nhập để xác nhận SOS.",
+  "sosResolveNetworkError": "Kết nối mạng không ổn định. Vui lòng thử xác nhận SOS lại.",
+  "sosResolvePermissionDenied": "Tài khoản hiện không có quyền xác nhận SOS.",
+  "sosResolveFailed": "Xác nhận SOS thất bại. Vui lòng thử lại.",
   "parentLocationMapLoadingTitle": "Đang tải bản đồ",
   "parentLocationMapLoadingSubtitle": "Đang chuẩn bị vị trí của các bé",
   "parentChildrenListTitle": "Danh sách thành viên",
@@ -1767,15 +1783,15 @@
     }
   },
   "permissionOnboardingAccessibilityTitle": "Bật trợ năng",
-  "permissionOnboardingAccessibilitySubtitle": "Cần cho một số tính năng bảo vệ trên Android.",
+  "permissionOnboardingAccessibilitySubtitle": "Được dùng cho kiểm soát của phụ huynh trên Android để nhận biết ứng dụng nào đang mở trên thiết bị của trẻ và áp dụng quy tắc chặn do phụ huynh đặt. Thông tin này được hiển thị cho phụ huynh hoặc người giám hộ được chỉ định để phục vụ an toàn và sức khỏe số.",
   "permissionOnboardingAccessibilityPrimaryButton": "Cho phép",
   "permissionOnboardingAccessibilitySettingsButton": "Mở cài đặt chung",
   "permissionOnboardingBackgroundLocationTitle": "Chọn \"Luôn cho phép\"",
-  "permissionOnboardingBackgroundLocationSubtitle": "Để vị trí vẫn cập nhật khi app chạy nền.",
+  "permissionOnboardingBackgroundLocationSubtitle": "Ứng dụng này thu thập dữ liệu vị trí để hiển thị vị trí trực tiếp của trẻ, tạo cảnh báo Vùng an toàn và hỗ trợ Safe Route ngay cả khi ứng dụng đã đóng hoặc không sử dụng. Vị trí được chia sẻ với phụ huynh hoặc người giám hộ được chỉ định trong cùng gia đình cho các tính năng an toàn.",
   "permissionOnboardingBackgroundLocationPrimaryButton": "Tiếp tục",
   "permissionOnboardingBackgroundLocationSettingsButton": "Mở cài đặt vị trí",
   "permissionOnboardingBatteryTitle": "Tắt giới hạn pin",
-  "permissionOnboardingBatterySubtitle": "Để app không bị dừng khi chạy nền.",
+  "permissionOnboardingBatterySubtitle": "Cho phép theo dõi và cảnh báo an toàn tiếp tục hoạt động khi Android có thể dừng ứng dụng ở chế độ nền.",
   "permissionOnboardingBatteryPrimaryButton": "Cho phép",
   "permissionOnboardingBatterySettingsButton": "Mở cài đặt chung",
   "permissionOnboardingLocationTitle": "Bật \"Truy cập vị trí của tôi\"",
@@ -1791,7 +1807,7 @@
   "permissionOnboardingNotificationPrimaryButton": "Cho phép",
   "permissionOnboardingNotificationSettingsButton": "Mở cài đặt thông báo",
   "permissionOnboardingUsageTitle": "Bật quyền sử dụng ứng dụng",
-  "permissionOnboardingUsageSubtitle": "Để quản lý thời gian dùng app trên Android.",
+  "permissionOnboardingUsageSubtitle": "Được dùng để đo ứng dụng nào trẻ sử dụng và thời gian sử dụng trên Android, sau đó hiển thị dữ liệu này cho phụ huynh hoặc người giám hộ được chỉ định để quản lý thời gian màn hình.",
   "permissionOnboardingUsagePrimaryButton": "Cho phép",
   "permissionOnboardingUsageSettingsButton": "Mở cài đặt chung",
   "permissionOnboardingStepNotificationsLabel": "Thông báo",
@@ -2017,12 +2033,6 @@
   "locationQuickMessageHint": "Gửi tin nhắn nhanh...",
   "locationStatusStudying": "Đang học",
   "locationStopSearching": "Tắt tìm kiếm",
-  "incomingSosConfirmFailed": "Xác nhận thất bại: {error}",
-  "@incomingSosConfirmFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
   "incomingSosEmergencyTitle": "🚨 Có SOS khẩn cấp!",
   "incomingSosResolvingButton": "ĐANG XỬ LÝ",
   "incomingSosConfirmButton": "XÁC NHẬN",
@@ -2418,6 +2428,13 @@
   "safeRouteMetricEta": "Đến nơi",
   "safeRouteMetricEtaEstimate": "Ước tính",
   "safeRouteDangerCheckNow": "Cần kiểm tra ngay",
+  "deviceBatteryTitle": "Pin",
+  "deviceBatteryUnavailableLabel": "Chưa có dữ liệu",
+  "deviceBatteryLastKnownLabel": "Lần cuối ghi nhận",
+  "deviceBatteryChargingLabel": "Đang sạc",
+  "deviceBatteryCriticalLabel": "Pin rất yếu",
+  "deviceBatteryLowLabel": "Pin yếu",
+  "deviceBatteryNormalLabel": "Bình thường",
   "safeRouteDeviceBatteryLabel": "Pin thiết bị",
   "safeRouteProgressTitle": "Tiến độ hành trình",
   "safeRouteProgressCompletedPercent": "Đã đi {percent}%",

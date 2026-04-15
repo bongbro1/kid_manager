@@ -3,11 +3,15 @@
 import 'package:kid_manager/models/location/transport_mode.dart';
 
 class LocationData {
+  static const Object _unset = Object();
+
   final double latitude;
   final double longitude;
   final double accuracy;
   final double speed; // m/s
   final double heading; // degrees
+  final int? batteryLevel;
+  final bool? isCharging;
   final bool isMock;
   final int timestamp; // ms since epoch
   final String motion;
@@ -24,6 +28,8 @@ class LocationData {
     required this.timestamp,
     this.speed = 0,
     this.heading = 0,
+    this.batteryLevel,
+    this.isCharging,
     this.isMock = false,
     this.motion = '',
     this.transport = TransportMode.unknown,
@@ -40,6 +46,8 @@ class LocationData {
     required DateTime dateTime,
     double speed = 0,
     double heading = 0,
+    int? batteryLevel,
+    bool? isCharging,
     bool isMock = false,
     String motion = '',
     TransportMode transport = TransportMode.unknown,
@@ -55,6 +63,8 @@ class LocationData {
       timestamp: dateTime.millisecondsSinceEpoch,
       speed: speed,
       heading: heading,
+      batteryLevel: batteryLevel,
+      isCharging: isCharging,
       isMock: isMock,
       motion: motion,
       transport: transport,
@@ -71,6 +81,8 @@ class LocationData {
     double? accuracy,
     double? speed,
     double? heading,
+    Object? batteryLevel = _unset,
+    Object? isCharging = _unset,
     bool? isMock,
     int? timestamp,
     DateTime? dateTime,
@@ -89,6 +101,12 @@ class LocationData {
       accuracy: accuracy ?? this.accuracy,
       speed: speed ?? this.speed,
       heading: heading ?? this.heading,
+      batteryLevel: identical(batteryLevel, _unset)
+          ? this.batteryLevel
+          : batteryLevel as int?,
+      isCharging: identical(isCharging, _unset)
+          ? this.isCharging
+          : isCharging as bool?,
       isMock: isMock ?? this.isMock,
       timestamp: resolvedTs,
       motion: motion ?? this.motion,
@@ -106,6 +124,8 @@ class LocationData {
         'accuracy': accuracy,
         'speed': speed,
         'heading': heading,
+        if (batteryLevel != null) 'batteryLevel': batteryLevel,
+        if (isCharging != null) 'isCharging': isCharging,
         'isMock': isMock,
         'timestamp': timestamp,
         'sentAt': DateTime.now().millisecondsSinceEpoch,
@@ -143,6 +163,8 @@ class LocationData {
       accuracy: toDouble(json['accuracy']),
       speed: toDouble(json['speed']),
       heading: toDouble(json['heading']),
+      batteryLevel: json['batteryLevel'] == null ? null : toInt(json['batteryLevel']),
+      isCharging: json['isCharging'] == null ? null : toBool(json['isCharging']),
       isMock: toBool(json['isMock']),
       timestamp: toInt(json['timestamp']),
       motion: (json['motion'] ?? '').toString().trim(),

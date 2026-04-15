@@ -396,6 +396,9 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
 
     final hasPreview = !importVm.loading && importVm.preview != null;
     final canImport = hasPreview && importVm.preview!.okCount > 0;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return WillPopScope(
       onWillPop: () async {
@@ -410,8 +413,10 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
           elevation: 0,
           title: Text(
             l10n.scheduleImportTitle,
-            style: AppTextStyles.scheduleAppBarTitle.copyWith(
-              color: scheme.onSurface,
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+              fontSize: 20,
             ),
           ),
           centerTitle: true,

@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/permission_service.dart';
+import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
+import 'package:provider/provider.dart';
 
 Future<void> showImageModal(
   BuildContext context, {
@@ -123,6 +125,11 @@ class _ImageModalState extends State<_ImageModal> {
     setState(() => _busy = true);
 
     try {
+      final granted = await _ensureMediaPermission();
+      if (!granted) {
+        return false;
+      }
+
       final XFile? xfile = await _picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 70,
@@ -160,6 +167,47 @@ class _ImageModalState extends State<_ImageModal> {
         setState(() => _busy = false);
       }
     }
+  }
+
+  Future<bool> _ensureMediaPermission() async {
+    final permissionService = context.read<PermissionService>();
+    if (await permissionService.hasPhotosOrStoragePermission()) {
+      return true;
+    }
+
+    final granted = await permissionService.requestPhotosOrStoragePermission();
+    if (granted) {
+      return true;
+    }
+
+    if (!mounted) return false;
+
+    final l10n = AppLocalizations.of(context);
+    final shouldOpenSettings = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.permissionOnboardingMediaTitle),
+          content: Text(l10n.permissionOnboardingMediaSubtitle),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.permissionLaterButton),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.permissionOpenSettingsButton),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldOpenSettings == true) {
+      await permissionService.openAppSettingsPage();
+    }
+
+    return false;
   }
 
   @override

@@ -38,6 +38,8 @@ export function parseLiveLocationRecord(
     heading: Number(raw?.heading ?? 0),
     batteryLevel:
       raw?.batteryLevel == null ? null : Number(raw?.batteryLevel ?? 0),
+    isCharging:
+      raw?.isCharging == null ? null : raw?.isCharging === true,
     isMock: raw?.isMock === true,
     timestamp: Number(raw?.timestamp ?? Date.now()),
     motion: typeof raw?.motion === "string" ? raw.motion : undefined,

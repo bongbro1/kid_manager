@@ -2181,7 +2181,40 @@ class AppLocalizationsVi extends AppLocalizations {
   String get parentLocationSosSent => 'Đã gửi SOS';
 
   @override
-  String get parentLocationSosFailed => 'Gửi SOS thất bại';
+  String sosRateLimitWaitSeconds(int seconds) {
+    return 'Bạn vừa gửi SOS quá nhanh. Vui lòng chờ $seconds giây rồi thử lại.';
+  }
+
+  @override
+  String get sosDailyLimitReached =>
+      'Bạn đã chạm giới hạn SOS trong ngày để chống lạm dụng. Nếu đây là tình huống khẩn cấp thực sự, hãy gọi số khẩn cấp hoặc liên hệ trực tiếp người thân.';
+
+  @override
+  String get sosLoginRequired => 'Bạn cần đăng nhập để gửi SOS.';
+
+  @override
+  String get sosNetworkError =>
+      'Kết nối mạng không ổn định. Vui lòng thử gửi SOS lại.';
+
+  @override
+  String get sosPermissionDenied => 'Tài khoản hiện không có quyền gửi SOS.';
+
+  @override
+  String get sosSendFailed => 'Gửi SOS thất bại. Vui lòng thử lại.';
+
+  @override
+  String get sosResolveLoginRequired => 'Bạn cần đăng nhập để xác nhận SOS.';
+
+  @override
+  String get sosResolveNetworkError =>
+      'Kết nối mạng không ổn định. Vui lòng thử xác nhận SOS lại.';
+
+  @override
+  String get sosResolvePermissionDenied =>
+      'Tài khoản hiện không có quyền xác nhận SOS.';
+
+  @override
+  String get sosResolveFailed => 'Xác nhận SOS thất bại. Vui lòng thử lại.';
 
   @override
   String get parentLocationMapLoadingTitle => 'Đang tải bản đồ';
@@ -2513,7 +2546,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get permissionOnboardingAccessibilitySubtitle =>
-      'Cần cho một số tính năng bảo vệ trên Android.';
+      'Được dùng cho kiểm soát của phụ huynh trên Android để nhận biết ứng dụng nào đang mở trên thiết bị của trẻ và áp dụng quy tắc chặn do phụ huynh đặt. Thông tin này được hiển thị cho phụ huynh hoặc người giám hộ được chỉ định để phục vụ an toàn và sức khỏe số.';
 
   @override
   String get permissionOnboardingAccessibilityPrimaryButton => 'Cho phép';
@@ -2528,7 +2561,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get permissionOnboardingBackgroundLocationSubtitle =>
-      'Để vị trí vẫn cập nhật khi app chạy nền.';
+      'Ứng dụng này thu thập dữ liệu vị trí để hiển thị vị trí trực tiếp của trẻ, tạo cảnh báo Vùng an toàn và hỗ trợ Safe Route ngay cả khi ứng dụng đã đóng hoặc không sử dụng. Vị trí được chia sẻ với phụ huynh hoặc người giám hộ được chỉ định trong cùng gia đình cho các tính năng an toàn.';
 
   @override
   String get permissionOnboardingBackgroundLocationPrimaryButton => 'Tiếp tục';
@@ -2542,7 +2575,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get permissionOnboardingBatterySubtitle =>
-      'Để app không bị dừng khi chạy nền.';
+      'Cho phép theo dõi và cảnh báo an toàn tiếp tục hoạt động khi Android có thể dừng ứng dụng ở chế độ nền.';
 
   @override
   String get permissionOnboardingBatteryPrimaryButton => 'Cho phép';
@@ -2597,7 +2630,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get permissionOnboardingUsageSubtitle =>
-      'Để quản lý thời gian dùng app trên Android.';
+      'Được dùng để đo ứng dụng nào trẻ sử dụng và thời gian sử dụng trên Android, sau đó hiển thị dữ liệu này cho phụ huynh hoặc người giám hộ được chỉ định để quản lý thời gian màn hình.';
 
   @override
   String get permissionOnboardingUsagePrimaryButton => 'Cho phép';
@@ -2976,11 +3009,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get locationStopSearching => 'Tắt tìm kiếm';
-
-  @override
-  String incomingSosConfirmFailed(Object error) {
-    return 'Xác nhận thất bại: $error';
-  }
 
   @override
   String get incomingSosEmergencyTitle => '🚨 Có SOS khẩn cấp!';
@@ -3698,6 +3726,27 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get safeRouteDangerCheckNow => 'Cần kiểm tra ngay';
+
+  @override
+  String get deviceBatteryTitle => 'Pin';
+
+  @override
+  String get deviceBatteryUnavailableLabel => 'Chưa có dữ liệu';
+
+  @override
+  String get deviceBatteryLastKnownLabel => 'Lần cuối ghi nhận';
+
+  @override
+  String get deviceBatteryChargingLabel => 'Đang sạc';
+
+  @override
+  String get deviceBatteryCriticalLabel => 'Pin rất yếu';
+
+  @override
+  String get deviceBatteryLowLabel => 'Pin yếu';
+
+  @override
+  String get deviceBatteryNormalLabel => 'Bình thường';
 
   @override
   String get safeRouteDeviceBatteryLabel => 'Pin thiết bị';

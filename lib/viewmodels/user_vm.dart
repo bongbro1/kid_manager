@@ -173,8 +173,18 @@ class UserVm extends ChangeNotifier {
             );
           }
 
-          if (actor.role.isAdultManager) {
+          if (actor.role == UserRole.parent) {
             return member.role == UserRole.guardian && member.allowTracking;
+          }
+
+          if (actor.role == UserRole.guardian) {
+            final parentUid = actor.parentUid?.trim() ?? '';
+            if (member.role == UserRole.parent) {
+              return member.allowTracking &&
+                  parentUid.isNotEmpty &&
+                  member.uid == parentUid;
+            }
+            return false;
           }
 
           return false;
@@ -206,11 +216,7 @@ class UserVm extends ChangeNotifier {
               return member.uid == (actor.parentUid?.trim() ?? '');
             }
             if (member.role == UserRole.child) {
-              return _accessControl.canAccessChild(
-                actor: actor,
-                childUid: member.uid,
-                child: member,
-              );
+              return actor.managedChildIds.contains(member.uid);
             }
             return false;
           })

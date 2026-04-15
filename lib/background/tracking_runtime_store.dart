@@ -7,6 +7,7 @@ class TrackingRuntimeStore {
   static const prefsKeyEnabled = 'tracking.runtime.enabled';
   static const prefsKeyUserId = 'tracking.runtime.userId';
   static const prefsKeyRequireBackground = 'tracking.runtime.requireBackground';
+  static const prefsKeyCurrentOnly = 'tracking.runtime.currentOnly';
   static const prefsKeyParentUid = 'tracking.runtime.parentUid';
   static const prefsKeyFamilyId = 'tracking.runtime.familyId';
   static const prefsKeyDisplayName = 'tracking.runtime.displayName';
@@ -21,6 +22,7 @@ class TrackingRuntimeStore {
       prefsKeyRequireBackground,
       config.requireBackground,
     );
+    await prefs.setBool(prefsKeyCurrentOnly, config.currentOnly);
 
     if (_hasText(config.parentUid)) {
       await prefs.setString(prefsKeyParentUid, config.parentUid!.trim());
@@ -55,6 +57,7 @@ class TrackingRuntimeStore {
     final enabled = prefs.getBool(prefsKeyEnabled) ?? false;
     final requireBackground =
         prefs.getBool(prefsKeyRequireBackground) ?? true;
+    final currentOnly = prefs.getBool(prefsKeyCurrentOnly) ?? false;
 
     if (userId == null || userId.isEmpty) {
       return null;
@@ -64,6 +67,7 @@ class TrackingRuntimeStore {
       userId: userId,
       enabled: enabled,
       requireBackground: requireBackground,
+      currentOnly: currentOnly,
       parentUid: prefs.getString(prefsKeyParentUid)?.trim(),
       familyId: prefs.getString(prefsKeyFamilyId)?.trim(),
       displayName: prefs.getString(prefsKeyDisplayName)?.trim(),
@@ -119,6 +123,7 @@ class TrackingRuntimeStore {
     await prefs.remove(prefsKeyEnabled);
     await prefs.remove(prefsKeyUserId);
     await prefs.remove(prefsKeyRequireBackground);
+    await prefs.remove(prefsKeyCurrentOnly);
     await prefs.remove(prefsKeyParentUid);
     await prefs.remove(prefsKeyFamilyId);
     await prefs.remove(prefsKeyDisplayName);

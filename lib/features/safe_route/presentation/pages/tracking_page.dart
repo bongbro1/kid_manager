@@ -399,7 +399,7 @@ class _TrackingPageBodyState extends State<_TrackingPageBody> {
                       state: state,
                       safetyStatusLabel: vm.safetyStatusLabel,
                       speedLabel: vm.speedLabel,
-                      batteryLabel: vm.batteryLabel,
+                      batteryState: vm.batteryState,
                       lastUpdatedLabel: _lastUpdatedLabel(state),
                       scrollController: scrollController,
                       onUseLiveLocationAsStart: vm.useLiveLocationAsStart,

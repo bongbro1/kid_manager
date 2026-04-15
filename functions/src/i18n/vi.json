@@ -46,5 +46,9 @@
   "tracking.safe_route_arrived.parent.title": "Con đã đến nơi an toàn",
   "tracking.safe_route_arrived.parent.body": "{childName} đã đến điểm đích của {routeName}.",
   "tracking.safe_route_danger_zone.parent.title": "Con đã vào vùng nguy hiểm",
-  "tracking.safe_route_danger_zone.parent.body": "{childName} đã đi vào {hazardName} khi đang theo {routeName}."
+  "tracking.safe_route_danger_zone.parent.body": "{childName} đã đi vào {hazardName} khi đang theo {routeName}.",
+  "battery.low.parent.title": "Pin của bé đang thấp",
+  "battery.low.parent.body": "{childName} còn {batteryLevel}% pin.",
+  "battery.critical.parent.title": "Pin của bé đang ở mức nguy cấp",
+  "battery.critical.parent.body": "{childName} chỉ còn {batteryLevel}% pin."
 }

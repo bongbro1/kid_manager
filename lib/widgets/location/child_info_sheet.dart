@@ -3,13 +3,14 @@ import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/schedule.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/widgets/common/avatar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:kid_manager/widgets/location/batterIcon.dart';
+import 'package:kid_manager/widgets/location/device_battery_widgets.dart';
 import 'package:kid_manager/widgets/location/location_theme.dart';
 
 class ChildInfoSheet extends StatefulWidget {
-  final AppUser child;
+  final AppUser member;
   final LocationData? latest;
   final bool isSearching;
   final List<Schedule> daySchedules;
@@ -19,7 +20,7 @@ class ChildInfoSheet extends StatefulWidget {
 
   const ChildInfoSheet({
     super.key,
-    required this.child,
+    required this.member,
     required this.latest,
     required this.isSearching,
     required this.daySchedules,
@@ -53,43 +54,22 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).locationMessageSent)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).locationMessageSent),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).familyChatSendFailed('$e'))),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).familyChatSendFailed('$e'),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _sending = false);
     }
-  }
-
-  // ✅ Hàm lấy màu gradient theo % pin
-  List<Color> _getBatteryGradient(int batteryLevel) {
-    if (batteryLevel > 50) {
-      return [const Color(0xFF4ADE80), const Color(0xFF16A34A)]; // green
-    } else if (batteryLevel > 20) {
-      return [const Color(0xFFFB923C), const Color(0xFFEA580C)]; // orange
-    } else {
-      return [const Color(0xFFEF4444), const Color(0xFFDC2626)]; // red
-    }
-  }
-
-  // ✅ Hàm lấy icon theo % pin
-  IconData _getBatteryIcon(int batteryLevel) {
-    if (batteryLevel > 80) return Icons.battery_full;
-    if (batteryLevel > 60) return Icons.battery_6_bar;
-    if (batteryLevel > 40) return Icons.battery_4_bar;
-    if (batteryLevel > 20) return Icons.battery_2_bar;
-    return Icons.battery_1_bar;
-  }
-
-  // ✅ Hàm lấy màu shadow
-  Color _getBatteryShadowColor(int batteryLevel) {
-    if (batteryLevel > 50) return const Color(0xFF16A34A);
-    if (batteryLevel > 20) return const Color(0xFFEA580C);
-    return const Color(0xFFDC2626);
   }
 
   String _formatScheduleTime(DateTime startAt, DateTime endAt) {
@@ -99,28 +79,41 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
     return '$start - $end';
   }
 
+  String _roleLabel(AppLocalizations l10n, AppUser member) {
+    switch (member.role) {
+      case UserRole.parent:
+        return l10n.userRoleParent;
+      case UserRole.child:
+        return l10n.userRoleChild;
+      case UserRole.guardian:
+        return l10n.userRoleGuardian;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final child = widget.child;
+    final member = widget.member;
     final latest = widget.latest;
     final panelColor = locationPanelColor(scheme);
     final panelMutedColor = locationPanelMutedColor(scheme);
     final panelBorderColor = locationPanelBorderColor(scheme);
     final panelHighlightColor = locationPanelHighlightColor(scheme);
+    final batteryState = DeviceBatteryUiState.fromSnapshot(
+      batteryLevel: member.isChild ? latest?.batteryLevel : null,
+      isCharging: member.isChild ? latest?.isCharging : null,
+      timestampMs: member.isChild ? latest?.timestamp : null,
+    );
 
-    final name = (child.displayName?.isNotEmpty ?? false)
-        ? child.displayName!
-        : (child.email ?? '');
-    final  double circularBorder =49;
+    final name = (member.displayName?.isNotEmpty ?? false)
+        ? member.displayName!
+        : (member.email ?? '');
     final schedules = List<Schedule>.from(widget.daySchedules)
       ..sort((a, b) => a.startAt.compareTo(b.startAt));
     final shownSchedules = schedules.take(4).toList();
-    
-    // ✅ TODO: thay bằng dữ liệu thật từ widget.child hoặc widget.latest
-    const int batteryLevel = 20; // thử thay 90, 45, 15 để thấy màu thay đổi
+
     final statusText = l10n.locationStatusStudying;
 
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -178,7 +171,7 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                         ),
                         child: Row(
                           children: [
-                            AppAvatar(user: child, size: 66),
+                            AppAvatar(user: member, size: 66),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -202,15 +195,21 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                         height: 8,
                                         decoration: BoxDecoration(
                                           color: Colors.green,
-                                          borderRadius: BorderRadius.circular(999),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      Text(
-                                        l10n.memberManagementOnline,
-                                        style: TextStyle(
-                                          color: scheme.onSurfaceVariant,
-                                          fontSize: 12,
+                                      Expanded(
+                                        child: Text(
+                                          '${_roleLabel(l10n, member)} • ${l10n.memberManagementOnline}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: scheme.onSurfaceVariant,
+                                            fontSize: 12,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -251,10 +250,7 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                         decoration: BoxDecoration(
                           color: panelMutedColor,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: panelBorderColor,
-                            width: 1,
-                          ),
+                          border: Border.all(color: panelBorderColor, width: 1),
                         ),
                         child: Stack(
                           children: [
@@ -268,7 +264,12 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                 ),
                                 border: InputBorder.none,
                                 isDense: true,
-                                contentPadding: EdgeInsets.fromLTRB(12, 14, 44, 14),
+                                contentPadding: EdgeInsets.fromLTRB(
+                                  12,
+                                  14,
+                                  44,
+                                  14,
+                                ),
                               ),
                               style: TextStyle(
                                 fontSize: 14,
@@ -287,18 +288,20 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                 child: Center(
                                   child: _sending
                                       ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
                                       : SvgPicture.asset(
-                                    "assets/icons/send-message.svg",
-                                    fit: BoxFit.contain,
-                                    colorFilter: ColorFilter.mode(
-                                      scheme.primary,
-                                      BlendMode.srcIn,
-                                    ),
-                                  ),
+                                          "assets/icons/send-message.svg",
+                                          fit: BoxFit.contain,
+                                          colorFilter: ColorFilter.mode(
+                                            scheme.primary,
+                                            BlendMode.srcIn,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
@@ -313,10 +316,14 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                         children: [
                           // LEFT schedule
                           Expanded(
-                            flex:1,
+                            flex: 1,
                             child: Container(
-
-                              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                10,
+                                12,
+                                12,
+                              ),
                               decoration: BoxDecoration(
                                 color: panelMutedColor,
                                 borderRadius: BorderRadius.circular(18),
@@ -329,7 +336,10 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: panelColor,
                                       borderRadius: BorderRadius.circular(12),
@@ -369,14 +379,23 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                       ),
                                     )
                                   else
-                                    ...shownSchedules.asMap().entries.map((entry) {
+                                    ...shownSchedules.asMap().entries.map((
+                                      entry,
+                                    ) {
                                       final i = entry.key;
                                       final s = entry.value;
                                       return Padding(
-                                        padding: EdgeInsets.only(bottom: i == shownSchedules.length - 1 ? 0 : 10),
+                                        padding: EdgeInsets.only(
+                                          bottom: i == shownSchedules.length - 1
+                                              ? 0
+                                              : 10,
+                                        ),
                                         child: _ScheduleItemStyled(
                                           title: s.title,
-                                          time: _formatScheduleTime(s.startAt, s.endAt),
+                                          time: _formatScheduleTime(
+                                            s.startAt,
+                                            s.endAt,
+                                          ),
                                         ),
                                       );
                                     }),
@@ -389,166 +408,17 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
 
                           // RIGHT buttons
                           Expanded(
-                          flex:1,
+                            flex: 1,
                             child: Column(
                               children: [
-                                // BATTERY PILL MỚI - gradient + shadow
-
-
-                                // Thay thế widget battery pill bằng code này:
-
-                                InkWell(
-                                onTap: () {},
-                            borderRadius: BorderRadius.circular(circularBorder),
-                            child: Container(
-                              width: double.infinity,
-                              height: 50,
-                              padding: const EdgeInsets.all(1), // khoảng cách cho border
-                              decoration: BoxDecoration(
-                                color: panelBorderColor, // border theo theme
-                                borderRadius: BorderRadius.circular(circularBorder),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: _getBatteryShadowColor(batteryLevel).withOpacity(0.25),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                if (member.isChild)
+                                  DeviceBatteryPill(
+                                    state: batteryState,
                                   ),
-                                ],
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: panelColor, // nền theo theme
-                                  borderRadius: BorderRadius.circular(circularBorder),
-                                ),
-                                child: Stack(
-                                  children: [
-                                    // Phần pin còn lại (bên Trái) - có màu
-                                    Positioned.fill(
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 800),
-                                        curve: Curves.easeInOutCubic,
-                                        alignment: Alignment.centerLeft,
-                                        child: FractionallySizedBox(
-                                          alignment: Alignment.centerLeft,
-                                          widthFactor: batteryLevel / 100, // % còn lại
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: _getBatteryGradient(batteryLevel),
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                              ),
-                                              borderRadius: BorderRadius.circular(circularBorder),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    //Shimmer effect chỉ chạy trên phần có màu
-                                    Positioned.fill(
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 800),
-                                        curve: Curves.easeInOutCubic,
-                                        alignment: Alignment.centerRight,
-                                        child: FractionallySizedBox(
-                                          alignment: Alignment.centerRight,
-                                          widthFactor: batteryLevel / 100,
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(circularBorder),
-                                            child: TweenAnimationBuilder<double>(
-                                              tween: Tween(begin: -1.0, end: 1.0),
-                                              duration: const Duration(seconds: 2),
-                                              curve: Curves.easeInOut,
-                                              builder: (context, value, child) {
-                                                return Transform.translate(
-                                                  offset: Offset(value * 100, 0),
-                                                  child: Container(
-                                                    width: 30,
-                                                    decoration: BoxDecoration(
-                                                      gradient: LinearGradient(
-                                                        colors: [
-                                                          Colors.white.withOpacity(0),
-                                                          Colors.white.withOpacity(0.3),
-                                                          Colors.white.withOpacity(0),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              onEnd: () {
-                                                if (mounted) setState(() {});
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    Center(
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          AnimatedSwitcher(
-                                            duration: const Duration(milliseconds: 300),
-                                            transitionBuilder: (child, animation) {
-                                              return ScaleTransition(
-                                                scale: animation,
-                                                child: child,
-                                              );
-                                            },
-                                            child:  BatteryIcon(
-                                              level: batteryLevel,
-                                              color: batteryLevel > 30
-                                                  ? Colors.white
-                                                  : scheme.onSurfaceVariant,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          TweenAnimationBuilder<int>(
-                                            tween: IntTween(begin: 0, end: batteryLevel),
-                                            duration: const Duration(milliseconds: 800),
-                                            curve: Curves.easeOutCubic,
-                                            builder: (context, value, child) {
-                                              return Text(
-                                                '$value%',
-                                                style: TextStyle(
-                                                  color: batteryLevel > 30
-                                                      ? Colors.white
-                                                      : scheme.onSurfaceVariant,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14,
-                                                  shadows: batteryLevel > 30 ? [
-                                                    const Shadow(
-                                                      offset: Offset(0, 1),
-                                                      blurRadius: 2,
-                                                      color: Colors.black26,
-                                                    ),
-                                                  ] : null,
-                                                ),
-                                              );
-                                            },
-                                          ),
-
-
-
-
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-
-
-                                const SizedBox(height: 10),
+                                if (member.isChild) const SizedBox(height: 10),
 
                                 _RightPill(
-                                  icon:SvgPicture.asset(
+                                  icon: SvgPicture.asset(
                                     "assets/icons/status.svg",
                                     fit: BoxFit.contain,
                                   ),
@@ -601,10 +471,7 @@ class _ScheduleItemStyled extends StatelessWidget {
   final String title;
   final String time;
 
-  const _ScheduleItemStyled({
-    required this.title,
-    required this.time,
-  });
+  const _ScheduleItemStyled({required this.title, required this.time});
 
   @override
   Widget build(BuildContext context) {
@@ -637,10 +504,7 @@ class _ScheduleItemStyled extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 time,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -678,24 +542,15 @@ class _RightPill extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(circularBorder),
-          border: Border.all(
-            color: backgroundColor,
-            width: 1,
-          ),
+          border: Border.all(color: backgroundColor, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconTheme(
-              data: IconThemeData(
-                color: foregroundColor,
-                size: 18,
-              ),
+              data: IconThemeData(color: foregroundColor, size: 18),
               child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                  foregroundColor,
-                  BlendMode.srcIn,
-                ),
+                colorFilter: ColorFilter.mode(foregroundColor, BlendMode.srcIn),
                 child: icon,
               ),
             ),
@@ -707,7 +562,7 @@ class _RightPill extends StatelessWidget {
                 color: foregroundColor,
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                fontFamily: 'Poppins'
+                fontFamily: 'Poppins',
               ),
             ),
           ],
@@ -716,4 +571,3 @@ class _RightPill extends StatelessWidget {
     );
   }
 }
-

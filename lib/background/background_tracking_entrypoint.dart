@@ -62,6 +62,7 @@ class BackgroundTrackingHost {
 
       final started = await runtime.start(
         requireBackground: config.requireBackground,
+        currentOnly: config.currentOnly,
       );
 
       if (!started) {

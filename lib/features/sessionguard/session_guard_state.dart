@@ -23,6 +23,20 @@ class SessionGuardResolvedState {
   bool get isGuardian => role == UserRole.guardian;
   bool get isLocationViewer => isParent || isGuardian;
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SessionGuardResolvedState &&
+        other.status == status &&
+        other.uid == uid &&
+        other.role == role &&
+        other.familyId == familyId &&
+        other.parentUid == parentUid;
+  }
+
+  @override
+  int get hashCode => Object.hash(status, uid, role, familyId, parentUid);
+
   static SessionGuardResolvedState fromSources({
     required SessionStatus status,
     AppUser? sessionUser,

@@ -2182,7 +2182,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get parentLocationSosSent => 'SOS sent';
 
   @override
-  String get parentLocationSosFailed => 'Failed to send SOS';
+  String sosRateLimitWaitSeconds(int seconds) {
+    return 'You sent SOS too quickly. Please wait $seconds seconds and try again.';
+  }
+
+  @override
+  String get sosDailyLimitReached =>
+      'You reached the daily SOS limit to prevent abuse. If this is a real emergency, call emergency services or contact family directly.';
+
+  @override
+  String get sosLoginRequired => 'You need to sign in to send SOS.';
+
+  @override
+  String get sosNetworkError =>
+      'Network is unstable. Please try sending SOS again.';
+
+  @override
+  String get sosPermissionDenied => 'This account is not allowed to send SOS.';
+
+  @override
+  String get sosSendFailed => 'Failed to send SOS. Please try again.';
+
+  @override
+  String get sosResolveLoginRequired => 'You need to sign in to confirm SOS.';
+
+  @override
+  String get sosResolveNetworkError =>
+      'Network is unstable. Please try confirming SOS again.';
+
+  @override
+  String get sosResolvePermissionDenied =>
+      'This account is not allowed to confirm SOS.';
+
+  @override
+  String get sosResolveFailed => 'Failed to confirm SOS. Please try again.';
 
   @override
   String get parentLocationMapLoadingTitle => 'Loading map';
@@ -2517,7 +2550,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionOnboardingAccessibilitySubtitle =>
-      'Needed for some protection features on Android.';
+      'Used for parental control on Android to detect which app is open on the child\'s device and apply parent-defined blocking rules. This information is shown to the parent or assigned guardian for child safety and digital wellbeing.';
 
   @override
   String get permissionOnboardingAccessibilityPrimaryButton => 'Allow';
@@ -2532,7 +2565,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionOnboardingBackgroundLocationSubtitle =>
-      'So location can still update when the app runs in the background.';
+      'This app collects location data to show live child location, trigger Safe Zone alerts, and support Safe Route even when the app is closed or not in use. Location is shared with the parent or assigned guardian in the same family for safety features.';
 
   @override
   String get permissionOnboardingBackgroundLocationPrimaryButton => 'Continue';
@@ -2547,7 +2580,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionOnboardingBatterySubtitle =>
-      'So the app is not stopped while running in the background.';
+      'Allows tracking and safety alerts to keep working when Android would otherwise stop the app in the background.';
 
   @override
   String get permissionOnboardingBatteryPrimaryButton => 'Allow';
@@ -2601,7 +2634,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionOnboardingUsageSubtitle =>
-      'To manage app usage time on Android.';
+      'Used to measure which apps the child uses and for how long on Android, then show that usage to the parent or assigned guardian for screen-time management.';
 
   @override
   String get permissionOnboardingUsagePrimaryButton => 'Allow';
@@ -2979,11 +3012,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationStopSearching => 'Stop searching';
-
-  @override
-  String incomingSosConfirmFailed(Object error) {
-    return 'Confirmation failed: $error';
-  }
 
   @override
   String get incomingSosEmergencyTitle => '🚨 Emergency SOS alert!';
@@ -3707,6 +3735,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get safeRouteDangerCheckNow => 'Check immediately';
+
+  @override
+  String get deviceBatteryTitle => 'Battery';
+
+  @override
+  String get deviceBatteryUnavailableLabel => 'Unavailable';
+
+  @override
+  String get deviceBatteryLastKnownLabel => 'Last known';
+
+  @override
+  String get deviceBatteryChargingLabel => 'Charging';
+
+  @override
+  String get deviceBatteryCriticalLabel => 'Critical';
+
+  @override
+  String get deviceBatteryLowLabel => 'Low';
+
+  @override
+  String get deviceBatteryNormalLabel => 'Normal';
 
   @override
   String get safeRouteDeviceBatteryLabel => 'Device battery';

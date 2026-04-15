@@ -2,7 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { admin, db } from "../../bootstrap";
 import { REGION } from "../../config";
 import { mustString } from "../../helpers";
-import { getUserFamilyAndRole, requireFamilyMember } from "../../services/user";
+import { getUserFamilyAndRole, requireFamilyActor } from "../../services/user";
 
 const ALLOWED_STATUS = new Set([
 "ok",
@@ -26,7 +26,11 @@ if (!req.auth?.uid) {
   }
 
   const { familyId } = await getUserFamilyAndRole(uid);
-  await requireFamilyMember(familyId, uid);
+  await requireFamilyActor({
+    familyId,
+    uid,
+    allowedRoles: ["child"],
+  });
 
   const userSnap = await db.doc(`users/${uid}`).get();
   const childName =

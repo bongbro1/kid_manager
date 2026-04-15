@@ -70,6 +70,12 @@
   "tracking.safe_route_arrived.parent.body": "{childName} has arrived at the destination on {routeName}.",
 
   "tracking.safe_route_danger_zone.parent.title": "Child entered a danger area",
-  "tracking.safe_route_danger_zone.parent.body": "{childName} entered {hazardName} while following {routeName}."
+  "tracking.safe_route_danger_zone.parent.body": "{childName} entered {hazardName} while following {routeName}.",
+
+  "battery.low.parent.title": "Child battery is low",
+  "battery.low.parent.body": "{childName} has {batteryLevel}% battery remaining.",
+
+  "battery.critical.parent.title": "Child battery is critical",
+  "battery.critical.parent.body": "{childName} only has {batteryLevel}% battery remaining."
 }
 
