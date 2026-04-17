@@ -470,7 +470,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get accountNotFound => 'Tài khoản không tồn tại';
 
   @override
-  String get accountNotActivated => 'Tài khoản chưa được kích hoạt';
+  String get accountNotActivated => 'Tài khoản chưa kích hoạt';
 
   @override
   String get emailNotRegistered => 'Email chưa đăng ký';
@@ -3967,4 +3967,13 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get mapPlaceSearchDefaultName => 'Địa điểm';
+
+  @override
+  String get verifyNowQuestion => 'Bạn có muốn nhập OTP ngay không?';
+
+  @override
+  String get later => 'Để sau';
+
+  @override
+  String get verifyNow => 'Xác thực ngay';
 }

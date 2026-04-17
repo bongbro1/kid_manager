@@ -2554,5 +2554,9 @@
   "mapPlaceSearchDecodeFailed": "Could not read the place data.",
   "mapPlaceSearchUnexpectedError": "An error occurred while searching for a place.",
   "mapPlaceSearchNoAddress": "No address available",
-  "mapPlaceSearchDefaultName": "Place"
+  "mapPlaceSearchDefaultName": "Place",
+  "accountNotActivated": "Account not activated",
+  "verifyNowQuestion": "Do you want to enter OTP now?",
+  "later": "Later",
+  "verifyNow": "Verify now"
 }

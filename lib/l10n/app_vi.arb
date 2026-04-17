@@ -2554,6 +2554,10 @@
   "mapPlaceSearchDecodeFailed": "Không thể đọc dữ liệu địa điểm.",
   "mapPlaceSearchUnexpectedError": "Có lỗi xảy ra khi tìm kiếm địa điểm.",
   "mapPlaceSearchNoAddress": "Không có địa chỉ",
-  "mapPlaceSearchDefaultName": "Địa điểm"
+  "mapPlaceSearchDefaultName": "Địa điểm",
+  "accountNotActivated": "Tài khoản chưa kích hoạt",
+  "verifyNowQuestion": "Bạn có muốn nhập OTP ngay không?",
+  "later": "Để sau",
+  "verifyNow": "Xác thực ngay"
 }
 

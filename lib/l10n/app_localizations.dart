@@ -6872,6 +6872,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Place'**
   String get mapPlaceSearchDefaultName;
+
+  /// No description provided for @verifyNowQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to enter OTP now?'**
+  String get verifyNowQuestion;
+
+  /// No description provided for @later.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get later;
+
+  /// No description provided for @verifyNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify now'**
+  String get verifyNow;
 }
 
 class _AppLocalizationsDelegate

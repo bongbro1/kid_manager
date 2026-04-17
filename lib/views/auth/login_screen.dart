@@ -239,19 +239,22 @@ class _LoginScreenState extends State<LoginScreen> {
     if (dialogContext == null) {
       return Future.value(false);
     }
+
+    final l10n = runtimeL10n();
+
     return showDialog<bool>(
       context: dialogContext,
       builder: (dialogContext) => AlertDialog(
-        title: const Text("TÃ i khoáº£n chÆ°a kÃ­ch hoáº¡t"),
-        content: const Text("Báº¡n cÃ³ muá»‘n nháº­p OTP ngay khÃ´ng?"),
+        title: Text(l10n.accountNotActivated),
+        content: Text(l10n.verifyNowQuestion),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text("Äá»ƒ sau"),
+            child: Text(l10n.later),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text("XÃ¡c thá»±c ngay"),
+            child: Text(l10n.verifyNow),
           ),
         ],
       ),

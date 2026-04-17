@@ -3983,4 +3983,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapPlaceSearchDefaultName => 'Place';
+
+  @override
+  String get verifyNowQuestion => 'Do you want to enter OTP now?';
+
+  @override
+  String get later => 'Later';
+
+  @override
+  String get verifyNow => 'Verify now';
 }
