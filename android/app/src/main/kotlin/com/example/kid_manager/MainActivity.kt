@@ -1,28 +1,21 @@
 package com.example.kid_manager
 
-import androidx.core.content.ContextCompat
-import android.content.Intent
 import android.content.Context
-import android.os.Bundle
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
-import android.accessibilityservice.AccessibilityServiceInfo
-import android.view.accessibility.AccessibilityManager
-import android.os.PowerManager
-import android.provider.Settings
-import android.net.Uri
-import android.os.Build
 
 
 class MainActivity : FlutterActivity() {
 
     private val WATCHER_CONFIG_CHANNEL = "watcher_config"
     private val NOTIFICATION_CHANNEL = "notification_intent"
-    private val ACCESSIBILITY_CHANNEL = "accessibility"
-    private val SCHEDULE_USAGE_CHANNEL = "schedule_usage_channel"
     private val BATTERY_CHANNEL = "battery_optimization"
 
 
@@ -58,6 +51,8 @@ class MainActivity : FlutterActivity() {
                                 .remove("child_name")
                                 .apply()
 
+                            SupervisionSyncScheduler.cancel(applicationContext)
+
                             result.success(true)
                             return@setMethodCallHandler
                         }
@@ -72,45 +67,9 @@ class MainActivity : FlutterActivity() {
                             .putString("child_name", childName)
                             .apply()
 
+                        SupervisionSyncScheduler.schedule(applicationContext)
+
                         Log.d("MainActivity", "watcher_rules saved userId=$userId parentId=$parentId childName=$childName")
-                        result.success(true)
-                    }
-                    "isAccessibilityEnabled" -> {
-
-                        val expectedService =
-                            "$packageName/com.example.kid_manager.AppAccessibilityService"
-
-                        val enabledServices = android.provider.Settings.Secure.getString(
-                            contentResolver,
-                            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-                        )
-
-                        val enabled = enabledServices?.contains(expectedService) == true
-
-                        result.success(enabled)
-                    }
-
-                    else -> result.notImplemented()
-                }
-            }
-
-        // ACCESSIBILITY CHANNEL
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ACCESSIBILITY_CHANNEL)
-            .setMethodCallHandler { call, result ->
-
-                when (call.method) {
-
-                    "isAccessibilityEnabled" -> {
-                        result.success(isAccessibilityServiceEnabled())
-                    }
-
-                    "openAccessibilitySettings" -> {
-
-                        val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-                        startActivity(intent)
-
                         result.success(true)
                     }
 
@@ -171,27 +130,4 @@ class MainActivity : FlutterActivity() {
             ).invokeMethod("notificationTap", payload)
         }
     }
-
-    private fun isAccessibilityServiceEnabled(): Boolean {
-
-        val manager = getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
-
-        val enabledServices =
-            manager.getEnabledAccessibilityServiceList(
-                AccessibilityServiceInfo.FEEDBACK_ALL_MASK
-            )
-
-        for (service in enabledServices) {
-
-            if (service.resolveInfo.serviceInfo.packageName == packageName &&
-                service.resolveInfo.serviceInfo.name.contains("AppAccessibilityService")
-            ) {
-                return true
-            }
-        }
-
-        return false
-    }
-
-    
 }

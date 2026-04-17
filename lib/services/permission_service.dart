@@ -18,7 +18,6 @@ class PermissionService {
 
   static const List<String> supervisionPermissionKeys = <String>[
     'usage',
-    'accessibility',
     'batteryOptimizationDisabled',
   ];
 
@@ -151,23 +150,6 @@ class PermissionService {
     }
   }
 
-  Future<void> openAccessibilitySettings() async {
-    await NativeWatcherService.openAccessibilitySettings();
-  }
-
-  Future<bool> hasAccessibilityPermission() async {
-    if (!Platform.isAndroid) return true;
-
-    try {
-      final enabled = await NativeWatcherService.isAccessibilityEnabled();
-      debugPrint('Accessibility enabled=$enabled');
-      return enabled;
-    } catch (e) {
-      debugPrint('Accessibility check error: $e');
-      return false;
-    }
-  }
-
   Future<void> openBatteryOptimizationSettings() async {
     await NativeWatcherService.requestIgnoreBatteryOptimizations();
   }
@@ -202,12 +184,10 @@ class PermissionService {
 
     if (includeSupervisionPermissions) {
       final usage = await hasUsagePermission();
-      final accessibility = await hasAccessibilityPermission();
       final battery = await hasBatteryOptimizationDisabled();
 
       permissions.addAll({
         'usage': usage,
-        'accessibility': accessibility,
         'batteryOptimizationDisabled': battery,
       });
     }
@@ -221,12 +201,10 @@ class PermissionService {
 
   Future<Map<String, bool>> checkChildSupervisionPermissions() async {
     final usage = await hasUsagePermission();
-    final accessibility = await hasAccessibilityPermission();
     final battery = await hasBatteryOptimizationDisabled();
 
     return {
       'usage': usage,
-      'accessibility': accessibility,
       'batteryOptimizationDisabled': battery,
     };
   }

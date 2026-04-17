@@ -63,7 +63,6 @@ class _SessionPermissionGateState extends State<SessionPermissionGate> {
         steps.addAll(const <PermissionOnboardingStepType>[
           PermissionOnboardingStepType.usage,
           PermissionOnboardingStepType.battery,
-          PermissionOnboardingStepType.accessibility,
         ]);
       }
       return steps;
@@ -84,7 +83,6 @@ class _SessionPermissionGateState extends State<SessionPermissionGate> {
       steps.addAll(const <PermissionOnboardingStepType>[
         PermissionOnboardingStepType.usage,
         PermissionOnboardingStepType.battery,
-        PermissionOnboardingStepType.accessibility,
       ]);
     }
 
@@ -133,8 +131,6 @@ class _SessionPermissionGateState extends State<SessionPermissionGate> {
         return permissionService.hasPhotosOrStoragePermission();
       case PermissionOnboardingStepType.usage:
         return permissionService.hasUsagePermission();
-      case PermissionOnboardingStepType.accessibility:
-        return permissionService.hasAccessibilityPermission();
       case PermissionOnboardingStepType.battery:
         return permissionService.hasBatteryOptimizationDisabled();
     }

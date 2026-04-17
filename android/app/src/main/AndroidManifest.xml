@@ -36,9 +36,6 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="33">
-        <meta-data
-            android:name="isMonitoringTool"
-            android:value="child_monitoring" />
 
         <activity
             android:name=".MainActivity"
@@ -73,21 +70,6 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="general_notifications" />
-
-            
-        <service
-            android:name=".AppAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="true">
-
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService"/>
-            </intent-filter>
-
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_config"/>
-        </service>
 
         <service
             android:name=".TrackingForegroundService"

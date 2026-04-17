@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -40,6 +40,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const List<String> _fontFallback = <String>[
+    'Roboto',
+    'Noto Sans',
+    'sans-serif',
+  ];
+
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool rememberPassword = false;
@@ -294,6 +300,61 @@ class _LoginScreenState extends State<LoginScreen> {
       compact: 16,
       regular: 24,
     );
+    final titleStyle = textTheme.headlineSmall?.copyWith(
+      color: colorScheme.onSurface,
+      fontSize: 24,
+      fontFamily: 'Poppins',
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w600,
+      height: 32 / 24,
+      letterSpacing: -0.2,
+    );
+    final subtitleStyle = textTheme.titleMedium?.copyWith(
+      color: colorScheme.onSurface,
+      fontSize: 16,
+      fontFamily: 'Poppins',
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w500,
+      height: 24 / 16,
+    );
+    final helperTextStyle = textTheme.bodySmall?.copyWith(
+      color: colorScheme.onSurface.withValues(alpha: 0.7),
+      fontSize: 12,
+      fontFamily: 'Poppins',
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w500,
+      height: 18 / 12,
+      letterSpacing: -0.12,
+    );
+    final linkTextStyle = textTheme.bodySmall?.copyWith(
+      color: colorScheme.primary,
+      fontSize: 12,
+      fontFamily: 'Poppins',
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w600,
+      height: 18 / 12,
+      letterSpacing: -0.12,
+    );
+    final dividerTextStyle = textTheme.bodyMedium?.copyWith(
+      color: colorScheme.onSurface,
+      fontSize: 13,
+      fontFamily: 'Poppins',
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w500,
+      height: 20 / 13,
+    );
+    final signupTextStyle = textTheme.bodyLarge?.copyWith(
+      color: colorScheme.onSurface,
+      fontSize: 15,
+      fontFamily: 'Poppins',
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w500,
+      height: 22 / 15,
+    );
+    final signupLinkStyle = signupTextStyle?.copyWith(
+      color: colorScheme.primary,
+      fontWeight: FontWeight.w600,
+    );
 
     return Stack(
       children: [
@@ -345,14 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     child: Text(
                                       l10n.authWelcomeBackTitle,
                                       textAlign: TextAlign.center,
-                                      style: textTheme.headlineSmall?.copyWith(
-                                        color: colorScheme.onSurface,
-                                        fontSize: 24,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.42,
-                                        letterSpacing: -0.19,
-                                      ),
+                                      style: titleStyle,
                                     ),
                                   ),
                                   ConstrainedBox(
@@ -362,12 +416,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     child: Text(
                                       l10n.authLoginNowSubtitle,
                                       textAlign: TextAlign.center,
-                                      style: textTheme.titleMedium?.copyWith(
-                                        color: colorScheme.onSurface,
-                                        fontSize: 16,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      style: subtitleStyle,
                                     ),
                                   ),
                                 ],
@@ -437,20 +486,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 l10n.authRememberPassword,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: textTheme.bodySmall
-                                                    ?.copyWith(
-                                                      color: colorScheme
-                                                          .onSurface
-                                                          .withValues(
-                                                            alpha: 0.7,
-                                                          ),
-                                                      fontSize: 12,
-                                                      fontFamily: 'Poppins',
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      height: 1.5,
-                                                      letterSpacing: -0.12,
-                                                    ),
+                                                style: helperTextStyle,
                                               ),
                                             ),
                                           ],
@@ -476,15 +512,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             textAlign: TextAlign.end,
-                                            style: textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: colorScheme.primary,
-                                                  fontSize: 12,
-                                                  fontFamily: 'Poppins',
-                                                  fontWeight: FontWeight.w600,
-                                                  height: 1.5,
-                                                  letterSpacing: -0.12,
-                                                ),
+                                            style: linkTextStyle,
                                           ),
                                         ),
                                       ),
@@ -524,12 +552,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     child: Text(
                                       l10n.authOr,
-                                      style: textTheme.bodyMedium?.copyWith(
-                                        color: colorScheme.onSurface,
-                                        fontSize: 13,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      style: dividerTextStyle,
                                     ),
                                   ),
                                   Expanded(
@@ -586,12 +609,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Text(
                                     l10n.authNoAccount,
                                     textAlign: TextAlign.center,
-                                    style: textTheme.bodyLarge?.copyWith(
-                                      color: colorScheme.onSurface,
-                                      fontSize: 15,
-                                      fontFamily: 'Poppins',
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: signupTextStyle,
                                   ),
                                   GestureDetector(
                                     onTap: () {
@@ -604,12 +622,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     },
                                     child: Text(
                                       l10n.authSignUpInline,
-                                      style: textTheme.bodyLarge?.copyWith(
-                                        color: colorScheme.primary,
-                                        fontSize: 15,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: signupLinkStyle,
                                     ),
                                   ),
                                 ],

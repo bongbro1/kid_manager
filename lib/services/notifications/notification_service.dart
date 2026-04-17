@@ -44,12 +44,26 @@ class NotificationService {
       debugPrint(
         '🔔 onMessage (FG) id=${m.messageId} data=${m.data} notif=${m.notification?.title}',
       );
+      final traceId = m.data['debugTraceId']?.toString();
+      if (traceId != null && traceId.isNotEmpty) {
+        debugPrint(
+          '[VIOLATION_TRACE] parent_onMessage traceId=$traceId '
+          'notificationId=${m.data['notificationId']} type=${m.data['type']}',
+        );
+      }
       await handleMessageForLocalNotification(m);
     });
 
     // App đang background, user bấm push system notification
     FirebaseMessaging.onMessageOpenedApp.listen((m) async {
       debugPrint('🔔 onMessageOpenedApp id=${m.messageId} data=${m.data}');
+      final traceId = m.data['debugTraceId']?.toString();
+      if (traceId != null && traceId.isNotEmpty) {
+        debugPrint(
+          '[VIOLATION_TRACE] parent_onMessageOpenedApp traceId=$traceId '
+          'notificationId=${m.data['notificationId']} type=${m.data['type']}',
+        );
+      }
       await handleTap(Map<String, dynamic>.from(m.data));
     });
 
@@ -81,6 +95,14 @@ class NotificationService {
   static String? _lastHandledTapKey;
 
   static Future<void> handleTap(Map<String, dynamic> data) async {
+    final traceId = data['debugTraceId']?.toString();
+    if (traceId != null && traceId.isNotEmpty) {
+      debugPrint(
+        '[VIOLATION_TRACE] parent_handleTap traceId=$traceId '
+        'notificationId=${data['notificationId']} type=${data['type']}',
+      );
+    }
+
     final rawType = data["type"]?.toString();
     final type = (rawType ?? '').toLowerCase();
     final notificationId = data['notificationId']?.toString();
