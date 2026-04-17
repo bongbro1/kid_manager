@@ -271,7 +271,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     final children = context.select<UserVm, List<AppUser>>(
       (vm) => List<AppUser>.unmodifiable(vm.children),
@@ -285,8 +286,10 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
         elevation: 0,
         title: Text(
           l10n.scheduleExportTitle,
-          style: AppTextStyles.scheduleAppBarTitle.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         centerTitle: true,

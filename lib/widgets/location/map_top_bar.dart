@@ -17,12 +17,11 @@ class MapTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayTitle = title ?? AppLocalizations.of(context).mapTopBarTitle;
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: locationPanelColor(scheme),
-      ),
+      decoration: BoxDecoration(color: locationPanelColor(scheme)),
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -45,10 +44,10 @@ class MapTopBar extends StatelessWidget {
                 ),
                 Text(
                   displayTitle,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
                   ),
                 ),
                 Align(

@@ -159,6 +159,10 @@ class FestiveBirthdayCard extends StatelessWidget {
               ? l10n.birthdayTurnsAge(ageTurning)
               : '');
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -226,11 +230,11 @@ class FestiveBirthdayCard extends StatelessWidget {
                                   titleText,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xFF1F2937),
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.2,
+                                  style: textTheme.titleMedium?.copyWith(
+                                    color: scheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                    height: 1.19,
                                   ),
                                 ),
                               ),
@@ -618,7 +622,7 @@ class BirthdayCelebrationSheet extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Color(0xFF111827),
-                      fontSize: 24,
+                      fontSize: 20,
                       fontWeight: FontWeight.w800,
                     ),
                   ),

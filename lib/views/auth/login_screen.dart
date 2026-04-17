@@ -306,7 +306,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final titleStyle = textTheme.headlineSmall?.copyWith(
       color: colorScheme.onSurface,
       fontSize: 24,
-      fontFamily: 'Poppins',
       fontFamilyFallback: _fontFallback,
       fontWeight: FontWeight.w600,
       height: 32 / 24,
@@ -315,15 +314,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final subtitleStyle = textTheme.titleMedium?.copyWith(
       color: colorScheme.onSurface,
       fontSize: 16,
-      fontFamily: 'Poppins',
       fontFamilyFallback: _fontFallback,
       fontWeight: FontWeight.w500,
       height: 24 / 16,
     );
     final helperTextStyle = textTheme.bodySmall?.copyWith(
       color: colorScheme.onSurface.withValues(alpha: 0.7),
-      fontSize: 12,
-      fontFamily: 'Poppins',
+      fontSize: 14,
       fontFamilyFallback: _fontFallback,
       fontWeight: FontWeight.w500,
       height: 18 / 12,
@@ -331,8 +328,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     final linkTextStyle = textTheme.bodySmall?.copyWith(
       color: colorScheme.primary,
-      fontSize: 12,
-      fontFamily: 'Poppins',
+      fontSize: 14,
       fontFamilyFallback: _fontFallback,
       fontWeight: FontWeight.w600,
       height: 18 / 12,
@@ -341,7 +337,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final dividerTextStyle = textTheme.bodyMedium?.copyWith(
       color: colorScheme.onSurface,
       fontSize: 13,
-      fontFamily: 'Poppins',
       fontFamilyFallback: _fontFallback,
       fontWeight: FontWeight.w500,
       height: 20 / 13,
@@ -349,7 +344,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final signupTextStyle = textTheme.bodyLarge?.copyWith(
       color: colorScheme.onSurface,
       fontSize: 15,
-      fontFamily: 'Poppins',
       fontFamilyFallback: _fontFallback,
       fontWeight: FontWeight.w500,
       height: 22 / 15,
@@ -440,6 +434,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 isPassword: true,
                                 prefixSvg: 'assets/icons/lock.svg',
                               ),
+                              const SizedBox(height: 8),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,

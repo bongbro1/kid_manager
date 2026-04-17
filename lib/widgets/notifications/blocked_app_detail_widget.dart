@@ -34,8 +34,6 @@ class BlockedAppDetailWidget extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _buildWarningBox(context, l10n),
-          const SizedBox(height: 30),
-          _buildActionButton(context, l10n),
         ],
       ),
     );
@@ -170,6 +168,7 @@ class BlockedAppDetailWidget extends StatelessWidget {
               l10n.notificationsBlockedWarningMessage,
               style: textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onError,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),

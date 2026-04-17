@@ -346,11 +346,10 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
         centerTitle: true,
         title: Text(
           l10n.notificationDetailTitle,
-          style: textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            height: 1.56,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         iconTheme: IconThemeData(color: colorScheme.onSurface),
@@ -394,7 +393,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                             height: 1.3,
-                            fontSize: 20,
+                            fontSize: 18,
                           ),
                         ),
                         const SizedBox(height: 12),

@@ -511,7 +511,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
           ),
           Positioned(
             left: 12,
-            top: 90,
+            top: 20,
             child: SafeArea(
               child: SosCircleButton(
                 onPressed: () async {

@@ -286,8 +286,9 @@ class _NotificationScreenState extends State<NotificationScreen>
         text,
         style: textTheme.labelMedium?.copyWith(
           color: colorScheme.onSurface,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
+          letterSpacing: 0.2,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -487,7 +488,6 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
 
     final hasFilter = widget.activeFilter != NotificationFilter.all;
     final hasSearch = widget.searchKeyword.isNotEmpty;
@@ -502,10 +502,10 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
           Center(
             child: Text(
               l10n.notificationScreenTitle,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+              style: theme.textTheme.titleMedium?.copyWith(
                 color: colorScheme.onSurface,
-                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
               ),
             ),
           ),

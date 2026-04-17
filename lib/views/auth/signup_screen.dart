@@ -161,7 +161,6 @@ class _SignupScreenState extends State<SignupScreen> {
                                       style: textTheme.headlineSmall?.copyWith(
                                         color: colorScheme.onSurface,
                                         fontSize: 24,
-                                        fontFamily: 'Poppins',
                                         fontWeight: FontWeight.w600,
                                         height: 1.42,
                                         letterSpacing: -0.19,
@@ -177,7 +176,6 @@ class _SignupScreenState extends State<SignupScreen> {
                                       style: textTheme.titleMedium?.copyWith(
                                         color: colorScheme.onSurface,
                                         fontSize: 16,
-                                        fontFamily: 'Poppins',
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -264,7 +262,6 @@ class _SignupScreenState extends State<SignupScreen> {
                                                     color: colorScheme.onSurface
                                                         .withValues(alpha: 0.7),
                                                     fontSize: 15,
-                                                    fontFamily: 'Poppins',
                                                     fontWeight: FontWeight.w500,
                                                     height: 1.5,
                                                     letterSpacing: -0.15,
@@ -277,7 +274,6 @@ class _SignupScreenState extends State<SignupScreen> {
                                                         color:
                                                             colorScheme.primary,
                                                         fontSize: 15,
-                                                        fontFamily: 'Poppins',
                                                         fontWeight:
                                                             FontWeight.w600,
                                                         decoration:

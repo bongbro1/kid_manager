@@ -328,16 +328,16 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: Icon(Icons.menu, color: colorScheme.onSurface, size: 26,),
+            icon: Icon(Icons.menu, color: colorScheme.onSurface, size: 26),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
         title: Text(
           l10n.scheduleScreenTitle,
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+          style: textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
-            fontSize: 18
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         centerTitle: true,

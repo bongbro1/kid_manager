@@ -356,7 +356,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         final sosDockTop =
             topSafeInset +
             (_transientSafeRouteBanner != null ? 118.0 : 90.0) +
-            (hasSafeRouteHud ? (compactLayout ? 176.0 : 196.0) : 0.0);
+            (hasSafeRouteHud ? (compactLayout ? 176.0 : 196.0) : 0.0) - 50;
         final bottomControlDockBottom = math.max(
           bottomSafeInset + (ultraCompactLayout ? 22.0 : 28.0),
           hasSafeRouteHud && !ultraCompactLayout

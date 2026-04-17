@@ -152,9 +152,8 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                         l10n.locationChildInfoTitle,
                         textAlign: TextAlign.center,
                         style: textTheme.titleLarge?.copyWith(
-                          fontSize: 20,
+                          fontSize: 18,
                           height: 1.1,
-                          fontFamily: 'Poppins',
                           fontWeight: FontWeight.w600,
                           color: scheme.onSurface,
                         ),

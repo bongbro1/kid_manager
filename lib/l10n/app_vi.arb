@@ -1040,7 +1040,7 @@
   "notificationsBlockedAccountLabel": "Tài khoản",
   "notificationsBlockedAppLabel": "Ứng dụng",
   "notificationsBlockedTimeLabel": "Thời điểm",
-  "notificationsBlockedAllowedWindowLabel": "Khung giờ cho phép",
+  "notificationsBlockedAllowedWindowLabel": "Thời gian cho phép",
   "notificationsBlockedWarningMessage": "Ứng dụng đã bị chặn tự động bởi hệ thống.",
   "notificationsBlockedViewConfigButton": "Xem cấu hình thời gian",
   "notificationsRemovedDeviceOfLabel": "Thiết bị của",

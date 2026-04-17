@@ -10,7 +10,6 @@ import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:provider/provider.dart';
-import '../../../core/app_text_styles.dart';
 import '../../../viewmodels/schedule/schedule_vm.dart';
 import '../../../viewmodels/session/session_vm.dart';
 import '../../../viewmodels/user_vm.dart';
@@ -365,7 +364,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final userVm = context.watch<UserVm>();
     final l10n = AppLocalizations.of(context);
     final children = userVm.children;
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Scaffold(
       drawer: ScheduleMenuDrawer(
@@ -379,15 +379,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: Icon(Icons.menu, color: scheme.onSurface, size: 26,),
+            icon: Icon(Icons.menu, color: scheme.onSurface, size: 26),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
         title: Text(
           l10n.scheduleScreenTitle,
-          style: AppTextStyles.scheduleAppBarTitle.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
-            fontSize: 20
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         centerTitle: true,

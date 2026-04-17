@@ -44,10 +44,10 @@ class AboutAppScreen extends StatelessWidget {
           l10n.aboutAppTitle,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+          style: theme.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
-            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
       ),
@@ -106,7 +106,7 @@ class AboutAppScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             _PackageCard(
-              title: 'Gói Trường học / Tổ chức',
+              title: 'Gói Trường học',
               price: 'Liên hệ',
               iconPath: 'assets/icons/info.svg',
               features: const [
@@ -187,12 +187,14 @@ class _AboutHeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            appName,
-            style: textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: scheme.onSurface,
-              fontSize: 20,
+          Center(
+            child: Text(
+              appName,
+              style: textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
+                fontSize: 20,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -292,7 +294,7 @@ class _PackageCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w500,
                     color: scheme.onSurface,
                   ),
                 ),
@@ -300,7 +302,7 @@ class _PackageCard extends StatelessWidget {
               Text(
                 price,
                 style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   color: highlight ? scheme.primary : scheme.onSurface,
                 ),
               ),

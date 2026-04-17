@@ -99,10 +99,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             centerTitle: true,
             title: Text(
               l10n.changePasswordTitle,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+              style: theme.textTheme.titleMedium?.copyWith(
                 color: scheme.onSurface,
-                fontSize: 20
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
               ),
             ),
             iconTheme: IconThemeData(color: scheme.onSurface),

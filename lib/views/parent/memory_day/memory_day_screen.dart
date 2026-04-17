@@ -92,7 +92,7 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
           style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
             color: colorScheme.onSurface,
-            fontSize: 20,
+            fontSize: 18,
           ),
         ),
         centerTitle: true,

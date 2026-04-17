@@ -1040,7 +1040,7 @@
   "notificationsBlockedAccountLabel": "Account",
   "notificationsBlockedAppLabel": "Application",
   "notificationsBlockedTimeLabel": "Time",
-  "notificationsBlockedAllowedWindowLabel": "Allowed time window",
+  "notificationsBlockedAllowedWindowLabel": "Allowed time",
   "notificationsBlockedWarningMessage": "The app was automatically blocked by the system.",
   "notificationsBlockedViewConfigButton": "View time configuration",
   "notificationsRemovedDeviceOfLabel": "Device of",

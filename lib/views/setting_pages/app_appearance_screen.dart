@@ -106,9 +106,10 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
         centerTitle: true,
         title: Text(
           l10n.appAppearanceTitle,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 20
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         iconTheme: IconThemeData(color: scheme.onSurface),
@@ -129,7 +130,6 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                       color: scheme.onSurface.withValues(alpha: .6),
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.7,
-                      fontFamily: 'Poppins',
                       fontSize: 13
                     ),
                   ),

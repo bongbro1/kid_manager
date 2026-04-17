@@ -201,10 +201,10 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
           centerTitle: true,
           title: Text(
             l10n.addAccountTitle,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
               color: scheme.onSurface,
-              fontSize: 20,
+              fontSize: 18,
             ),
           ),
           iconTheme: IconThemeData(color: scheme.onSurface),

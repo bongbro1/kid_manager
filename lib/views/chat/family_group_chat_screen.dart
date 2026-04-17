@@ -9,6 +9,7 @@ import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/chat/family_group_chat_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/chat/family_chat_assets.dart';
+import 'package:kid_manager/views/chat/family_chat_skeleton.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_composer.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_header.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_messages_view.dart';
@@ -370,8 +371,10 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
     final familyId = widget.initialFamilyId ?? vmFamilyId;
 
     if (me == null || familyId == null || familyId.trim().isEmpty) {
-      return _FamilyChatLoadingScaffold(
+      return FamilyChatSkeletonScaffold(
         title: AppLocalizations.of(context).familyChatLoadingTitle,
+        chatBackground: familyChatBackgroundColor(scheme),
+        chatSurface: familyChatSurfaceColor(scheme),
       );
     }
 
@@ -388,11 +391,12 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
     );
 
     if (membersStream == null || messagesStream == null) {
-      return _FamilyChatLoadingScaffold(
+      return FamilyChatSkeletonScaffold(
         title: AppLocalizations.of(context).familyChatLoadingTitle,
+        chatBackground: familyChatBackgroundColor(scheme),
+        chatSurface: familyChatSurfaceColor(scheme),
       );
     }
-
     return StreamBuilder<List<FamilyChatMember>>(
       stream: membersStream,
       builder: (context, membersSnapshot) {
@@ -448,27 +452,6 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
           ),
         );
       },
-    );
-  }
-}
-
-class _FamilyChatLoadingScaffold extends StatelessWidget {
-  const _FamilyChatLoadingScaffold({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: familyChatBackgroundColor(scheme),
-      appBar: AppBar(
-        backgroundColor: familyChatSurfaceColor(scheme),
-        foregroundColor: scheme.onSurface,
-        elevation: 0.5,
-        title: Text(title),
-      ),
-      body: const Center(child: CircularProgressIndicator()),
     );
   }
 }

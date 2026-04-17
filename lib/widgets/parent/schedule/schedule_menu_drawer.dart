@@ -19,7 +19,8 @@ class ScheduleMenuDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Drawer(
       child: SafeArea(
@@ -30,9 +31,10 @@ class ScheduleMenuDrawer extends StatelessWidget {
               leading: Icon(Icons.menu, color: scheme.onSurface),
               title: Text(
                 l10n.scheduleDrawerMenuTitle,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
+                style: theme.textTheme.titleMedium?.copyWith(
                   color: scheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
                 ),
               ),
             ),

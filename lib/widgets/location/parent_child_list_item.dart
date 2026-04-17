@@ -89,7 +89,7 @@ class ParentChildListItem extends StatelessWidget {
                   children: [
                     Stack(
                       children: [
-                        AppAvatar(user: member, size: 61),
+                        AppAvatar(user: member, size: 40),
                         Positioned(
                           right: 0,
                           bottom: 0,
@@ -118,7 +118,7 @@ class ParentChildListItem extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: textTheme.titleMedium?.copyWith(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: colorScheme.onSurface,
                             ),
@@ -138,8 +138,8 @@ class ParentChildListItem extends StatelessWidget {
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              if (member.isChild)
-                                DeviceBatteryCompactBadge(state: batteryState),
+                              // if (member.isChild)
+                              //   DeviceBatteryCompactBadge(state: batteryState),
                             ],
                           ),
                         ],

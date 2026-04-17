@@ -297,8 +297,8 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
           l10n.memberManagementTitle,
           style: theme.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
-            fontWeight: FontWeight.w700,
-            fontSize: 20
+            fontWeight: FontWeight.w600,
+            fontSize: 18
           ),
         ),
         // ── "+" shortcut in AppBar when canAddAccount ──────────────────

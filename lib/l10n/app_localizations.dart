@@ -2930,7 +2930,7 @@ abstract class AppLocalizations {
   /// No description provided for @notificationsBlockedAllowedWindowLabel.
   ///
   /// In en, this message translates to:
-  /// **'Allowed time window'**
+  /// **'Allowed time'**
   String get notificationsBlockedAllowedWindowLabel;
 
   /// No description provided for @notificationsBlockedWarningMessage.

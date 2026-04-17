@@ -24,12 +24,13 @@ class ParentChildrenListScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: Text(
           l10n.parentChildrenListTitle,
           style: textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
-            fontSize: 20,
+            fontSize: 18,
           ),
         ),
       ),

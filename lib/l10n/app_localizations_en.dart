@@ -1617,7 +1617,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsBlockedTimeLabel => 'Time';
 
   @override
-  String get notificationsBlockedAllowedWindowLabel => 'Allowed time window';
+  String get notificationsBlockedAllowedWindowLabel => 'Allowed time';
 
   @override
   String get notificationsBlockedWarningMessage =>

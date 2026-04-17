@@ -296,7 +296,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final p = vm.profile;
     final isAdultManager = p?.isAdultManager == true;
     final isChild = p?.role == UserRole.child;
-
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final horizontalPadding = context.adaptiveHorizontalPadding(
@@ -346,10 +345,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         ),
         title: Text(
           l10n.personalInfoTitle,
-          style: theme.textTheme.titleLarge?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: 18,
           ),
         ),
         actions: const [SizedBox(width: 60)],
@@ -709,12 +708,15 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                                 l10n.personalInfoManageAccountsTitle,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: scheme.onSurface,
-                                                  fontSize: 16,
-                                                  fontFamily: 'Poppins',
-                                                  fontWeight: FontWeight.w700,
-                                                ),
+                                                style: theme
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      color: scheme.onSurface,
+                                                      fontSize: 15,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
@@ -724,7 +726,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                                 style: TextStyle(
                                                   color: scheme.onSurface,
                                                   fontSize: 12,
-                                                  fontFamily: 'Poppins',
                                                 ),
                                               ),
                                             ],

@@ -1614,7 +1614,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notificationsBlockedTimeLabel => 'Thời điểm';
 
   @override
-  String get notificationsBlockedAllowedWindowLabel => 'Khung giờ cho phép';
+  String get notificationsBlockedAllowedWindowLabel => 'Thời gian cho phép';
 
   @override
   String get notificationsBlockedWarningMessage =>
