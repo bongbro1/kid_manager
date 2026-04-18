@@ -177,18 +177,6 @@ class FestiveBirthdayCard extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: const Color(0xFFFAD1E6)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x14F472B6),
-                blurRadius: 24,
-                offset: Offset(0, 14),
-              ),
-              BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 6,
-                offset: Offset(0, 2),
-              ),
-            ],
           ),
           child: Stack(
             children: [

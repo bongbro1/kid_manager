@@ -403,12 +403,10 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
           Text(
             l10n.parentUsageEditTitle,
             textAlign: TextAlign.center,
-            style: textTheme.titleLarge?.copyWith(
+            style: textTheme.titleMedium?.copyWith(
               color: scheme.onSurface,
               fontWeight: FontWeight.w600,
-              height: 1.10,
-              fontFamily: 'Poppins',
-              fontSize: 20
+              fontSize: 18,
             ),
           ),
 

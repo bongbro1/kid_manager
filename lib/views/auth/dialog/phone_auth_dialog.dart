@@ -14,10 +14,10 @@ class PhoneAuthDialog {
   static final RegExp _e164RegExp = RegExp(r'^\+[1-9]\d{7,14}$');
 
   static final List<Country> countries = [
-    Country(name: 'Vietnam', dialCode: '+84', flag: 'VN'),
-    Country(name: 'United States', dialCode: '+1', flag: 'US'),
-    Country(name: 'Japan', dialCode: '+81', flag: 'JP'),
-    Country(name: 'Korea', dialCode: '+82', flag: 'KR'),
+    Country(name: 'Vietnam', dialCode: '+84', code: 'VN'),
+    Country(name: 'United States', dialCode: '+1', code: 'US'),
+    Country(name: 'Japan', dialCode: '+81', code: 'JP'),
+    Country(name: 'Korea', dialCode: '+82', code: 'KR'),
   ];
 
   static String _digitsOnly(String value) {
@@ -142,10 +142,11 @@ class PhoneAuthDialog {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
+                  const SizedBox(height: 12),
                   Text(
                     l10n.phoneAuthTitle,
                     style: textTheme.titleLarge?.copyWith(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
                     ),

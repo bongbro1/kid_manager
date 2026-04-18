@@ -390,8 +390,9 @@ class _NotificationHeaderState extends State<_NotificationHeader> {
               Text(
                 l10n.notificationFilterTitle,
                 style: sheetTextTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: sheetColorScheme.onSurface,
+                  fontSize: 18,
                 ),
               ),
               const SizedBox(height: 12),
