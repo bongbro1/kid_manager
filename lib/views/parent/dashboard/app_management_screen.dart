@@ -10,6 +10,7 @@ import 'package:kid_manager/views/parent/dashboard/no_child_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/statistics_tab.dart';
 import 'package:kid_manager/views/parent/dashboard/usage_time_edit_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/user_carousel_card.dart';
+import 'package:kid_manager/widgets/app/app_scroll_effects.dart';
 import 'package:kid_manager/widgets/parent/app_item.dart';
 import 'package:provider/provider.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -31,7 +32,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      setState(() {});
+      if (mounted) setState(() {});
     });
   }
 
@@ -83,8 +84,9 @@ class _AppManagementScreenState extends State<AppManagementScreen>
   }
 
   void _goTab(int index) {
+    if (_tabController.index == index) return;
     setState(() {
-      _tabController.animateTo(index);
+      _tabController.index = index;
     });
   }
 
@@ -201,32 +203,41 @@ class _AppManagementScreenState extends State<AppManagementScreen>
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: TabBarView(
-                  controller: _tabController,
+                child: IndexedStack(
+                  index: _tabController.index,
                   children: [
                     RefreshIndicator(
                       color: scheme.primary,
                       backgroundColor: scheme.surface,
                       onRefresh: _reloadApps,
-                      child: ListView.builder(
+                      child: SingleChildScrollView(
+                        physics: AppScrollEffects.physics,
                         padding: const EdgeInsets.only(bottom: 16),
-                        itemCount: apps.length,
-                        itemBuilder: (context, index) {
-                          final app = apps[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: AppItem(
-                              key: ValueKey(app.packageName),
-                              app: app,
-                              usageTimeText: app.usageTime ?? "0h 0m",
-                              onTap: () => openUsageTimeEdit(
-                                context: context,
-                                app: app,
-                                onUpdated: _reloadApps,
-                              ),
-                            ),
-                          );
-                        },
+                        child: Column(
+                          children: [
+                            ...apps.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final app = entry.value;
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: AppScrollReveal(
+                                  index: index,
+                                  child: AppItem(
+                                    key: ValueKey(app.packageName),
+                                    app: app,
+                                    usageTimeText: app.usageTime ?? "0h 0m",
+                                    onTap: () => openUsageTimeEdit(
+                                      context: context,
+                                      app: app,
+                                      onUpdated: _reloadApps,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
                       ),
                     ),
                     StatisticsTab(

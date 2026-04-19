@@ -9,6 +9,7 @@ import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/utils/statical_utils.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/views/parent/dashboard/statical_widget.dart';
+import 'package:kid_manager/widgets/app/app_scroll_effects.dart';
 import 'package:kid_manager/widgets/parent/app_item.dart';
 
 class StatisticsTab extends StatefulWidget {
@@ -389,136 +390,151 @@ class _StatisticsTabState extends State<StatisticsTab> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: widget.onRefresh,
-            child: ListView(
+            child: SingleChildScrollView(
+              physics: AppScrollEffects.physics,
               padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-              children: [
-                if (activeIndex == 2) ...[
-                  const SizedBox(height: 12),
-                  CustomRangeCalendar(
-                    fromDate: fromDate,
-                    toDate: toDate,
-                    onFromChanged: (d) {
-                      _updateRange(d, toDate);
-                    },
-                    onToChanged: (d) {
-                      _updateRange(fromDate, d);
-                    },
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: chartContainerPadding,
-                  decoration: BoxDecoration(
-                    color: scheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: scheme.outline.withValues(alpha: 0.2),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: scheme.shadow.withValues(alpha: 0.08),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (activeIndex == 2) ...[
+                    const SizedBox(height: 12),
+                    AppScrollReveal(
+                      index: 0,
+                      child: CustomRangeCalendar(
+                        fromDate: fromDate,
+                        toDate: toDate,
+                        onFromChanged: (d) => _updateRange(d, toDate),
+                        onToChanged: (d) => _updateRange(fromDate, d),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      /// HEADER
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _totalTitle(l10n),
-                                style: textTheme.labelSmall?.copyWith(
-                                  color: scheme.onSurface.withValues(
-                                    alpha: 0.6,
-                                  ),
-                                  fontSize: Theme.of(
-                                    context,
-                                  ).appTypography.supporting.fontSize!,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.6,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                formatMinutes(totalMinutes, l10n: l10n),
-                                style: textTheme.headlineMedium?.copyWith(
-                                  color: scheme.onSurface,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  AppScrollReveal(
+                    index: 1,
+                    child: Container(
+                      width: double.infinity,
+                      padding: chartContainerPadding,
+                      decoration: BoxDecoration(
+                        color: scheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: scheme.outline.withValues(alpha: 0.2),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: scheme.shadow.withValues(alpha: 0.08),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
-
-                      /// CHART
-                      SizedBox(
-                        height: chartHeight,
-                        child: _resolveMode() == ChartMode.today
-                            ? _buildLineChart(context: context)
-                            : _buildBarChart(),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: headerHorizontalPadding,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        l10n.parentStatsAppDetailsTitle,
-                        style: textTheme.titleSmall?.copyWith(
-                          color: scheme.onSurface,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() => showAll = !showAll);
-                        },
-                        child: Text(
-                          showAll
-                              ? l10n.parentStatsCollapse
-                              : l10n.parentStatsViewAll,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _totalTitle(l10n),
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: scheme.onSurface.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                      fontSize: Theme.of(
+                                        context,
+                                      ).appTypography.supporting.fontSize!,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    formatMinutes(totalMinutes, l10n: l10n),
+                                    style: textTheme.headlineMedium?.copyWith(
+                                      color: scheme.onSurface,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            height: chartHeight,
+                            child: _resolveMode() == ChartMode.today
+                                ? _buildLineChart(context: context)
+                                : _buildBarChart(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  AppScrollReveal(
+                    index: 2,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: headerHorizontalPadding,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            l10n.parentStatsAppDetailsTitle,
+                            style: textTheme.titleSmall?.copyWith(
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() => showAll = !showAll);
+                            },
+                            child: Text(
+                              showAll
+                                  ? l10n.parentStatsCollapse
+                                  : l10n.parentStatsViewAll,
+                              style: textTheme.labelSmall?.copyWith(
+                                color: scheme.primary,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  ...visibleUsageApps.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final row = entry.value;
+                    final app = row.app;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: AppScrollReveal(
+                        index: index + 3,
+                        child: AppItem(
+                          key: ValueKey('stats_${app.packageName}'),
+                          app: app,
+                          usageTimeText: formatMinutes(row.minutes, l10n: l10n),
+                          showRightIcon: false,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                /// List apps
-                ...visibleUsageApps.map((row) {
-                  final app = row.app;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: AppItem(
-                      key: ValueKey('stats_${app.packageName}'),
-                      app: app,
-                      usageTimeText: formatMinutes(row.minutes, l10n: l10n),
-                      showRightIcon: false,
-                    ),
-                  );
-                }),
-              ],
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
         ),

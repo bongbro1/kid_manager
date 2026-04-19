@@ -9,6 +9,7 @@ import 'package:kid_manager/services/access_control/access_control_service.dart'
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
+import 'package:kid_manager/widgets/app/app_scroll_effects.dart';
 import 'package:kid_manager/widgets/common/smart_network_image.dart';
 import 'package:provider/provider.dart';
 
@@ -282,19 +283,18 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
         centerTitle: true,
-        leadingWidth: 72,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: _RoundIconButton(
-              icon: Icons.arrow_back_ios_new_rounded,
-              onTap: () => Navigator.of(context).maybePop(),
+          leadingWidth: 72,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _RoundIconButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
             ),
           ),
-        ),
         title: Text(
           l10n.memberManagementTitle,
           style: theme.textTheme.titleMedium?.copyWith(
@@ -353,40 +353,67 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                   Expanded(
                     child: members.isEmpty
                         ? Center(
-                            child: Text(
-                              l10n.memberManagementEmpty,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
+                            child: AppScrollReveal(
+                              index: 0,
+                              child: Text(
+                                l10n.memberManagementEmpty,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
                               ),
                             ),
                           )
-                        : ListView.builder(
-                            itemCount: members.length,
-                            itemBuilder: (context, index) {
-                              final user = members[index];
-                              return MemberItem(
-                                user: user,
-                                name:
-                                    user.displayName?.trim().isNotEmpty == true
-                                    ? user.displayName!.trim()
-                                    : (user.email ?? ''),
-                                role: user.role,
-                                avatar: user.avatarUrl,
-                                online: user.isActive,
-                                trailingInfo: user.role == UserRole.guardian
-                                    ? _guardianTrackingSummary(context, user)
-                                    : null,
-                                onManageAssignments:
-                                    canAssignGuardianChildren &&
-                                        user.role == UserRole.guardian
-                                    ? () => _openGuardianChildPicker(
-                                        context,
-                                        guardian: user,
-                                        availableChildren: children,
-                                      )
-                                    : null,
-                              );
-                            },
+                        : SingleChildScrollView(
+                            physics: AppScrollEffects.physics,
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Column(
+                              children: [
+                                ...members.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final user = entry.value;
+
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: index == members.length - 1
+                                          ? 0
+                                          : 12,
+                                    ),
+                                    child: AppScrollReveal(
+                                      index: index,
+                                      child: MemberItem(
+                                        user: user,
+                                        name:
+                                            user.displayName
+                                                    ?.trim()
+                                                    .isNotEmpty ==
+                                                true
+                                            ? user.displayName!.trim()
+                                            : (user.email ?? ''),
+                                        role: user.role,
+                                        avatar: user.avatarUrl,
+                                        online: user.isActive,
+                                        trailingInfo:
+                                            user.role == UserRole.guardian
+                                            ? _guardianTrackingSummary(
+                                                context,
+                                                user,
+                                              )
+                                            : null,
+                                        onManageAssignments:
+                                            canAssignGuardianChildren &&
+                                                user.role == UserRole.guardian
+                                            ? () => _openGuardianChildPicker(
+                                                context,
+                                                guardian: user,
+                                                availableChildren: children,
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
                           ),
                   ),
                 ],
@@ -433,13 +460,6 @@ class _RoundIconButton extends StatelessWidget {
                   ? scheme.primary.withOpacity(.18)
                   : scheme.outlineVariant.withOpacity(.8),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.shadow.withOpacity(.06),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
           child: Icon(
             icon,
