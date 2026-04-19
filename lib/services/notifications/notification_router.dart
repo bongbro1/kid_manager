@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 
 class NotificationRouter {
@@ -13,10 +14,8 @@ class NotificationRouter {
         familyId != null &&
         familyId.isNotEmpty) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => FamilyGroupChatScreen(
-            initialMessageId: messageId,
-          ),
+        AppPageTransitions.route(
+          builder: (_) => FamilyGroupChatScreen(initialMessageId: messageId),
         ),
       );
       return;

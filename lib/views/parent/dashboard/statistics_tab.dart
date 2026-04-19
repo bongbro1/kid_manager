@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
@@ -438,7 +439,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
                                   color: scheme.onSurface.withValues(
                                     alpha: 0.6,
                                   ),
-                                  fontSize: 12,
+                                  fontSize: Theme.of(
+                                    context,
+                                  ).appTypography.supporting.fontSize!,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.6,
                                 ),
@@ -478,11 +481,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
                     children: [
                       Text(
                         l10n.parentStatsAppDetailsTitle,
-                        style: textTheme.titleMedium?.copyWith(
+                        style: textTheme.titleSmall?.copyWith(
                           color: scheme.onSurface,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          height: 1.56,
                         ),
                       ),
                       GestureDetector(
@@ -495,7 +495,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                               : l10n.parentStatsViewAll,
                           style: textTheme.labelSmall?.copyWith(
                             color: scheme.primary,
-                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.6,
                           ),
@@ -719,26 +718,17 @@ class _StatisticsTabState extends State<StatisticsTab> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           alignment: Alignment.center,
-          decoration: isActive
-              ? BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: scheme.shadow.withValues(alpha: 0.08),
-                      blurRadius: 2,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                )
-              : null,
+          decoration: BoxDecoration(
+            color: isActive ? scheme.primary.withValues(alpha: 0.12) : null,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Text(
             text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: textTheme.labelLarge?.copyWith(
               color: isActive ? scheme.primary : scheme.onSurfaceVariant,
-              fontSize: 14,
+              fontSize: Theme.of(context).appTypography.body.fontSize!,
               fontWeight: FontWeight.w600,
               height: 1.43,
             ),

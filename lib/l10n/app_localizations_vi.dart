@@ -1095,6 +1095,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notificationFilterTitle => 'Lọc thông báo';
 
   @override
+  String get notificationFilterTypeTitle => 'Loại thông báo';
+
+  @override
   String get notificationFilterAll => 'Tất cả';
 
   @override
@@ -1108,6 +1111,32 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get notificationFilterSystem => 'Thông báo hệ thống';
+
+  @override
+  String get notificationReadFilterTitle => 'Trạng thái đọc';
+
+  @override
+  String get notificationReadFilterAll => 'Tất cả trạng thái';
+
+  @override
+  String get notificationReadFilterUnread => 'Chưa đọc';
+
+  @override
+  String get notificationReadFilterRead => 'Đã đọc';
+
+  @override
+  String get notificationMarkAllRead => 'Đánh dấu tất cả đã đọc';
+
+  @override
+  String get notificationMarkAllReadSuccess =>
+      'Đã đánh dấu tất cả thông báo là đã đọc';
+
+  @override
+  String get notificationMarkAllReadError =>
+      'Không thể đánh dấu tất cả thông báo là đã đọc';
+
+  @override
+  String get notificationAllReadAlready => 'Tất cả thông báo đã được đọc';
 
   @override
   String get notificationSearchHint => 'Tìm thông báo';

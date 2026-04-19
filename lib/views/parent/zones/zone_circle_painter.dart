@@ -34,6 +34,6 @@ class ZoneCirclePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant ZoneCirclePainter oldDelegate) =>
       oldDelegate.strokeColor != strokeColor ||
-          oldDelegate.fillColor != fillColor ||
-          oldDelegate.strokeWidth != strokeWidth;
+      oldDelegate.fillColor != fillColor ||
+      oldDelegate.strokeWidth != strokeWidth;
 }

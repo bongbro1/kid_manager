@@ -33,9 +33,10 @@ class ScheduleImportDetailWidget extends StatelessWidget {
         actorDisplayName.isEmpty
             ? l10n.notificationsActorChild
             : actorDisplayName,
-      null => actorDisplayName.isEmpty
-          ? l10n.notificationsActorChild
-          : actorDisplayName,
+      null =>
+        actorDisplayName.isEmpty
+            ? l10n.notificationsActorChild
+            : actorDisplayName,
     };
 
     return Column(

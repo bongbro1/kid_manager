@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/birthday_event.dart';
 import 'package:kid_manager/models/memory_day.dart';
@@ -8,7 +9,6 @@ import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
-import '../../../../../core/app_text_styles.dart';
 import '../../../viewmodels/schedule/schedule_vm.dart';
 
 class ScheduleCalendar extends StatefulWidget {
@@ -72,6 +72,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
     required TextStyle textStyle,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -91,7 +92,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                     style: TextStyle(
                       color: colorScheme.onPrimary,
                       fontFamily: 'Poppins',
-                      fontSize: 15,
+                      fontSize: typography.itemTitle.fontSize,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -132,6 +133,7 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final typography = Theme.of(context).appTypography;
     final scheme = Theme.of(context).colorScheme;
 
     final selectedDate = context.select<ScheduleViewModel, DateTime>(
@@ -200,25 +202,30 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
               selectedTextStyle: TextStyle(
                 color: scheme.onPrimary,
                 fontFamily: 'Poppins',
-                fontSize: 15,
+                fontSize: typography.itemTitle.fontSize,
                 fontWeight: FontWeight.w500,
               ),
-              defaultTextStyle: AppTextStyles.scheduleDayNumber.copyWith(
+              defaultTextStyle: typography.itemTitle.copyWith(
                 color: scheme.onSurface,
+                fontWeight: FontWeight.w400,
               ),
-              weekendTextStyle: AppTextStyles.scheduleDayNumber.copyWith(
+              weekendTextStyle: typography.itemTitle.copyWith(
                 color: scheme.onSurface,
+                fontWeight: FontWeight.w400,
               ),
-              outsideTextStyle: AppTextStyles.scheduleDayNumber.copyWith(
+              outsideTextStyle: typography.itemTitle.copyWith(
                 color: scheme.onSurface.withOpacity(0.35),
+                fontWeight: FontWeight.w400,
               ),
             ),
             daysOfWeekStyle: DaysOfWeekStyle(
-              weekdayStyle: AppTextStyles.scheduleDayName.copyWith(
+              weekdayStyle: typography.sectionLabel.copyWith(
                 color: scheme.onSurface.withOpacity(0.5),
+                fontWeight: FontWeight.w400,
               ),
-              weekendStyle: AppTextStyles.scheduleDayName.copyWith(
+              weekendStyle: typography.sectionLabel.copyWith(
                 color: scheme.onSurface.withOpacity(0.5),
+                fontWeight: FontWeight.w400,
               ),
             ),
             calendarBuilders: CalendarBuilders(
@@ -229,8 +236,9 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   isSelected: true,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
                   hasBirthday: _hasEntriesForDay(monthBirthdays, day),
-                  textStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                  textStyle: typography.itemTitle.copyWith(
                     color: scheme.onPrimary,
+                    fontWeight: FontWeight.w400,
                   ),
                 );
               },
@@ -241,8 +249,9 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   isSelected: false,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
                   hasBirthday: _hasEntriesForDay(monthBirthdays, day),
-                  textStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                  textStyle: typography.itemTitle.copyWith(
                     color: scheme.onSurface,
+                    fontWeight: FontWeight.w400,
                   ),
                 );
               },
@@ -253,16 +262,18 @@ class _ScheduleCalendarState extends State<ScheduleCalendar> {
                   isSelected: false,
                   hasMemory: _hasEntriesForDay(monthMemories, day),
                   hasBirthday: _hasEntriesForDay(monthBirthdays, day),
-                  textStyle: AppTextStyles.scheduleDayNumber.copyWith(
+                  textStyle: typography.itemTitle.copyWith(
                     color: scheme.onSurface.withOpacity(0.35),
+                    fontWeight: FontWeight.w400,
                   ),
                 );
               },
               dowBuilder: (context, day) => Center(
                 child: Text(
                   _weekdayShortName(day, l10n),
-                  style: AppTextStyles.scheduleDayName.copyWith(
+                  style: typography.sectionLabel.copyWith(
                     color: scheme.onSurface.withOpacity(0.5),
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -415,6 +426,7 @@ class _CalendarHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final typography = Theme.of(context).appTypography;
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
@@ -430,14 +442,16 @@ class _CalendarHeader extends StatelessWidget {
             children: [
               Text(
                 l10n.scheduleCalendarMonthLabel(focusedMonth.month),
-                style: AppTextStyles.scheduleMonthYear.copyWith(
+                style: typography.title.copyWith(
                   color: scheme.onSurface,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 '${focusedMonth.year}',
-                style: AppTextStyles.scheduleYear.copyWith(
+                style: typography.supporting.copyWith(
                   color: scheme.onSurface.withOpacity(0.7),
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],

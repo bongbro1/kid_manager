@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/terms_vm.dart';
 import 'package:provider/provider.dart';
@@ -67,7 +68,9 @@ class _TermsScreenScreenState extends State<TermsScreen> {
                         Text(
                           l10n.termsTitle,
                           style: textTheme.titleLarge?.copyWith(
-                            fontSize: 20,
+                            fontSize: Theme.of(
+                              context,
+                            ).appTypography.screenTitle.fontSize!,
                             fontWeight: FontWeight.w600,
                             color: colorScheme.onSurface,
                           ),
@@ -108,7 +111,9 @@ class _TermsScreenScreenState extends State<TermsScreen> {
                                   color: colorScheme.onSurface.withOpacity(
                                     0.65,
                                   ),
-                                  fontSize: 13,
+                                  fontSize: Theme.of(
+                                    context,
+                                  ).appTypography.sectionLabel.fontSize!,
                                 ),
                               ),
                             ],
@@ -127,7 +132,9 @@ class _TermsScreenScreenState extends State<TermsScreen> {
                               child: Text(
                                 vm.terms!.content.trim(),
                                 style: textTheme.bodyMedium?.copyWith(
-                                  fontSize: 15,
+                                  fontSize: Theme.of(
+                                    context,
+                                  ).appTypography.itemTitle.fontSize!,
                                   height: 1.7,
                                   color: colorScheme.onSurface,
                                 ),

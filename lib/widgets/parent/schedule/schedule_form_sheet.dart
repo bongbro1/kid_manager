@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/utils/confirm_exit_dialog.dart';
@@ -394,6 +395,7 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
 
   Widget _buildHeader() {
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
@@ -414,7 +416,7 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
           Text(
             widget.headerTitle,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: typography.screenTitle.fontSize,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -466,13 +468,14 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
 
   Widget _buildCounter() {
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     return Align(
       alignment: Alignment.centerRight,
       child: Text(
         '${_titleCtrl.text.length}/50',
         style: TextStyle(
-          fontSize: 12,
+          fontSize: typography.supporting.fontSize,
           color: scheme.onSurface.withOpacity(0.6),
         ),
       ),
@@ -480,16 +483,18 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
   }
 
   TextStyle _compactFieldValueStyle(ColorScheme scheme) {
+    final typography = Theme.of(context).appTypography;
     return TextStyle(
-      fontSize: 14,
+      fontSize: typography.body.fontSize,
       fontWeight: FontWeight.w500,
       color: scheme.onSurface,
     );
   }
 
   TextStyle _compactFieldLabelStyle(ColorScheme scheme) {
+    final typography = Theme.of(context).appTypography;
     return TextStyle(
-      fontSize: 17,
+      fontSize: typography.title.fontSize,
       fontWeight: FontWeight.w500,
       color: scheme.onSurface.withOpacity(0.7),
     );
@@ -578,6 +583,7 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
     String? errorText,
   }) {
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     return TextFormField(
       readOnly: true,
@@ -591,7 +597,11 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
         errorText: errorText,
         helperText: ' ',
         helperStyle: const TextStyle(fontSize: 1, height: 0.1),
-        errorStyle: TextStyle(fontSize: 12, height: 0.9, color: scheme.error),
+        errorStyle: TextStyle(
+          fontSize: typography.supporting.fontSize,
+          height: 0.9,
+          color: scheme.error,
+        ),
         suffixIcon: Padding(
           padding: const EdgeInsets.only(right: 4),
           child: Icon(
@@ -633,6 +643,7 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
 
   Widget _buildSubmitButton(AppLocalizations l10n) {
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -655,10 +666,9 @@ class _ScheduleFormSheetState extends State<ScheduleFormSheet> {
               }
               return scheme.onPrimary;
             }),
-            textStyle: const MaterialStatePropertyAll(
+            textStyle: MaterialStatePropertyAll(
               TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 16,
+                fontSize: typography.title.fontSize,
                 fontWeight: FontWeight.w600,
               ),
             ),

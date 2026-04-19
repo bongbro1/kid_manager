@@ -1,8 +1,9 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/permission_service.dart';
 import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
@@ -89,30 +90,66 @@ class _ImageModalState extends State<_ImageModal> {
   void _close() => Navigator.of(context).maybePop();
 
   Future<void> _openMenu() async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     await showModalBottomSheet(
       context: context,
-      showDragHandle: true,
+      useSafeArea: true,
+      isScrollControlled: false,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
         final l10n = AppLocalizations.of(ctx);
 
-        return SafeArea(
+        return Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: Text(l10n.appImageReplaceOption),
+              const SizedBox(height: 12),
+
+              // handle bar
+              Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: colorScheme.outlineVariant.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              _BottomSheetAction(
+                icon: Icons.photo_library_outlined,
+                label: l10n.appImageReplaceOption,
                 onTap: () async {
                   Navigator.of(ctx).pop();
-                  // await Future.delayed(const Duration(milliseconds: 120));
+                  await Future.delayed(const Duration(milliseconds: 120));
                   await _pickAndReplace();
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.close),
-                title: Text(l10n.birthdayCloseButton),
+              _BottomSheetAction(
+                icon: Icons.close_rounded,
+                label: l10n.birthdayCloseButton,
                 onTap: () => Navigator.of(ctx).pop(),
               ),
+
+              const SizedBox(height: 16),
             ],
           ),
         );
@@ -145,7 +182,7 @@ class _ImageModalState extends State<_ImageModal> {
 
       final croppedFile = await Navigator.of(context, rootNavigator: true)
           .push<File>(
-            MaterialPageRoute(
+            AppPageTransitions.route(
               builder: (_) =>
                   CropPhotoScreen(file: rawFile, type: widget.cropType),
             ),
@@ -346,6 +383,72 @@ class _ImageLoadFallback extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BottomSheetAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  const _BottomSheetAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    final foregroundColor = isDestructive
+        ? colorScheme.error
+        : colorScheme.onSurface;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withOpacity(0.45),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 20, color: foregroundColor),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: foregroundColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

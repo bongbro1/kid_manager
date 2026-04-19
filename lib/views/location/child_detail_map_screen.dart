@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/features/map_engine/map_engine.dart';
 import 'package:kid_manager/features/map_engine/smooth/smooth_mover.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
@@ -422,8 +424,10 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                 ),
                 child: Text(
                   _buildAvatarLabel(),
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: TextStyle(
+                    fontSize: Theme.of(
+                      context,
+                    ).appTypography.supporting.fontSize!,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
                   ),
@@ -437,8 +441,10 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                   alignment: Alignment.center,
                   child: Text(
                     _buildAvatarLabel(),
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.supporting.fontSize!,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),
@@ -507,7 +513,9 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                               ? l10n.childLocationCurrentJourneyTitle
                               : l10n.childLocationTravelHistoryTitle,
                           style: TextStyle(
-                            fontSize: 17,
+                            fontSize: Theme.of(
+                              context,
+                            ).appTypography.inlineHeaderTitle.fontSize!,
                             fontWeight: FontWeight.w800,
                             color: scheme.onSurface,
                           ),
@@ -516,7 +524,9 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
                         Text(
                           _buildAppBarSubtitle(l10n, vm),
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: Theme.of(
+                              context,
+                            ).appTypography.supporting.fontSize!,
                             color: scheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,
                           ),
@@ -589,7 +599,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
             active: false,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
+              AppPageTransitions.route(
                 builder: (_) => ChildZonesScreen(childId: widget.childId),
               ),
             ),
@@ -602,7 +612,7 @@ class _ChildDetailMapBodyState extends State<_ChildDetailMapBody>
             active: false,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
+              AppPageTransitions.route(
                 builder: (_) => TrackingPage(
                   childId: widget.childId,
                   childAvatarUrl: widget.childAvatarUrl,

@@ -4,10 +4,7 @@ import 'package:kid_manager/models/notifications/notification_detail_model.dart'
 import 'package:kid_manager/services/notifications/tracking_location_notification_text.dart';
 
 class TrackingLocationStatusDetailWidget extends StatelessWidget {
-  const TrackingLocationStatusDetailWidget({
-    super.key,
-    required this.detail,
-  });
+  const TrackingLocationStatusDetailWidget({super.key, required this.detail});
 
   final NotificationDetailModel detail;
 
@@ -33,15 +30,9 @@ class TrackingLocationStatusDetailWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _InfoRow(
-          label: l10n.notificationsChildNameLabel,
-          value: actorName,
-        ),
+        _InfoRow(label: l10n.notificationsChildNameLabel, value: actorName),
         const SizedBox(height: 12),
-        _InfoRow(
-          label: l10n.childLocationDeviceStatusHint,
-          value: statusTitle,
-        ),
+        _InfoRow(label: l10n.childLocationDeviceStatusHint, value: statusTitle),
         const SizedBox(height: 16),
         Container(
           width: double.infinity,
@@ -64,10 +55,7 @@ class TrackingLocationStatusDetailWidget extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   final String label;
   final String value;

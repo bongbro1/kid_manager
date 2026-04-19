@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
@@ -54,12 +55,15 @@ class ChildDetailMapPointSheet extends StatelessWidget {
     final pointIndex = orderedHistory.indexWhere(
       (entry) => entry.timestamp == point.timestamp,
     );
-    final effectiveTransport = LocationHistoryPresenter.resolveEffectiveTransport(
-      orderedHistory,
-      point,
-      indexHint: pointIndex,
+    final effectiveTransport =
+        LocationHistoryPresenter.resolveEffectiveTransport(
+          orderedHistory,
+          point,
+          indexHint: pointIndex,
+        );
+    final baseColor = LocationHistoryPresenter.transportColor(
+      effectiveTransport,
     );
-    final baseColor = LocationHistoryPresenter.transportColor(effectiveTransport);
     final displayColor = gpsLost ? const Color(0xFFC5221F) : baseColor;
     final isStart =
         orderedHistory.isNotEmpty &&
@@ -107,7 +111,9 @@ class ChildDetailMapPointSheet extends StatelessWidget {
                           ? l10n.childLocationLiveLabel
                           : l10n.childLocationSelectedHistoryLabel,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.supporting.fontSize!,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.3,
                         color: isToday && isLatestPoint
@@ -119,7 +125,9 @@ class ChildDetailMapPointSheet extends StatelessWidget {
                     Text(
                       summary.title,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.screenTitle.fontSize!,
                         fontWeight: FontWeight.w800,
                         color: gpsLost
                             ? const Color(0xFFC5221F)
@@ -130,7 +138,9 @@ class ChildDetailMapPointSheet extends StatelessWidget {
                     Text(
                       summary.subtitle,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.sectionLabel.fontSize!,
                         height: 1.35,
                         color: Colors.grey.shade700,
                         fontWeight: FontWeight.w500,
@@ -202,7 +212,10 @@ class ChildDetailMapPointSheet extends StatelessWidget {
                   label: l10n.childLocationStayedHereLabel,
                   value: gpsLost
                       ? l10n.childLocationStayedHereUnavailable
-                      : LocationHistoryPresenter.formatDuration(l10n, stopDuration),
+                      : LocationHistoryPresenter.formatDuration(
+                          l10n,
+                          stopDuration,
+                        ),
                   hint: l10n.childLocationStopDurationHint,
                 ),
               ),

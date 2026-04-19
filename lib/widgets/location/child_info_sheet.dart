@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/location/location_data.dart';
@@ -411,9 +411,7 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                             child: Column(
                               children: [
                                 if (member.isChild)
-                                  DeviceBatteryPill(
-                                    state: batteryState,
-                                  ),
+                                  DeviceBatteryPill(state: batteryState),
                                 if (member.isChild) const SizedBox(height: 10),
 
                                 _RightPill(

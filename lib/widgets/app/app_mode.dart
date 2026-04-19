@@ -1,11 +1,3 @@
-enum AppMode{
-  parent,
-  guardian,
-  child
-}
+enum AppMode { parent, guardian, child }
 
-enum LocationPlayMode {
-  live,
-  replay,
-}
-
+enum LocationPlayMode { live, replay }

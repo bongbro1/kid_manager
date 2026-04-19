@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
@@ -36,8 +36,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   String? _ignoredSosId;
   int _subscribeRetryCount = 0;
 
-  bool get _canResolveSos =>
-      widget.viewerRole?.isAdultManager ?? false;
+  bool get _canResolveSos => widget.viewerRole?.isAdultManager ?? false;
 
   DocumentSnapshot<Map<String, dynamic>>? _selectVisibleSos(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
@@ -63,9 +62,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
   @override
   void initState() {
     super.initState();
-    debugPrint(
-      'OVERLAY initState familyId=${widget.familyId} hash=$hashCode',
-    );
+    debugPrint('OVERLAY initState familyId=${widget.familyId} hash=$hashCode');
     _subscribe();
   }
 
@@ -95,7 +92,8 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
             return;
           }
 
-          final hasIgnoredActive = _ignoredSosId != null &&
+          final hasIgnoredActive =
+              _ignoredSosId != null &&
               qs.docs.any((doc) => doc.id == _ignoredSosId);
           final doc = _selectVisibleSos(qs.docs);
 
@@ -190,8 +188,12 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
     final data = previousDoc.data() ?? {};
 
     final location = data['location'];
-    final lat = (location is Map) ? (location['lat'] as num?)?.toDouble() : null;
-    final lng = (location is Map) ? (location['lng'] as num?)?.toDouble() : null;
+    final lat = (location is Map)
+        ? (location['lat'] as num?)?.toDouble()
+        : null;
+    final lng = (location is Map)
+        ? (location['lng'] as num?)?.toDouble()
+        : null;
     final createdBy = data['createdBy']?.toString();
 
     debugPrint('Confirm tapped sosId=$sosId');
@@ -221,10 +223,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
     }
 
     try {
-      await sosViewModel.resolve(
-        familyId: widget.familyId,
-        sosId: sosId,
-      );
+      await sosViewModel.resolve(familyId: widget.familyId, sosId: sosId);
       _resolving = false;
       await SosNotificationService.instance.clearActiveAlert();
 
@@ -245,11 +244,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
       }
 
       messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            sosViewModel.error ?? l10n.sosResolveFailed,
-          ),
-        ),
+        SnackBar(content: Text(sosViewModel.error ?? l10n.sosResolveFailed)),
       );
     }
   }
@@ -321,9 +316,7 @@ class _IncomingSosOverlayState extends State<IncomingSosOverlay> {
     _sub?.cancel();
     _retryTimer?.cancel();
     unawaited(SosAlarmPlayer.instance.stop());
-    debugPrint(
-      'OVERLAY dispose familyId=${widget.familyId} hash=$hashCode',
-    );
+    debugPrint('OVERLAY dispose familyId=${widget.familyId} hash=$hashCode');
     super.dispose();
   }
 }

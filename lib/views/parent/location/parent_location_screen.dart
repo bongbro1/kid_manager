@@ -1,7 +1,9 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/location/map_focus_bus.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -373,9 +375,13 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
         onToggleSearch: () {},
         onOpenChat: () {
           Navigator.of(sheetContext).pop();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FamilyGroupChatScreen()),
+          unawaited(
+            Navigator.push(
+              context,
+              AppPageTransitions.route(
+                builder: (_) => const FamilyGroupChatScreen(),
+              ),
+            ),
           );
         },
         onSendQuickMessage: (msg) async {
@@ -578,7 +584,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                 onMore: () async {
                   final selectedChild = await Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    AppPageTransitions.route(
                       builder: (_) => ParentChildrenListScreen(),
                     ),
                   );
@@ -733,7 +739,9 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                       Text(
                         l10n.parentLocationMapLoadingTitle,
                         style: textTheme.titleMedium?.copyWith(
-                          fontSize: 15,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.itemTitle.fontSize!,
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
                         ),
@@ -742,7 +750,9 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                       Text(
                         l10n.parentLocationMapLoadingSubtitle,
                         style: textTheme.bodySmall?.copyWith(
-                          fontSize: 12.5,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.supporting.fontSize!,
                           color: colorScheme.onSurfaceVariant,
                           height: 1.35,
                         ),

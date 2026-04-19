@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 
@@ -45,9 +45,7 @@ class _PickChildPhoneScreenState extends State<PickChildPhoneScreen> {
       if (phone == null || phone.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.parentPhoneContactHasNoNumber),
-          ),
+          SnackBar(content: Text(l10n.parentPhoneContactHasNoNumber)),
         );
         setState(() => _loading = false);
         return;
@@ -62,11 +60,9 @@ class _PickChildPhoneScreenState extends State<PickChildPhoneScreen> {
       debugPrint('==============================');
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.parentPhonePickFailed('$e')),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.parentPhonePickFailed('$e'))));
       setState(() => _loading = false);
     }
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/birthday_event.dart';
 import 'package:kid_manager/models/memory_day.dart';
@@ -147,7 +148,7 @@ class ScheduleTimelineActions {
     required String wishText,
   }) {
     return Navigator.of(context).push(
-      MaterialPageRoute(
+      AppPageTransitions.route(
         builder: (_) => FamilyGroupChatScreen(
           initialFamilyId: birthday.familyId,
           initialComposerText: wishText,
@@ -221,7 +222,7 @@ class ScheduleTimelineActions {
   }) {
     return Navigator.push(
       context,
-      MaterialPageRoute(
+      AppPageTransitions.route(
         builder: (_) => ScheduleHistoryScreen(schedule: schedule),
       ),
     );

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
@@ -50,14 +52,19 @@ class _AppManagementScreenState extends State<AppManagementScreen>
       debugPrint("❌ No child selected");
       return;
     }
-    final changed = await Navigator.of(context).push<bool>(
-      PageRouteBuilder(
+    final changed = await Navigator.of(context, rootNavigator: true).push<bool>(
+      PageRouteBuilder<bool>(
         opaque: false,
-        barrierColor: Colors.transparent,
-        pageBuilder: (_, _, _) => UsageTimeEditScreen(
-          appId: app.packageName,
-          childId: selectedChildId,
-        ),
+        barrierColor: Colors.black.withOpacity(0.12),
+        transitionDuration: AppPageTransitions.forwardDuration,
+        reverseTransitionDuration: AppPageTransitions.reverseDuration,
+        pageBuilder: (_, animation, secondaryAnimation) {
+          return UsageTimeEditScreen(
+            appId: app.packageName,
+            childId: selectedChildId,
+          );
+        },
+        transitionsBuilder: AppPageTransitions.buildModalTransition,
       ),
     );
 
@@ -108,9 +115,9 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     final screenHeight = MediaQuery.sizeOf(context).height;
     final isSkeleton = appVm.loading;
 
-    return Container(
-      color: theme.scaffoldBackgroundColor,
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
         top: false,
         child: Column(
           children: [
@@ -166,8 +173,9 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                         l10n.parentDashboardTitle,
                         style: textTheme.titleMedium?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.screenTitle.fontSize!,
                         ),
                       ),
                     ],

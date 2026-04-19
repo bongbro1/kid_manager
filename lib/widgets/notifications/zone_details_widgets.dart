@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -22,7 +22,8 @@ class ZoneDetailWidget extends StatelessWidget {
 
   Map<String, dynamic> get _data => detail.data;
 
-  String get _zoneName => (_data['zoneName'] ?? detail.content ?? '').toString();
+  String get _zoneName =>
+      (_data['zoneName'] ?? detail.content ?? '').toString();
 
   String get _zoneType => (_data['zoneType'] ?? '').toString().toLowerCase();
   String get _action => (_data['action'] ?? '').toString().toLowerCase();
@@ -34,12 +35,13 @@ class ZoneDetailWidget extends StatelessWidget {
   double? get _radiusM => _readDouble(_data['radiusM'] ?? _data['radius']);
 
   String get _locationLabel {
-    final raw = (_data['placeName'] ??
-            _data['address'] ??
-            _data['locationName'] ??
-            _zoneName)
-        .toString()
-        .trim();
+    final raw =
+        (_data['placeName'] ??
+                _data['address'] ??
+                _data['locationName'] ??
+                _zoneName)
+            .toString()
+            .trim();
     return raw.isEmpty ? _zoneName : raw;
   }
 
@@ -51,11 +53,13 @@ class ZoneDetailWidget extends StatelessWidget {
               l10n.notificationsDefaultChildName)
           .toString();
 
-  bool get _isDanger =>
-      _zoneType.isNotEmpty ? _zoneType == 'danger' : _eventKey.contains('.danger.');
+  bool get _isDanger => _zoneType.isNotEmpty
+      ? _zoneType == 'danger'
+      : _eventKey.contains('.danger.');
 
-  bool get _isEnter =>
-      _action.isNotEmpty ? _action == 'enter' : _eventKey.contains('zone.enter.');
+  bool get _isEnter => _action.isNotEmpty
+      ? _action == 'enter'
+      : _eventKey.contains('zone.enter.');
 
   String _descriptionText(AppLocalizations l10n) {
     final childName = _childName(l10n);
@@ -118,10 +122,7 @@ class ZoneDetailWidget extends StatelessWidget {
     final lat = _lat;
     final lng = _lng;
     if (lat == null || lng == null) {
-      return _ZoneMapFallback(
-        label: _locationLabel,
-        isDanger: _isDanger,
-      );
+      return _ZoneMapFallback(label: _locationLabel, isDanger: _isDanger);
     }
 
     return _ZoneMapPreview(
@@ -150,10 +151,6 @@ class ZoneDetailWidget extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            textStyle: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
           ),
         ),
       ),
@@ -176,10 +173,6 @@ class ZoneDetailWidget extends StatelessWidget {
             minimumSize: const Size.fromHeight(54),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -510,19 +503,16 @@ class _ZoneMapPreviewState extends State<_ZoneMapPreview> {
   int get _haloColor => widget.isDanger ? 0x55FCA5A5 : 0x5593C5FD;
 
   Map<String, dynamic> _emptyFeatureCollection() => const {
-        'type': 'FeatureCollection',
-        'features': [],
-      };
+    'type': 'FeatureCollection',
+    'features': [],
+  };
 }
 
 class _ZoneMapFallback extends StatelessWidget {
   final String label;
   final bool isDanger;
 
-  const _ZoneMapFallback({
-    required this.label,
-    required this.isDanger,
-  });
+  const _ZoneMapFallback({required this.label, required this.isDanger});
 
   @override
   Widget build(BuildContext context) {
@@ -601,4 +591,3 @@ double? _readDouble(dynamic value) {
   if (value is String) return double.tryParse(value.trim());
   return null;
 }
-

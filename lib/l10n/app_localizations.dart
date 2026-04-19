@@ -2024,6 +2024,12 @@ abstract class AppLocalizations {
   /// **'Filter notifications'**
   String get notificationFilterTitle;
 
+  /// No description provided for @notificationFilterTypeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification type'**
+  String get notificationFilterTypeTitle;
+
   /// No description provided for @notificationFilterAll.
   ///
   /// In en, this message translates to:
@@ -2053,6 +2059,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System notifications'**
   String get notificationFilterSystem;
+
+  /// No description provided for @notificationReadFilterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read status'**
+  String get notificationReadFilterTitle;
+
+  /// No description provided for @notificationReadFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All statuses'**
+  String get notificationReadFilterAll;
+
+  /// No description provided for @notificationReadFilterUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get notificationReadFilterUnread;
+
+  /// No description provided for @notificationReadFilterRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get notificationReadFilterRead;
+
+  /// No description provided for @notificationMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get notificationMarkAllRead;
+
+  /// No description provided for @notificationMarkAllReadSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications have been marked as read'**
+  String get notificationMarkAllReadSuccess;
+
+  /// No description provided for @notificationMarkAllReadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not mark all notifications as read'**
+  String get notificationMarkAllReadError;
+
+  /// No description provided for @notificationAllReadAlready.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications are already read'**
+  String get notificationAllReadAlready;
 
   /// No description provided for @notificationSearchHint.
   ///

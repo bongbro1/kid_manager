@@ -49,7 +49,10 @@ class SosConfirmedCard extends StatelessWidget {
 
     final rows = <_InfoRow>[
       if (createdByName != null && createdByName!.trim().isNotEmpty)
-        _InfoRow(label: l10n.sosConfirmedNameLabel, value: createdByName!.trim()),
+        _InfoRow(
+          label: l10n.sosConfirmedNameLabel,
+          value: createdByName!.trim(),
+        ),
       _InfoRow(
         label: l10n.sosConfirmedSenderLabel,
         value: _roleLabel(l10n, createdByRole),
@@ -151,18 +154,9 @@ class _RowLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 105,
-          child: Text(label, style: labelStyle),
-        ),
+        SizedBox(width: 105, child: Text(label, style: labelStyle)),
         const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            value,
-            style: valueStyle,
-            softWrap: true,
-          ),
-        ),
+        Expanded(child: Text(value, style: valueStyle, softWrap: true)),
       ],
     );
   }

@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/widgets/location/batterIcon.dart';
 
-enum DeviceBatterySeverity {
-  unavailable,
-  normal,
-  low,
-  critical,
-}
+enum DeviceBatterySeverity { unavailable, normal, low, critical }
 
 class DeviceBatteryUiState {
   const DeviceBatteryUiState({
@@ -185,11 +180,7 @@ class DeviceBatteryCompactBadge extends StatelessWidget {
           ),
           if (state.isCharging) ...[
             const SizedBox(width: 4),
-            Icon(
-              Icons.bolt_rounded,
-              size: 12,
-              color: foregroundColor,
-            ),
+            Icon(Icons.bolt_rounded, size: 12, color: foregroundColor),
           ],
           const SizedBox(width: 6),
           Text(
@@ -271,11 +262,7 @@ class DeviceBatteryPanelCard extends StatelessWidget {
               ),
               if (state.isCharging) ...[
                 const SizedBox(width: 6),
-                Icon(
-                  Icons.bolt_rounded,
-                  size: 16,
-                  color: foregroundColor,
-                ),
+                Icon(Icons.bolt_rounded, size: 16, color: foregroundColor),
               ],
               const Spacer(),
               Text(
@@ -353,11 +340,7 @@ class DeviceBatteryPill extends StatelessWidget {
           ),
           if (state.isCharging) ...[
             const SizedBox(width: 6),
-            Icon(
-              Icons.bolt_rounded,
-              size: 16,
-              color: foregroundColor,
-            ),
+            Icon(Icons.bolt_rounded, size: 16, color: foregroundColor),
           ],
           const SizedBox(width: 10),
           Expanded(
@@ -367,7 +350,9 @@ class DeviceBatteryPill extends StatelessWidget {
                 value: state.progress,
                 minHeight: 8,
                 backgroundColor: const Color(0xFFE5E7EB),
-                valueColor: AlwaysStoppedAnimation<Color>(state.progressColor()),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  state.progressColor(),
+                ),
               ),
             ),
           ),

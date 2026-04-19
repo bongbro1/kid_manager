@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
 
@@ -51,7 +52,7 @@ Widget timeRangeRow({
                 text,
                 style: TextStyle(
                   color: textColor,
-                  fontSize: 15,
+                  fontSize: Theme.of(context).appTypography.itemTitle.fontSize!,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -84,6 +85,7 @@ Widget timeRangeRow({
 }
 
 Widget overrideCard({
+  required BuildContext context,
   required IconData icon,
   required String title,
   required String subtitle,
@@ -126,7 +128,12 @@ Widget overrideCard({
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: Theme.of(
+                      context,
+                    ).appTypography.sectionLabel.fontSize!,
+                  ),
                 ),
               ],
             ),
@@ -192,23 +199,21 @@ Widget buildCalendar({
               children: [
                 Text(
                   l10n.scheduleCalendarMonthLabel(headerMonth.month),
-                  style: textTheme.titleLarge?.copyWith(
+                  style: textTheme.titleMedium?.copyWith(
                     color: scheme.onSurface,
-                    fontSize: 16,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w400,
-                    height: 0.80,
+                    fontSize: Theme.of(context).appTypography.title.fontSize!,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   '${headerMonth.year}',
                   style: textTheme.bodySmall?.copyWith(
                     color: scheme.onSurface.withOpacity(0.6),
-                    fontSize: 13,
-                    fontFamily: 'Poppins',
+                    fontSize: Theme.of(
+                      context,
+                    ).appTypography.sectionLabel.fontSize!,
                     fontWeight: FontWeight.w400,
-                    height: 1.33,
                   ),
                 ),
               ],
@@ -222,6 +227,7 @@ Widget buildCalendar({
           ),
         ],
       ),
+      const SizedBox(height: 6),
       GridView.count(
         padding: EdgeInsets.zero,
         shrinkWrap: true,
@@ -237,8 +243,7 @@ Widget buildCalendar({
                   w,
                   style: textTheme.bodySmall?.copyWith(
                     color: scheme.onSurface.withOpacity(0.6),
-                    fontSize: 13,
-                    fontFamily: 'Poppins',
+                    fontSize: Theme.of(context).appTypography.body.fontSize!,
                     fontWeight: FontWeight.w400,
                     height: 1.23,
                   ),
@@ -256,7 +261,6 @@ Widget buildCalendar({
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 7,
           crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
           childAspectRatio: 1.1,
         ),
         itemBuilder: (context, i) {
@@ -328,7 +332,7 @@ Widget _dayCell({
       children: [
         Container(
           width: 30,
-          height: 29,
+          height: 30,
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(10),
@@ -339,8 +343,7 @@ Widget _dayCell({
               style: textTheme.bodyMedium?.copyWith(
                 color: textColor,
                 fontWeight: FontWeight.w400,
-                fontSize: 15,
-                fontFamily: 'Poppins',
+                fontSize: Theme.of(context).appTypography.body.fontSize!,
               ),
             ),
           ),

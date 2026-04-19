@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
@@ -221,8 +222,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                       height: 40,
                       skeleton: vm.loading,
                       text: l10n.parentDashboardTabApps,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontSize: Theme.of(context).appTypography.body.fontSize!,
                       onPressed: widget.onTapApps,
                       backgroundColor: widget.currentIndex == 0
                           ? scheme.primary
@@ -230,7 +230,6 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                       foregroundColor: widget.currentIndex == 0
                           ? scheme.onPrimary
                           : scheme.onSurface,
-                      fontFamily: 'Poppins',
                       lineHeight: 1.43,
                       letterSpacing: 0.10,
                       padding: const EdgeInsets.symmetric(
@@ -256,8 +255,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                       height: 40,
                       skeleton: vm.loading,
                       text: l10n.parentDashboardTabStatistics,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontSize: Theme.of(context).appTypography.body.fontSize!,
                       onPressed: widget.onTapStats,
                       backgroundColor: widget.currentIndex == 1
                           ? scheme.primary
@@ -265,7 +263,6 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                       foregroundColor: widget.currentIndex == 1
                           ? scheme.onPrimary
                           : scheme.onSurface,
-                      fontFamily: 'Poppins',
                       lineHeight: 1.43,
                       letterSpacing: 0.10,
                       padding: const EdgeInsets.symmetric(
@@ -412,16 +409,14 @@ class UserItemWidget extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             softWrap: true,
-            strutStyle: const StrutStyle(
-              fontSize: 13,
+            strutStyle: StrutStyle(
+              fontSize: Theme.of(context).appTypography.sectionLabel.fontSize!,
               height: 1.2,
               forceStrutHeight: true,
             ),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 13,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
+              fontSize: Theme.of(context).appTypography.body.fontSize!,
               letterSpacing: -0.2,
             ),
           ),

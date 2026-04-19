@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -43,12 +45,14 @@ class NoChildScreen extends StatelessWidget {
                     children: [
                       const SizedBox(height: 32),
 
-              /// TITLE
+                      /// TITLE
                       Text(
                         l10n.parentDashboardNoDeviceTitle,
                         textAlign: TextAlign.center,
                         style: textTheme.titleLarge?.copyWith(
-                          fontSize: 20,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.screenTitle.fontSize!,
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
                         ),
@@ -56,12 +60,14 @@ class NoChildScreen extends StatelessWidget {
 
                       const SizedBox(height: 12),
 
-              /// SUBTITLE
+                      /// SUBTITLE
                       Text(
                         l10n.parentDashboardNoDeviceSubtitle,
                         textAlign: TextAlign.center,
                         style: textTheme.bodyMedium?.copyWith(
-                          fontSize: 15,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.itemTitle.fontSize!,
                           color: colorScheme.onSurface.withValues(alpha: 0.7),
                           height: 1.4,
                         ),
@@ -77,7 +83,7 @@ class NoChildScreen extends StatelessWidget {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
+                                AppPageTransitions.route(
                                   builder: (_) => const AddAccountScreen(),
                                 ),
                               );
@@ -93,7 +99,9 @@ class NoChildScreen extends StatelessWidget {
                             child: Text(
                               l10n.parentDashboardAddDeviceButton,
                               style: textTheme.titleMedium?.copyWith(
-                                fontSize: 16,
+                                fontSize: Theme.of(
+                                  context,
+                                ).appTypography.title.fontSize!,
                                 fontWeight: FontWeight.w600,
                                 color: colorScheme.onPrimary,
                               ),
@@ -103,7 +111,7 @@ class NoChildScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                       ],
 
-              /// TEXT BUTTON
+                      /// TEXT BUTTON
                       TextButton(
                         onPressed: () {
                           Navigator.pushNamed(context, '/how-it-works');

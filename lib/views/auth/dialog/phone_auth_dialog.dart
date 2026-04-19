@@ -129,7 +129,8 @@ class PhoneAuthDialog {
                 left: 24,
                 right: 24,
                 top: 24,
-                bottom: mediaQuery.viewInsets.bottom + mediaQuery.padding.bottom,
+                bottom:
+                    mediaQuery.viewInsets.bottom + mediaQuery.padding.bottom,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

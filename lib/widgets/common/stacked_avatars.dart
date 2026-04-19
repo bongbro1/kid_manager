@@ -33,17 +33,11 @@ class StackedAvatars extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: const [
-                    BoxShadow(
-                      blurRadius: 4,
-                      color: Colors.black26,
-                    ),
+                    BoxShadow(blurRadius: 4, color: Colors.black26),
                   ],
                 ),
                 child: ClipOval(
-                  child: AppAvatar(
-                    user: displayUsers[i],
-                    size: size,
-                  ),
+                  child: AppAvatar(user: displayUsers[i], size: size),
                 ),
               ),
             ),

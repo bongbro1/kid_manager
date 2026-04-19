@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/services/notifications/tracking_location_notification_text.dart';
@@ -111,7 +112,9 @@ class NotificationItemView extends StatelessWidget {
                               style: textTheme.titleMedium?.copyWith(
                                 color: colorScheme.onSurface,
                                 fontWeight: FontWeight.w600,
-                                fontSize: 16,
+                                fontSize: Theme.of(
+                                  context,
+                                ).appTypography.itemTitle.fontSize!,
                                 height: 1.19,
                               ),
                             ),
@@ -126,6 +129,9 @@ class NotificationItemView extends StatelessWidget {
                                 style: textTheme.labelMedium?.copyWith(
                                   color: colorScheme.primary,
                                   fontWeight: FontWeight.w500,
+                                  fontSize: Theme.of(
+                                    context,
+                                  ).appTypography.meta.fontSize!,
                                 ),
                               ),
                             ),
@@ -143,7 +149,9 @@ class NotificationItemView extends StatelessWidget {
                               ? colorScheme.onSurface.withOpacity(0.9)
                               : colorScheme.onSurfaceVariant,
                           height: 1.17,
-                          fontSize: 12,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.supporting.fontSize!,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.75,
                         ),

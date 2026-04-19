@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_types.dart';
@@ -388,7 +389,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           style: theme.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 18,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         centerTitle: true,

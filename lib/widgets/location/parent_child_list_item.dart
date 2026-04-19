@@ -150,11 +150,7 @@ class ParentChildListItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            _ActionPill(
-              onChat: onChat,
-              onLocate: onLocate,
-              onPhone: onPhone,
-            ),
+            _ActionPill(onChat: onChat, onLocate: onLocate, onPhone: onPhone),
           ],
         ),
       ),
@@ -182,9 +178,7 @@ class _ActionPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colorScheme.outline.withOpacity(0.7),
-        ),
+        border: Border.all(color: colorScheme.outline.withOpacity(0.7)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

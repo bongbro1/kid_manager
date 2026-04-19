@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
@@ -42,7 +44,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   void _openAddAccount(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const AddAccountScreen()),
+      AppPageTransitions.route(builder: (_) => const AddAccountScreen()),
     );
   }
 
@@ -298,7 +300,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
           style: theme.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 18
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         // ── "+" shortcut in AppBar when canAddAccount ──────────────────

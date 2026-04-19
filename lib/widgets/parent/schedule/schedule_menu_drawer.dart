@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/views/parent/memory_day/memory_day_screen.dart';
 import 'package:kid_manager/views/parent/schedule/schedule_export_excel_screen.dart';
@@ -34,7 +36,7 @@ class ScheduleMenuDrawer extends StatelessWidget {
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: scheme.onSurface,
                   fontWeight: FontWeight.w600,
-                  fontSize: 18,
+                  fontSize: theme.appTypography.screenTitle.fontSize,
                 ),
               ),
             ),
@@ -45,7 +47,9 @@ class ScheduleMenuDrawer extends StatelessWidget {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const MemoryDayScreen()),
+                  AppPageTransitions.route(
+                    builder: (_) => const MemoryDayScreen(),
+                  ),
                 );
               },
             ),
@@ -60,7 +64,7 @@ class ScheduleMenuDrawer extends StatelessWidget {
 
                 final needReload = await Navigator.push<bool>(
                   context,
-                  MaterialPageRoute(
+                  AppPageTransitions.route(
                     builder: (_) => ScheduleImportExcelScreen(
                       initialChildId: selectedChildId,
                       lockChildSelection: lockChildSelection,
@@ -84,7 +88,7 @@ class ScheduleMenuDrawer extends StatelessWidget {
 
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(
+                  AppPageTransitions.route(
                     builder: (_) => ScheduleExportExcelScreen(
                       initialChildId: selectedChildId,
                       lockChildSelection: lockChildSelection,

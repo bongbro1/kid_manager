@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
@@ -348,7 +349,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: theme.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 18,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         actions: const [SizedBox(width: 60)],
@@ -497,7 +498,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w700,
-                                                                fontSize: 18,
+                                                                fontSize: Theme.of(context)
+                                                                    .appTypography
+                                                                    .screenTitle
+                                                                    .fontSize!,
                                                               ),
                                                         ),
                                                         const SizedBox(
@@ -713,7 +717,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                                     .titleMedium
                                                     ?.copyWith(
                                                       color: scheme.onSurface,
-                                                      fontSize: 15,
+                                                      fontSize:
+                                                          Theme.of(context)
+                                                              .appTypography
+                                                              .itemTitle
+                                                              .fontSize!,
                                                       fontWeight:
                                                           FontWeight.w600,
                                                     ),
@@ -725,7 +733,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
                                                   color: scheme.onSurface,
-                                                  fontSize: 12,
+                                                  fontSize: Theme.of(context)
+                                                      .appTypography
+                                                      .supporting
+                                                      .fontSize!,
                                                 ),
                                               ),
                                             ],
@@ -759,7 +770,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                               l10n.personalInfoDetailsButton,
                                               style: TextStyle(
                                                 color: scheme.onPrimary,
-                                                fontSize: 14,
+                                                fontSize: Theme.of(
+                                                  context,
+                                                ).appTypography.body.fontSize!,
                                                 fontFamily: 'Poppins',
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -941,13 +954,14 @@ class ConfirmLogoutSheet extends StatelessWidget {
                     children: [
                       Expanded(
                         child: AppButton(
-                          height: 50,
+                          height: 40,
                           text: l10n.cancelButton,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
+                          fontSize: 15,
+                          onPressed: vm.logoutInProgress
+                              ? null
+                              : () {
+                                  Navigator.pop(context);
+                                },
                           backgroundColor: scheme.primaryContainer,
                           foregroundColor: scheme.primary,
                         ),
@@ -957,17 +971,11 @@ class ConfirmLogoutSheet extends StatelessWidget {
 
                       Expanded(
                         child: AppButton(
-                          height: 50,
+                          height: 40,
                           text: l10n.confirmButton,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          onPressed: () async {
-                            final authVM = context.read<AuthVM>();
-
-                            Navigator.of(context, rootNavigator: true).pop();
-
-                            await Future.microtask(() => authVM.logout());
-                          },
+                          fontSize: 15,
+                          loading: vm.logoutInProgress,
+                          onPressed: vm.logoutInProgress ? null : logout,
                           backgroundColor: scheme.primary,
                           foregroundColor: scheme.onPrimary,
                         ),
@@ -1029,7 +1037,7 @@ class SettingItem extends StatelessWidget {
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: scheme.onSurface,
                   fontWeight: FontWeight.w500,
-                  fontSize: 16,
+                  fontSize: Theme.of(context).appTypography.title.fontSize!,
                 ),
               ),
             ),

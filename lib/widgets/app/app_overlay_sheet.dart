@@ -89,7 +89,8 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final media = MediaQuery.of(context);
     final screenSize = media.size;
     final availableMaxHeight = (screenSize.height - media.padding.top - 8)
@@ -145,16 +146,14 @@ class _AppOverlaySheetState extends State<AppOverlaySheet>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (widget.showHandle) ...[
-                              Center(
-                                child: Container(
-                                  width: 55,
-                                  height: 5,
-                                  decoration: BoxDecoration(
-                                    color: scheme.onSurfaceVariant.withValues(
-                                      alpha: 0.5,
-                                    ),
-                                    borderRadius: BorderRadius.circular(100),
+                              Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.outline.withOpacity(
+                                    .3,
                                   ),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                               const SizedBox(height: 12),

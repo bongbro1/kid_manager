@@ -165,6 +165,9 @@ class _ActionSection extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final buttonTextStyle = theme.textTheme.titleSmall?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
 
     if (isWarning) {
       return Column(
@@ -183,6 +186,7 @@ class _ActionSection extends StatelessWidget {
                 surfaceTintColor: const MaterialStatePropertyAll(
                   Colors.transparent,
                 ),
+                textStyle: MaterialStatePropertyAll(buttonTextStyle),
                 splashFactory: NoSplash.splashFactory,
                 shape: MaterialStatePropertyAll(
                   RoundedRectangleBorder(
@@ -196,11 +200,7 @@ class _ActionSection extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colorScheme.onPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(color: colorScheme.onPrimary),
               ),
             ),
           ),
@@ -220,6 +220,7 @@ class _ActionSection extends StatelessWidget {
                 surfaceTintColor: const MaterialStatePropertyAll(
                   Colors.transparent,
                 ),
+                textStyle: MaterialStatePropertyAll(buttonTextStyle),
                 splashFactory: NoSplash.splashFactory,
                 shape: MaterialStatePropertyAll(
                   RoundedRectangleBorder(
@@ -233,11 +234,7 @@ class _ActionSection extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF111827),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: const TextStyle(color: Color(0xFF111827)),
               ),
             ),
           ),
@@ -254,6 +251,7 @@ class _ActionSection extends StatelessWidget {
           overlayColor: const MaterialStatePropertyAll(Colors.transparent),
           shadowColor: const MaterialStatePropertyAll(Colors.transparent),
           surfaceTintColor: const MaterialStatePropertyAll(Colors.transparent),
+          textStyle: MaterialStatePropertyAll(buttonTextStyle),
           splashFactory: NoSplash.splashFactory,
           padding: const MaterialStatePropertyAll(
             EdgeInsets.symmetric(vertical: 14),
@@ -265,11 +263,7 @@ class _ActionSection extends StatelessWidget {
         onPressed: () => _close(context, onConfirm),
         child: Text(
           l10n.continueButton,
-          style: TextStyle(
-            color: colorScheme.onPrimary,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(color: colorScheme.onPrimary),
         ),
       ),
     );

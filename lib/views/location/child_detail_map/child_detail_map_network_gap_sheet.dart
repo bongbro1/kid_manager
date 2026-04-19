@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
@@ -52,7 +53,9 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
                     Text(
                       l10n.childLocationNetworkGapTitle,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.screenTitle.fontSize!,
                         fontWeight: FontWeight.w800,
                         color: Colors.black87,
                       ),
@@ -60,10 +63,15 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       l10n.childLocationNetworkGapSubtitle(
-                        LocationHistoryPresenter.formatDuration(l10n, gapDuration),
+                        LocationHistoryPresenter.formatDuration(
+                          l10n,
+                          gapDuration,
+                        ),
                       ),
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.sectionLabel.fontSize!,
                         height: 1.35,
                         color: Colors.grey.shade700,
                         fontWeight: FontWeight.w500,
@@ -93,7 +101,10 @@ class ChildDetailMapNetworkGapSheet extends StatelessWidget {
                 foregroundColor: Color(0xFFF57C00),
               ),
               ChildDetailMapTagChip(
-                text: LocationHistoryPresenter.formatDuration(l10n, gapDuration),
+                text: LocationHistoryPresenter.formatDuration(
+                  l10n,
+                  gapDuration,
+                ),
                 backgroundColor: const Color(0xFFF1F3F4),
                 foregroundColor: const Color(0xFF5F6368),
               ),

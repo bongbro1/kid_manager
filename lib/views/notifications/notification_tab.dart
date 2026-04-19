@@ -14,9 +14,6 @@ class NotificationTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NotificationScreen(
-      sources: sources,
-      systemOnly: systemOnly,
-    );
+    return NotificationScreen(sources: sources, systemOnly: systemOnly);
   }
 }

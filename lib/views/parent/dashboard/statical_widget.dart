@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 import 'package:table_calendar/table_calendar.dart';
+
 class BarWidget extends StatelessWidget {
   final double width;
   final double greyHeight;
@@ -29,8 +30,8 @@ class BarWidget extends StatelessWidget {
     final barColor = active
         ? scheme.primary
         : faded
-            ? scheme.outline.withOpacity(0.35)
-            : scheme.primary.withOpacity(0.4);
+        ? scheme.outline.withOpacity(0.35)
+        : scheme.primary.withOpacity(0.4);
 
     final labelColor = active
         ? scheme.primary
@@ -44,9 +45,7 @@ class BarWidget extends StatelessWidget {
           height: greyHeight,
           decoration: BoxDecoration(
             color: scheme.outline.withOpacity(0.16),
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(8),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
           child: Stack(
             children: [
@@ -83,14 +82,10 @@ class BarWidget extends StatelessWidget {
   }
 }
 
-
 class TooltipWidget extends StatelessWidget {
   final int value;
 
-  const TooltipWidget({
-    super.key,
-    required this.value,
-  });
+  const TooltipWidget({super.key, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -160,10 +155,7 @@ class _CustomRangeCalendarState extends State<CustomRangeCalendar> {
         borderRadius: BorderRadius.circular(20),
         color: scheme.surface,
         boxShadow: [
-          BoxShadow(
-            blurRadius: 12,
-            color: scheme.shadow.withOpacity(0.08),
-          ),
+          BoxShadow(blurRadius: 12, color: scheme.shadow.withOpacity(0.08)),
         ],
       ),
       child: TableCalendar(
@@ -196,54 +188,42 @@ class _CustomRangeCalendarState extends State<CustomRangeCalendar> {
         headerStyle: HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
-          titleTextStyle: textTheme.titleMedium?.copyWith(
+          titleTextStyle:
+              textTheme.titleMedium?.copyWith(
                 color: scheme.onSurface,
                 fontWeight: FontWeight.w600,
               ) ??
-              TextStyle(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-          leftChevronIcon: Icon(
-            Icons.chevron_left,
-            color: scheme.onSurface,
-          ),
-          rightChevronIcon: Icon(
-            Icons.chevron_right,
-            color: scheme.onSurface,
-          ),
-          decoration: BoxDecoration(
-            color: scheme.surface,
-          ),
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w600),
+          leftChevronIcon: Icon(Icons.chevron_left, color: scheme.onSurface),
+          rightChevronIcon: Icon(Icons.chevron_right, color: scheme.onSurface),
+          decoration: BoxDecoration(color: scheme.surface),
         ),
         daysOfWeekStyle: DaysOfWeekStyle(
-          weekdayStyle: textTheme.bodySmall?.copyWith(
+          weekdayStyle:
+              textTheme.bodySmall?.copyWith(
                 color: scheme.onSurface.withOpacity(0.7),
               ) ??
-              TextStyle(
-                color: scheme.onSurface.withOpacity(0.7),
-              ),
-          weekendStyle: textTheme.bodySmall?.copyWith(
+              TextStyle(color: scheme.onSurface.withOpacity(0.7)),
+          weekendStyle:
+              textTheme.bodySmall?.copyWith(
                 color: scheme.onSurface.withOpacity(0.7),
               ) ??
-              TextStyle(
-                color: scheme.onSurface.withOpacity(0.7),
-              ),
+              TextStyle(color: scheme.onSurface.withOpacity(0.7)),
         ),
         calendarStyle: CalendarStyle(
-          defaultTextStyle: textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurface,
-              ) ??
+          defaultTextStyle:
+              textTheme.bodyMedium?.copyWith(color: scheme.onSurface) ??
               TextStyle(color: scheme.onSurface),
-          weekendTextStyle: textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurface,
-              ) ??
+          weekendTextStyle:
+              textTheme.bodyMedium?.copyWith(color: scheme.onSurface) ??
               TextStyle(color: scheme.onSurface),
-          outsideTextStyle: textTheme.bodyMedium?.copyWith(
+          outsideTextStyle:
+              textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurface.withOpacity(0.35),
               ) ??
               TextStyle(color: scheme.onSurface.withOpacity(0.35)),
-          disabledTextStyle: textTheme.bodyMedium?.copyWith(
+          disabledTextStyle:
+              textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurface.withOpacity(0.25),
               ) ??
               TextStyle(color: scheme.onSurface.withOpacity(0.25)),
@@ -256,9 +236,7 @@ class _CustomRangeCalendarState extends State<CustomRangeCalendar> {
             color: scheme.primary,
             shape: BoxShape.circle,
           ),
-          withinRangeTextStyle: TextStyle(
-            color: scheme.onSurface,
-          ),
+          withinRangeTextStyle: TextStyle(color: scheme.onSurface),
           withinRangeDecoration: BoxDecoration(
             color: scheme.primary.withOpacity(0.10),
             shape: BoxShape.rectangle,

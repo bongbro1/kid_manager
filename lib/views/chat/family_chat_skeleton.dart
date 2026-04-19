@@ -31,9 +31,7 @@ class FamilyChatSkeletonScaffold extends StatelessWidget {
         body: const Column(
           children: [
             _FamilyChatMembersBarSkeleton(),
-            Expanded(
-              child: _FamilyChatMessagesSkeleton(),
-            ),
+            Expanded(child: _FamilyChatMessagesSkeleton()),
             _FamilyChatComposerSkeleton(),
           ],
         ),
@@ -97,11 +95,7 @@ class _FamilyChatMembersBarSkeleton extends StatelessWidget {
             children: [
               CircleAvatar(radius: 18, child: Icon(Icons.person, size: 18)),
               SizedBox(height: 8),
-              Text(
-                'Nguyen',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text('Nguyen', maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -136,11 +130,7 @@ class _FamilyChatMessagesSkeleton extends StatelessWidget {
           lines: ['Remember dinner', 'And finish homework'],
         ),
         SizedBox(height: 12),
-        _MessageBubbleSkeleton(
-          isMine: true,
-          sender: 'Me',
-          lines: ['Okay'],
-        ),
+        _MessageBubbleSkeleton(isMine: true, sender: 'Me', lines: ['Okay']),
       ],
     );
   }
@@ -162,8 +152,9 @@ class _MessageBubbleSkeleton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Row(
-      mainAxisAlignment:
-          isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isMine
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         if (!isMine) ...[
@@ -184,10 +175,7 @@ class _MessageBubbleSkeleton extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (!isMine) ...[
-                  Text(
-                    sender,
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
+                  Text(sender, style: Theme.of(context).textTheme.labelSmall),
                   const SizedBox(height: 6),
                 ],
                 for (final line in lines) ...[
@@ -224,9 +212,7 @@ class _FamilyChatComposerSkeleton extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         decoration: BoxDecoration(
           color: scheme.surface,
-          border: Border(
-            top: BorderSide(color: scheme.outlineVariant),
-          ),
+          border: Border(top: BorderSide(color: scheme.outlineVariant)),
         ),
         child: Row(
           children: [

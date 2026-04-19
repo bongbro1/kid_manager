@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
@@ -280,9 +281,7 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            sosId != null
-                ? l10n.parentLocationSosSent
-                : failureMessage,
+            sosId != null ? l10n.parentLocationSosSent : failureMessage,
           ),
         ),
       );
@@ -356,7 +355,8 @@ class _ChildLocationScreenState extends State<ChildLocationScreen> {
         final sosDockTop =
             topSafeInset +
             (_transientSafeRouteBanner != null ? 118.0 : 90.0) +
-            (hasSafeRouteHud ? (compactLayout ? 176.0 : 196.0) : 0.0) - 50;
+            (hasSafeRouteHud ? (compactLayout ? 176.0 : 196.0) : 0.0) -
+            50;
         final bottomControlDockBottom = math.max(
           bottomSafeInset + (ultraCompactLayout ? 22.0 : 28.0),
           hasSafeRouteHud && !ultraCompactLayout
@@ -584,9 +584,11 @@ class _SafeRouteNoticeBanner extends StatelessWidget {
                 child: Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFF166534),
-                    fontSize: 13,
+                    fontSize: Theme.of(
+                      context,
+                    ).appTypography.sectionLabel.fontSize!,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

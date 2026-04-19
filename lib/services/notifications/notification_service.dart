@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
@@ -147,8 +148,8 @@ class NotificationService {
     if (type == 'family_chat' || route == 'family_group_chat') {
       if (familyId == null || familyId.isEmpty) return;
 
-      navigator.push(
-        MaterialPageRoute(
+      await navigator.push(
+        AppPageTransitions.route(
           builder: (_) => FamilyGroupChatScreen(
             initialFamilyId: familyId,
             initialMessageId: messageId,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
@@ -27,11 +28,12 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
     final latestIndex = orderedHistory.indexWhere(
       (entry) => entry.timestamp == latest.timestamp,
     );
-    final effectiveLatestTransport = LocationHistoryPresenter.resolveEffectiveTransport(
-      orderedHistory,
-      latest,
-      indexHint: latestIndex,
-    );
+    final effectiveLatestTransport =
+        LocationHistoryPresenter.resolveEffectiveTransport(
+          orderedHistory,
+          latest,
+          indexHint: latestIndex,
+        );
     final transportColor = LocationHistoryPresenter.transportColor(
       effectiveLatestTransport,
     );
@@ -66,10 +68,9 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: (vm.isToday
-                              ? const Color(0xFF34A853)
-                              : Colors.grey)
-                          .withOpacity(0.22),
+                      color:
+                          (vm.isToday ? const Color(0xFF34A853) : Colors.grey)
+                              .withOpacity(0.22),
                       blurRadius: 0,
                       spreadRadius: 4,
                     ),
@@ -83,7 +84,9 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
                       ? l10n.childLocationLiveLabel
                       : l10n.childLocationSelectedHistoryLabel,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: Theme.of(
+                      context,
+                    ).appTypography.supporting.fontSize!,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
                     color: vm.isToday
@@ -104,7 +107,9 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
                 child: Text(
                   transportLabel,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: Theme.of(
+                      context,
+                    ).appTypography.supporting.fontSize!,
                     fontWeight: FontWeight.w700,
                     color: transportColor,
                   ),
@@ -130,7 +135,7 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
               vm.formatTimeLabelForTimestamp(latest.timestamp),
             ),
             style: TextStyle(
-              fontSize: 13,
+              fontSize: Theme.of(context).appTypography.sectionLabel.fontSize!,
               height: 1.35,
               color: Colors.grey.shade700,
             ),
@@ -192,7 +197,7 @@ class ChildDetailMapOverviewSheet extends StatelessWidget {
                 Text(
                   l10n.childLocationRecentPointsTitle,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: Theme.of(context).appTypography.body.fontSize!,
                     fontWeight: FontWeight.w800,
                     color: Colors.black87,
                   ),

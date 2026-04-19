@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/features/sessions/sessionstatus.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
@@ -337,7 +338,7 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
           style: textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 18,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         centerTitle: true,

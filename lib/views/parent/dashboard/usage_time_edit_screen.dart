@@ -3,8 +3,8 @@ import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/utils/time_window_utils.dart';
 import 'package:kid_manager/utils/usage_rule_utils.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
-import 'package:kid_manager/views/parent/dashboard/edit_screen_widgets/edit_screen_widgets.dart';
-import 'package:kid_manager/widgets/app/app_button.dart';
+import 'package:kid_manager/views/parent/dashboard/edit_screen_widgets/day_override_editor.dart';
+import 'package:kid_manager/views/parent/dashboard/edit_screen_widgets/main_usage_editor.dart';
 import 'package:kid_manager/widgets/app/app_overlay_sheet.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:provider/provider.dart';
@@ -65,18 +65,6 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
   late DateTime _headerMonth;
   DateTime? _selectedDate;
   DateTime _d(DateTime x) => DateTime(x.year, x.month, x.day);
-
-  List<String> _weekdayLabels(AppLocalizations l10n) {
-    return [
-      l10n.scheduleWeekdayMon,
-      l10n.scheduleWeekdayTue,
-      l10n.scheduleWeekdayWed,
-      l10n.scheduleWeekdayThu,
-      l10n.scheduleWeekdayFri,
-      l10n.scheduleWeekdaySat,
-      l10n.scheduleWeekdaySun,
-    ];
-  }
 
   final Map<DateTime, DotType> _dotsByDay = {};
 
@@ -284,389 +272,67 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
     final textTheme = theme.textTheme;
 
     Widget _buildOverrideView() {
-      final date = _editingOverrideDate!;
-      final theme = Theme.of(context);
-      final scheme = theme.colorScheme;
-      final textTheme = theme.textTheme;
-      final bottomSafe = MediaQuery.of(context).viewPadding.bottom;
-
-      return Column(
-        key: const ValueKey('override-view'),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: _closeOverrideEditor,
-                icon: const Icon(Icons.arrow_back),
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 6),
-                    Text(
-                      l10n.parentUsageDayRuleModalHint,
-                      textAlign: TextAlign.center,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurface.withOpacity(0.65),
-                        fontSize: 13,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      formatDate(date),
-                      textAlign: TextAlign.center,
-                      style: textTheme.titleMedium?.copyWith(
-                        color: scheme.onSurface,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 48),
-            ],
-          ),
-          const SizedBox(height: 20),
-          overrideCard(
-            icon: Icons.schedule,
-            title: l10n.parentUsageRuleFollowScheduleTitle,
-            subtitle: l10n.parentUsageRuleFollowScheduleSubtitle,
-            color: scheme.onSurface.withOpacity(0.6),
-            value: DayOverrideOption.followSchedule,
-            group: _editingOverrideOption,
-            onTap: () => setState(() {
-              _editingOverrideOption = DayOverrideOption.followSchedule;
-            }),
-          ),
-          const SizedBox(height: 12),
-          overrideCard(
-            icon: Icons.check_circle,
-            title: l10n.parentUsageRuleAllowAllDayTitle,
-            subtitle: l10n.parentUsageRuleAllowAllDaySubtitle,
-            color: Colors.green,
-            value: DayOverrideOption.allowFullDay,
-            group: _editingOverrideOption,
-            onTap: () => setState(() {
-              _editingOverrideOption = DayOverrideOption.allowFullDay;
-            }),
-          ),
-          const SizedBox(height: 12),
-          overrideCard(
-            icon: Icons.block,
-            title: l10n.parentUsageRuleBlockAllDayTitle,
-            subtitle: l10n.parentUsageRuleBlockAllDaySubtitle,
-            color: scheme.error,
-            value: DayOverrideOption.blockFullDay,
-            group: _editingOverrideOption,
-            onTap: () => setState(() {
-              _editingOverrideOption = DayOverrideOption.blockFullDay;
-            }),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: scheme.primary,
-                foregroundColor: scheme.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              onPressed: _saveEditingOverride,
-              child: Text(
-                l10n.saveButton,
-                style: textTheme.labelLarge?.copyWith(
-                  color: scheme.onPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Poppins',
-                ),
-              ),
-            ),
-          ),
-        ],
+      return DayOverrideEditor(
+        date: _editingOverrideDate!,
+        selectedOption: _editingOverrideOption,
+        onOptionChanged: (value) {
+          setState(() {
+            _editingOverrideOption = value;
+          });
+        },
+        onBack: _closeOverrideEditor,
+        onSave: _saveEditingOverride,
       );
     }
 
     Widget _buildMainEditorView() {
-      return Column(
-        key: const ValueKey('main'),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 6),
+      return MainUsageEditor(
+        rule: rule,
+        screenHeight: screenHeight,
+        gridMonth: _gridMonth,
+        headerMonth: _headerMonth,
+        selectedDate: _selectedDate,
+        dotsByDay: _dotsByDay,
 
-          Text(
-            l10n.parentUsageEditTitle,
-            textAlign: TextAlign.center,
-            style: textTheme.titleMedium?.copyWith(
-              color: scheme.onSurface,
-              fontWeight: FontWeight.w600,
-              fontSize: 18,
-            ),
-          ),
+        onCancel: onCancel,
+        onSave: onSavePressed,
 
-          const SizedBox(height: 18),
+        onToggleEnabled: (v) {
+          setState(() {
+            rule = rule.copyWith(enabled: v);
+          });
+        },
 
-          Container(
-            width: double.infinity,
-            height: 1,
-            color: theme.dividerTheme.color ?? scheme.outline,
-          ),
+        onAddWindow: addWindow,
+        onRemoveWindow: (i) => removeWindow(i),
+        onPickStart: (i) => pickStart(i),
+        onPickEnd: (i) => pickEnd(i),
 
-          const SizedBox(height: 8),
+        onWeekdaysChanged: (next) {
+          setState(() {
+            rule = rule.copyWith(weekdays: next);
+          });
+        },
 
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: screenHeight * 0.5),
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        l10n.parentUsageEnableUsage,
-                        style: textTheme.titleMedium?.copyWith(
-                          color: scheme.onSurface,
-                          fontWeight: FontWeight.w500,
-                          height: 1.38,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
+        onMonthChanged: (m) {
+          setState(() {
+            _gridMonth = DateTime(m.year, m.month, 1);
+            _headerMonth = _gridMonth;
+          });
+        },
 
-                      const Spacer(),
+        onDayTap: (cellDate) {
+          setState(() {
+            _selectedDate = cellDate;
+            _headerMonth = DateTime(cellDate.year, cellDate.month, 1);
 
-                      Switch(
-                        value: rule.enabled,
-                        onChanged: (v) {
-                          setState(() {
-                            rule = rule.copyWith(enabled: v);
-                          });
-                        },
+            final key = toKey(cellDate);
+            final current = overrides[key];
 
-                        /// 👇 màu theo theme
-                        activeColor: scheme.onPrimary, // thumb khi ON
-                        activeTrackColor: scheme.primary, // track khi ON
-
-                        inactiveThumbColor: scheme.outline, // thumb OFF
-                        inactiveTrackColor: scheme.outline.withOpacity(
-                          0.3,
-                        ), // track OFF
-
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        overlayColor: MaterialStatePropertyAll(
-                          Colors.transparent,
-                        ),
-                        splashRadius: 0,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Column(
-                    children: [
-                      ...List.generate(rule.windows.length, (i) {
-                        final w = rule.windows[i];
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: timeRangeRow(
-                            context: context,
-                            window: w,
-                            enabled: rule.enabled,
-                            onPickStart: () => pickStart(i),
-                            onPickEnd: () => pickEnd(i),
-                            onDelete: () => removeWindow(i),
-                          ),
-                        );
-                      }),
-                      if (rule.enabled)
-                        InkWell(
-                          onTap: addWindow,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            height: 48,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.add,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      l10n.parentUsageSelectAllowedDays,
-                      style: textTheme.titleMedium?.copyWith(
-                        color: scheme.onSurface,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                        height: 1.19,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Row(
-                    children: List.generate(7, (index) {
-                      final day = index + 1;
-                      final selected = rule.weekdays.contains(day);
-
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: rule.enabled
-                              ? () {
-                                  final next = {...rule.weekdays};
-                                  if (selected) {
-                                    next.remove(day);
-                                  } else {
-                                    next.add(day);
-                                  }
-
-                                  setState(() {
-                                    rule = rule.copyWith(weekdays: next);
-                                  });
-                                }
-                              : null,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            height: 36,
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: !rule.enabled
-                                  ? scheme.surface
-                                  : selected
-                                  ? scheme.primary
-                                  : scheme.surface,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: selected
-                                    ? scheme.primary
-                                    : scheme.outline.withOpacity(0.35),
-                              ),
-                            ),
-                            child: Text(
-                              _weekdayLabels(l10n)[index],
-                              style: textTheme.bodySmall?.copyWith(
-                                color: !rule.enabled
-                                    ? scheme.onSurface.withOpacity(0.35)
-                                    : selected
-                                    ? scheme.onPrimary
-                                    : scheme.onSurface.withOpacity(0.65),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-
-                  const SizedBox(height: 27),
-
-                  buildCalendar(
-                    context: context,
-                    l10n: l10n,
-                    month: _gridMonth,
-                    headerMonth: _headerMonth,
-                    selected: _selectedDate,
-                    dotsByDay: _dotsByDay,
-                    onMonthChanged: (m) => setState(() {
-                      _gridMonth = DateTime(m.year, m.month, 1);
-                      _headerMonth = _gridMonth;
-                    }),
-                    onDayTap: (cellDate) {
-                      setState(() {
-                        _selectedDate = cellDate;
-                        _headerMonth = DateTime(
-                          cellDate.year,
-                          cellDate.month,
-                          1,
-                        );
-
-                        final key = toKey(cellDate);
-                        final current = overrides[key];
-
-                        _editingOverrideDate = cellDate;
-                        _editingOverrideOption = toOption(current);
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          Center(
-            child: Container(
-              width: 30,
-              height: 3,
-              decoration: BoxDecoration(
-                color: scheme.outline,
-                borderRadius: BorderRadius.circular(100),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  text: l10n.cancelButton,
-                  height: 50,
-                  backgroundColor: scheme.primaryContainer,
-                  foregroundColor: scheme.primary,
-                  fontSize: 15,
-                  lineHeight: 1.38,
-                  fontWeight: FontWeight.w700,
-                  onPressed: onCancel,
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: AppButton(
-                  text: l10n.saveButton,
-                  height: 50,
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
-                  fontSize: 15,
-                  lineHeight: 1.38,
-                  fontWeight: FontWeight.w700,
-                  onPressed: onSavePressed,
-                ),
-              ),
-            ],
-          ),
-        ],
+            _editingOverrideDate = cellDate;
+            _editingOverrideOption = toOption(current);
+          });
+        },
       );
     }
 
@@ -689,133 +355,6 @@ class _UsageTimeEditScreenState extends State<UsageTimeEditScreen> {
 
         if (vm.loading) const LoadingOverlay(),
       ],
-    );
-  }
-}
-
-class DayOverrideView extends StatelessWidget {
-  final DateTime date;
-  final DayOverrideOption selected;
-  final ValueChanged<DayOverrideOption> onChanged;
-  final VoidCallback onSave;
-  final VoidCallback onBack;
-
-  const DayOverrideView({
-    super.key,
-    required this.date,
-    required this.selected,
-    required this.onChanged,
-    required this.onSave,
-    required this.onBack,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-    final bottomSafe = MediaQuery.of(context).viewPadding.bottom;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        bottomSafe > 0 ? bottomSafe + 10 : 24,
-      ),
-      child: Column(
-        key: const ValueKey('day-override-view'),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back)),
-              Expanded(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 6),
-                    Text(
-                      l10n.parentUsageDayRuleModalHint,
-                      textAlign: TextAlign.center,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurface.withOpacity(0.65),
-                        fontSize: 13,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      formatDate(date),
-                      textAlign: TextAlign.center,
-                      style: textTheme.titleMedium?.copyWith(
-                        color: scheme.onSurface,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 48),
-            ],
-          ),
-          const SizedBox(height: 20),
-          overrideCard(
-            icon: Icons.schedule,
-            title: l10n.parentUsageRuleFollowScheduleTitle,
-            subtitle: l10n.parentUsageRuleFollowScheduleSubtitle,
-            color: scheme.onSurface.withOpacity(0.6),
-            value: DayOverrideOption.followSchedule,
-            group: selected,
-            onTap: () => onChanged(DayOverrideOption.followSchedule),
-          ),
-          const SizedBox(height: 12),
-          overrideCard(
-            icon: Icons.check_circle,
-            title: l10n.parentUsageRuleAllowAllDayTitle,
-            subtitle: l10n.parentUsageRuleAllowAllDaySubtitle,
-            color: Colors.green,
-            value: DayOverrideOption.allowFullDay,
-            group: selected,
-            onTap: () => onChanged(DayOverrideOption.allowFullDay),
-          ),
-          const SizedBox(height: 12),
-          overrideCard(
-            icon: Icons.block,
-            title: l10n.parentUsageRuleBlockAllDayTitle,
-            subtitle: l10n.parentUsageRuleBlockAllDaySubtitle,
-            color: scheme.error,
-            value: DayOverrideOption.blockFullDay,
-            group: selected,
-            onTap: () => onChanged(DayOverrideOption.blockFullDay),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: scheme.primary,
-                foregroundColor: scheme.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              onPressed: onSave,
-              child: Text(
-                l10n.saveButton,
-                style: textTheme.labelLarge?.copyWith(
-                  color: scheme.onPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Poppins',
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

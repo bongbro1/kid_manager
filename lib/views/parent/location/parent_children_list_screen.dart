@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/helpers/phone/phone_helps.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/user/app_user_extensions.dart';
@@ -30,7 +32,7 @@ class ParentChildrenListScreen extends StatelessWidget {
           style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
-            fontSize: 18,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
       ),
@@ -52,7 +54,7 @@ class ParentChildrenListScreen extends StatelessWidget {
               }
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                AppPageTransitions.route(
                   builder: (_) => ChildDetailMapScreen(
                     childId: member.uid,
                     childAvatarUrl: member.avatarUrl,
@@ -67,7 +69,7 @@ class ParentChildrenListScreen extends StatelessWidget {
             onChat: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                AppPageTransitions.route(
                   builder: (_) => const FamilyGroupChatScreen(),
                 ),
               );

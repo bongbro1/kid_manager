@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/utils/notification_helper.dart';
@@ -92,7 +93,7 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
           style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
             color: colorScheme.onSurface,
-            fontSize: 18,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         centerTitle: true,
@@ -356,7 +357,7 @@ class _MemoryDayCard extends StatelessWidget {
                 ? l10n.memoryDayDateRepeatText(dateText)
                 : l10n.memoryDayDateText(dateText),
             style: textTheme.bodySmall?.copyWith(
-              fontSize: 12.5,
+              fontSize: Theme.of(context).appTypography.supporting.fontSize!,
               height: 1.3,
               color: colorScheme.onSurface.withOpacity(0.65),
             ),
@@ -368,7 +369,7 @@ class _MemoryDayCard extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: textTheme.bodySmall?.copyWith(
-                fontSize: 12.5,
+                fontSize: Theme.of(context).appTypography.supporting.fontSize!,
                 height: 1.35,
                 color: colorScheme.onSurface.withOpacity(0.5),
               ),

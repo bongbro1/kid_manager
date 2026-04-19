@@ -19,20 +19,14 @@ class AppAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final avatarUrl = (user.avatarUrl ?? '').trim();
     final hasAvatar = avatarUrl.isNotEmpty;
-    
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
         ColorFiltered(
           colorFilter: grayscale
-              ? const ColorFilter.mode(
-            Colors.grey,
-            BlendMode.saturation,
-          )
-              : const ColorFilter.mode(
-            Colors.transparent,
-            BlendMode.multiply,
-          ),
+              ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
+              : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
           child: ClipOval(
             child: hasAvatar
                 ? Image.network(
@@ -66,10 +60,7 @@ class AppAvatar extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isOnline! ? Colors.green : Colors.grey,
-                border: Border.all(
-                  color: Colors.white,
-                  width: 2,
-                ),
+                border: Border.all(color: Colors.white, width: 2),
               ),
             ),
           ),

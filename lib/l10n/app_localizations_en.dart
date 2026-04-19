@@ -1097,6 +1097,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationFilterTitle => 'Filter notifications';
 
   @override
+  String get notificationFilterTypeTitle => 'Notification type';
+
+  @override
   String get notificationFilterAll => 'All';
 
   @override
@@ -1110,6 +1113,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationFilterSystem => 'System notifications';
+
+  @override
+  String get notificationReadFilterTitle => 'Read status';
+
+  @override
+  String get notificationReadFilterAll => 'All statuses';
+
+  @override
+  String get notificationReadFilterUnread => 'Unread';
+
+  @override
+  String get notificationReadFilterRead => 'Read';
+
+  @override
+  String get notificationMarkAllRead => 'Mark all as read';
+
+  @override
+  String get notificationMarkAllReadSuccess =>
+      'All notifications have been marked as read';
+
+  @override
+  String get notificationMarkAllReadError =>
+      'Could not mark all notifications as read';
+
+  @override
+  String get notificationAllReadAlready => 'All notifications are already read';
 
   @override
   String get notificationSearchHint => 'Search notifications';

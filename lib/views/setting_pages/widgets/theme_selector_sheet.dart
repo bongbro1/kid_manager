@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/storage_service.dart';
@@ -47,6 +48,7 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Container(
@@ -75,18 +77,13 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
 
           Text(
             l10n.themeSelectorTitle,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Poppins',
-              fontSize: 18
-            ),
+            style: theme.textTheme.titleMedium?.copyWith(),
           ),
           const SizedBox(height: 6),
           Text(
             l10n.themeSelectorSubtitle,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(.6),
-              fontFamily: 'Poppins',
             ),
           ),
           const SizedBox(height: 22),
@@ -128,6 +125,7 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               );
             },
           ),
+          const SizedBox(height: 20),
 
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -148,8 +146,10 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
                 Expanded(
                   child: Text(
                     l10n.themeSelectorDarkMode,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.itemTitle.fontSize!,
                     ),
                   ),
                 ),
@@ -181,7 +181,6 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                elevation: 0,
               ),
               onPressed: () {
                 final color = colors[selectedColor];
@@ -189,10 +188,8 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               },
               child: Text(
                 l10n.themeSelectorApplyButton,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: scheme.onPrimary,
                 ),
               ),
             ),

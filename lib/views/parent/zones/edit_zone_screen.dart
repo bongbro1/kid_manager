@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/helpers/zone/zone_circle.dart';
 import 'package:kid_manager/helpers/zone/zone_overlap.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -411,7 +412,7 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                   const Spacer(),
                                   Text(
                                     '${_radiusM.toStringAsFixed(0)} m',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
@@ -436,11 +437,15 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
-                                  onPressed: _isOverlapping ? null : _onSavePressed,
+                                  onPressed: _isOverlapping
+                                      ? null
+                                      : _onSavePressed,
                                   child: Text(
                                     l10n.authContinueButton,
-                                    style: const TextStyle(
-                                      fontSize: 16,
+                                    style: TextStyle(
+                                      fontSize: Theme.of(
+                                        context,
+                                      ).appTypography.title.fontSize!,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white,
                                       letterSpacing: 0.2,
@@ -480,14 +485,18 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                                       Expanded(
                                         child: RichText(
                                           text: TextSpan(
-                                            style: const TextStyle(
-                                              fontSize: 13.5,
+                                            style: TextStyle(
+                                              fontSize: Theme.of(context)
+                                                  .appTypography
+                                                  .sectionLabel
+                                                  .fontSize!,
                                               height: 1.45,
                                               color: Color(0xFF991B1B),
                                             ),
                                             children: [
                                               TextSpan(
-                                                text: l10n.zonesOverlappingPrefix,
+                                                text:
+                                                    l10n.zonesOverlappingPrefix,
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w600,
                                                 ),

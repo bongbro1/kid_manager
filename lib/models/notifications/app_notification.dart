@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/models/notifications/blocked_app_data.dart';
 
 /// Doc đang nằm ở đâu (runtime only)
-enum NotificationStore { global, userInbox ,chatInbox}
+enum NotificationStore { global, userInbox, chatInbox }
 
 /// Birthday notification phase
 enum BirthdayPhase {
-  today,     // Sinh nhật hôm nay
+  today, // Sinh nhật hôm nay
   countdown, // Đếm ngược (7-1 ngày trước)
 }
 
@@ -19,7 +19,7 @@ enum NotificationType {
   usageLimitExceeded,
   schedule,
   memoryDay,
-  importExcel, 
+  importExcel,
   battery,
   birthday,
   zone, // ✅ thêm
@@ -35,6 +35,8 @@ enum NotificationFilter {
   reminder, // nhắc nhở
   system,
 }
+
+enum NotificationReadFilter { all, unread, read }
 
 extension NotificationTypeX on NotificationType {
   String get value {
@@ -95,6 +97,7 @@ extension NotificationTypeX on NotificationType {
         return NotificationFilter.system;
     }
   }
+
   /// Convert từ Firestore string → enum
   static NotificationType fromString(String value) {
     final v = value.toString().trim().toLowerCase();
@@ -178,7 +181,12 @@ extension NotificationTypeX on NotificationType {
           icon: Icons.star_border_rounded,
           bgColor: Color.fromARGB(255, 250, 255, 176),
           borderColor: Color.fromARGB(255, 192, 189, 0),
-          iconColor: Color.fromARGB(255, 192, 189, 0), //Color.fromARGB(255, 252, 143, 0),
+          iconColor: Color.fromARGB(
+            255,
+            192,
+            189,
+            0,
+          ), //Color.fromARGB(255, 252, 143, 0),
         );
 
       case NotificationType.importExcel:
@@ -268,6 +276,7 @@ class AppNotification {
 
   final DateTime? createdAt;
   final Map<String, dynamic> data;
+
   /// runtime: doc ở global hay userInbox
   final NotificationStore store;
 
@@ -286,6 +295,36 @@ class AppNotification {
     required this.store,
   });
 
+  AppNotification copyWith({
+    String? id,
+    String? senderId,
+    String? receiverId,
+    String? familyId,
+    String? type,
+    String? title,
+    String? body,
+    bool? isRead,
+    String? status,
+    DateTime? createdAt,
+    Map<String, dynamic>? data,
+    NotificationStore? store,
+  }) {
+    return AppNotification(
+      id: id ?? this.id,
+      senderId: senderId ?? this.senderId,
+      receiverId: receiverId ?? this.receiverId,
+      familyId: familyId ?? this.familyId,
+      type: type ?? this.type,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      isRead: isRead ?? this.isRead,
+      status: status ?? this.status,
+      data: data ?? this.data,
+      createdAt: createdAt ?? this.createdAt,
+      store: store ?? this.store,
+    );
+  }
+
   factory AppNotification.fromMap(
     String id,
     Map<String, dynamic> map, {
@@ -299,7 +338,8 @@ class AppNotification {
       dataMap['expiresAt'] = map['expiresAt'];
     }
     final rawTitle = (map['title'] ?? '').toString();
-    final rawEventKey = (map['eventKey'] ?? dataMap['eventKey'] ?? '').toString();
+    final rawEventKey = (map['eventKey'] ?? dataMap['eventKey'] ?? '')
+        .toString();
     final normalizedEventKey = _normalizeLocalizedKey(
       rawEventKey.trim().isNotEmpty ? rawEventKey : rawTitle,
     );
@@ -314,7 +354,9 @@ class AppNotification {
         ? (dataMap['message']?.toString() ?? rawBody)
         : rawBody;
 
-    if (normalizedEventKey.isNotEmpty && (dataMap['eventKey'] == null || '${dataMap['eventKey']}'.trim().isEmpty)) {
+    if (normalizedEventKey.isNotEmpty &&
+        (dataMap['eventKey'] == null ||
+            '${dataMap['eventKey']}'.trim().isEmpty)) {
       dataMap['eventKey'] = normalizedEventKey;
     }
 
@@ -324,7 +366,9 @@ class AppNotification {
       receiverId: (map['receiverId'] ?? '').toString(),
       familyId: map['familyId']?.toString(),
       type: (map['type'] ?? '').toString(),
-      title: resolvedTitle.trim().isNotEmpty ? resolvedTitle : normalizedEventKey,
+      title: resolvedTitle.trim().isNotEmpty
+          ? resolvedTitle
+          : normalizedEventKey,
       body: resolvedBody,
       isRead: (map['isRead'] ?? false) == true,
       status: (map['status'] ?? 'pending').toString(),
