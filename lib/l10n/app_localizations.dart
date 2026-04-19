@@ -6813,6 +6813,48 @@ abstract class AppLocalizations {
   /// **'Firestore is temporarily unavailable'**
   String get firestoreUnavailable;
 
+  /// No description provided for @appOfflineBannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You are offline'**
+  String get appOfflineBannerTitle;
+
+  /// No description provided for @appOfflineBannerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The data shown may not be the latest.'**
+  String get appOfflineBannerSubtitle;
+
+  /// No description provided for @appNetworkActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Network is unstable. Please try again.'**
+  String get appNetworkActionFailed;
+
+  /// No description provided for @appRetryWhenOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'You are offline. Try again when the connection is back.'**
+  String get appRetryWhenOnline;
+
+  /// No description provided for @childConnectionLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost'**
+  String get childConnectionLost;
+
+  /// No description provided for @childNoLocationYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No location yet'**
+  String get childNoLocationYet;
+
+  /// No description provided for @childLastSeenAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen {time}'**
+  String childLastSeenAt(Object time);
+
   /// No description provided for @firestoreGenericError.
   ///
   /// In en, this message translates to:

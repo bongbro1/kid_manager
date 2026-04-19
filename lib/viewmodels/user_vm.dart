@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/core/network/app_network_error_mapper.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_profile_patch.dart';
@@ -568,6 +569,15 @@ class UserVm extends ChangeNotifier {
       await _userRepo.patchUserProfile(uid: userId, patch: patch);
       return true;
     } catch (e) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        _error = networkError.message;
+        notifyListeners();
+        throw networkError;
+      }
       _error = e.toString();
       notifyListeners();
       return false;
@@ -646,6 +656,15 @@ class UserVm extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        _error = networkError.message;
+        notifyListeners();
+        throw networkError;
+      }
       debugPrint("Update photo error: $e");
       return false;
     }

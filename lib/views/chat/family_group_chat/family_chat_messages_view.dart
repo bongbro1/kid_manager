@@ -56,6 +56,51 @@ class FamilyChatMessagesView extends StatelessWidget {
     return l10n.familyChatMemberFallback;
   }
 
+  bool _isSameCalendarDay(DateTime left, DateTime right) {
+    return left.year == right.year &&
+        left.month == right.month &&
+        left.day == right.day;
+  }
+
+  bool _shouldShowDaySeparator(List<FamilyChatMessage> messages, int index) {
+    final createdAt = messages[index].createdAt?.toLocal();
+    if (createdAt == null) {
+      return false;
+    }
+    if (index == messages.length - 1) {
+      return true;
+    }
+
+    final olderCreatedAt = messages[index + 1].createdAt?.toLocal();
+    if (olderCreatedAt == null) {
+      return true;
+    }
+
+    return !_isSameCalendarDay(createdAt, olderCreatedAt);
+  }
+
+  String _formatDaySeparatorLabel(BuildContext context, DateTime createdAt) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final localCreatedAt = createdAt.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(
+      localCreatedAt.year,
+      localCreatedAt.month,
+      localCreatedAt.day,
+    );
+    final diffDays = today.difference(target).inDays;
+
+    if (diffDays == 0) {
+      return locale.startsWith('vi') ? 'Hôm nay' : 'Today';
+    }
+    if (diffDays == 1) {
+      return locale.startsWith('vi') ? 'Hôm qua' : 'Yesterday';
+    }
+
+    return DateFormat('dd/MM/yyyy', locale).format(localCreatedAt);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -93,27 +138,76 @@ class FamilyChatMessagesView extends StatelessWidget {
           itemBuilder: (context, index) {
             final message = messages[index];
             final isMine = message.senderUid == myUid;
+            final showDaySeparator = _shouldShowDaySeparator(messages, index);
+            final daySeparatorLabel =
+                showDaySeparator && message.createdAt != null
+                ? _formatDaySeparatorLabel(context, message.createdAt!)
+                : null;
 
             return Padding(
               key: ValueKey('server-${message.id}'),
               padding: const EdgeInsets.only(bottom: 8),
-              child: Align(
-                alignment:
-                    isMine ? Alignment.centerRight : Alignment.centerLeft,
-                child: FamilyChatMessageBubble(
-                  message: message,
-                  isMine: isMine,
-                  stickerCatalog: stickerCatalog,
-                  displaySenderName: _resolveSenderName(message, l10n),
-                  onRetry: isMine && message.verifyState == 'failed'
-                      ? () => unawaited(onRetryMessage(message))
-                      : null,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (daySeparatorLabel != null) ...[
+                    FamilyChatDaySeparator(label: daySeparatorLabel),
+                    const SizedBox(height: 6),
+                  ],
+                  Align(
+                    alignment:
+                        isMine ? Alignment.centerRight : Alignment.centerLeft,
+                    child: FamilyChatMessageBubble(
+                      message: message,
+                      isMine: isMine,
+                      stickerCatalog: stickerCatalog,
+                      displaySenderName: _resolveSenderName(message, l10n),
+                      onRetry: isMine && message.verifyState == 'failed'
+                          ? () => unawaited(onRetryMessage(message))
+                          : null,
+                    ),
+                  ),
+                ],
               ),
             );
           },
         );
       },
+    );
+  }
+}
+
+class FamilyChatDaySeparator extends StatelessWidget {
+  const FamilyChatDaySeparator({
+    super.key,
+    required this.label,
+  });
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: familyChatSurfaceColor(scheme).withOpacity(0.58),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: familyChatBorderColor(scheme).withOpacity(0.45),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: scheme.onSurfaceVariant.withOpacity(0.86),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }

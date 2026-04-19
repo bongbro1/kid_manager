@@ -1,8 +1,10 @@
 ﻿import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/responsive.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
@@ -35,6 +37,10 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const _emailFieldKey = ValueKey('login-email-field');
+  static const _passwordFieldKey = ValueKey('login-password-field');
+  static const _loginButtonKey = ValueKey('login-submit-button');
+
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool rememberPassword = false;
@@ -85,7 +91,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final cred = await authVM.login(email, password);
+      final cred = await runGuardedNetworkAction<UserCredential>(
+        context,
+        action: () => authVM.login(email, password),
+      );
+      if (cred == null) {
+        return;
+      }
       final uid = cred.user!.uid;
 
       unawaited(storage.setString(StorageKeys.uid, uid));
@@ -110,6 +122,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await _handleLoginError(e);
     }
+  }
+
+  Future<void> _handleSocialLogin(Future<void> Function() action) async {
+    final authVm = context.read<AuthVM>();
+    final ok = await runGuardedNetworkVoidAction(context, action: action);
+    if (!ok || !mounted) return;
+
+    final error = authVm.error?.trim();
+    if (error == null || error.isEmpty) {
+      return;
+    }
+
+    AlertService.showSnack(
+      error.replaceFirst('Exception: ', ''),
+      isError: true,
+    );
   }
   Future<void> _handleLoginError(Object e) async {
     if (!mounted) return;
@@ -178,16 +206,16 @@ class _LoginScreenState extends State<LoginScreen> {
     return showDialog<bool>(
       context: dialogContext,
       builder: (dialogContext) => AlertDialog(
-        title: const Text("TÃ i khoáº£n chÆ°a kÃ­ch hoáº¡t"),
-        content: const Text("Báº¡n cÃ³ muá»‘n nháº­p OTP ngay khÃ´ng?"),
+        title: const Text("Tài khoản chưa kích hoạt"),
+        content: const Text("Bạn có muốn nhập OTP ngay không?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text("Äá»ƒ sau"),
+            child: const Text("Để sau"),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text("XÃ¡c thá»±c ngay"),
+            child: const Text("Xác thực ngay"),
           ),
         ],
       ),
@@ -307,6 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 21),
                               AuthTextField(
                                 controller: _emailCtrl,
+                                fieldKey: _emailFieldKey,
                                 hintText: l10n.authEnterEmailHint,
                                 keyboardType: TextInputType.emailAddress,
                                 prefixSvg: 'assets/icons/user.svg',
@@ -314,6 +343,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 1),
                               AuthTextField(
                                 controller: _passwordCtrl,
+                                fieldKey: _passwordFieldKey,
                                 hintText: l10n.authEnterPasswordHint,
                                 keyboardType: TextInputType.text,
                                 obscureText: true,
@@ -430,6 +460,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   maxWidth: 360,
                                 ),
                                 child: AppButton(
+                                  key: _loginButtonKey,
                                   height: 60,
                                   text: l10n.authLoginButton,
                                   fontSize: 18,
@@ -480,29 +511,39 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/google.svg',
-                                      () => vm.loginWithGoogle(),
+                                      () => unawaited(
+                                        _handleSocialLogin(vm.loginWithGoogle),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/facebook.svg',
-                                      () => vm.loginWithFacebook(),
+                                      () => unawaited(
+                                        _handleSocialLogin(
+                                          vm.loginWithFacebook,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/apple.svg',
-                                      () => vm.loginWithApple(),
+                                      () => unawaited(
+                                        _handleSocialLogin(vm.loginWithApple),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/mobile.svg',
-                                      () => PhoneAuthDialog.showPhoneDialog(
-                                        context,
+                                      () => unawaited(
+                                        PhoneAuthDialog.showPhoneDialog(
+                                          context,
+                                        ),
                                       ),
                                     ),
                                   ),

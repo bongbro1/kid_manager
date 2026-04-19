@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:kid_manager/core/network/app_network_error_mapper.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class NotificationRepository {
   final FirebaseFirestore _fs;
@@ -300,29 +302,73 @@ class NotificationRepository {
   }
 
   Future<void> markAsReadGlobal(String id) async {
-    await _fs.collection('notifications').doc(id).update({'isRead': true});
+    try {
+      await _fs.collection('notifications').doc(id).update({'isRead': true});
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 
   Future<void> deleteGlobal(String id) async {
-    await _fs.collection('notifications').doc(id).delete();
+    try {
+      await _fs.collection('notifications').doc(id).delete();
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 
   Future<void> markAsReadInbox(String uid, String id) async {
-    await _fs
-        .collection('users')
-        .doc(uid)
-        .collection('notifications')
-        .doc(id)
-        .update({'isRead': true});
+    try {
+      await _fs
+          .collection('users')
+          .doc(uid)
+          .collection('notifications')
+          .doc(id)
+          .update({'isRead': true});
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 
   Future<void> deleteInbox(String uid, String id) async {
-    await _fs
-        .collection('users')
-        .doc(uid)
-        .collection('notifications')
-        .doc(id)
-        .delete();
+    try {
+      await _fs
+          .collection('users')
+          .doc(uid)
+          .collection('notifications')
+          .doc(id)
+          .delete();
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 
 
@@ -346,160 +392,205 @@ class NotificationRepository {
         .snapshots()
         .map(
           (snap) => snap.docs
-          .map(
-            (d) => AppNotification.fromMap(
-          d.id,
-          d.data(),
-          store: NotificationStore.chatInbox,
-        ),
-      )
-          .toList(),
-    );
+              .map(
+                (d) => AppNotification.fromMap(
+                  d.id,
+                  d.data(),
+                  store: NotificationStore.chatInbox,
+                ),
+              )
+              .toList(),
+        );
   }
+
   Future<NotificationDetailModel> getNotificationDetailByItem(
-      String? uid,
-      AppNotification n,
-      ) async {
-    late final DocumentReference<Map<String, dynamic>> docRef;
+    String? uid,
+    AppNotification n,
+  ) async {
+    try {
+      late final DocumentReference<Map<String, dynamic>> docRef;
 
-    switch (n.store) {
-      case NotificationStore.userInbox:
-        docRef = _fs.collection('users').doc(uid).collection('notifications').doc(n.id);
-        break;
-      case NotificationStore.chatInbox:
-        docRef = _fs.collection('users').doc(uid).collection('chatNotifications').doc(n.id);
-        break;
-      case NotificationStore.global:
-        docRef = _fs.collection('notifications').doc(n.id);
-        break;
+      switch (n.store) {
+        case NotificationStore.userInbox:
+          docRef = _fs
+              .collection('users')
+              .doc(uid)
+              .collection('notifications')
+              .doc(n.id);
+          break;
+        case NotificationStore.chatInbox:
+          docRef = _fs
+              .collection('users')
+              .doc(uid)
+              .collection('chatNotifications')
+              .doc(n.id);
+          break;
+        case NotificationStore.global:
+          docRef = _fs.collection('notifications').doc(n.id);
+          break;
+      }
+
+      final doc = await docRef.get();
+      if (!doc.exists) throw Exception('Notification not found');
+
+      final map = doc.data()!;
+      final type = (map['type'] ?? '').toString();
+      final data = Map<String, dynamic>.from(map['data'] ?? {});
+      if (!data.containsKey('eventCategory') && map['eventCategory'] != null) {
+        data['eventCategory'] = map['eventCategory'];
+      }
+      if (!data.containsKey('expiresAt') && map['expiresAt'] != null) {
+        data['expiresAt'] = map['expiresAt'];
+      }
+      final rawContent = (map['body'] ?? '').toString();
+      final content = rawContent.startsWith('tracking.')
+          ? (data['message']?.toString() ?? rawContent)
+          : rawContent;
+
+      return NotificationDetailModel(
+        id: doc.id,
+        title: (map['title'] ?? map['senderName'] ?? '').toString(),
+        content: content,
+        createdAt: map['createdAt'] != null
+            ? (map['createdAt'] as Timestamp).toDate()
+            : DateTime.now(),
+        type: type,
+        data: data,
+      );
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
     }
-
-    final doc = await docRef.get();
-    if (!doc.exists) throw Exception("Notification not found");
-
-    final map = doc.data()!;
-    final type = (map['type'] ?? '').toString();
-    final data = Map<String, dynamic>.from(map['data'] ?? {});
-    if (!data.containsKey('eventCategory') && map['eventCategory'] != null) {
-      data['eventCategory'] = map['eventCategory'];
-    }
-    if (!data.containsKey('expiresAt') && map['expiresAt'] != null) {
-      data['expiresAt'] = map['expiresAt'];
-    }
-    final rawContent = (map['body'] ?? '').toString();
-    final content = rawContent.startsWith('tracking.')
-        ? (data['message']?.toString() ?? rawContent)
-        : rawContent;
-
-    return NotificationDetailModel(
-      id: doc.id,
-      title: (map['title'] ?? map['senderName'] ?? '').toString(),
-      content: content,
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : DateTime.now(),
-      type: type,
-      data: data,
-    );
   }
 
   Future<AppNotification?> getItemById(String id) async {
-    final doc = await _fs.collection('notifications').doc(id).get();
+    try {
+      final doc = await _fs.collection('notifications').doc(id).get();
 
-    if (!doc.exists || doc.data() == null) return null;
+      if (!doc.exists || doc.data() == null) return null;
 
-    return AppNotification.fromDoc(doc, store: NotificationStore.global);
+      return AppNotification.fromDoc(doc, store: NotificationStore.global);
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 
   Future<void> deleteChatNotificationsForFamily({
     required String uid,
     required String familyId,
   }) async {
-    final snap = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('chatNotifications')
-        .where('type', isEqualTo: 'family_chat')
-        .where('familyId', isEqualTo: familyId)
-        .get();
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('chatNotifications')
+          .where('type', isEqualTo: 'family_chat')
+          .where('familyId', isEqualTo: familyId)
+          .get();
 
-    if (snap.docs.isEmpty) return;
+      if (snap.docs.isEmpty) return;
 
-    final batch = FirebaseFirestore.instance.batch();
-    for (final doc in snap.docs) {
-      batch.delete(doc.reference);
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in snap.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
     }
-    await batch.commit();
   }
 
   Future<void> markFamilyChatRead({
     required String familyId,
     required String uid,
   }) async {
-    await _functions.httpsCallable('markFamilyChatRead').call();
+    try {
+      await _functions.httpsCallable('markFamilyChatRead').call();
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 
   Future<NotificationDetailModel?> getNotificationDetail(String id) async {
-    final doc = await _fs.collection('notifications').doc(id).get();
+    try {
+      final doc = await _fs.collection('notifications').doc(id).get();
 
-    if (!doc.exists) {
-      throw Exception("Notification not found");
+      if (!doc.exists) {
+        throw Exception('Notification not found');
+      }
+
+      final map = doc.data()!;
+      final type = map['type'] ?? '';
+      final data = Map<String, dynamic>.from(map['data'] ?? {});
+      if (!data.containsKey('eventCategory') && map['eventCategory'] != null) {
+        data['eventCategory'] = map['eventCategory'];
+      }
+      if (!data.containsKey('expiresAt') && map['expiresAt'] != null) {
+        data['expiresAt'] = map['expiresAt'];
+      }
+
+      final rawContent = (map['body'] ?? '').toString();
+      String content = rawContent.startsWith('tracking.')
+          ? (data['message']?.toString() ?? rawContent)
+          : rawContent;
+
+      if (type == NotificationType.blockedApp.value) {
+        final appName = data['appName'] ?? '';
+        final blockedAt = data['blockedAt'] ?? '';
+        final allowedFrom = data['allowedFrom'] ?? '';
+        final allowedTo = data['allowedTo'] ?? '';
+
+        content =
+            '\u0110\u00e3 m\u1edf \u1ee9ng d\u1ee5ng $appName l\u00fac $blockedAt '
+            'ngo\u00e0i khung gi\u1edd cho ph\u00e9p ($allowedFrom - $allowedTo). H\u1ec7 th\u1ed1ng \u0111\u00e3 t\u1ef1 \u0111\u1ed9ng ch\u1eb7n \u1ee9ng d\u1ee5ng.';
+      }
+
+      return NotificationDetailModel(
+        id: doc.id,
+        title: (map['title'] ?? '').toString(),
+        content: content,
+        createdAt: map['createdAt'] != null
+            ? (map['createdAt'] as Timestamp).toDate()
+            : DateTime.now(),
+        type: type,
+        data: data,
+      );
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
     }
-
-    final map = doc.data()!;
-    final type = map['type'] ?? '';
-    final data = Map<String, dynamic>.from(map['data'] ?? {});
-    if (!data.containsKey('eventCategory') && map['eventCategory'] != null) {
-      data['eventCategory'] = map['eventCategory'];
-    }
-    if (!data.containsKey('expiresAt') && map['expiresAt'] != null) {
-      data['expiresAt'] = map['expiresAt'];
-    }
-
-    final rawContent = (map['body'] ?? '').toString();
-    String content = rawContent.startsWith('tracking.')
-        ? (data['message']?.toString() ?? rawContent)
-        : rawContent;
-
-    if (type == NotificationType.blockedApp.value) {
-      final appName = data["appName"] ?? "";
-      final blockedAt = data["blockedAt"] ?? "";
-      final allowedFrom = data["allowedFrom"] ?? "";
-      final allowedTo = data["allowedTo"] ?? "";
-
-      content =
-          "đã mở ứng dụng $appName lúc $blockedAt ngoài khung giờ cho phép "
-          "($allowedFrom - $allowedTo). Hệ thống đã tự động chặn ứng dụng.";
-    }
-
-    return NotificationDetailModel(
-      id: doc.id,
-      title: (map['title'] ?? '').toString(),
-      content: content,
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : DateTime.now(),
-      type: type,
-      data: data,
-    );
   }
 }
-
-
-// notifications/{notificationId}
-// {
-//   senderId: "uid" | null,
-//   receiverId: "uid",
-//   familyId: "...",
-
-//   type: "SOS",
-
-//   title: "...",
-//   body: "...",
-//   data: {...},
-
-//   isRead: false,
-//   status: "pending",   // CF sẽ đổi → sent / failed
-
-//   createdAt: serverTimestamp()
-// }

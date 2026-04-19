@@ -18,7 +18,6 @@ import 'package:kid_manager/repositories/location/location_repository.dart';
 import 'package:kid_manager/services/location/location_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
-import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/location/child_location_view_model.dart';
 import 'package:kid_manager/viewmodels/session/session_vm.dart';
@@ -49,7 +48,6 @@ class _StartupGateState extends State<StartupGate> {
 
   Future<void> _init() async {
     final storage = context.read<StorageService>();
-    final appVM = context.read<AppManagementVM>();
     final appInitVm = context.read<AppInitVM>();
 
     final hasSeenFlash = storage.getBool(StorageKeys.flashSeenV1) ?? false;
@@ -66,7 +64,6 @@ class _StartupGateState extends State<StartupGate> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(appVM.loadAndSeedApp());
       unawaited(appInitVm.init());
     });
 
@@ -112,10 +109,7 @@ class SessionGuard extends StatelessWidget {
     );
   }
 
-  Widget _buildShell(
-    BuildContext context,
-    _SessionGuardViewData view,
-  ) {
+  Widget _buildShell(BuildContext context, _SessionGuardViewData view) {
     final resolvedSession = view.resolvedSession;
     final uid = resolvedSession.uid;
 
@@ -129,7 +123,9 @@ class SessionGuard extends StatelessWidget {
           child: LoginScreen(),
         );
       case SessionStatus.authenticated:
-        if (uid == null || uid.isEmpty || !resolvedSession.hasResolvedIdentity) {
+        if (uid == null ||
+            uid.isEmpty ||
+            !resolvedSession.hasResolvedIdentity) {
           return const AppLoadingScreen();
         }
 
@@ -229,11 +225,13 @@ class _SessionGuardViewData {
                 '')
             .trim();
     final normalizedTimeZone =
-        (profile?.timezone ?? liveUser?.timezone ?? session.user?.timezone ?? '')
+        (profile?.timezone ??
+                liveUser?.timezone ??
+                session.user?.timezone ??
+                '')
             .trim();
-    final sortedLocationMemberIds = <String>[
-      ...userVm.locationMemberIds,
-    ]..sort();
+    final sortedLocationMemberIds = <String>[...userVm.locationMemberIds]
+      ..sort();
 
     return _SessionGuardViewData(
       resolvedSession: resolvedSession,

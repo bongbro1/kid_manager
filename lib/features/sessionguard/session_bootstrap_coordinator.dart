@@ -330,6 +330,8 @@ class _SessionBootstrapCoordinatorState
 
       if (resolvedRole == UserRole.parent && managedOwnerUid.isNotEmpty) {
         unawaited(appManagementVm.watchChildren(managedOwnerUid));
+      } else if (resolvedRole == UserRole.child) {
+        unawaited(appManagementVm.loadAndSeedApp());
       }
 
       _bootstrappedUid = uid;

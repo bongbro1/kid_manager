@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/models/auth/auth_models.dart';
@@ -44,9 +45,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    final ok = await authVm.forgotPassword(email);
+    final ok = await runGuardedNetworkAction<bool>(
+      context,
+      action: () => authVm.forgotPassword(email),
+    );
 
-    if (!ok) {
+    if (ok != true) {
+      if (authVm.error == null || authVm.error!.trim().isEmpty) {
+        return;
+      }
       AlertService.showSnack(
         authVm.error ?? l10n.authSendOtpFailed,
         isError: true,

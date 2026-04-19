@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
@@ -82,11 +83,17 @@ class _OtpScreenState extends State<OtpScreen> {
     }
 
     final vm = context.read<OtpVM>();
-    final result = await vm.verifyOtp(
-      email: widget.email,
-      code: otp,
-      type: _mailType,
+    final result = await runGuardedNetworkAction<OtpVerifyResult>(
+      context,
+      action: () => vm.verifyOtp(
+        email: widget.email,
+        code: otp,
+        type: _mailType,
+      ),
     );
+    if (result == null) {
+      return;
+    }
 
     if (!mounted) return;
 
@@ -248,10 +255,19 @@ class _OtpScreenState extends State<OtpScreen> {
                                     return;
                                   }
 
-                                  final result = await vm.resendOtp(
-                                    email: widget.email,
-                                    type: _mailType,
-                                  );
+                                  final result =
+                                      await runGuardedNetworkAction<
+                                        OtpResendResult
+                                      >(
+                                        context,
+                                        action: () => vm.resendOtp(
+                                          email: widget.email,
+                                          type: _mailType,
+                                        ),
+                                      );
+                                  if (result == null) {
+                                    return;
+                                  }
 
                                   if (!mounted) {
                                     return;

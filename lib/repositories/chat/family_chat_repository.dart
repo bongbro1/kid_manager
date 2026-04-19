@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/core/network/app_network_error_mapper.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
 import 'package:kid_manager/models/chat/family_chat_message.dart';
 import 'package:kid_manager/models/chat/family_chat_state.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/chat/family_chat_storage_path.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class FamilyChatRepository {
   FamilyChatRepository({
@@ -76,24 +78,35 @@ class FamilyChatRepository {
 
     final clientCreatedAt = Timestamp.now();
 
-    await _messageCollection(resolvedFamilyId).doc(messageId).set({
-      'id': messageId,
-      'familyId': resolvedFamilyId,
-      'senderUid': sender.uid,
-      'senderRole': roleToString(sender.role),
-      'senderName': _resolveSenderName(sender),
-      'clientMessageId': messageId,
-      'text': text,
-      'type': type,
-      'stickerId': stickerId,
-      'imageUrl': imageUrl,
-      'imagePath': imagePath,
-      'imageWidth': imageWidth,
-      'imageHeight': imageHeight,
-      'verifyState': 'pending',
-      'clientCreatedAt': clientCreatedAt,
-      'createdAt': clientCreatedAt,
-    }..removeWhere((key, value) => value == null));
+    try {
+      await _messageCollection(resolvedFamilyId).doc(messageId).set({
+        'id': messageId,
+        'familyId': resolvedFamilyId,
+        'senderUid': sender.uid,
+        'senderRole': roleToString(sender.role),
+        'senderName': _resolveSenderName(sender),
+        'clientMessageId': messageId,
+        'text': text,
+        'type': type,
+        'stickerId': stickerId,
+        'imageUrl': imageUrl,
+        'imagePath': imagePath,
+        'imageWidth': imageWidth,
+        'imageHeight': imageHeight,
+        'verifyState': 'pending',
+        'clientCreatedAt': clientCreatedAt,
+        'createdAt': clientCreatedAt,
+      }..removeWhere((key, value) => value == null));
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
 
     return <String, dynamic>{
       'ok': true,
@@ -368,6 +381,17 @@ class FamilyChatRepository {
   }
 
   Future<void> markAsRead() async {
-    await _functions.httpsCallable('markFamilyChatRead').call();
+    try {
+      await _functions.httpsCallable('markFamilyChatRead').call();
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 }

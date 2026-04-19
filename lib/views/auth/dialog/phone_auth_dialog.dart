@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/auth/country.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
@@ -294,7 +295,14 @@ class PhoneAuthDialog {
                                   return;
                                 }
 
-                                await vm.sendOtpSms(normalizedPhone);
+                                final ok = await runGuardedNetworkVoidAction(
+                                      parentContext,
+                                      action: () =>
+                                          vm.sendOtpSms(normalizedPhone),
+                                    );
+                                if (!ok) {
+                                  return;
+                                }
 
                                 if (context.mounted) {
                                   Navigator.of(context).pop();
@@ -451,9 +459,17 @@ class PhoneAuthDialog {
                                 onPressed: otpController.text.length == 6
                                     ? () async {
                                         try {
-                                          await vm.verifyOtpSmS(
-                                            otpController.text,
-                                          );
+                                          final ok =
+                                              await runGuardedNetworkVoidAction(
+                                                sheetContext,
+                                                action: () =>
+                                                    vm.verifyOtpSmS(
+                                                      otpController.text,
+                                                    ),
+                                              );
+                                          if (!ok) {
+                                            return;
+                                          }
 
                                           if (!context.mounted) return;
                                           Navigator.pop(context);

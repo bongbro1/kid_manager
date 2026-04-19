@@ -9,6 +9,10 @@ import {
   resolveUserLanguage,
   toMillis,
 } from "../../services/trackingLocationNotifications";
+import {
+  buildTrackingWatchStatusUpdate,
+  TRACKING_WATCH_COLLECTION,
+} from "../../services/trackingWatch";
 
 const FLAP_STATUSES = new Set(["location_stale", "ok"]);
 const FLAP_COOLDOWN_MS = 5 * 60 * 1000;
@@ -19,15 +23,15 @@ export const onTrackingStatusWritten = onDocumentWritten(
     document: "families/{familyId}/trackingStatus/{childUid}",
   },
   async (event) => {
-   const after = event.data?.after;
+    const after = event.data?.after;
     const before = event.data?.before;
 
     if (!after?.exists) return;
 
     const afterData = after.data();
-if (!afterData) return;
+    if (!afterData) return;
 
-const beforeData = before?.exists ? before.data() : null;
+    const beforeData = before?.exists ? before.data() : null;
 
     const familyId = String(event.params.familyId);
     const childUid = String(event.params.childUid);
@@ -36,6 +40,24 @@ const beforeData = before?.exists ? before.data() : null;
     if (!isTrackingLocationStatus(newStatus)) {
       return;
     }
+    const statusUpdatedAtMs =
+      toMillis(afterData.updatedAt) ??
+      toMillis(afterData.updatedAtMs) ??
+      Date.now();
+    await admin
+      .firestore()
+      .collection(TRACKING_WATCH_COLLECTION)
+      .doc(childUid)
+      .set(
+        buildTrackingWatchStatusUpdate({
+          familyId,
+          childUid,
+          status: newStatus,
+          updatedAtMs: statusUpdatedAtMs,
+        }),
+        { merge: true },
+      );
+
     const oldStatus = beforeData ? String(beforeData.status || "") : "";
 
     if (!newStatus || newStatus === oldStatus) return;

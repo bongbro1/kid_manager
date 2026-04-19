@@ -195,42 +195,55 @@ class NotificationService {
   static Future<void> handleMessageForLocalNotification(
     RemoteMessage message,
   ) async {
+    await _handleMessageForLocalNotification(message, allowAuthGuards: true);
+  }
+
+  static Future<void> handleMessageForLocalNotificationInBackground(
+    RemoteMessage message,
+  ) async {
+    await _handleMessageForLocalNotification(message, allowAuthGuards: false);
+  }
+
+  static Future<void> _handleMessageForLocalNotification(
+    RemoteMessage message, {
+    required bool allowAuthGuards,
+  }) async {
     final data = message.data;
     final type = data['type']?.toString().toLowerCase() ?? '';
 
-    // Guard riêng cho schedule + memory_day
     if (type == 'schedule' ||
         type == 'memoryday' ||
         type == 'memory_day' ||
         type == 'importexcel' ||
         type == 'schedule_import') {
-      final currentUid = FirebaseAuth.instance.currentUser?.uid;
-      final actorUid = data['actorUid']?.toString();
-      final directReceiverId = data['receiverId']?.toString();
+      if (allowAuthGuards) {
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        final actorUid = data['actorUid']?.toString();
+        final directReceiverId = data['receiverId']?.toString();
 
-      if (currentUid == null || currentUid.isEmpty) {
-        debugPrint('🔕 [$type] skip: no current user');
-        return;
-      }
+        if (currentUid == null || currentUid.isEmpty) {
+          debugPrint('[$type] skip: no current user');
+          return;
+        }
 
-      // self notification
-      if (actorUid != null && actorUid == currentUid) {
-        debugPrint(
-          '🔕 [$type] skip self notification: currentUid=$currentUid actorUid=$actorUid',
-        );
-        return;
-      }
+        if (actorUid != null && actorUid == currentUid) {
+          debugPrint(
+            '[$type] skip self notification: currentUid=$currentUid actorUid=$actorUid',
+          );
+          return;
+        }
 
-      if (directReceiverId == null || directReceiverId.isEmpty) {
-        debugPrint('ðŸ”• [$type] skip: receiverId is null/empty');
-        return;
-      }
+        if (directReceiverId == null || directReceiverId.isEmpty) {
+          debugPrint('[$type] skip: receiverId is null/empty');
+          return;
+        }
 
-      if (directReceiverId != currentUid) {
-        debugPrint(
-          '🔕 [$type] skip wrong receiver: currentUid=$currentUid receiverId=$directReceiverId actorUid=$actorUid',
-        );
-        return;
+        if (directReceiverId != currentUid) {
+          debugPrint(
+            '[$type] skip wrong receiver: currentUid=$currentUid receiverId=$directReceiverId actorUid=$actorUid',
+          );
+          return;
+        }
       }
 
       final l10n = await _loadL10n(data['lang']?.toString());
@@ -266,19 +279,21 @@ class NotificationService {
     }
 
     if (type == 'tracking' || type == 'tracking_status') {
-      final currentUid = FirebaseAuth.instance.currentUser?.uid;
-      final toUid = data['toUid']?.toString();
+      if (allowAuthGuards) {
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        final toUid = data['toUid']?.toString();
 
-      if (currentUid == null || currentUid.isEmpty) {
-        debugPrint('[$type] skip: no current user');
-        return;
-      }
+        if (currentUid == null || currentUid.isEmpty) {
+          debugPrint('[$type] skip: no current user');
+          return;
+        }
 
-      if (toUid != null && toUid.isNotEmpty && toUid != currentUid) {
-        debugPrint(
-          '[$type] skip wrong receiver: currentUid=$currentUid toUid=$toUid',
-        );
-        return;
+        if (toUid != null && toUid.isNotEmpty && toUid != currentUid) {
+          debugPrint(
+            '[$type] skip wrong receiver: currentUid=$currentUid toUid=$toUid',
+          );
+          return;
+        }
       }
 
       await _showTrackingNotification(message);

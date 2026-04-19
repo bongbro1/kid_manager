@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,8 +7,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kid_manager/background/background_tracking_entrypoint.dart'
     as tracking_background;
+import 'package:kid_manager/background/tracking_background_service.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/services/firebase_app_check_service.dart';
+import 'package:kid_manager/services/firebase_init_service.dart';
 import 'package:kid_manager/services/notifications/local_alarm_service.dart';
 import 'package:kid_manager/services/notifications/local_notification_service.dart';
 import 'package:kid_manager/services/notifications/notification_service.dart';
@@ -19,8 +19,6 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'app.dart';
-import 'firebase_options.dart';
-
 String _maskToken(String? token) {
   if (token == null || token.isEmpty) return 'null';
   if (token.length <= 8) return '***';
@@ -48,35 +46,6 @@ String _readMapboxPublicAccessToken() {
   return _normalizeConfigValue(
     defineToken.trim().isNotEmpty ? defineToken : envToken,
   );
-}
-
-Future<void> _activateFirebaseAppCheck({required bool background}) async {
-  try {
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: kDebugMode
-          ? AndroidProvider.debug
-          : AndroidProvider.playIntegrity,
-      appleProvider: kDebugMode
-          ? AppleProvider.debug
-          : AppleProvider.deviceCheck,
-    );
-  } catch (e) {
-    debugPrint('AppCheck activation failed: $e');
-    return;
-  }
-
-  try {
-    await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
-  } catch (e) {
-    debugPrint('AppCheck auto-refresh setup failed: $e');
-  }
-
-  if (kDebugMode && !background) {
-    debugPrint(
-      'AppCheck debug provider enabled. '
-      'Add debug secret from Android logcat to Firebase Console allowlist.',
-    );
-  }
 }
 
 Future<void> _runDeferredStartupTasks() async {
@@ -120,8 +89,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await activateFirebaseAppCheck(background: true);
+  await LocalNotificationService.init();
 
   if (message.notification != null) {
     if (kDebugMode) {
@@ -133,7 +101,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     return;
   }
 
-  await NotificationService.handleMessageForLocalNotification(message);
+  await NotificationService.handleMessageForLocalNotificationInBackground(
+    message,
+  );
 }
 
 @pragma('vm:entry-point')
@@ -144,7 +114,16 @@ Future<void> backgroundTrackingMain() async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    if (await TrackingBackgroundService.isRunning()) {
+      await TrackingBackgroundService.stop(clearConfig: false);
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+  } catch (e) {
+    debugPrint('Foreground startup failed to stop tracking service: $e');
+  }
+
+  await FirebaseInitService.ensureInitialized();
   await activateFirebaseAppCheck(background: false);
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

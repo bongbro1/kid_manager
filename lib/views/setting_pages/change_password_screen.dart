@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/auth/password_validator.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
@@ -54,11 +55,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     try {
       // 🔥 không còn return bool nữa
-      await vm.changePassword(
-        oldPassword: oldPassword,
-        newPassword: newPassword,
-        confirmPassword: confirmPassword,
+      final ok = await runGuardedNetworkVoidAction(
+        context,
+        action: () => vm.changePassword(
+          oldPassword: oldPassword,
+          newPassword: newPassword,
+          confirmPassword: confirmPassword,
+        ),
       );
+      if (!ok) {
+        return;
+      }
 
       if (!mounted) return;
 

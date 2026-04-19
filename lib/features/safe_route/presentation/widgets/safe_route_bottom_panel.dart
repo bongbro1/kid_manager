@@ -608,52 +608,68 @@ class _TrackingStatusContent extends StatelessWidget {
         ),
         if (state.activeRoute != null) ...[
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _TrackingMetricCard(
-                  label: l10n.safeRouteMetricSpeed,
-                  value: speedLabel,
-                  subtitle: _speedSubtitle(state),
-                  tint: isDanger ? const Color(0xFFFEF2F2) : visuals.softColor,
-                  borderColor: isDanger
-                      ? const Color(0xFFFECACA)
-                      : visuals.borderColor.withOpacity(0.55),
-                  valueColor: isDanger ? const Color(0xFF991B1B) : null,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _BatteryMetricCard(
-                  batteryState: batteryState,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _TrackingMetricCard(
-                  label: isDanger
-                      ? l10n.safeRouteMetricOffRoute
-                      : isWarning
-                      ? l10n.safeRouteMetricOffCorridor
-                      : l10n.safeRouteMetricEta,
-                  value: isDanger || isWarning
-                      ? l10n.safeRouteDistanceCompactLabel(
-                          distanceFromRoute.toDouble(),
-                        )
-                      : _etaLabel(state),
-                  subtitle: isDanger
-                      ? (hazard?.name ?? l10n.safeRouteDangerCheckNow)
-                      : isWarning
-                      ? l10n.safeRouteVisualOffRouteSubtitle
-                      : l10n.safeRouteMetricEtaEstimate,
-                  tint: isDanger ? const Color(0xFFFEF2F2) : visuals.softColor,
-                  borderColor: isDanger
-                      ? const Color(0xFFFECACA)
-                      : visuals.borderColor.withOpacity(0.55),
-                  valueColor: isDanger ? const Color(0xFF991B1B) : null,
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrowLayout = constraints.maxWidth < 430;
+              final speedCard = _TrackingMetricCard(
+                label: l10n.safeRouteMetricSpeed,
+                value: speedLabel,
+                subtitle: _speedSubtitle(state),
+                tint: isDanger ? const Color(0xFFFEF2F2) : visuals.softColor,
+                borderColor: isDanger
+                    ? const Color(0xFFFECACA)
+                    : visuals.borderColor.withOpacity(0.55),
+                valueColor: isDanger ? const Color(0xFF991B1B) : null,
+              );
+              final batteryCard = _BatteryMetricCard(
+                batteryState: batteryState,
+              );
+              final etaCard = _TrackingMetricCard(
+                label: isDanger
+                    ? l10n.safeRouteMetricOffRoute
+                    : isWarning
+                    ? l10n.safeRouteMetricOffCorridor
+                    : l10n.safeRouteMetricEta,
+                value: isDanger || isWarning
+                    ? l10n.safeRouteDistanceCompactLabel(
+                        distanceFromRoute.toDouble(),
+                      )
+                    : _etaLabel(state),
+                subtitle: isDanger
+                    ? (hazard?.name ?? l10n.safeRouteDangerCheckNow)
+                    : isWarning
+                    ? l10n.safeRouteVisualOffRouteSubtitle
+                    : l10n.safeRouteMetricEtaEstimate,
+                tint: isDanger ? const Color(0xFFFEF2F2) : visuals.softColor,
+                borderColor: isDanger
+                    ? const Color(0xFFFECACA)
+                    : visuals.borderColor.withOpacity(0.55),
+                valueColor: isDanger ? const Color(0xFF991B1B) : null,
+              );
+
+              if (narrowLayout) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    speedCard,
+                    const SizedBox(height: 10),
+                    batteryCard,
+                    const SizedBox(height: 10),
+                    etaCard,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: speedCard),
+                  const SizedBox(width: 10),
+                  Expanded(child: batteryCard),
+                  const SizedBox(width: 10),
+                  Expanded(child: etaCard),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
           Container(

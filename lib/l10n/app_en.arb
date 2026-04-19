@@ -2538,6 +2538,18 @@
   "userRepositoryCreateAccountFailed": "Could not create the account",
   "firestorePermissionDenied": "You do not have permission to write data",
   "firestoreUnavailable": "Firestore is temporarily unavailable",
+  "appOfflineBannerTitle": "You are offline",
+  "appOfflineBannerSubtitle": "The data shown may not be the latest.",
+  "appNetworkActionFailed": "Network is unstable. Please try again.",
+  "appRetryWhenOnline": "You are offline. Try again when the connection is back.",
+  "childConnectionLost": "Connection lost",
+  "childNoLocationYet": "No location yet",
+  "childLastSeenAt": "Last seen {time}",
+  "@childLastSeenAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
   "firestoreGenericError": "Firestore error",
   "userRepositoryCreateChildFailed": "Could not create the child account",
   "mapPlaceSearchMissingAccessToken": "Missing Mapbox ACCESS_TOKEN for place search.",

@@ -138,6 +138,44 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "tracking_watch",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isTracking",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nextHeartbeatCheckAt",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "trips",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nextActivationAt",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
       "collectionGroup": "members",
       "queryScope": "COLLECTION",
       "fields": [

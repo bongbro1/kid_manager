@@ -3948,6 +3948,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get firestoreUnavailable => 'Firestore is temporarily unavailable';
 
   @override
+  String get appOfflineBannerTitle => 'You are offline';
+
+  @override
+  String get appOfflineBannerSubtitle =>
+      'The data shown may not be the latest.';
+
+  @override
+  String get appNetworkActionFailed => 'Network is unstable. Please try again.';
+
+  @override
+  String get appRetryWhenOnline =>
+      'You are offline. Try again when the connection is back.';
+
+  @override
+  String get childConnectionLost => 'Connection lost';
+
+  @override
+  String get childNoLocationYet => 'No location yet';
+
+  @override
+  String childLastSeenAt(Object time) {
+    return 'Last seen $time';
+  }
+
+  @override
   String get firestoreGenericError => 'Firestore error';
 
   @override

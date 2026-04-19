@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/models/user/user_profile.dart';
@@ -33,8 +34,8 @@ class PersonalInfoScreen extends StatefulWidget {
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   static const _genderMaleValue = 'Nam';
-  static const _genderFemaleValue = 'Nữ';
-  static const _genderOtherValue = 'Khác';
+  static const _genderFemaleValue = 'N\u1eef';
+  static const _genderOtherValue = 'Kh\u00e1c';
 
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -101,18 +102,21 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     }
     final vm = context.read<UserVm>();
 
-    final ok = await vm.updateUserInfo(
-      name: _nameCtrl.text,
-      phone: _phoneCtrl.text,
-      gender: _selectedGender ?? _genderMaleValue,
-      dob: _dobCtrl.text,
-      address: _addressCtrl.text,
-      allowTracking: allowLocationTracking,
+    final ok = await runGuardedNetworkAction<bool>(
+      context,
+      action: () => vm.updateUserInfo(
+        name: _nameCtrl.text,
+        phone: _phoneCtrl.text,
+        gender: _selectedGender ?? _genderMaleValue,
+        dob: _dobCtrl.text,
+        address: _addressCtrl.text,
+        allowTracking: allowLocationTracking,
+      ),
     );
 
     if (!mounted) return;
 
-    if (ok) {
+    if (ok == true) {
       if (!mounted) return;
 
       NotificationDialog.show(
@@ -124,8 +128,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       vm.listenProfile();
       context.read<BirthdayViewModel>().refreshFamilyBirthdays(forceSync: true);
     } else {
-      debugPrint("Update FAIL: ${vm.error}");
-      // show snackbar/dialog nếu muốn
+      debugPrint('[PersonalInfoScreen] update failed: ${vm.error}');
     }
   }
 
@@ -343,10 +346,14 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                               file,
                                               UserPhotoType.avatar,
                                             );
-                                            return vm.updateUserPhoto(
-                                              file: file,
-                                              type: UserPhotoType.avatar,
+                                            final ok = await runGuardedNetworkAction<bool>(
+                                              context,
+                                              action: () => vm.updateUserPhoto(
+                                                file: file,
+                                                type: UserPhotoType.avatar,
+                                              ),
                                             );
+                                            return ok == true;
                                           },
                                           child: Container(
                                             width: 60,

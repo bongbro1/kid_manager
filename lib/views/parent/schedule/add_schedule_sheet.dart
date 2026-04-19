@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -45,7 +46,13 @@ class AddScheduleScreen extends StatelessWidget {
           updatedAt: now,
         );
 
-        await vm.addSchedule(schedule, l10n: l10n);
+        final ok = await runGuardedNetworkVoidAction(
+          context,
+          action: () => vm.addSchedule(schedule, l10n: l10n),
+        );
+        if (!ok) {
+          return;
+        }
       },
     );
   }

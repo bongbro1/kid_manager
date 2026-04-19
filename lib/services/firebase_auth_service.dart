@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:kid_manager/core/network/app_network_error_mapper.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class FirebaseAuthService {
@@ -11,15 +12,40 @@ class FirebaseAuthService {
   Stream<User?> authStateChanges() => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
 
-  Future<UserCredential> signIn(String email, String password) {
-    return _auth.signInWithEmailAndPassword(email: email, password: password);
+  Future<UserCredential> signIn(String email, String password) async {
+    try {
+      return await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 
-  Future<UserCredential> signUp(String email, String password) {
-    return _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+  Future<UserCredential> signUp(String email, String password) async {
+    try {
+      return await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 
   Future<void> resetPassword({
@@ -27,11 +53,21 @@ class FirebaseAuthService {
     required String newPassword,
   }) async {
     final callable = _functions.httpsCallable("resetUserPassword");
-
-    await callable.call({
-      "resetSessionToken": resetSessionToken,
-      "newPassword": newPassword,
-    });
+    try {
+      await callable.call({
+        "resetSessionToken": resetSessionToken,
+        "newPassword": newPassword,
+      });
+    } catch (error) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        error,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        throw networkError;
+      }
+      rethrow;
+    }
   }
 
   Future<void> changePassword({

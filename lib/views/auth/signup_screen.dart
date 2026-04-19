@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/models/auth/auth_models.dart';
@@ -58,6 +61,22 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
+  Future<void> _handleSocialLogin(Future<void> Function() action) async {
+    final vm = context.read<AuthVM>();
+    final ok = await runGuardedNetworkVoidAction(context, action: action);
+    if (!ok || !mounted) return;
+
+    final error = vm.error?.trim();
+    if (error == null || error.isEmpty) {
+      return;
+    }
+
+    AlertService.showSnack(
+      error.replaceFirst('Exception: ', ''),
+      isError: true,
+    );
+  }
+
   Future<void> _onSignUpPressed() async {
     final vm = context.read<AuthVM>();
     final l10n = AppLocalizations.of(context);
@@ -89,9 +108,15 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       return;
     }
-    final ok = await vm.register(email, password);
+    final ok = await runGuardedNetworkAction<bool>(
+      context,
+      action: () => vm.register(email, password),
+    );
 
-    if (!ok) {
+    if (ok != true) {
+      if (vm.error == null || vm.error!.trim().isEmpty) {
+        return;
+      }
       AlertService.error(message: _resolveSignupErrorMessage(l10n, vm.error));
       return;
     }
@@ -359,29 +384,39 @@ class _SignupScreenState extends State<SignupScreen> {
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/google.svg',
-                                      () => vm.loginWithGoogle(),
+                                      () => unawaited(
+                                        _handleSocialLogin(vm.loginWithGoogle),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/facebook.svg',
-                                      () => vm.loginWithFacebook(),
+                                      () => unawaited(
+                                        _handleSocialLogin(
+                                          vm.loginWithFacebook,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/apple.svg',
-                                      () => vm.loginWithApple(),
+                                      () => unawaited(
+                                        _handleSocialLogin(vm.loginWithApple),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/mobile.svg',
-                                      () => PhoneAuthDialog.showPhoneDialog(
-                                        context,
+                                      () => unawaited(
+                                        PhoneAuthDialog.showPhoneDialog(
+                                          context,
+                                        ),
                                       ),
                                     ),
                                   ),
