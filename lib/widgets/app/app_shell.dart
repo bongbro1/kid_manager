@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
@@ -37,15 +38,6 @@ class _AppShellState extends State<AppShell> {
         ? NotificationTabNavigator.key
         : GlobalKey<NavigatorState>(),
   );
-
-  // late final List<Widget> _tabs = List.generate(_config.tabs.length, (i) {
-  //   final tab = _config.tabs[i];
-
-  //   return Navigator(
-  //     key: _navKeys[i],
-  //     onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => tab.root),
-  //   );
-  // });
 
   @override
   void initState() {
@@ -179,7 +171,10 @@ class _AppShellState extends State<AppShell> {
 
     return Navigator(
       key: isNotificationTab ? NotificationTabNavigator.key : _navKeys[index],
-      onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => tab.root),
+      onGenerateRoute: (settings) => AppPageTransitions.route(
+        settings: settings,
+        builder: (_) => tab.root,
+      ),
     );
   }
 }

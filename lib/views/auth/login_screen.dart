@@ -1,8 +1,9 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/validators.dart';
@@ -12,9 +13,13 @@ import 'package:kid_manager/models/auth/auth_models.dart';
 import 'package:kid_manager/models/login_session.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
+import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/otp_vm.dart';
+import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/auth/dialog/phone_auth_dialog.dart';
 import 'package:kid_manager/views/auth/forgot_pass_screen.dart';
 import 'package:kid_manager/views/auth/otp_screen.dart';
@@ -37,9 +42,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const _emailFieldKey = ValueKey('login-email-field');
-  static const _passwordFieldKey = ValueKey('login-password-field');
-  static const _loginButtonKey = ValueKey('login-submit-button');
+  static const List<String> _fontFallback = <String>[
+    'Roboto',
+    'Noto Sans',
+    'sans-serif',
+  ];
 
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -79,6 +86,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final l10n = AppLocalizations.of(context);
     final storage = context.read<StorageService>();
     final authVM = context.read<AuthVM>();
+    final userVM = context.read<UserVm>();
+    final appVM = context.read<AppManagementVM>();
 
     if (email.isEmpty || password.isEmpty) {
       AlertService.showSnack(l10n.authEnterAllInfo, isError: true);
@@ -102,6 +111,41 @@ class _LoginScreenState extends State<LoginScreen> {
 
       unawaited(storage.setString(StorageKeys.uid, uid));
 
+      final profile = await userVM.loadProfile(uid: uid, caller: 'LoginScreen');
+      if (profile == null) {
+        if (mounted) {
+          await _showError(l10n.authUserProfileLoadFailed);
+        }
+        return;
+      }
+
+      final role = profile.role;
+      final parentId = role == UserRole.parent
+          ? uid
+          : (profile.parentUid ?? '').trim();
+
+      unawaited(
+        Future.wait([
+          storage.setString(StorageKeys.role, profile.roleKey),
+          storage.setString(StorageKeys.displayName, profile.name),
+          if (parentId.isNotEmpty)
+            storage.setString(StorageKeys.parentId, parentId)
+          else
+            storage.remove(StorageKeys.parentId),
+          if (profile.managedChildIds.isNotEmpty)
+            storage.setStringList(
+              StorageKeys.managedChildIds,
+              profile.managedChildIds
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toSet()
+                  .toList(),
+            )
+          else
+            storage.remove(StorageKeys.managedChildIds),
+        ]),
+      );
+
       if (rememberPassword) {
         final session = LoginSession(email: email, uid: uid, remember: true);
         unawaited(
@@ -114,31 +158,31 @@ class _LoginScreenState extends State<LoginScreen> {
         unawaited(storage.remove(StorageKeys.login_preference));
       }
 
-      if (!mounted) return;
+      // xử lý role
+      if (role == UserRole.child) {
+        if (parentId.isEmpty) {
+          await _showError(l10n.authUserProfileLoadFailed);
+          return;
+        }
+
+        AuthRuntimeManager.start(parentId: parentId, displayName: profile.name);
+
+        await appVM.loadAndSeedApp();
+      } else {
+        unawaited(AuthRuntimeManager.stop());
+      }
+
       FocusManager.instance.primaryFocus?.unfocus();
     } catch (e, st) {
       debugPrint('Login error: $e');
       debugPrintStack(stackTrace: st);
 
-      await _handleLoginError(e);
+      if (mounted) {
+        await _handleLoginError(e);
+      }
     }
   }
 
-  Future<void> _handleSocialLogin(Future<void> Function() action) async {
-    final authVm = context.read<AuthVM>();
-    final ok = await runGuardedNetworkVoidAction(context, action: action);
-    if (!ok || !mounted) return;
-
-    final error = authVm.error?.trim();
-    if (error == null || error.isEmpty) {
-      return;
-    }
-
-    AlertService.showSnack(
-      error.replaceFirst('Exception: ', ''),
-      isError: true,
-    );
-  }
   Future<void> _handleLoginError(Object e) async {
     if (!mounted) return;
 
@@ -203,22 +247,35 @@ class _LoginScreenState extends State<LoginScreen> {
     if (dialogContext == null) {
       return Future.value(false);
     }
+
+    final l10n = runtimeL10n();
+
     return showDialog<bool>(
       context: dialogContext,
       builder: (dialogContext) => AlertDialog(
-        title: const Text("Tài khoản chưa kích hoạt"),
-        content: const Text("Bạn có muốn nhập OTP ngay không?"),
+        title: Text(l10n.accountNotActivated),
+        content: Text(l10n.verifyNowQuestion),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text("Để sau"),
+            child: Text(l10n.later),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text("Xác thực ngay"),
+            child: Text(l10n.verifyNow),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showError(String message) async {
+    final l10n = runtimeL10n();
+    await NotificationDialog.show(
+      context,
+      type: DialogType.error,
+      title: l10n.updateErrorTitle,
+      message: message,
     );
   }
 
@@ -253,6 +310,55 @@ class _LoginScreenState extends State<LoginScreen> {
     final horizontalPadding = context.adaptiveHorizontalPadding(
       compact: 16,
       regular: 24,
+    );
+    final titleStyle = textTheme.headlineSmall?.copyWith(
+      color: colorScheme.onSurface,
+      fontSize: 24,
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w600,
+      height: 32 / 24,
+      letterSpacing: -0.2,
+    );
+    final subtitleStyle = textTheme.titleMedium?.copyWith(
+      color: colorScheme.onSurface,
+      fontSize: 16,
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w500,
+      height: 24 / 16,
+    );
+    final helperTextStyle = textTheme.bodySmall?.copyWith(
+      color: colorScheme.onSurface.withValues(alpha: 0.7),
+      fontSize: 14,
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w500,
+      height: 18 / 12,
+      letterSpacing: -0.12,
+    );
+    final linkTextStyle = textTheme.bodySmall?.copyWith(
+      color: colorScheme.primary,
+      fontSize: 14,
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w600,
+      height: 18 / 12,
+      letterSpacing: -0.12,
+    );
+    final dividerTextStyle = textTheme.bodyMedium?.copyWith(
+      color: colorScheme.onSurface,
+      fontSize: 13,
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w500,
+      height: 20 / 13,
+    );
+    final signupTextStyle = textTheme.bodyLarge?.copyWith(
+      color: colorScheme.onSurface,
+      fontSize: 15,
+      fontFamilyFallback: _fontFallback,
+      fontWeight: FontWeight.w500,
+      height: 22 / 15,
+    );
+    final signupLinkStyle = signupTextStyle?.copyWith(
+      color: colorScheme.primary,
+      fontWeight: FontWeight.w600,
     );
 
     return Stack(
@@ -305,14 +411,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     child: Text(
                                       l10n.authWelcomeBackTitle,
                                       textAlign: TextAlign.center,
-                                      style: textTheme.headlineSmall?.copyWith(
-                                        color: colorScheme.onSurface,
-                                        fontSize: 24,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.42,
-                                        letterSpacing: -0.19,
-                                      ),
+                                      style: titleStyle,
                                     ),
                                   ),
                                   ConstrainedBox(
@@ -322,12 +421,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     child: Text(
                                       l10n.authLoginNowSubtitle,
                                       textAlign: TextAlign.center,
-                                      style: textTheme.titleMedium?.copyWith(
-                                        color: colorScheme.onSurface,
-                                        fontSize: 16,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      style: subtitleStyle,
                                     ),
                                   ),
                                 ],
@@ -350,6 +444,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 isPassword: true,
                                 prefixSvg: 'assets/icons/lock.svg',
                               ),
+                              const SizedBox(height: 8),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
@@ -399,20 +494,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 l10n.authRememberPassword,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: textTheme.bodySmall
-                                                    ?.copyWith(
-                                                      color: colorScheme
-                                                          .onSurface
-                                                          .withValues(
-                                                            alpha: 0.7,
-                                                          ),
-                                                      fontSize: 12,
-                                                      fontFamily: 'Poppins',
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      height: 1.5,
-                                                      letterSpacing: -0.12,
-                                                    ),
+                                                style: helperTextStyle,
                                               ),
                                             ),
                                           ],
@@ -438,15 +520,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             textAlign: TextAlign.end,
-                                            style: textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: colorScheme.primary,
-                                                  fontSize: 12,
-                                                  fontFamily: 'Poppins',
-                                                  fontWeight: FontWeight.w600,
-                                                  height: 1.5,
-                                                  letterSpacing: -0.12,
-                                                ),
+                                            style: linkTextStyle,
                                           ),
                                         ),
                                       ),
@@ -460,10 +534,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   maxWidth: 360,
                                 ),
                                 child: AppButton(
-                                  key: _loginButtonKey,
-                                  height: 60,
+                                  height: 50,
                                   text: l10n.authLoginButton,
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   onPressed: _onLoginPressed,
                                   backgroundColor: colorScheme.primary,
@@ -487,12 +560,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     child: Text(
                                       l10n.authOr,
-                                      style: textTheme.bodyMedium?.copyWith(
-                                        color: colorScheme.onSurface,
-                                        fontSize: 13,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      style: dividerTextStyle,
                                     ),
                                   ),
                                   Expanded(
@@ -552,20 +620,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 40),
                               Wrap(
                                 alignment: WrapAlignment.center,
-                                crossAxisAlignment:
-                                    WrapCrossAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 spacing: 4,
                                 runSpacing: 4,
                                 children: [
                                   Text(
                                     l10n.authNoAccount,
                                     textAlign: TextAlign.center,
-                                    style: textTheme.bodyLarge?.copyWith(
-                                      color: colorScheme.onSurface,
-                                      fontSize: 15,
-                                      fontFamily: 'Poppins',
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: signupTextStyle,
                                   ),
                                   GestureDetector(
                                     onTap: () {
@@ -578,12 +640,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     },
                                     child: Text(
                                       l10n.authSignUpInline,
-                                      style: textTheme.bodyLarge?.copyWith(
-                                        color: colorScheme.primary,
-                                        fontSize: 15,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: signupLinkStyle,
                                     ),
                                   ),
                                 ],

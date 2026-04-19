@@ -43,7 +43,7 @@ import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:provider/provider.dart';
 
 import 'core/constants.dart';
-import 'core/theme.dart';
+import 'core/app_theme.dart';
 
 import 'features/sessionguard/session_guard.dart';
 import 'l10n/app_localizations.dart';

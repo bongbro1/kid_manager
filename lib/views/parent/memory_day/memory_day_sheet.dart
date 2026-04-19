@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/utils/notification_helper.dart';
@@ -398,7 +399,10 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
             _isEdit
                 ? l10n.memoryDayEditHeaderTitle
                 : l10n.memoryDayAddHeaderTitle,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -592,7 +596,7 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
               color: (_isValid && !_submitting)
                   ? colorScheme.onPrimary
                   : colorScheme.onSurface.withOpacity(0.5),
-              fontSize: 16,
+              fontSize: Theme.of(context).appTypography.title.fontSize!,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -655,7 +659,7 @@ class _MemoryDaySheetState extends State<MemoryDaySheet> {
         child: Text(
           value,
           style: textTheme.bodyMedium?.copyWith(
-            fontSize: 15,
+            fontSize: Theme.of(context).appTypography.itemTitle.fontSize!,
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
           ),

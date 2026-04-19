@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/views/chat/family_chat_assets.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_messages_view.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_ui_utils.dart';
@@ -101,7 +102,9 @@ class FamilyChatComposer extends StatelessWidget {
                             onSubmitted: (_) => canSend ? onSend() : null,
                             style: TextStyle(
                               color: scheme.onSurface,
-                              fontSize: 14,
+                              fontSize: Theme.of(
+                                context,
+                              ).appTypography.body.fontSize!,
                               height: 1.25,
                             ),
                             minLines: 1,
@@ -111,7 +114,9 @@ class FamilyChatComposer extends StatelessWidget {
                               hintText: 'Aa',
                               hintStyle: TextStyle(
                                 color: scheme.onSurfaceVariant,
-                                fontSize: 14,
+                                fontSize: Theme.of(
+                                  context,
+                                ).appTypography.body.fontSize!,
                                 fontWeight: FontWeight.w500,
                               ),
                               isDense: true,

@@ -20,10 +20,15 @@ Widget tappablePhoto({
       uri != null &&
       uri.host.isNotEmpty &&
       (uri.scheme == 'http' || uri.scheme == 'https');
-  final isFile = File(u).existsSync();
+  final localPath =
+      u.startsWith('/') ||
+          u.startsWith(r'\\') ||
+          RegExp(r'^[A-Za-z]:[\\/]').hasMatch(u)
+      ? u
+      : null;
 
-  final provider = isFile
-      ? FileImage(File(u))
+  final provider = localPath != null
+      ? FileImage(File(localPath))
       : hasHttpImage
       ? CachedNetworkImageProvider(u)
       : AssetImage(fallbackAsset) as ImageProvider;

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
@@ -44,12 +45,26 @@ class NotificationService {
       debugPrint(
         '🔔 onMessage (FG) id=${m.messageId} data=${m.data} notif=${m.notification?.title}',
       );
+      final traceId = m.data['debugTraceId']?.toString();
+      if (traceId != null && traceId.isNotEmpty) {
+        debugPrint(
+          '[VIOLATION_TRACE] parent_onMessage traceId=$traceId '
+          'notificationId=${m.data['notificationId']} type=${m.data['type']}',
+        );
+      }
       await handleMessageForLocalNotification(m);
     });
 
     // App đang background, user bấm push system notification
     FirebaseMessaging.onMessageOpenedApp.listen((m) async {
       debugPrint('🔔 onMessageOpenedApp id=${m.messageId} data=${m.data}');
+      final traceId = m.data['debugTraceId']?.toString();
+      if (traceId != null && traceId.isNotEmpty) {
+        debugPrint(
+          '[VIOLATION_TRACE] parent_onMessageOpenedApp traceId=$traceId '
+          'notificationId=${m.data['notificationId']} type=${m.data['type']}',
+        );
+      }
       await handleTap(Map<String, dynamic>.from(m.data));
     });
 
@@ -81,6 +96,14 @@ class NotificationService {
   static String? _lastHandledTapKey;
 
   static Future<void> handleTap(Map<String, dynamic> data) async {
+    final traceId = data['debugTraceId']?.toString();
+    if (traceId != null && traceId.isNotEmpty) {
+      debugPrint(
+        '[VIOLATION_TRACE] parent_handleTap traceId=$traceId '
+        'notificationId=${data['notificationId']} type=${data['type']}',
+      );
+    }
+
     final rawType = data["type"]?.toString();
     final type = (rawType ?? '').toLowerCase();
     final notificationId = data['notificationId']?.toString();
@@ -125,8 +148,8 @@ class NotificationService {
     if (type == 'family_chat' || route == 'family_group_chat') {
       if (familyId == null || familyId.isEmpty) return;
 
-      navigator.push(
-        MaterialPageRoute(
+      await navigator.push(
+        AppPageTransitions.route(
           builder: (_) => FamilyGroupChatScreen(
             initialFamilyId: familyId,
             initialMessageId: messageId,

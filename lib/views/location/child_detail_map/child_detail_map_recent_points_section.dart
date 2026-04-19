@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/helpers/location/location_history_presenter.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
@@ -34,8 +35,8 @@ class ChildDetailMapRecentPointsHourSection extends StatelessWidget {
             ),
             child: Text(
               group.label,
-              style: const TextStyle(
-                fontSize: 11.5,
+              style: TextStyle(
+                fontSize: Theme.of(context).appTypography.meta.fontSize!,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF4B5563),
               ),
@@ -75,11 +76,12 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
     final pointIndex = history.indexWhere(
       (entry) => entry.timestamp == point.timestamp,
     );
-    final effectiveTransport = LocationHistoryPresenter.resolveEffectiveTransport(
-      history,
-      point,
-      indexHint: pointIndex,
-    );
+    final effectiveTransport =
+        LocationHistoryPresenter.resolveEffectiveTransport(
+          history,
+          point,
+          indexHint: pointIndex,
+        );
     final color = point.accuracy > 30
         ? const Color(0xFFC5221F)
         : LocationHistoryPresenter.transportColor(effectiveTransport);
@@ -122,8 +124,10 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
                               l10n,
                               effectiveTransport,
                             ),
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: TextStyle(
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.sectionLabel.fontSize!,
                         fontWeight: FontWeight.w700,
                         color: Colors.black87,
                       ),
@@ -132,7 +136,9 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
                     Text(
                       l10n.childLocationTapToSeeDetails,
                       style: TextStyle(
-                        fontSize: 11.5,
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.meta.fontSize!,
                         color: Colors.grey.shade600,
                         fontWeight: FontWeight.w500,
                       ),
@@ -143,7 +149,9 @@ class ChildDetailMapRecentPointRow extends StatelessWidget {
               Text(
                 vm.formatTimeLabelForTimestamp(point.timestamp),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: Theme.of(
+                    context,
+                  ).appTypography.supporting.fontSize!,
                   color: Colors.grey.shade600,
                   fontWeight: FontWeight.w600,
                 ),

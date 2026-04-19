@@ -10,7 +10,6 @@ class CreateScheduleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -29,10 +28,7 @@ class CreateScheduleButton extends StatelessWidget {
           ),
           child: Text(
             l10n.scheduleCreateButtonAddEvent,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onPrimary,
-            ),
+            style: TextStyle(color: colorScheme.onPrimary),
           ),
         ),
       ),

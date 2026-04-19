@@ -34,8 +34,6 @@ class BlockedAppDetailWidget extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _buildWarningBox(context, l10n),
-          const SizedBox(height: 30),
-          _buildActionButton(context, l10n),
         ],
       ),
     );
@@ -58,9 +56,7 @@ class BlockedAppDetailWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline,
-        ),
+        border: Border.all(color: colorScheme.outline),
         boxShadow: theme.brightness == Brightness.light
             ? [
                 BoxShadow(
@@ -160,16 +156,14 @@ class BlockedAppDetailWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: colorScheme.onError,
-          ),
+          Icon(Icons.warning_amber_rounded, color: colorScheme.onError),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               l10n.notificationsBlockedWarningMessage,
               style: textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onError,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),

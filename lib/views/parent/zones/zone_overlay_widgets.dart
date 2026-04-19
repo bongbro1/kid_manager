@@ -21,9 +21,7 @@ class ZoneHandleButton extends StatelessWidget {
           ),
         ],
       ),
-      child: Center(
-        child: Icon(Icons.edit, size: 18, color: scheme.onPrimary),
-      ),
+      child: Center(child: Icon(Icons.edit, size: 18, color: scheme.onPrimary)),
     );
   }
 }
@@ -40,12 +38,19 @@ class ZoneWarningPill extends StatelessWidget {
         color: const Color(0xFFE53935),
         borderRadius: BorderRadius.circular(999),
         boxShadow: const [
-          BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Text(
         text,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

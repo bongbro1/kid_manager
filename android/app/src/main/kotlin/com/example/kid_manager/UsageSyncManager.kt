@@ -5,6 +5,7 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.util.Log
 import com.google.firebase.Timestamp
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
@@ -14,28 +15,470 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class UsageSyncManager(private val context: Context) {
 
     companion object {
         private const val TAG = "UsageSync"
+        private const val RULE_PREFS = "watcher_rules"
+        private const val KEY_LAST_EVENT_SCAN_AT = "last_usage_event_scan_at"
+        private const val NOTIFY_COOLDOWN_MS = 15 * 60 * 1000L
+        private const val EVENT_SCAN_OVERLAP_MS = 60 * 1000L
     }
 
     private data class UsageEventsSummary(
-        val usageMsByPkg: Map<String, Long>,
         val lastUsedByPkg: MutableMap<String, Long>,
         val usageMsByHour: MutableMap<Int, Long>,
     )
+
+    fun syncUsageApps(userId: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                syncUsageAppsOnce(userId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Usage sync error", e)
+            }
+        }
+    }
+
+    suspend fun syncUsageAppsOnce(userId: String) {
+        val firestore = FirebaseFirestore.getInstance()
+        val now = System.currentTimeMillis()
+        val startOfDay = getStartOfDay()
+        val usageManager =
+            context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+
+        val appsRef = firestore
+            .collection("blocked_items")
+            .document(userId)
+            .collection("apps")
+
+        val appsSnap = appsRef.get().await()
+        val trackedPackages = appsSnap.documents.map { it.id }.toSet()
+        val includedPackages = trackedPackages.takeIf { it.isNotEmpty() }
+
+        val usageMsByPkgRaw = queryUsageStats(
+            usageManager = usageManager,
+            start = startOfDay,
+            end = now
+        )
+
+        val usageMsByPkg = if (includedPackages == null) {
+            usageMsByPkgRaw
+        } else {
+            usageMsByPkgRaw
+                .filterKeys { includedPackages.contains(it) }
+                .toMutableMap()
+        }
+
+        val events = usageManager.queryEvents(startOfDay, now)
+        val usageEventsSummary = computeUsageFromEvents(
+            events = events,
+            startOfDay = startOfDay,
+            now = now,
+            includedPackages = includedPackages
+        )
+
+        val lastUsedByPkg = usageEventsSummary.lastUsedByPkg
+        val usageMsByHour = usageEventsSummary.usageMsByHour
+        val totalUsageMsToday = usageMsByPkg.values.sum()
+
+        val rootRef = firestore
+            .collection("blocked_items")
+            .document(userId)
+
+        val batch = firestore.batch()
+
+        val dayKey = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(startOfDay))
+        var totalMinutesToday = 0
+        val minutesByPkg = mutableMapOf<String, Int>()
+
+        for (doc in appsSnap.documents) {
+            val pkg = doc.id
+            val usageMs = usageMsByPkg[pkg]
+            val lastUsedMs = lastUsedByPkg[pkg]
+            val lastUsageDayKey = doc.getString("todayUsageDayKey")
+            val shouldResetForNewDay = lastUsageDayKey != dayKey
+
+            if (usageMs == null && lastUsedMs == null && !shouldResetForNewDay) {
+                continue
+            }
+
+            val usageMsToWrite = usageMs ?: 0L
+            val minutes = (usageMsToWrite / 60000L).toInt()
+
+            if (minutes > 0) {
+                minutesByPkg[pkg] = minutes
+                totalMinutesToday += minutes
+            }
+
+            val dailyRef = doc.reference
+                .collection("usage_daily")
+                .document(dayKey)
+
+            val dailyData = hashMapOf(
+                "userId" to userId,
+                "package" to pkg,
+                "dateKey" to dayKey,
+                "date" to Timestamp(Date(startOfDay)),
+                "usageMs" to usageMsToWrite,
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+
+            batch.set(dailyRef, dailyData, SetOptions.merge())
+
+            val updateData = hashMapOf<String, Any?>(
+                "todayUsageMs" to usageMsToWrite,
+                "todayUsageDayKey" to dayKey,
+                "todayLastSeen" to lastUsedMs?.let { Timestamp(Date(it)) }
+            )
+
+            if (lastUsedMs != null && lastUsedMs > 0) {
+                updateData["lastSeen"] = Timestamp(Date(lastUsedMs))
+            }
+
+            batch.set(doc.reference, updateData, SetOptions.merge())
+        }
+
+        if (appsSnap.isEmpty && totalUsageMsToday > 0) {
+            totalMinutesToday = (totalUsageMsToday / 60000L).toInt()
+        }
+
+        updateHourlyUsage(
+            batch = batch,
+            firestore = firestore,
+            userId = userId,
+            dayKey = dayKey,
+            startOfDay = startOfDay,
+            usageMsByHour = usageMsByHour
+        )
+
+        val flatRef = firestore
+            .collection("blocked_items")
+            .document(userId)
+            .collection("usage_daily_flat")
+            .document(dayKey)
+
+        val flatData = hashMapOf(
+            "date" to Timestamp(Date(startOfDay)),
+            "totalMinutes" to totalMinutesToday,
+            "apps" to minutesByPkg,
+            "updatedAt" to FieldValue.serverTimestamp()
+        )
+
+        batch.set(flatRef, flatData, SetOptions.merge())
+        batch.set(
+            rootRef,
+            mapOf(
+                "todayTotalUsageMs" to totalUsageMsToday,
+                "lastHeartbeat" to FieldValue.serverTimestamp()
+            ),
+            SetOptions.merge()
+        )
+
+        batch.commit().await()
+
+        val totalMinutesSafe = (totalUsageMsToday / 60000L).toInt()
+        if (totalMinutesSafe > 24 * 60) {
+            Log.w(TAG, "Suspicious total usage > 24h: $totalMinutesSafe minutes")
+        }
+
+        Log.d(TAG, "Usage sync completed userId=$userId trackedPackages=${trackedPackages.size}")
+    }
+
+    fun syncInstalledApps(userId: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                syncInstalledAppsOnce(userId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Installed apps sync error", e)
+            }
+        }
+    }
+
+    suspend fun syncInstalledAppsOnce(userId: String) {
+        val packageName = context.packageName
+        val firestore = FirebaseFirestore.getInstance()
+
+        val docRef = firestore
+            .collection("blocked_items")
+            .document(userId)
+            .collection("apps")
+            .document(packageName)
+
+        val data = mapOf(
+            "kidLastSeen" to FieldValue.serverTimestamp(),
+            "kidAppRemovedAlertSent" to false
+        )
+
+        docRef.set(data, SetOptions.merge()).await()
+        Log.d(TAG, "Kid app status updated userId=$userId")
+    }
+
+    suspend fun syncUsageViolationsOnce(userId: String) {
+        val prefs = context.getSharedPreferences(RULE_PREFS, Context.MODE_PRIVATE)
+        val lastScanAt = prefs.getLong(KEY_LAST_EVENT_SCAN_AT, 0L)
+        val now = System.currentTimeMillis()
+        val startOfDay = getStartOfDay()
+        val scanFrom = maxOf(lastScanAt - EVENT_SCAN_OVERLAP_MS, startOfDay)
+
+        if (scanFrom >= now) {
+            Log.d(TAG, "Skip violation scan because scanFrom >= now")
+            return
+        }
+
+        val firestore = FirebaseFirestore.getInstance()
+        val appsSnap = firestore
+            .collection("blocked_items")
+            .document(userId)
+            .collection("apps")
+            .get()
+            .await()
+
+        if (appsSnap.isEmpty) {
+            prefs.edit().putLong(KEY_LAST_EVENT_SCAN_AT, now).apply()
+            Log.d(TAG, "Skip violation scan because no apps were found for userId=$userId")
+            return
+        }
+
+        val rulesByPackage = loadRulesByPackage(appsSnap)
+        val trackedPackages = rulesByPackage.keys
+        if (trackedPackages.isEmpty()) {
+            prefs.edit().putLong(KEY_LAST_EVENT_SCAN_AT, now).apply()
+            Log.d(TAG, "Skip violation scan because no rules were found for userId=$userId")
+            return
+        }
+
+        val blockedNowPackages = rulesByPackage.entries.mapNotNull { (packageName, rule) ->
+            val result = BlockRuleEvaluator.checkBlocked(rule = rule, atMillis = now)
+            if (!result.isBlocked) {
+                null
+            } else {
+                "$packageName(${getAppName(packageName)})"
+            }
+        }
+        Log.d(
+            TAG,
+            "[VIOLATION_TRACE] blocked_now_candidates count=${blockedNowPackages.size} " +
+                "packages=${blockedNowPackages.take(10)}"
+        )
+
+        val usageManager =
+            context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val events = usageManager.queryEvents(scanFrom, now)
+        val event = UsageEvents.Event()
+
+        val latestViolationAtByPkg = mutableMapOf<String, Long>()
+        val latestViolationResultByPkg = mutableMapOf<String, BlockCheckResult>()
+        var scannedEventCount = 0
+        var matchedForegroundEventCount = 0
+
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            scannedEventCount += 1
+
+            if (!isForegroundStartEvent(event.eventType)) {
+                continue
+            }
+
+            matchedForegroundEventCount += 1
+
+            val packageName = event.packageName ?: continue
+            if (!trackedPackages.contains(packageName)) {
+                continue
+            }
+
+            val rule = rulesByPackage[packageName] ?: continue
+            val result = BlockRuleEvaluator.checkBlocked(
+                rule = rule,
+                atMillis = event.timeStamp
+            )
+
+            if (!result.isBlocked) {
+                continue
+            }
+
+            val currentLatest = latestViolationAtByPkg[packageName]
+            if (currentLatest == null || event.timeStamp > currentLatest) {
+                latestViolationAtByPkg[packageName] = event.timeStamp
+                latestViolationResultByPkg[packageName] = result
+            }
+        }
+
+        Log.d(
+            TAG,
+            "Violation scan completed userId=$userId scanFrom=$scanFrom now=$now " +
+                "scannedEvents=$scannedEventCount foregroundEvents=$matchedForegroundEventCount " +
+                "violatingPackages=${latestViolationAtByPkg.size}"
+        )
+
+        for ((packageName, eventAt) in latestViolationAtByPkg) {
+            if (!shouldNotifyViolation(prefs, packageName, eventAt)) {
+                continue
+            }
+
+            val result = latestViolationResultByPkg[packageName] ?: continue
+            Log.d(
+                TAG,
+                "[VIOLATION_TRACE] notify_candidate package=$packageName eventAt=$eventAt " +
+                    "allowedFrom=${result.allowedFrom} allowedTo=${result.allowedTo}"
+            )
+            sendUsageViolationNotification(
+                prefs = prefs,
+                packageName = packageName,
+                eventAt = eventAt,
+                allowedFrom = result.allowedFrom,
+                allowedTo = result.allowedTo
+            )
+            markViolationNotified(prefs, packageName, eventAt)
+        }
+
+        prefs.edit().putLong(KEY_LAST_EVENT_SCAN_AT, now).apply()
+    }
+
+    private fun shouldNotifyViolation(
+        prefs: android.content.SharedPreferences,
+        packageName: String,
+        eventAt: Long
+    ): Boolean {
+        val key = "last_violation_notify_$packageName"
+        val last = prefs.getLong(key, 0L)
+        if (eventAt - last < NOTIFY_COOLDOWN_MS) {
+            Log.d(TAG, "Skip violation notify due to cooldown package=$packageName")
+            return false
+        }
+
+        return true
+    }
+
+    private fun markViolationNotified(
+        prefs: android.content.SharedPreferences,
+        packageName: String,
+        eventAt: Long
+    ) {
+        prefs.edit().putLong("last_violation_notify_$packageName", eventAt).apply()
+    }
+
+    private suspend fun sendUsageViolationNotification(
+        prefs: android.content.SharedPreferences,
+        packageName: String,
+        eventAt: Long,
+        allowedFrom: String,
+        allowedTo: String
+    ) {
+        val parentId = prefs.getString("parent_id", null)?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: run {
+                Log.w(TAG, "Skip violation notification because parent_id is missing")
+                return
+            }
+
+        val childName = prefs.getString("child_name", "Unknown") ?: "Unknown"
+        val appName = getAppName(packageName)
+        val blockedAt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+            .format(Date(eventAt))
+        val traceId = buildViolationTraceId(packageName, eventAt)
+
+        val payload = hashMapOf(
+            "receiverId" to parentId,
+            "type" to "blockedApp",
+            "title" to "Ứng dụng ngoài khung giờ",
+            "body" to "$childName đã mở ứng dụng ngoài khung giờ: $appName",
+            "data" to hashMapOf(
+                "studentName" to childName,
+                "appName" to appName,
+                "packageName" to packageName,
+                "blockedAt" to blockedAt,
+                "allowedFrom" to allowedFrom,
+                "allowedTo" to allowedTo,
+                "debugTraceId" to traceId,
+                "debugSource" to "usage_events_worker",
+                "debugEventAtMs" to eventAt.toString()
+            )
+        )
+
+        val response = FirebaseFunctions.getInstance("asia-southeast1")
+            .getHttpsCallable("enqueueAuthorizedNotification")
+            .call(payload)
+            .await()
+        val notificationId = (response.data as? Map<*, *>)?.get("notificationId")
+
+        Log.d(
+            TAG,
+            "[VIOLATION_TRACE] notification_enqueued traceId=$traceId notificationId=$notificationId " +
+                "parentId=$parentId package=$packageName blockedAt=$blockedAt"
+        )
+    }
+
+    private suspend fun loadRulesByPackage(
+        appsSnap: com.google.firebase.firestore.QuerySnapshot
+    ): Map<String, NativeRule> {
+        val rules = mutableMapOf<String, NativeRule>()
+
+        for (doc in appsSnap.documents) {
+            val packageName = doc.id
+            val ruleSnap = doc.reference
+                .collection("usage_rule")
+                .document("config")
+                .get()
+                .await()
+
+            if (!ruleSnap.exists()) {
+                continue
+            }
+
+            val data = ruleSnap.data ?: continue
+            rules[packageName] = parseRule(data)
+        }
+
+        return rules
+    }
+
+    private fun parseRule(data: Map<String, Any>): NativeRule {
+        val enabled = data["enabled"] as? Boolean ?: true
+
+        val weekdays = (data["weekdays"] as? List<*>)
+            ?.mapNotNull { (it as? Number)?.toInt() }
+            ?.toSet()
+            ?: emptySet()
+
+        val windows = (data["windows"] as? List<*>)
+            ?.mapNotNull {
+                val map = it as? Map<*, *> ?: return@mapNotNull null
+                val start = (map["startMin"] as? Number)?.toInt()
+                    ?: return@mapNotNull null
+                val end = (map["endMin"] as? Number)?.toInt()
+                    ?: return@mapNotNull null
+                NativeTimeWindow(start, end)
+            }
+            ?: emptyList()
+
+        val overrides = (data["overrides"] as? Map<*, *>)
+            ?.mapNotNull { (k, v) ->
+                val key = k?.toString() ?: return@mapNotNull null
+                val value = v?.toString() ?: return@mapNotNull null
+                key to value
+            }
+            ?.toMap()
+            ?: emptyMap()
+
+        return NativeRule(
+            enabled = enabled,
+            weekdays = weekdays,
+            windows = windows,
+            overrides = overrides
+        )
+    }
 
     private fun queryUsageStats(
         usageManager: UsageStatsManager,
         start: Long,
         end: Long
     ): MutableMap<String, Long> {
-
         val result = mutableMapOf<String, Long>()
-
         val stats = usageManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY,
             start,
@@ -43,239 +486,14 @@ class UsageSyncManager(private val context: Context) {
         )
 
         for (stat in stats) {
-
             val pkg = stat.packageName ?: continue
             val time = stat.totalTimeInForeground
-
             if (time > 0) {
-
-                result[pkg] =
-                    (result[pkg] ?: 0) + time
+                result[pkg] = (result[pkg] ?: 0L) + time
             }
         }
 
         return result
-    }
-
-    fun syncUsageApps(userId: String) {
-
-        CoroutineScope(Dispatchers.IO).launch {
-
-            try {
-                val firestore = FirebaseFirestore.getInstance()
-
-                val now = System.currentTimeMillis()
-                val startOfDay = getStartOfDay()
-                val usageManager =
-                    context.getSystemService(Context.USAGE_STATS_SERVICE)
-                            as UsageStatsManager
-
-                val appsRef = firestore
-                    .collection("blocked_items")
-                    .document(userId)
-                    .collection("apps")
-
-                val appsSnap = appsRef.get().await()
-                val trackedPackages = appsSnap.documents
-                    .map { it.id }
-                    .toSet()
-
-                val events = usageManager.queryEvents(startOfDay, now)
-
-                val usageEventsSummary =
-                    computeUsageFromEvents(
-                        events = events,
-                        startOfDay = startOfDay,
-                        now = now,
-                        includedPackages = if (trackedPackages.isEmpty()) {
-                            null
-                        } else {
-                            trackedPackages
-                        }
-                    )
-
-                val lastUsedByPkg = usageEventsSummary.lastUsedByPkg
-                val usageMsByHour = usageEventsSummary.usageMsByHour
-                val usageMsByPkg = usageEventsSummary.usageMsByPkg
-
-                val totalUsageMsToday = usageMsByPkg.values.sum()
-
-                val rootRef = firestore
-                    .collection("blocked_items")
-                    .document(userId)
-
-                val batch = firestore.batch()
-
-                val dayKey = SimpleDateFormat(
-                    "yyyyMMdd",
-                    Locale.US
-                ).format(Date(startOfDay))
-
-                var totalMinutesToday = 0
-                val minutesByPkg = mutableMapOf<String, Int>()
-
-                for (doc in appsSnap.documents) {
-
-                    val pkg = doc.id
-
-                    val usageMs = usageMsByPkg[pkg]
-                    val lastUsedMs = lastUsedByPkg[pkg]
-                    val lastUsageDayKey = doc.getString("todayUsageDayKey")
-                    val shouldResetForNewDay = lastUsageDayKey != dayKey
-
-                    // Skip writes when there is no new data in the same day.
-                    // On day rollover, force a reset to 0 to avoid showing stale usage from yesterday.
-                    if (usageMs == null && lastUsedMs == null && !shouldResetForNewDay) continue
-
-                    val usageMsToWrite = usageMs ?: 0L
-
-                    val minutes = usageMsToWrite / 60000
-
-                    if (minutes > 0) {
-
-                        minutesByPkg[pkg] = minutes.toInt()
-
-                        totalMinutesToday += minutes.toInt()
-                    }
-
-                    /// DAILY APP USAGE
-
-                    val dailyRef = doc.reference
-                        .collection("usage_daily")
-                        .document(dayKey)
-
-                    val dailyData = hashMapOf(
-                        "userId" to userId,
-                        "package" to pkg,
-                        "dateKey" to dayKey,
-                        "date" to Timestamp(Date(startOfDay)),
-                        "usageMs" to usageMsToWrite,
-                        "updatedAt" to FieldValue.serverTimestamp()
-                    )
-
-                    batch.set(
-                        dailyRef,
-                        dailyData,
-                        SetOptions.merge()
-                    )
-
-                    /// UPDATE APP DOC
-
-                    val updateData = hashMapOf<String, Any?>(
-                        "todayUsageMs" to usageMsToWrite,
-                        "todayUsageDayKey" to dayKey,
-                        "todayLastSeen" to lastUsedMs?.let {
-                            Timestamp(Date(it))
-                        }
-                    )
-
-                    if (lastUsedMs != null && lastUsedMs > 0) {
-
-                        updateData["lastSeen"] =
-                            Timestamp(Date(lastUsedMs))
-                    }
-
-                    batch.set(
-                        doc.reference,
-                        updateData,
-                        SetOptions.merge()
-                    )
-                }
-
-                // Recovery path: if app docs were deleted on Firestore,
-                // keep total usage from midnight to now instead of 0.
-                if (appsSnap.isEmpty && totalUsageMsToday > 0) {
-                    totalMinutesToday = (totalUsageMsToday / 60000L).toInt()
-                }
-
-                /// HOURLY USAGE (DEVICE LEVEL)
-                
-                updateHourlyUsage(
-                    batch,
-                    firestore,
-                    userId,
-                    dayKey,
-                    startOfDay,
-                    usageMsByHour
-                )
-
-                /// DAILY FLAT SUMMARY
-
-                val flatRef = firestore
-                    .collection("blocked_items")
-                    .document(userId)
-                    .collection("usage_daily_flat")
-                    .document(dayKey)
-
-                val flatData = hashMapOf(
-                    "date" to Timestamp(Date(startOfDay)),
-                    "totalMinutes" to totalMinutesToday,
-                    "apps" to minutesByPkg,
-                    "updatedAt" to FieldValue.serverTimestamp()
-                )
-
-                batch.set(
-                    flatRef,
-                    flatData,
-                    SetOptions.merge()
-                )
-
-                /// ROOT UPDATE
-
-                batch.set(
-                    rootRef,
-                    mapOf(
-                        "todayTotalUsageMs" to totalUsageMsToday,
-                        "lastHeartbeat" to FieldValue.serverTimestamp()
-                    ),
-                    SetOptions.merge()
-                )
-
-                batch.commit().await()
-
-                Log.d(TAG, "Usage sync completed")
-
-            } catch (e: Exception) {
-
-                Log.e(TAG, "Usage sync error", e)
-            }
-        }
-    }
-
-    fun syncInstalledApps(userId: String) {
-
-        CoroutineScope(Dispatchers.IO).launch {
-
-            try {
-
-                val pm = context.packageManager
-                val packageName = context.packageName
-
-                val firestore = FirebaseFirestore.getInstance()
-
-                val docRef = firestore
-                    .collection("blocked_items")
-                    .document(userId)
-                    .collection("apps")
-                    .document(packageName)
-
-                val data = mapOf(
-                    "kidLastSeen" to FieldValue.serverTimestamp(),
-                    "kidAppRemovedAlertSent" to false
-                )
-
-                docRef.set(
-                    data,
-                    SetOptions.merge()
-                ).await()
-
-                Log.d(TAG, "Kid app status updated")
-
-            } catch (e: Exception) {
-
-                Log.e(TAG, "Installed apps sync error", e)
-            }
-        }
     }
 
     private fun computeUsageFromEvents(
@@ -284,16 +502,15 @@ class UsageSyncManager(private val context: Context) {
         now: Long,
         includedPackages: Set<String>? = null
     ): UsageEventsSummary {
-
-        val usageMsByPkg = mutableMapOf<String, Long>()
         val lastUsedByPkg = mutableMapOf<String, Long>()
         val usageMsByHour = mutableMapOf<Int, Long>()
-        val startTimes = mutableMapOf<String, Long>()
+
+        var activePkg: String? = null
+        var activeStart: Long? = null
 
         val event = UsageEvents.Event()
 
         while (events.hasNextEvent()) {
-
             events.getNextEvent(event)
 
             val pkg = event.packageName ?: continue
@@ -301,68 +518,59 @@ class UsageSyncManager(private val context: Context) {
                 continue
             }
 
-            when (event.eventType) {
+            when {
+                isForegroundStartEvent(event.eventType) -> {
+                    val newStart = maxOf(event.timeStamp, startOfDay)
 
-                UsageEvents.Event.ACTIVITY_RESUMED,
-                UsageEvents.Event.MOVE_TO_FOREGROUND -> {
-
-                    startTimes[pkg] =
-                        maxOf(event.timeStamp, startOfDay)
-                }
-
-                UsageEvents.Event.ACTIVITY_PAUSED,
-                UsageEvents.Event.MOVE_TO_BACKGROUND -> {
-
-                    val start = startTimes[pkg] ?: continue
-                    val end = event.timeStamp
-                    val delta = end - start
-
-                    if (delta <= 0) {
-                        startTimes.remove(pkg)
-                        continue
+                    if (activePkg != null && activeStart != null) {
+                        val end = minOf(event.timeStamp, now)
+                        val delta = end - activeStart!!
+                        if (delta > 0) {
+                            addDurationToHourBuckets(
+                                startMs = activeStart!!,
+                                endMs = end,
+                                usageMsByHour = usageMsByHour
+                            )
+                            lastUsedByPkg[activePkg!!] = end
+                        }
                     }
 
-                    // per-app usage
-                    usageMsByPkg[pkg] =
-                        (usageMsByPkg[pkg] ?: 0L) + delta
+                    activePkg = pkg
+                    activeStart = newStart
+                }
 
-                    // hourly buckets
-                    addDurationToHourBuckets(
-                        start,
-                        end,
-                        usageMsByHour
-                    )
-
-                    lastUsedByPkg[pkg] = end
-
-                    startTimes.remove(pkg)
+                isForegroundStopEvent(event.eventType) -> {
+                    if (activePkg == pkg && activeStart != null) {
+                        val end = minOf(event.timeStamp, now)
+                        val delta = end - activeStart!!
+                        if (delta > 0) {
+                            addDurationToHourBuckets(
+                                startMs = activeStart!!,
+                                endMs = end,
+                                usageMsByHour = usageMsByHour
+                            )
+                            lastUsedByPkg[pkg] = end
+                        }
+                        activePkg = null
+                        activeStart = null
+                    }
                 }
             }
         }
 
-        // Handle apps still in foreground
-        for ((pkg, start) in startTimes) {
-            if (includedPackages != null && !includedPackages.contains(pkg)) {
-                continue
+        if (activePkg != null && activeStart != null) {
+            val delta = now - activeStart!!
+            if (delta > 0) {
+                addDurationToHourBuckets(
+                    startMs = activeStart!!,
+                    endMs = now,
+                    usageMsByHour = usageMsByHour
+                )
+                lastUsedByPkg[activePkg!!] = now
             }
-
-            val delta = now - start
-            if (delta <= 0) continue
-
-            usageMsByPkg[pkg] =
-                (usageMsByPkg[pkg] ?: 0L) + delta
-
-            addDurationToHourBuckets(
-                start,
-                now,
-                usageMsByHour
-            )
-
-            lastUsedByPkg[pkg] = now
         }
 
         return UsageEventsSummary(
-            usageMsByPkg = usageMsByPkg,
             lastUsedByPkg = lastUsedByPkg,
             usageMsByHour = usageMsByHour
         )
@@ -376,7 +584,6 @@ class UsageSyncManager(private val context: Context) {
         startOfDay: Long,
         usageMsByHour: Map<Int, Long>
     ) {
-
         val hourlyRef = firestore
             .collection("blocked_items")
             .document(userId)
@@ -395,11 +602,7 @@ class UsageSyncManager(private val context: Context) {
             "updatedAt" to FieldValue.serverTimestamp()
         )
 
-        batch.set(
-            hourlyRef,
-            data,
-            SetOptions.merge()
-        )
+        batch.set(hourlyRef, data, SetOptions.merge())
     }
 
     private fun addDurationToHourBuckets(
@@ -407,7 +610,6 @@ class UsageSyncManager(private val context: Context) {
         endMs: Long,
         usageMsByHour: MutableMap<Int, Long>
     ) {
-
         if (endMs <= startMs) return
 
         val calendar = Calendar.getInstance()
@@ -427,23 +629,42 @@ class UsageSyncManager(private val context: Context) {
             val segmentEnd = minOf(endMs, nextHourStart)
             val delta = segmentEnd - cursor
 
-            usageMsByHour[hour] =
-                (usageMsByHour[hour] ?: 0L) + delta
-
+            usageMsByHour[hour] = (usageMsByHour[hour] ?: 0L) + delta
             cursor = segmentEnd
         }
     }
 
+    private fun getAppName(packageName: String): String {
+        return try {
+            val pm = context.packageManager
+            val appInfo = pm.getApplicationInfo(packageName, 0)
+            pm.getApplicationLabel(appInfo).toString()
+        } catch (e: Exception) {
+            packageName
+        }
+    }
+
     private fun getStartOfDay(): Long {
-
         val calendar = Calendar.getInstance()
-
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
-
         return calendar.timeInMillis
     }
 
+    private fun isForegroundStartEvent(eventType: Int): Boolean {
+        return eventType == UsageEvents.Event.MOVE_TO_FOREGROUND ||
+            eventType == UsageEvents.Event.ACTIVITY_RESUMED
+    }
+
+    private fun isForegroundStopEvent(eventType: Int): Boolean {
+        return eventType == UsageEvents.Event.MOVE_TO_BACKGROUND ||
+            eventType == UsageEvents.Event.ACTIVITY_PAUSED ||
+            eventType == UsageEvents.Event.ACTIVITY_STOPPED
+    }
+
+    private fun buildViolationTraceId(packageName: String, eventAt: Long): String {
+        return "violation_${packageName.replace('.', '_')}_$eventAt"
+    }
 }

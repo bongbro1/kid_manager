@@ -124,13 +124,22 @@ export const onNotificationCreated = onDocumentCreated(
       return;
     }
 
-    console.log(`[NOTI] Triggered id=${notificationId} toUid=${toUid}`);
+    const payloadData = convertDataToString(data.data ?? {});
+    const traceId = String(
+      data.traceId ?? payloadData.debugTraceId ?? payloadData.traceId ?? "",
+    );
+
+    console.log(
+      `[NOTI] Triggered id=${notificationId} toUid=${toUid} traceId=${traceId} type=${String(
+        data.type ?? "",
+      )}`,
+    );
 
     const installationGroups = groupInstallationsByToken(
       await listInstallationsByUid(toUid)
     );
     if (!installationGroups.length) {
-      console.log("[NOTI] No tokens -> skip");
+      console.log(`[NOTI] No tokens -> skip traceId=${traceId}`);
       return;
     }
     const tokens = installationGroups.map((group) => group.token);
@@ -138,8 +147,6 @@ export const onNotificationCreated = onDocumentCreated(
     const userSnap = await db.doc(`users/${toUid}`).get();
     const user = userSnap.exists ? (userSnap.data() as any) : {};
     const lang = (user.lang ?? user.locale ?? "vi").toString().toLowerCase();
-
-    const payloadData = convertDataToString(data.data ?? {});
 
     const rawTitle = String(data.title ?? "");
     const rawBody = String(data.body ?? "");
@@ -217,7 +224,9 @@ export const onNotificationCreated = onDocumentCreated(
       },
     });
 
-    console.log(`[NOTI] Sent to ${tokens.length} devices`);
+    console.log(
+      `[VIOLATION_TRACE] push_sent traceId=${traceId} notificationId=${notificationId} tokens=${tokens.length}`,
+    );
 
     const invalidInstallationIds: string[] = [];
 

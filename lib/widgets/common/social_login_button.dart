@@ -23,6 +23,19 @@ class SocialLoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textStyle =
+        Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: AppColors.authText,
+          height: 1.5,
+        ) ??
+        const TextStyle(
+          color: AppColors.authText,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Poppins',
+          height: 1.5,
+        );
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -48,14 +61,7 @@ class SocialLoginButton extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.authText,
-                  fontSize: 16,
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  height: 1.5,
-                  letterSpacing: 0.5,
-                ),
+                style: textStyle,
               ),
             ),
           ],

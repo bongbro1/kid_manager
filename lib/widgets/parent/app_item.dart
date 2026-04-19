@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/models/app_item_model.dart';
 import 'package:kid_manager/utils/date_utils.dart';
 
 class AppItem extends StatelessWidget {
-  final String appName;
   final String usageTimeText;
 
   /// Icon app bên trái
-  final String? iconBase64;
 
   /// Actions
   final VoidCallback? onTap;
@@ -25,10 +24,8 @@ class AppItem extends StatelessWidget {
 
   const AppItem({
     super.key,
-    required this.appName,
     required this.usageTimeText,
     required this.app,
-    this.iconBase64,
     this.onTap,
     this.width,
     this.height = 70,
@@ -54,20 +51,13 @@ class AppItem extends StatelessWidget {
     final scheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    final defaultTitleStyle = textTheme.titleMedium?.copyWith(
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
+    final defaultTitleStyle = textTheme.labelLarge?.copyWith(
       color: scheme.onSurface,
-      fontFamily: "Poppins",
-      height: 1.25,
+      fontSize: Theme.of(context).appTypography.itemTitle.fontSize!,
     );
 
     final defaultSubtitleStyle = textTheme.bodySmall?.copyWith(
-      fontSize: 13,
-      fontWeight: FontWeight.w500,
       color: scheme.onSurface.withValues(alpha: 0.7),
-      fontFamily: "Poppins",
-      height: 1.33,
     );
 
     return LayoutBuilder(
@@ -114,6 +104,7 @@ class AppItem extends StatelessWidget {
                               height: 40,
                               fit: BoxFit.contain,
                               gaplessPlayback: true,
+                              filterQuality: FilterQuality.low,
                             )
                           : Icon(
                               Icons.apps,
@@ -133,7 +124,7 @@ class AppItem extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                appName,
+                                app.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: titleStyle ?? defaultTitleStyle,

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:kid_manager/features/permissions/accessibility_permission_screen.dart';
 import 'package:kid_manager/features/permissions/background_location_guide_video_card.dart';
 import 'package:kid_manager/features/permissions/background_location_permission_screen.dart';
 import 'package:kid_manager/features/permissions/battery_optimization_permission_screen.dart';
@@ -52,7 +51,6 @@ enum PermissionOnboardingStepType {
   media,
   usage,
   battery,
-  accessibility,
 }
 
 enum PermissionOnboardingCopyMode {
@@ -118,7 +116,6 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
       steps.addAll(const [
         PermissionOnboardingStepType.usage,
         PermissionOnboardingStepType.battery,
-        PermissionOnboardingStepType.accessibility,
       ]);
     }
 
@@ -138,8 +135,6 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
         return l10n.permissionOnboardingStepMediaLabel;
       case PermissionOnboardingStepType.usage:
         return l10n.permissionOnboardingStepUsageLabel;
-      case PermissionOnboardingStepType.accessibility:
-        return l10n.permissionOnboardingStepAccessibilityLabel;
       case PermissionOnboardingStepType.battery:
         return l10n.permissionOnboardingStepBatteryLabel;
     }
@@ -180,8 +175,6 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
         return _permissionService.hasPhotosOrStoragePermission();
       case PermissionOnboardingStepType.usage:
         return _permissionService.hasUsagePermission();
-      case PermissionOnboardingStepType.accessibility:
-        return _permissionService.hasAccessibilityPermission();
       case PermissionOnboardingStepType.battery:
         return _permissionService.hasBatteryOptimizationDisabled();
     }
@@ -288,7 +281,6 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
   bool _isSettingsOnlyStep(PermissionOnboardingStepType step) {
     switch (step) {
       case PermissionOnboardingStepType.usage:
-      case PermissionOnboardingStepType.accessibility:
       case PermissionOnboardingStepType.battery:
         return true;
       case PermissionOnboardingStepType.notifications:
@@ -317,9 +309,6 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
       case PermissionOnboardingStepType.usage:
         await _permissionService.openUsageAccessSettings();
         break;
-      case PermissionOnboardingStepType.accessibility:
-        await _permissionService.openAccessibilitySettings();
-        break;
       case PermissionOnboardingStepType.battery:
         await _permissionService.openBatteryOptimizationSettings();
         break;
@@ -339,7 +328,6 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
       case PermissionOnboardingStepType.media:
         return _requestMediaPermission();
       case PermissionOnboardingStepType.usage:
-      case PermissionOnboardingStepType.accessibility:
       case PermissionOnboardingStepType.battery:
         return Future.value(PermissionStatus.denied);
     }
@@ -597,43 +585,6 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           title: l10n.permissionOnboardingBatteryTitle,
           description: l10n.permissionOnboardingBatterySubtitle,
         );
-      case PermissionOnboardingStepType.accessibility:
-        if (isShared) {
-          return PermissionOnboardingStepCopy(
-            title: _localizedCopy(
-              context,
-              vi: 'Bật trợ năng',
-              en: 'Enable accessibility access',
-            ),
-            description: _localizedCopy(
-              context,
-              vi:
-                  'Để app hỗ trợ đầy đủ các tính năng giám sát và điều khiển liên quan khi được yêu cầu.',
-              en:
-                  'So the app can fully support supervision and control-related features when required.',
-            ),
-          );
-        }
-        if (isAdult) {
-          return PermissionOnboardingStepCopy(
-            title: _localizedCopy(
-              context,
-              vi: 'Bật trợ năng trên máy phụ huynh',
-              en: 'Enable accessibility access on the parent device',
-            ),
-            description: _localizedCopy(
-              context,
-              vi:
-                  'Để app có thể hỗ trợ đầy đủ các tính năng giám sát và điều khiển liên quan trên thiết bị phụ huynh khi được yêu cầu.',
-              en:
-                  'So the app can fully support supervision and device-control features on the parent device when required.',
-            ),
-          );
-        }
-        return PermissionOnboardingStepCopy(
-          title: l10n.permissionOnboardingAccessibilityTitle,
-          description: l10n.permissionOnboardingAccessibilitySubtitle,
-        );
     }
   }
 
@@ -718,21 +669,6 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           title: copy.title,
           description: copy.description,
           onOpenUsageAccess: () => unawaited(_handlePrimary()),
-          onOpenSettings: () => unawaited(_handleOpenSettings()),
-          onSkip: () => unawaited(_handleSkip()),
-        );
-      case PermissionOnboardingStepType.accessibility:
-        return AccessibilityPermissionScreen(
-          key: const ValueKey('accessibility'),
-          currentStep: currentStep,
-          totalSteps: totalSteps,
-          stepLabels: _stepLabels,
-          busy: _busy,
-          statusMessage: _statusMessage,
-          media: media,
-          title: copy.title,
-          description: copy.description,
-          onOpenAccessibility: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
           onSkip: () => unawaited(_handleSkip()),
         );

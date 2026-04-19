@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -12,6 +13,7 @@ import 'package:kid_manager/services/access_control/access_control_service.dart'
 import 'package:kid_manager/services/location/device_time_zone_service.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/widgets/date_pick_widget.dart';
+import 'package:kid_manager/widgets/app/app_button.dart';
 import 'package:kid_manager/widgets/app/app_input_component.dart';
 import 'package:kid_manager/widgets/app/app_notification_dialog.dart';
 import 'package:kid_manager/widgets/common/loading_view.dart';
@@ -190,9 +192,14 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final vm = context.watch<UserVm>();
-    final actor = context.select<UserVm, AppUser?>((value) => value.actorSnapshot);
-    final canAddAccount = actor != null &&
-        context.read<AccessControlService>().canAddManagedAccounts(actor: actor);
+    final actor = context.select<UserVm, AppUser?>(
+      (value) => value.actorSnapshot,
+    );
+    final canAddAccount =
+        actor != null &&
+        context.read<AccessControlService>().canAddManagedAccounts(
+          actor: actor,
+        );
 
     if (!canAddAccount) {
       return Scaffold(
@@ -203,9 +210,10 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
           centerTitle: true,
           title: Text(
             l10n.addAccountTitle,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
               color: scheme.onSurface,
+              fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
             ),
           ),
           iconTheme: IconThemeData(color: scheme.onSurface),
@@ -238,6 +246,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: scheme.onSurface,
+                fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
               ),
             ),
             iconTheme: IconThemeData(color: scheme.onSurface),
@@ -308,7 +317,13 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           l10n.addAccountAccessLabel,
-                          style: Theme.of(context).textTheme.labelMedium,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w500,
+                                fontSize: Theme.of(
+                                  context,
+                                ).appTypography.body.fontSize!,
+                              ),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -329,23 +344,14 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
                 /// BUTTON
                 SizedBox(
-                  width: double.infinity,
                   height: 52,
-                  child: ElevatedButton(
+                  child: AppButton(
+                    text: l10n.addAccountTitle,
                     onPressed: _onAddAccount,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: scheme.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Text(
-                      l10n.addAccountTitle,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: scheme.onPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
+                    height: 52,
+                    fontSize: 15,
                   ),
                 ),
               ],
@@ -417,7 +423,7 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
           Text(
             l10n.addAccountSelectBirthDateTitle,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontSize: 18,
+              fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -493,27 +499,16 @@ class _WheelDatePickerState extends State<_WheelDatePicker> {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            width: double.infinity,
             height: 50,
-            child: FilledButton(
+            child: AppButton(
+              text: l10n.addAccountSelectButton,
               onPressed: () {
                 Navigator.pop(context, DateTime(year, month, day));
               },
-              style: FilledButton.styleFrom(
-                backgroundColor: scheme.primary,
-                foregroundColor: scheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                l10n.addAccountSelectButton,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: scheme.onPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              height: 50,
+              fontSize: 15,
             ),
           ),
         ],

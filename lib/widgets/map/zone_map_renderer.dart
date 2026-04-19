@@ -25,12 +25,18 @@ class ZoneMapRenderer {
     // sources
     try {
       await style.addSource(
-        mbx.GeoJsonSource(id: _safeSrc, data: '{"type":"FeatureCollection","features":[]}'),
+        mbx.GeoJsonSource(
+          id: _safeSrc,
+          data: '{"type":"FeatureCollection","features":[]}',
+        ),
       );
     } catch (_) {}
     try {
       await style.addSource(
-        mbx.GeoJsonSource(id: _dangerSrc, data: '{"type":"FeatureCollection","features":[]}'),
+        mbx.GeoJsonSource(
+          id: _dangerSrc,
+          data: '{"type":"FeatureCollection","features":[]}',
+        ),
       );
     } catch (_) {}
 
@@ -84,11 +90,19 @@ class ZoneMapRenderer {
     final dangerFeatures = <Map<String, dynamic>>[];
 
     for (final z in zones) {
-      final ring = circlePolygon(lat: z.lat, lng: z.lng, radiusM: z.radiusM, points: 64);
+      final ring = circlePolygon(
+        lat: z.lat,
+        lng: z.lng,
+        radiusM: z.radiusM,
+        points: 64,
+      );
       final feat = {
         "type": "Feature",
         "properties": {"zoneId": z.id},
-        "geometry": {"type": "Polygon", "coordinates": [ring]},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [ring],
+        },
       };
       if (z.type == ZoneType.danger) {
         dangerFeatures.add(feat);

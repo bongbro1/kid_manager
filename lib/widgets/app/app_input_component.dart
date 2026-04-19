@@ -45,11 +45,13 @@ class AppLabeledTextField extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(height: labelBottomSpacing),
           Text(
             label,
             style: theme.textTheme.labelLarge?.copyWith(
               color: scheme.onSurface,
               fontWeight: FontWeight.w500,
+              fontSize: 14,
             ),
           ),
 
@@ -155,6 +157,7 @@ class AppLabeledDropdownField<T> extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SizedBox(height: labelBottomSpacing),
               Text(
                 label,
                 style: theme.textTheme.labelLarge?.copyWith(
@@ -293,6 +296,7 @@ class AppLabeledCheckbox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(height: labelBottomSpacing),
           Text(
             label,
             style: theme.textTheme.labelLarge?.copyWith(

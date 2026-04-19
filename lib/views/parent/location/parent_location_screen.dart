@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/location/map_focus_bus.dart';
 import 'package:kid_manager/core/sos/sos_focus_bus.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -437,10 +439,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     final startOfToday = DateTime(now.year, now.month, now.day);
     final upcomingWindowEnd = startOfToday.add(const Duration(days: 2));
     final results = await Future.wait<List<Schedule>>([
-      _loadChildSchedulesByDate(
-        childId: child.uid,
-        date: now,
-      ),
+      _loadChildSchedulesByDate(childId: child.uid, date: now),
       _loadChildSchedulesByRange(
         childId: child.uid,
         start: startOfToday,
@@ -462,9 +461,13 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
         upcomingSchedules: upcomingSchedules,
         onOpenChat: () {
           Navigator.of(sheetContext).pop();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FamilyGroupChatScreen()),
+          unawaited(
+            Navigator.push(
+              context,
+              AppPageTransitions.route(
+                builder: (_) => const FamilyGroupChatScreen(),
+              ),
+            ),
           );
         },
         onSendQuickMessage: (msg) async {
@@ -593,7 +596,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
           ),
           Positioned(
             left: 12,
-            top: 90,
+            top: 20,
             child: SafeArea(
               child: SosCircleButton(
                 onPressed: () async {
@@ -660,7 +663,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                 onMore: () async {
                   final selectedChild = await Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    AppPageTransitions.route(
                       builder: (_) => ParentChildrenListScreen(),
                     ),
                   );
@@ -815,7 +818,9 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                       Text(
                         l10n.parentLocationMapLoadingTitle,
                         style: textTheme.titleMedium?.copyWith(
-                          fontSize: 15,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.itemTitle.fontSize!,
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
                         ),
@@ -824,7 +829,9 @@ class _MapLoadingPlaceholder extends StatelessWidget {
                       Text(
                         l10n.parentLocationMapLoadingSubtitle,
                         style: textTheme.bodySmall?.copyWith(
-                          fontSize: 12.5,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.supporting.fontSize!,
                           color: colorScheme.onSurfaceVariant,
                           height: 1.35,
                         ),

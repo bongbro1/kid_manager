@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 
 class PermissionStepScaffold extends StatelessWidget {
@@ -59,7 +60,7 @@ class PermissionStepScaffold extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 24,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                         color: Color(0xFF111827),
                         height: 1.2,
                       ),
@@ -248,6 +249,13 @@ class _BottomActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final primaryButtonTextStyle = theme.appTypography.title.copyWith(
+      color: Colors.white,
+    );
+    final secondaryButtonTextStyle = theme.textTheme.labelLarge?.copyWith(
+      color: const Color(0xFF667085),
+    );
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
@@ -266,10 +274,7 @@ class _BottomActions extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                 ),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
+                textStyle: primaryButtonTextStyle,
               ),
               child: busy
                   ? const SizedBox(
@@ -287,14 +292,7 @@ class _BottomActions extends StatelessWidget {
             const SizedBox(height: 10),
             TextButton(
               onPressed: busy ? null : onOpenSettings,
-              child: Text(
-                settingsLabel,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF667085),
-                ),
-              ),
+              child: Text(settingsLabel, style: secondaryButtonTextStyle),
             ),
           ],
           const SizedBox(height: 4),
@@ -302,7 +300,7 @@ class _BottomActions extends StatelessWidget {
             onPressed: busy ? null : onSkip,
             child: Text(
               optional ? l10n.permissionLaterButton : l10n.permissionSkipButton,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF667085)),
+              style: secondaryButtonTextStyle,
             ),
           ),
         ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
@@ -8,9 +10,10 @@ import 'package:kid_manager/views/parent/dashboard/no_child_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/statistics_tab.dart';
 import 'package:kid_manager/views/parent/dashboard/usage_time_edit_screen.dart';
 import 'package:kid_manager/views/parent/dashboard/user_carousel_card.dart';
-import 'package:kid_manager/widgets/common/loading_view.dart';
+import 'package:kid_manager/widgets/app/app_scroll_effects.dart';
 import 'package:kid_manager/widgets/parent/app_item.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class AppManagementScreen extends StatefulWidget {
   const AppManagementScreen({super.key});
@@ -29,7 +32,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      setState(() {});
+      if (mounted) setState(() {});
     });
   }
 
@@ -50,14 +53,19 @@ class _AppManagementScreenState extends State<AppManagementScreen>
       debugPrint("❌ No child selected");
       return;
     }
-    final changed = await Navigator.of(context).push<bool>(
-      PageRouteBuilder(
+    final changed = await Navigator.of(context, rootNavigator: true).push<bool>(
+      PageRouteBuilder<bool>(
         opaque: false,
-        barrierColor: Colors.transparent,
-        pageBuilder: (_, _, _) => UsageTimeEditScreen(
-          appId: app.packageName,
-          childId: selectedChildId,
-        ),
+        barrierColor: Colors.black.withOpacity(0.12),
+        transitionDuration: AppPageTransitions.forwardDuration,
+        reverseTransitionDuration: AppPageTransitions.reverseDuration,
+        pageBuilder: (_, animation, secondaryAnimation) {
+          return UsageTimeEditScreen(
+            appId: app.packageName,
+            childId: selectedChildId,
+          );
+        },
+        transitionsBuilder: AppPageTransitions.buildModalTransition,
       ),
     );
 
@@ -70,36 +78,29 @@ class _AppManagementScreenState extends State<AppManagementScreen>
   }
 
   Future<void> _reloadApps() async {
-    await context.read<AppManagementVM>().loadAppsForSelectedChild();
+    await context.read<AppManagementVM>().loadAppsForSelectedChild(
+      forceRefresh: true,
+    );
   }
 
   void _goTab(int index) {
+    if (_tabController.index == index) return;
     setState(() {
-      _tabController.animateTo(index);
+      _tabController.index = index;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final appVm = context.watch<AppManagementVM>();
-    if (!appVm.hasChild) {
+
+    if (!appVm.loading && !appVm.hasChild) {
       return const NoChildScreen();
     }
-
-    return Stack(
-      children: [
-        // ✅ UI chính của bạn (giữ nguyên)
-        _buildMain(context, appVm),
-
-        // ✅ overlay loading phủ lên toàn bộ
-        if (appVm.loading)
-          const Positioned.fill(
-            child: AbsorbPointer(
-              absorbing: true, // chặn tap/scroll
-              child: LoadingOverlay(),
-            ),
-          ),
-      ],
+    return Skeletonizer(
+      enabled: appVm.loading,
+      enableSwitchAnimation: true,
+      child: _buildMain(context, appVm),
     );
   }
 
@@ -114,17 +115,23 @@ class _AppManagementScreenState extends State<AppManagementScreen>
       regular: 18,
     );
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final topDecorationHeight = screenHeight < 700 ? 270.0 : 290.0;
+    final isSkeleton = appVm.loading;
 
-    return Container(
-      color: theme.scaffoldBackgroundColor,
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
         top: false,
-        child: Stack(
-          clipBehavior: Clip.none,
+        child: Column(
           children: [
+            // 🔵 Header + Carousel (background xanh)
             Container(
-              height: topDecorationHeight,
+              width: double.infinity,
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                screenHeight < 700 ? 44 : 50,
+                horizontalPadding,
+                16, // 👈 khoảng cách với carousel
+              ),
               decoration: BoxDecoration(
                 color: scheme.primary,
                 borderRadius: const BorderRadius.only(
@@ -132,108 +139,115 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                   bottomRight: Radius.circular(24),
                 ),
               ),
-            ),
-
-            Column(
-              children: [
-                SizedBox(height: screenHeight < 700 ? 44 : 50),
-
-                Padding(
-                  padding: EdgeInsets.only(left: horizontalPadding + 8),
-                  child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title row
+                  Row(
                     children: [
-                      SvgPicture.asset(
-                        'assets/icons/icon_setting.svg',
-                        width: 24,
-                        height: 24,
-                        colorFilter: const ColorFilter.mode(
-                          Colors.white,
-                          BlendMode.srcIn,
+                      if (isSkeleton)
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.3,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        SvgPicture.asset(
+                          'assets/icons/icon_setting.svg',
+                          width: 24,
+                          height: 24,
+                          colorFilter: const ColorFilter.mode(
+                            Colors.white,
+                            BlendMode.srcIn,
+                          ),
                         ),
-                      ),
                       const SizedBox(width: 8),
                       Text(
                         l10n.parentDashboardTitle,
                         style: textTheme.titleMedium?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
-                          height: 1.33,
-                          letterSpacing: 0.5,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.screenTitle.fontSize!,
                         ),
                       ),
                     ],
                   ),
-                ),
 
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 14),
-                        Center(
-                          child: UserCarouselCard(
-                            currentIndex: _tabController.index,
-                            onTapApps: () => _goTab(0),
-                            onTapStats: () => _goTab(1),
-                          ),
-                        ),
+                  const SizedBox(height: 14),
 
-                        const SizedBox(height: 24),
-
-                        Expanded(
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              RefreshIndicator(
-                                color: scheme.primary,
-                                backgroundColor: scheme.surface,
-                                onRefresh: _reloadApps,
-                                child: ListView.builder(
-                                  padding: const EdgeInsets.only(
-                                    top: 0,
-                                    bottom: 16,
-                                  ),
-                                  itemCount: apps.length,
-                                  itemBuilder: (context, index) {
-                                    final app = apps[index];
-                                    return Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12,
-                                      ),
-                                      child: AppItem(
-                                        key: ValueKey(app.packageName),
-                                        appName: app.name,
-                                        app: app,
-                                        usageTimeText: app.usageTime ?? "0h 0m",
-                                        iconBase64: app.iconBase64,
-                                        onTap: () => openUsageTimeEdit(
-                                          context: context,
-                                          app: app,
-                                          onUpdated: _reloadApps,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-
-                              StatisticsTab(
-                                vm: appVm,
-                                apps: apps,
-                                onRefresh: _reloadApps,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                  // 👇 Carousel
+                  Center(
+                    child: UserCarouselCard(
+                      currentIndex: _tabController.index,
+                      onTapApps: () => _goTab(0),
+                      onTapStats: () => _goTab(1),
                     ),
                   ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // 🔽 Content
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: IndexedStack(
+                  index: _tabController.index,
+                  children: [
+                    RefreshIndicator(
+                      color: scheme.primary,
+                      backgroundColor: scheme.surface,
+                      onRefresh: _reloadApps,
+                      child: SingleChildScrollView(
+                        physics: AppScrollEffects.physics,
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          children: [
+                            ...apps.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final app = entry.value;
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: AppScrollReveal(
+                                  index: index,
+                                  child: AppItem(
+                                    key: ValueKey(app.packageName),
+                                    app: app,
+                                    usageTimeText: app.usageTime ?? "0h 0m",
+                                    onTap: () => openUsageTimeEdit(
+                                      context: context,
+                                      app: app,
+                                      onUpdated: _reloadApps,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                    ),
+                    StatisticsTab(
+                      vm: appVm,
+                      apps: apps,
+                      onRefresh: _reloadApps,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),

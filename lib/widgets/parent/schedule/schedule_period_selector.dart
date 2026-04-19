@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import '../../../models/schedule.dart';
 
@@ -18,6 +19,7 @@ class SchedulePeriodSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final canTap = enabled && onChanged != null;
+    final typography = Theme.of(context).appTypography;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -26,7 +28,7 @@ class SchedulePeriodSelector extends StatelessWidget {
           l10n.schedulePeriodTitle,
           style: TextStyle(
             fontFamily: 'Poppins',
-            fontSize: 16,
+            fontSize: typography.title.fontSize,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -80,10 +82,11 @@ class SchedulePeriodSelector extends StatelessWidget {
                               _periodLabel(l10n, p),
                               style: TextStyle(
                                 fontFamily: 'Poppins',
+                                fontSize: typography.body.fontSize,
                                 fontWeight: FontWeight.w500,
                                 color: selected
                                     ? style.dotColor
-                                    : colorScheme.onSurface.withOpacity(0.8)
+                                    : colorScheme.onSurface.withOpacity(0.8),
                               ),
                             ),
                           ],

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/features/subscription/subscription_quota_gate.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
@@ -67,8 +69,9 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
   }
 
   String _busyMessage(BuildContext context) {
-    final isVi = Localizations.localeOf(context).languageCode.toLowerCase() == 'vi';
-    
+    final isVi =
+        Localizations.localeOf(context).languageCode.toLowerCase() == 'vi';
+
     switch (_busyAction) {
       case _ZoneBusyAction.creating:
         return isVi ? 'Đang thêm vùng...' : 'Creating zone...';
@@ -146,7 +149,9 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                             titleText,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: Theme.of(
+                                context,
+                              ).appTypography.screenTitle.fontSize!,
                               fontWeight: FontWeight.w700,
                               color: scheme.onSurface,
                             ),
@@ -157,7 +162,9 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                               messageText,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: Theme.of(
+                                  context,
+                                ).appTypography.body.fontSize!,
                                 height: 1.5,
                                 color: scheme.onSurfaceVariant,
                               ),
@@ -226,7 +233,9 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                 l10n.zonesDeleteConfirmTitle,
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  fontSize: 18,
+                  fontSize: Theme.of(
+                    context,
+                  ).appTypography.screenTitle.fontSize!,
                   color: scheme.onSurface,
                 ),
               ),
@@ -240,7 +249,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
             Text(
               l10n.zonesDeleteConfirmMessage,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: Theme.of(context).appTypography.itemTitle.fontSize!,
                 height: 1.5,
                 color: scheme.onSurfaceVariant,
               ),
@@ -257,7 +266,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                 '"${zone.name}"',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: Theme.of(context).appTypography.body.fontSize!,
                   color: scheme.onSurface,
                 ),
               ),
@@ -303,7 +312,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
 
     final res = await Navigator.push<GeoZone>(
       context,
-      MaterialPageRoute(
+      AppPageTransitions.route(
         builder: (_) =>
             EditZoneScreen(childId: childId, zone: null, existingZones: zones),
       ),
@@ -357,7 +366,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
 
     final edited = await Navigator.push<GeoZone>(
       context,
-      MaterialPageRoute(
+      AppPageTransitions.route(
         builder: (_) =>
             EditZoneScreen(childId: childId, zone: zone, existingZones: zones),
       ),
@@ -456,7 +465,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
           Text(
             l10n.zonesEmptyTitle,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -466,7 +475,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
             l10n.zonesEmptySubtitle,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: Theme.of(context).appTypography.body.fontSize!,
               color: scheme.onSurfaceVariant,
               height: 1.5,
             ),
@@ -515,7 +524,9 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                   _busyMessage(context),
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: Theme.of(
+                      context,
+                    ).appTypography.itemTitle.fontSize!,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -581,8 +592,8 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                     zone.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: Theme.of(context).appTypography.title.fontSize!,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
                     ),
@@ -603,7 +614,9 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                           _zoneTypeLabel(l10n, zone.type),
                           style: TextStyle(
                             color: color,
-                            fontSize: 11,
+                            fontSize: Theme.of(
+                              context,
+                            ).appTypography.meta.fontSize!,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -619,7 +632,9 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                         '${zone.radiusM.toStringAsFixed(0)}m',
                         style: TextStyle(
                           color: scheme.onSurfaceVariant,
-                          fontSize: 12,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.supporting.fontSize!,
                         ),
                       ),
                     ],
@@ -722,7 +737,7 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
           l10n.zonesScreenTitle,
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 20,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
             letterSpacing: -0.5,
             color: scheme.onSurface,
           ),
@@ -764,7 +779,9 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
                     l10n.zonesErrorWithMessage(vm.error ?? ''),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.itemTitle.fontSize!,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),

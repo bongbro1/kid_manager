@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
 import 'package:kid_manager/models/user/user_types.dart';
@@ -72,11 +73,7 @@ class FamilyChatHeader extends StatelessWidget {
             color: familyChatHighlightColor(scheme),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            Icons.groups_rounded,
-            color: scheme.primary,
-            size: 20,
-          ),
+          child: Icon(Icons.groups_rounded, color: scheme.primary, size: 20),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -87,7 +84,9 @@ class FamilyChatHeader extends StatelessWidget {
               Text(
                 l10n.familyChatTitleLarge,
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: Theme.of(
+                    context,
+                  ).appTypography.inlineHeaderTitle.fontSize!,
                   fontWeight: FontWeight.w700,
                   color: scheme.onSurface,
                 ),
@@ -98,7 +97,9 @@ class FamilyChatHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: Theme.of(
+                    context,
+                  ).appTypography.supporting.fontSize!,
                   color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
@@ -117,7 +118,7 @@ class FamilyChatHeader extends StatelessWidget {
             child: Text(
               countLabel,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: Theme.of(context).appTypography.meta.fontSize!,
                 color: scheme.primary,
                 fontWeight: FontWeight.w700,
               ),
@@ -211,7 +212,7 @@ class FamilyChatMembersBar extends StatelessWidget {
                     _initialOf(member.displayName, l10n),
                     style: TextStyle(
                       color: roleColor,
-                      fontSize: 10,
+                      fontSize: Theme.of(context).appTypography.meta.fontSize!,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -224,7 +225,9 @@ class FamilyChatMembersBar extends StatelessWidget {
                   style: TextStyle(
                     color: scheme.onSurface,
                     fontWeight: FontWeight.w600,
-                    fontSize: 12,
+                    fontSize: Theme.of(
+                      context,
+                    ).appTypography.supporting.fontSize!,
                   ),
                 ),
               ],

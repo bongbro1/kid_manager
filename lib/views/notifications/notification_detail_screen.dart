@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/location/map_focus_bus.dart';
 import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/features/safe_route/presentation/pages/tracking_page.dart';
@@ -15,10 +19,10 @@ import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
-import 'package:kid_manager/widgets/common/loading_view.dart';
 import 'package:kid_manager/widgets/notifications/notification_detail_body.dart';
 import 'package:kid_manager/widgets/notifications/notification_text_resolver.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class NotificationDetailScreen extends StatefulWidget {
   const NotificationDetailScreen({super.key, required this.item});
@@ -31,14 +35,29 @@ class NotificationDetailScreen extends StatefulWidget {
 }
 
 class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
+  bool _bootstrapping = true;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final vm = context.read<NotificationVM>();
-      vm.markAsRead(widget.item);
-      vm.loadNotificationDetailItem(widget.item);
+      vm.prepareNotificationDetailLoad();
+      if (mounted) {
+        setState(() {
+          _bootstrapping = false;
+        });
+      }
+      unawaited(_loadDetail());
     });
+  }
+
+  Future<void> _loadDetail() async {
+    final vm = context.read<NotificationVM>();
+    await vm.markAsRead(widget.item);
+    if (!mounted) return;
+    await vm.loadNotificationDetailItem(widget.item);
   }
 
   NotificationStyle _resolveTrackingStyle(NotificationDetailModel detail) {
@@ -157,6 +176,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     if (isDanger && !isEnter) return Icons.verified_rounded;
     return Icons.location_on_outlined;
   }
+
   SafeRouteAccessResult? _resolveKnownSafeRouteAccess(String childId) {
     final userVm = context.read<UserVm>();
     final actor = userVm.me;
@@ -185,7 +205,9 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     return null;
   }
 
-  Future<void> _handleOpenSafeRouteTracking(NotificationDetailModel detail) async {
+  Future<void> _handleOpenSafeRouteTracking(
+    NotificationDetailModel detail,
+  ) async {
     final childId = (detail.data['childUid'] ?? detail.data['childId'] ?? '')
         .toString()
         .trim();
@@ -221,20 +243,19 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       final message = issue == null
           ? AppLocalizations.of(context).safeRouteErrorLoginAgain
           : resolveSafeRouteAccessMessage(AppLocalizations.of(context), issue);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
       return;
     }
 
+    if (!mounted) return;
     final childAvatarUrl = _resolveChildAvatarUrl(detail, childId);
 
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TrackingPage(
-          childId: childId,
-          childAvatarUrl: childAvatarUrl,
-        ),
+      AppPageTransitions.route(
+        builder: (_) =>
+            TrackingPage(childId: childId, childAvatarUrl: childAvatarUrl),
       ),
     );
   }
@@ -319,18 +340,193 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     activeTabNotifier.value = mapTabIndexNotifier.value;
   }
 
+  NotificationDetailModel _buildSkeletonDetail() {
+    return NotificationDetailModel(
+      id: 'notification-detail-skeleton',
+      title: 'Notification detail headline placeholder',
+      content:
+          'The notification details will appear here after the request is completed. '
+          'This placeholder keeps the layout stable and prevents the previous loading flash.',
+      createdAt: DateTime.now(),
+      data: const {},
+      type: NotificationType.system.value,
+    );
+  }
+
+  Widget _buildDetailContent({
+    required BuildContext context,
+    required NotificationDetailModel detail,
+    required bool isSkeleton,
+    required String trackingStatus,
+    required SafeRouteAccessResult? knownSafeRouteAccess,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    return Skeletonizer(
+      enabled: isSkeleton,
+      enableSwitchAnimation: true,
+      child: SingleChildScrollView(
+        key: ValueKey(isSkeleton ? 'detail-loading' : 'detail-content'),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: colorScheme.outline.withValues(alpha: 0.15),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: _resolveTopBgColor(detail),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Icon(
+                      _resolveTopIcon(detail),
+                      size: 36,
+                      color: _resolveTopIconColor(detail),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    _buildDisplayTitle(detail),
+                    textAlign: TextAlign.center,
+                    style: textTheme.headlineSmall?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.screenTitle.fontSize!,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 16,
+                        color: theme.brightness == Brightness.dark
+                            ? colorScheme.onSurface.withValues(alpha: 0.7)
+                            : colorScheme.outline,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          detail.formatTimeDisplay(l10n),
+                          textAlign: TextAlign.center,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: theme.brightness == Brightness.dark
+                                ? colorScheme.onSurface.withValues(alpha: 0.8)
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: colorScheme.outline.withValues(alpha: 0.15),
+                ),
+                boxShadow: theme.brightness == Brightness.light
+                    ? const [
+                        BoxShadow(
+                          color: Color(0x07000000),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                        BoxShadow(
+                          color: Color(0x0C000000),
+                          blurRadius: 6,
+                          offset: Offset(0, 4),
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 3),
+                    child: Text(
+                      l10n.notificationDetailSectionTitle,
+                      style: textTheme.labelMedium?.copyWith(
+                        color: theme.brightness == Brightness.dark
+                            ? colorScheme.onSurface
+                            : colorScheme.outline,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  NotificationDetailBody(
+                    detail: detail,
+                    onZoneViewMap:
+                        !isSkeleton &&
+                            detail.notificationType == NotificationType.zone
+                        ? () => _openZoneOnMainMap(detail)
+                        : null,
+                    onZonePhone:
+                        !isSkeleton &&
+                            detail.notificationType == NotificationType.zone
+                        ? () => _handleZonePhone(detail)
+                        : null,
+                    onOpenSafeRouteTracking:
+                        !isSkeleton &&
+                            detail.notificationType ==
+                                NotificationType.tracking &&
+                            trackingStatus.startsWith('safe_route_') &&
+                            (knownSafeRouteAccess == null ||
+                                knownSafeRouteAccess.isAllowed)
+                        ? () => _handleOpenSafeRouteTracking(detail)
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final vm = context.watch<NotificationVM>();
-    final detail = vm.notificationDetail;
+    final detail = _bootstrapping ? null : vm.notificationDetail;
+    final isSkeleton = detail == null;
+    final effectiveDetail = detail ?? _buildSkeletonDetail();
     final trackingStatus = detail == null
         ? ''
         : trackingStatusFromNotificationPayload(
             title: detail.title,
             data: detail.data,
           );
-    final knownSafeRouteAccess = detail == null ||
+    final knownSafeRouteAccess =
+        detail == null ||
             detail.notificationType != NotificationType.tracking ||
             !trackingStatus.startsWith('safe_route_')
         ? null
@@ -341,9 +537,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
           );
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-
-    if (detail == null) return LoadingOverlay();
+    final showError = !vm.loading && detail == null && vm.error != null;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -353,148 +547,58 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
         centerTitle: true,
         title: Text(
           l10n.notificationDetailTitle,
-          style: textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            height: 1.56,
+            fontWeight: FontWeight.w600,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
-      body: vm.loading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: colorScheme.outline.withOpacity(0.15),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: _resolveTopBgColor(detail),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Icon(
-                            _resolveTopIcon(detail),
-                            size: 36,
-                            color: _resolveTopIconColor(detail),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          _buildDisplayTitle(detail),
-                          textAlign: TextAlign.center,
-                          style: textTheme.headlineSmall?.copyWith(
-                            color: colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
-                            height: 1.3,
-                            fontSize: 20,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.access_time_rounded,
-                              size: 16,
-                              color: theme.brightness == Brightness.dark
-                                  ? colorScheme.onSurface.withOpacity(0.7)
-                                  : colorScheme.outline,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              detail.formatTimeDisplay(l10n),
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: theme.brightness == Brightness.dark
-                                    ? colorScheme.onSurface.withOpacity(0.8)
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: colorScheme.outline.withOpacity(0.15),
-                      ),
-                      boxShadow: theme.brightness == Brightness.light
-                          ? const [
-                              BoxShadow(
-                                color: Color(0x07000000),
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                              BoxShadow(
-                                color: Color(0x0C000000),
-                                blurRadius: 6,
-                                offset: Offset(0, 4),
-                              ),
-                            ]
-                          : [],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 3),
-                          child: Text(
-                            l10n.notificationDetailSectionTitle,
-                            style: textTheme.labelMedium?.copyWith(
-                              color: theme.brightness == Brightness.dark
-                                  ? colorScheme.onSurface
-                                  : colorScheme.outline,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        NotificationDetailBody(
-                          detail: detail,
-                          onZoneViewMap:
-                              detail.notificationType == NotificationType.zone
-                                  ? () => _openZoneOnMainMap(detail)
-                                  : null,
-                          onZonePhone:
-                              detail.notificationType == NotificationType.zone
-                                  ? () => _handleZonePhone(detail)
-                                  : null,
-                          onOpenSafeRouteTracking:
-                              detail.notificationType == NotificationType.tracking &&
-                                      trackingStatus.startsWith('safe_route_') &&
-                                      (knownSafeRouteAccess == null ||
-                                          knownSafeRouteAccess.isAllowed)
-                                  ? () => _handleOpenSafeRouteTracking(detail)
-                                  : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: showError
+            ? _NotificationDetailErrorBody(
+                key: const ValueKey('detail-error'),
+                message: vm.error!,
+              )
+            : _buildDetailContent(
+                context: context,
+                detail: effectiveDetail,
+                isSkeleton: isSkeleton,
+                trackingStatus: trackingStatus,
+                knownSafeRouteAccess: knownSafeRouteAccess,
               ),
-            ),
+      ),
+    );
+  }
+}
+
+class _NotificationDetailErrorBody extends StatelessWidget {
+  const _NotificationDetailErrorBody({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.error,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 }

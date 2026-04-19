@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
 
@@ -58,7 +59,9 @@ class ChildDetailEmptyStateCard extends StatelessWidget {
                   child: Text(
                     l10n.childLocationNoDataTitle,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.itemTitle.fontSize!,
                       fontWeight: FontWeight.w800,
                       color: Colors.black87,
                     ),
@@ -88,7 +91,7 @@ class ChildDetailEmptyStateCard extends StatelessWidget {
             Text(
               l10n.childLocationNoDataSubtitle,
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: Theme.of(context).appTypography.supporting.fontSize!,
                 height: 1.35,
                 color: Colors.grey.shade700,
               ),

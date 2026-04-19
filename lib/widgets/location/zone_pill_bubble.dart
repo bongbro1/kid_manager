@@ -17,7 +17,11 @@ class ZonePillBubble extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(999),
           boxShadow: const [
-            BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 4)),
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
           ],
         ),
         child: Row(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/viewmodels/location/child_detail_map_vm.dart';
@@ -37,7 +38,7 @@ class ChildDetailMapStatCard extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: Theme.of(context).appTypography.meta.fontSize!,
               fontWeight: FontWeight.w700,
               color: fg.withOpacity(0.85),
             ),
@@ -49,7 +50,7 @@ class ChildDetailMapStatCard extends StatelessWidget {
                 TextSpan(
                   text: value,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: Theme.of(context).appTypography.title.fontSize!,
                     fontWeight: FontWeight.w800,
                     color: fg,
                   ),
@@ -58,7 +59,7 @@ class ChildDetailMapStatCard extends StatelessWidget {
                   TextSpan(
                     text: ' $unit',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: Theme.of(context).appTypography.meta.fontSize!,
                       fontWeight: FontWeight.w700,
                       color: fg.withOpacity(0.9),
                     ),
@@ -99,7 +100,7 @@ class ChildDetailMapInfoCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: Theme.of(context).appTypography.supporting.fontSize!,
               color: Colors.grey.shade600,
               fontWeight: FontWeight.w600,
             ),
@@ -107,8 +108,8 @@ class ChildDetailMapInfoCard extends StatelessWidget {
           const SizedBox(height: 7),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
+            style: TextStyle(
+              fontSize: Theme.of(context).appTypography.body.fontSize!,
               fontWeight: FontWeight.w800,
               color: Colors.black87,
               height: 1.25,
@@ -118,7 +119,7 @@ class ChildDetailMapInfoCard extends StatelessWidget {
           Text(
             hint,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: Theme.of(context).appTypography.meta.fontSize!,
               color: Colors.grey.shade600,
               fontWeight: FontWeight.w500,
             ),
@@ -175,7 +176,9 @@ class _ChildDetailMapTechSectionState extends State<ChildDetailMapTechSection> {
                     child: Text(
                       l10n.childLocationTechnicalDetailsTitle,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.body.fontSize!,
                         fontWeight: FontWeight.w800,
                         color: Colors.black87,
                       ),
@@ -257,7 +260,7 @@ class ChildDetailMapSummaryChip extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: Theme.of(context).appTypography.meta.fontSize!,
               color: Colors.grey.shade600,
               fontWeight: FontWeight.w600,
             ),
@@ -265,8 +268,8 @@ class ChildDetailMapSummaryChip extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
+            style: TextStyle(
+              fontSize: Theme.of(context).appTypography.sectionLabel.fontSize!,
               fontWeight: FontWeight.w800,
               color: Colors.black87,
             ),
@@ -301,7 +304,7 @@ class ChildDetailMapTagChip extends StatelessWidget {
         text,
         style: TextStyle(
           color: foregroundColor,
-          fontSize: 11,
+          fontSize: Theme.of(context).appTypography.meta.fontSize!,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -332,7 +335,9 @@ class ChildDetailMapDetailRow extends StatelessWidget {
               label,
               style: TextStyle(
                 color: Colors.grey.shade600,
-                fontSize: 13,
+                fontSize: Theme.of(
+                  context,
+                ).appTypography.sectionLabel.fontSize!,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -340,8 +345,10 @@ class ChildDetailMapDetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 13,
+              style: TextStyle(
+                fontSize: Theme.of(
+                  context,
+                ).appTypography.sectionLabel.fontSize!,
                 fontWeight: FontWeight.w700,
                 color: Colors.black87,
               ),

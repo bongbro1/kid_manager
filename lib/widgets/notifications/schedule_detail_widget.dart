@@ -76,8 +76,8 @@ class ScheduleDetailWidget extends StatelessWidget {
     final data = detail.data;
 
     final action = (data['action'] ?? '').toString();
-    final childName =
-        (data['childName'] ?? l10n.notificationsDefaultChildName).toString();
+    final childName = (data['childName'] ?? l10n.notificationsDefaultChildName)
+        .toString();
     final scheduleTitle = (data['scheduleTitle'] ?? '').toString();
     final date = (data['date'] ?? '').toString();
     final startAt = (data['startAt'] ?? '').toString();
@@ -128,9 +128,7 @@ class ScheduleDetailWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: colorScheme.outline.withOpacity(0.35),
-            ),
+            border: Border.all(color: colorScheme.outline.withOpacity(0.35)),
           ),
           child: Column(
             children: [
@@ -141,10 +139,7 @@ class ScheduleDetailWidget extends StatelessWidget {
                 value: date,
               ),
               const SizedBox(height: 12),
-              Divider(
-                height: 1,
-                color: colorScheme.outline.withOpacity(0.25),
-              ),
+              Divider(height: 1, color: colorScheme.outline.withOpacity(0.25)),
               const SizedBox(height: 12),
               _timeRow(
                 context: context,
@@ -193,7 +188,9 @@ class ScheduleDetailWidget extends StatelessWidget {
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
                 disabledBackgroundColor: colorScheme.outline.withOpacity(0.25),
-                disabledForegroundColor: colorScheme.onSurface.withOpacity(0.45),
+                disabledForegroundColor: colorScheme.onSurface.withOpacity(
+                  0.45,
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -306,11 +303,7 @@ class ScheduleDetailWidget extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 18,
-          color: colorScheme.onSurface.withOpacity(0.65),
-        ),
+        Icon(icon, size: 18, color: colorScheme.onSurface.withOpacity(0.65)),
         const SizedBox(width: 10),
         SizedBox(
           width: 74,

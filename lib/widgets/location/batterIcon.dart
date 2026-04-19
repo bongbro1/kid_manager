@@ -18,10 +18,7 @@ class BatteryIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomPaint(
       size: Size(width, height),
-      painter: _BatteryPainter(
-        level: level,
-        color: color,
-      ),
+      painter: _BatteryPainter(level: level, color: color),
     );
   }
 }
@@ -30,10 +27,7 @@ class _BatteryPainter extends CustomPainter {
   final int level;
   final Color color;
 
-  _BatteryPainter({
-    required this.level,
-    required this.color,
-  });
+  _BatteryPainter({required this.level, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -76,8 +70,6 @@ class _BatteryPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BatteryPainter oldDelegate) {
-    return oldDelegate.level != level ||
-        oldDelegate.color != color;
+    return oldDelegate.level != level || oldDelegate.color != color;
   }
 }
-

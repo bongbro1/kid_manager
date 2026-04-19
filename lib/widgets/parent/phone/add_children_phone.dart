@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/user/user_profile_patch.dart';
@@ -27,7 +28,7 @@ class _AddChildPhoneScreenState extends State<AddChildPhoneScreen> {
     final userRepository = context.read<UserRepository>();
     final phone = await Navigator.push<String>(
       context,
-      MaterialPageRoute(builder: (_) => const PickChildPhoneScreen()),
+      AppPageTransitions.route(builder: (_) => const PickChildPhoneScreen()),
     );
 
     if (phone == null || phone.trim().isEmpty) return;

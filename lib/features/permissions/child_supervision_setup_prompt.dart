@@ -29,7 +29,6 @@ class _ChildSupervisionSetupPromptState
       <PermissionOnboardingStepType>[
         PermissionOnboardingStepType.usage,
         PermissionOnboardingStepType.battery,
-        PermissionOnboardingStepType.accessibility,
       ];
 
   List<PermissionOnboardingStepType> _missingSteps =
@@ -113,11 +112,6 @@ class _ChildSupervisionSetupPromptState
             missing.add(step);
           }
           break;
-        case PermissionOnboardingStepType.accessibility:
-          if (!(supervisionPermissions['accessibility'] ?? false)) {
-            missing.add(step);
-          }
-          break;
         case PermissionOnboardingStepType.notifications:
         case PermissionOnboardingStepType.location:
         case PermissionOnboardingStepType.backgroundLocation:
@@ -176,8 +170,6 @@ class _ChildSupervisionSetupPromptState
         return l10n.permissionOnboardingUsageTitle;
       case PermissionOnboardingStepType.battery:
         return l10n.permissionOnboardingBatteryTitle;
-      case PermissionOnboardingStepType.accessibility:
-        return l10n.permissionOnboardingAccessibilityTitle;
       case PermissionOnboardingStepType.notifications:
         return l10n.permissionOnboardingNotificationTitle;
       case PermissionOnboardingStepType.location:
@@ -198,8 +190,6 @@ class _ChildSupervisionSetupPromptState
         return l10n.permissionOnboardingUsageSubtitle;
       case PermissionOnboardingStepType.battery:
         return l10n.permissionOnboardingBatterySubtitle;
-      case PermissionOnboardingStepType.accessibility:
-        return l10n.permissionOnboardingAccessibilitySubtitle;
       case PermissionOnboardingStepType.notifications:
         return l10n.permissionOnboardingNotificationSubtitle;
       case PermissionOnboardingStepType.location:

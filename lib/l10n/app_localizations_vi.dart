@@ -114,8 +114,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get english => 'English';
 
   @override
-  String get changeLanguagePrompt =>
-      'Thay đổi ngôn ngữ, ứng dụng sẽ khởi động lại';
+  String get changeLanguagePrompt => 'Chọn ngôn ngữ hiển thị';
 
   @override
   String get appAppearanceThemeLabel => 'Chủ đề';
@@ -136,7 +135,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get appAppearanceSectionApp => 'ỨNG DỤNG';
 
   @override
-  String get appAppearanceThemeSubtitle => 'Thay đổi giao diện sáng/tối';
+  String get appAppearanceThemeSubtitle => 'Thay đổi giao diện';
 
   @override
   String get appAppearanceSectionSecurity => 'BẢO MẬT';
@@ -471,7 +470,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get accountNotFound => 'Tài khoản không tồn tại';
 
   @override
-  String get accountNotActivated => 'Tài khoản chưa được kích hoạt';
+  String get accountNotActivated => 'Tài khoản chưa kích hoạt';
 
   @override
   String get emailNotRegistered => 'Email chưa đăng ký';
@@ -1096,6 +1095,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notificationFilterTitle => 'Lọc thông báo';
 
   @override
+  String get notificationFilterTypeTitle => 'Loại thông báo';
+
+  @override
   String get notificationFilterAll => 'Tất cả';
 
   @override
@@ -1109,6 +1111,32 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get notificationFilterSystem => 'Thông báo hệ thống';
+
+  @override
+  String get notificationReadFilterTitle => 'Trạng thái đọc';
+
+  @override
+  String get notificationReadFilterAll => 'Tất cả trạng thái';
+
+  @override
+  String get notificationReadFilterUnread => 'Chưa đọc';
+
+  @override
+  String get notificationReadFilterRead => 'Đã đọc';
+
+  @override
+  String get notificationMarkAllRead => 'Đánh dấu tất cả đã đọc';
+
+  @override
+  String get notificationMarkAllReadSuccess =>
+      'Đã đánh dấu tất cả thông báo là đã đọc';
+
+  @override
+  String get notificationMarkAllReadError =>
+      'Không thể đánh dấu tất cả thông báo là đã đọc';
+
+  @override
+  String get notificationAllReadAlready => 'Tất cả thông báo đã được đọc';
 
   @override
   String get notificationSearchHint => 'Tìm thông báo';
@@ -1615,7 +1643,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notificationsBlockedTimeLabel => 'Thời điểm';
 
   @override
-  String get notificationsBlockedAllowedWindowLabel => 'Khung giờ cho phép';
+  String get notificationsBlockedAllowedWindowLabel => 'Thời gian cho phép';
 
   @override
   String get notificationsBlockedWarningMessage =>
@@ -2046,7 +2074,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get saveButton => 'Lưu';
 
   @override
-  String get parentUsageDayRuleModalHint => 'Chọn quy tắc cho ngày này';
+  String get parentUsageDayRuleModalHint => 'Chọn quy tắc cho ngày';
 
   @override
   String get parentUsageRuleFollowScheduleTitle => 'Theo lịch đã đặt';
@@ -3992,4 +4020,13 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get mapPlaceSearchDefaultName => 'Địa điểm';
+
+  @override
+  String get verifyNowQuestion => 'Bạn có muốn nhập OTP ngay không?';
+
+  @override
+  String get later => 'Để sau';
+
+  @override
+  String get verifyNow => 'Xác thực ngay';
 }

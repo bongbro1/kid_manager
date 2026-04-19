@@ -3,7 +3,8 @@ import 'dart:typed_data';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:kid_manager/models/user/user_types.dart';
+import 'package:kid_manager/services/image_service.dart';
 
 enum CropPhotoType { avatar, cover }
 
@@ -56,12 +57,12 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
   }
 
   Future<File> _saveCropped(Uint8List bytes) async {
-    final dir = await getTemporaryDirectory();
-    final file = File(
-      '${dir.path}/cropped_${DateTime.now().millisecondsSinceEpoch}.png',
+    return UserPhotoProcessingService.createTempOptimizedFile(
+      sourceBytes: bytes,
+      type: widget.type == CropPhotoType.avatar
+          ? UserPhotoType.avatar
+          : UserPhotoType.cover,
     );
-    await file.writeAsBytes(bytes, flush: true);
-    return file;
   }
 
   @override
@@ -77,7 +78,10 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text(_title(l10n)),
+        title: Text(
+          _title(l10n),
+          style: theme.textTheme.titleSmall?.copyWith(color: Colors.white),
+        ),
         actions: [
           TextButton(
             onPressed: _isCropping || _imageData == null
@@ -104,9 +108,9 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
                           aspectRatio: _aspectRatio,
                           withCircleUi: widget.type == CropPhotoType.avatar,
                           baseColor: Colors.black,
-                          maskColor: Colors.black.withOpacity(0.55),
+                          maskColor: Colors.black.withValues(alpha: 0.55),
                           radius: 20,
-                          cornerDotBuilder: (_, __) {
+                          cornerDotBuilder: (_, _) {
                             return Container(
                               width: 14,
                               height: 14,
@@ -122,11 +126,13 @@ class _CropPhotoScreenState extends State<CropPhotoScreen> {
                             try {
                               final file = await _saveCropped(croppedData);
 
-                              if (!mounted) return;
-                              Navigator.pop(context, file);
+                              if (!context.mounted) return;
+                              Navigator.of(context).pop(file);
                             } catch (e) {
+                              if (!context.mounted) return;
                               setState(() => _isCropping = false);
 
+                              final l10n = AppLocalizations.of(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(l10n.cropPhotoFailedMessage),

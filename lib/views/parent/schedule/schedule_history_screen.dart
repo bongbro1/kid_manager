@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
@@ -54,7 +55,15 @@ class _ScheduleHistoryScreenState extends State<ScheduleHistoryScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.scheduleHistoryTitle)),
+      appBar: AppBar(
+        title: Text(
+          l10n.scheduleHistoryTitle,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       body: Builder(
         builder: (_) {
           if (vm.isLoading) {
@@ -258,7 +267,10 @@ class _HistorySection extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 10, top: 4),
           child: Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         ...items.map(
@@ -360,8 +372,10 @@ class _HistoryCardState extends State<_HistoryCard> {
                           currentTitle.isNotEmpty ? currentTitle : historyTitle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 17,
+                          style: TextStyle(
+                            fontSize: Theme.of(
+                              context,
+                            ).appTypography.inlineHeaderTitle.fontSize!,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF202124),
                           ),
@@ -369,8 +383,10 @@ class _HistoryCardState extends State<_HistoryCard> {
                         const SizedBox(height: 6),
                         Text(
                           l10n.scheduleHistoryEditedAt(savedTime),
-                          style: const TextStyle(
-                            fontSize: 14,
+                          style: TextStyle(
+                            fontSize: Theme.of(
+                              context,
+                            ).appTypography.body.fontSize!,
                             color: Color(0xFF5F6368),
                             fontWeight: FontWeight.w500,
                           ),
@@ -501,9 +517,9 @@ class _InfoRow extends StatelessWidget {
                 label,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  fontSize: 15,
+                  fontSize: Theme.of(context).appTypography.itemTitle.fontSize!,
                   color: Color(0xFF202124),
                 ),
               ),
@@ -513,8 +529,8 @@ class _InfoRow extends StatelessWidget {
               child: Text(
                 value,
                 softWrap: true,
-                style: const TextStyle(
-                  fontSize: 15,
+                style: TextStyle(
+                  fontSize: Theme.of(context).appTypography.itemTitle.fontSize!,
                   color: Color(0xFF3C4043),
                   height: 1.35,
                 ),

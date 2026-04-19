@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:provider/provider.dart';
@@ -271,7 +272,8 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     final children = context.select<UserVm, List<AppUser>>(
       (vm) => List<AppUser>.unmodifiable(vm.children),
@@ -285,8 +287,10 @@ class _ScheduleExportExcelScreenState extends State<ScheduleExportExcelScreen> {
         elevation: 0,
         title: Text(
           l10n.scheduleExportTitle,
-          style: AppTextStyles.scheduleAppBarTitle.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
+            fontWeight: FontWeight.w600,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         centerTitle: true,

@@ -6,6 +6,7 @@ export const CLIENT_ENQUEUABLE_NOTIFICATION_TYPES = new Set([
   "schedule",
   "memoryDay",
   "importExcel",
+  "blockedApp",
 ]);
 
 const LOCALIZATION_KEY_PATTERN = /^[a-z0-9_.-]+\.(title|body)$/i;

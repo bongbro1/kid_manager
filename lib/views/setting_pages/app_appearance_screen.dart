@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/app.dart';
 import 'package:kid_manager/core/app_languages.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -106,8 +108,10 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
         centerTitle: true,
         title: Text(
           l10n.appAppearanceTitle,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.w600,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         iconTheme: IconThemeData(color: scheme.onSurface),
@@ -128,11 +132,13 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                       color: scheme.onSurface.withValues(alpha: .6),
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.7,
-                      fontFamily: 'Poppins',
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.sectionLabel.fontSize!,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _settingItem(
                   icon: Icons.dark_mode_outlined,
                   title: l10n.appAppearanceThemeLabel,
@@ -195,10 +201,13 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.7,
                       fontFamily: 'Poppins',
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.sectionLabel.fontSize!,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 if (userVm.canChangePassword)
                   _settingItem(
                     icon: Icons.lock_outline,
@@ -212,7 +221,7 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        AppPageTransitions.route(
                           builder: (_) => const ChangePasswordScreen(),
                         ),
                       );
@@ -292,8 +301,10 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: TextStyle(
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.itemTitle.fontSize!,
                         fontWeight: FontWeight.w600,
                         fontFamily: 'Poppins',
                       ),
@@ -301,10 +312,12 @@ class _AppAppearanceScreenState extends State<AppAppearanceScreen> {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: TextStyle(
+                        fontSize: Theme.of(
+                          context,
+                        ).appTypography.supporting.fontSize!,
                         color: Color(0xFFB6C4D7),
                         fontFamily: 'Poppins',
                       ),

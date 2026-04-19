@@ -86,6 +86,13 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       'keys=${message.data.keys.toList()} '
       'hasNotification=${message.notification != null}',
     );
+    final traceId = message.data['debugTraceId']?.toString();
+    if (traceId != null && traceId.isNotEmpty) {
+      debugPrint(
+        '[VIOLATION_TRACE] parent_backgroundMessage traceId=$traceId '
+        'notificationId=${message.data['notificationId']} type=${message.data['type']}',
+      );
+    }
   }
 
   WidgetsFlutterBinding.ensureInitialized();

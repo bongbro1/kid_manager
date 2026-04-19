@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/services/notifications/tracking_location_notification_text.dart';
@@ -65,9 +66,7 @@ class NotificationItemView extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: colorScheme.surface,
-              border: Border.all(
-                color: colorScheme.outline.withOpacity(0.18),
-              ),
+              border: Border.all(color: colorScheme.outline.withOpacity(0.18)),
               borderRadius: BorderRadius.circular(16),
               boxShadow: theme.brightness == Brightness.light
                   ? const [
@@ -80,7 +79,7 @@ class NotificationItemView extends StatelessWidget {
                   : [],
             ),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 /// ICON
                 Container(
@@ -91,11 +90,7 @@ class NotificationItemView extends StatelessWidget {
                     border: Border.all(color: style.borderColor),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Icon(
-                    style.icon,
-                    color: style.iconColor,
-                    size: 22,
-                  ),
+                  child: Icon(style.icon, color: style.iconColor, size: 22),
                 ),
                 const SizedBox(width: 12),
 
@@ -116,8 +111,11 @@ class NotificationItemView extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.titleMedium?.copyWith(
                                 color: colorScheme.onSurface,
-                                fontWeight: FontWeight.w700,
-                                height: 1.25,
+                                fontWeight: FontWeight.w600,
+                                fontSize: Theme.of(
+                                  context,
+                                ).appTypography.itemTitle.fontSize!,
+                                height: 1.19,
                               ),
                             ),
                           ),
@@ -131,6 +129,9 @@ class NotificationItemView extends StatelessWidget {
                                 style: textTheme.labelMedium?.copyWith(
                                   color: colorScheme.primary,
                                   fontWeight: FontWeight.w500,
+                                  fontSize: Theme.of(
+                                    context,
+                                  ).appTypography.meta.fontSize!,
                                 ),
                               ),
                             ),
@@ -142,11 +143,17 @@ class NotificationItemView extends StatelessWidget {
                       /// MESSAGE
                       Text(
                         bodyText,
+                        maxLines: 1,
                         style: textTheme.bodyMedium?.copyWith(
                           color: theme.brightness == Brightness.dark
                               ? colorScheme.onSurface.withOpacity(0.9)
                               : colorScheme.onSurfaceVariant,
-                          height: 1.5,
+                          height: 1.17,
+                          fontSize: Theme.of(
+                            context,
+                          ).appTypography.supporting.fontSize!,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.75,
                         ),
                       ),
                     ],

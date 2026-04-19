@@ -52,10 +52,7 @@ class ScheduleSessionResolver {
   final StorageService storage;
   final UserVm userVm;
 
-  const ScheduleSessionResolver({
-    required this.storage,
-    required this.userVm,
-  });
+  const ScheduleSessionResolver({required this.storage, required this.userVm});
 
   Future<ScheduleSessionState?> resolve({
     String? initialChildId,

@@ -114,7 +114,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get english => 'English';
 
   @override
-  String get changeLanguagePrompt => 'Change language, app will restart';
+  String get changeLanguagePrompt => 'Select display language';
 
   @override
   String get appAppearanceThemeLabel => 'Theme';
@@ -135,7 +135,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appAppearanceSectionApp => 'APP';
 
   @override
-  String get appAppearanceThemeSubtitle => 'Change light/dark appearance';
+  String get appAppearanceThemeSubtitle => 'Change appearance';
 
   @override
   String get appAppearanceSectionSecurity => 'SECURITY';
@@ -1097,6 +1097,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationFilterTitle => 'Filter notifications';
 
   @override
+  String get notificationFilterTypeTitle => 'Notification type';
+
+  @override
   String get notificationFilterAll => 'All';
 
   @override
@@ -1110,6 +1113,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationFilterSystem => 'System notifications';
+
+  @override
+  String get notificationReadFilterTitle => 'Read status';
+
+  @override
+  String get notificationReadFilterAll => 'All statuses';
+
+  @override
+  String get notificationReadFilterUnread => 'Unread';
+
+  @override
+  String get notificationReadFilterRead => 'Read';
+
+  @override
+  String get notificationMarkAllRead => 'Mark all as read';
+
+  @override
+  String get notificationMarkAllReadSuccess =>
+      'All notifications have been marked as read';
+
+  @override
+  String get notificationMarkAllReadError =>
+      'Could not mark all notifications as read';
+
+  @override
+  String get notificationAllReadAlready => 'All notifications are already read';
 
   @override
   String get notificationSearchHint => 'Search notifications';
@@ -1617,7 +1646,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsBlockedTimeLabel => 'Time';
 
   @override
-  String get notificationsBlockedAllowedWindowLabel => 'Allowed time window';
+  String get notificationsBlockedAllowedWindowLabel => 'Allowed time';
 
   @override
   String get notificationsBlockedWarningMessage =>
@@ -2047,7 +2076,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveButton => 'Save';
 
   @override
-  String get parentUsageDayRuleModalHint => 'Choose the rule for this day';
+  String get parentUsageDayRuleModalHint => 'Choose the rule for day';
 
   @override
   String get parentUsageRuleFollowScheduleTitle => 'Follow schedule';
@@ -4008,4 +4037,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapPlaceSearchDefaultName => 'Place';
+
+  @override
+  String get verifyNowQuestion => 'Do you want to enter OTP now?';
+
+  @override
+  String get later => 'Later';
+
+  @override
+  String get verifyNow => 'Verify now';
 }

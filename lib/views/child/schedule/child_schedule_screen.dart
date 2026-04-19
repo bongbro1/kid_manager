@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/features/sessions/sessionstatus.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
@@ -328,15 +329,16 @@ class _ChildScheduleScreenState extends State<ChildScheduleScreen> {
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: Icon(Icons.menu, color: colorScheme.onSurface),
+            icon: Icon(Icons.menu, color: colorScheme.onSurface, size: 26),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
         title: Text(
           l10n.scheduleScreenTitle,
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+          style: textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         centerTitle: true,

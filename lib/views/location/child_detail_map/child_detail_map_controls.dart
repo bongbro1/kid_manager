@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/views/location/child_detail_map/child_detail_map_shared_widgets.dart';
@@ -56,7 +57,9 @@ class ChildDetailMapAppBarChip extends StatelessWidget {
                 label,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: Theme.of(
+                    context,
+                  ).appTypography.supporting.fontSize!,
                   color: highlighted ? scheme.primary : scheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
@@ -189,7 +192,9 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                   Text(
                     l10n.childLocationTimeWindowTitle,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.screenTitle.fontSize!,
                       fontWeight: FontWeight.w800,
                       color: scheme.onSurface,
                     ),
@@ -198,7 +203,9 @@ Future<ChildDetailTimeWindowSelection?> showChildDetailTimeWindowSheet({
                   Text(
                     l10n.childLocationTimeWindowSubtitle,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.sectionLabel.fontSize!,
                       height: 1.35,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -376,7 +383,7 @@ class _RangePresetChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: Theme.of(context).appTypography.supporting.fontSize!,
             fontWeight: FontWeight.w700,
             color: selected ? primary : scheme.onSurface,
           ),

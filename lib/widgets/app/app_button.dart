@@ -5,6 +5,7 @@ class AppButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   final bool loading;
+  final bool skeleton;
   final Widget? icon;
   final Color? backgroundColor;
   final Color? foregroundColor;
@@ -29,6 +30,7 @@ class AppButton extends StatelessWidget {
     required this.text,
     required this.onPressed,
     this.loading = false,
+    this.skeleton = false,
     this.icon,
     this.backgroundColor,
     this.foregroundColor,
@@ -47,6 +49,14 @@ class AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final baseTextStyle =
+        theme.textTheme.titleSmall ??
+        const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Poppins',
+          height: 1.35,
+        );
 
     final bgColor =
         backgroundColor ??
@@ -58,11 +68,11 @@ class AppButton extends StatelessWidget {
 
     final bool isDisabled = loading || onPressed == null;
 
-    final textStyle = theme.textTheme.labelLarge?.copyWith(
+    final textStyle = baseTextStyle.copyWith(
       color: fgColor,
       fontSize: fontSize,
       fontWeight: fontWeight,
-      fontFamily: fontFamily ?? 'Poppins',
+      fontFamily: fontFamily,
       letterSpacing: letterSpacing,
       height: lineHeight,
     );
@@ -73,49 +83,82 @@ class AppButton extends StatelessWidget {
         if (effectiveWidth != null && constraints.maxWidth.isFinite) {
           effectiveWidth = effectiveWidth.clamp(0, constraints.maxWidth);
         }
-
-        Widget child = loading
-            ? SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: fgColor,
-                ),
-              )
-            : IconTheme(
-                data: IconThemeData(color: fgColor, size: 18),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (icon case final iconWidget?) ...[
-                      ColorFiltered(
-                        colorFilter: ColorFilter.mode(fgColor, BlendMode.srcIn),
-                        child: iconWidget,
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      style:
-                          textStyle ??
-                          const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Poppins',
-                          ),
-                      child: Text(
-                        text,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+        Widget child;
+        if (loading) {
+          child = SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2, color: fgColor),
+          );
+        } else if (skeleton) {
+          child = Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.3,
                     ),
-                  ],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
-              );
+                const SizedBox(width: 8),
+              ],
+              Container(
+                width: 72,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.3,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          );
+        } else {
+          child = IconTheme(
+            data: IconThemeData(color: fgColor, size: 18),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon case final iconWidget?) ...[
+                  TweenAnimationBuilder<Color?>(
+                    tween: ColorTween(end: fgColor),
+                    duration: const Duration(milliseconds: 200),
+                    builder: (context, animatedColor, child) {
+                      return ColorFiltered(
+                        colorFilter: ColorFilter.mode(
+                          animatedColor ?? fgColor,
+                          BlendMode.srcIn,
+                        ),
+                        child: child,
+                      );
+                    },
+                    child: iconWidget,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  style: textStyle,
+                  child: Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
         Widget button = AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -142,6 +185,7 @@ class AppButton extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
+              overlayColor: Colors.transparent,
             ),
             child: child,
           ),

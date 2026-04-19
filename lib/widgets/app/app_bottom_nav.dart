@@ -32,7 +32,7 @@ class AppBottomNav extends StatelessWidget {
         color: scheme.surface,
         border: Border(top: BorderSide(color: scheme.outline)),
       ),
-      child: SizedBox( 
+      child: SizedBox(
         height: 50,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

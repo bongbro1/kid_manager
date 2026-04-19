@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 
 class WheelDatePicker extends StatefulWidget {
@@ -61,7 +62,7 @@ class _WheelDatePickerState extends State<WheelDatePicker> {
           Text(
             l10n.addAccountSelectBirthDateTitle,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontSize: 18,
+              fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
               fontWeight: FontWeight.w600,
             ),
           ),

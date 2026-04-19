@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/utils/notification_helper.dart';
@@ -89,9 +90,10 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
       appBar: AppBar(
         title: Text(
           l10n.memoryDayTitle,
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
             color: colorScheme.onSurface,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
           ),
         ),
         centerTitle: true,
@@ -103,18 +105,12 @@ class _MemoryDayScreenState extends State<MemoryDayScreen> {
         ],
       ),
       body: vm.isAllLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: colorScheme.primary,
-              ),
-            )
+          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
           : vm.allError != null
           ? Center(
               child: Text(
                 vm.allError!,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.error,
-                ),
+                style: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
               ),
             )
           : all.isEmpty
@@ -215,12 +211,7 @@ class _MemoryDayCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border(
-          left: BorderSide(
-            color: Color(0xFFE2B53B),
-            width: 3
-          ),
-        ),
+        border: Border(left: BorderSide(color: Color(0xFFE2B53B), width: 3)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
@@ -329,7 +320,7 @@ class _MemoryDayCard extends StatelessWidget {
                     color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: colorScheme.outline.withOpacity(0.5)
+                      color: colorScheme.outline.withOpacity(0.5),
                     ),
                   ),
                   alignment: Alignment.center,
@@ -366,7 +357,7 @@ class _MemoryDayCard extends StatelessWidget {
                 ? l10n.memoryDayDateRepeatText(dateText)
                 : l10n.memoryDayDateText(dateText),
             style: textTheme.bodySmall?.copyWith(
-              fontSize: 12.5,
+              fontSize: Theme.of(context).appTypography.supporting.fontSize!,
               height: 1.3,
               color: colorScheme.onSurface.withOpacity(0.65),
             ),
@@ -378,7 +369,7 @@ class _MemoryDayCard extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: textTheme.bodySmall?.copyWith(
-                fontSize: 12.5,
+                fontSize: Theme.of(context).appTypography.supporting.fontSize!,
                 height: 1.35,
                 color: colorScheme.onSurface.withOpacity(0.5),
               ),

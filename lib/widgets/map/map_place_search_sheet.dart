@@ -205,8 +205,7 @@ class _MapPlaceSearchSheetState extends State<_MapPlaceSearchSheet> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      widget.hintText ??
-                          l10n.childLocationMapSearchSubtitle,
+                      widget.hintText ?? l10n.childLocationMapSearchSubtitle,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF667085),

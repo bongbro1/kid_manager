@@ -52,9 +52,7 @@ class RemovedAppDetailWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline,
-        ),
+        border: Border.all(color: colorScheme.outline),
         boxShadow: theme.brightness == Brightness.light
             ? [
                 BoxShadow(
@@ -147,10 +145,7 @@ class RemovedAppDetailWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: colorScheme.onError,
-          ),
+          Icon(Icons.warning_amber_rounded, color: colorScheme.onError),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/views/notifications/notification_detail_screen.dart';
 import 'package:kid_manager/views/notifications/notification_item_view.dart';
 import 'package:kid_manager/viewmodels/notification_vm.dart';
+import 'package:kid_manager/views/notifications/widgets/notification_header.dart';
+import 'package:kid_manager/widgets/app/app_scroll_effects.dart';
 import 'package:kid_manager/widgets/notifications/birthday_notification_experience.dart';
 import 'package:kid_manager/widgets/notifications/notification_empty_view.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({
@@ -66,7 +71,9 @@ class _NotificationScreenState extends State<NotificationScreen>
     if (item == null) return;
 
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => NotificationDetailScreen(item: item)),
+      AppPageTransitions.route(
+        builder: (_) => NotificationDetailScreen(item: item),
+      ),
     );
   }
 
@@ -105,8 +112,41 @@ class _NotificationScreenState extends State<NotificationScreen>
     context.read<NotificationVM>().setFilter(filter);
   }
 
+  void _onReadFilterChanged(NotificationReadFilter filter) {
+    context.read<NotificationVM>().setReadFilter(filter);
+  }
+
   void _onSearch(String keyword) {
     context.read<NotificationVM>().setSearch(keyword);
+  }
+
+  Future<void> _markAllAsRead() async {
+    final vm = context.read<NotificationVM>();
+    final l10n = AppLocalizations.of(context);
+
+    if (vm.unreadCount == 0 || vm.markingAllRead) {
+      return;
+    }
+
+    try {
+      final updatedCount = await vm.markAllAsRead();
+      if (!mounted) return;
+      if (updatedCount == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.notificationAllReadAlready)),
+        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.notificationMarkAllReadSuccess)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.notificationMarkAllReadError)),
+      );
+    }
   }
 
   Future<void> _handleNotificationTap(AppNotification item) async {
@@ -124,7 +164,9 @@ class _NotificationScreenState extends State<NotificationScreen>
     if (!mounted) return;
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => NotificationDetailScreen(item: item)),
+      AppPageTransitions.route(
+        builder: (_) => NotificationDetailScreen(item: item),
+      ),
     );
   }
 
@@ -160,25 +202,46 @@ class _NotificationScreenState extends State<NotificationScreen>
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: SafeArea(
-          child: Column(
-            children: [
-              _NotificationHeader(
-                searchKeyword: vm.searchKeyword,
-                onSearch: _onSearch,
-                activeFilter: vm.activeFilter,
-                onFilterChanged: _onFilterChanged,
-              ),
-              Divider(
-                height: 2,
-                thickness: 2,
-                color: colorScheme.outline.withOpacity(0.2),
-              ),
-              Expanded(
+        body: Column(
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: vm.loading
+                  ? const _NotificationHeaderSkeleton(
+                      key: ValueKey('notification-header-skeleton'),
+                    )
+                  : NotificationHeader(
+                      key: const ValueKey('notification-header-content'),
+                      searchKeyword: vm.searchKeyword,
+                      onSearch: _onSearch,
+                      activeFilter: vm.activeFilter,
+                      activeReadFilter: vm.activeReadFilter,
+                      unreadCount: vm.unreadCount,
+                      markingAllRead: vm.markingAllRead,
+                      onFilterChanged: _onFilterChanged,
+                      onReadFilterChanged: _onReadFilterChanged,
+                      onMarkAllRead: _markAllAsRead,
+                    ),
+            ),
+            Divider(
+              height: 2,
+              thickness: 2,
+              color: colorScheme.outline.withValues(alpha: 0.2),
+            ),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
                 child: vm.loading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const _NotificationListSkeletonBody(
+                        key: ValueKey('notification-list-skeleton'),
+                      )
                     : vm.error != null
                     ? Center(
+                        key: const ValueKey('notification-list-error'),
                         child: Padding(
                           padding: const EdgeInsets.all(24),
                           child: Text(
@@ -192,6 +255,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                         ),
                       )
                     : RefreshIndicator(
+                        key: const ValueKey('notification-list-content'),
                         onRefresh: () async {
                           await vm.refresh();
                         },
@@ -199,6 +263,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                             ? const NotificationEmptyView()
                             : ListView.builder(
                                 controller: _scrollController,
+                                physics: AppScrollEffects.physics,
                                 padding: const EdgeInsets.fromLTRB(
                                   16,
                                   0,
@@ -231,30 +296,34 @@ class _NotificationScreenState extends State<NotificationScreen>
                                         notifications[index - 1].createdAt,
                                       );
 
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (showDateHeader) ...[
-                                        const SizedBox(height: 16),
-                                        _buildDateHeader(item.createdAt!),
+                                  return AppScrollReveal(
+                                    key: ValueKey('reveal-${item.id}'),
+                                    index: index,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (showDateHeader) ...[
+                                          const SizedBox(height: 16),
+                                          _buildDateHeader(item.createdAt!),
+                                          const SizedBox(height: 12),
+                                        ],
+                                        NotificationItemView(
+                                          key: ValueKey(item.id),
+                                          item: item,
+                                          onTap: () async =>
+                                              _handleNotificationTap(item),
+                                        ),
                                         const SizedBox(height: 12),
                                       ],
-                                      NotificationItemView(
-                                        key: ValueKey(item.id),
-                                        item: item,
-                                        onTap: () async =>
-                                            _handleNotificationTap(item),
-                                      ),
-                                      const SizedBox(height: 12),
-                                    ],
+                                    ),
                                   );
                                 },
                               ),
                       ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -284,345 +353,212 @@ class _NotificationScreenState extends State<NotificationScreen>
         text,
         style: textTheme.labelMedium?.copyWith(
           color: colorScheme.onSurface,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
+          letterSpacing: 0.2,
+          fontSize: Theme.of(context).appTypography.body.fontSize!,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 }
 
-class _NotificationHeader extends StatefulWidget {
-  const _NotificationHeader({
-    required this.searchKeyword,
-    required this.onSearch,
-    required this.activeFilter,
-    required this.onFilterChanged,
-  });
-
-  final String searchKeyword;
-  final ValueChanged<String> onSearch;
-  final NotificationFilter activeFilter;
-  final Function(NotificationFilter) onFilterChanged;
-
-  @override
-  State<_NotificationHeader> createState() => _NotificationHeaderState();
-}
-
-class _NotificationHeaderState extends State<_NotificationHeader> {
-  bool _isSearching = false;
-  bool _isFocused = false;
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-
-  void _onSearch(String keyword) {
-    widget.onSearch(keyword.trim());
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.text = widget.searchKeyword;
-
-    _focusNode.addListener(() {
-      if (!_focusNode.hasFocus && _isSearching) {
-        setState(() {
-          _isSearching = false;
-        });
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant _NotificationHeader oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.searchKeyword != widget.searchKeyword) {
-      _controller.text = widget.searchKeyword;
-    }
-  }
-
-  void _showFilter() {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-
-    final filters = [
-      (NotificationFilter.all, l10n.notificationFilterAll, Icons.notifications),
-      (
-        NotificationFilter.activity,
-        l10n.notificationFilterActivity,
-        Icons.school,
-      ),
-      (NotificationFilter.alert, l10n.notificationFilterAlert, Icons.warning),
-      (
-        NotificationFilter.reminder,
-        l10n.notificationFilterReminder,
-        Icons.event,
-      ),
-      (
-        NotificationFilter.system,
-        l10n.notificationFilterSystem,
-        Icons.campaign,
-      ),
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        final sheetTheme = Theme.of(context);
-        final sheetColorScheme = sheetTheme.colorScheme;
-        final sheetTextTheme = sheetTheme.textTheme;
-
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Text(
-                l10n.notificationFilterTitle,
-                style: sheetTextTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: sheetColorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: filters.map((f) {
-                  final filter = f.$1;
-                  final label = f.$2;
-                  final icon = f.$3;
-                  final isSelected = widget.activeFilter == filter;
-
-                  return ListTile(
-                    leading: Icon(
-                      icon,
-                      color: isSelected
-                          ? sheetColorScheme.primary
-                          : sheetColorScheme.onSurface,
-                    ),
-                    title: Text(
-                      label,
-                      style: sheetTextTheme.bodyLarge?.copyWith(
-                        color: sheetColorScheme.onSurface,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
-                    ),
-                    trailing: isSelected
-                        ? Icon(Icons.check, color: sheetColorScheme.primary)
-                        : null,
-                    onTap: () {
-                      Navigator.pop(context);
-                      widget.onFilterChanged(filter);
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
+class _NotificationHeaderSkeleton extends StatelessWidget {
+  const _NotificationHeaderSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) {
-          final slide =
-              Tween<Offset>(
-                begin: const Offset(0.0, -0.2),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              );
-
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(position: slide, child: child),
-          );
-        },
-        child: _isSearching ? _buildSearchBox() : _buildNormalHeader(),
-      ),
-    );
-  }
-
-  Widget _buildNormalHeader() {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final topInset = MediaQuery.paddingOf(context).top;
 
-    final hasFilter = widget.activeFilter != NotificationFilter.all;
-    final hasSearch = widget.searchKeyword.isNotEmpty;
-
-    return Stack(
-      key: const ValueKey('normal'),
-      alignment: Alignment.center,
-      children: [
-        Center(
-          child: Text(
-            l10n.notificationScreenTitle,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: colorScheme.onSurface,
-              fontSize: 20,
-            ),
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Skeletonizer(
+      enabled: true,
+      enableSwitchAnimation: true,
+      child: Container(
+        color: colorScheme.surface,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _CircleIconButton(
-              icon: Icons.tune,
-              color: hasFilter ? colorScheme.primary : colorScheme.onSurface,
-              onTap: _showFilter,
-            ),
-            _CircleIconButton(
-              icon: Icons.search,
-              color: hasSearch ? colorScheme.primary : colorScheme.onSurface,
-              onTap: () {
-                setState(() {
-                  _isSearching = true;
-                });
-
-                Future.delayed(Duration.zero, () {
-                  _focusNode.requestFocus();
-                });
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchBox() {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-
-    return Padding(
-      key: const ValueKey('search'),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: _isFocused
-                      ? colorScheme.primary
-                      : colorScheme.outline.withOpacity(0.5),
-                  width: 1,
-                ),
-              ),
-              child: Row(
+            SizedBox(height: topInset),
+            Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Expanded(
-                    child: Focus(
-                      onFocusChange: (value) {
-                        setState(() => _isFocused = value);
-                      },
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        autofocus: true,
-                        cursorColor: colorScheme.primary,
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: colorScheme.onSurface,
-                        ),
-                        onChanged: _onSearch,
-                        decoration: InputDecoration(
-                          hintText: l10n.notificationSearchHint,
-                          hintStyle: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.outline,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          disabledBorder: InputBorder.none,
-                          errorBorder: InputBorder.none,
-                          focusedErrorBorder: InputBorder.none,
-                          isCollapsed: true,
-                          filled: true,
-                          fillColor: Colors.transparent,
-                        ),
-                      ),
+                  Text(
+                    'Notifications',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                      fontSize: Theme.of(
+                        context,
+                      ).appTypography.screenTitle.fontSize!,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () {
-                      _onSearch(_controller.text);
-                      FocusScope.of(context).unfocus();
-                    },
-                    child: Icon(
-                      Icons.search,
-                      size: 20,
-                      color: colorScheme.outline,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      _NotificationCircleSkeleton(),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _NotificationCircleSkeleton(),
+                          SizedBox(width: 2),
+                          _NotificationCircleSkeleton(),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationListSkeletonBody extends StatelessWidget {
+  const _NotificationListSkeletonBody({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Skeletonizer(
+      enabled: true,
+      enableSwitchAnimation: true,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: const [
+          SizedBox(height: 16),
+          _NotificationDateSkeleton(),
+          SizedBox(height: 12),
+          _NotificationCardSkeleton(),
+          SizedBox(height: 12),
+          _NotificationCardSkeleton(),
+          SizedBox(height: 16),
+          _NotificationDateSkeleton(label: 'YESTERDAY'),
+          SizedBox(height: 12),
+          _NotificationCardSkeleton(),
+          SizedBox(height: 12),
+          _NotificationCardSkeleton(),
+          SizedBox(height: 12),
+          _NotificationCardSkeleton(),
         ],
       ),
     );
   }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
 }
 
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    required this.onTap,
-    this.color = Colors.black,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color color;
+class _NotificationCircleSkeleton extends StatelessWidget {
+  const _NotificationCircleSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(100),
-        onTap: onTap,
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Center(child: Icon(icon, size: 24, color: color)),
-        ),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: colorScheme.outlineVariant.withValues(alpha: 0.24),
+        borderRadius: BorderRadius.circular(999),
+      ),
+    );
+  }
+}
+
+class _NotificationDateSkeleton extends StatelessWidget {
+  const _NotificationDateSkeleton({this.label = 'TODAY'});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(alignment: Alignment.centerLeft, child: Text(label));
+  }
+}
+
+class _NotificationCardSkeleton extends StatelessWidget {
+  const _NotificationCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.18)),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: theme.brightness == Brightness.light
+            ? const [
+                BoxShadow(
+                  color: Color(0x0C000000),
+                  blurRadius: 2,
+                  offset: Offset(0, 1),
+                ),
+              ]
+            : [],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 7,
+                      child: Text(
+                        'Notification title placeholder',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleMedium,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 3,
+                      child: Align(
+                        alignment: Alignment.topRight,
+                        child: Text(
+                          '2m ago',
+                          textAlign: TextAlign.right,
+                          style: textTheme.labelMedium,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'This is a preview line for the notification body.',
+                  maxLines: 1,
+                  style: textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

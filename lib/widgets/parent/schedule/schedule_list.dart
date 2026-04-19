@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/birthday_event.dart';
 import 'package:kid_manager/models/memory_day.dart';
@@ -8,8 +9,6 @@ import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_vm.dart';
 import 'package:provider/provider.dart';
-
-import '../../../../../core/app_text_styles.dart';
 import '../../../../../utils/date_utils.dart';
 import 'schedule_timeline_support.dart';
 
@@ -22,6 +21,7 @@ class ScheduleList extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final typography = Theme.of(context).appTypography;
 
     final isScheduleLoading = context.select<ScheduleViewModel, bool>(
       (vm) => vm.isLoading,
@@ -86,7 +86,7 @@ class ScheduleList extends StatelessWidget {
       return Center(
         child: Text(
           state.emptyMessage!,
-          style: AppTextStyles.body.copyWith(
+          style: typography.body.copyWith(
             color: scheme.onSurface.withOpacity(0.7),
           ),
           textAlign: TextAlign.center,
@@ -171,6 +171,7 @@ class BirthdayItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final typography = Theme.of(context).appTypography;
     final age = birthday.ageOn(selectedDate);
     final avatar = birthday.avatarUrl.trim();
     final headline = _headlineText(l10n);
@@ -261,14 +262,12 @@ class BirthdayItem extends StatelessWidget {
                                       headline,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: AppTextStyles.scheduleItemTime
-                                          .copyWith(
-                                            color: const Color(0xFF7C3AED),
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 10.5,
-                                            height: 1.1,
-                                            letterSpacing: 0,
-                                          ),
+                                      style: typography.meta.copyWith(
+                                        color: const Color(0xFF7C3AED),
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.1,
+                                        letterSpacing: 0,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -326,8 +325,7 @@ class BirthdayItem extends StatelessWidget {
                               birthday.displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.scheduleItemTitle.copyWith(
-                                fontSize: 17,
+                              style: typography.inlineHeaderTitle.copyWith(
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.1,
                                 color: const Color(0xFF1F2A44),
@@ -339,8 +337,7 @@ class BirthdayItem extends StatelessWidget {
                       const SizedBox(height: 5),
                       Text(
                         '${l10n.birthDateLabel}: ${formatDateDDMMYYYY(birthday.birthDate)}',
-                        style: AppTextStyles.scheduleItemTime.copyWith(
-                          fontSize: 12,
+                        style: typography.supporting.copyWith(
                           height: 1.2,
                           color: const Color(0xFF6B7280),
                           letterSpacing: 0.05,
@@ -360,8 +357,7 @@ class BirthdayItem extends StatelessWidget {
                           const SizedBox(width: 7),
                           Text(
                             l10n.yearsOld.replaceFirst('%d', age.toString()),
-                            style: AppTextStyles.scheduleItemTime.copyWith(
-                              fontSize: 14,
+                            style: typography.body.copyWith(
                               color: const Color(0xFFE11D48),
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.05,
@@ -567,6 +563,7 @@ class ScheduleItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     String two(int n) => n.toString().padLeft(2, '0');
 
@@ -605,8 +602,9 @@ class ScheduleItem extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 duration,
-                style: AppTextStyles.scheduleItemTimeRange.copyWith(
+                style: typography.supporting.copyWith(
                   color: scheme.onSurface,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const Spacer(),
@@ -630,15 +628,16 @@ class ScheduleItem extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             schedule.title,
-            style: AppTextStyles.scheduleItemTitle.copyWith(
+            style: typography.itemTitle.copyWith(
               color: scheme.onSurface,
+              fontWeight: FontWeight.w600,
             ),
           ),
           if ((schedule.description ?? '').isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
               schedule.description!,
-              style: AppTextStyles.scheduleItemTime.copyWith(
+              style: typography.supporting.copyWith(
                 color: scheme.onSurface.withOpacity(0.7),
               ),
             ),
@@ -668,7 +667,7 @@ class MemoryDayItem extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
+    final typography = theme.appTypography;
 
     final memoryVm = context.read<MemoryDayViewModel>();
     final daysLeft = memoryVm.daysUntilNextOccurrence(memory);
@@ -687,10 +686,7 @@ class MemoryDayItem extends StatelessWidget {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: const Border(
-          left: BorderSide(
-            color: Color(0xFFE2B53B), 
-            width: 3
-            ),
+          left: BorderSide(color: Color(0xFFE2B53B), width: 3),
         ),
         boxShadow: [
           BoxShadow(
@@ -729,6 +725,7 @@ class MemoryDayItem extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: typography.itemTitle.fontSize,
                       fontWeight: FontWeight.w700,
                       color: colorScheme.onSurface,
                     ),
@@ -801,8 +798,8 @@ class MemoryDayItem extends StatelessWidget {
                       color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: colorScheme.outline.withOpacity(0.5)
-                        ),
+                        color: colorScheme.outline.withOpacity(0.5),
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
@@ -838,7 +835,7 @@ class MemoryDayItem extends StatelessWidget {
                 ? l10n.memoryDayDateRepeatText(dateText)
                 : l10n.memoryDayDateText(dateText),
             style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 12.5,
+              fontSize: typography.supporting.fontSize,
               height: 1.3,
               color: colorScheme.onSurface.withOpacity(0.65),
             ),
@@ -850,7 +847,7 @@ class MemoryDayItem extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: 12.5,
+                fontSize: typography.supporting.fontSize,
                 height: 1.35,
                 color: colorScheme.onSurface.withOpacity(0.5),
               ),
@@ -861,8 +858,10 @@ class MemoryDayItem extends StatelessWidget {
     );
   }
 
-  _MemoryDayBadgeStyle _memoryBadgeStyleFor(BuildContext context, int daysLeft) {
-
+  _MemoryDayBadgeStyle _memoryBadgeStyleFor(
+    BuildContext context,
+    int daysLeft,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
 
     if (daysLeft < 0) {

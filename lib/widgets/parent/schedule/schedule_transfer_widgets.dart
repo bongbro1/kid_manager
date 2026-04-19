@@ -1,6 +1,6 @@
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:kid_manager/core/app_text_styles.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 
@@ -40,6 +40,7 @@ class ScheduleTransferLockedChildBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     return Container(
       height: 52,
@@ -56,7 +57,7 @@ class ScheduleTransferLockedChildBox extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: AppTextStyles.body.copyWith(color: scheme.onSurface),
+              style: typography.body.copyWith(color: scheme.onSurface),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -82,11 +83,12 @@ class ScheduleTransferChildDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     if (children.isEmpty) {
       return Text(
         l10n.scheduleNoChild,
-        style: AppTextStyles.body.copyWith(color: scheme.onSurface),
+        style: typography.body.copyWith(color: scheme.onSurface),
       );
     }
 
@@ -115,14 +117,14 @@ class ScheduleTransferChildDropdown extends StatelessWidget {
                 ),
               ),
               iconStyleData: IconStyleData(iconEnabledColor: scheme.onSurface),
-              style: AppTextStyles.body.copyWith(color: scheme.onSurface),
+              style: typography.body.copyWith(color: scheme.onSurface),
               items: children
                   .map(
                     (c) => DropdownMenuItem<String>(
                       value: c.uid,
                       child: Text(
                         c.displayName ?? c.email ?? c.uid,
-                        style: AppTextStyles.body.copyWith(
+                        style: typography.body.copyWith(
                           color: scheme.onSurface,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -156,6 +158,7 @@ class ScheduleTransferPrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     return GestureDetector(
       onTap: onTap,
@@ -189,9 +192,11 @@ class ScheduleTransferPrimaryButton extends StatelessWidget {
                 Flexible(
                   child: Text(
                     text,
-                    style: AppTextStyles.scheduleCreateButton.copyWith(
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       color: scheme.onPrimary,
-                      fontSize: 14,
+                      fontSize: typography.body.fontSize,
+                      fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -222,6 +227,7 @@ class ScheduleTransferOutlineButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     return GestureDetector(
       onTap: onTap,
@@ -244,7 +250,7 @@ class ScheduleTransferOutlineButton extends StatelessWidget {
                 Flexible(
                   child: Text(
                     text,
-                    style: AppTextStyles.body.copyWith(
+                    style: typography.body.copyWith(
                       color: scheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -275,6 +281,7 @@ class ScheduleTransferDateBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).appTypography;
 
     return GestureDetector(
       onTap: onTap,
@@ -299,7 +306,7 @@ class ScheduleTransferDateBox extends StatelessWidget {
               Expanded(
                 child: Text(
                   text,
-                  style: AppTextStyles.body.copyWith(color: scheme.onSurface),
+                  style: typography.body.copyWith(color: scheme.onSurface),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -317,13 +324,12 @@ Future<void> showScheduleTransferSuccessDialog(
   required String message,
   required String confirmText,
 }) {
-
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (dialogCtx) {
-      
       final dialogScheme = Theme.of(dialogCtx).colorScheme;
+      final typography = Theme.of(dialogCtx).appTypography;
 
       return Dialog(
         backgroundColor: dialogScheme.surface,
@@ -352,7 +358,7 @@ Future<void> showScheduleTransferSuccessDialog(
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: typography.screenTitle.fontSize,
                   fontWeight: FontWeight.w700,
                   color: dialogScheme.onSurface,
                 ),
@@ -362,7 +368,7 @@ Future<void> showScheduleTransferSuccessDialog(
                 message,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   color: dialogScheme.onSurface.withOpacity(0.7),
                 ),
               ),
@@ -383,7 +389,7 @@ Future<void> showScheduleTransferSuccessDialog(
                   child: Text(
                     confirmText,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: typography.itemTitle.fontSize,
                       fontWeight: FontWeight.w600,
                       color: dialogScheme.onBackground,
                     ),

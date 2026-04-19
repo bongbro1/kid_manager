@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 
-bool _isDarkScheme(ColorScheme scheme) =>
-    scheme.brightness == Brightness.dark;
+bool _isDarkScheme(ColorScheme scheme) => scheme.brightness == Brightness.dark;
 
 Color familyChatBackgroundColor(ColorScheme scheme) {
   return Color.alphaBlend(

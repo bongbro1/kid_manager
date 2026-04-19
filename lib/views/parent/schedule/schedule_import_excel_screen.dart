@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
@@ -396,6 +397,9 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
 
     final hasPreview = !importVm.loading && importVm.preview != null;
     final canImport = hasPreview && importVm.preview!.okCount > 0;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return WillPopScope(
       onWillPop: () async {
@@ -410,8 +414,10 @@ class _ScheduleImportExcelScreenState extends State<ScheduleImportExcelScreen> {
           elevation: 0,
           title: Text(
             l10n.scheduleImportTitle,
-            style: AppTextStyles.scheduleAppBarTitle.copyWith(
-              color: scheme.onSurface,
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+              fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
             ),
           ),
           centerTitle: true,
@@ -642,7 +648,12 @@ class _PreviewList extends StatelessWidget {
               ),
               child: Text(
                 preview.warning!,
-                style: TextStyle(fontSize: 13, color: scheme.tertiary),
+                style: TextStyle(
+                  fontSize: Theme.of(
+                    context,
+                  ).appTypography.sectionLabel.fontSize!,
+                  color: scheme.tertiary,
+                ),
               ),
             ),
           ],
@@ -754,7 +765,12 @@ class _PreviewRow extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
                             l10n.scheduleImportDuplicateInSystem,
-                            style: TextStyle(fontSize: 13, color: accent),
+                            style: TextStyle(
+                              fontSize: Theme.of(
+                                context,
+                              ).appTypography.sectionLabel.fontSize!,
+                              color: accent,
+                            ),
                           ),
                         ),
                       if (r.isDuplicateInFile)
@@ -762,7 +778,12 @@ class _PreviewRow extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
                             l10n.scheduleImportDuplicateInFile,
-                            style: TextStyle(fontSize: 13, color: accent),
+                            style: TextStyle(
+                              fontSize: Theme.of(
+                                context,
+                              ).appTypography.sectionLabel.fontSize!,
+                              color: accent,
+                            ),
                           ),
                         ),
                     ],

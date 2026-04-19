@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/widgets/location/batterIcon.dart';
 
-enum DeviceBatterySeverity {
-  unavailable,
-  normal,
-  low,
-  critical,
-}
+enum DeviceBatterySeverity { unavailable, normal, low, critical }
 
 class DeviceBatteryUiState {
   const DeviceBatteryUiState({
@@ -169,7 +164,8 @@ class DeviceBatteryCompactBadge extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.hasBoundedWidth && constraints.maxWidth < 108;
+        final compact =
+            constraints.hasBoundedWidth && constraints.maxWidth < 108;
         return Container(
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 6 : 8,
@@ -496,9 +492,7 @@ class DeviceBatteryPill extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: compact ? 56 : 72,
-                    ),
+                    constraints: BoxConstraints(maxWidth: compact ? 56 : 72),
                     child: Text(
                       statusLabel,
                       maxLines: 1,

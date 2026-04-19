@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_item_model.dart';
@@ -8,6 +9,7 @@ import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/utils/statical_utils.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/views/parent/dashboard/statical_widget.dart';
+import 'package:kid_manager/widgets/app/app_scroll_effects.dart';
 import 'package:kid_manager/widgets/parent/app_item.dart';
 
 class StatisticsTab extends StatefulWidget {
@@ -34,9 +36,37 @@ class _StatisticsTabState extends State<StatisticsTab> {
   int _lastUsageVersion = -1;
   int? selectedBarIndex;
   int? selectedDotIndex;
+  DateTime? selectedUsageDate;
   DateTime? fromDate;
   DateTime? toDate;
   late List<double> randomHeights;
+
+  DateTime? _dateForBarIndex(int index) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (activeIndex == 1) {
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      final start = DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day,
+      );
+
+      final date = start.add(Duration(days: index));
+      return date.isAfter(today) ? today : date;
+    }
+
+    if (activeIndex == 2 && fromDate != null && toDate != null) {
+      final a = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
+      final b = DateTime(toDate!.year, toDate!.month, toDate!.day);
+      final start = a.isBefore(b) ? a : b;
+
+      return start.add(Duration(days: index));
+    }
+
+    return null;
+  }
 
   List<_UsageAppRow> get sortedUsageApps {
     if (activeIndex == 0) {
@@ -127,12 +157,19 @@ class _StatisticsTabState extends State<StatisticsTab> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // ===== TODAY =====
+    if (selectedUsageDate != null && activeIndex != 0) {
+      final d = DateTime(
+        selectedUsageDate!.year,
+        selectedUsageDate!.month,
+        selectedUsageDate!.day,
+      );
+      return _sumUsageInDateRange(appMap, d, d);
+    }
+
     if (activeIndex == 0) {
       return _sumUsageInDateRange(appMap, today, today);
     }
 
-    // ===== WEEK =====
     if (activeIndex == 1) {
       final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
       final start = DateTime(
@@ -140,14 +177,12 @@ class _StatisticsTabState extends State<StatisticsTab> {
         startOfWeek.month,
         startOfWeek.day,
       );
-      // Week mode should not include future dates.
       final endOfWeek = start.add(const Duration(days: 6));
       final end = endOfWeek.isAfter(today) ? today : endOfWeek;
 
       return _sumUsageInDateRange(appMap, start, end);
     }
 
-    // ===== RANGE =====
     if (activeIndex == 2 && fromDate != null && toDate != null) {
       final a = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
       final b = DateTime(toDate!.year, toDate!.month, toDate!.day);
@@ -188,6 +223,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
   }
 
   void _onVmChanged() {
+    if (!mounted) return;
     _buildChart(l10n: AppLocalizations.of(context));
     setState(() {});
   }
@@ -198,8 +234,11 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
     if (_lastUsageVersion != widget.vm.usageVersion) {
       _lastUsageVersion = widget.vm.usageVersion;
+      final l10n = AppLocalizations.of(context);
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _buildChart(l10n: AppLocalizations.of(context));
+        if (!mounted) return;
+        _buildChart(l10n: l10n);
       });
     }
   }
@@ -274,6 +313,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
       setState(() {
         fromDate = start;
         toDate = end;
+        selectedBarIndex = null;
+        selectedUsageDate = null;
       });
 
       _buildChart(l10n: AppLocalizations.of(context));
@@ -325,7 +366,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
         /// ===== SEGMENT KHÔNG SCROLL =====
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: scheme.surface,
             borderRadius: BorderRadius.circular(16),
@@ -350,144 +390,151 @@ class _StatisticsTabState extends State<StatisticsTab> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: widget.onRefresh,
-            child: ListView(
+            child: SingleChildScrollView(
+              physics: AppScrollEffects.physics,
               padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-              children: [
-                if (activeIndex == 2) ...[
-                  const SizedBox(height: 12),
-                  CustomRangeCalendar(
-                    fromDate: fromDate,
-                    toDate: toDate,
-                    onFromChanged: (d) {
-                      _updateRange(d, toDate);
-                    },
-                    onToChanged: (d) {
-                      _updateRange(fromDate, d);
-                    },
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: chartContainerPadding,
-                  decoration: BoxDecoration(
-                    color: scheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: scheme.outline.withValues(alpha: 0.2),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: scheme.shadow.withValues(alpha: 0.08),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (activeIndex == 2) ...[
+                    const SizedBox(height: 12),
+                    AppScrollReveal(
+                      index: 0,
+                      child: CustomRangeCalendar(
+                        fromDate: fromDate,
+                        toDate: toDate,
+                        onFromChanged: (d) => _updateRange(d, toDate),
+                        onToChanged: (d) => _updateRange(fromDate, d),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      /// HEADER
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _totalTitle(l10n),
-                                style: textTheme.labelSmall?.copyWith(
-                                  color: scheme.onSurface.withValues(
-                                    alpha: 0.6,
-                                  ),
-                                  fontSize: 12,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.6,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                formatMinutes(totalMinutes, l10n: l10n),
-                                style: textTheme.headlineMedium?.copyWith(
-                                  color: scheme.onSurface,
-                                  fontSize: 30,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  AppScrollReveal(
+                    index: 1,
+                    child: Container(
+                      width: double.infinity,
+                      padding: chartContainerPadding,
+                      decoration: BoxDecoration(
+                        color: scheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: scheme.outline.withValues(alpha: 0.2),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: scheme.shadow.withValues(alpha: 0.08),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
-
-                      /// CHART
-                      SizedBox(
-                        height: chartHeight,
-                        child: _resolveMode() == ChartMode.today
-                            ? _buildLineChart(context: context)
-                            : _buildBarChart(),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: headerHorizontalPadding,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        l10n.parentStatsAppDetailsTitle,
-                        style: textTheme.titleMedium?.copyWith(
-                          color: scheme.onSurface,
-                          fontSize: 18,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                          height: 1.56,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() => showAll = !showAll);
-                        },
-                        child: Text(
-                          showAll
-                              ? l10n.parentStatsCollapse
-                              : l10n.parentStatsViewAll,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: scheme.primary,
-                            fontSize: 12,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _totalTitle(l10n),
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: scheme.onSurface.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                      fontSize: Theme.of(
+                                        context,
+                                      ).appTypography.supporting.fontSize!,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    formatMinutes(totalMinutes, l10n: l10n),
+                                    style: textTheme.headlineMedium?.copyWith(
+                                      color: scheme.onSurface,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            height: chartHeight,
+                            child: _resolveMode() == ChartMode.today
+                                ? _buildLineChart(context: context)
+                                : _buildBarChart(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  AppScrollReveal(
+                    index: 2,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: headerHorizontalPadding,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            l10n.parentStatsAppDetailsTitle,
+                            style: textTheme.titleSmall?.copyWith(
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() => showAll = !showAll);
+                            },
+                            child: Text(
+                              showAll
+                                  ? l10n.parentStatsCollapse
+                                  : l10n.parentStatsViewAll,
+                              style: textTheme.labelSmall?.copyWith(
+                                color: scheme.primary,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  ...visibleUsageApps.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final row = entry.value;
+                    final app = row.app;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: AppScrollReveal(
+                        index: index + 3,
+                        child: AppItem(
+                          key: ValueKey('stats_${app.packageName}'),
+                          app: app,
+                          usageTimeText: formatMinutes(row.minutes, l10n: l10n),
+                          showRightIcon: false,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                /// List apps
-                ...visibleUsageApps.map((row) {
-                  final app = row.app;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: AppItem(
-                      key: ValueKey('stats_${app.packageName}'),
-                      appName: app.name,
-                      app: app,
-                      usageTimeText: formatMinutes(row.minutes, l10n: l10n),
-                      iconBase64: app.iconBase64,
-                      showRightIcon: false,
-                    ),
-                  );
-                }),
-              ],
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
         ),
@@ -634,6 +681,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                   onTap: () {
                     setState(() {
                       selectedBarIndex = i;
+                      selectedUsageDate = _dateForBarIndex(i);
                     });
                   },
                   child: Stack(
@@ -648,7 +696,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                         active: selectedBarIndex == i,
                         faded: bar.isFuture,
                       ),
-
                       if (selectedBarIndex == i)
                         Positioned(
                           bottom: tooltipBottom.toDouble(),
@@ -677,34 +724,27 @@ class _StatisticsTabState extends State<StatisticsTab> {
         onTap: () {
           setState(() {
             activeIndex = index;
+            selectedBarIndex = null;
+            selectedDotIndex = null;
+            selectedUsageDate = null;
             _buildChart(l10n: AppLocalizations.of(context));
           });
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           alignment: Alignment.center,
-          decoration: isActive
-              ? BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: scheme.shadow.withValues(alpha: 0.08),
-                      blurRadius: 2,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                )
-              : null,
+          decoration: BoxDecoration(
+            color: isActive ? scheme.primary.withValues(alpha: 0.12) : null,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Text(
             text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: textTheme.labelLarge?.copyWith(
               color: isActive ? scheme.primary : scheme.onSurfaceVariant,
-              fontSize: 14,
-              fontFamily: 'Inter',
+              fontSize: Theme.of(context).appTypography.body.fontSize!,
               fontWeight: FontWeight.w600,
               height: 1.43,
             ),

@@ -68,7 +68,9 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          detail.content.trim().isNotEmpty ? detail.content.trim() : _fallbackBody(l10n),
+          detail.content.trim().isNotEmpty
+              ? detail.content.trim()
+              : _fallbackBody(l10n),
           style: const TextStyle(
             fontSize: 14.5,
             height: 1.6,
@@ -96,7 +98,9 @@ class SafeRouteNotificationDetailWidget extends StatelessWidget {
               _InfoRow(
                 icon: Icons.route_rounded,
                 label: l10n.notificationTrackingRouteLabel,
-                value: routeName.isEmpty ? l10n.safeRouteSelectedRouteFallbackName : routeName,
+                value: routeName.isEmpty
+                    ? l10n.safeRouteSelectedRouteFallbackName
+                    : routeName,
               ),
               if (_distanceFromRouteMeters != null) ...[
                 const SizedBox(height: 12),

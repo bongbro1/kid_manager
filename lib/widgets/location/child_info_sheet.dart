@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
@@ -85,7 +85,6 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
   }
 
   String _fmtRange(DateTime s, DateTime e) => '${_fmt(s)} – ${_fmt(e)}';
-
 
   bool _isOngoing(Schedule s) {
     final now = DateTime.now();
@@ -228,9 +227,8 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                         width: 11,
                                         height: 11,
                                         decoration: BoxDecoration(
-                                          color: connectionPresentation.dotColor(
-                                            scheme,
-                                          ),
+                                          color: connectionPresentation
+                                              .dotColor(scheme),
                                           shape: BoxShape.circle,
                                           border: Border.all(
                                             color: panelMutedColor,
@@ -413,8 +411,7 @@ class _ChildInfoSheetState extends State<ChildInfoSheet> {
                                               : double.infinity,
                                         ),
                                         child: Scrollbar(
-                                          controller:
-                                              _scheduleScrollController,
+                                          controller: _scheduleScrollController,
                                           thumbVisibility: scheduleNeedsScroll,
                                           child: SingleChildScrollView(
                                             controller:

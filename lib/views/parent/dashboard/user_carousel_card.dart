@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:kid_manager/core/responsive.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
 import 'package:kid_manager/widgets/app/app_button.dart';
+import 'package:kid_manager/widgets/common/smart_network_image.dart';
 import 'package:provider/provider.dart';
 
 class UserCarouselCard extends StatefulWidget {
@@ -27,13 +28,6 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
   int _page = 0;
   int _pageCount(List users, int itemsPerPage) =>
       (users.length / itemsPerPage).ceil();
-
-  int _resolveItemsPerPage(double width) {
-    if (width < ResponsiveBreakpoints.compactPhone) {
-      return 2;
-    }
-    return 3;
-  }
 
   void _goPrev() {
     if (_page > 0) {
@@ -85,7 +79,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cardWidth = constraints.maxWidth;
-        final itemsPerPage = _resolveItemsPerPage(cardWidth);
+        final itemsPerPage = 3;
         final pageCount = _pageCount(users, itemsPerPage);
         final horizontalPadding = cardWidth < 360 ? 8.0 : 12.0;
         final itemGap = cardWidth < 360 ? 8.0 : 10.0;
@@ -93,7 +87,7 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
             .clamp(0.0, cardWidth);
         final itemWidth =
             ((availablePageWidth - itemGap * (itemsPerPage - 1)) / itemsPerPage)
-                .clamp(62.0, 84.0);
+                .clamp(62.0, double.infinity);
 
         if (pageCount == 0 && _page != 0) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -164,14 +158,9 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                           final slice = users.sublist(start, end);
                           final rowChildren = <Widget>[];
 
-                          for (int i = 0; i < itemsPerPage; i++) {
+                          for (int i = 0; i < slice.length; i++) {
                             if (i > 0) {
                               rowChildren.add(SizedBox(width: itemGap));
-                            }
-
-                            if (i >= slice.length) {
-                              rowChildren.add(SizedBox(width: itemWidth));
-                              continue;
                             }
 
                             final user = slice[i];
@@ -196,9 +185,13 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                             );
                           }
 
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: rowChildren,
+                          return Align(
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: rowChildren,
+                            ),
                           );
                         },
                       ),
@@ -211,12 +204,15 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   ),
                 ],
               ),
-              Container(
-                width: double.infinity,
-                height: 1,
-                color:
-                    theme.dividerTheme.color ??
-                    scheme.outline.withValues(alpha: 0.3),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Container(
+                  width: double.infinity,
+                  height: 0.5,
+                  color:
+                      theme.dividerTheme.color ??
+                      scheme.outline.withValues(alpha: 0.2),
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -224,9 +220,9 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   Expanded(
                     child: AppButton(
                       height: 40,
+                      skeleton: vm.loading,
                       text: l10n.parentDashboardTabApps,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontSize: Theme.of(context).appTypography.body.fontSize!,
                       onPressed: widget.onTapApps,
                       backgroundColor: widget.currentIndex == 0
                           ? scheme.primary
@@ -234,7 +230,6 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                       foregroundColor: widget.currentIndex == 0
                           ? scheme.onPrimary
                           : scheme.onSurface,
-                      fontFamily: 'Inter',
                       lineHeight: 1.43,
                       letterSpacing: 0.10,
                       padding: const EdgeInsets.symmetric(
@@ -245,6 +240,12 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                         'assets/icons/apps.svg',
                         width: 18,
                         height: 18,
+                        colorFilter: ColorFilter.mode(
+                          widget.currentIndex == 0
+                              ? scheme.onPrimary
+                              : scheme.onSurface,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
@@ -252,9 +253,9 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                   Expanded(
                     child: AppButton(
                       height: 40,
+                      skeleton: vm.loading,
                       text: l10n.parentDashboardTabStatistics,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontSize: Theme.of(context).appTypography.body.fontSize!,
                       onPressed: widget.onTapStats,
                       backgroundColor: widget.currentIndex == 1
                           ? scheme.primary
@@ -262,7 +263,6 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                       foregroundColor: widget.currentIndex == 1
                           ? scheme.onPrimary
                           : scheme.onSurface,
-                      fontFamily: 'Inter',
                       lineHeight: 1.43,
                       letterSpacing: 0.10,
                       padding: const EdgeInsets.symmetric(
@@ -273,6 +273,12 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
                         'assets/icons/stats-chart.svg',
                         width: 18,
                         height: 18,
+                        colorFilter: ColorFilter.mode(
+                          widget.currentIndex == 1
+                              ? scheme.onPrimary
+                              : scheme.onSurface,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
@@ -349,7 +355,6 @@ class UserItemWidget extends StatelessWidget {
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
-      // crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         Stack(
@@ -367,25 +372,13 @@ class UserItemWidget extends StatelessWidget {
                 ),
               ),
               child: ClipOval(
-                child: hasAvatar
-                    ? Image.network(
-                        trimmedAvatar,
-                        width: size,
-                        height: size,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Image.asset(
-                          'assets/images/avatar_default.png',
-                          width: size,
-                          height: size,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Image.asset(
-                        'assets/images/avatar_default.png',
-                        width: size,
-                        height: size,
-                        fit: BoxFit.cover,
-                      ),
+                child: SmartNetworkImage(
+                  imageUrl: trimmedAvatar,
+                  fallbackAsset: 'assets/images/avatar_default.png',
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
 
@@ -416,16 +409,14 @@ class UserItemWidget extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             softWrap: true,
-            strutStyle: const StrutStyle(
-              fontSize: 13,
+            strutStyle: StrutStyle(
+              fontSize: Theme.of(context).appTypography.sectionLabel.fontSize!,
               height: 1.2,
               forceStrutHeight: true,
             ),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 13,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
+              fontSize: Theme.of(context).appTypography.body.fontSize!,
               letterSpacing: -0.2,
             ),
           ),

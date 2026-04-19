@@ -84,14 +84,14 @@ class AuthRuntimeManager {
 
         debugPrint(
           ok
-              ? 'Native watcher config saved'
-              : 'Failed to save native watcher config',
+              ? 'Native supervision sync scheduled'
+              : 'Failed to schedule native supervision sync',
         );
       }
 
       if (token != _opToken) return;
 
-      debugPrint('Native usage worker started');
+      debugPrint('Native supervision runtime ready');
       _state = _RuntimeState.running;
       debugPrint('Runtime running');
     } catch (e) {

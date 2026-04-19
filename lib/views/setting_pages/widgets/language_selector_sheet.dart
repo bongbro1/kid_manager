@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_languages.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/services/storage_service.dart';
@@ -25,15 +26,28 @@ class LanguageSelectorSheet extends StatelessWidget {
               'vi');
 
     final languages = AppLanguages.languages;
+    final theme = Theme.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.outline.withOpacity(.3),
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           /// Title
           Text(
             l10n.languageSetting,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium?.copyWith(),
           ),
 
           const SizedBox(height: 20),
@@ -78,8 +92,10 @@ class LanguageSelectorSheet extends StatelessWidget {
                           Expanded(
                             child: Text(
                               lang['name']!,
-                              style: const TextStyle(
-                                fontSize: 15,
+                              style: TextStyle(
+                                fontSize: Theme.of(
+                                  context,
+                                ).appTypography.itemTitle.fontSize!,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),

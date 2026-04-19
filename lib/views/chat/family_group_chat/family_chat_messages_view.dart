@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/chat/family_chat_message.dart';
 import 'package:kid_manager/views/chat/family_chat_assets.dart';
 import 'package:kid_manager/views/chat/family_group_chat/family_chat_ui_utils.dart';
 import 'package:kid_manager/widgets/app/app_image_modal.dart';
+import 'package:kid_manager/widgets/app/app_scroll_effects.dart';
 
 class FamilyChatMessagesView extends StatelessWidget {
   const FamilyChatMessagesView({
@@ -133,6 +135,7 @@ class FamilyChatMessagesView extends StatelessWidget {
 
         return ListView.builder(
           reverse: true,
+          physics: AppScrollEffects.physics,
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           itemCount: messages.length,
           itemBuilder: (context, index) {
@@ -155,8 +158,9 @@ class FamilyChatMessagesView extends StatelessWidget {
                     const SizedBox(height: 6),
                   ],
                   Align(
-                    alignment:
-                        isMine ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment: isMine
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
                     child: FamilyChatMessageBubble(
                       message: message,
                       isMine: isMine,
@@ -178,10 +182,7 @@ class FamilyChatMessagesView extends StatelessWidget {
 }
 
 class FamilyChatDaySeparator extends StatelessWidget {
-  const FamilyChatDaySeparator({
-    super.key,
-    required this.label,
-  });
+  const FamilyChatDaySeparator({super.key, required this.label});
 
   final String label;
 
@@ -294,9 +295,9 @@ class FamilyChatMessageBubble extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               message.text,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Color(0xFF0F172A),
-                fontSize: 15,
+                fontSize: Theme.of(context).appTypography.itemTitle.fontSize!,
                 height: 1.35,
               ),
             ),
@@ -314,9 +315,9 @@ class FamilyChatMessageBubble extends StatelessWidget {
 
     return Text(
       message.text,
-      style: const TextStyle(
+      style: TextStyle(
         color: Color(0xFF0F172A),
-        fontSize: 15,
+        fontSize: Theme.of(context).appTypography.itemTitle.fontSize!,
         height: 1.35,
       ),
     );
@@ -338,28 +339,29 @@ class FamilyChatMessageBubble extends StatelessWidget {
     final bubbleColor = isAssetSticker
         ? Colors.transparent
         : isFailed
-            ? const Color(0xFFFEF2F2)
-            : isPending
-                ? const Color(0xFFEFF6FF)
-                : isMine
-                    ? const Color(0xFFDCFCE7)
-                    : Colors.white;
+        ? const Color(0xFFFEF2F2)
+        : isPending
+        ? const Color(0xFFEFF6FF)
+        : isMine
+        ? const Color(0xFFDCFCE7)
+        : Colors.white;
     final borderColor = isAssetSticker
         ? Colors.transparent
         : isFailed
-            ? const Color(0xFFFECACA)
-            : isPending
-                ? const Color(0xFFBFDBFE)
-                : isMine
-                    ? const Color(0xFFBBF7D0)
-                    : const Color(0xFFE2E8F0);
+        ? const Color(0xFFFECACA)
+        : isPending
+        ? const Color(0xFFBFDBFE)
+        : isMine
+        ? const Color(0xFFBBF7D0)
+        : const Color(0xFFE2E8F0);
     final statusText = isFailed
         ? l10n.familyChatStatusFailed
         : isPending
-            ? l10n.familyChatStatusSending
-            : null;
-    final statusColor =
-        isFailed ? const Color(0xFFDC2626) : const Color(0xFF64748B);
+        ? l10n.familyChatStatusSending
+        : null;
+    final statusColor = isFailed
+        ? const Color(0xFFDC2626)
+        : const Color(0xFF64748B);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
@@ -376,10 +378,7 @@ class FamilyChatMessageBubble extends StatelessWidget {
             bottomLeft: Radius.circular(isMine ? 16 : 4),
             bottomRight: Radius.circular(isMine ? 4 : 16),
           ),
-          border: Border.all(
-            color: borderColor,
-            width: isAssetSticker ? 0 : 1,
-          ),
+          border: Border.all(color: borderColor, width: isAssetSticker ? 0 : 1),
           boxShadow: isAssetSticker
               ? const []
               : const [
@@ -391,15 +390,16 @@ class FamilyChatMessageBubble extends StatelessWidget {
                 ],
         ),
         child: Column(
-          crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             if (!isMine) ...[
               Text(
                 displaySenderName,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFF2563EB),
-                  fontSize: 11,
+                  fontSize: Theme.of(context).appTypography.meta.fontSize!,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -412,9 +412,9 @@ class FamilyChatMessageBubble extends StatelessWidget {
               children: [
                 Text(
                   createdAtText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFF64748B),
-                    fontSize: 11,
+                    fontSize: Theme.of(context).appTypography.meta.fontSize!,
                   ),
                 ),
                 if (statusText != null) ...[
@@ -439,7 +439,7 @@ class FamilyChatMessageBubble extends StatelessWidget {
                     statusText,
                     style: TextStyle(
                       color: statusColor,
-                      fontSize: 11,
+                      fontSize: Theme.of(context).appTypography.meta.fontSize!,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -487,10 +487,7 @@ class FamilyChatStickerMessageContent extends StatelessWidget {
     if (sticker == null) {
       return Text(
         message.text.isEmpty ? '[Sticker]' : message.text,
-        style: const TextStyle(
-          fontSize: 32,
-          height: 1,
-        ),
+        style: const TextStyle(fontSize: 32, height: 1),
       );
     }
 

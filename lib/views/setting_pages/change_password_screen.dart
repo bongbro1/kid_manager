@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/auth/password_validator.dart';
@@ -106,9 +107,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             centerTitle: true,
             title: Text(
               l10n.changePasswordTitle,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+              style: theme.textTheme.titleMedium?.copyWith(
                 color: scheme.onSurface,
+                fontWeight: FontWeight.w600,
+                fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
               ),
             ),
             iconTheme: IconThemeData(color: scheme.onSurface),
@@ -201,9 +203,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       ),
                       child: Text(
                         l10n.changePasswordUpdateButton,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        style: theme.textTheme.titleSmall?.copyWith(
                           color: scheme.onPrimary,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
