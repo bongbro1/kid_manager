@@ -1,4 +1,4 @@
-﻿import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
 
 class RouteHazard {
   final String id;

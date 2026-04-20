@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,6 +26,7 @@ import 'package:kid_manager/features/presentation/shared/state/mapbox_controller
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/widgets/location/child_info_sheet.dart';
+import 'package:kid_manager/widgets/location/child_connection_presenter.dart';
 import 'package:kid_manager/widgets/location/location_theme.dart';
 import 'package:kid_manager/widgets/location/map_bottom_controls.dart';
 
@@ -229,20 +231,47 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
       }
     }
 
+    await _refreshFocusedBubble();
+
     if (openSheet) _openChildInfo(childId);
   }
 
   void _onZoneBubbleChanged() async {
+    await _refreshFocusedBubble();
+  }
+
+  Future<void> _refreshFocusedBubble() async {
     if (!mounted) return;
     final childId = _focusedChildId;
     final bubble = _zoneVm.bubble;
-    if (childId == null || bubble == null) return;
+    if (childId == null) {
+      await _controller.clearFocusBubble();
+      return;
+    }
 
-    await _controller.setFocusBubble(
-      childId: childId,
-      text: bubble.text,
-      icon: bubble.icon,
-    );
+    if (bubble != null) {
+      await _controller.setFocusBubble(
+        childId: childId,
+        title: bubble.text,
+        icon: bubble.icon,
+      );
+      return;
+    }
+
+    final latest = _locationVm.childrenLocations[childId];
+    final connection = ChildConnectionPresentation.fromLocation(latest);
+    if (connection.state == ChildConnectionState.connectionLost) {
+      final l10n = AppLocalizations.of(context);
+      await _controller.setFocusBubble(
+        childId: childId,
+        title: connection.label(l10n),
+        subtitle: connection.secondaryLabel(l10n),
+        icon: Icons.portable_wifi_off_rounded,
+      );
+      return;
+    }
+
+    await _controller.clearFocusBubble();
   }
 
   void _handleMapOrDataChange() {
@@ -263,16 +292,20 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     _syncDebounce = Timer(const Duration(milliseconds: 150), () async {
       if (!mounted) return;
       await _syncToMap();
+      await _refreshFocusedBubble();
     });
   }
 
   void _handleUserChange() {
     if (!mounted) return;
 
-    // Nếu danh sách child thay đổi sau khi map đã vào,
-    // sync lại marker ngay để map luôn bám state mới nhất.
+    // N?u danh s�ch child thay d?i sau khi map d� v�o,
+    // sync l?i marker ngay d? map lu�n b�m state m?i nh?t.
     if (_controller.isReady) {
-      unawaited(_syncToMap());
+      unawaited(() async {
+        await _syncToMap();
+        await _refreshFocusedBubble();
+      }());
     }
   }
 
@@ -345,6 +378,51 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     }
   }
 
+  Future<List<Schedule>> _loadChildSchedulesByRange({
+    required String childId,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final viewer = _userVm.me;
+    final accessControl = context.read<AccessControlService>();
+    AppUser? target;
+    for (final member in _userVm.locationMembers) {
+      if (member.uid == childId) {
+        target = member;
+        break;
+      }
+    }
+    if (viewer == null || target == null || !target.isChild) {
+      return <Schedule>[];
+    }
+
+    if (!accessControl.canManageChild(
+      actor: viewer,
+      childUid: childId,
+      child: target,
+    )) {
+      return <Schedule>[];
+    }
+
+    final parentUid = viewer.isGuardian
+        ? (viewer.parentUid ?? '').trim()
+        : viewer.uid.trim();
+    if (parentUid.isEmpty) return <Schedule>[];
+
+    try {
+      return await _scheduleService.fetchByChildAndRange(
+        parentUid: parentUid,
+        childId: childId,
+        start: start,
+        end: end,
+      );
+    } catch (e, st) {
+      debugPrint('load child schedules range error: $e');
+      debugPrint('$st');
+      return <Schedule>[];
+    }
+  }
+
   void _openChildInfo(String childId) async {
     AppUser? foundChild;
     for (final member in _userVm.locationMembers) {
@@ -357,11 +435,20 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
 
     final child = foundChild; // non-null local
     final latest = _locationVm.childrenLocations[child.uid];
-    final schedules = await _loadChildSchedulesByDate(
-      childId: child.uid,
-      date: DateTime.now(),
-    );
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final upcomingWindowEnd = startOfToday.add(const Duration(days: 2));
+    final results = await Future.wait<List<Schedule>>([
+      _loadChildSchedulesByDate(childId: child.uid, date: now),
+      _loadChildSchedulesByRange(
+        childId: child.uid,
+        start: startOfToday,
+        end: upcomingWindowEnd,
+      ),
+    ]);
     if (!mounted) return;
+    final schedules = results[0];
+    final upcomingSchedules = results[1];
 
     showModalBottomSheet(
       context: context,
@@ -370,9 +457,8 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
       builder: (sheetContext) => ChildInfoSheet(
         member: child,
         latest: latest,
-        isSearching: false,
         daySchedules: schedules,
-        onToggleSearch: () {},
+        upcomingSchedules: upcomingSchedules,
         onOpenChat: () {
           Navigator.of(sheetContext).pop();
           unawaited(
@@ -390,17 +476,11 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
           if (me == null || familyId == null) {
             throw StateError('Missing user or family');
           }
-
-          try {
-            await _chatRepo.sendTextMessage(
-              familyId: familyId,
-              sender: me,
-              text: msg,
-            );
-          } catch (e, st) {
-            debugPrint('sendTextMessage error: $e');
-            debugPrint('$st');
-          }
+          await _chatRepo.sendTextMessage(
+            familyId: familyId,
+            sender: me,
+            text: msg,
+          );
         },
       ),
     );
@@ -423,7 +503,6 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
     }
 
     final children = List.of(userVm.locationMembers);
-
     return Scaffold(
       body: Stack(
         children: [
@@ -475,7 +554,7 @@ class _ParentAllChildrenMapScreenState extends State<ParentAllChildrenMapScreen>
                       );
                     }
                   } catch (e, st) {
-                    debugPrint("🔥 Setup Error: $e");
+                    debugPrint("?? Setup Error: $e");
                     debugPrint("$st");
                   }
                 },

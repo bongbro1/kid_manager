@@ -1,4 +1,4 @@
-﻿import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
 import 'package:kid_manager/features/safe_route/domain/repositories/safe_route_repository.dart';
 
 class StartTripUseCase {

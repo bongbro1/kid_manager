@@ -78,6 +78,7 @@ export type TripRecord = {
   startedAt: number;
   updatedAt: number;
   scheduledStartAt?: number | null;
+  nextActivationAt?: number | null;
   repeatWeekdays?: number[];
   lastScheduledActivationAt?: number | null;
   lastLocation: LiveLocationRecord | null;
@@ -95,11 +96,21 @@ export type TripRecord = {
   hasStationaryAlertActive?: boolean | null;
 };
 
+export type SafeRouteMonitorContextRecord = {
+  tripId: string;
+  routes: SafeRouteRecord[];
+  hazards: RouteHazardRecord[];
+  builtAt: number;
+  minEvaluationIntervalMs: number;
+  minEvaluationDistanceMeters: number;
+};
+
 export type SafeRouteCurrentTripSnapshotRecord = {
   childId: string;
   adultCurrentTrip: TripRecord | null;
   adultRecentCompletedTrip: TripRecord | null;
   adultCurrentTripVisibleUntil: number | null;
   childMonitorTrip: TripRecord | null;
+  childMonitorContext?: SafeRouteMonitorContextRecord | null;
   updatedAt: number;
 };

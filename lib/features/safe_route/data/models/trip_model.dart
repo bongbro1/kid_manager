@@ -1,4 +1,4 @@
-﻿import 'package:kid_manager/features/safe_route/data/models/live_location_model.dart';
+import 'package:kid_manager/features/safe_route/data/models/live_location_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/safe_route_model.dart';
 import 'package:kid_manager/features/safe_route/data/models/safe_route_timestamp_parser.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
@@ -41,8 +41,10 @@ class TripModel extends Trip {
       routeName: map['routeName']?.toString(),
       status: parseTripStatus(map['status']),
       reason: map['reason']?.toString(),
-      consecutiveDeviationCount: (map['consecutiveDeviationCount'] as num?)?.toInt() ?? 0,
-      currentDistanceFromRouteMeters: (map['currentDistanceFromRouteMeters'] as num?)?.toDouble() ?? 0,
+      consecutiveDeviationCount:
+          (map['consecutiveDeviationCount'] as num?)?.toInt() ?? 0,
+      currentDistanceFromRouteMeters:
+          (map['currentDistanceFromRouteMeters'] as num?)?.toDouble() ?? 0,
       startedAt: parseRequiredSafeRouteTimestamp(
         map['startedAt'],
         fieldName: 'Trip.startedAt',
@@ -61,7 +63,10 @@ class TripModel extends Trip {
           .where((day) => day >= 1 && day <= 7)
           .toList(growable: false),
       lastLocation: map['lastLocation'] is Map
-          ? LiveLocationModel.fromMap((map['childId'] ?? '').toString(), Map<dynamic, dynamic>.from(map['lastLocation'] as Map))
+          ? LiveLocationModel.fromMap(
+              (map['childId'] ?? '').toString(),
+              Map<dynamic, dynamic>.from(map['lastLocation'] as Map),
+            )
           : null,
       previewRoute: map['previewRoute'] is Map
           ? SafeRouteModel.fromMap(
@@ -72,9 +77,8 @@ class TripModel extends Trip {
           (map['previewAlternativeRoutes'] as List? ?? const [])
               .whereType<Map>()
               .map(
-                (item) => SafeRouteModel.fromMap(
-                  Map<String, dynamic>.from(item),
-                ),
+                (item) =>
+                    SafeRouteModel.fromMap(Map<String, dynamic>.from(item)),
               )
               .toList(growable: false),
     );
@@ -133,23 +137,23 @@ class TripModel extends Trip {
   }
 
   Trip toEntity() => Trip(
-        id: id,
-        childId: childId,
-        parentId: parentId,
-        routeId: routeId,
-        alternativeRouteIds: alternativeRouteIds,
-        currentRouteId: currentRouteId,
-        routeName: routeName,
-        status: status,
-        reason: reason,
-        consecutiveDeviationCount: consecutiveDeviationCount,
-        currentDistanceFromRouteMeters: currentDistanceFromRouteMeters,
-        startedAt: startedAt,
-        updatedAt: updatedAt,
-        scheduledStartAt: scheduledStartAt,
-        repeatWeekdays: repeatWeekdays,
-        lastLocation: lastLocation,
-        previewRoute: previewRoute,
-        previewAlternativeRoutes: previewAlternativeRoutes,
-      );
+    id: id,
+    childId: childId,
+    parentId: parentId,
+    routeId: routeId,
+    alternativeRouteIds: alternativeRouteIds,
+    currentRouteId: currentRouteId,
+    routeName: routeName,
+    status: status,
+    reason: reason,
+    consecutiveDeviationCount: consecutiveDeviationCount,
+    currentDistanceFromRouteMeters: currentDistanceFromRouteMeters,
+    startedAt: startedAt,
+    updatedAt: updatedAt,
+    scheduledStartAt: scheduledStartAt,
+    repeatWeekdays: repeatWeekdays,
+    lastLocation: lastLocation,
+    previewRoute: previewRoute,
+    previewAlternativeRoutes: previewAlternativeRoutes,
+  );
 }

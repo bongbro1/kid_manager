@@ -97,17 +97,16 @@ class AppTextStyles {
   );
 
   static const scheduleSuccessTitle = TextStyle(
-  fontFamily: 'Poppins',
-  fontSize: 18,
-  fontWeight: FontWeight.w600,
-  color: Colors.black,
-);
+    fontFamily: 'Poppins',
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: Colors.black,
+  );
 
-static const scheduleSuccessSubtitle = TextStyle(
-  fontFamily: 'Poppins',
-  fontSize: 14,
-  fontWeight: FontWeight.w400,
-  color: Color(0xFF6B7280),
-);
-
+  static const scheduleSuccessSubtitle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: Color(0xFF6B7280),
+  );
 }

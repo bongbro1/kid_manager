@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 
 import 'package:kid_manager/models/location/transport_mode.dart';
 
@@ -93,7 +93,8 @@ class LocationData {
     int? gapStartTimestamp,
     int? gapEndTimestamp,
   }) {
-    final resolvedTs = dateTime?.millisecondsSinceEpoch ?? timestamp ?? this.timestamp;
+    final resolvedTs =
+        dateTime?.millisecondsSinceEpoch ?? timestamp ?? this.timestamp;
 
     return LocationData(
       latitude: latitude ?? this.latitude,
@@ -119,23 +120,23 @@ class LocationData {
   }
 
   Map<String, dynamic> toJson() => {
-        'latitude': latitude,
-        'longitude': longitude,
-        'accuracy': accuracy,
-        'speed': speed,
-        'heading': heading,
-        if (batteryLevel != null) 'batteryLevel': batteryLevel,
-        if (isCharging != null) 'isCharging': isCharging,
-        'isMock': isMock,
-        'timestamp': timestamp,
-        'sentAt': DateTime.now().millisecondsSinceEpoch,
-        'motion': motion,
-        'transport': transport.name,
-        if (isNetworkGap) 'isNetworkGap': true,
-        if (gapDurationMs != null) 'gapDurationMs': gapDurationMs,
-        if (gapStartTimestamp != null) 'gapStartTimestamp': gapStartTimestamp,
-        if (gapEndTimestamp != null) 'gapEndTimestamp': gapEndTimestamp,
-      };
+    'latitude': latitude,
+    'longitude': longitude,
+    'accuracy': accuracy,
+    'speed': speed,
+    'heading': heading,
+    if (batteryLevel != null) 'batteryLevel': batteryLevel,
+    if (isCharging != null) 'isCharging': isCharging,
+    'isMock': isMock,
+    'timestamp': timestamp,
+    'sentAt': DateTime.now().millisecondsSinceEpoch,
+    'motion': motion,
+    'transport': transport.name,
+    if (isNetworkGap) 'isNetworkGap': true,
+    if (gapDurationMs != null) 'gapDurationMs': gapDurationMs,
+    if (gapStartTimestamp != null) 'gapStartTimestamp': gapStartTimestamp,
+    if (gapEndTimestamp != null) 'gapEndTimestamp': gapEndTimestamp,
+  };
 
   factory LocationData.fromJson(Map<String, dynamic> json) {
     double toDouble(dynamic v) {
@@ -163,16 +164,26 @@ class LocationData {
       accuracy: toDouble(json['accuracy']),
       speed: toDouble(json['speed']),
       heading: toDouble(json['heading']),
-      batteryLevel: json['batteryLevel'] == null ? null : toInt(json['batteryLevel']),
-      isCharging: json['isCharging'] == null ? null : toBool(json['isCharging']),
+      batteryLevel: json['batteryLevel'] == null
+          ? null
+          : toInt(json['batteryLevel']),
+      isCharging: json['isCharging'] == null
+          ? null
+          : toBool(json['isCharging']),
       isMock: toBool(json['isMock']),
       timestamp: toInt(json['timestamp']),
       motion: (json['motion'] ?? '').toString().trim(),
       transport: parseTransport(json['transport']),
       isNetworkGap: toBool(json['isNetworkGap']),
-      gapDurationMs: json['gapDurationMs'] == null ? null : toInt(json['gapDurationMs']),
-      gapStartTimestamp: json['gapStartTimestamp'] == null ? null : toInt(json['gapStartTimestamp']),
-      gapEndTimestamp: json['gapEndTimestamp'] == null ? null : toInt(json['gapEndTimestamp']),
+      gapDurationMs: json['gapDurationMs'] == null
+          ? null
+          : toInt(json['gapDurationMs']),
+      gapStartTimestamp: json['gapStartTimestamp'] == null
+          ? null
+          : toInt(json['gapStartTimestamp']),
+      gapEndTimestamp: json['gapEndTimestamp'] == null
+          ? null
+          : toInt(json['gapEndTimestamp']),
     );
   }
 
@@ -209,11 +220,13 @@ class LocationData {
   Duration? get networkGapDuration =>
       gapDurationMs == null ? null : Duration(milliseconds: gapDurationMs!);
 
-  DateTime? get gapStartDateTime =>
-      gapStartTimestamp == null ? null : DateTime.fromMillisecondsSinceEpoch(gapStartTimestamp!);
+  DateTime? get gapStartDateTime => gapStartTimestamp == null
+      ? null
+      : DateTime.fromMillisecondsSinceEpoch(gapStartTimestamp!);
 
-  DateTime? get gapEndDateTime =>
-      gapEndTimestamp == null ? null : DateTime.fromMillisecondsSinceEpoch(gapEndTimestamp!);
+  DateTime? get gapEndDateTime => gapEndTimestamp == null
+      ? null
+      : DateTime.fromMillisecondsSinceEpoch(gapEndTimestamp!);
 
   double get speedKmh => speed * 3.6;
 
@@ -221,7 +234,8 @@ class LocationData {
     const r = 6371.0;
     final dLat = _degToRad(other.latitude - latitude);
     final dLng = _degToRad(other.longitude - longitude);
-    final a = sin(dLat / 2) * sin(dLat / 2) +
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
         cos(_degToRad(latitude)) *
             cos(_degToRad(other.latitude)) *
             sin(dLng / 2) *

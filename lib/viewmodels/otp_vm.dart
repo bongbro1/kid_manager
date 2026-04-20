@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/network/app_network_error_mapper.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
 import 'package:kid_manager/models/app_otp.dart';
 import 'package:kid_manager/repositories/otp_repository.dart';
@@ -75,7 +76,11 @@ class OtpVM extends ChangeNotifier {
           return response.result;
       }
     } catch (e) {
-      error = e.toString();
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      error = networkError?.message ?? e.toString();
       return OtpVerifyResult.invalid;
     } finally {
       loading = false;
@@ -107,7 +112,11 @@ class OtpVM extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      error = e.toString();
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      error = networkError?.message ?? e.toString();
       return false;
     } finally {
       loading = false;
@@ -150,7 +159,11 @@ class OtpVM extends ChangeNotifier {
 
       return result;
     } catch (e) {
-      error = e.toString();
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      error = networkError?.message ?? e.toString();
       return OtpResendResult.notFound;
     } finally {
       loading = false;

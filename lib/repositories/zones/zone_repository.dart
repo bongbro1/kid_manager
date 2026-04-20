@@ -19,14 +19,12 @@ class ZoneRepository implements ZoneRepositoryInterface {
   final FirebaseDatabase _db;
   final FirebaseFunctions _functions;
 
-  ZoneRepository({
-    FirebaseDatabase? db,
-    FirebaseFunctions? functions,
-  })  : _db = db ?? FirebaseDatabase.instance,
-        _functions = functions ?? FirebaseFunctions.instanceFor(
-          region: 'asia-southeast1',
-        );
-  DatabaseReference _zonesRef(String childUid) => _db.ref("zonesByChild/$childUid");
+  ZoneRepository({FirebaseDatabase? db, FirebaseFunctions? functions})
+    : _db = db ?? FirebaseDatabase.instance,
+      _functions =
+          functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
+  DatabaseReference _zonesRef(String childUid) =>
+      _db.ref("zonesByChild/$childUid");
 
   List<GeoZone> _parseZones(dynamic raw) {
     if (raw is! Map) return <GeoZone>[];
@@ -117,10 +115,7 @@ class ZoneRepository implements ZoneRepositoryInterface {
 
   Future<String> createZone(String childUid, Map<String, dynamic> data) async {
     final callable = _functions.httpsCallable('upsertChildZone');
-    final res = await callable.call({
-      'childUid': childUid,
-      ...data,
-    });
+    final res = await callable.call({'childUid': childUid, ...data});
 
     final map = Map<String, dynamic>.from(res.data as Map);
     return (map['zoneId'] ?? '').toString();
@@ -158,17 +153,17 @@ class ZoneRepository implements ZoneRepositoryInterface {
   @override
   Future<void> deleteZone(String childUid, String zoneId) async {
     final callable = _functions.httpsCallable('deleteChildZone');
-    await callable.call({
-      'childUid': childUid,
-      'zoneId': zoneId,
-    });
+    await callable.call({'childUid': childUid, 'zoneId': zoneId});
   }
 
   @Deprecated(
     'Client-authored zone events are non-authoritative. '
     'Canonical zone events are computed on the backend from trusted inputs.',
   )
-  Future<void> pushZoneEvent(String childUid, Map<String, dynamic> event) async {
+  Future<void> pushZoneEvent(
+    String childUid,
+    Map<String, dynamic> event,
+  ) async {
     debugPrint(
       '[ZoneRepository] Ignored legacy client-authored zone event for '
       'childUid=$childUid. Canonical events are server-generated only.',

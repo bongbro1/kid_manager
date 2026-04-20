@@ -73,8 +73,9 @@ class TrackingTuning {
   static const double stillUnknownTightDistanceKm = 0.018;
   static const double idleHistoryDistanceKm = 0.02;
   static const Duration idleHistoryKeepAliveInterval = Duration(minutes: 2);
-  static const Duration stationaryHistoryKeepAliveInterval =
-      Duration(minutes: 5);
+  static const Duration stationaryHistoryKeepAliveInterval = Duration(
+    minutes: 5,
+  );
 
   static const Duration currentMovingGoodInterval = Duration(seconds: 5);
   static const Duration currentMovingModerateInterval = Duration(seconds: 10);
@@ -83,16 +84,16 @@ class TrackingTuning {
   static const Duration currentIdleModerateInterval = Duration(minutes: 1);
   static const Duration currentIdleWeakInterval = Duration(minutes: 2);
   static const Duration currentStationaryGoodInterval = Duration(minutes: 2);
-  static const Duration currentStationaryModerateInterval =
-      Duration(minutes: 3);
+  static const Duration currentStationaryModerateInterval = Duration(
+    minutes: 3,
+  );
   static const Duration currentStationaryWeakInterval = Duration(minutes: 5);
 
   static const double suppressedCurrentKeepAliveAcc20MaxM = 20.0;
   static const double suppressedCurrentKeepAliveAcc35MaxM = 35.0;
-  static const Duration suppressedCurrentKeepAliveAcc20 =
-      Duration(minutes: 2);
-  static const Duration suppressedCurrentKeepAliveAcc35 =
-      Duration(minutes: 3);
-  static const Duration suppressedCurrentKeepAliveFallback =
-      Duration(minutes: 4);
+  static const Duration suppressedCurrentKeepAliveAcc20 = Duration(minutes: 2);
+  static const Duration suppressedCurrentKeepAliveAcc35 = Duration(minutes: 3);
+  static const Duration suppressedCurrentKeepAliveFallback = Duration(
+    minutes: 4,
+  );
 }

@@ -36,7 +36,9 @@ class SafeRouteRouteSelector extends StatelessWidget {
             route: routes[index],
             highlightedLabel: _routeBadgeLabel(l10n, index, routes[index]),
             isPrimary: routes[index].id == selectedRoute?.id,
-            isAlternative: selectedAlternativeRouteIds.contains(routes[index].id),
+            isAlternative: selectedAlternativeRouteIds.contains(
+              routes[index].id,
+            ),
             canAddAlternative:
                 selectedAlternativeRouteIds.length < maxAlternativeRoutes,
             onSelectPrimary: () => onSelectPrimary(routes[index]),
@@ -126,7 +128,9 @@ class _RouteTile extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              l10n.safeRouteDurationLabel(route.durationSeconds),
+                              l10n.safeRouteDurationLabel(
+                                route.durationSeconds,
+                              ),
                               style: const TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w800,
@@ -135,9 +139,11 @@ class _RouteTile extends StatelessWidget {
                             const SizedBox(width: 8),
                             _LabelChip(
                               label: highlightedLabel,
-                              color: highlightedLabel == l10n.safeRouteBadgeSafest
+                              color:
+                                  highlightedLabel == l10n.safeRouteBadgeSafest
                                   ? const Color(0xFF1A73E8)
-                                  : highlightedLabel == l10n.safeRouteBadgeFaster
+                                  : highlightedLabel ==
+                                        l10n.safeRouteBadgeFaster
                                   ? const Color(0xFFB45309)
                                   : const Color(0xFF15803D),
                             ),
@@ -236,8 +242,9 @@ class _RouteTile extends StatelessWidget {
                       backgroundColor: isPrimary
                           ? const Color(0xFF1A73E8)
                           : const Color(0xFFEFF6FF),
-                      foregroundColor:
-                          isPrimary ? Colors.white : const Color(0xFF1D4ED8),
+                      foregroundColor: isPrimary
+                          ? Colors.white
+                          : const Color(0xFF1D4ED8),
                       borderColor: isPrimary
                           ? const Color(0xFF1A73E8)
                           : const Color(0xFFBFDBFE),
@@ -307,10 +314,7 @@ class _RouteTile extends StatelessWidget {
 }
 
 class _LabelChip extends StatelessWidget {
-  const _LabelChip({
-    required this.label,
-    required this.color,
-  });
+  const _LabelChip({required this.label, required this.color});
 
   final String label;
   final Color color;
@@ -336,10 +340,7 @@ class _LabelChip extends StatelessWidget {
 }
 
 class _MetaPill extends StatelessWidget {
-  const _MetaPill({
-    required this.icon,
-    required this.label,
-  });
+  const _MetaPill({required this.icon, required this.label});
 
   final IconData icon;
   final String label;

@@ -4,10 +4,7 @@ class InteractionController {
   final List<LocationData> points;
   final void Function(LocationData point)? onPointSelected;
 
-  InteractionController(
-      this.points, {
-        this.onPointSelected,
-      });
+  InteractionController(this.points, {this.onPointSelected});
 
   void handleTap({
     required double lat,
@@ -27,11 +24,11 @@ class InteractionController {
   }
 
   LocationData? _findNearestPoint(
-      List<LocationData> points,
-      double lat,
-      double lng, {
-        double maxDistanceMeters = 35,
-      }) {
+    List<LocationData> points,
+    double lat,
+    double lng, {
+    double maxDistanceMeters = 35,
+  }) {
     if (points.isEmpty) return null;
 
     LocationData? nearest;

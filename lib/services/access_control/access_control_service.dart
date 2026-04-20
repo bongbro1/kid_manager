@@ -7,9 +7,8 @@ class AccessControlService {
   AccessControlService({
     Map<AppFeature, FeaturePolicy>? policies,
     Map<AppFeatureBundle, FeatureBundlePolicy>? bundlePolicies,
-  })  : _policies = policies ?? FeaturePolicyCatalog.defaults,
-        _bundlePolicies =
-            bundlePolicies ?? FeaturePolicyCatalog.bundlePolicies;
+  }) : _policies = policies ?? FeaturePolicyCatalog.defaults,
+       _bundlePolicies = bundlePolicies ?? FeaturePolicyCatalog.bundlePolicies;
 
   final Map<AppFeature, FeaturePolicy> _policies;
   final Map<AppFeatureBundle, FeatureBundlePolicy> _bundlePolicies;
@@ -29,10 +28,7 @@ class AccessControlService {
     );
 
     return policy.allowsRole(actor.role) &&
-        policy.allowsPlan(
-          effectivePlan,
-          bundlePolicies: _bundlePolicies,
-        );
+        policy.allowsPlan(effectivePlan, bundlePolicies: _bundlePolicies);
   }
 
   bool canAddManagedAccounts({
@@ -149,10 +145,7 @@ class AccessControlService {
     );
   }
 
-  int? limitForFeature(
-    AppFeature feature, {
-    SubscriptionInfo? subscription,
-  }) {
+  int? limitForFeature(AppFeature feature, {SubscriptionInfo? subscription}) {
     final policy = _policies[feature];
     if (policy?.limit == null) {
       return null;
@@ -160,9 +153,7 @@ class AccessControlService {
     return policy!.limit!.resolve(_resolvePlan(subscription: subscription));
   }
 
-  SubscriptionPlan _resolvePlan({
-    SubscriptionInfo? subscription,
-  }) {
+  SubscriptionPlan _resolvePlan({SubscriptionInfo? subscription}) {
     return subscription?.effectivePlan ?? SubscriptionPlan.free;
   }
 

@@ -25,10 +25,7 @@ class LocalTimeZoneParts {
 }
 
 class LocalDayUtcRange {
-  const LocalDayUtcRange({
-    required this.fromTs,
-    required this.toTs,
-  });
+  const LocalDayUtcRange({required this.fromTs, required this.toTs});
 
   final int fromTs;
   final int toTs;
@@ -65,10 +62,7 @@ class DeviceTimeZoneService {
     try {
       final normalized = await _channel.invokeMethod<String>(
         'normalizeTimeZone',
-        <String, dynamic>{
-          'timeZone': candidate,
-          'fallbackTimeZone': fallback,
-        },
+        <String, dynamic>{'timeZone': candidate, 'fallbackTimeZone': fallback},
       );
       final value = normalized?.trim();
       return (value == null || value.isEmpty) ? fallback : value;
@@ -165,12 +159,15 @@ class DeviceTimeZoneService {
         );
       }
     } catch (e) {
-      debugPrint('DeviceTimeZoneService.resolveLocalPartsForTimestamp error: $e');
+      debugPrint(
+        'DeviceTimeZoneService.resolveLocalPartsForTimestamp error: $e',
+      );
     }
 
     final fallback = DateTime.fromMillisecondsSinceEpoch(timestampMs).toLocal();
     return LocalTimeZoneParts(
-      dayKey: '${fallback.year.toString().padLeft(4, '0')}-'
+      dayKey:
+          '${fallback.year.toString().padLeft(4, '0')}-'
           '${fallback.month.toString().padLeft(2, '0')}-'
           '${fallback.day.toString().padLeft(2, '0')}',
       minuteOfDay: (fallback.hour * 60) + fallback.minute,
@@ -204,7 +201,9 @@ class DeviceTimeZoneService {
       final data = Map<String, dynamic>.from(raw ?? const <String, dynamic>{});
       final fromRaw = data['fromTs'];
       final toRaw = data['toTs'];
-      final fromTs = fromRaw is num ? fromRaw.toInt() : int.tryParse('$fromRaw');
+      final fromTs = fromRaw is num
+          ? fromRaw.toInt()
+          : int.tryParse('$fromRaw');
       final toTs = toRaw is num ? toRaw.toInt() : int.tryParse('$toRaw');
       if (fromTs != null && toTs != null) {
         return LocalDayUtcRange(fromTs: fromTs, toTs: toTs);

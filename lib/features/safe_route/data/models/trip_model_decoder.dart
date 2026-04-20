@@ -1,10 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/features/safe_route/data/models/trip_model.dart';
 
-TripModel? tryParseTripModel(
-  Map<String, dynamic>? map, {
-  String? source,
-}) {
+TripModel? tryParseTripModel(Map<String, dynamic>? map, {String? source}) {
   if (map == null) {
     return null;
   }

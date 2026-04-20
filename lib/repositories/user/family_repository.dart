@@ -19,7 +19,8 @@ class FamilyRepository {
     FirebaseFunctions? functions,
   }) : _auth = auth ?? FirebaseAuth.instance,
        _functions =
-           functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
+           functions ??
+           FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
   final FirebaseFirestore _db;
   final ProfileRepository _profileRepository;
@@ -30,7 +31,8 @@ class FamilyRepository {
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');
 
-  DocumentReference<Map<String, dynamic>> userRef(String uid) => _users.doc(uid);
+  DocumentReference<Map<String, dynamic>> userRef(String uid) =>
+      _users.doc(uid);
 
   Future<void> createParentIfMissing({
     required String uid,
@@ -51,10 +53,7 @@ class FamilyRepository {
       final familyId = _db.collection('families').doc().id;
       final batch = _db.batch();
 
-      batch.update(ref, {
-        'familyId': familyId,
-        if (isActive) 'isActive': true,
-      });
+      batch.update(ref, {'familyId': familyId, if (isActive) 'isActive': true});
 
       final familyRef = _db.collection('families').doc(familyId);
       batch.set(familyRef, {
@@ -198,9 +197,9 @@ class FamilyRepository {
           .toList(growable: false);
 
       users.sort((a, b) {
-        final roleCompare = _roleSortOrder(a.role).compareTo(
-          _roleSortOrder(b.role),
-        );
+        final roleCompare = _roleSortOrder(
+          a.role,
+        ).compareTo(_roleSortOrder(b.role));
         if (roleCompare != 0) {
           return roleCompare;
         }
@@ -213,13 +212,10 @@ class FamilyRepository {
 
     controller = StreamController<List<AppUser>>(
       onListen: () {
-        membersSub = membersRef.snapshots().listen(
-          (qs) {
-            latestMembers = qs;
-            emit();
-          },
-          onError: controller.addError,
-        );
+        membersSub = membersRef.snapshots().listen((qs) {
+          latestMembers = qs;
+          emit();
+        }, onError: controller.addError);
 
         unawaited(() async {
           if (viewerUid == null || viewerUid.isEmpty) {
@@ -238,15 +234,12 @@ class FamilyRepository {
                 .collection('managementMembers')
                 .where('parentUid', isEqualTo: viewerUid);
 
-            managementSub = managementQuery.snapshots().listen(
-              (qs) {
-                managementByUid = {
-                  for (final doc in qs.docs) doc.id: AppUser.fromDoc(doc),
-                };
-                emit();
-              },
-              onError: controller.addError,
-            );
+            managementSub = managementQuery.snapshots().listen((qs) {
+              managementByUid = {
+                for (final doc in qs.docs) doc.id: AppUser.fromDoc(doc),
+              };
+              emit();
+            }, onError: controller.addError);
           } catch (e, st) {
             debugPrint(
               '[FamilyRepository] watchFamilyMembers management load error: $e',
@@ -287,8 +280,9 @@ class FamilyRepository {
   }) {
     final data = memberDoc.data() ?? const <String, dynamic>{};
     final user = AppUser.fromMap(data, docId: memberDoc.id);
-    final normalizedFamilyId =
-        (user.familyId ?? '').trim().isEmpty ? familyId : user.familyId;
+    final normalizedFamilyId = (user.familyId ?? '').trim().isEmpty
+        ? familyId
+        : user.familyId;
     final normalizedManagedChildIds =
         managementMeta?.managedChildIds ?? user.managedChildIds;
 

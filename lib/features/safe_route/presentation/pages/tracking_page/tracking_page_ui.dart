@@ -201,10 +201,11 @@ extension _TrackingPageUi on _TrackingPageBodyState {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: (isActiveTrip
-                      ? visuals.bannerColor
-                      : locationPanelColor(scheme))
-                  .withOpacity(0.96),
+              color:
+                  (isActiveTrip
+                          ? visuals.bannerColor
+                          : locationPanelColor(scheme))
+                      .withOpacity(0.96),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: isActiveTrip
@@ -360,11 +361,7 @@ extension _TrackingPageUi on _TrackingPageBodyState {
         border: Border.all(color: locationPanelBorderColor(scheme), width: 1.6),
       ),
       child: avatarUrl.isEmpty
-          ? Icon(
-              Icons.child_care_rounded,
-              size: 18,
-              color: scheme.primary,
-            )
+          ? Icon(Icons.child_care_rounded, size: 18, color: scheme.primary)
           : Image.network(
               avatarUrl,
               fit: BoxFit.cover,

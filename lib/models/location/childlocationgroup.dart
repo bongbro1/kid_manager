@@ -5,8 +5,5 @@ class ChildLocationGroup {
   final List<AppUser> children;
   final osm.LatLng center;
 
-  ChildLocationGroup({
-    required this.children,
-    required this.center,
-  });
+  ChildLocationGroup({required this.children, required this.center});
 }

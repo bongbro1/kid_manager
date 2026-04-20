@@ -7,16 +7,9 @@ enum TripStatus {
   cancelled,
 }
 
-enum TripVisibilityAudience {
-  childMonitor,
-  adultManager,
-}
+enum TripVisibilityAudience { childMonitor, adultManager }
 
-enum TripMutationState {
-  none,
-  completing,
-  cancelling,
-}
+enum TripMutationState { none, completing, cancelling }
 
 TripStatus parseTripStatus(dynamic value) {
   final raw = (value ?? '').toString().trim();
@@ -26,11 +19,7 @@ TripStatus parseTripStatus(dynamic value) {
   );
 }
 
-enum ZoneRiskLevel {
-  low,
-  medium,
-  high,
-}
+enum ZoneRiskLevel { low, medium, high }
 
 ZoneRiskLevel parseZoneRiskLevel(dynamic value) {
   final raw = (value ?? '').toString().trim();
@@ -40,12 +29,7 @@ ZoneRiskLevel parseZoneRiskLevel(dynamic value) {
   );
 }
 
-enum SafeRouteTravelMode {
-  walking,
-  motorbike,
-  pickup,
-  otherVehicle,
-}
+enum SafeRouteTravelMode { walking, motorbike, pickup, otherVehicle }
 
 SafeRouteTravelMode parseSafeRouteTravelMode(dynamic value) {
   final raw = (value ?? '').toString().trim();

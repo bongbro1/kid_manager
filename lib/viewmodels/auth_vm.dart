@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kid_manager/core/network/app_network_error_mapper.dart';
 import 'package:kid_manager/core/storage_keys.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
@@ -198,6 +199,14 @@ class AuthVM extends ChangeNotifier {
       _error = _mapFunctionsError(e);
       return false;
     } on Exception catch (e) {
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      if (networkError != null) {
+        _error = networkError.message;
+        return false;
+      }
       _error = e.toString().replaceFirst("Exception: ", "");
       return false;
     } catch (_) {
@@ -211,9 +220,7 @@ class AuthVM extends ChangeNotifier {
     }
   }
 
-  Future<void> logout({
-    bool clearPermissionOnboardingState = false,
-  }) async {
+  Future<void> logout({bool clearPermissionOnboardingState = false}) async {
     if (_logoutInProgress) return;
     _logoutInProgress = true;
     _loading = true;
@@ -245,7 +252,12 @@ class AuthVM extends ChangeNotifier {
       return await action();
     } catch (e, st) {
       debugPrint("AUTH ERROR: $e");
-      _error = e.toString().replaceFirst("Exception: ", "");
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      _error =
+          networkError?.message ?? e.toString().replaceFirst("Exception: ", "");
       if (rethrowOnError) {
         return Future<T>.error(e, st);
       }
@@ -318,7 +330,11 @@ class AuthVM extends ChangeNotifier {
       final user = await _authRepo.signInWithGoogle();
       await _handleUser(user);
     } catch (e) {
-      _setError(e.toString());
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      _setError(networkError?.message ?? e.toString());
     } finally {
       _setLoading(false);
     }
@@ -332,7 +348,11 @@ class AuthVM extends ChangeNotifier {
       final user = await _authRepo.signInWithFacebook();
       await _handleUser(user);
     } catch (e) {
-      _setError(e.toString());
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      _setError(networkError?.message ?? e.toString());
     } finally {
       _setLoading(false);
     }
@@ -360,7 +380,11 @@ class AuthVM extends ChangeNotifier {
         debugPrint("[AUTH_PHONE] OTP sent: $verificationId");
       });
     } catch (e) {
-      _setError(e.toString());
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      _setError(networkError?.message ?? e.toString());
       rethrow;
     } finally {
       _isSendingOtp = false;
@@ -378,7 +402,11 @@ class AuthVM extends ChangeNotifier {
       final user = await _authRepo.verifyOtpSms(code);
       await _handleUser(user);
     } catch (e) {
-      _setError(e.toString());
+      final networkError = AppNetworkErrorMapper.normalize(
+        e,
+        fallbackMessage: runtimeL10n().appNetworkActionFailed,
+      );
+      _setError(networkError?.message ?? e.toString());
       rethrow;
     } finally {
       _isSendingOtp = false;

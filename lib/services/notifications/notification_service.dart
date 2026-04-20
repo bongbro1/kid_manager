@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' show PlatformDispatcher;
 
@@ -18,6 +19,9 @@ import 'package:kid_manager/services/notifications/zone_i18n.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
 import 'package:kid_manager/widgets/notifications/birthday_notification_experience.dart';
 
+typedef NotificationSosTapHandler =
+    FutureOr<void> Function(Map<String, dynamic> data);
+
 class NotificationService {
   static bool _initialized = false;
 
@@ -26,6 +30,7 @@ class NotificationService {
   static const String _systemSender = 'system';
   static const MethodChannel _channel = MethodChannel('notification_intent');
   static final NotificationRepository _repo = NotificationRepository();
+  static NotificationSosTapHandler _sosTapHandler = SosTapRouter.handleTap;
 
   static Future<AppLocalizations> _loadL10n([String? lang]) {
     final normalized = (lang ?? PlatformDispatcher.instance.locale.languageCode)
@@ -95,6 +100,36 @@ class NotificationService {
 
   static String? _lastHandledTapKey;
 
+  @visibleForTesting
+  static String normalizeNotificationType(Object? rawType) {
+    return (rawType?.toString() ?? '').trim().toLowerCase();
+  }
+
+  @visibleForTesting
+  static String buildTapKey(Map<String, dynamic> data) {
+    final type = normalizeNotificationType(data['type']);
+    final notificationId = data['notificationId']?.toString() ?? '';
+    final familyId = data['familyId']?.toString() ?? '';
+    final messageId = data['messageId']?.toString() ?? '';
+    final eventId = data['eventId']?.toString() ?? '';
+    final route = data['route']?.toString() ?? '';
+
+    return [
+      type,
+      notificationId,
+      familyId,
+      messageId,
+      eventId,
+      route,
+    ].join('|');
+  }
+
+  @visibleForTesting
+  static void debugResetForTest({NotificationSosTapHandler? sosTapHandler}) {
+    _lastHandledTapKey = null;
+    _sosTapHandler = sosTapHandler ?? SosTapRouter.handleTap;
+  }
+
   static Future<void> handleTap(Map<String, dynamic> data) async {
     final traceId = data['debugTraceId']?.toString();
     if (traceId != null && traceId.isNotEmpty) {
@@ -105,21 +140,13 @@ class NotificationService {
     }
 
     final rawType = data["type"]?.toString();
-    final type = (rawType ?? '').toLowerCase();
+    final type = normalizeNotificationType(rawType);
     final notificationId = data['notificationId']?.toString();
     final familyId = data['familyId']?.toString();
     final messageId = data['messageId']?.toString();
     final eventId = data['eventId']?.toString();
     final route = data['route']?.toString();
-
-    final tapKey = [
-      type,
-      notificationId ?? '',
-      familyId ?? '',
-      messageId ?? '',
-      eventId ?? '',
-      route ?? '',
-    ].join('|');
+    final tapKey = buildTapKey(data);
 
     if (_lastHandledTapKey == tapKey) {
       return;
@@ -133,7 +160,7 @@ class NotificationService {
     if (type == 'test') return;
 
     if (type == 'sos') {
-      await SosTapRouter.handleTap(data);
+      await _sosTapHandler(data);
       return;
     }
 
@@ -218,42 +245,55 @@ class NotificationService {
   static Future<void> handleMessageForLocalNotification(
     RemoteMessage message,
   ) async {
-    final data = message.data;
-    final type = data['type']?.toString().toLowerCase() ?? '';
+    await _handleMessageForLocalNotification(message, allowAuthGuards: true);
+  }
 
-    // Guard riêng cho schedule + memory_day
+  static Future<void> handleMessageForLocalNotificationInBackground(
+    RemoteMessage message,
+  ) async {
+    await _handleMessageForLocalNotification(message, allowAuthGuards: false);
+  }
+
+  static Future<void> _handleMessageForLocalNotification(
+    RemoteMessage message, {
+    required bool allowAuthGuards,
+  }) async {
+    final data = message.data;
+    final type = normalizeNotificationType(data['type']);
+
     if (type == 'schedule' ||
         type == 'memoryday' ||
         type == 'memory_day' ||
         type == 'importexcel' ||
         type == 'schedule_import') {
-      final currentUid = FirebaseAuth.instance.currentUser?.uid;
-      final actorUid = data['actorUid']?.toString();
-      final directReceiverId = data['receiverId']?.toString();
+      if (allowAuthGuards) {
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        final actorUid = data['actorUid']?.toString();
+        final directReceiverId = data['receiverId']?.toString();
 
-      if (currentUid == null || currentUid.isEmpty) {
-        debugPrint('🔕 [$type] skip: no current user');
-        return;
-      }
+        if (currentUid == null || currentUid.isEmpty) {
+          debugPrint('[$type] skip: no current user');
+          return;
+        }
 
-      // self notification
-      if (actorUid != null && actorUid == currentUid) {
-        debugPrint(
-          '🔕 [$type] skip self notification: currentUid=$currentUid actorUid=$actorUid',
-        );
-        return;
-      }
+        if (actorUid != null && actorUid == currentUid) {
+          debugPrint(
+            '[$type] skip self notification: currentUid=$currentUid actorUid=$actorUid',
+          );
+          return;
+        }
 
-      if (directReceiverId == null || directReceiverId.isEmpty) {
-        debugPrint('ðŸ”• [$type] skip: receiverId is null/empty');
-        return;
-      }
+        if (directReceiverId == null || directReceiverId.isEmpty) {
+          debugPrint('[$type] skip: receiverId is null/empty');
+          return;
+        }
 
-      if (directReceiverId != currentUid) {
-        debugPrint(
-          '🔕 [$type] skip wrong receiver: currentUid=$currentUid receiverId=$directReceiverId actorUid=$actorUid',
-        );
-        return;
+        if (directReceiverId != currentUid) {
+          debugPrint(
+            '[$type] skip wrong receiver: currentUid=$currentUid receiverId=$directReceiverId actorUid=$actorUid',
+          );
+          return;
+        }
       }
 
       final l10n = await _loadL10n(data['lang']?.toString());
@@ -289,19 +329,21 @@ class NotificationService {
     }
 
     if (type == 'tracking' || type == 'tracking_status') {
-      final currentUid = FirebaseAuth.instance.currentUser?.uid;
-      final toUid = data['toUid']?.toString();
+      if (allowAuthGuards) {
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        final toUid = data['toUid']?.toString();
 
-      if (currentUid == null || currentUid.isEmpty) {
-        debugPrint('[$type] skip: no current user');
-        return;
-      }
+        if (currentUid == null || currentUid.isEmpty) {
+          debugPrint('[$type] skip: no current user');
+          return;
+        }
 
-      if (toUid != null && toUid.isNotEmpty && toUid != currentUid) {
-        debugPrint(
-          '[$type] skip wrong receiver: currentUid=$currentUid toUid=$toUid',
-        );
-        return;
+        if (toUid != null && toUid.isNotEmpty && toUid != currentUid) {
+          debugPrint(
+            '[$type] skip wrong receiver: currentUid=$currentUid toUid=$toUid',
+          );
+          return;
+        }
       }
 
       await _showTrackingNotification(message);

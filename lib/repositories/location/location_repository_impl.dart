@@ -34,10 +34,9 @@ class LocationRepositoryImpl implements LocationRepository {
     FirebaseDatabase? database,
     FirebaseAuth? auth,
     LocationDayKeyResolver? dayKeyResolver,
-  })
-    : _database = database ?? FirebaseDatabase.instance,
-      _auth = auth ?? FirebaseAuth.instance,
-      _dayKeyResolver = dayKeyResolver ?? LocationDayKeyResolver();
+  }) : _database = database ?? FirebaseDatabase.instance,
+       _auth = auth ?? FirebaseAuth.instance,
+       _dayKeyResolver = dayKeyResolver ?? LocationDayKeyResolver();
 
   static const Duration _currentPollingInterval = Duration(seconds: 2);
   static const int _historyChunkLimit = 250;
@@ -97,7 +96,9 @@ class LocationRepositoryImpl implements LocationRepository {
     return uid;
   }
 
-  Future<TrackingRoutingContext?> _loadPersistedRoutingContext(String uid) async {
+  Future<TrackingRoutingContext?> _loadPersistedRoutingContext(
+    String uid,
+  ) async {
     try {
       return await TrackingRuntimeStore.loadRoutingContext(uid);
     } catch (e, st) {
@@ -159,7 +160,8 @@ class LocationRepositoryImpl implements LocationRepository {
       final timeZone = await _dayKeyResolver.normalizeTimeZone(
         snap.data()?['timezone']?.toString(),
       );
-      final normalizedParentUid = parentUid?.toString().trim().isNotEmpty == true
+      final normalizedParentUid =
+          parentUid?.toString().trim().isNotEmpty == true
           ? parentUid.toString().trim()
           : role == 'parent'
           ? uid
@@ -250,7 +252,8 @@ class LocationRepositoryImpl implements LocationRepository {
     final routing = await _loadUserRoutingContext(uid);
     final routingTimeZone = routing['timeZone']!;
 
-    if (_metaEnsuredForUid == uid && _metaEnsuredForTimeZone == routingTimeZone) {
+    if (_metaEnsuredForUid == uid &&
+        _metaEnsuredForTimeZone == routingTimeZone) {
       return;
     }
 
@@ -260,7 +263,9 @@ class LocationRepositoryImpl implements LocationRepository {
       final existingData = existingMeta.value is Map
           ? Map<String, dynamic>.from(existingMeta.value as Map)
           : const <String, dynamic>{};
-      final existingTimeZone = existingData['historyTimeZone']?.toString().trim();
+      final existingTimeZone = existingData['historyTimeZone']
+          ?.toString()
+          .trim();
       final shouldResetCutover =
           existingTimeZone == null ||
           existingTimeZone.isEmpty ||
@@ -437,9 +442,9 @@ class LocationRepositoryImpl implements LocationRepository {
       payload["endMinuteOfDay"] = endMinuteOfDay;
     }
 
-    final res = await _functions.httpsCallable('getChildHistoryChunk').call(
-      payload,
-    );
+    final res = await _functions
+        .httpsCallable('getChildHistoryChunk')
+        .call(payload);
 
     final data = Map<String, dynamic>.from(res.data);
     final nextCursorRaw = data["nextCursorTs"];
@@ -462,10 +467,7 @@ class LocationRepositoryImpl implements LocationRepository {
     int? startMinuteOfDay,
     int? endMinuteOfDay,
   }) async {
-    final payload = <String, dynamic>{
-      "childUid": childUid,
-      "dayKey": dayKey,
-    };
+    final payload = <String, dynamic>{"childUid": childUid, "dayKey": dayKey};
     if (fromTs != null) payload["fromTs"] = fromTs;
     if (toTs != null) payload["toTs"] = toTs;
     if (startMinuteOfDay != null) {
@@ -475,9 +477,9 @@ class LocationRepositoryImpl implements LocationRepository {
       payload["endMinuteOfDay"] = endMinuteOfDay;
     }
 
-    final res = await _functions.httpsCallable('getChildHistoryByDay').call(
-      payload,
-    );
+    final res = await _functions
+        .httpsCallable('getChildHistoryByDay')
+        .call(payload);
 
     final data = Map<String, dynamic>.from(res.data);
     final historyRaw = data["history"];

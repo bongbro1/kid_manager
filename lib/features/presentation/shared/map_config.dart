@@ -1,4 +1,4 @@
-class MapConfig{
+class MapConfig {
   final bool showChildrenPicker;
   final bool showSearch;
   final bool allowRouteSearch;
@@ -9,14 +9,14 @@ class MapConfig{
     required this.showSearch,
     required this.allowRouteSearch,
     required this.allowChat,
-});
+  });
 
   factory MapConfig.parent() => const MapConfig(
-      showChildrenPicker: true,
-      showSearch: true,
-      allowRouteSearch: true,
-      allowChat: true);
-
+    showChildrenPicker: true,
+    showSearch: true,
+    allowRouteSearch: true,
+    allowChat: true,
+  );
 
   factory MapConfig.child() => const MapConfig(
     showChildrenPicker: false,
@@ -24,6 +24,4 @@ class MapConfig{
     allowRouteSearch: false,
     allowChat: false,
   );
-
-
 }

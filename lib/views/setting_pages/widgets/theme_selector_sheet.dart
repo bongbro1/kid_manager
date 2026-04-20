@@ -170,7 +170,7 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
 
           SizedBox(
             width: double.infinity,

@@ -31,7 +31,9 @@ class SafeRouteRepositoryImpl implements SafeRouteRepository {
 
   @override
   Future<Trip?> getActiveTripByChildId(String childId) async {
-    return (await _remoteDataSource.getActiveTripByChildId(childId))?.toEntity();
+    return (await _remoteDataSource.getActiveTripByChildId(
+      childId,
+    ))?.toEntity();
   }
 
   @override
@@ -47,7 +49,9 @@ class SafeRouteRepositoryImpl implements SafeRouteRepository {
 
   @override
   Future<Trip> startTrip(Trip trip) async {
-    final created = await _remoteDataSource.startTrip(TripModel.fromEntity(trip));
+    final created = await _remoteDataSource.startTrip(
+      TripModel.fromEntity(trip),
+    );
     return created.toEntity();
   }
 
@@ -63,11 +67,21 @@ class SafeRouteRepositoryImpl implements SafeRouteRepository {
 
   @override
   Stream<LiveLocation> streamLiveLocation(String childId) {
-    return _remoteDataSource.streamLiveLocation(childId).map((item) => item.toEntity());
+    return _remoteDataSource
+        .streamLiveLocation(childId)
+        .map((item) => item.toEntity());
   }
 
   @override
-  Future<void> updateTripStatus(String tripId, TripStatus status, {String? reason}) {
-    return _remoteDataSource.updateTripStatus(tripId, status.name, reason: reason);
+  Future<void> updateTripStatus(
+    String tripId,
+    TripStatus status, {
+    String? reason,
+  }) {
+    return _remoteDataSource.updateTripStatus(
+      tripId,
+      status.name,
+      reason: reason,
+    );
   }
 }

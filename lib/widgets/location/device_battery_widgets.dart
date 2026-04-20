@@ -162,37 +162,52 @@ class DeviceBatteryCompactBadge extends StatelessWidget {
     final label = state.percentLabel(AppLocalizations.of(context));
     final foregroundColor = state.foregroundColor(scheme);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: state.backgroundTint(),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: state.borderColor()),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          BatteryIcon(
-            level: state.level ?? 0,
-            color: foregroundColor,
-            width: 18,
-            height: 10,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            constraints.hasBoundedWidth && constraints.maxWidth < 108;
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 6 : 8,
+            vertical: compact ? 3 : 4,
           ),
-          if (state.isCharging) ...[
-            const SizedBox(width: 4),
-            Icon(Icons.bolt_rounded, size: 12, color: foregroundColor),
-          ],
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: foregroundColor,
-            ),
+          decoration: BoxDecoration(
+            color: state.backgroundTint(),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: state.borderColor()),
           ),
-        ],
-      ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              BatteryIcon(
+                level: state.level ?? 0,
+                color: foregroundColor,
+                width: compact ? 16 : 18,
+                height: compact ? 9 : 10,
+              ),
+              if (state.isCharging) ...[
+                SizedBox(width: compact ? 3 : 4),
+                Icon(
+                  Icons.bolt_rounded,
+                  size: compact ? 10 : 12,
+                  color: foregroundColor,
+                ),
+              ],
+              SizedBox(width: compact ? 4 : 6),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: compact ? 10 : 11,
+                  fontWeight: FontWeight.w700,
+                  color: foregroundColor,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -232,70 +247,93 @@ class DeviceBatteryPanelCard extends StatelessWidget {
     final percentLabel = state.percentLabel(l10n);
     final statusLabel = state.statusLabel(l10n);
 
-    return Container(
-      width: double.infinity,
-      padding: padding,
-      decoration: BoxDecoration(
-        color: resolvedBackground,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: resolvedBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            resolvedTitle,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: labelColor,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 150;
+        final resolvedPadding = compact
+            ? const EdgeInsets.fromLTRB(10, 10, 10, 10)
+            : padding;
+
+        return Container(
+          width: double.infinity,
+          padding: resolvedPadding,
+          decoration: BoxDecoration(
+            color: resolvedBackground,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: resolvedBorder),
           ),
-          const SizedBox(height: 10),
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BatteryIcon(
-                level: state.level ?? 0,
-                color: foregroundColor,
-                width: 24,
-                height: 13,
-              ),
-              if (state.isCharging) ...[
-                const SizedBox(width: 6),
-                Icon(Icons.bolt_rounded, size: 16, color: foregroundColor),
-              ],
-              const Spacer(),
               Text(
-                percentLabel,
+                resolvedTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: foregroundColor,
+                  fontSize: compact ? 10 : 11,
+                  fontWeight: FontWeight.w700,
+                  color: labelColor,
+                ),
+              ),
+              SizedBox(height: compact ? 8 : 10),
+              Row(
+                children: [
+                  BatteryIcon(
+                    level: state.level ?? 0,
+                    color: foregroundColor,
+                    width: compact ? 22 : 24,
+                    height: compact ? 12 : 13,
+                  ),
+                  if (state.isCharging) ...[
+                    SizedBox(width: compact ? 4 : 6),
+                    Icon(
+                      Icons.bolt_rounded,
+                      size: compact ? 14 : 16,
+                      color: foregroundColor,
+                    ),
+                  ],
+                  const Spacer(),
+                  Text(
+                    percentLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: compact ? 16 : 18,
+                      fontWeight: FontWeight.w800,
+                      color: foregroundColor,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: compact ? 8 : 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: state.progress,
+                  minHeight: compact ? 6 : 8,
+                  backgroundColor: const Color(0xFFE5E7EB),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    state.progressColor(),
+                  ),
+                ),
+              ),
+              SizedBox(height: compact ? 6 : 8),
+              Text(
+                statusLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: compact ? 11 : 12,
+                  fontWeight: FontWeight.w700,
+                  color: state.isStale
+                      ? scheme.onSurfaceVariant
+                      : foregroundColor,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: state.progress,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFE5E7EB),
-              valueColor: AlwaysStoppedAnimation<Color>(state.progressColor()),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            statusLabel,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: state.isStale ? scheme.onSurfaceVariant : foregroundColor,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -322,68 +360,159 @@ class DeviceBatteryPill extends StatelessWidget {
     final statusLabel = state.statusLabel(l10n);
     final foregroundColor = state.foregroundColor(scheme);
 
-    return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: state.backgroundTint(),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: state.borderColor()),
-      ),
-      child: Row(
-        children: [
-          BatteryIcon(
-            level: state.level ?? 0,
-            color: foregroundColor,
-            width: 24,
-            height: 13,
-          ),
-          if (state.isCharging) ...[
-            const SizedBox(width: 6),
-            Icon(Icons.bolt_rounded, size: 16, color: foregroundColor),
-          ],
-          const SizedBox(width: 10),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: state.progress,
-                minHeight: 8,
-                backgroundColor: const Color(0xFFE5E7EB),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  state.progressColor(),
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 170;
+        final extraCompact = constraints.maxWidth < 135;
+
+        if (extraCompact) {
+          return Container(
+            constraints: const BoxConstraints(minHeight: 58),
+            padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+            decoration: BoxDecoration(
+              color: state.backgroundTint(),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: state.borderColor()),
             ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    BatteryIcon(
+                      level: state.level ?? 0,
+                      color: foregroundColor,
+                      width: 22,
+                      height: 12,
+                    ),
+                    if (state.isCharging) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.bolt_rounded,
+                        size: 14,
+                        color: foregroundColor,
+                      ),
+                    ],
+                    const Spacer(),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: foregroundColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: state.progress,
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFFE5E7EB),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      state.progressColor(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  statusLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: state.isStale
+                        ? scheme.onSurfaceVariant
+                        : foregroundColor,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Container(
+          height: compact ? 54 : 58,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12),
+          decoration: BoxDecoration(
+            color: state.backgroundTint(),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: state.borderColor()),
           ),
-          const SizedBox(width: 10),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Row(
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
+              BatteryIcon(
+                level: state.level ?? 0,
+                color: foregroundColor,
+                width: compact ? 22 : 24,
+                height: compact ? 12 : 13,
+              ),
+              if (state.isCharging) ...[
+                SizedBox(width: compact ? 4 : 6),
+                Icon(
+                  Icons.bolt_rounded,
+                  size: compact ? 14 : 16,
                   color: foregroundColor,
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                statusLabel,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: state.isStale
-                      ? scheme.onSurfaceVariant
-                      : foregroundColor,
+              ],
+              SizedBox(width: compact ? 8 : 10),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: state.progress,
+                    minHeight: compact ? 6 : 8,
+                    backgroundColor: const Color(0xFFE5E7EB),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      state.progressColor(),
+                    ),
+                  ),
                 ),
+              ),
+              SizedBox(width: compact ? 8 : 10),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: compact ? 13 : 14,
+                      fontWeight: FontWeight.w800,
+                      color: foregroundColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: compact ? 56 : 72),
+                    child: Text(
+                      statusLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontSize: compact ? 9 : 10,
+                        fontWeight: FontWeight.w700,
+                        color: state.isStale
+                            ? scheme.onSurfaceVariant
+                            : foregroundColor,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

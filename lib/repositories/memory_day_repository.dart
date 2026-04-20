@@ -31,9 +31,7 @@ class MemoryDayRepository {
     return snapshot.docs.map((doc) => MemoryDay.fromFirestore(doc)).toList();
   }
 
-  Future<List<MemoryDay>> getAll({
-    required String ownerParentUid,
-  }) async {
+  Future<List<MemoryDay>> getAll({required String ownerParentUid}) async {
     final snapshot = await _firestore
         .collection('parents')
         .doc(ownerParentUid)

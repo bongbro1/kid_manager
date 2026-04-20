@@ -10,6 +10,11 @@ import 'package:http/http.dart' as http;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
 
 class MapboxController extends ChangeNotifier {
+  static const Duration _childrenFlushInterval = Duration(milliseconds: 250);
+  static const Duration _childrenForceFlushInterval = Duration(seconds: 5);
+  static const double _childrenPositionDeltaMeters = 8;
+  static const double _childrenHeadingDeltaDegrees = 10;
+
   mbx.MapboxMap? _map;
   bool _styleReady = false;
   bool get isReady => _styleReady;
@@ -28,6 +33,12 @@ class MapboxController extends ChangeNotifier {
   _normalizedStyleImageCache = {};
 
   final Map<String, mbx.Position> _currentPositions = {};
+  final Map<String, Map<String, dynamic>> _featureCache = {};
+  final Map<String, int> _lastChildFlushAtMs = {};
+  final Map<String, mbx.Position> _lastFlushedPositions = {};
+  final Map<String, double> _lastFlushedHeadings = {};
+  final Map<String, String> _lastFlushedNames = {};
+  final Set<String> _dirtyChildIds = <String>{};
   final Set<String> _addedStyleImages = <String>{};
 
   static const String defaultAvatarId = "default_avatar_location";
@@ -40,7 +51,7 @@ class MapboxController extends ChangeNotifier {
   static const String _bubbleLayerId = "focus-bubble-layer";
   static const String _bubbleImageId = "focus_bubble_img";
 
-  String? _bubbleCacheKey; // để tránh regenerate PNG khi text không đổi
+  String? _bubbleCacheKey; // Ä‘á»ƒ trÃ¡nh regenerate PNG khi text khÃ´ng Ä‘á»•i
   bool _bubbleReady = false;
   bool _bubbleImageAdded = false;
   Future<void> _styleQueue = Future.value();
@@ -159,6 +170,16 @@ class MapboxController extends ChangeNotifier {
     _bubbleImageAdded = false;
     _bubbleCacheKey = null;
     _addedStyleImages.clear();
+    _featureCache.clear();
+    _dirtyChildIds.clear();
+    _lastChildFlushAtMs.clear();
+    _lastFlushedPositions.clear();
+    _lastFlushedHeadings.clear();
+    _lastFlushedNames.clear();
+    _currentPositions.clear();
+    _lastPositions = {};
+    _lastHeadings = {};
+    _lastNames = {};
     _styleQueue = Future.value();
     _styleInitInFlight = null;
     _styleInitSession = null;
@@ -166,24 +187,121 @@ class MapboxController extends ChangeNotifier {
     notifyListeners();
   }
 
+  double _distanceMeters(mbx.Position left, mbx.Position right) {
+    const earthRadiusMeters = 6371000.0;
+    final dLat = (right.lat - left.lat) * pi / 180.0;
+    final dLng = (right.lng - left.lng) * pi / 180.0;
+    final startLat = left.lat * pi / 180.0;
+    final endLat = right.lat * pi / 180.0;
+
+    final sinLat = sin(dLat / 2);
+    final sinLng = sin(dLng / 2);
+    final a = sinLat * sinLat + cos(startLat) * cos(endLat) * sinLng * sinLng;
+    return 2 * earthRadiusMeters * asin(sqrt(a.clamp(0.0, 1.0)));
+  }
+
+  double _turnDelta(double a, double b) {
+    var delta = (a - b).abs();
+    if (delta > 180) {
+      delta = 360 - delta;
+    }
+    return delta;
+  }
+
+  void _markDirtyChildren({
+    required Map<String, mbx.Position> positions,
+    required Map<String, double> headings,
+    required Map<String, String> names,
+  }) {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final currentIds = positions.keys.toSet();
+    final knownIds = {
+      ..._featureCache.keys,
+      ..._lastFlushedPositions.keys,
+      ..._lastPositions.keys,
+    };
+
+    for (final childId in knownIds.difference(currentIds)) {
+      _dirtyChildIds.add(childId);
+    }
+
+    for (final entry in positions.entries) {
+      final childId = entry.key;
+      final position = entry.value;
+      final lastPosition = _lastFlushedPositions[childId];
+      final lastHeading = _lastFlushedHeadings[childId];
+      final lastName = _lastFlushedNames[childId];
+      final nextHeading = headings[childId] ?? 0;
+      final nextName = names[childId] ?? "";
+      final movedEnough =
+          lastPosition == null ||
+          _distanceMeters(lastPosition, position) >=
+              _childrenPositionDeltaMeters;
+      final headingChanged =
+          lastHeading == null ||
+          _turnDelta(lastHeading, nextHeading) >= _childrenHeadingDeltaDegrees;
+      final nameChanged = lastName != nextName;
+      final flushExpired =
+          nowMs - (_lastChildFlushAtMs[childId] ?? 0) >=
+          _childrenForceFlushInterval.inMilliseconds;
+
+      if (movedEnough || headingChanged || nameChanged || flushExpired) {
+        _dirtyChildIds.add(childId);
+      }
+    }
+  }
+
+  Map<String, dynamic> _buildChildFeature({
+    required String childId,
+    required mbx.Position position,
+    required double heading,
+    required String name,
+  }) {
+    final avatarId = _avatarCache.containsKey(childId)
+        ? childId
+        : defaultAvatarId;
+    return {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [position.lng, position.lat],
+      },
+      "properties": {
+        "id": childId,
+        "avatar_id": avatarId,
+        "heading": heading,
+        "name": name,
+      },
+    };
+  }
+
   void scheduleUpdate({
     required Map<String, mbx.Position> positions,
     required Map<String, double> headings,
     required Map<String, String> names,
   }) {
-    // ✅ lưu để refresh khi avatar load xong
     _lastPositions = Map.of(positions);
     _lastHeadings = Map.of(headings);
     _lastNames = Map.of(names);
+    _markDirtyChildren(
+      positions: _lastPositions,
+      headings: _lastHeadings,
+      names: _lastNames,
+    );
 
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 100), () {
-      updateChildren(positions: positions, headings: headings, names: names);
+    _debounce = Timer(_childrenFlushInterval, () {
+      updateChildren(
+        positions: _lastPositions,
+        headings: _lastHeadings,
+        names: _lastNames,
+      );
     });
   }
 
   Future<void> _refreshGeoJsonIfPossible() async {
     if (_lastPositions.isEmpty) return;
+    _dirtyChildIds.addAll(_lastPositions.keys);
     await updateChildren(
       positions: _lastPositions,
       headings: _lastHeadings,
@@ -277,7 +395,7 @@ class MapboxController extends ChangeNotifier {
   Future<({Uint8List png, int w, int h})> _normalizeToPng(
     Uint8List inputBytes,
   ) async {
-    // ✅ nhỏ hơn
+    // âœ… nhá» hÆ¡n
     const int W = 96;
     const int H = 118;
 
@@ -314,10 +432,10 @@ class MapboxController extends ChangeNotifier {
       ..close();
     canvas.drawPath(shadowPath.shift(const ui.Offset(0, 3)), shadowPaint);
 
-    // ✅ nền đỏ
+    // âœ… ná»n Ä‘á»
     final bubblePaint = ui.Paint()
       ..isAntiAlias = true
-      ..color = const ui.Color(0xFFE53935); // đỏ đẹp (Material Red 600)
+      ..color = const ui.Color(0xFFE53935); // Ä‘á» Ä‘áº¹p (Material Red 600)
 
     canvas.drawCircle(circleCenter, circleR + border, bubblePaint);
 
@@ -328,7 +446,7 @@ class MapboxController extends ChangeNotifier {
       ..close();
     canvas.drawPath(pointerPath, bubblePaint);
 
-    // clip circle vẽ avatar
+    // clip circle váº½ avatar
     final clipPath = ui.Path()
       ..addOval(ui.Rect.fromCircle(center: circleCenter, radius: circleR));
     canvas.save();
@@ -346,7 +464,7 @@ class MapboxController extends ChangeNotifier {
     canvas.drawImageRect(src, srcRect, dstRect, paint);
     canvas.restore();
 
-    // viền trắng mỏng cho nổi trên nền đỏ
+    // viá»n tráº¯ng má»ng cho ná»•i trÃªn ná»n Ä‘á»
     final borderPaint = ui.Paint()
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = border
@@ -363,7 +481,7 @@ class MapboxController extends ChangeNotifier {
     return (png: bd.buffer.asUint8List(), w: W, h: H);
   }
 
-  /// center-crop để fill hết khung vuông mà không méo hình
+  /// center-crop Ä‘á»ƒ fill háº¿t khung vuÃ´ng mÃ  khÃ´ng mÃ©o hÃ¬nh
   ui.Rect _centerCropRect(double w, double h) {
     if (w == 0 || h == 0) return ui.Rect.zero;
 
@@ -720,11 +838,11 @@ class MapboxController extends ChangeNotifier {
     final s = raw.trim();
     if (s.isEmpty) return s;
 
-    // nếu bị dính nhiều token (space/newline), lấy token đầu
+    // náº¿u bá»‹ dÃ­nh nhiá»u token (space/newline), láº¥y token Ä‘áº§u
     final parts = s.split(RegExp(r'\s+'));
     if (parts.length == 1) return s;
 
-    // ưu tiên https nếu có
+    // Æ°u tiÃªn https náº¿u cÃ³
     final https = parts.firstWhere(
       (p) => p.startsWith('https://') || p.startsWith('http://'),
       orElse: () => parts.first,
@@ -743,7 +861,7 @@ class MapboxController extends ChangeNotifier {
     required Uint8List defaultBytes,
   }) async {
     if (photoUrlOrData == null || photoUrlOrData.trim().isEmpty) {
-      // debugPrint("🟡 avatar none child=$childId -> default");
+      // debugPrint("ðŸŸ¡ avatar none child=$childId -> default");
       _avatarCache.remove(childId);
       _avatarBytesById.remove(childId);
       _avatarKeyById.remove(childId);
@@ -753,7 +871,7 @@ class MapboxController extends ChangeNotifier {
 
     final key = _normalizeAvatarKey(photoUrlOrData);
     if (key != photoUrlOrData.trim()) {
-      // debugPrint("🧹 avatar key normalized child=$childId");
+      // debugPrint("ðŸ§¹ avatar key normalized child=$childId");
       // debugPrint("   raw=${photoUrlOrData.trim()}");
       // debugPrint("   key=$key");
     }
@@ -779,8 +897,10 @@ class MapboxController extends ChangeNotifier {
     }
 
     try {
-      final bytes = await _fetchAvatarBytes(key); // ✅ dùng key đã normalize
-      debugPrint("✅ fetched bytes=${bytes.length} child=$childId key=$key");
+      final bytes = await _fetchAvatarBytes(
+        key,
+      ); // âœ… dÃ¹ng key Ä‘Ã£ normalize
+      debugPrint("âœ… fetched bytes=${bytes.length} child=$childId key=$key");
 
       _avatarKeyById[childId] = key;
       _avatarBytesById[childId] = bytes;
@@ -790,14 +910,14 @@ class MapboxController extends ChangeNotifier {
       notifyListeners();
       await _refreshGeoJsonIfPossible();
 
-      debugPrint("✅ avatar ready child=$childId (refreshed)");
+      debugPrint("âœ… avatar ready child=$childId (refreshed)");
 
-      debugPrint("✅ avatar ready child=$childId bytes=${bytes.length}");
+      debugPrint("âœ… avatar ready child=$childId bytes=${bytes.length}");
     } catch (e) {
       if (_isDetachedChannelError(e)) {
         return;
       }
-      debugPrint("🔴 avatar fail child=$childId key=$key err=$e");
+      debugPrint("ðŸ”´ avatar fail child=$childId key=$key err=$e");
       _avatarRetryBlockedUntil[childId] = DateTime.now().add(
         const Duration(seconds: 45),
       );
@@ -845,11 +965,12 @@ class MapboxController extends ChangeNotifier {
     }
   }
 
-  /// text: "đã ở nhà · 2g47 phút trước"
+  /// text: "Ä‘Ã£ á»Ÿ nhÃ  Â· 2g47 phÃºt trÆ°á»›c"
   /// icon: Icons.home / Icons.warning_amber_rounded ...
   Future<void> setFocusBubble({
     required String childId,
-    required String text,
+    required String title,
+    String? subtitle,
     required IconData icon,
   }) async {
     final map = _map;
@@ -862,10 +983,15 @@ class MapboxController extends ChangeNotifier {
       return;
     }
 
-    final key = "${icon.codePoint}:${text.trim()}";
+    final normalizedSubtitle = subtitle?.trim();
+    final key = "${icon.codePoint}:${title.trim()}:${normalizedSubtitle ?? ''}";
     if (_bubbleCacheKey != key) {
       _bubbleCacheKey = key;
-      final png = await _makeBubblePng(text: text, icon: icon);
+      final png = await _makeBubblePng(
+        title: title,
+        subtitle: normalizedSubtitle,
+        icon: icon,
+      );
       if (!_isSessionActive(session) || !identical(_map, map)) return;
 
       if (_bubbleImageAdded) {
@@ -940,29 +1066,54 @@ class MapboxController extends ChangeNotifier {
     final session = _mapSession;
     if (map == null || !_styleReady) return;
 
-    _currentPositions
-      ..clear()
-      ..addAll(positions);
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final activeChildIds = positions.keys.toSet();
+    final removableIds = _featureCache.keys
+        .where((childId) => !activeChildIds.contains(childId))
+        .toList(growable: false);
+    final hasPendingRemoval = removableIds.isNotEmpty;
 
-    final features = positions.entries.map((entry) {
-      final id = entry.key;
-      final pos = entry.value;
+    if (_dirtyChildIds.isEmpty && !hasPendingRemoval) {
+      return;
+    }
 
-      final avatarId = _avatarCache.containsKey(id) ? id : defaultAvatarId;
-      return {
-        "type": "Feature",
-        "geometry": {
-          "type": "Point",
-          "coordinates": [pos.lng, pos.lat],
-        },
-        "properties": {
-          "id": id,
-          "avatar_id": avatarId,
-          "heading": headings[id] ?? 0,
-          "name": names[id] ?? "",
-        },
-      };
-    }).toList();
+    for (final childId in removableIds) {
+      _featureCache.remove(childId);
+      _currentPositions.remove(childId);
+      _lastFlushedPositions.remove(childId);
+      _lastFlushedHeadings.remove(childId);
+      _lastFlushedNames.remove(childId);
+      _lastChildFlushAtMs.remove(childId);
+      _dirtyChildIds.remove(childId);
+    }
+
+    final dirtyIds = _dirtyChildIds.toList(growable: false);
+    for (final childId in dirtyIds) {
+      final position = positions[childId];
+      if (position == null) {
+        _featureCache.remove(childId);
+        _currentPositions.remove(childId);
+        _lastFlushedPositions.remove(childId);
+        _lastFlushedHeadings.remove(childId);
+        _lastFlushedNames.remove(childId);
+        _lastChildFlushAtMs.remove(childId);
+        continue;
+      }
+
+      final heading = headings[childId] ?? 0;
+      final name = names[childId] ?? "";
+      _featureCache[childId] = _buildChildFeature(
+        childId: childId,
+        position: position,
+        heading: heading,
+        name: name,
+      );
+      _currentPositions[childId] = position;
+      _lastFlushedPositions[childId] = position;
+      _lastFlushedHeadings[childId] = heading;
+      _lastFlushedNames[childId] = name;
+      _lastChildFlushAtMs[childId] = nowMs;
+    }
 
     final source = await _runStyleQuery<Object?>(
       session: session,
@@ -972,6 +1123,7 @@ class MapboxController extends ChangeNotifier {
     if (!_isSessionActive(session) || !identical(_map, map)) return;
 
     if (source is mbx.GeoJsonSource) {
+      final features = _featureCache.values.toList(growable: false);
       await _runStyleWrite(
         session: session,
         label: "updateGeoJSON:children-source",
@@ -980,28 +1132,32 @@ class MapboxController extends ChangeNotifier {
         ),
       );
     }
+
+    _dirtyChildIds.clear();
   }
 
   Future<({Uint8List png, int w, int h})> _makeBubblePng({
-    required String text,
+    required String title,
+    String? subtitle,
     required IconData icon,
   }) async {
-    const double fontSize = 18;
+    const double titleFontSize = 18;
+    const double subtitleFontSize = 14;
     const double iconSize = 20;
     const double padX = 14;
     const double padY = 10;
     const double gap = 8;
+    const double lineGap = 4;
     const double radius = 999;
 
     // tail
     const double tailW = 16;
     const double tailH = 10;
 
-    // measure text
-    final pb =
+    final titleParagraphBuilder =
         ui.ParagraphBuilder(
             ui.ParagraphStyle(
-              fontSize: fontSize,
+              fontSize: titleFontSize,
               maxLines: 1,
               textDirection: ui.TextDirection.ltr,
             ),
@@ -1009,15 +1165,42 @@ class MapboxController extends ChangeNotifier {
           ..pushStyle(
             ui.TextStyle(
               color: const ui.Color(0xFF111111),
-              fontSize: fontSize,
+              fontSize: titleFontSize,
               fontWeight: ui.FontWeight.w600,
             ),
           )
-          ..addText(text);
+          ..addText(title);
 
-    final p = pb.build()..layout(const ui.ParagraphConstraints(width: 2000));
-    final textW = p.maxIntrinsicWidth;
-    final textH = p.height;
+    final titleParagraph = titleParagraphBuilder.build()
+      ..layout(const ui.ParagraphConstraints(width: 2000));
+    final titleWidth = titleParagraph.maxIntrinsicWidth;
+    final titleHeight = titleParagraph.height;
+
+    ui.Paragraph? subtitleParagraph;
+    var subtitleWidth = 0.0;
+    var subtitleHeight = 0.0;
+    if (subtitle != null && subtitle.isNotEmpty) {
+      final subtitleBuilder =
+          ui.ParagraphBuilder(
+              ui.ParagraphStyle(
+                fontSize: subtitleFontSize,
+                maxLines: 1,
+                textDirection: ui.TextDirection.ltr,
+              ),
+            )
+            ..pushStyle(
+              ui.TextStyle(
+                color: const ui.Color(0xFF6B7280),
+                fontSize: subtitleFontSize,
+                fontWeight: ui.FontWeight.w500,
+              ),
+            )
+            ..addText(subtitle);
+      subtitleParagraph = subtitleBuilder.build()
+        ..layout(const ui.ParagraphConstraints(width: 2000));
+      subtitleWidth = subtitleParagraph.maxIntrinsicWidth;
+      subtitleHeight = subtitleParagraph.height;
+    }
 
     // icon glyph
     final iconChar = String.fromCharCode(icon.codePoint);
@@ -1042,10 +1225,14 @@ class MapboxController extends ChangeNotifier {
     final iconW = ip.maxIntrinsicWidth;
     final iconH = ip.height;
 
-    final bodyH = (max(textH, iconH) + padY * 2).ceil();
-    final bodyW = (padX * 2 + iconW + gap + textW).ceil();
+    final textBlockWidth = max(titleWidth, subtitleWidth);
+    final textBlockHeight =
+        titleHeight +
+        (subtitleParagraph == null ? 0 : lineGap + subtitleHeight);
+    final bodyH = (max(textBlockHeight, iconH) + padY * 2).ceil();
+    final bodyW = (padX * 2 + iconW + gap + textBlockWidth).ceil();
 
-    // ✅ tổng height có thêm tailH
+    // âœ… tá»•ng height cÃ³ thÃªm tailH
     final w = bodyW;
     final h = (bodyH + tailH).ceil();
 
@@ -1091,8 +1278,14 @@ class MapboxController extends ChangeNotifier {
     canvas.drawParagraph(ip, ui.Offset(padX, iconY));
 
     final textX = padX + iconW + gap;
-    final textY = (bodyH - textH) / 2;
-    canvas.drawParagraph(p, ui.Offset(textX, textY));
+    final textBlockY = (bodyH - textBlockHeight) / 2;
+    canvas.drawParagraph(titleParagraph, ui.Offset(textX, textBlockY));
+    if (subtitleParagraph != null) {
+      canvas.drawParagraph(
+        subtitleParagraph,
+        ui.Offset(textX, textBlockY + titleHeight + lineGap),
+      );
+    }
 
     final picture = recorder.endRecording();
     final img = await picture.toImage(w, h);

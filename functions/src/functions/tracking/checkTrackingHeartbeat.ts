@@ -1,19 +1,16 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { admin, db } from "../../bootstrap";
 import { REGION, TZ } from "../../config";
+import { parseTrustedLocationSignalRecord } from "../../services/trustedLocationService";
 import {
-  parseTrustedLocationSignalRecord,
-  resolveTrustedHeartbeatMillis,
-} from "../../services/trustedLocationService";
+  buildTrackingWatchStatusUpdate,
+  isTrackingProtectedStatus,
+  TRACKING_HEARTBEAT_STALE_AFTER_MS,
+  TRACKING_WATCH_COLLECTION,
+} from "../../services/trackingWatch";
 
 const SCHEDULE = "every 2 minutes";
-const STALE_AFTER_MS = 3 * 60 * 1000;
-
-const PROTECTED_STATUSES = new Set([
-  "location_service_off",
-  "location_permission_denied",
-  "background_disabled",
-]);
+const PAGE_SIZE = 500;
 
 type TrackingStatusDoc = {
   status?: unknown;
@@ -22,11 +19,25 @@ type TrackingStatusDoc = {
   source?: unknown;
 };
 
+type TrackingWatchDoc = {
+  familyId?: unknown;
+  childUid?: unknown;
+  isTracking?: unknown;
+  lastTrustedHeartbeatAt?: unknown;
+  nextHeartbeatCheckAt?: unknown;
+  lastKnownStatus?: unknown;
+  statusUpdatedAt?: unknown;
+};
+
 function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
 function toMillis(value: unknown): number | null {
+  if (value instanceof admin.firestore.Timestamp) {
+    return value.toMillis();
+  }
+
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
     return Math.trunc(value);
   }
@@ -36,14 +47,6 @@ function toMillis(value: unknown): number | null {
     if (Number.isFinite(parsed) && parsed > 0) {
       return Math.trunc(parsed);
     }
-  }
-
-  return null;
-}
-
-function toStatusUpdatedMillis(value: unknown): number | null {
-  if (value instanceof admin.firestore.Timestamp) {
-    return value.toMillis();
   }
 
   if (typeof value === "object" && value !== null) {
@@ -56,33 +59,18 @@ function toStatusUpdatedMillis(value: unknown): number | null {
     }
   }
 
+  return null;
+}
+
+function toStatusUpdatedMillis(value: unknown): number | null {
   return toMillis(value);
 }
 
-async function readHeartbeatState(childUid: string): Promise<{
-  heartbeatMs: number | null;
-  signal: ReturnType<typeof parseTrustedLocationSignalRecord>;
-}> {
-  const [signalSnap, trustedLiveSnap] = await Promise.all([
-    admin.database().ref(`live_location_trust/${childUid}`).get(),
-    admin.database().ref(`live_locations/${childUid}`).get(),
-  ]);
-
-  const signal = signalSnap.exists()
+async function readHeartbeatSignal(childUid: string) {
+  const signalSnap = await admin.database().ref(`live_location_trust/${childUid}`).get();
+  return signalSnap.exists()
     ? parseTrustedLocationSignalRecord(signalSnap.val())
     : null;
-  const trustedLiveLocation =
-    trustedLiveSnap.exists() && trustedLiveSnap.val()
-      ? (trustedLiveSnap.val() as Record<string, unknown>)
-      : null;
-
-  return {
-    heartbeatMs: resolveTrustedHeartbeatMillis({
-      signal,
-      trustedLiveLocation,
-    }),
-    signal,
-  };
 }
 
 async function resolveChildName(childUid: string, fallback: string): Promise<string> {
@@ -100,6 +88,7 @@ async function setTrackingStatus(params: {
   newStatus: string;
   prevStatus: string;
   message: string;
+  nowMs: number;
 }) {
   await db.doc(`families/${params.familyId}/trackingStatus/${params.childUid}`).set(
     {
@@ -111,6 +100,32 @@ async function setTrackingStatus(params: {
       prevStatus: params.prevStatus,
       source: "scheduler",
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAtMs: params.nowMs,
+    },
+    { merge: true }
+  );
+}
+
+async function updateTrackingWatch(params: {
+  familyId: string;
+  childUid: string;
+  heartbeatMs: number | null;
+  status: string;
+  statusUpdatedAtMs: number;
+  nextHeartbeatCheckAt: number | null;
+  isTracking: boolean;
+}) {
+  await db.collection(TRACKING_WATCH_COLLECTION).doc(params.childUid).set(
+    {
+      ...buildTrackingWatchStatusUpdate({
+        familyId: params.familyId,
+        childUid: params.childUid,
+        status: params.status,
+        updatedAtMs: params.statusUpdatedAtMs,
+      }),
+      lastTrustedHeartbeatAt: params.heartbeatMs,
+      nextHeartbeatCheckAt: params.nextHeartbeatCheckAt,
+      isTracking: params.isTracking,
     },
     { merge: true }
   );
@@ -126,49 +141,86 @@ export const checkTrackingHeartbeat = onSchedule(
     const nowMs = Date.now();
     let scannedChildren = 0;
     let updatedStatuses = 0;
+    let cursor:
+      | FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>
+      | undefined;
 
-    const familiesSnap = await db.collection("families").get();
+    while (true) {
+      let query = db
+        .collection(TRACKING_WATCH_COLLECTION)
+        .where("isTracking", "==", true)
+        .where("nextHeartbeatCheckAt", "<=", nowMs)
+        .orderBy("nextHeartbeatCheckAt")
+        .limit(PAGE_SIZE);
+      if (cursor != null) {
+        query = query.startAfter(cursor);
+      }
 
-    for (const familyDoc of familiesSnap.docs) {
-      const familyId = familyDoc.id;
-      const childMembersSnap = await db
-        .collection(`families/${familyId}/members`)
-        .where("role", "==", "child")
-        .get();
+      const dueSnap = await query.get();
+      if (dueSnap.empty) {
+        break;
+      }
 
-      for (const childDoc of childMembersSnap.docs) {
+      for (const watchDoc of dueSnap.docs) {
         scannedChildren++;
 
-        const childUid = childDoc.id;
-        const statusRef = db.doc(`families/${familyId}/trackingStatus/${childUid}`);
+        const watchData = watchDoc.data() as TrackingWatchDoc;
+        const familyId = asString(watchData.familyId);
+        const childUid = asString(watchData.childUid) || watchDoc.id;
+        const heartbeatMs = toMillis(watchData.lastTrustedHeartbeatAt);
 
-        const [heartbeatState, statusSnap] = await Promise.all([
-          readHeartbeatState(childUid),
+        if (!familyId || !childUid || heartbeatMs == null) {
+          await watchDoc.ref.set(
+            {
+              isTracking: false,
+              nextHeartbeatCheckAt: null,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAtMs: nowMs,
+            },
+            { merge: true }
+          );
+          continue;
+        }
+
+        const statusRef = db.doc(`families/${familyId}/trackingStatus/${childUid}`);
+        const [heartbeatSignal, statusSnap] = await Promise.all([
+          readHeartbeatSignal(childUid),
           statusRef.get(),
         ]);
-        const heartbeatMs = heartbeatState.heartbeatMs;
-        const heartbeatSignal = heartbeatState.signal;
-
-        // No location ever written -> skip to avoid false alarms for inactive kids.
-        if (heartbeatMs == null) continue;
 
         const statusData = statusSnap.exists
           ? (statusSnap.data() as TrackingStatusDoc)
           : {};
-
-        const currentStatus = asString(statusData.status);
+        const currentStatus =
+          asString(statusData.status) || asString(watchData.lastKnownStatus);
         const currentChildName = asString(statusData.childName);
         const currentSource = asString(statusData.source).toLowerCase();
-        const statusUpdatedMs = toStatusUpdatedMillis(statusData.updatedAt);
+        const statusUpdatedMs =
+          toStatusUpdatedMillis(statusData.updatedAt) ??
+          toMillis(watchData.statusUpdatedAt);
         const statusHeartbeatFresh =
           currentSource !== "scheduler" &&
-          statusUpdatedMs != null && nowMs - statusUpdatedMs <= STALE_AFTER_MS;
+          statusUpdatedMs != null &&
+          nowMs - statusUpdatedMs <= TRACKING_HEARTBEAT_STALE_AFTER_MS;
         const staleMs = nowMs - heartbeatMs;
-        const isStale = staleMs > STALE_AFTER_MS;
+        const isStale = staleMs > TRACKING_HEARTBEAT_STALE_AFTER_MS;
+
+        if (isTrackingProtectedStatus(currentStatus)) {
+          await updateTrackingWatch({
+            familyId,
+            childUid,
+            heartbeatMs,
+            status: currentStatus,
+            statusUpdatedAtMs: statusUpdatedMs ?? nowMs,
+            nextHeartbeatCheckAt: null,
+            isTracking: false,
+          });
+          continue;
+        }
 
         if (isStale) {
-          // App can be alive but intentionally stationary (no new location points).
           if (statusHeartbeatFresh) {
+            const nextStatus = currentStatus === "location_stale" ? "ok" : currentStatus;
             if (currentStatus === "location_stale") {
               const childName = await resolveChildName(childUid, currentChildName);
               await setTrackingStatus({
@@ -178,16 +230,33 @@ export const checkTrackingHeartbeat = onSchedule(
                 newStatus: "ok",
                 prevStatus: currentStatus,
                 message: "Tracking heartbeat active while stationary",
+                nowMs,
               });
               updatedStatuses++;
             }
+
+            await updateTrackingWatch({
+              familyId,
+              childUid,
+              heartbeatMs,
+              status: nextStatus || "ok",
+              statusUpdatedAtMs: nowMs,
+              nextHeartbeatCheckAt: nowMs + TRACKING_HEARTBEAT_STALE_AFTER_MS,
+              isTracking: true,
+            });
             continue;
           }
 
-          if (
-            currentStatus === "location_stale" ||
-            PROTECTED_STATUSES.has(currentStatus)
-          ) {
+          if (currentStatus === "location_stale") {
+            await updateTrackingWatch({
+              familyId,
+              childUid,
+              heartbeatMs,
+              status: currentStatus,
+              statusUpdatedAtMs: statusUpdatedMs ?? nowMs,
+              nextHeartbeatCheckAt: nowMs + TRACKING_HEARTBEAT_STALE_AFTER_MS,
+              isTracking: true,
+            });
             continue;
           }
 
@@ -195,7 +264,7 @@ export const checkTrackingHeartbeat = onSchedule(
           const staleMinutes = Math.max(1, Math.floor(staleMs / 60000));
           const hasRecentRejectedRawPoints =
             heartbeatSignal?.lastRejectedAt != null &&
-            nowMs - heartbeatSignal.lastRejectedAt <= STALE_AFTER_MS;
+            nowMs - heartbeatSignal.lastRejectedAt <= TRACKING_HEARTBEAT_STALE_AFTER_MS;
           const staleMessage = hasRecentRejectedRawPoints
             ? `No trusted location update for ${staleMinutes} minutes; recent raw points were rejected`
             : `No trusted location update for ${staleMinutes} minutes`;
@@ -207,6 +276,16 @@ export const checkTrackingHeartbeat = onSchedule(
             newStatus: "location_stale",
             prevStatus: currentStatus,
             message: staleMessage,
+            nowMs,
+          });
+          await updateTrackingWatch({
+            familyId,
+            childUid,
+            heartbeatMs,
+            status: "location_stale",
+            statusUpdatedAtMs: nowMs,
+            nextHeartbeatCheckAt: nowMs + TRACKING_HEARTBEAT_STALE_AFTER_MS,
+            isTracking: true,
           });
           updatedStatuses++;
           continue;
@@ -222,10 +301,26 @@ export const checkTrackingHeartbeat = onSchedule(
             newStatus: "ok",
             prevStatus: currentStatus,
             message: "Location updates restored",
+            nowMs,
           });
           updatedStatuses++;
         }
+
+        await updateTrackingWatch({
+          familyId,
+          childUid,
+          heartbeatMs,
+          status: currentStatus === "location_stale" ? "ok" : currentStatus || "ok",
+          statusUpdatedAtMs: nowMs,
+          nextHeartbeatCheckAt: heartbeatMs + TRACKING_HEARTBEAT_STALE_AFTER_MS,
+          isTracking: true,
+        });
       }
+
+      if (dueSnap.size < PAGE_SIZE) {
+        break;
+      }
+      cursor = dueSnap.docs[dueSnap.docs.length - 1];
     }
 
     console.log(

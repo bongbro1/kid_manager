@@ -7,11 +7,7 @@ import 'package:kid_manager/features/safe_route/presentation/safe_route_l10n.dar
 import 'package:kid_manager/features/safe_route/presentation/states/safe_route_tracking_state.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 
-enum SafeRouteTrackingSeverity {
-  safe,
-  warning,
-  danger,
-}
+enum SafeRouteTrackingSeverity { safe, warning, danger }
 
 class SafeRouteTrackingVisuals {
   final SafeRouteTrackingSeverity severity;
@@ -184,16 +180,12 @@ bool isSafeRouteDangerState(SafeRouteTrackingState state) {
   return findTriggeredSafeRouteHazard(state) != null;
 }
 
-double _distanceMeters(
-  double lat1,
-  double lon1,
-  double lat2,
-  double lon2,
-) {
+double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
   const earthRadius = 6371000.0;
   final dLat = _degToRad(lat2 - lat1);
   final dLon = _degToRad(lon2 - lon1);
-  final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+  final a =
+      math.sin(dLat / 2) * math.sin(dLat / 2) +
       math.cos(_degToRad(lat1)) *
           math.cos(_degToRad(lat2)) *
           math.sin(dLon / 2) *

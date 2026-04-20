@@ -5,6 +5,7 @@ import '../../core/app_colors.dart';
 class AuthTextField extends StatefulWidget {
   final String? label;
   final TextEditingController controller;
+  final Key? fieldKey;
 
   final String? hintText;
   final bool obscureText;
@@ -24,6 +25,7 @@ class AuthTextField extends StatefulWidget {
     super.key,
     this.label,
     required this.controller,
+    this.fieldKey,
     this.hintText,
     this.obscureText = false,
     this.isPassword = false,
@@ -73,6 +75,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: widget.height),
             child: TextField(
+              key: widget.fieldKey,
               controller: widget.controller,
               obscureText: _obscure,
               keyboardType: widget.keyboardType,

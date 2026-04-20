@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -33,6 +33,12 @@ import 'package:kid_manager/widgets/app/app_mode.dart';
 import 'package:kid_manager/background/tracking_background_service.dart';
 
 class ChildLocationViewModel extends ChangeNotifier {
+  static const Duration _uiNotifyThrottle = Duration(milliseconds: 250);
+  static const Duration _historyFlushInterval = Duration(seconds: 10);
+  static const int _historyFlushBatchSize = 5;
+  static const Duration _zoneLaneThrottle = Duration(seconds: 5);
+  static const double _zoneLaneMinDistanceMeters = 15;
+
   ChildLocationViewModel(
     this._locationRepository,
     this._locationService, {
@@ -116,6 +122,27 @@ class ChildLocationViewModel extends ChangeNotifier {
   );
 
   StreamSubscription<LocationData>? _gpsSub;
+  LocationData? _pendingGpsLocation;
+  bool _gpsDrainInFlight = false;
+
+  _QueuedCurrentUpload? _pendingCurrentUpload;
+  bool _currentUploadInFlight = false;
+  int _lastCurrentQueuedAtMs = 0;
+
+  final List<_QueuedHistoryUpload> _historyUploadQueue =
+      <_QueuedHistoryUpload>[];
+  bool _historyUploadInFlight = false;
+  Timer? _historyFlushTimer;
+
+  LocationData? _pendingZoneLocation;
+  LocationData? _lastZoneCheckLocation;
+  bool _zoneCheckInFlight = false;
+  int _lastZoneCheckAtMs = 0;
+  Timer? _zoneFlushTimer;
+
+  Timer? _notifyThrottleTimer;
+  DateTime? _lastUiNotifyAt;
+  String _trackingStatusOkMessage = "";
 
   bool _restarting = false;
   String? _activeSharingUid;
@@ -378,9 +405,440 @@ class ChildLocationViewModel extends ChangeNotifier {
     return nowMs >= nextAfterSuccess && nowMs >= nextAfterFailure;
   }
 
+  void _scheduleUiNotify({bool immediate = false}) {
+    if (_disposed) return;
+
+    final now = DateTime.now();
+    final lastUiNotifyAt = _lastUiNotifyAt;
+    final elapsed = lastUiNotifyAt == null
+        ? _uiNotifyThrottle
+        : now.difference(lastUiNotifyAt);
+
+    if (immediate || elapsed >= _uiNotifyThrottle) {
+      _notifyThrottleTimer?.cancel();
+      _notifyThrottleTimer = null;
+      _lastUiNotifyAt = now;
+      super.notifyListeners();
+      return;
+    }
+
+    if (_notifyThrottleTimer?.isActive == true) {
+      return;
+    }
+
+    _notifyThrottleTimer = Timer(_uiNotifyThrottle - elapsed, () {
+      _notifyThrottleTimer = null;
+      if (_disposed) return;
+      _lastUiNotifyAt = DateTime.now();
+      super.notifyListeners();
+    });
+  }
+
+  void _resetAsyncPipelines() {
+    _pendingGpsLocation = null;
+    _gpsDrainInFlight = false;
+    _pendingCurrentUpload = null;
+    _currentUploadInFlight = false;
+    _lastCurrentQueuedAtMs = 0;
+    _historyUploadQueue.clear();
+    _historyUploadInFlight = false;
+    _historyFlushTimer?.cancel();
+    _historyFlushTimer = null;
+    _pendingZoneLocation = null;
+    _lastZoneCheckLocation = null;
+    _zoneCheckInFlight = false;
+    _lastZoneCheckAtMs = 0;
+    _zoneFlushTimer?.cancel();
+    _zoneFlushTimer = null;
+    _notifyThrottleTimer?.cancel();
+    _notifyThrottleTimer = null;
+  }
+
+  void _enqueueGpsLocation(LocationData raw) {
+    if (_disposed) return;
+    _pendingGpsLocation = raw;
+    if (_gpsDrainInFlight) return;
+    _gpsDrainInFlight = true;
+    unawaited(_drainGpsLocations());
+  }
+
+  Future<void> _drainGpsLocations() async {
+    try {
+      while (!_disposed) {
+        final raw = _pendingGpsLocation;
+        if (raw == null) {
+          break;
+        }
+        _pendingGpsLocation = null;
+        await _handleGpsLocation(raw);
+      }
+    } finally {
+      _gpsDrainInFlight = false;
+      if (!_disposed && _pendingGpsLocation != null) {
+        _gpsDrainInFlight = true;
+        unawaited(_drainGpsLocations());
+      }
+    }
+  }
+
+  void _enqueueCurrentUpload({
+    required TrackingPayload payload,
+    required int nowMs,
+  }) {
+    if (_disposed || _publishingHandledByService) return;
+    _pendingCurrentUpload = _QueuedCurrentUpload(
+      payload: payload,
+      queuedAtMs: nowMs,
+      okStatusMessage: _trackingStatusOkMessage,
+    );
+    _lastCurrentQueuedAtMs = nowMs;
+    if (_currentUploadInFlight) return;
+    _currentUploadInFlight = true;
+    unawaited(_drainCurrentUploads());
+  }
+
+  Future<void> _drainCurrentUploads() async {
+    try {
+      while (!_disposed) {
+        final upload = _pendingCurrentUpload;
+        if (upload == null) {
+          break;
+        }
+        _pendingCurrentUpload = null;
+
+        try {
+          await _locationRepository.updateMyCurrent(upload.payload);
+          _lastCurrentSentAtMs = upload.queuedAtMs;
+          _lastCurrentFailureAtMs = 0;
+          _sentInitialCurrent = true;
+          await _reportTrackingStatusIfChanged(
+            'ok',
+            message: upload.okStatusMessage,
+          );
+          if (_error != null) {
+            _error = null;
+            _scheduleUiNotify();
+          }
+        } catch (e) {
+          _lastCurrentFailureAtMs = DateTime.now().millisecondsSinceEpoch;
+          debugPrint('ERROR CURRENT LOCATION: $e');
+          _setError(e);
+        }
+      }
+    } finally {
+      _currentUploadInFlight = false;
+      if (!_disposed && _pendingCurrentUpload != null) {
+        _currentUploadInFlight = true;
+        unawaited(_drainCurrentUploads());
+      }
+    }
+  }
+
+  void _enqueueHistoryUpload({
+    required TrackingPayload payload,
+    required LocationData filteredLocation,
+    required MotionState motionState,
+  }) {
+    if (_disposed || _publishingHandledByService) return;
+    _historyUploadQueue.add(
+      _QueuedHistoryUpload(
+        payload: payload,
+        filteredLocation: filteredLocation,
+        motionState: motionState,
+      ),
+    );
+
+    if (_historyUploadQueue.length >= _historyFlushBatchSize) {
+      _historyFlushTimer?.cancel();
+      _historyFlushTimer = null;
+      if (!_historyUploadInFlight) {
+        unawaited(_flushHistoryUploads());
+      }
+      return;
+    }
+
+    _historyFlushTimer ??= Timer(_historyFlushInterval, () {
+      _historyFlushTimer = null;
+      unawaited(_flushHistoryUploads());
+    });
+  }
+
+  Future<void> _flushHistoryUploads() async {
+    if (_disposed ||
+        _publishingHandledByService ||
+        _historyUploadInFlight ||
+        _historyUploadQueue.isEmpty) {
+      return;
+    }
+
+    _historyFlushTimer?.cancel();
+    _historyFlushTimer = null;
+    _historyUploadInFlight = true;
+
+    try {
+      while (!_disposed && _historyUploadQueue.isNotEmpty) {
+        final batchSize = _historyUploadQueue.length >= _historyFlushBatchSize
+            ? _historyFlushBatchSize
+            : _historyUploadQueue.length;
+        final batch = _historyUploadQueue.sublist(0, batchSize).toList();
+        _historyUploadQueue.removeRange(0, batchSize);
+
+        for (var index = 0; index < batch.length; index++) {
+          final upload = batch[index];
+          try {
+            await _locationRepository.appendMyHistory(upload.payload);
+            _lastHistoryFailureAtMs = 0;
+            _engine.acknowledgeHistorySent(
+              upload.filteredLocation,
+              upload.motionState,
+            );
+          } catch (e) {
+            _lastHistoryFailureAtMs = DateTime.now().millisecondsSinceEpoch;
+            debugPrint('ERROR HISTORY LOCATION: $e');
+            _setError(e);
+            _historyUploadQueue.insertAll(0, batch.skip(index));
+            return;
+          }
+        }
+      }
+    } finally {
+      _historyUploadInFlight = false;
+      if (!_disposed && _historyUploadQueue.isNotEmpty) {
+        _historyFlushTimer ??= Timer(_historyFlushInterval, () {
+          _historyFlushTimer = null;
+          unawaited(_flushHistoryUploads());
+        });
+      }
+    }
+  }
+
+  void _enqueueZoneCheck(LocationData location) {
+    if (_disposed || _publishingHandledByService || !_zonesInited) {
+      return;
+    }
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final lastZoneCheckLocation = _lastZoneCheckLocation;
+    final movedEnough =
+        lastZoneCheckLocation == null ||
+        lastZoneCheckLocation.distanceTo(location) * 1000 >=
+            _zoneLaneMinDistanceMeters;
+    final intervalElapsed =
+        nowMs - _lastZoneCheckAtMs >= _zoneLaneThrottle.inMilliseconds;
+
+    _pendingZoneLocation = location;
+    if (_zoneCheckInFlight) {
+      return;
+    }
+
+    if (movedEnough || intervalElapsed) {
+      _zoneFlushTimer?.cancel();
+      _zoneFlushTimer = null;
+      unawaited(_drainZoneChecks());
+      return;
+    }
+
+    final remainingMs =
+        _zoneLaneThrottle.inMilliseconds - (nowMs - _lastZoneCheckAtMs);
+    _zoneFlushTimer ??= Timer(
+      Duration(
+        milliseconds:
+            (remainingMs.clamp(0, _zoneLaneThrottle.inMilliseconds) as num)
+                .toInt(),
+      ),
+      () {
+        _zoneFlushTimer = null;
+        unawaited(_drainZoneChecks());
+      },
+    );
+  }
+
+  Future<void> _drainZoneChecks() async {
+    if (_disposed ||
+        _publishingHandledByService ||
+        !_zonesInited ||
+        _zoneCheckInFlight) {
+      return;
+    }
+
+    final location = _pendingZoneLocation;
+    if (location == null) {
+      return;
+    }
+
+    _pendingZoneLocation = null;
+    _zoneFlushTimer?.cancel();
+    _zoneFlushTimer = null;
+    _zoneCheckInFlight = true;
+
+    try {
+      debugPrint(
+        "Checking zones for location: lat=${location.latitude} lng=${location.longitude}",
+      );
+      await _zoneMonitor?.onLocation(location);
+      _lastZoneCheckLocation = location;
+      _lastZoneCheckAtMs = DateTime.now().millisecondsSinceEpoch;
+    } catch (e) {
+      debugPrint("zoneMonitor error: $e");
+    } finally {
+      _zoneCheckInFlight = false;
+      if (!_disposed && _pendingZoneLocation != null) {
+        _enqueueZoneCheck(_pendingZoneLocation!);
+      }
+    }
+  }
+
+  Future<void> _handleGpsLocation(LocationData raw) async {
+    if (_disposed) return;
+    final activeSharingUid = _activeSharingUid;
+    final currentUid = _currentUidOrNull();
+    if (!_isSharing ||
+        activeSharingUid == null ||
+        currentUid == null ||
+        currentUid != activeSharingUid) {
+      if (kDebugMode) {
+        debugPrint(
+          'Drop child location update because auth session is no longer valid.',
+        );
+      }
+      unawaited(stopSharingOnLogout());
+      return;
+    }
+
+    debugPrint('GPS RAW: acc=${raw.accuracy}');
+
+    final result = _engine.process(
+      raw,
+      _lastActivity,
+      previousReference: _currentLocation,
+    );
+    if (_disposed) return;
+    final filtered = result.filteredLocation;
+    final acc = filtered.accuracy;
+
+    if (acc <= TrackingTuning.historyGoodAccuracyMaxM) {
+      _lastGoodFixAt = DateTime.now();
+    }
+    final shouldGuardJump = _sentInitialCurrent && _currentLocation != null;
+    if (shouldGuardJump &&
+        _isJumpTooLarge(_currentLocation, filtered) &&
+        filtered.accuracy > TrackingTuning.jumpGuardBadAccuracyMinM) {
+      debugPrint('Skip jump point: acc=${filtered.accuracy}');
+      return;
+    }
+
+    _transport = result.transport;
+    final shouldUpdateCurrentLocation =
+        _currentLocation == null || acc <= TrackingTuning.weakAccuracyMaxM;
+    _motionState = result.motion;
+
+    if (!_publishingHandledByService) {
+      _enqueueZoneCheck(filtered);
+    }
+
+    final currentLocation = await _attachCurrentBattery(filtered);
+    if (_disposed) return;
+    if (shouldUpdateCurrentLocation) {
+      _currentLocation = currentLocation;
+    }
+
+    final currentPayload = TrackingPayload(
+      deviceId: activeSharingUid,
+      location: currentLocation,
+      motion: result.motion.name,
+      transport: _transport.name,
+    );
+    final historyPayload = TrackingPayload(
+      deviceId: activeSharingUid,
+      location: filtered,
+      motion: result.motion.name,
+      transport: _transport.name,
+    );
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final rejectVeryBadAcc = acc > TrackingTuning.currentRejectAccuracyMaxM;
+    final isMoving = result.motion == MotionState.moving;
+    final goodHistoryAcc = acc <= TrackingTuning.historyGoodAccuracyMaxM;
+    final shouldSendInitialCurrent = !_sentInitialCurrent && !rejectVeryBadAcc;
+
+    final currentInterval = currentPublishInterval(
+      motion: result.motion,
+      accuracy: acc,
+      shouldSendInitialCurrent: shouldSendInitialCurrent,
+      indoorSuppressed: result.indoorSuppressed,
+    );
+    final shouldAttemptCurrentSend =
+        !_publishingHandledByService &&
+        currentInterval != null &&
+        _canAttemptSend(
+          nowMs: nowMs,
+          lastSuccessAtMs: _lastCurrentSentAtMs > _lastCurrentQueuedAtMs
+              ? _lastCurrentSentAtMs
+              : _lastCurrentQueuedAtMs,
+          lastFailureAtMs: _lastCurrentFailureAtMs,
+          minSuccessInterval: currentInterval,
+        );
+
+    if (shouldAttemptCurrentSend) {
+      final resolvedCurrentInterval = currentInterval;
+      if (result.indoorSuppressed && kDebugMode) {
+        debugPrint(
+          'ChildLocationViewModel current update anchored due to weak GPS '
+          'acc=${acc.toStringAsFixed(1)} '
+          'interval=${resolvedCurrentInterval.inSeconds}s',
+        );
+      }
+      _enqueueCurrentUpload(payload: currentPayload, nowMs: nowMs);
+    }
+
+    final historySendWindowOpen = _canAttemptSend(
+      nowMs: nowMs,
+      lastSuccessAtMs: 0,
+      lastFailureAtMs: _lastHistoryFailureAtMs,
+      minSuccessInterval: Duration.zero,
+    );
+    if (!_publishingHandledByService &&
+        isMoving &&
+        goodHistoryAcc &&
+        result.indoorSuppressed &&
+        historySendWindowOpen &&
+        kDebugMode) {
+      debugPrint(
+        'ChildLocationViewModel history send skipped due to indoor '
+        'suppression acc=${acc.toStringAsFixed(1)}',
+      );
+    }
+    if (!_publishingHandledByService &&
+        isMoving &&
+        !result.indoorSuppressed &&
+        result.shouldSend &&
+        goodHistoryAcc &&
+        historySendWindowOpen) {
+      _enqueueHistoryUpload(
+        payload: historyPayload,
+        filteredLocation: filtered,
+        motionState: result.motion,
+      );
+    }
+
+    if (_publishingHandledByService &&
+        isMoving &&
+        result.shouldSend &&
+        goodHistoryAcc) {
+      _engine.acknowledgeHistorySent(filtered, result.motion);
+    }
+
+    if (acc <= TrackingTuning.historyGoodAccuracyMaxM) {
+      _appendTrail(result.filteredLocation);
+    }
+    _scheduleUiNotify();
+  }
+
   /// Stop sharing (clearData=false if paused, true on logout)
   Future<void> stopSharing({bool clearData = false}) async {
-    final serviceBacked = _publishingHandledByService;
+    final serviceBacked =
+        _publishingHandledByService ||
+        await TrackingBackgroundService.isRunning();
     _publishingHandledByService = false;
 
     if (serviceBacked) {
@@ -390,6 +848,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     await _gpsSub?.cancel();
     _gpsSub = null;
     _engine.reset();
+    _resetAsyncPipelines();
     _activeSharingUid = null;
 
     _isSharing = false;
@@ -400,6 +859,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     _lastCurrentFailureAtMs = 0;
     _lastHistoryFailureAtMs = 0;
     _sentInitialCurrent = false;
+    _trackingStatusOkMessage = "";
 
     _isSharing = false;
     _restarting = false;
@@ -531,8 +991,17 @@ class ChildLocationViewModel extends ChangeNotifier {
       return;
     }
 
+    if (_isAppResumed()) {
+      final serviceRunning = await TrackingBackgroundService.isRunning();
+      if (serviceRunning) {
+        await TrackingBackgroundService.stop(clearConfig: false);
+      }
+      _publishingHandledByService = false;
+    }
+
     var serviceStarted = false;
-    if (_requireBackground) {
+    final shouldUseBackgroundService = _requireBackground && !_isAppResumed();
+    if (shouldUseBackgroundService) {
       final routingContext = await _loadTrackingRoutingContext();
       serviceStarted = await TrackingBackgroundService.startForCurrentUser(
         requireBackground: _requireBackground,
@@ -555,12 +1024,15 @@ class ChildLocationViewModel extends ChangeNotifier {
         '[SelfTracking] background bootstrap uid=$sharingUid '
         'serviceStarted=$serviceStarted '
         'runtimeReady=$_publishingHandledByService '
+        'shouldUseBackgroundService=$shouldUseBackgroundService '
         'parentUid=${routingContext?.parentUid} '
         'familyId=${routingContext?.familyId}',
       );
     }
 
-    if (!_publishingHandledByService && _requireBackground) {
+    if (!_publishingHandledByService &&
+        _requireBackground &&
+        !_isAppResumed()) {
       try {
         await _locationService.ensureServiceAndPermission(
           requireBackground: true,
@@ -579,6 +1051,7 @@ class ChildLocationViewModel extends ChangeNotifier {
     _activeSharingUid = sharingUid;
     _isSharing = true;
     _motionState = MotionState.moving;
+    _trackingStatusOkMessage = l10n.trackingStatusOkMessage;
     debugPrint(
       '[SelfTracking] publisher active uid=$sharingUid '
       'handledByService=$_publishingHandledByService '
@@ -596,197 +1069,8 @@ class ChildLocationViewModel extends ChangeNotifier {
       await _ensureZoneMonitor(sharingUid);
     }
     if (_disposed) return;
-    _gpsSub = _locationService.getLocationStream().listen((raw) async {
-      if (_disposed) return;
-      final activeSharingUid = _activeSharingUid;
-      final currentUid = _currentUidOrNull();
-      if (!_isSharing ||
-          activeSharingUid == null ||
-          currentUid == null ||
-          currentUid != activeSharingUid) {
-        if (kDebugMode) {
-          debugPrint(
-            'Drop child location update because auth session is no longer valid.',
-          );
-        }
-        unawaited(stopSharingOnLogout());
-        return;
-      }
-
-      debugPrint('GPS RAW: acc=${raw.accuracy}');
-
-      final result = _engine.process(
-        raw,
-        _lastActivity,
-        previousReference: _currentLocation,
-      );
-      if (_disposed) return;
-      final filtered = result.filteredLocation;
-      final acc = filtered.accuracy;
-
-      if (acc <= TrackingTuning.historyGoodAccuracyMaxM) {
-        _lastGoodFixAt = DateTime.now();
-      }
-      final shouldGuardJump = _sentInitialCurrent && _currentLocation != null;
-      if (shouldGuardJump &&
-          _isJumpTooLarge(_currentLocation, filtered) &&
-          filtered.accuracy > TrackingTuning.jumpGuardBadAccuracyMinM) {
-        debugPrint('Skip jump point: acc=${filtered.accuracy}');
-        return;
-      }
-
-      _transport = result.transport;
-      final shouldUpdateCurrentLocation =
-          _currentLocation == null || acc <= TrackingTuning.weakAccuracyMaxM;
-
-      if (!_publishingHandledByService) {
-        try {
-          if (_zonesInited) {
-            debugPrint(
-              "Checking zones for location: lat=${filtered.latitude} lng=${filtered.longitude}",
-            );
-            await _zoneMonitor?.onLocation(filtered);
-          }
-        } catch (e) {
-          debugPrint("zoneMonitor error: $e");
-        }
-      }
-
-      _motionState = result.motion;
-
-      final currentLocation = await _attachCurrentBattery(filtered);
-      if (_disposed) return;
-      if (shouldUpdateCurrentLocation) {
-        _currentLocation = currentLocation;
-      }
-
-      final currentPayload = TrackingPayload(
-        deviceId: activeSharingUid,
-        location: currentLocation,
-        motion: result.motion.name,
-        transport: _transport.name,
-      );
-      final historyPayload = TrackingPayload(
-        deviceId: activeSharingUid,
-        location: filtered,
-        motion: result.motion.name,
-        transport: _transport.name,
-      );
-
-      // =========================
-      // 1) Update CURRENT with keep-alive even when child is idle/stationary.
-      // =========================
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final rejectVeryBadAcc = acc > TrackingTuning.currentRejectAccuracyMaxM;
-      final isMoving = result.motion == MotionState.moving;
-      final goodHistoryAcc = acc <= TrackingTuning.historyGoodAccuracyMaxM;
-      final shouldSendInitialCurrent =
-          !_sentInitialCurrent && !rejectVeryBadAcc;
-
-      var sentCurrentToServer = false;
-      Object? locationError;
-
-      final currentInterval = currentPublishInterval(
-        motion: result.motion,
-        accuracy: acc,
-        shouldSendInitialCurrent: shouldSendInitialCurrent,
-        indoorSuppressed: result.indoorSuppressed,
-      );
-      final shouldAttemptCurrentSend =
-          !_publishingHandledByService &&
-          currentInterval != null &&
-          _canAttemptSend(
-            nowMs: nowMs,
-            lastSuccessAtMs: _lastCurrentSentAtMs,
-            lastFailureAtMs: _lastCurrentFailureAtMs,
-            minSuccessInterval: currentInterval,
-          );
-
-      if (shouldAttemptCurrentSend) {
-        final resolvedCurrentInterval = currentInterval;
-        if (result.indoorSuppressed && kDebugMode) {
-          debugPrint(
-            'ChildLocationViewModel current update anchored due to weak GPS '
-            'acc=${acc.toStringAsFixed(1)} '
-            'interval=${resolvedCurrentInterval.inSeconds}s',
-          );
-        }
-        try {
-          await _locationRepository.updateMyCurrent(currentPayload);
-          _lastCurrentSentAtMs = nowMs;
-          _lastCurrentFailureAtMs = 0;
-          _sentInitialCurrent = true;
-          sentCurrentToServer = true;
-        } catch (e) {
-          _lastCurrentFailureAtMs = nowMs;
-          locationError = e;
-          debugPrint('ERROR CURRENT LOCATION: $e');
-        }
-      }
-
-      // =========================
-      // 2) Append HISTORY only when policy allows and moving
-      // =========================
-      final historySendWindowOpen = _canAttemptSend(
-        nowMs: nowMs,
-        lastSuccessAtMs: 0,
-        lastFailureAtMs: _lastHistoryFailureAtMs,
-        minSuccessInterval: Duration.zero,
-      );
-      if (!_publishingHandledByService &&
-          isMoving &&
-          goodHistoryAcc &&
-          result.indoorSuppressed &&
-          historySendWindowOpen &&
-          kDebugMode) {
-        debugPrint(
-          'ChildLocationViewModel history send skipped due to indoor '
-          'suppression acc=${acc.toStringAsFixed(1)}',
-        );
-      }
-      if (!_publishingHandledByService &&
-          isMoving &&
-          !result.indoorSuppressed &&
-          result.shouldSend &&
-          goodHistoryAcc &&
-          historySendWindowOpen) {
-        try {
-          await _locationRepository.appendMyHistory(historyPayload);
-          _lastHistoryFailureAtMs = 0;
-          _engine.acknowledgeHistorySent(filtered, result.motion);
-        } catch (e) {
-          _lastHistoryFailureAtMs = nowMs;
-          locationError ??= e;
-          debugPrint('ERROR HISTORY LOCATION: $e');
-        }
-      }
-
-      if (_publishingHandledByService &&
-          isMoving &&
-          result.shouldSend &&
-          goodHistoryAcc) {
-        _engine.acknowledgeHistorySent(filtered, result.motion);
-      }
-
-      // Keep status reporting separate from health monitor.
-      // Only report "ok" when current was sent successfully.
-      if (sentCurrentToServer) {
-        await _reportTrackingStatusIfChanged(
-          'ok',
-          message: l10n.trackingStatusOkMessage,
-        );
-      }
-
-      if (locationError != null) {
-        _setError(locationError);
-      } else if (_error != null) {
-        _error = null;
-      }
-
-      if (acc <= TrackingTuning.historyGoodAccuracyMaxM) {
-        _appendTrail(result.filteredLocation);
-      }
-      notifyListeners();
+    _gpsSub = _locationService.getLocationStream().listen((raw) {
+      _enqueueGpsLocation(raw);
     });
   }
 
@@ -851,6 +1135,33 @@ class ChildLocationViewModel extends ChangeNotifier {
       ),
     );
   }
+
+  Future<void> refreshLifecycleRouting() async {
+    if (_disposed || !_isSharing) return;
+
+    final appResumed = _isAppResumed();
+    final serviceRunning = await TrackingBackgroundService.isRunning();
+
+    if (appResumed) {
+      if (serviceRunning || _publishingHandledByService) {
+        await TrackingBackgroundService.stop();
+        _publishingHandledByService = false;
+        await _restartSharing(delay: Duration.zero);
+      }
+      return;
+    }
+
+    if (!_requireBackground) {
+      return;
+    }
+
+    if (_publishingHandledByService && serviceRunning) {
+      return;
+    }
+
+    await _restartSharing(delay: Duration.zero);
+  }
+
   // SOS
 
   Future<void> _restartSharing({
@@ -867,6 +1178,11 @@ class ChildLocationViewModel extends ChangeNotifier {
     }
 
     try {
+      final serviceRunning = await TrackingBackgroundService.isRunning();
+      if (serviceRunning || _publishingHandledByService) {
+        await TrackingBackgroundService.stop();
+      }
+      _publishingHandledByService = false;
       await _gpsSub?.cancel();
       _gpsSub = null;
       _engine.reset();
@@ -1084,9 +1400,34 @@ class ChildLocationViewModel extends ChangeNotifier {
     _activitySub?.cancel();
     _zonesSub?.cancel();
     _healthTimer?.cancel();
+    _resetAsyncPipelines();
     _authStateSub = null;
     _activitySub = null;
     _lastActivity = null;
     super.dispose();
   }
+}
+
+class _QueuedCurrentUpload {
+  const _QueuedCurrentUpload({
+    required this.payload,
+    required this.queuedAtMs,
+    required this.okStatusMessage,
+  });
+
+  final TrackingPayload payload;
+  final int queuedAtMs;
+  final String okStatusMessage;
+}
+
+class _QueuedHistoryUpload {
+  const _QueuedHistoryUpload({
+    required this.payload,
+    required this.filteredLocation,
+    required this.motionState,
+  });
+
+  final TrackingPayload payload;
+  final LocationData filteredLocation;
+  final MotionState motionState;
 }

@@ -8,7 +8,9 @@ String trackingStatusFromNotificationPayload({
   final byTitle = _statusFromTrackingKey(title);
   if (byTitle.isNotEmpty) return byTitle;
 
-  final byEventKey = _statusFromTrackingKey((data['eventKey'] ?? '').toString());
+  final byEventKey = _statusFromTrackingKey(
+    (data['eventKey'] ?? '').toString(),
+  );
   if (byEventKey.isNotEmpty) return byEventKey;
 
   return (data['status'] ?? '').toString().trim().toLowerCase();

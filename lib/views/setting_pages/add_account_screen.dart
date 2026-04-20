@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:kid_manager/core/alert_service.dart';
 import 'package:kid_manager/core/app_theme.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
@@ -152,15 +153,21 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     final timezone = await DeviceTimeZoneService.instance.getDeviceTimeZone();
 
     try {
-      await vm.addChildAccount(
-        name: name,
-        email: email,
-        password: password,
-        dob: dob,
-        role: role,
-        locale: localeString,
-        timezone: timezone,
+      final ok = await runGuardedNetworkVoidAction(
+        context,
+        action: () => vm.addChildAccount(
+          name: name,
+          email: email,
+          password: password,
+          dob: dob,
+          role: role,
+          locale: localeString,
+          timezone: timezone,
+        ),
       );
+      if (!ok) {
+        return;
+      }
 
       if (!mounted) return;
 

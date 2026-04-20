@@ -52,10 +52,7 @@ class CurrentTripSnapshotModel {
     );
   }
 
-  TripModel? tripForAudience(
-    TripVisibilityAudience audience, {
-    DateTime? now,
-  }) {
+  TripModel? tripForAudience(TripVisibilityAudience audience, {DateTime? now}) {
     if (audience == TripVisibilityAudience.childMonitor) {
       return childMonitorTrip;
     }

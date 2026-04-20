@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/chat/family_chat_member.dart';
@@ -242,7 +243,10 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
 
   Future<bool> _runChatAction(Future<void> Function() action) async {
     try {
-      await action();
+      final ok = await runGuardedNetworkVoidAction(context, action: action);
+      if (!ok) {
+        return false;
+      }
       return true;
     } catch (error) {
       _showSendError(error);

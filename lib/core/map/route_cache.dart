@@ -3,10 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latlong2/latlong.dart';
 
 class RouteCache {
-  static Future<void> save(
-      String key,
-      List<LatLng> points,
-      ) async {
+  static Future<void> save(String key, List<LatLng> points) async {
     final prefs = await SharedPreferences.getInstance();
 
     final encoded = jsonEncode(
@@ -15,6 +12,7 @@ class RouteCache {
 
     await prefs.setString(key, encoded);
   }
+
   static Future<void> clearChildCache(String childId) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -35,8 +33,6 @@ class RouteCache {
 
     final decoded = jsonDecode(raw) as List;
 
-    return decoded
-        .map((e) => LatLng(e[0], e[1]))
-        .toList();
+    return decoded.map((e) => LatLng(e[0], e[1])).toList();
   }
 }

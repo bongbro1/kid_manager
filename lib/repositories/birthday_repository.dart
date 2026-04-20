@@ -85,8 +85,9 @@ class BirthdayRepository {
       final birthYear = (memberData['birthYear'] as num?)?.toInt();
       if (birthMonth == null || birthDay == null) continue;
 
-      final normalizedYear =
-          birthYear != null && birthYear > 0 ? birthYear : 2000;
+      final normalizedYear = birthYear != null && birthYear > 0
+          ? birthYear
+          : 2000;
       final birthDate = DateTime(normalizedYear, birthMonth, birthDay);
 
       final displayName = (memberData['displayName'] ?? memberDoc.id)

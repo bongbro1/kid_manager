@@ -2604,6 +2604,18 @@
   "userRepositoryCreateAccountFailed": "Không thể tạo tài khoản",
   "firestorePermissionDenied": "Bạn không có quyền ghi dữ liệu",
   "firestoreUnavailable": "Firestore tạm thời không khả dụng",
+  "appOfflineBannerTitle": "Bạn đang offline",
+  "appOfflineBannerSubtitle": "Dữ liệu có thể chưa phải mới nhất.",
+  "appNetworkActionFailed": "Kết nối mạng không ổn định. Vui lòng thử lại.",
+  "appRetryWhenOnline": "Bạn đang offline. Hãy thử lại khi có mạng.",
+  "childConnectionLost": "Mất kết nối",
+  "childNoLocationYet": "Chưa có vị trí",
+  "childLastSeenAt": "Lần cuối {time}",
+  "@childLastSeenAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
   "firestoreGenericError": "Lỗi Firestore",
   "userRepositoryCreateChildFailed": "Không thể tạo tài khoản con",
   "mapPlaceSearchMissingAccessToken": "Thiếu ACCESS_TOKEN Mapbox cho tìm kiếm địa điểm.",

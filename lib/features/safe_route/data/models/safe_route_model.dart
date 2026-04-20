@@ -30,7 +30,9 @@ class SafeRouteModel extends SafeRoute {
         .toList();
     final hazardMaps = (map['hazards'] as List? ?? const [])
         .whereType<Map>()
-        .map((item) => RouteHazardModel.fromMap(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => RouteHazardModel.fromMap(Map<String, dynamic>.from(item)),
+        )
         .toList();
 
     return SafeRouteModel(
@@ -40,13 +42,18 @@ class SafeRouteModel extends SafeRoute {
       name: (map['name'] ?? '').toString(),
       startPoint: pointMaps.isNotEmpty
           ? pointMaps.first
-          : RoutePointModel.fromMap(Map<String, dynamic>.from(map['startPoint'] as Map? ?? const {})),
+          : RoutePointModel.fromMap(
+              Map<String, dynamic>.from(map['startPoint'] as Map? ?? const {}),
+            ),
       endPoint: pointMaps.isNotEmpty
           ? pointMaps.last
-          : RoutePointModel.fromMap(Map<String, dynamic>.from(map['endPoint'] as Map? ?? const {})),
+          : RoutePointModel.fromMap(
+              Map<String, dynamic>.from(map['endPoint'] as Map? ?? const {}),
+            ),
       points: pointMaps,
       hazards: hazardMaps,
-      corridorWidthMeters: (map['corridorWidthMeters'] as num?)?.toDouble() ?? 50,
+      corridorWidthMeters:
+          (map['corridorWidthMeters'] as num?)?.toDouble() ?? 50,
       distanceMeters: (map['distanceMeters'] as num?)?.toDouble() ?? 0,
       durationSeconds: (map['durationSeconds'] as num?)?.toDouble() ?? 0,
       travelMode: parseSafeRouteTravelMode(map['travelMode']),
@@ -90,8 +97,12 @@ class SafeRouteModel extends SafeRoute {
       'name': name,
       'startPoint': RoutePointModel.fromEntity(startPoint).toMap(),
       'endPoint': RoutePointModel.fromEntity(endPoint).toMap(),
-      'points': points.map((point) => RoutePointModel.fromEntity(point).toMap()).toList(),
-      'hazards': hazards.map((hazard) => RouteHazardModel.fromEntity(hazard).toMap()).toList(),
+      'points': points
+          .map((point) => RoutePointModel.fromEntity(point).toMap())
+          .toList(),
+      'hazards': hazards
+          .map((hazard) => RouteHazardModel.fromEntity(hazard).toMap())
+          .toList(),
       'corridorWidthMeters': corridorWidthMeters,
       'distanceMeters': distanceMeters,
       'durationSeconds': durationSeconds,
@@ -103,20 +114,20 @@ class SafeRouteModel extends SafeRoute {
   }
 
   SafeRoute toEntity() => SafeRoute(
-        id: id,
-        childId: childId,
-        parentId: parentId,
-        name: name,
-        startPoint: startPoint,
-        endPoint: endPoint,
-        points: points,
-        hazards: hazards,
-        corridorWidthMeters: corridorWidthMeters,
-        distanceMeters: distanceMeters,
-        durationSeconds: durationSeconds,
-        travelMode: travelMode,
-        profile: profile,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+    id: id,
+    childId: childId,
+    parentId: parentId,
+    name: name,
+    startPoint: startPoint,
+    endPoint: endPoint,
+    points: points,
+    hazards: hazards,
+    corridorWidthMeters: corridorWidthMeters,
+    distanceMeters: distanceMeters,
+    durationSeconds: durationSeconds,
+    travelMode: travelMode,
+    profile: profile,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
 }

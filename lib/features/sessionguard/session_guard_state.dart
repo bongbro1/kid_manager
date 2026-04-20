@@ -46,7 +46,11 @@ class SessionGuardResolvedState {
     return SessionGuardResolvedState(
       status: status,
       uid: sessionUser?.uid ?? liveUser?.uid ?? profile?.id,
-      role: profile?.role ?? liveUser?.role ?? sessionUser?.role ?? UserRole.child,
+      role:
+          profile?.role ??
+          liveUser?.role ??
+          sessionUser?.role ??
+          UserRole.child,
       familyId: _firstNonEmpty([
         profile?.familyId,
         liveUser?.familyId,

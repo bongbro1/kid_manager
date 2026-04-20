@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/core/alert_service.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/models/auth/password_validator.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
@@ -78,10 +79,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       return;
     }
 
-    await authVM.resetPassword(
-      resetSessionToken: widget.resetSessionToken,
-      newPassword: _passwordController.text,
+    final ok = await runGuardedNetworkVoidAction(
+      context,
+      action: () => authVM.resetPassword(
+        resetSessionToken: widget.resetSessionToken,
+        newPassword: _passwordController.text,
+      ),
     );
+    if (!ok) {
+      return;
+    }
 
     if (!mounted) {
       return;

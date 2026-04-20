@@ -8,6 +8,7 @@ class TrackingBackgroundService {
   TrackingBackgroundService._();
 
   static const MethodChannel _channel = MethodChannel('tracking_service');
+  static String? Function()? _debugCurrentUserIdResolver;
   static Future<bool>? _startInFlight;
   static TrackingRuntimeConfig? _startInFlightConfig;
   static TrackingRuntimeConfig? _lastStartedConfig;
@@ -27,8 +28,7 @@ class TrackingBackgroundService {
     String? timeZone,
   }) async {
     _debugStartRequestCount += 1;
-    final user = FirebaseAuth.instance.currentUser;
-    final userId = user?.uid.trim();
+    final userId = _resolveCurrentUserId();
     if (userId == null || userId.isEmpty) {
       _debugStartFailureCount += 1;
       _debugLog('start skipped: missing auth user ${_debugStatsSummary()}');
@@ -51,6 +51,10 @@ class TrackingBackgroundService {
       displayName: displayName?.trim() ?? preservedConfig?.displayName,
       timeZone: timeZone?.trim() ?? preservedConfig?.timeZone,
     );
+    final running = await isRunning();
+    final runningConfig = running
+        ? (_lastStartedConfig ?? existingConfig)
+        : null;
 
     if (_startInFlight != null) {
       if (_isEquivalentConfig(_startInFlightConfig, config)) {
@@ -70,10 +74,21 @@ class TrackingBackgroundService {
       );
     }
 
-    if (_isEquivalentConfig(_lastStartedConfig, config) && await isRunning()) {
+    if (_isEquivalentConfig(runningConfig, config) && running) {
       _debugDedupedRunningCount += 1;
-      _debugLog('start skipped: already running with same config ${_debugStatsSummary()}');
+      _debugLog(
+        'start skipped: already running with same config ${_debugStatsSummary()}',
+      );
       return true;
+    }
+
+    if (running && !_isEquivalentConfig(runningConfig, config)) {
+      _debugLog(
+        'start restarting service due to config change '
+        'from=${runningConfig?.userId}/${runningConfig?.currentOnly}/${runningConfig?.requireBackground} '
+        'to=${config.userId}/${config.currentOnly}/${config.requireBackground}',
+      );
+      await stop(clearConfig: false);
     }
 
     final startFuture = _startInternal(config);
@@ -124,7 +139,9 @@ class TrackingBackgroundService {
         _lastStartedConfig = null;
       }
       _debugStartFailureCount += 1;
-      _debugLog('native start platform exception ${e.code} ${_debugStatsSummary()}');
+      _debugLog(
+        'native start platform exception ${e.code} ${_debugStatsSummary()}',
+      );
       return false;
     } catch (e) {
       debugPrint('TrackingBackgroundService.start error: $e');
@@ -153,6 +170,7 @@ class TrackingBackgroundService {
   }
 
   static Future<void> stop({bool clearConfig = true}) async {
+    await TrackingRuntimeStore.setPublisherReady(false);
     try {
       await _channel.invokeMethod<void>('stopTrackingService');
     } on PlatformException catch (e) {
@@ -173,7 +191,9 @@ class TrackingBackgroundService {
 
   static Future<bool> isRunning() async {
     try {
-      final result = await _channel.invokeMethod<bool>('isTrackingServiceRunning');
+      final result = await _channel.invokeMethod<bool>(
+        'isTrackingServiceRunning',
+      );
       return result ?? false;
     } on PlatformException catch (e) {
       debugPrint(
@@ -225,6 +245,20 @@ class TrackingBackgroundService {
     _debugLog('debug stats reset');
   }
 
+  @visibleForTesting
+  static void debugResetForTest() {
+    _debugCurrentUserIdResolver = null;
+    _startInFlight = null;
+    _startInFlightConfig = null;
+    _lastStartedConfig = null;
+    debugResetStats();
+  }
+
+  @visibleForTesting
+  static void debugSetCurrentUserIdResolver(String? Function()? resolver) {
+    _debugCurrentUserIdResolver = resolver;
+  }
+
   static void _debugLog(String message) {
     if (!kDebugMode) {
       return;
@@ -241,5 +275,19 @@ class TrackingBackgroundService {
         'native:${stats['nativeInvokes']} '
         'success:${stats['startSuccess']} '
         'failure:${stats['startFailure']}';
+  }
+
+  static String? _resolveCurrentUserId() {
+    final debugUserId = _debugCurrentUserIdResolver?.call()?.trim();
+    if (debugUserId != null && debugUserId.isNotEmpty) {
+      return debugUserId;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    final userId = user?.uid.trim();
+    if (userId == null || userId.isEmpty) {
+      return null;
+    }
+    return userId;
   }
 }

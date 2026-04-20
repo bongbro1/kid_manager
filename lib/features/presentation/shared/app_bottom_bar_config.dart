@@ -28,4 +28,3 @@ class BottomTabConfig {
     this.isScheduleTab = false,
   });
 }
-

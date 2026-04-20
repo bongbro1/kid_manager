@@ -24,12 +24,40 @@ class TrackingWarmupController extends StatefulWidget {
       _TrackingWarmupControllerState();
 }
 
+@visibleForTesting
+bool shouldSyncTrackingState({
+  required bool force,
+  required String? lastAppliedTrackingKey,
+  required String selfTrackingKey,
+  required bool shouldShare,
+  required bool isParent,
+  required bool selfTrackingActive,
+  required bool backgroundCurrentSharingActive,
+}) {
+  if (force) {
+    return true;
+  }
+
+  if (lastAppliedTrackingKey != selfTrackingKey) {
+    return true;
+  }
+
+  if (isParent) {
+    return shouldShare != backgroundCurrentSharingActive;
+  }
+
+  return shouldShare != selfTrackingActive;
+}
+
 class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     with WidgetsBindingObserver {
   bool _ready = false;
   bool _syncInFlight = false;
   bool _resyncRequested = false;
   bool _forceTrackingRequested = false;
+  bool _postFrameSyncScheduled = false;
+  bool _postFrameForceTracking = false;
+  TrackingWarmupSnapshot? _pendingSnapshotToStop;
   bool _backgroundCurrentSharingActive = false;
   bool _selfTrackingActive = false;
 
@@ -42,10 +70,7 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      unawaited(_queueSync(forceTracking: true));
-    });
+    _schedulePostFrameSync(forceTracking: true);
   }
 
   @override
@@ -53,23 +78,56 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.snapshot.uid != widget.snapshot.uid ||
         oldWidget.snapshot.role != widget.snapshot.role) {
-      unawaited(_stopPreviousRoleState(oldWidget.snapshot));
-      _resetWarmupKeys();
-      unawaited(_queueSync(forceTracking: true));
+      _schedulePostFrameSync(
+        forceTracking: true,
+        snapshotToStop: oldWidget.snapshot,
+      );
       return;
     }
 
     if (oldWidget.snapshot != widget.snapshot) {
-      unawaited(_queueSync());
+      _schedulePostFrameSync();
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) {
+    _schedulePostFrameSync(forceTracking: true);
+  }
+
+  bool _isAppResumed() {
+    return WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+  }
+
+  void _schedulePostFrameSync({
+    bool forceTracking = false,
+    TrackingWarmupSnapshot? snapshotToStop,
+  }) {
+    _postFrameForceTracking = _postFrameForceTracking || forceTracking;
+    if (snapshotToStop != null) {
+      _pendingSnapshotToStop = snapshotToStop;
+    }
+    if (_postFrameSyncScheduled) {
       return;
     }
-    unawaited(_queueSync(forceTracking: true));
+
+    _postFrameSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _postFrameSyncScheduled = false;
+      final shouldForceTracking = _postFrameForceTracking;
+      final pendingSnapshotToStop = _pendingSnapshotToStop;
+      _postFrameForceTracking = false;
+      _pendingSnapshotToStop = null;
+
+      if (!mounted) return;
+      unawaited(() async {
+        if (pendingSnapshotToStop != null) {
+          await _stopPreviousRoleState(pendingSnapshotToStop);
+          _resetWarmupKeys();
+        }
+        await _queueSync(forceTracking: shouldForceTracking);
+      }());
+    });
   }
 
   Future<void> _queueSync({bool forceTracking = false}) async {
@@ -130,7 +188,9 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     }
 
     if (_lastLocationSyncKey != snapshot.locationSyncKey) {
-      await context.read<ParentLocationVm>().syncWatching(userVm.locationMembers);
+      await context.read<ParentLocationVm>().syncWatching(
+        userVm.locationMembers,
+      );
       _lastLocationSyncKey = snapshot.locationSyncKey;
     }
   }
@@ -147,14 +207,22 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     TrackingWarmupSnapshot snapshot, {
     required bool force,
   }) async {
-    if (!force && _lastAppliedTrackingKey == snapshot.selfTrackingKey) {
+    if (!shouldSyncTrackingState(
+      force: force,
+      lastAppliedTrackingKey: _lastAppliedTrackingKey,
+      selfTrackingKey: snapshot.selfTrackingKey,
+      shouldShare: snapshot.allowTracking,
+      isParent: snapshot.isParent,
+      selfTrackingActive: _selfTrackingActive,
+      backgroundCurrentSharingActive: _backgroundCurrentSharingActive,
+    )) {
       return;
     }
 
     if (snapshot.isParent) {
       await _syncParentTracking(snapshot);
     } else if (snapshot.isGuardian || snapshot.isChild) {
-      await _syncSelfTracking(snapshot);
+      await _syncSelfTracking(snapshot, force: force);
     }
   }
 
@@ -165,10 +233,22 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
 
     if (!shouldShareCurrent) {
       await locationVm.setCurrentSharingEnabled(false);
-      if (_backgroundCurrentSharingActive) {
+      if (_backgroundCurrentSharingActive ||
+          await TrackingBackgroundService.isRunning()) {
         await TrackingBackgroundService.stop();
         _backgroundCurrentSharingActive = false;
       }
+      _lastAppliedTrackingKey = snapshot.selfTrackingKey;
+      return;
+    }
+
+    if (_isAppResumed()) {
+      if (_backgroundCurrentSharingActive ||
+          await TrackingBackgroundService.isRunning()) {
+        await TrackingBackgroundService.stop();
+        _backgroundCurrentSharingActive = false;
+      }
+      await locationVm.setCurrentSharingEnabled(true);
       _lastAppliedTrackingKey = snapshot.selfTrackingKey;
       return;
     }
@@ -211,7 +291,10 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     _lastAppliedTrackingKey = snapshot.selfTrackingKey;
   }
 
-  Future<void> _syncSelfTracking(TrackingWarmupSnapshot snapshot) async {
+  Future<void> _syncSelfTracking(
+    TrackingWarmupSnapshot snapshot, {
+    required bool force,
+  }) async {
     final childLocationVm = _readOptional<ChildLocationViewModel>();
     if (childLocationVm == null) {
       return;
@@ -221,9 +304,8 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     final shouldShare = snapshot.allowTracking;
 
     if (shouldShare && !_selfTrackingActive) {
-      final hasForegroundPermission = await locationService.hasLocationPermission(
-        requireBackground: false,
-      );
+      final hasForegroundPermission = await locationService
+          .hasLocationPermission(requireBackground: false);
       final serviceEnabled = await locationService.isServiceEnabled();
       if (!hasForegroundPermission || !serviceEnabled) {
         _lastAppliedTrackingKey = snapshot.selfTrackingKey;
@@ -232,6 +314,15 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
 
       await childLocationVm.startLocationSharing(background: true);
       _selfTrackingActive = childLocationVm.isSharing;
+      _lastAppliedTrackingKey = snapshot.selfTrackingKey;
+      return;
+    }
+
+    if (shouldShare && _selfTrackingActive) {
+      if (force) {
+        await childLocationVm.refreshLifecycleRouting();
+        _selfTrackingActive = childLocationVm.isSharing;
+      }
       _lastAppliedTrackingKey = snapshot.selfTrackingKey;
       return;
     }
@@ -255,7 +346,8 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
 
     if (snapshot.isParent) {
       await context.read<ParentLocationVm>().setCurrentSharingEnabled(false);
-      if (_backgroundCurrentSharingActive) {
+      if (_backgroundCurrentSharingActive ||
+          await TrackingBackgroundService.isRunning()) {
         await TrackingBackgroundService.stop();
         _backgroundCurrentSharingActive = false;
       }

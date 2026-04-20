@@ -18,7 +18,8 @@ List<List<double>> circlePolygon({
     final lat2 = asin(
       sin(radLat) * cos(angDist) + cos(radLat) * sin(angDist) * cos(brng),
     );
-    final lng2 = radLng +
+    final lng2 =
+        radLng +
         atan2(
           sin(brng) * sin(angDist) * cos(radLat),
           cos(angDist) - sin(radLat) * sin(lat2),

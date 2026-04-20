@@ -1,4 +1,5 @@
 import 'package:just_audio/just_audio.dart';
+import 'package:kid_manager/services/notifications/android_sos_alert_bridge.dart';
 
 class SosAlarmPlayer {
   SosAlarmPlayer._();
@@ -10,12 +11,13 @@ class SosAlarmPlayer {
   Future<void> _ensureInit() async {
     if (_inited) return;
     await _player.setAsset('assets/sounds/sos.mp3');
-    _player.setLoopMode(LoopMode.one);
+    await _player.setLoopMode(LoopMode.one);
     _inited = true;
   }
 
   Future<void> startLoop() async {
     await _ensureInit();
+    await AndroidSosAlertBridge.prepareBestEffortAudioEscalation();
     if (_player.playing) return;
     await _player.play();
   }

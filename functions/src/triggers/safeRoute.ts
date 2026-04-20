@@ -56,14 +56,21 @@ import {
   getRemainingQuota,
   SAFE_ROUTE_LIMIT_ERROR,
 } from "../services/subscriptionQuota";
-import { haversineMeters } from "../utils/safeRouteGeo";
 import {
+  LiveLocationRecord,
   RoutePointRecord,
+  SafeRouteMonitorContextRecord,
   SafeRouteRecord,
   SafeRouteTravelMode,
   TripRecord,
   TripStatus,
 } from "../types";
+import { distancePointToPolylineMeters, haversineMeters } from "../utils/safeRouteGeo";
+import {
+  buildTrackingWatchHeartbeatUpdate,
+  buildTrackingWatchStoppedUpdate,
+  TRACKING_WATCH_COLLECTION,
+} from "../services/trackingWatch";
 const SAFE_ROUTE_ALERT_COOLDOWN_MS = 3 * 60 * 1000;
 const START_POINT_EXIT_RADIUS_METERS = 30;
 const DESTINATION_ARRIVAL_RADIUS_METERS = 10;
@@ -73,6 +80,10 @@ const STATIONARY_RADIUS_METERS = 18;
 const STATIONARY_ALERT_DELAY_MS = 5 * 60 * 1000;
 const SAFE_ROUTE_SCHEDULE = "every 1 minutes";
 const FAMILY_LIVE_LOCATIONS_ROOT = "live_locations_by_family";
+const SAFE_ROUTE_MONITOR_MIN_EVALUATION_INTERVAL_MS = 5000;
+const SAFE_ROUTE_MONITOR_MIN_EVALUATION_DISTANCE_METERS = 10;
+const SAFE_ROUTE_MONITOR_DECISION_PROXIMITY_METERS = 40;
+const SAFE_ROUTE_SCHEDULE_WINDOW_MS = 60 * 1000;
 
 function parseSafeRouteTravelMode(value: unknown): SafeRouteTravelMode {
   const normalized = mustString(value ?? "walking", "travelMode");
@@ -153,48 +164,63 @@ function shouldCreatePlannedTrip(params: {
   return params.scheduledStartAt > params.nowMs + 30 * 1000;
 }
 
-function isTripScheduleDue(
-  trip: TripRecord,
-  nowMs: number,
-  timeZone: string,
-) {
-  if (trip.status !== "planned") {
-    return false;
-  }
+function floorToMinute(ms: number) {
+  return Math.floor(ms / 60000) * 60000;
+}
 
-  const scheduledStartAt = trip.scheduledStartAt;
-  const repeatWeekdays = trip.repeatWeekdays ?? [];
-  if (scheduledStartAt == null) {
-    return false;
-  }
+function computeRecurringNextActivationAt(params: {
+  scheduledStartAt: number;
+  repeatWeekdays: number[];
+  timeZone: string;
+  referenceMs: number;
+}) {
+  const scheduledParts = zonedDateParts(
+    params.scheduledStartAt,
+    params.timeZone,
+  );
+  let probeMs = floorToMinute(params.referenceMs);
+  const endMs = probeMs + 8 * 24 * 60 * 60 * 1000;
 
-  if (repeatWeekdays.length === 0) {
-    return nowMs >= scheduledStartAt;
-  }
-
-  const nowParts = zonedDateParts(nowMs, timeZone);
-  const scheduledParts = zonedDateParts(scheduledStartAt, timeZone);
-
-  if (nowParts.dayKey < scheduledParts.dayKey) {
-    return false;
-  }
-  if (!repeatWeekdays.includes(nowParts.weekday)) {
-    return false;
-  }
-  if (nowParts.minutesOfDay < scheduledParts.minutesOfDay) {
-    return false;
-  }
-  if (trip.lastScheduledActivationAt != null) {
-    const lastActivationParts = zonedDateParts(
-      trip.lastScheduledActivationAt,
-      timeZone
-    );
-    if (lastActivationParts.dayKey == nowParts.dayKey) {
-      return false;
+  while (probeMs <= endMs) {
+    const probeParts = zonedDateParts(probeMs, params.timeZone);
+    if (
+      params.repeatWeekdays.includes(probeParts.weekday) &&
+      probeParts.minutesOfDay === scheduledParts.minutesOfDay
+    ) {
+      return probeMs;
     }
+    probeMs += 60000;
   }
 
-  return true;
+  return null;
+}
+
+function computeNextActivationAtForTrip(params: {
+  trip: Pick<
+    TripRecord,
+    "status" | "scheduledStartAt" | "repeatWeekdays" | "lastScheduledActivationAt"
+  >;
+  timeZone: string;
+  nowMs: number;
+}) {
+  const scheduledStartAt = params.trip.scheduledStartAt;
+  if (params.trip.status !== "planned" || scheduledStartAt == null) {
+    return null;
+  }
+
+  const repeatWeekdays = params.trip.repeatWeekdays ?? [];
+  if (repeatWeekdays.length === 0) {
+    return scheduledStartAt;
+  }
+
+  return computeRecurringNextActivationAt({
+    scheduledStartAt,
+    repeatWeekdays,
+    timeZone: params.timeZone,
+    referenceMs:
+      Math.max(params.nowMs, params.trip.lastScheduledActivationAt ?? 0) +
+      60000,
+  });
 }
 
 function parseRoutePoint(
@@ -330,6 +356,8 @@ function asTripRecord(
     updatedAt: Number(data.updatedAt ?? Date.now()),
     scheduledStartAt:
       data.scheduledStartAt == null ? null : Number(data.scheduledStartAt),
+    nextActivationAt:
+      data.nextActivationAt == null ? null : Number(data.nextActivationAt),
     repeatWeekdays: parseRepeatWeekdays(data.repeatWeekdays),
     lastScheduledActivationAt:
       data.lastScheduledActivationAt == null
@@ -423,9 +451,18 @@ async function syncCurrentTripSnapshotByChildId(childId: string) {
   }
 
   const trips = await loadTripsByChildId(normalizedChildId);
+  const childMonitorTrip =
+    trips
+      .filter((trip) => MONITORED_TRIP_STATUSES.includes(trip.status))
+      .sort((left, right) => right.updatedAt - left.updatedAt)[0] ?? null;
+  const childMonitorContext =
+    childMonitorTrip == null
+      ? null
+      : await buildChildMonitorContextForTrip(childMonitorTrip);
   const snapshot = buildSafeRouteCurrentTripSnapshot({
     childId: normalizedChildId,
     trips,
+    childMonitorContext,
     nowMs: Date.now(),
   });
   const snapshotRef = db
@@ -443,6 +480,18 @@ async function syncCurrentTripSnapshotByChildId(childId: string) {
 
   await snapshotRef.set(snapshot, { merge: true });
   return snapshot;
+}
+
+async function syncCurrentTripSnapshotByChildIds(childIds: string[]) {
+  const normalizedChildIds = childIds
+    .map((childId) => childId.trim())
+    .filter((childId, index, list) =>
+      childId.length > 0 && list.indexOf(childId) === index,
+    );
+
+  await Promise.all(
+    normalizedChildIds.map((childId) => syncCurrentTripSnapshotByChildId(childId)),
+  );
 }
 
 async function readCurrentTripSnapshotByChildId(childId: string) {
@@ -470,6 +519,12 @@ async function ensureCurrentTripSnapshotByChildId(childId: string) {
   return syncCurrentTripSnapshotByChildId(childId);
 }
 
+async function isChildBusyForScheduledActivation(childId: string) {
+  const snapshot = await ensureCurrentTripSnapshotByChildId(childId);
+  const trip = snapshot?.childMonitorTrip;
+  return trip != null && MONITORED_TRIP_STATUSES.includes(trip.status);
+}
+
 async function findCurrentTripByChildId(params: {
   childId: string;
   audience: SafeRouteTripAudience;
@@ -482,8 +537,8 @@ async function findCurrentTripByChildId(params: {
   });
 }
 
-async function findMonitorableTripByChildId(childId: string) {
-  const snapshot = await ensureCurrentTripSnapshotByChildId(childId);
+async function findMonitorableTripSnapshotByChildId(childId: string) {
+  let snapshot = await ensureCurrentTripSnapshotByChildId(childId);
   const trip = selectTripFromCurrentTripSnapshot({
     snapshot,
     audience: "child_monitor",
@@ -492,7 +547,23 @@ async function findMonitorableTripByChildId(childId: string) {
   if (trip == null || !MONITORED_TRIP_STATUSES.includes(trip.status)) {
     return null;
   }
-  return trip;
+
+  if (
+    snapshot?.childMonitorContext == null ||
+    snapshot.childMonitorContext.tripId !== trip.id
+  ) {
+    snapshot = await syncCurrentTripSnapshotByChildId(childId);
+  }
+
+  if (
+    snapshot?.childMonitorTrip == null ||
+    snapshot.childMonitorContext == null ||
+    snapshot.childMonitorContext.tripId !== snapshot.childMonitorTrip.id
+  ) {
+    return null;
+  }
+
+  return snapshot;
 }
 
 async function appendCancelExistingTripsToBatch(params: {
@@ -541,6 +612,7 @@ function buildActivatedTripFromTemplate(params: {
     startedAt: nowMs,
     updatedAt: nowMs,
     scheduledStartAt: nowMs,
+    nextActivationAt: null,
     repeatWeekdays: template.repeatWeekdays ?? [],
     lastScheduledActivationAt: null,
     lastLocation: null,
@@ -580,6 +652,76 @@ async function loadRoutesForTrip(trip: TripRecord) {
   }
 
   return routes;
+}
+
+function isHazardRelevantToAnyRoute(params: {
+  hazard: { latitude: number; longitude: number; radiusMeters: number };
+  routes: SafeRouteRecord[];
+}) {
+  return params.routes.some((route) => {
+    const distance = distancePointToPolylineMeters(
+      params.hazard.latitude,
+      params.hazard.longitude,
+      route.points,
+    );
+    return distance <= params.hazard.radiusMeters + route.corridorWidthMeters;
+  });
+}
+
+async function buildChildMonitorContextForTrip(
+  trip: TripRecord,
+): Promise<SafeRouteMonitorContextRecord | null> {
+  if (!MONITORED_TRIP_STATUSES.includes(trip.status)) {
+    return null;
+  }
+
+  const [routes, hazards] = await Promise.all([
+    loadRoutesForTrip(trip),
+    listDangerZoneHazardsForChild(trip.childId),
+  ]);
+
+  const relevantHazards = hazards.filter((hazard) =>
+    isHazardRelevantToAnyRoute({
+      hazard,
+      routes,
+    }),
+  );
+
+  return {
+    tripId: trip.id,
+    routes,
+    hazards: relevantHazards,
+    builtAt: Date.now(),
+    minEvaluationIntervalMs: SAFE_ROUTE_MONITOR_MIN_EVALUATION_INTERVAL_MS,
+    minEvaluationDistanceMeters: SAFE_ROUTE_MONITOR_MIN_EVALUATION_DISTANCE_METERS,
+  };
+}
+
+function isNearMonitorDecisionArea(params: {
+  liveLocation: LiveLocationRecord;
+  context: SafeRouteMonitorContextRecord;
+}) {
+  const { liveLocation, context } = params;
+  const nearDestination = context.routes.some((route) =>
+    haversineMeters(
+      liveLocation.latitude,
+      liveLocation.longitude,
+      route.endPoint.latitude,
+      route.endPoint.longitude,
+    ) <= SAFE_ROUTE_MONITOR_DECISION_PROXIMITY_METERS,
+  );
+  if (nearDestination) {
+    return true;
+  }
+
+  return context.hazards.some((hazard) =>
+    haversineMeters(
+      liveLocation.latitude,
+      liveLocation.longitude,
+      hazard.latitude,
+      hazard.longitude,
+    ) <= hazard.radiusMeters + SAFE_ROUTE_MONITOR_DECISION_PROXIMITY_METERS,
+  );
 }
 
 async function loadChildTimeZoneMap(childIds: string[]) {
@@ -920,6 +1062,8 @@ export const startSafeRouteTrip = onCall(
       repeatWeekdays,
       nowMs: now,
     });
+    const childTimeZone =
+      (await loadChildTimeZoneMap([route.childId])).get(route.childId) ?? TZ;
     const trip = {
       id: tripRef.id,
       childId: route.childId,
@@ -935,6 +1079,20 @@ export const startSafeRouteTrip = onCall(
       startedAt: shouldCreatePlanned && scheduledStartAt != null ? scheduledStartAt : now,
       updatedAt: now,
       scheduledStartAt,
+      nextActivationAt: shouldCreatePlanned
+        ? computeNextActivationAtForTrip(
+            {
+              trip: {
+                status: "planned",
+                scheduledStartAt,
+                repeatWeekdays,
+                lastScheduledActivationAt: null,
+              },
+              timeZone: childTimeZone,
+              nowMs: now,
+            },
+          )
+        : null,
       repeatWeekdays,
       lastScheduledActivationAt: null,
       lastLocation: null,
@@ -1076,10 +1234,51 @@ export const syncSafeRouteCurrentTripSnapshot = onDocumentWritten(
       childId.length > 0 && list.indexOf(childId) === index
     );
 
-    await Promise.all(
-      childIds.map((childId) => syncCurrentTripSnapshotByChildId(childId))
-    );
+    await syncCurrentTripSnapshotByChildIds(childIds);
   }
+);
+
+export const syncSafeRouteCurrentTripSnapshotOnRouteWrite = onDocumentWritten(
+  {
+    document: "routes/{routeId}",
+    region: REGION,
+  },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    const childIds = [
+      typeof before?.childId === "string" ? before.childId.trim() : "",
+      typeof after?.childId === "string" ? after.childId.trim() : "",
+    ];
+    await syncCurrentTripSnapshotByChildIds(childIds);
+  },
+);
+
+export const syncSafeRouteCurrentTripSnapshotOnZoneWrite = onDocumentWritten(
+  {
+    document: "zones/{zoneId}",
+    region: REGION,
+  },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    const childIds = [
+      typeof before?.childId === "string" ? before.childId.trim() : "",
+      typeof after?.childId === "string" ? after.childId.trim() : "",
+    ];
+    await syncCurrentTripSnapshotByChildIds(childIds);
+  },
+);
+
+export const syncSafeRouteCurrentTripSnapshotOnLegacyZoneWrite = onValueWritten(
+  {
+    ref: "zonesByChild/{childId}/{zoneId}",
+    region: RTDB_TRIGGER_REGION,
+  },
+  async (event) => {
+    const childId = String(event.params.childId ?? "").trim();
+    await syncCurrentTripSnapshotByChildIds([childId]);
+  },
 );
 
 export const getSafeRouteById = onCall(
@@ -1111,45 +1310,70 @@ export const activateScheduledSafeRouteTrips = onSchedule(
   },
   async () => {
     const nowMs = Date.now();
-    const [plannedSnap, activeSnap] = await Promise.all([
-      db.collection("trips").where("status", "==", "planned").get(),
+    const [plannedSnap, missingActivationSnap] = await Promise.all([
       db
         .collection("trips")
-        .where("status", "in", MONITORED_TRIP_STATUSES)
+        .where("status", "==", "planned")
+        .where("nextActivationAt", "<=", nowMs + SAFE_ROUTE_SCHEDULE_WINDOW_MS)
+        .orderBy("nextActivationAt")
+        .get(),
+      db
+        .collection("trips")
+        .where("status", "==", "planned")
+        .where("nextActivationAt", "==", null)
+        .limit(100)
         .get(),
     ]);
 
-    const busyChildIds = new Set(
-      activeSnap.docs
-        .map((doc) => asTripRecord(doc))
-        .filter((trip): trip is TripRecord => trip !== null)
-        .map((trip) => trip.childId)
-    );
     const plannedTrips = plannedSnap.docs
       .map((doc) => asTripRecord(doc))
       .filter((trip): trip is TripRecord => trip !== null);
-    const childTimeZones = await loadChildTimeZoneMap(
-      plannedTrips.map((trip) => trip.childId)
-    );
+    const missingActivationTrips = missingActivationSnap.docs
+      .map((doc) => ({ doc, trip: asTripRecord(doc) }))
+      .filter((entry): entry is { doc: FirebaseFirestore.QueryDocumentSnapshot; trip: TripRecord } => entry.trip != null);
+    const childTimeZones = await loadChildTimeZoneMap([
+      ...plannedTrips.map((trip) => trip.childId),
+      ...missingActivationTrips.map((entry) => entry.trip.childId),
+    ]);
+
+    for (const entry of missingActivationTrips) {
+      const nextActivationAt = computeNextActivationAtForTrip({
+        trip: entry.trip,
+        timeZone: childTimeZones.get(entry.trip.childId) ?? TZ,
+        nowMs,
+      });
+      await entry.doc.ref.set(
+        {
+          nextActivationAt,
+          updatedAt: nowMs,
+        },
+        { merge: true },
+      );
+      if (
+        nextActivationAt != null &&
+        nextActivationAt <= nowMs + SAFE_ROUTE_SCHEDULE_WINDOW_MS
+      ) {
+        plannedTrips.push({
+          ...entry.trip,
+          nextActivationAt,
+        });
+      }
+    }
 
     const dueTrips = plannedTrips
-      .filter((trip) =>
-        isTripScheduleDue(
-          trip,
-          nowMs,
-          childTimeZones.get(trip.childId) ?? TZ
-        )
-      )
-      .sort(
-        (left, right) =>
-          (left.scheduledStartAt ?? left.updatedAt) -
-          (right.scheduledStartAt ?? right.updatedAt)
-      );
+      .filter((trip) => {
+        const nextActivationAt = trip.nextActivationAt;
+        return (
+          nextActivationAt != null &&
+          nextActivationAt <= nowMs + SAFE_ROUTE_SCHEDULE_WINDOW_MS
+        );
+      })
+      .sort((left, right) => (left.nextActivationAt ?? left.updatedAt) - (right.nextActivationAt ?? right.updatedAt));
 
     let activatedCount = 0;
 
     for (const trip of dueTrips) {
-      if (busyChildIds.has(trip.childId)) {
+      if (await isChildBusyForScheduledActivation(trip.childId)) {
         continue;
       }
 
@@ -1164,6 +1388,16 @@ export const activateScheduledSafeRouteTrips = onSchedule(
         await db.collection("trips").doc(trip.id).set(
           {
             lastScheduledActivationAt: nowMs,
+            nextActivationAt: computeNextActivationAtForTrip({
+              trip: {
+                status: "planned",
+                scheduledStartAt: trip.scheduledStartAt ?? null,
+                repeatWeekdays: trip.repeatWeekdays ?? [],
+                lastScheduledActivationAt: nowMs,
+              },
+              timeZone: childTimeZones.get(trip.childId) ?? TZ,
+              nowMs,
+            }),
           },
           { merge: true }
         );
@@ -1175,17 +1409,17 @@ export const activateScheduledSafeRouteTrips = onSchedule(
             startedAt: nowMs,
             updatedAt: nowMs,
             lastScheduledActivationAt: nowMs,
+            nextActivationAt: null,
           },
           { merge: true }
         );
       }
 
-      busyChildIds.add(trip.childId);
       activatedCount++;
     }
 
     console.log(
-      `[activateScheduledSafeRouteTrips] planned=${plannedSnap.size} due=${dueTrips.length} activated=${activatedCount}`
+      `[activateScheduledSafeRouteTrips] planned=${plannedSnap.size} missingNextActivation=${missingActivationSnap.size} due=${dueTrips.length} activated=${activatedCount}`
     );
   }
 );
@@ -1199,6 +1433,7 @@ export const syncSafeRouteLiveLocation = onValueWritten(
     const childId = String(event.params.childId ?? "");
     const targetRef = admin.database().ref(`live_locations/${childId}`);
     const trustSignalRef = admin.database().ref(`live_location_trust/${childId}`);
+    const trackingWatchRef = db.collection(TRACKING_WATCH_COLLECTION).doc(childId);
     const previousFamilyId = readFamilyIdFromLocationRecord(
       event.data.before.exists() ? event.data.before.val() : null
     );
@@ -1219,6 +1454,15 @@ export const syncSafeRouteLiveLocation = onValueWritten(
       ];
       if (previousFamilyId) {
         removals.push(removeFamilyMirror(previousFamilyId));
+        removals.push(
+          trackingWatchRef.set(
+            buildTrackingWatchStoppedUpdate({
+              familyId: previousFamilyId,
+              childUid: childId,
+            }),
+            { merge: true },
+          ),
+        );
       }
       await Promise.all(removals);
       return;
@@ -1286,6 +1530,17 @@ export const syncSafeRouteLiveLocation = onValueWritten(
           .ref(`${FAMILY_LIVE_LOCATIONS_ROOT}/${nextFamilyId}/${childId}`)
           .set(liveLocation)
       );
+      writes.push(
+        trackingWatchRef.set(
+          buildTrackingWatchHeartbeatUpdate({
+            familyId: nextFamilyId,
+            childUid: childId,
+            heartbeatMs: nowMs,
+            nowMs,
+          }),
+          { merge: true },
+        ),
+      );
     }
 
     await Promise.all(writes);
@@ -1294,59 +1549,58 @@ export const syncSafeRouteLiveLocation = onValueWritten(
 
 export const monitorSafeRouteLiveLocation = onValueWritten(
   {
-    ref: "locations/{childId}/current",
+    ref: "live_locations/{childId}",
     region: RTDB_TRIGGER_REGION,
   },
   async (event) => {
     if (!event.data.after.exists()) return;
 
     const childId = String(event.params.childId ?? "");
-    const trip = await findMonitorableTripByChildId(childId);
-    if (!trip) return;
-
-    const rawLiveLocation = parseLiveLocationRecord(childId, event.data.after.val());
-    const previousTrustedSnap = await admin
-      .database()
-      .ref(`live_locations/${childId}`)
-      .get();
-    const previousTrusted =
-      previousTrustedSnap.exists() && previousTrustedSnap.val()
-        ? parseLiveLocationRecord(childId, previousTrustedSnap.val())
-        : null;
-    const trust = assessTrustedLiveLocation({
-      current: rawLiveLocation,
-      previousTrusted,
-    });
-    if (!trust.safetyEligible) {
-      console.warn(
-        `[SAFE_ROUTE] skip untrusted safety location childId=${childId} reason=${trust.reason}`,
-      );
+    const snapshot = await findMonitorableTripSnapshotByChildId(childId);
+    if (!snapshot?.childMonitorTrip || !snapshot.childMonitorContext) {
       return;
     }
 
-    const routes = await loadRoutesForTrip(trip);
-    const liveLocation = trust.location;
-    const hazards = await listDangerZoneHazardsForChild(childId);
+    const trip = snapshot.childMonitorTrip;
+    const context = snapshot.childMonitorContext;
+    const liveLocation = parseLiveLocationRecord(childId, event.data.after.val());
+    const previousTrusted =
+      event.data.before.exists() && event.data.before.val()
+        ? parseLiveLocationRecord(childId, event.data.before.val())
+        : null;
+
+    if (
+      previousTrusted != null &&
+      trip.status === "active" &&
+      liveLocation.timestamp - previousTrusted.timestamp <
+        context.minEvaluationIntervalMs &&
+      haversineMeters(
+        liveLocation.latitude,
+        liveLocation.longitude,
+        previousTrusted.latitude,
+        previousTrusted.longitude,
+      ) < context.minEvaluationDistanceMeters &&
+      !isNearMonitorDecisionArea({
+        liveLocation,
+        context,
+      })
+    ) {
+      return;
+    }
+
     const matched = evaluateSafeRouteTripAcrossRoutes({
       trip,
-      routes,
+      routes: context.routes,
       liveLocation,
-      hazards,
+      hazards: context.hazards,
     });
     const route = matched.route;
     const evaluation = matched.evaluation;
 
     const now = Date.now();
     const tripRef = db.collection("trips").doc(trip.id);
-    const updates: Partial<TripRecord> = {
-      status: evaluation.nextStatus,
-      reason: evaluation.nextReason,
-      consecutiveDeviationCount: evaluation.nextDeviationCount,
-      currentDistanceFromRouteMeters: evaluation.distanceFromRouteMeters,
-      currentRouteId: evaluation.matchedRouteId,
-      updatedAt: now,
-      lastLocation: liveLocation,
-    };
+    const updates: Partial<TripRecord> = {};
+    let shouldPersistTripState = false;
 
     const childName = await getChildName(childId);
     const wasOffRoute =
@@ -1369,9 +1623,6 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
       !wasNearStartArea &&
       evaluation.isNearStartPoint;
 
-    updates.hasLeftStartArea = hasLeftStartArea;
-    updates.isNearStartArea = evaluation.isNearStartPoint;
-
     const anchorLatitude =
       trip.stationaryAnchorLatitude ?? liveLocation.latitude;
     const anchorLongitude =
@@ -1393,17 +1644,71 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
       5,
       Math.round(stationaryDurationMs / 60000)
     );
-
-    updates.stationaryAnchorLatitude = stillAtSamePlace
+    const nextStationaryAnchorLatitude = stillAtSamePlace
       ? anchorLatitude
       : liveLocation.latitude;
-    updates.stationaryAnchorLongitude = stillAtSamePlace
+    const nextStationaryAnchorLongitude = stillAtSamePlace
       ? anchorLongitude
       : liveLocation.longitude;
-    updates.stationarySinceAt = stationarySinceAt;
-    updates.hasStationaryAlertActive = stillAtSamePlace
+    const nextHasStationaryAlertActive = stillAtSamePlace
       ? trip.hasStationaryAlertActive === true
       : false;
+
+    if (trip.status !== evaluation.nextStatus) {
+      updates.status = evaluation.nextStatus;
+      shouldPersistTripState = true;
+    }
+    if ((trip.reason ?? null) !== (evaluation.nextReason ?? null)) {
+      updates.reason = evaluation.nextReason;
+      shouldPersistTripState = true;
+    }
+    if (trip.consecutiveDeviationCount !== evaluation.nextDeviationCount) {
+      updates.consecutiveDeviationCount = evaluation.nextDeviationCount;
+      shouldPersistTripState = true;
+    }
+    if ((trip.currentRouteId ?? null) !== (evaluation.matchedRouteId ?? null)) {
+      updates.currentRouteId = evaluation.matchedRouteId;
+      shouldPersistTripState = true;
+    }
+    if (
+      Math.abs(
+        trip.currentDistanceFromRouteMeters - evaluation.distanceFromRouteMeters,
+      ) >= context.minEvaluationDistanceMeters
+    ) {
+      updates.currentDistanceFromRouteMeters =
+        evaluation.distanceFromRouteMeters;
+      shouldPersistTripState = true;
+    }
+    if ((trip.hasLeftStartArea === true) !== hasLeftStartArea) {
+      updates.hasLeftStartArea = hasLeftStartArea;
+      shouldPersistTripState = true;
+    }
+    if ((trip.isNearStartArea === true) !== evaluation.isNearStartPoint) {
+      updates.isNearStartArea = evaluation.isNearStartPoint;
+      shouldPersistTripState = true;
+    }
+    if ((trip.stationaryAnchorLatitude ?? null) !== nextStationaryAnchorLatitude) {
+      updates.stationaryAnchorLatitude = nextStationaryAnchorLatitude;
+      shouldPersistTripState = true;
+    }
+    if (
+      (trip.stationaryAnchorLongitude ?? null) !==
+      nextStationaryAnchorLongitude
+    ) {
+      updates.stationaryAnchorLongitude = nextStationaryAnchorLongitude;
+      shouldPersistTripState = true;
+    }
+    if ((trip.stationarySinceAt ?? null) !== stationarySinceAt) {
+      updates.stationarySinceAt = stationarySinceAt;
+      shouldPersistTripState = true;
+    }
+    if (
+      (trip.hasStationaryAlertActive === true) !== nextHasStationaryAlertActive
+    ) {
+      updates.hasStationaryAlertActive = nextHasStationaryAlertActive;
+      shouldPersistTripState = true;
+    }
+
     const nextTripState: TripRecord = {
       ...trip,
       status: evaluation.nextStatus,
@@ -1415,10 +1720,10 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
       lastLocation: liveLocation,
       hasLeftStartArea,
       isNearStartArea: evaluation.isNearStartPoint,
-      stationaryAnchorLatitude: updates.stationaryAnchorLatitude,
-      stationaryAnchorLongitude: updates.stationaryAnchorLongitude,
+      stationaryAnchorLatitude: nextStationaryAnchorLatitude,
+      stationaryAnchorLongitude: nextStationaryAnchorLongitude,
       stationarySinceAt,
-      hasStationaryAlertActive: updates.hasStationaryAlertActive,
+      hasStationaryAlertActive: nextHasStationaryAlertActive,
     };
     const completedTripState: TripRecord = {
       ...nextTripState,
@@ -1442,6 +1747,8 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
       updates.consecutiveDeviationCount = 0;
       updates.currentDistanceFromRouteMeters = evaluation.distanceFromRouteMeters;
       updates.hasStationaryAlertActive = false;
+      updates.updatedAt = now;
+      updates.lastLocation = liveLocation;
       await tripRef.set(updates, {merge: true});
       return;
     }
@@ -1466,6 +1773,7 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
         });
         updates.lastDangerAlertAt = now;
         updates.lastDangerHazardId = evaluation.triggeredHazard.id;
+        shouldPersistTripState = true;
       }
     }
 
@@ -1487,6 +1795,7 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
           distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
         });
         updates.lastReturnedToStartAlertAt = now;
+        shouldPersistTripState = true;
       }
     } else if (returnedToRoute) {
       const didClaimBackOnRouteAlert = await claimTimedSafeRouteAlertDispatch({
@@ -1505,6 +1814,7 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
           distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
         });
         updates.lastBackOnRouteAlertAt = now;
+        shouldPersistTripState = true;
       }
     }
 
@@ -1535,6 +1845,7 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
         });
         updates.lastStationaryAlertAt = now;
         updates.hasStationaryAlertActive = true;
+        shouldPersistTripState = true;
       }
     }
 
@@ -1555,13 +1866,21 @@ export const monitorSafeRouteLiveLocation = onValueWritten(
           distanceFromRouteMeters: evaluation.distanceFromRouteMeters,
         });
         updates.lastDeviationAlertAt = now;
+        shouldPersistTripState = true;
       }
     }
 
-    if (!evaluation.triggeredHazard) {
+    if (!evaluation.triggeredHazard && trip.lastDangerHazardId != null) {
       updates.lastDangerHazardId = null;
+      shouldPersistTripState = true;
     }
 
+    if (!shouldPersistTripState) {
+      return;
+    }
+
+    updates.updatedAt = now;
+    updates.lastLocation = liveLocation;
     await tripRef.set(updates, {merge: true});
   }
 );

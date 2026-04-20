@@ -46,6 +46,71 @@ class SessionBootstrapCoordinator extends StatefulWidget {
       _SessionBootstrapCoordinatorState();
 }
 
+@visibleForTesting
+class SessionBootstrapTransitionDecision {
+  const SessionBootstrapTransitionDecision({
+    required this.shouldClearSessionState,
+    required this.shouldEnsureSessionBootstrap,
+    required this.shouldPrepareSessionForLogout,
+    required this.shouldResetRetryState,
+  });
+
+  final bool shouldClearSessionState;
+  final bool shouldEnsureSessionBootstrap;
+  final bool shouldPrepareSessionForLogout;
+  final bool shouldResetRetryState;
+}
+
+@visibleForTesting
+SessionBootstrapTransitionDecision computeSessionBootstrapTransition({
+  required SessionStatus status,
+  required String? uid,
+  required SessionStatus? prevStatus,
+  required String? prevUid,
+  required bool isLoggingOut,
+  required bool allowAuthenticatedSideEffects,
+  required String? identityResolvedUid,
+  required bool hasResolvedIdentity,
+  required String? bootstrappedUid,
+  required bool sessionBootstrapInFlight,
+  required String? bootstrapQueuedForUid,
+  required String? bootstrapRetryScheduledForUid,
+  required String? logoutPreparedForUid,
+}) {
+  final shouldClearSessionState =
+      status == SessionStatus.unauthenticated &&
+      (prevStatus != SessionStatus.unauthenticated || prevUid != null);
+
+  final shouldEnsureSessionBootstrap =
+      status == SessionStatus.authenticated &&
+      !isLoggingOut &&
+      uid != null &&
+      uid.isNotEmpty &&
+      (identityResolvedUid != uid ||
+          !hasResolvedIdentity ||
+          (allowAuthenticatedSideEffects &&
+              hasResolvedIdentity &&
+              bootstrappedUid != uid)) &&
+      !sessionBootstrapInFlight &&
+      bootstrapQueuedForUid != uid &&
+      (bootstrapRetryScheduledForUid != uid || hasResolvedIdentity);
+
+  final shouldPrepareSessionForLogout =
+      status == SessionStatus.authenticated &&
+      isLoggingOut &&
+      uid != null &&
+      uid.isNotEmpty &&
+      logoutPreparedForUid != uid;
+
+  return SessionBootstrapTransitionDecision(
+    shouldClearSessionState: shouldClearSessionState,
+    shouldEnsureSessionBootstrap: shouldEnsureSessionBootstrap,
+    shouldPrepareSessionForLogout: shouldPrepareSessionForLogout,
+    shouldResetRetryState:
+        status != SessionStatus.authenticated || isLoggingOut,
+  );
+}
+
 class _SessionBootstrapCoordinatorState
     extends State<SessionBootstrapCoordinator>
     with WidgetsBindingObserver {
@@ -104,54 +169,45 @@ class _SessionBootstrapCoordinatorState
     final uid = widget.resolvedSession.uid;
     final prevStatus = _lastStatus;
     final prevUid = _lastUid;
-
-    final shouldClearSessionState =
-        status == SessionStatus.unauthenticated &&
-        (prevStatus != SessionStatus.unauthenticated || prevUid != null);
-
-    final shouldEnsureSessionBootstrap =
-        status == SessionStatus.authenticated &&
-        !widget.isLoggingOut &&
-        uid != null &&
-        uid.isNotEmpty &&
-        (_identityResolvedUid != uid ||
-            !widget.resolvedSession.hasResolvedIdentity ||
-            (widget.allowAuthenticatedSideEffects &&
-                widget.resolvedSession.hasResolvedIdentity &&
-                _bootstrappedUid != uid)) &&
-        !_sessionBootstrapInFlight &&
-        _bootstrapQueuedForUid != uid &&
-        (_bootstrapRetryScheduledForUid != uid ||
-            widget.resolvedSession.hasResolvedIdentity);
-
-    final shouldPrepareSessionForLogout =
-        status == SessionStatus.authenticated &&
-        widget.isLoggingOut &&
-        uid != null &&
-        uid.isNotEmpty &&
-        _logoutPreparedForUid != uid;
+    final decision = computeSessionBootstrapTransition(
+      status: status,
+      uid: uid,
+      prevStatus: prevStatus,
+      prevUid: prevUid,
+      isLoggingOut: widget.isLoggingOut,
+      allowAuthenticatedSideEffects: widget.allowAuthenticatedSideEffects,
+      identityResolvedUid: _identityResolvedUid,
+      hasResolvedIdentity: widget.resolvedSession.hasResolvedIdentity,
+      bootstrappedUid: _bootstrappedUid,
+      sessionBootstrapInFlight: _sessionBootstrapInFlight,
+      bootstrapQueuedForUid: _bootstrapQueuedForUid,
+      bootstrapRetryScheduledForUid: _bootstrapRetryScheduledForUid,
+      logoutPreparedForUid: _logoutPreparedForUid,
+    );
 
     _lastStatus = status;
     _lastUid = uid;
 
-    if (status != SessionStatus.authenticated || widget.isLoggingOut) {
+    if (decision.shouldResetRetryState) {
       _bootstrapRetryTimer?.cancel();
       _bootstrapRetryTimer = null;
       _bootstrapRetryScheduledForUid = null;
       _bootstrapRetryAttempt = 0;
     }
 
-    if (shouldPrepareSessionForLogout && !_sessionPreLogoutCleanupInFlight) {
+    if (decision.shouldPrepareSessionForLogout &&
+        !_sessionPreLogoutCleanupInFlight &&
+        uid != null) {
       _sessionPreLogoutCleanupInFlight = true;
       unawaited(_runPreLogoutCleanup(uid));
     }
 
-    if (shouldClearSessionState && !_sessionCleanupInFlight) {
+    if (decision.shouldClearSessionState && !_sessionCleanupInFlight) {
       _sessionCleanupInFlight = true;
       unawaited(_runSessionCleanup());
     }
 
-    if (shouldEnsureSessionBootstrap) {
+    if (decision.shouldEnsureSessionBootstrap && uid != null) {
       _queueSessionBootstrap(uid: uid);
     }
   }
@@ -210,7 +266,9 @@ class _SessionBootstrapCoordinatorState
       }
 
       final liveUser = userVm.me?.uid == uid ? userVm.me : null;
-      final profile = userVm.profile?.id == uid ? userVm.profile : loadedProfile;
+      final profile = userVm.profile?.id == uid
+          ? userVm.profile
+          : loadedProfile;
       final resolvedSession = SessionGuardResolvedState.fromSources(
         status: currentSession.status,
         sessionUser: currentSession.user,
@@ -242,13 +300,18 @@ class _SessionBootstrapCoordinatorState
       );
 
       if (_pushInitedForUid != uid && profile != null) {
-        _pushInitedForUid = uid;
-        await FcmPushReceiverService.init(uid);
-        if (!mounted) return;
-        await SosNotificationService.instance.init(
-          onTapSos: SosTapRouter.handleTap,
-          role: profile.role,
-        );
+        try {
+          await FcmPushReceiverService.init(uid);
+          if (!mounted) return;
+          await SosNotificationService.instance.init(
+            onTapSos: SosTapRouter.handleTap,
+            role: profile.role,
+          );
+          _pushInitedForUid = uid;
+        } catch (_) {
+          _pushInitedForUid = null;
+          rethrow;
+        }
       }
 
       if (!mounted) return;
@@ -330,6 +393,8 @@ class _SessionBootstrapCoordinatorState
 
       if (resolvedRole == UserRole.parent && managedOwnerUid.isNotEmpty) {
         unawaited(appManagementVm.watchChildren(managedOwnerUid));
+      } else if (resolvedRole == UserRole.child) {
+        unawaited(appManagementVm.loadAndSeedApp());
       }
 
       _bootstrappedUid = uid;
@@ -337,7 +402,9 @@ class _SessionBootstrapCoordinatorState
       _bootstrapRetryAttempt = 0;
       _logoutPreparedForUid = null;
     } catch (e, st) {
-      debugPrint('[SessionBootstrapCoordinator] bootstrap failed uid=$uid error=$e');
+      debugPrint(
+        '[SessionBootstrapCoordinator] bootstrap failed uid=$uid error=$e',
+      );
       debugPrintStack(stackTrace: st);
       _scheduleBootstrapRetry(uid);
     }

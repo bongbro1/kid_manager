@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/network/app_network_error_mapper.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
 import 'package:kid_manager/repositories/notification_repository.dart';
+import 'package:kid_manager/utils/runtime_l10n.dart';
 
 typedef NotificationPredicate = bool Function(AppNotification n);
 
@@ -206,10 +208,14 @@ class NotificationVM extends ChangeNotifier {
       }
 
       debugPrint(
-        "📊 Total notifications now = ${_notifications.length} newLastCreatedAt=$_lastCreatedAt",
+        '[NotificationVM] total notifications=${_notifications.length} '
+        'newLastCreatedAt=$_lastCreatedAt',
       );
     } catch (e) {
-      debugPrint("loadMore error: $e");
+      debugPrint('[NotificationVM] loadMore error: $e');
+      if (AppNetworkErrorMapper.isNetworkError(e)) {
+        _error = runtimeL10n().appNetworkActionFailed;
+      }
     } finally {
       _loadingMore = false;
       _safeNotifyListeners();
@@ -314,9 +320,11 @@ class NotificationVM extends ChangeNotifier {
 
       notificationDetail = await _repo.getNotificationDetailByItem(_uid, n);
     } catch (e) {
-      debugPrint("Load notification detail error: $e");
+      debugPrint('Load notification detail error: $e');
       notificationDetail = null;
-      _error = e.toString();
+      _error = AppNetworkErrorMapper.isNetworkError(e)
+          ? runtimeL10n().appNetworkActionFailed
+          : e.toString();
     } finally {
       _loading = false;
       _safeNotifyListeners();
@@ -388,7 +396,9 @@ class NotificationVM extends ChangeNotifier {
       notificationDetail = await _repo.getNotificationDetailByItem(id, n);
     } catch (e) {
       notificationDetail = null;
-      _error = e.toString();
+      _error = AppNetworkErrorMapper.isNetworkError(e)
+          ? runtimeL10n().appNetworkActionFailed
+          : e.toString();
     } finally {
       _loading = false;
       _safeNotifyListeners();
@@ -400,7 +410,10 @@ class NotificationVM extends ChangeNotifier {
     if (uid == null) return;
 
     try {
-      debugPrint("🔎 markAsRead store=${n.store} vmUid=$uid notifId=${n.id}");
+      debugPrint(
+        '[NotificationVM] markAsRead store=${n.store} '
+        'vmUid=$uid notifId=${n.id}',
+      );
 
       if (n.store == NotificationStore.userInbox) {
         await _repo.markAsReadInbox(uid, n.id);
@@ -415,7 +428,11 @@ class NotificationVM extends ChangeNotifier {
         _safeNotifyListeners();
       }
     } catch (e) {
-      debugPrint("❌ markAsRead error: $e");
+      debugPrint('[NotificationVM] markAsRead error: $e');
+      if (AppNetworkErrorMapper.isNetworkError(e)) {
+        _error = runtimeL10n().appNetworkActionFailed;
+        _safeNotifyListeners();
+      }
       rethrow;
     }
   }
@@ -452,10 +469,18 @@ class NotificationVM extends ChangeNotifier {
     final uid = _uid;
     if (uid == null) return;
 
-    if (n.store == NotificationStore.userInbox) {
-      await _repo.deleteInbox(uid, n.id);
-    } else {
-      await _repo.deleteGlobal(n.id);
+    try {
+      if (n.store == NotificationStore.userInbox) {
+        await _repo.deleteInbox(uid, n.id);
+      } else {
+        await _repo.deleteGlobal(n.id);
+      }
+    } catch (e) {
+      if (AppNetworkErrorMapper.isNetworkError(e)) {
+        _error = runtimeL10n().appNetworkActionFailed;
+        _safeNotifyListeners();
+      }
+      rethrow;
     }
   }
 

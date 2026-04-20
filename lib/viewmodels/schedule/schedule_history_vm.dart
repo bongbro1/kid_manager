@@ -29,9 +29,7 @@ class ScheduleHistoryViewModel extends ChangeNotifier {
     _scheduleOwnerUid = normalized;
   }
 
-  Future<void> loadHistories({
-    required String scheduleId,
-  }) async {
+  Future<void> loadHistories({required String scheduleId}) async {
     isLoading = true;
     error = null;
     notifyListeners();

@@ -38,143 +38,150 @@ void main() {
       await locationMembersController.close();
     });
 
-    test('guardian family members list only shows parent and assigned children', () async {
-      await storage.setString(StorageKeys.uid, 'guardian-1');
-      await storage.setString(StorageKeys.role, UserRole.guardian.wireValue);
-      await storage.setString(StorageKeys.parentId, 'parent-1');
-      await storage.setStringList(StorageKeys.managedChildIds, ['child-1']);
+    test(
+      'guardian family members list only shows parent and assigned children',
+      () async {
+        await storage.setString(StorageKeys.uid, 'guardian-1');
+        await storage.setString(StorageKeys.role, UserRole.guardian.wireValue);
+        await storage.setString(StorageKeys.parentId, 'parent-1');
+        await storage.setStringList(StorageKeys.managedChildIds, ['child-1']);
 
-      viewModel.me = _buildUser(
-        uid: 'guardian-1',
-        role: UserRole.guardian,
-        parentUid: 'parent-1',
-        managedChildIds: const ['child-1'],
-      );
-
-      viewModel.watchFamilyMembers('family-1');
-      familyMembersController.add(<AppUser>[
-        _buildUser(uid: 'parent-1', role: UserRole.parent),
-        _buildUser(
-          uid: 'child-1',
-          role: UserRole.child,
-          parentUid: 'parent-1',
-        ),
-        _buildUser(
-          uid: 'child-2',
-          role: UserRole.child,
-          parentUid: 'parent-1',
-        ),
-        _buildUser(
-          uid: 'guardian-2',
-          role: UserRole.guardian,
-          parentUid: 'parent-1',
-        ),
-      ]);
-
-      await _flushAsync();
-
-      expect(repository.lastWatchedFamilyId, 'family-1');
-      expect(
-        viewModel.familyMembers.map((user) => user.uid).toList(),
-        ['parent-1', 'child-1'],
-      );
-    });
-
-    test('parent location members keep children visible even when tracking is off', () async {
-      await storage.setString(StorageKeys.uid, 'parent-1');
-      await storage.setString(StorageKeys.role, UserRole.parent.wireValue);
-
-      viewModel.me = _buildUser(
-        uid: 'parent-1',
-        role: UserRole.parent,
-      );
-
-      viewModel.watchLocationMembers('family-1');
-      locationMembersController.add(<AppUser>[
-        _buildUser(
-          uid: 'child-1',
-          role: UserRole.child,
-          parentUid: 'parent-1',
-          allowTracking: false,
-        ),
-        _buildUser(
-          uid: 'child-2',
-          role: UserRole.child,
-          parentUid: 'parent-1',
-          allowTracking: true,
-        ),
-        _buildUser(
+        viewModel.me = _buildUser(
           uid: 'guardian-1',
           role: UserRole.guardian,
           parentUid: 'parent-1',
-          allowTracking: true,
-        ),
-        _buildUser(
-          uid: 'guardian-2',
+          managedChildIds: const ['child-1'],
+        );
+
+        viewModel.watchFamilyMembers('family-1');
+        familyMembersController.add(<AppUser>[
+          _buildUser(uid: 'parent-1', role: UserRole.parent),
+          _buildUser(
+            uid: 'child-1',
+            role: UserRole.child,
+            parentUid: 'parent-1',
+          ),
+          _buildUser(
+            uid: 'child-2',
+            role: UserRole.child,
+            parentUid: 'parent-1',
+          ),
+          _buildUser(
+            uid: 'guardian-2',
+            role: UserRole.guardian,
+            parentUid: 'parent-1',
+          ),
+        ]);
+
+        await _flushAsync();
+
+        expect(repository.lastWatchedFamilyId, 'family-1');
+        expect(viewModel.familyMembers.map((user) => user.uid).toList(), [
+          'parent-1',
+          'child-1',
+        ]);
+      },
+    );
+
+    test(
+      'parent location members keep children visible even when tracking is off',
+      () async {
+        await storage.setString(StorageKeys.uid, 'parent-1');
+        await storage.setString(StorageKeys.role, UserRole.parent.wireValue);
+
+        viewModel.me = _buildUser(uid: 'parent-1', role: UserRole.parent);
+
+        viewModel.watchLocationMembers('family-1');
+        locationMembersController.add(<AppUser>[
+          _buildUser(
+            uid: 'child-1',
+            role: UserRole.child,
+            parentUid: 'parent-1',
+            allowTracking: false,
+          ),
+          _buildUser(
+            uid: 'child-2',
+            role: UserRole.child,
+            parentUid: 'parent-1',
+            allowTracking: true,
+          ),
+          _buildUser(
+            uid: 'guardian-1',
+            role: UserRole.guardian,
+            parentUid: 'parent-1',
+            allowTracking: true,
+          ),
+          _buildUser(
+            uid: 'guardian-2',
+            role: UserRole.guardian,
+            parentUid: 'parent-1',
+            allowTracking: false,
+          ),
+          _buildUser(
+            uid: 'child-foreign',
+            role: UserRole.child,
+            parentUid: 'parent-2',
+            allowTracking: true,
+          ),
+        ]);
+
+        await _flushAsync();
+
+        expect(repository.lastWatchedLocationFamilyId, 'family-1');
+        expect(repository.lastExcludedUid, 'parent-1');
+        expect(viewModel.locationMembers.map((user) => user.uid).toList(), [
+          'child-1',
+          'child-2',
+          'guardian-1',
+        ]);
+      },
+    );
+
+    test(
+      'guardian location members only keep assigned children in scope',
+      () async {
+        await storage.setString(StorageKeys.uid, 'guardian-1');
+        await storage.setString(StorageKeys.role, UserRole.guardian.wireValue);
+        await storage.setString(StorageKeys.parentId, 'parent-1');
+        await storage.setStringList(StorageKeys.managedChildIds, ['child-1']);
+
+        viewModel.me = _buildUser(
+          uid: 'guardian-1',
           role: UserRole.guardian,
           parentUid: 'parent-1',
-          allowTracking: false,
-        ),
-        _buildUser(
-          uid: 'child-foreign',
-          role: UserRole.child,
-          parentUid: 'parent-2',
-          allowTracking: true,
-        ),
-      ]);
+          managedChildIds: const ['child-1'],
+        );
 
-      await _flushAsync();
+        viewModel.watchLocationMembers('family-1');
+        locationMembersController.add(<AppUser>[
+          _buildUser(
+            uid: 'child-1',
+            role: UserRole.child,
+            parentUid: 'parent-1',
+            allowTracking: false,
+          ),
+          _buildUser(
+            uid: 'child-2',
+            role: UserRole.child,
+            parentUid: 'parent-1',
+            allowTracking: true,
+          ),
+          _buildUser(
+            uid: 'guardian-2',
+            role: UserRole.guardian,
+            parentUid: 'parent-1',
+            allowTracking: true,
+          ),
+        ]);
 
-      expect(repository.lastWatchedLocationFamilyId, 'family-1');
-      expect(repository.lastExcludedUid, 'parent-1');
-      expect(
-        viewModel.locationMembers.map((user) => user.uid).toList(),
-        ['child-1', 'child-2', 'guardian-1'],
-      );
-    });
+        await _flushAsync();
 
-    test('guardian location members only keep assigned children in scope', () async {
-      await storage.setString(StorageKeys.uid, 'guardian-1');
-      await storage.setString(StorageKeys.role, UserRole.guardian.wireValue);
-      await storage.setString(StorageKeys.parentId, 'parent-1');
-      await storage.setStringList(StorageKeys.managedChildIds, ['child-1']);
-
-      viewModel.me = _buildUser(
-        uid: 'guardian-1',
-        role: UserRole.guardian,
-        parentUid: 'parent-1',
-        managedChildIds: const ['child-1'],
-      );
-
-      viewModel.watchLocationMembers('family-1');
-      locationMembersController.add(<AppUser>[
-        _buildUser(
-          uid: 'child-1',
-          role: UserRole.child,
-          parentUid: 'parent-1',
-          allowTracking: false,
-        ),
-        _buildUser(
-          uid: 'child-2',
-          role: UserRole.child,
-          parentUid: 'parent-1',
-          allowTracking: true,
-        ),
-        _buildUser(
-          uid: 'guardian-2',
-          role: UserRole.guardian,
-          parentUid: 'parent-1',
-          allowTracking: true,
-        ),
-      ]);
-
-      await _flushAsync();
-
-      final ids = viewModel.locationMembers.map((user) => user.uid).toSet();
-      expect(ids.contains('child-1'), isTrue);
-      expect(ids.contains('child-2'), isFalse);
-      expect(ids.contains('guardian-2'), isTrue);
-    });
+        final ids = viewModel.locationMembers.map((user) => user.uid).toSet();
+        expect(ids.contains('child-1'), isTrue);
+        expect(ids.contains('child-2'), isFalse);
+        expect(ids.contains('guardian-2'), isTrue);
+      },
+    );
   });
 }
 
@@ -203,8 +210,8 @@ class _FakeUserRepository implements UserRepository {
   _FakeUserRepository({
     required Stream<List<AppUser>> familyMembersStream,
     required Stream<List<AppUser>> locationMembersStream,
-  })  : _familyMembersStream = familyMembersStream,
-        _locationMembersStream = locationMembersStream;
+  }) : _familyMembersStream = familyMembersStream,
+       _locationMembersStream = locationMembersStream;
 
   final Stream<List<AppUser>> _familyMembersStream;
   final Stream<List<AppUser>> _locationMembersStream;

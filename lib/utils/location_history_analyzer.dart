@@ -67,7 +67,8 @@ class LocationHistoryAnalyzer {
       return LocationHistorySummary.empty();
     }
 
-    final sorted = [...points]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final sorted = [...points]
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     final stopRanges = _detectStopRanges(sorted);
 
     var totalDistanceKm = 0.0;
@@ -162,7 +163,8 @@ class LocationHistoryAnalyzer {
 
       final durationMs =
           sorted[endIndex].timestamp - sorted[startIndex].timestamp;
-      if (distanceKm >= _minTripDistanceKm || durationMs >= _minTripDurationMs) {
+      if (distanceKm >= _minTripDistanceKm ||
+          durationMs >= _minTripDurationMs) {
         tripCount++;
       }
     }

@@ -28,6 +28,7 @@ import 'package:kid_manager/services/secondary_auth_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:kid_manager/viewmodels/app_init_vm.dart';
 import 'package:kid_manager/viewmodels/app_management_vm.dart';
+import 'package:kid_manager/viewmodels/app_connectivity_vm.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/location/parent_location_vm.dart';
 import 'package:kid_manager/viewmodels/location/sos_view_model.dart';
@@ -56,6 +57,7 @@ import 'viewmodels/schedule/schedule_vm.dart';
 import 'package:kid_manager/repositories/memory_day_repository.dart';
 import 'package:kid_manager/services/memory_day/memory_day_reminder_sync_service.dart';
 import 'package:kid_manager/viewmodels/memory_day_vm.dart';
+import 'package:kid_manager/widgets/app/app_connectivity_banner_host.dart';
 
 import 'package:kid_manager/services/schedule/schedule_import_service.dart';
 import 'package:kid_manager/viewmodels/schedule/schedule_import_vm.dart';
@@ -262,6 +264,10 @@ class _MyAppState extends State<MyApp> {
           lazy: false,
           create: (_) => SessionVM(_authRepo),
         ),
+        ChangeNotifierProvider<AppConnectivityVm>(
+          lazy: false,
+          create: (_) => AppConnectivityVm(),
+        ),
 
         ChangeNotifierProvider.value(value: _sosVm),
 
@@ -320,6 +326,9 @@ class _MyAppState extends State<MyApp> {
             theme: AppTheme.light(seedColor: _primaryColor),
 
             darkTheme: AppTheme.dark(seedColor: _primaryColor),
+            builder: (context, child) => AppConnectivityBannerHost(
+              child: child ?? const SizedBox.shrink(),
+            ),
             home: const StartupGate(),
           );
         },

@@ -10,10 +10,7 @@ import 'package:kid_manager/utils/date_utils.dart';
 import 'package:kid_manager/utils/runtime_l10n.dart';
 
 class MembershipRepository {
-  MembershipRepository(
-    this._db,
-    this._secondaryAuth,
-  );
+  MembershipRepository(this._db, this._secondaryAuth);
 
   final FirebaseFirestore _db;
   final SecondaryAuthService? _secondaryAuth;
@@ -21,7 +18,8 @@ class MembershipRepository {
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');
 
-  DocumentReference<Map<String, dynamic>> userRef(String uid) => _users.doc(uid);
+  DocumentReference<Map<String, dynamic>> userRef(String uid) =>
+      _users.doc(uid);
 
   Stream<List<AppUser>> watchChildren(String parentUid) {
     return _users
@@ -91,10 +89,12 @@ class MembershipRepository {
     required String familyId,
   }) {
     final user = AppUser.fromDoc(memberDoc);
-    final normalizedFamilyId =
-        (user.familyId ?? '').trim().isEmpty ? familyId : user.familyId;
-    final normalizedAllowTracking =
-        user.role == UserRole.child ? true : user.allowTracking;
+    final normalizedFamilyId = (user.familyId ?? '').trim().isEmpty
+        ? familyId
+        : user.familyId;
+    final normalizedAllowTracking = user.role == UserRole.child
+        ? true
+        : user.allowTracking;
 
     if (normalizedFamilyId == user.familyId &&
         normalizedAllowTracking == user.allowTracking) {
@@ -156,9 +156,11 @@ class MembershipRepository {
       );
 
       batch.set(
-        _db.collection('families').doc(familyId).collection('members').doc(
-              managedUid,
-            ),
+        _db
+            .collection('families')
+            .doc(familyId)
+            .collection('members')
+            .doc(managedUid),
         {
           ...buildFamilyMemberPublicFields(
             uid: managedUid,
@@ -220,22 +222,24 @@ class MembershipRepository {
 
       final now = DateTime.now();
 
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        final lastActive = (data['lastActiveAt'] as Timestamp?)?.toDate();
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            final lastActive = (data['lastActiveAt'] as Timestamp?)?.toDate();
 
-        var isOnline = false;
-        if (lastActive != null) {
-          isOnline = now.difference(lastActive).inMinutes <= 2;
-        }
+            var isOnline = false;
+            if (lastActive != null) {
+              isOnline = now.difference(lastActive).inMinutes <= 2;
+            }
 
-        return ChildItem(
-          id: doc.id,
-          name: (data['displayName'] ?? '').toString(),
-          avatarUrl: (data['avatarUrl'] ?? '').toString(),
-          isOnline: isOnline,
-        );
-      }).toList(growable: false);
+            return ChildItem(
+              id: doc.id,
+              name: (data['displayName'] ?? '').toString(),
+              avatarUrl: (data['avatarUrl'] ?? '').toString(),
+              isOnline: isOnline,
+            );
+          })
+          .toList(growable: false);
     } catch (e) {
       debugPrint('ERROR getChildrenByParentUid: $e');
       rethrow;
@@ -259,13 +263,15 @@ class MembershipRepository {
           .where('parentUid', isEqualTo: parentUid)
           .get();
 
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return ChildUser(
-          id: doc.id,
-          displayName: (data['displayName'] ?? '').toString(),
-        );
-      }).toList(growable: false);
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            return ChildUser(
+              id: doc.id,
+              displayName: (data['displayName'] ?? '').toString(),
+            );
+          })
+          .toList(growable: false);
     } catch (e) {
       debugPrint('getChildUsers error: $e');
       return [];

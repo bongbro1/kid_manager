@@ -57,17 +57,17 @@ class MemoryDay {
   }
 
   Map<String, dynamic> toMap() => {
-        'ownerParentUid': ownerParentUid,
-        'title': title,
-        'note': note,
-        'date': Timestamp.fromDate(date),
-        'repeatYearly': repeatYearly,
-        'reminderOffsets': _normalizeReminderOffsets(reminderOffsets),
-        'month': month,
-        'day': day,
-        'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
-        'updatedAt': updatedAt == null ? null : Timestamp.fromDate(updatedAt!),
-      }..removeWhere((key, value) => value == null);
+    'ownerParentUid': ownerParentUid,
+    'title': title,
+    'note': note,
+    'date': Timestamp.fromDate(date),
+    'repeatYearly': repeatYearly,
+    'reminderOffsets': _normalizeReminderOffsets(reminderOffsets),
+    'month': month,
+    'day': day,
+    'createdAt': createdAt == null ? null : Timestamp.fromDate(createdAt!),
+    'updatedAt': updatedAt == null ? null : Timestamp.fromDate(updatedAt!),
+  }..removeWhere((key, value) => value == null);
 
   MemoryDay copyWith({
     String? id,
@@ -97,17 +97,18 @@ class MemoryDay {
   static List<int> _normalizeReminderOffsets(dynamic raw) {
     if (raw is! Iterable) return const [];
 
-    final values = raw
-        .map((item) {
-          if (item is int) return item;
-          if (item is num) return item.toInt();
-          return int.tryParse(item.toString());
-        })
-        .whereType<int>()
-        .where((value) => value == 1 || value == 3 || value == 7)
-        .toSet()
-        .toList()
-      ..sort();
+    final values =
+        raw
+            .map((item) {
+              if (item is int) return item;
+              if (item is num) return item.toInt();
+              return int.tryParse(item.toString());
+            })
+            .whereType<int>()
+            .where((value) => value == 1 || value == 3 || value == 7)
+            .toSet()
+            .toList()
+          ..sort();
 
     return List<int>.unmodifiable(values);
   }

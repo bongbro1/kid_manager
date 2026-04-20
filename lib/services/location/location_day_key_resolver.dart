@@ -2,10 +2,9 @@ import 'package:kid_manager/services/location/device_time_zone_service.dart';
 import 'package:kid_manager/services/location/location_history_partition.dart';
 
 class LocationDayKeyResolver {
-  LocationDayKeyResolver({
-    DeviceTimeZoneService? deviceTimeZoneService,
-  }) : _deviceTimeZoneService =
-           deviceTimeZoneService ?? DeviceTimeZoneService.instance;
+  LocationDayKeyResolver({DeviceTimeZoneService? deviceTimeZoneService})
+    : _deviceTimeZoneService =
+          deviceTimeZoneService ?? DeviceTimeZoneService.instance;
 
   final DeviceTimeZoneService _deviceTimeZoneService;
 

@@ -1,4 +1,4 @@
-﻿import 'dart:ui' show Locale, PlatformDispatcher;
+import 'dart:ui' show Locale, PlatformDispatcher;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -16,8 +16,8 @@ class LocalAlarmService {
   bool _inited = false;
 
   Future<AppLocalizations> _loadL10n([String? lang]) {
-    final normalized =
-        (lang ?? PlatformDispatcher.instance.locale.languageCode).toLowerCase();
+    final normalized = (lang ?? PlatformDispatcher.instance.locale.languageCode)
+        .toLowerCase();
     return AppLocalizations.delegate.load(
       Locale(normalized.startsWith('en') ? 'en' : 'vi'),
     );
@@ -32,10 +32,7 @@ class LocalAlarmService {
       requestSoundPermission: false,
       requestBadgePermission: false,
     );
-    const settings = InitializationSettings(
-      android: androidInit,
-      iOS: iosInit,
-    );
+    const settings = InitializationSettings(android: androidInit, iOS: iosInit);
 
     await _plugin.initialize(settings);
 
@@ -50,18 +47,17 @@ class LocalAlarmService {
       showBadge: true,
     );
 
-    final androidImpl = _plugin.resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin
-    >();
+    final androidImpl = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidImpl?.createNotificationChannel(androidChannel);
 
     _inited = true;
     debugPrint('🔔 LocalAlarmService inited');
   }
 
-  Future<void> showDangerEnter({
-    required String zoneName,
-  }) async {
+  Future<void> showDangerEnter({required String zoneName}) async {
     await init();
     final l10n = await _loadL10n();
 
@@ -87,9 +83,7 @@ class LocalAlarmService {
     );
   }
 
-  Future<void> showDangerExit({
-    required String zoneName,
-  }) async {
+  Future<void> showDangerExit({required String zoneName}) async {
     await init();
     final l10n = await _loadL10n();
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -34,7 +35,13 @@ class EditScheduleScreen extends StatelessWidget {
           updatedAt: DateTime.now(),
         );
 
-        await vm.updateSchedule(updatedSchedule, l10n: l10n);
+        final ok = await runGuardedNetworkVoidAction(
+          context,
+          action: () => vm.updateSchedule(updatedSchedule, l10n: l10n),
+        );
+        if (!ok) {
+          return;
+        }
       },
     );
   }

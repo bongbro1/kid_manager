@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -94,16 +94,13 @@ class ParentLocationVm extends ChangeNotifier {
       }
 
       await _myGpsSub?.cancel();
-      _myGpsSub = _locationService.getLocationStream().listen(
-        (loc) {
-          _myLocation = loc;
-          if (_shareMyCurrentEnabled) {
-            unawaited(_publishCurrentLocation(loc));
-          }
-          notifyListeners();
-        },
-        onError: (e) => _setError(l10n.parentLocationGpsError('$e')),
-      );
+      _myGpsSub = _locationService.getLocationStream().listen((loc) {
+        _myLocation = loc;
+        if (_shareMyCurrentEnabled) {
+          unawaited(_publishCurrentLocation(loc));
+        }
+        notifyListeners();
+      }, onError: (e) => _setError(l10n.parentLocationGpsError('$e')));
     } catch (e) {
       _setError(l10n.parentLocationEnableGpsError('$e'));
     }
@@ -342,28 +339,25 @@ class ParentLocationVm extends ChangeNotifier {
 
     final sub = _locationRepo
         .watchChildLocation(member.uid, preferRealtime: preferRealtime)
-        .listen(
-      (loc) {
-        if (!_isValidLocation(loc)) return;
+        .listen((loc) {
+          if (!_isValidLocation(loc)) return;
 
-        _childrenLocations[member.uid] = loc;
+          _childrenLocations[member.uid] = loc;
 
-        final trail = _childrenTrails[member.uid]!;
-        if (trail.isEmpty || trail.last.timestamp != loc.timestamp) {
-          trail.add(loc);
-          if (trail.length > 300) {
-            trail.removeRange(0, trail.length - 300);
+          final trail = _childrenTrails[member.uid]!;
+          if (trail.isEmpty || trail.last.timestamp != loc.timestamp) {
+            trail.add(loc);
+            if (trail.length > 300) {
+              trail.removeRange(0, trail.length - 300);
+            }
           }
-        }
 
-        if (!_readyForInitialFocus) {
-          _readyForInitialFocus = true;
-        }
+          if (!_readyForInitialFocus) {
+            _readyForInitialFocus = true;
+          }
 
-        notifyListeners();
-      },
-      onError: (e) => unawaited(_setChildWatchError(member.uid, e)),
-    );
+          notifyListeners();
+        }, onError: (e) => unawaited(_setChildWatchError(member.uid, e)));
 
     _subs[member.uid] = sub;
   }

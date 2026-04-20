@@ -18,11 +18,7 @@ class LiveRouteController {
 
     final last = _points.last;
 
-    final d = _distance.as(
-      LengthUnit.Meter,
-      last,
-      newPoint,
-    );
+    final d = _distance.as(LengthUnit.Meter, last, newPoint);
 
     if (d < _minDistanceMeters) return;
 

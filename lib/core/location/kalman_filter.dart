@@ -20,9 +20,6 @@ class Kalman2D {
 
     _variance *= (1 - k);
 
-    return input.copyWith(
-      latitude: _lat,
-      longitude: _lng,
-    );
+    return input.copyWith(latitude: _lat, longitude: _lng);
   }
 }

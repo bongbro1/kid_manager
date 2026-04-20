@@ -344,15 +344,14 @@ class AppManagementVM extends ChangeNotifier {
     _error = null;
 
     try {
-      final role = _storage.getString(StorageKeys.role);
-      final userId = _storage.getString(StorageKeys.uid);
-
-      if (roleFromString(role, fallback: UserRole.child) != UserRole.child) {
+      final actor = await _resolveActor();
+      if (actor == null || actor.role != UserRole.child) {
         _setLoading(false);
         return;
       }
 
-      if (userId == null) {
+      final userId = actor.uid.trim();
+      if (userId.isEmpty) {
         _error = runtimeL10n().appManagementUserIdNotFound;
         _setLoading(false);
         return;

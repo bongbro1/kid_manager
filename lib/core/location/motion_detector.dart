@@ -22,21 +22,25 @@ class MotionDetector {
       MotionState.moving => baseMovementThresholdKm,
       MotionState.idle =>
         baseMovementThresholdKm * TrackingTuning.motionIdleDistanceMultiplier,
-      MotionState.stationary => baseMovementThresholdKm *
-          TrackingTuning.motionStationaryDistanceMultiplier,
+      MotionState.stationary =>
+        baseMovementThresholdKm *
+            TrackingTuning.motionStationaryDistanceMultiplier,
     };
 
     final movingSpeedThresholdMps = switch (current) {
       MotionState.moving => TrackingTuning.motionMovingSpeedThresholdMovingMps,
-      MotionState.idle => accuracyM <= TrackingTuning.goodAccuracyMaxM
-          ? TrackingTuning.motionMovingSpeedThresholdIdleGoodMps
-          : TrackingTuning.motionMovingSpeedThresholdIdleWeakMps,
-      MotionState.stationary => accuracyM <= TrackingTuning.goodAccuracyMaxM
-          ? TrackingTuning.motionMovingSpeedThresholdStationaryGoodMps
-          : TrackingTuning.motionMovingSpeedThresholdStationaryWeakMps,
+      MotionState.idle =>
+        accuracyM <= TrackingTuning.goodAccuracyMaxM
+            ? TrackingTuning.motionMovingSpeedThresholdIdleGoodMps
+            : TrackingTuning.motionMovingSpeedThresholdIdleWeakMps,
+      MotionState.stationary =>
+        accuracyM <= TrackingTuning.goodAccuracyMaxM
+            ? TrackingTuning.motionMovingSpeedThresholdStationaryGoodMps
+            : TrackingTuning.motionMovingSpeedThresholdStationaryWeakMps,
     };
 
-    if (distanceKm >= movementThresholdKm || speedMps >= movingSpeedThresholdMps) {
+    if (distanceKm >= movementThresholdKm ||
+        speedMps >= movingSpeedThresholdMps) {
       return MotionState.moving;
     }
 

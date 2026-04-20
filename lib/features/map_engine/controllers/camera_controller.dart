@@ -28,17 +28,12 @@ class CameraController {
     }
 
     final bounds = CoordinateBounds(
-      southwest: Point(
-        coordinates: Position(minLng, minLat),
-      ),
-      northeast: Point(
-        coordinates: Position(maxLng, maxLat),
-      ),
+      southwest: Point(coordinates: Position(minLng, minLat)),
+      northeast: Point(coordinates: Position(maxLng, maxLat)),
       infiniteBounds: false,
     );
 
-    final cameraOptions =
-    await map.cameraForCoordinateBounds(
+    final cameraOptions = await map.cameraForCoordinateBounds(
       bounds,
       MbxEdgeInsets(top: 100, left: 50, bottom: 100, right: 50),
       null,
@@ -47,10 +42,7 @@ class CameraController {
       null,
     );
 
-    await map.easeTo(
-      cameraOptions,
-      MapAnimationOptions(duration: 1200),
-    );
+    await map.easeTo(cameraOptions, MapAnimationOptions(duration: 1200));
   }
 
   Future<void> focusOnPoint(
@@ -60,9 +52,7 @@ class CameraController {
     final cameraState = await map.getCameraState();
     await map.easeTo(
       CameraOptions(
-        center: Point(
-          coordinates: Position(loc.longitude, loc.latitude),
-        ),
+        center: Point(coordinates: Position(loc.longitude, loc.latitude)),
         zoom: cameraState.zoom > zoom ? cameraState.zoom : zoom,
         bearing: cameraState.bearing,
         pitch: cameraState.pitch,
@@ -74,9 +64,7 @@ class CameraController {
   Future<void> follow(LocationData loc) async {
     await map.easeTo(
       CameraOptions(
-        center: Point(
-          coordinates: Position(loc.longitude, loc.latitude),
-        ),
+        center: Point(coordinates: Position(loc.longitude, loc.latitude)),
         zoom: 17,
       ),
       MapAnimationOptions(duration: 800),

@@ -1,4 +1,3 @@
-
 import 'package:kid_manager/core/location/tracking_state.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';

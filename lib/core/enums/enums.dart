@@ -1,5 +1,1 @@
-enum AppMapType  {
-  street,
-  satellite,
-  terrain,
-}
+enum AppMapType { street, satellite, terrain }

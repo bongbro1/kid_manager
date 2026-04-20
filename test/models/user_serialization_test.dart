@@ -68,21 +68,24 @@ void main() {
       expect(profile.roleKey, 'guardian');
     });
 
-    test('patch toMap omits role when not provided for partial update safety', () {
-      const patch = UserProfilePatch(
-        name: 'Parent',
-        phone: '0123',
-        gender: 'Nam',
-        dob: '23/03/2000',
-        address: 'HN',
-        allowTracking: true,
-      );
+    test(
+      'patch toMap omits role when not provided for partial update safety',
+      () {
+        const patch = UserProfilePatch(
+          name: 'Parent',
+          phone: '0123',
+          gender: 'Nam',
+          dob: '23/03/2000',
+          address: 'HN',
+          allowTracking: true,
+        );
 
-      final map = patch.toMap();
+        final map = patch.toMap();
 
-      expect(map.containsKey('role'), isFalse);
-      expect(map['displayName'], 'Parent');
-    });
+        expect(map.containsKey('role'), isFalse);
+        expect(map['displayName'], 'Parent');
+      },
+    );
   });
 
   group('AppUser member parsing', () {
@@ -112,17 +115,20 @@ void main() {
       expect(user.managedChildIds, ['child-1', 'child-2']);
     });
 
-    test('fromMap keeps legacy child docs visible on location when allowTracking is missing', () {
-      final user = AppUser.fromMap({
-        'role': 'child',
-        'familyId': 'family-1',
-        'parentUid': 'parent-1',
-        'displayName': 'Child',
-      }, docId: 'child-1');
+    test(
+      'fromMap keeps legacy child docs visible on location when allowTracking is missing',
+      () {
+        final user = AppUser.fromMap({
+          'role': 'child',
+          'familyId': 'family-1',
+          'parentUid': 'parent-1',
+          'displayName': 'Child',
+        }, docId: 'child-1');
 
-      expect(user.uid, 'child-1');
-      expect(user.role, UserRole.child);
-      expect(user.allowTracking, isTrue);
-    });
+        expect(user.uid, 'child-1');
+        expect(user.role, UserRole.child);
+        expect(user.allowTracking, isTrue);
+      },
+    );
   });
 }

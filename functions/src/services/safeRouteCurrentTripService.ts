@@ -1,5 +1,9 @@
 import {
+  RouteHazardRecord,
+  RoutePointRecord,
   SafeRouteCurrentTripSnapshotRecord,
+  SafeRouteMonitorContextRecord,
+  SafeRouteRecord,
   TripRecord,
   TripStatus,
 } from "../types";
@@ -61,6 +65,7 @@ export function selectCurrentTripForAudience(params: {
 export function buildSafeRouteCurrentTripSnapshot(params: {
   childId: string;
   trips: TripRecord[];
+  childMonitorContext?: SafeRouteMonitorContextRecord | null;
   nowMs: number;
 }): SafeRouteCurrentTripSnapshotRecord {
   const adultCurrentTrip =
@@ -86,6 +91,12 @@ export function buildSafeRouteCurrentTripSnapshot(params: {
         ? null
         : adultRecentCompletedTrip.updatedAt + RECENT_COMPLETED_TRIP_WINDOW_MS,
     childMonitorTrip,
+    childMonitorContext:
+      childMonitorTrip != null &&
+          params.childMonitorContext != null &&
+          params.childMonitorContext.tripId === childMonitorTrip.id
+        ? params.childMonitorContext
+        : null,
     updatedAt: params.nowMs,
   };
 }
@@ -95,6 +106,174 @@ function asTripRecord(value: unknown): TripRecord | null {
     return null;
   }
   return value as TripRecord;
+}
+
+function asRoutePointRecord(value: unknown): RoutePointRecord | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const data = value as Record<string, unknown>;
+  const latitude = Number(data.latitude ?? 0);
+  const longitude = Number(data.longitude ?? 0);
+  const sequence = Number(data.sequence ?? 0);
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    !Number.isFinite(sequence)
+  ) {
+    return null;
+  }
+
+  return {
+    latitude,
+    longitude,
+    sequence: Math.trunc(sequence),
+  };
+}
+
+function asRouteHazardRecord(value: unknown): RouteHazardRecord | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const data = value as Record<string, unknown>;
+  const id = typeof data.id === "string" ? data.id.trim() : "";
+  if (!id) {
+    return null;
+  }
+
+  const latitude = Number(data.latitude ?? 0);
+  const longitude = Number(data.longitude ?? 0);
+  const radiusMeters = Number(data.radiusMeters ?? 0);
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    !Number.isFinite(radiusMeters)
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    name: typeof data.name === "string" ? data.name : "Danger zone",
+    latitude,
+    longitude,
+    radiusMeters,
+    riskLevel:
+      data.riskLevel === "high" || data.riskLevel === "medium"
+        ? data.riskLevel
+        : "low",
+    sourceZoneId:
+      typeof data.sourceZoneId === "string" && data.sourceZoneId.trim()
+        ? data.sourceZoneId.trim()
+        : id,
+  };
+}
+
+function asSafeRouteRecord(value: unknown): SafeRouteRecord | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const data = value as Record<string, unknown>;
+  const id = typeof data.id === "string" ? data.id.trim() : "";
+  const childId = typeof data.childId === "string" ? data.childId.trim() : "";
+  if (!id || !childId) {
+    return null;
+  }
+
+  const startPoint = asRoutePointRecord(data.startPoint);
+  const endPoint = asRoutePointRecord(data.endPoint);
+  const points = Array.isArray(data.points)
+    ? data.points
+        .map((point) => asRoutePointRecord(point))
+        .filter((point): point is RoutePointRecord => point != null)
+    : [];
+  if (startPoint == null || endPoint == null || points.length < 2) {
+    return null;
+  }
+
+  return {
+    id,
+    childId,
+    parentId:
+      typeof data.parentId === "string" && data.parentId.trim()
+        ? data.parentId.trim()
+        : null,
+    name: typeof data.name === "string" ? data.name : "Safe route",
+    startPoint,
+    endPoint,
+    points,
+    hazards: Array.isArray(data.hazards)
+      ? data.hazards
+          .map((hazard) => asRouteHazardRecord(hazard))
+          .filter((hazard): hazard is RouteHazardRecord => hazard != null)
+      : [],
+    corridorWidthMeters: Number(data.corridorWidthMeters ?? 50),
+    distanceMeters: Number(data.distanceMeters ?? 0),
+    durationSeconds: Number(data.durationSeconds ?? 0),
+    travelMode:
+      data.travelMode === "motorbike" ||
+          data.travelMode === "pickup" ||
+          data.travelMode === "otherVehicle"
+        ? data.travelMode
+        : "walking",
+    createdAt: Number(data.createdAt ?? 0),
+    updatedAt: Number(data.updatedAt ?? 0),
+    profile:
+      typeof data.profile === "string" && data.profile.trim()
+        ? data.profile.trim()
+        : undefined,
+  };
+}
+
+function asSafeRouteMonitorContextRecord(
+  value: unknown,
+): SafeRouteMonitorContextRecord | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const data = value as Record<string, unknown>;
+  const tripId = typeof data.tripId === "string" ? data.tripId.trim() : "";
+  if (!tripId) {
+    return null;
+  }
+
+  const routes = Array.isArray(data.routes)
+    ? data.routes
+        .map((route) => asSafeRouteRecord(route))
+        .filter((route): route is SafeRouteRecord => route != null)
+    : [];
+  const hazards = Array.isArray(data.hazards)
+    ? data.hazards
+        .map((hazard) => asRouteHazardRecord(hazard))
+        .filter((hazard): hazard is RouteHazardRecord => hazard != null)
+    : [];
+  if (routes.length === 0) {
+    return null;
+  }
+
+  return {
+    tripId,
+    routes,
+    hazards,
+    builtAt:
+      typeof data.builtAt === "number" && Number.isFinite(data.builtAt)
+        ? Math.trunc(data.builtAt)
+        : 0,
+    minEvaluationIntervalMs:
+      typeof data.minEvaluationIntervalMs === "number" &&
+          Number.isFinite(data.minEvaluationIntervalMs)
+        ? Math.trunc(data.minEvaluationIntervalMs)
+        : 5000,
+    minEvaluationDistanceMeters:
+      typeof data.minEvaluationDistanceMeters === "number" &&
+          Number.isFinite(data.minEvaluationDistanceMeters)
+        ? Math.trunc(data.minEvaluationDistanceMeters)
+        : 10,
+  };
 }
 
 export function asSafeRouteCurrentTripSnapshotRecord(
@@ -126,6 +305,9 @@ export function asSafeRouteCurrentTripSnapshotRecord(
         ? Math.trunc(data.adultCurrentTripVisibleUntil)
         : null,
     childMonitorTrip: asTripRecord(data.childMonitorTrip),
+    childMonitorContext: asSafeRouteMonitorContextRecord(
+      data.childMonitorContext,
+    ),
     updatedAt,
   };
 }

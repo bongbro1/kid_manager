@@ -4150,6 +4150,30 @@ class AppLocalizationsVi extends AppLocalizations {
   String get firestoreUnavailable => 'Firestore tạm thời không khả dụng';
 
   @override
+  String get appOfflineBannerTitle => 'Bạn đang offline';
+
+  @override
+  String get appOfflineBannerSubtitle => 'Dữ liệu có thể chưa phải mới nhất.';
+
+  @override
+  String get appNetworkActionFailed =>
+      'Kết nối mạng không ổn định. Vui lòng thử lại.';
+
+  @override
+  String get appRetryWhenOnline => 'Bạn đang offline. Hãy thử lại khi có mạng.';
+
+  @override
+  String get childConnectionLost => 'Mất kết nối';
+
+  @override
+  String get childNoLocationYet => 'Chưa có vị trí';
+
+  @override
+  String childLastSeenAt(Object time) {
+    return 'Lần cuối $time';
+  }
+
+  @override
   String get firestoreGenericError => 'Lỗi Firestore';
 
   @override

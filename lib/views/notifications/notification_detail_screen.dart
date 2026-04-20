@@ -5,6 +5,7 @@ import 'package:kid_manager/core/app_page_transitions.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/core/location/map_focus_bus.dart';
+import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/features/safe_route/presentation/pages/tracking_page.dart';
 import 'package:kid_manager/features/safe_route/presentation/safe_route_access.dart';
 import 'package:kid_manager/helpers/phone/phone_helps.dart';
@@ -223,13 +224,19 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       return;
     }
 
-    final access = await loadSafeRouteAccess(
-      childId: childId,
-      profileRepository: context.read<ProfileRepository>(),
-      accessControl: context.read<AccessControlService>(),
-      requireManageChild: true,
-      requireViewLocation: true,
+    final access = await runGuardedNetworkAction<SafeRouteAccessResult>(
+      context,
+      action: () => loadSafeRouteAccess(
+        childId: childId,
+        profileRepository: context.read<ProfileRepository>(),
+        accessControl: context.read<AccessControlService>(),
+        requireManageChild: true,
+        requireViewLocation: true,
+      ),
     );
+    if (access == null) {
+      return;
+    }
     if (!access.isAllowed) {
       if (!mounted) return;
       final issue = access.issue;
