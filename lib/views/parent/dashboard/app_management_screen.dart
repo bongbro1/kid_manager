@@ -25,21 +25,33 @@ class AppManagementScreen extends StatefulWidget {
 class _AppManagementScreenState extends State<AppManagementScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  int _currentTabIndex = 0;
 
   // sau chuyển ra flash screen
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      if (mounted) setState(() {});
-    });
+    _currentTabIndex = _tabController.index;
+    _tabController.addListener(_handleTabChanged);
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _handleTabChanged() {
+    if (!mounted) return;
+
+    final nextIndex = _tabController.index;
+    if (nextIndex == _currentTabIndex) return;
+
+    setState(() {
+      _currentTabIndex = nextIndex;
+    });
   }
 
   Future<void> openUsageTimeEdit({
@@ -56,7 +68,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     final changed = await Navigator.of(context, rootNavigator: true).push<bool>(
       PageRouteBuilder<bool>(
         opaque: false,
-        barrierColor: Colors.black.withOpacity(0.12),
+        barrierColor: Colors.black.withValues(alpha: 0.12),
         transitionDuration: AppPageTransitions.forwardDuration,
         reverseTransitionDuration: AppPageTransitions.reverseDuration,
         pageBuilder: (_, animation, secondaryAnimation) {
@@ -84,10 +96,15 @@ class _AppManagementScreenState extends State<AppManagementScreen>
   }
 
   void _goTab(int index) {
-    if (_tabController.index == index) return;
-    setState(() {
-      _tabController.index = index;
-    });
+    if (_tabController.index == index && !_tabController.indexIsChanging) {
+      return;
+    }
+
+    _tabController.animateTo(
+      index,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
@@ -97,6 +114,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     if (!appVm.loading && !appVm.hasChild) {
       return const NoChildScreen();
     }
+
     return Skeletonizer(
       enabled: appVm.loading,
       enableSwitchAnimation: true,
@@ -116,6 +134,20 @@ class _AppManagementScreenState extends State<AppManagementScreen>
     );
     final screenHeight = MediaQuery.sizeOf(context).height;
     final isSkeleton = appVm.loading;
+
+    final displayApps = isSkeleton && apps.isEmpty
+        ? List.generate(
+            6,
+            (index) => AppItemModel(
+              packageName: 'skeleton_$index',
+              name: 'Loading app',
+              iconBase64: null,
+              usageTime: '0h 0m',
+              lastSeen: null,
+              dailyLimitMinutes: 0,
+            ),
+          )
+        : apps;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -177,7 +209,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                           color: Colors.white,
                           fontSize: Theme.of(
                             context,
-                          ).appTypography.screenTitle.fontSize!,
+                          ).appTypography.screenTitle.fontSize,
                         ),
                       ),
                     ],
@@ -188,7 +220,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                   // 👇 Carousel
                   Center(
                     child: UserCarouselCard(
-                      currentIndex: _tabController.index,
+                      currentIndex: _currentTabIndex,
                       onTapApps: () => _goTab(0),
                       onTapStats: () => _goTab(1),
                     ),
@@ -203,8 +235,9 @@ class _AppManagementScreenState extends State<AppManagementScreen>
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: IndexedStack(
-                  index: _tabController.index,
+                child: TabBarView(
+                  controller: _tabController,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
                     RefreshIndicator(
                       color: scheme.primary,
@@ -215,7 +248,7 @@ class _AppManagementScreenState extends State<AppManagementScreen>
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Column(
                           children: [
-                            ...apps.asMap().entries.map((entry) {
+                            ...displayApps.asMap().entries.map((entry) {
                               final index = entry.key;
                               final app = entry.value;
 

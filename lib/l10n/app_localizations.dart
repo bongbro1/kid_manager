@@ -524,6 +524,348 @@ abstract class AppLocalizations {
   /// **'Failed to clear subscription: {error}'**
   String subscriptionClearError(String error);
 
+  /// No description provided for @subscriptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription plans'**
+  String get subscriptionTitle;
+
+  /// No description provided for @subscriptionHeroEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'SUBSCRIPTION'**
+  String get subscriptionHeroEyebrow;
+
+  /// No description provided for @subscriptionHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the plan that fits your family'**
+  String get subscriptionHeroTitle;
+
+  /// No description provided for @subscriptionHeroDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with Basic, unlock deeper insights with Premium, or contact us for a School deployment tailored to larger organizations.'**
+  String get subscriptionHeroDescription;
+
+  /// No description provided for @subscriptionHeroChipFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family-ready'**
+  String get subscriptionHeroChipFamily;
+
+  /// No description provided for @subscriptionHeroChipReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed reports'**
+  String get subscriptionHeroChipReports;
+
+  /// No description provided for @subscriptionHeroChipPrioritySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority support'**
+  String get subscriptionHeroChipPrioritySupport;
+
+  /// No description provided for @subscriptionCurrentPlanLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current plan'**
+  String get subscriptionCurrentPlanLabel;
+
+  /// No description provided for @subscriptionCurrentPlanNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No plan registered yet'**
+  String get subscriptionCurrentPlanNone;
+
+  /// No description provided for @subscriptionCurrentStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get subscriptionCurrentStatusLabel;
+
+  /// No description provided for @subscriptionStatusUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get subscriptionStatusUnknown;
+
+  /// No description provided for @subscriptionStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get subscriptionStatusActive;
+
+  /// No description provided for @subscriptionStatusTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Trial'**
+  String get subscriptionStatusTrial;
+
+  /// No description provided for @subscriptionStatusExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get subscriptionStatusExpired;
+
+  /// No description provided for @subscriptionStatusCanceled.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled'**
+  String get subscriptionStatusCanceled;
+
+  /// No description provided for @subscriptionStatusPaymentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment failed'**
+  String get subscriptionStatusPaymentFailed;
+
+  /// No description provided for @subscriptionSectionEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'PLANS'**
+  String get subscriptionSectionEyebrow;
+
+  /// No description provided for @subscriptionSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan options'**
+  String get subscriptionSectionTitle;
+
+  /// No description provided for @subscriptionSectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select one package below to register right away or request a School consultation.'**
+  String get subscriptionSectionDescription;
+
+  /// No description provided for @subscriptionSelectedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected'**
+  String get subscriptionSelectedBadge;
+
+  /// No description provided for @subscriptionPopularBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get subscriptionPopularBadge;
+
+  /// No description provided for @subscriptionContactBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get subscriptionContactBadge;
+
+  /// No description provided for @subscriptionRegisterNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Register now'**
+  String get subscriptionRegisterNow;
+
+  /// No description provided for @subscriptionContactNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact us'**
+  String get subscriptionContactNow;
+
+  /// No description provided for @subscriptionSelectPlanPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a plan to continue'**
+  String get subscriptionSelectPlanPrompt;
+
+  /// No description provided for @subscriptionRegisteredSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan registered successfully'**
+  String get subscriptionRegisteredSuccess;
+
+  /// No description provided for @subscriptionContactRequestSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Your School plan request has been sent. Our team will contact you soon.'**
+  String get subscriptionContactRequestSuccess;
+
+  /// No description provided for @subscriptionLoadPlansEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No subscription plans are available right now.'**
+  String get subscriptionLoadPlansEmpty;
+
+  /// No description provided for @subscriptionRetryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get subscriptionRetryButton;
+
+  /// No description provided for @subscriptionUserIdNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not determine the current account'**
+  String get subscriptionUserIdNotFound;
+
+  /// No description provided for @subscriptionPlanBasicTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic'**
+  String get subscriptionPlanBasicTitle;
+
+  /// No description provided for @subscriptionPlanBasicPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get subscriptionPlanBasicPrice;
+
+  /// No description provided for @subscriptionPlanBasicSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A solid starting point for families who need the essential monitoring tools.'**
+  String get subscriptionPlanBasicSubtitle;
+
+  /// No description provided for @subscriptionPlanBasicFeature1.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage child and guardian accounts'**
+  String get subscriptionPlanBasicFeature1;
+
+  /// No description provided for @subscriptionPlanBasicFeature2.
+  ///
+  /// In en, this message translates to:
+  /// **'Track core activity and updates'**
+  String get subscriptionPlanBasicFeature2;
+
+  /// No description provided for @subscriptionPlanBasicFeature3.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive in-app alerts instantly'**
+  String get subscriptionPlanBasicFeature3;
+
+  /// No description provided for @subscriptionPlanPremiumTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get subscriptionPlanPremiumTitle;
+
+  /// No description provided for @subscriptionPlanPremiumPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'\$3.99 / month'**
+  String get subscriptionPlanPremiumPrice;
+
+  /// No description provided for @subscriptionPlanPremiumSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock deeper visibility, longer history, and faster support for daily management.'**
+  String get subscriptionPlanPremiumSubtitle;
+
+  /// No description provided for @subscriptionPlanPremiumFeature1.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything in Basic'**
+  String get subscriptionPlanPremiumFeature1;
+
+  /// No description provided for @subscriptionPlanPremiumFeature2.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced reports and long-term history'**
+  String get subscriptionPlanPremiumFeature2;
+
+  /// No description provided for @subscriptionPlanPremiumFeature3.
+  ///
+  /// In en, this message translates to:
+  /// **'Expanded data retention'**
+  String get subscriptionPlanPremiumFeature3;
+
+  /// No description provided for @subscriptionPlanPremiumFeature4.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority customer support'**
+  String get subscriptionPlanPremiumFeature4;
+
+  /// No description provided for @subscriptionPlanSchoolTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'School'**
+  String get subscriptionPlanSchoolTitle;
+
+  /// No description provided for @subscriptionPlanSchoolPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact us'**
+  String get subscriptionPlanSchoolPrice;
+
+  /// No description provided for @subscriptionPlanSchoolSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A deployment package for schools and organizations managing multiple classes or teams.'**
+  String get subscriptionPlanSchoolSubtitle;
+
+  /// No description provided for @subscriptionPlanSchoolFeature1.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi-class and multi-account management'**
+  String get subscriptionPlanSchoolFeature1;
+
+  /// No description provided for @subscriptionPlanSchoolFeature2.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher and administrator roles'**
+  String get subscriptionPlanSchoolFeature2;
+
+  /// No description provided for @subscriptionPlanSchoolFeature3.
+  ///
+  /// In en, this message translates to:
+  /// **'Centralized analytics'**
+  String get subscriptionPlanSchoolFeature3;
+
+  /// No description provided for @subscriptionPlanSchoolFeature4.
+  ///
+  /// In en, this message translates to:
+  /// **'Operational customization'**
+  String get subscriptionPlanSchoolFeature4;
+
+  /// No description provided for @subscriptionSupportEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'SUPPORT'**
+  String get subscriptionSupportEyebrow;
+
+  /// No description provided for @subscriptionSupportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Need help choosing?'**
+  String get subscriptionSupportTitle;
+
+  /// No description provided for @subscriptionSupportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'If you are evaluating Premium or planning a School rollout, our team can help you choose the right setup.'**
+  String get subscriptionSupportDescription;
+
+  /// No description provided for @subscriptionSupportEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get subscriptionSupportEmailLabel;
+
+  /// No description provided for @subscriptionSupportPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Hotline'**
+  String get subscriptionSupportPhoneLabel;
+
+  /// No description provided for @subscriptionSupportHoursLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours'**
+  String get subscriptionSupportHoursLabel;
+
+  /// No description provided for @subscriptionSupportHoursValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon - Fri, 08:00 - 18:00'**
+  String get subscriptionSupportHoursValue;
+
   /// No description provided for @appManagementSyncFailed.
   ///
   /// In en, this message translates to:

@@ -245,6 +245,194 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
+  String get subscriptionTitle => 'Gói đăng ký';
+
+  @override
+  String get subscriptionHeroEyebrow => 'GÓI DỊCH VỤ';
+
+  @override
+  String get subscriptionHeroTitle => 'Chọn gói phù hợp với gia đình của bạn';
+
+  @override
+  String get subscriptionHeroDescription =>
+      'Bắt đầu với Basic, mở rộng khả năng theo dõi bằng Premium, hoặc gửi yêu cầu để được tư vấn gói School cho tổ chức lớn hơn.';
+
+  @override
+  String get subscriptionHeroChipFamily => 'Sẵn sàng cho gia đình';
+
+  @override
+  String get subscriptionHeroChipReports => 'Báo cáo chi tiết';
+
+  @override
+  String get subscriptionHeroChipPrioritySupport => 'Hỗ trợ ưu tiên';
+
+  @override
+  String get subscriptionCurrentPlanLabel => 'Gói hiện tại';
+
+  @override
+  String get subscriptionCurrentPlanNone => 'Bạn chưa đăng ký gói nào';
+
+  @override
+  String get subscriptionCurrentStatusLabel => 'Trạng thái';
+
+  @override
+  String get subscriptionStatusUnknown => 'Chưa có';
+
+  @override
+  String get subscriptionStatusActive => 'Đang hoạt động';
+
+  @override
+  String get subscriptionStatusTrial => 'Dùng thử';
+
+  @override
+  String get subscriptionStatusExpired => 'Hết hạn';
+
+  @override
+  String get subscriptionStatusCanceled => 'Đã hủy';
+
+  @override
+  String get subscriptionStatusPaymentFailed => 'Thanh toán lỗi';
+
+  @override
+  String get subscriptionSectionEyebrow => 'LỰA CHỌN';
+
+  @override
+  String get subscriptionSectionTitle => 'Các gói khả dụng';
+
+  @override
+  String get subscriptionSectionDescription =>
+      'Chọn một gói bên dưới để đăng ký ngay hoặc gửi yêu cầu tư vấn gói School.';
+
+  @override
+  String get subscriptionSelectedBadge => 'Đã chọn';
+
+  @override
+  String get subscriptionPopularBadge => 'Phổ biến';
+
+  @override
+  String get subscriptionContactBadge => 'Liên hệ';
+
+  @override
+  String get subscriptionRegisterNow => 'Đăng ký ngay';
+
+  @override
+  String get subscriptionContactNow => 'Liên hệ';
+
+  @override
+  String get subscriptionSelectPlanPrompt => 'Hãy chọn một gói để tiếp tục';
+
+  @override
+  String get subscriptionRegisteredSuccess => 'Đăng ký gói thành công';
+
+  @override
+  String get subscriptionContactRequestSuccess =>
+      'Yêu cầu tư vấn gói School đã được gửi. Đội ngũ của chúng tôi sẽ liên hệ với bạn sớm.';
+
+  @override
+  String get subscriptionLoadPlansEmpty => 'Hiện chưa có gói đăng ký khả dụng.';
+
+  @override
+  String get subscriptionRetryButton => 'Thử lại';
+
+  @override
+  String get subscriptionUserIdNotFound =>
+      'Không xác định được tài khoản hiện tại';
+
+  @override
+  String get subscriptionPlanBasicTitle => 'Basic';
+
+  @override
+  String get subscriptionPlanBasicPrice => 'Miễn phí';
+
+  @override
+  String get subscriptionPlanBasicSubtitle =>
+      'Điểm khởi đầu gọn gàng cho gia đình cần các công cụ theo dõi thiết yếu.';
+
+  @override
+  String get subscriptionPlanBasicFeature1 =>
+      'Quản lý tài khoản trẻ và người giám hộ';
+
+  @override
+  String get subscriptionPlanBasicFeature2 =>
+      'Theo dõi hoạt động cốt lõi và cập nhật';
+
+  @override
+  String get subscriptionPlanBasicFeature3 =>
+      'Nhận cảnh báo trực tiếp trong ứng dụng';
+
+  @override
+  String get subscriptionPlanPremiumTitle => 'Premium';
+
+  @override
+  String get subscriptionPlanPremiumPrice => '99.000đ / tháng';
+
+  @override
+  String get subscriptionPlanPremiumSubtitle =>
+      'Mở khóa báo cáo sâu hơn, lịch sử dài hơn và hỗ trợ nhanh hơn cho nhu cầu quản lý hằng ngày.';
+
+  @override
+  String get subscriptionPlanPremiumFeature1 =>
+      'Bao gồm toàn bộ tính năng của Basic';
+
+  @override
+  String get subscriptionPlanPremiumFeature2 =>
+      'Báo cáo nâng cao và lịch sử dài hạn';
+
+  @override
+  String get subscriptionPlanPremiumFeature3 =>
+      'Dung lượng lưu trữ dữ liệu lớn hơn';
+
+  @override
+  String get subscriptionPlanPremiumFeature4 => 'Hỗ trợ khách hàng ưu tiên';
+
+  @override
+  String get subscriptionPlanSchoolTitle => 'School';
+
+  @override
+  String get subscriptionPlanSchoolPrice => 'Liên hệ';
+
+  @override
+  String get subscriptionPlanSchoolSubtitle =>
+      'Gói triển khai dành cho trường học và tổ chức cần quản lý nhiều lớp hoặc nhiều nhóm.';
+
+  @override
+  String get subscriptionPlanSchoolFeature1 =>
+      'Quản lý nhiều lớp và nhiều tài khoản';
+
+  @override
+  String get subscriptionPlanSchoolFeature2 =>
+      'Phân quyền giáo viên và quản trị viên';
+
+  @override
+  String get subscriptionPlanSchoolFeature3 => 'Phân tích tập trung';
+
+  @override
+  String get subscriptionPlanSchoolFeature4 =>
+      'Tùy chỉnh theo nhu cầu vận hành';
+
+  @override
+  String get subscriptionSupportEyebrow => 'HỖ TRỢ';
+
+  @override
+  String get subscriptionSupportTitle => 'Cần hỗ trợ chọn gói?';
+
+  @override
+  String get subscriptionSupportDescription =>
+      'Nếu bạn đang cân nhắc Premium hoặc muốn triển khai School, đội ngũ của chúng tôi sẽ hỗ trợ bạn chọn cấu hình phù hợp.';
+
+  @override
+  String get subscriptionSupportEmailLabel => 'Email';
+
+  @override
+  String get subscriptionSupportPhoneLabel => 'Hotline';
+
+  @override
+  String get subscriptionSupportHoursLabel => 'Thời gian';
+
+  @override
+  String get subscriptionSupportHoursValue => 'Thứ 2 - Thứ 6, 08:00 - 18:00';
+
+  @override
   String get appManagementSyncFailed => 'Không thể đồng bộ ứng dụng';
 
   @override

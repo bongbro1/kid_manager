@@ -18,46 +18,26 @@ class AboutAppScreen extends StatelessWidget {
       regular: 20,
     );
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final versionText = l10n.aboutAppVersionLabel('1.0.0');
 
-    final plans = const [
-      _PlanData(
-        title: 'Gói Cơ bản',
-        price: 'Miễn phí',
-        subtitle:
-            'Dành cho gia đình muốn bắt đầu với những tính năng thiết yếu.',
-        icon: Icons.layers_rounded,
-        features: [
-          'Quản lý hồ sơ trẻ và người thân',
-          'Theo dõi hoạt động cơ bản',
-          'Nhận thông báo trực tiếp trong ứng dụng',
-        ],
+    const featureItems = [
+      _AboutFeatureData(
+        icon: Icons.shield_rounded,
+        title: 'An toàn và rõ ràng',
+        description:
+            'Tập trung các tín hiệu quan trọng để phụ huynh theo dõi gia đình dễ hơn mỗi ngày.',
       ),
-      _PlanData(
-        title: 'Gói Premium',
-        price: '99.000đ / tháng',
-        subtitle:
-            'Mở khóa trải nghiệm đầy đủ với báo cáo sâu và hỗ trợ ưu tiên.',
-        icon: Icons.workspace_premium_rounded,
-        features: [
-          'Bao gồm toàn bộ tính năng của gói Cơ bản',
-          'Báo cáo nâng cao và lịch sử dài hạn',
-          'Lưu trữ dữ liệu nhiều hơn',
-          'Ưu tiên hỗ trợ khách hàng',
-        ],
-        highlight: true,
+      _AboutFeatureData(
+        icon: Icons.notifications_active_rounded,
+        title: 'Phản hồi theo thời gian thực',
+        description:
+            'Thông báo, cập nhật và các mốc hoạt động được trình bày trực tiếp trong ứng dụng.',
       ),
-      _PlanData(
-        title: 'Gói Trường học',
-        price: 'Liên hệ',
-        subtitle:
-            'Phù hợp cho tổ chức cần quản lý nhiều lớp hoặc nhiều nhóm trẻ.',
-        icon: Icons.school_rounded,
-        features: [
-          'Quản lý nhiều lớp và nhiều tài khoản',
-          'Phân quyền giáo viên và quản trị viên',
-          'Thống kê tập trung',
-          'Tùy chỉnh theo nhu cầu vận hành',
-        ],
+      _AboutFeatureData(
+        icon: Icons.insights_rounded,
+        title: 'Quản lý có chiều sâu',
+        description:
+            'Gộp theo dõi, báo cáo và kiểm soát vào cùng một trải nghiệm nhất quán.',
       ),
     ];
 
@@ -115,7 +95,7 @@ class AboutAppScreen extends StatelessWidget {
                 index: 0,
                 child: _AboutHeroCard(
                   appName: l10n.aboutAppName,
-                  versionText: l10n.aboutAppVersionLabel('1.0.0'),
+                  versionText: versionText,
                   description: l10n.aboutAppDescription,
                 ),
               ),
@@ -123,41 +103,44 @@ class AboutAppScreen extends StatelessWidget {
               const AppScrollReveal(
                 index: 1,
                 child: _SectionHeader(
-                  eyebrow: 'DỊCH VỤ',
-                  title: 'Các gói tài khoản',
+                  eyebrow: 'ỨNG DỤNG',
+                  title: 'Điểm nổi bật',
                   description:
-                      'Chọn cấp độ phù hợp với nhu cầu quản lý gia đình hoặc tổ chức của bạn.',
+                      'Kid Manager được xây dựng để việc theo dõi, kết nối và quản lý gia đình trở nên gọn gàng hơn.',
                 ),
               ),
               const SizedBox(height: 14),
-              ...plans.indexed.map((entry) {
+              ...featureItems.indexed.map((entry) {
                 final index = entry.$1;
-                final plan = entry.$2;
+                final item = entry.$2;
                 return Padding(
                   padding: EdgeInsets.only(
-                    bottom: index == plans.length - 1 ? 0 : 14,
+                    bottom: index == featureItems.length - 1 ? 0 : 14,
                   ),
                   child: AppScrollReveal(
                     index: index + 2,
-                    child: _PlanCard(plan: plan),
+                    child: _AboutFeatureCard(item: item),
                   ),
                 );
               }),
               const SizedBox(height: 28),
-              const AppScrollReveal(
-                index: 5,
-                child: _SectionHeader(
-                  eyebrow: 'LIÊN HỆ',
-                  title: 'Hỗ trợ nhanh',
+              AppScrollReveal(
+                index: featureItems.length + 2,
+                child: const _SectionHeader(
+                  eyebrow: 'THÔNG TIN',
+                  title: 'Thông tin ứng dụng',
                   description:
-                      'Nếu cần hỗ trợ về tài khoản, tính năng hoặc gói dịch vụ, đội ngũ của chúng tôi luôn sẵn sàng.',
+                      'Một vài thông tin nhanh để bạn nhận diện phiên bản và phạm vi sử dụng hiện tại của ứng dụng.',
                 ),
               ),
               const SizedBox(height: 14),
-              const AppScrollReveal(index: 6, child: _SupportCard()),
+              AppScrollReveal(
+                index: featureItems.length + 3,
+                child: _AboutInfoCard(versionText: versionText),
+              ),
               const SizedBox(height: 24),
               AppScrollReveal(
-                index: 7,
+                index: featureItems.length + 4,
                 child: Center(
                   child: Text(
                     l10n.aboutAppCopyright,
@@ -419,10 +402,10 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan});
+class _AboutFeatureCard extends StatelessWidget {
+  const _AboutFeatureCard({required this.item});
 
-  final _PlanData plan;
+  final _AboutFeatureData item;
 
   @override
   Widget build(BuildContext context) {
@@ -430,162 +413,66 @@ class _PlanCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final typography = theme.appTypography;
 
-    final baseColor = plan.highlight
-        ? scheme.primaryContainer.withValues(alpha: 0.92)
-        : scheme.surface.withValues(alpha: 0.84);
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: baseColor,
+        color: scheme.surface.withValues(alpha: 0.90),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: plan.highlight
-              ? scheme.primary.withValues(alpha: 0.26)
-              : scheme.outline.withValues(alpha: 0.12),
-        ),
-        boxShadow: plan.highlight
-            ? [
-                BoxShadow(
-                  color: scheme.primary.withValues(alpha: 0.10),
-                  blurRadius: 24,
-                  offset: const Offset(0, 14),
-                ),
-              ]
-            : null,
+        border: Border.all(color: scheme.outline.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: plan.highlight
-                      ? scheme.primary
-                      : scheme.surface.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  plan.icon,
-                  size: 24,
-                  color: plan.highlight ? scheme.onPrimary : scheme.primary,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            plan.title,
-                            style: typography.title.copyWith(
-                              color: scheme.onSurface,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        if (plan.highlight)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: scheme.primary.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              'Phổ biến',
-                              style: typography.meta.copyWith(
-                                color: scheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      plan.price,
-                      style: typography.itemTitle.copyWith(
-                        color: plan.highlight
-                            ? scheme.primary
-                            : scheme.onSurface,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(item.icon, size: 24, color: scheme.primary),
           ),
-          const SizedBox(height: 14),
-          Text(
-            plan.subtitle,
-            style: typography.sectionLabel.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.55,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: typography.title.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.description,
+                  style: typography.body.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.55,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          ...plan.features.indexed.map((entry) {
-            final index = entry.$1;
-            final item = entry.$2;
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: index == plan.features.length - 1 ? 0 : 10,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 22,
-                    height: 22,
-                    margin: const EdgeInsets.only(top: 1),
-                    decoration: BoxDecoration(
-                      color: plan.highlight
-                          ? scheme.primary.withValues(alpha: 0.12)
-                          : scheme.surface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.check_rounded,
-                      size: 14,
-                      color: plan.highlight
-                          ? scheme.primary
-                          : scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      item,
-                      style: typography.body.copyWith(
-                        color: scheme.onSurface,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
         ],
       ),
     );
   }
 }
 
-class _SupportCard extends StatelessWidget {
-  const _SupportCard();
+class _AboutInfoCard extends StatelessWidget {
+  const _AboutInfoCard({required this.versionText});
+
+  final String versionText;
 
   @override
   Widget build(BuildContext context) {
@@ -599,24 +486,24 @@ class _SupportCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: scheme.outline.withValues(alpha: 0.12)),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          _SupportTile(
-            icon: Icons.mail_outline_rounded,
-            label: 'Email',
-            value: 'support@kidmanager.app',
+          _InfoRow(
+            icon: Icons.info_outline_rounded,
+            label: 'Phiên bản',
+            value: versionText,
           ),
-          SizedBox(height: 12),
-          _SupportTile(
-            icon: Icons.call_outlined,
-            label: 'Hotline',
-            value: '1900 1234',
+          const SizedBox(height: 12),
+          const _InfoRow(
+            icon: Icons.family_restroom_rounded,
+            label: 'Đối tượng sử dụng',
+            value: 'Phụ huynh, người giám hộ và gia đình',
           ),
-          SizedBox(height: 12),
-          _SupportTile(
-            icon: Icons.language_rounded,
-            label: 'Website',
-            value: 'www.kidmanager.app',
+          const SizedBox(height: 12),
+          const _InfoRow(
+            icon: Icons.track_changes_rounded,
+            label: 'Mục tiêu',
+            value: 'Theo dõi, kết nối và quản lý thông tin gia đình hằng ngày',
           ),
         ],
       ),
@@ -624,8 +511,8 @@ class _SupportCard extends StatelessWidget {
   }
 }
 
-class _SupportTile extends StatelessWidget {
-  const _SupportTile({
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
@@ -650,6 +537,7 @@ class _SupportTile extends StatelessWidget {
         border: Border.all(color: scheme.outline.withValues(alpha: 0.10)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 42,
@@ -678,6 +566,7 @@ class _SupportTile extends StatelessWidget {
                   style: typography.body.copyWith(
                     color: scheme.onSurface,
                     fontWeight: FontWeight.w600,
+                    height: 1.5,
                   ),
                 ),
               ],
@@ -689,20 +578,14 @@ class _SupportTile extends StatelessWidget {
   }
 }
 
-class _PlanData {
-  const _PlanData({
-    required this.title,
-    required this.price,
-    required this.subtitle,
+class _AboutFeatureData {
+  const _AboutFeatureData({
     required this.icon,
-    required this.features,
-    this.highlight = false,
+    required this.title,
+    required this.description,
   });
 
-  final String title;
-  final String price;
-  final String subtitle;
   final IconData icon;
-  final List<String> features;
-  final bool highlight;
+  final String title;
+  final String description;
 }

@@ -70,11 +70,6 @@ service cloud.firestore {
       return isSelf(parentUid) || isGuardianOfParent(parentUid);
     }
 
-    function isAdultFamilyMember(familyId) {
-      return isFamilyMember(familyId)
-        && (isParentUser(request.auth.uid) || isGuardianUser(request.auth.uid));
-    }
-
     function isGuardianAssignedToChild(childUid) {
       return isSignedIn()
         && userExists(childUid)
@@ -187,6 +182,52 @@ service cloud.firestore {
       ];
     }
 
+
+    function isOwnUserDoc(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isOwnResourceByUid() {
+      return isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    function isCreatingOwnResource() {
+      return isSignedIn() && request.resource.data.uid == request.auth.uid;
+    }
+
+    function isValidPlanId() {
+      return request.resource.data.planId is string
+        && request.resource.data.planId.size() > 0;
+    }
+
+    function isValidEntitlementPlan() {
+      return request.resource.data.entitlementPlan is string
+        && request.resource.data.entitlementPlan in ['free', 'pro'];
+    }
+
+    function isSubscriptionPlanEditor() {
+      return isSignedIn() && (
+        hasRole(request.auth.uid, 'parent') ||
+        hasRole(request.auth.uid, 'guardian')
+      );
+    }
+
+    function isAllowedSubscriptionWrite(uid) {
+      return isOwnUserDoc(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'subscription',
+          'lastActiveAt'
+        ]);
+    }
+
+
+    function selfEditableUserFieldsWithSubscription() {
+      return selfEditableUserFields().concat([
+        'subscription',
+        'lastActiveAt'
+      ]);
+    }
+
     // ================================
     // USERS
     // ================================
@@ -219,7 +260,7 @@ service cloud.firestore {
           isSelf(uid)
           && request.resource.data.diff(resource.data)
             .changedKeys()
-            .hasOnly(selfEditableUserFields())
+            .hasOnly(selfEditableUserFieldsWithSubscription())
         )
         || isParentManagingGuardianAssignments(uid);
 
@@ -416,19 +457,6 @@ service cloud.firestore {
 
         allow read: if isFamilyMember(familyId);
         allow update, delete: if false;
-      }
-
-      match /locationMembers/{uid} {
-        allow read: if isAdultFamilyMember(familyId);
-        allow create, update, delete: if false;
-      }
-
-      match /managementMembers/{uid} {
-        allow read: if isSignedIn()
-          && isParentUser(request.auth.uid)
-          && isFamilyMember(familyId)
-          && resource.data.parentUid == request.auth.uid;
-        allow create, update, delete: if false;
       }
 
       // ============================
@@ -763,5 +791,64 @@ service cloud.firestore {
     match /mail_queue/{docId} {
   		allow read, write: if false;
 		}
+
+
+    // ================================
+    // SUBSCRIPTION PLANS
+    // ================================
+    match /subscription_plans/{planId} {
+      // fetchPlans() cần đọc public cho user đã đăng nhập
+      allow read: if isSignedIn();
+
+      // seed / chỉnh plan chỉ cho parent hoặc guardian
+      // nếu sau này có admin claim thì nên thay bằng admin
+      allow create, update, delete: if isSubscriptionPlanEditor();
+    }
+
+    // ================================
+    // SUBSCRIPTION REGISTRATIONS
+    // ================================
+    match /subscription_registrations/{registrationId} {
+      // registerPlan() dùng add(...)
+      allow create: if isCreatingOwnResource()
+        && isValidPlanId()
+        && isValidEntitlementPlan()
+        && request.resource.data.source is string
+        && request.resource.data.isContactOnly is bool
+        && isValidRegistrationStatus()
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+
+      // user chỉ đọc registration của chính họ
+      allow read: if isOwnResourceByUid();
+
+      // thường không nên cho client sửa/xóa lịch sử đăng ký
+      allow update, delete: if false;
+    }
+
+    // ================================
+    // SUBSCRIPTION CONTACT REQUESTS
+    // ================================
+    match /subscription_contact_requests/{requestId} {
+      // requestSchoolPlanContact() dùng add(...)
+      allow create: if isCreatingOwnResource()
+        && isValidPlanId()
+        && isValidEntitlementPlan()
+        && request.resource.data.source is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.requestedAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        // optional fields từ repo
+        && (!('displayName' in request.resource.data) || request.resource.data.displayName == null || request.resource.data.displayName is string)
+        && (!('email' in request.resource.data) || request.resource.data.email == null || request.resource.data.email is string)
+        && (!('phone' in request.resource.data) || request.resource.data.phone == null || request.resource.data.phone is string)
+        && (!('familyId' in request.resource.data) || request.resource.data.familyId == null || request.resource.data.familyId is string);
+
+      // user chỉ đọc request của chính họ
+      allow read: if isOwnResourceByUid();
+
+      // không cho client tự đổi trạng thái
+      allow update, delete: if false;
+    }
   }
 }

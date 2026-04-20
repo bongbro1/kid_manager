@@ -10,6 +10,7 @@ import 'package:kid_manager/viewmodels/auth_vm.dart';
 import 'package:kid_manager/viewmodels/birthday_vm.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/about_app_screen.dart';
+import 'package:kid_manager/views/setting_pages/subscription_screen.dart';
 import 'package:kid_manager/views/setting_pages/app_appearance_screen.dart';
 import 'package:kid_manager/views/setting_pages/crop_photo_screen.dart';
 import 'package:kid_manager/views/setting_pages/member_management_screen.dart';
@@ -833,6 +834,17 @@ class MoreActionSheet extends StatelessWidget {
               iconSize: 19,
               onTap: () =>
                   _navigateFromSheet(context, const AppAppearanceScreen()),
+            ),
+
+            const SizedBox(height: 10),
+
+            SettingItem(
+              title: AppLocalizations.of(context).subscriptionTitle,
+              iconPath: "assets/icons/status.svg",
+              iconType: AppIconType.svg,
+              iconSize: 20,
+              onTap: () =>
+                  _navigateFromSheet(context, const SubscriptionScreen()),
             ),
 
             const SizedBox(height: 10),

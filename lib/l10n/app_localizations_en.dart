@@ -246,6 +246,190 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get subscriptionTitle => 'Subscription plans';
+
+  @override
+  String get subscriptionHeroEyebrow => 'SUBSCRIPTION';
+
+  @override
+  String get subscriptionHeroTitle => 'Choose the plan that fits your family';
+
+  @override
+  String get subscriptionHeroDescription =>
+      'Start with Basic, unlock deeper insights with Premium, or contact us for a School deployment tailored to larger organizations.';
+
+  @override
+  String get subscriptionHeroChipFamily => 'Family-ready';
+
+  @override
+  String get subscriptionHeroChipReports => 'Detailed reports';
+
+  @override
+  String get subscriptionHeroChipPrioritySupport => 'Priority support';
+
+  @override
+  String get subscriptionCurrentPlanLabel => 'Current plan';
+
+  @override
+  String get subscriptionCurrentPlanNone => 'No plan registered yet';
+
+  @override
+  String get subscriptionCurrentStatusLabel => 'Status';
+
+  @override
+  String get subscriptionStatusUnknown => 'Not available';
+
+  @override
+  String get subscriptionStatusActive => 'Active';
+
+  @override
+  String get subscriptionStatusTrial => 'Trial';
+
+  @override
+  String get subscriptionStatusExpired => 'Expired';
+
+  @override
+  String get subscriptionStatusCanceled => 'Canceled';
+
+  @override
+  String get subscriptionStatusPaymentFailed => 'Payment failed';
+
+  @override
+  String get subscriptionSectionEyebrow => 'PLANS';
+
+  @override
+  String get subscriptionSectionTitle => 'Plan options';
+
+  @override
+  String get subscriptionSectionDescription =>
+      'Select one package below to register right away or request a School consultation.';
+
+  @override
+  String get subscriptionSelectedBadge => 'Selected';
+
+  @override
+  String get subscriptionPopularBadge => 'Popular';
+
+  @override
+  String get subscriptionContactBadge => 'Contact';
+
+  @override
+  String get subscriptionRegisterNow => 'Register now';
+
+  @override
+  String get subscriptionContactNow => 'Contact us';
+
+  @override
+  String get subscriptionSelectPlanPrompt => 'Select a plan to continue';
+
+  @override
+  String get subscriptionRegisteredSuccess => 'Plan registered successfully';
+
+  @override
+  String get subscriptionContactRequestSuccess =>
+      'Your School plan request has been sent. Our team will contact you soon.';
+
+  @override
+  String get subscriptionLoadPlansEmpty =>
+      'No subscription plans are available right now.';
+
+  @override
+  String get subscriptionRetryButton => 'Try again';
+
+  @override
+  String get subscriptionUserIdNotFound =>
+      'Could not determine the current account';
+
+  @override
+  String get subscriptionPlanBasicTitle => 'Basic';
+
+  @override
+  String get subscriptionPlanBasicPrice => 'Free';
+
+  @override
+  String get subscriptionPlanBasicSubtitle =>
+      'A solid starting point for families who need the essential monitoring tools.';
+
+  @override
+  String get subscriptionPlanBasicFeature1 =>
+      'Manage child and guardian accounts';
+
+  @override
+  String get subscriptionPlanBasicFeature2 => 'Track core activity and updates';
+
+  @override
+  String get subscriptionPlanBasicFeature3 => 'Receive in-app alerts instantly';
+
+  @override
+  String get subscriptionPlanPremiumTitle => 'Premium';
+
+  @override
+  String get subscriptionPlanPremiumPrice => '\$3.99 / month';
+
+  @override
+  String get subscriptionPlanPremiumSubtitle =>
+      'Unlock deeper visibility, longer history, and faster support for daily management.';
+
+  @override
+  String get subscriptionPlanPremiumFeature1 => 'Everything in Basic';
+
+  @override
+  String get subscriptionPlanPremiumFeature2 =>
+      'Advanced reports and long-term history';
+
+  @override
+  String get subscriptionPlanPremiumFeature3 => 'Expanded data retention';
+
+  @override
+  String get subscriptionPlanPremiumFeature4 => 'Priority customer support';
+
+  @override
+  String get subscriptionPlanSchoolTitle => 'School';
+
+  @override
+  String get subscriptionPlanSchoolPrice => 'Contact us';
+
+  @override
+  String get subscriptionPlanSchoolSubtitle =>
+      'A deployment package for schools and organizations managing multiple classes or teams.';
+
+  @override
+  String get subscriptionPlanSchoolFeature1 =>
+      'Multi-class and multi-account management';
+
+  @override
+  String get subscriptionPlanSchoolFeature2 =>
+      'Teacher and administrator roles';
+
+  @override
+  String get subscriptionPlanSchoolFeature3 => 'Centralized analytics';
+
+  @override
+  String get subscriptionPlanSchoolFeature4 => 'Operational customization';
+
+  @override
+  String get subscriptionSupportEyebrow => 'SUPPORT';
+
+  @override
+  String get subscriptionSupportTitle => 'Need help choosing?';
+
+  @override
+  String get subscriptionSupportDescription =>
+      'If you are evaluating Premium or planning a School rollout, our team can help you choose the right setup.';
+
+  @override
+  String get subscriptionSupportEmailLabel => 'Email';
+
+  @override
+  String get subscriptionSupportPhoneLabel => 'Hotline';
+
+  @override
+  String get subscriptionSupportHoursLabel => 'Hours';
+
+  @override
+  String get subscriptionSupportHoursValue => 'Mon - Fri, 08:00 - 18:00';
+
+  @override
   String get appManagementSyncFailed => 'Could not sync apps';
 
   @override

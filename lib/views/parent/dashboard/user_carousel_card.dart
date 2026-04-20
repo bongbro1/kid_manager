@@ -218,66 +218,72 @@ class _UserCarouselCardState extends State<UserCarouselCard> {
               Row(
                 children: [
                   Expanded(
-                    child: AppButton(
-                      height: 40,
-                      skeleton: vm.loading,
-                      text: l10n.parentDashboardTabApps,
-                      fontSize: Theme.of(context).appTypography.body.fontSize!,
-                      onPressed: widget.onTapApps,
-                      backgroundColor: widget.currentIndex == 0
-                          ? scheme.primary
-                          : scheme.primary.withValues(alpha: 0.12),
-                      foregroundColor: widget.currentIndex == 0
-                          ? scheme.onPrimary
-                          : scheme.onSurface,
-                      lineHeight: 1.43,
-                      letterSpacing: 0.10,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 0,
-                        vertical: 0,
-                      ),
-                      icon: SvgPicture.asset(
-                        'assets/icons/apps.svg',
-                        width: 18,
-                        height: 18,
-                        colorFilter: ColorFilter.mode(
-                          widget.currentIndex == 0
-                              ? scheme.onPrimary
-                              : scheme.onSurface,
-                          BlendMode.srcIn,
+                    child: _CarouselTabButton(
+                      isActive: widget.currentIndex == 0,
+                      child: AppButton(
+                        height: 40,
+                        skeleton: vm.loading,
+                        text: l10n.parentDashboardTabApps,
+                        fontSize: Theme.of(context).appTypography.body.fontSize,
+                        onPressed: widget.onTapApps,
+                        backgroundColor: widget.currentIndex == 0
+                            ? scheme.primary
+                            : scheme.primary.withValues(alpha: 0.12),
+                        foregroundColor: widget.currentIndex == 0
+                            ? scheme.onPrimary
+                            : scheme.onSurface,
+                        lineHeight: 1.43,
+                        letterSpacing: 0.10,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 0,
+                          vertical: 0,
+                        ),
+                        icon: SvgPicture.asset(
+                          'assets/icons/apps.svg',
+                          width: 18,
+                          height: 18,
+                          colorFilter: ColorFilter.mode(
+                            widget.currentIndex == 0
+                                ? scheme.onPrimary
+                                : scheme.onSurface,
+                            BlendMode.srcIn,
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: AppButton(
-                      height: 40,
-                      skeleton: vm.loading,
-                      text: l10n.parentDashboardTabStatistics,
-                      fontSize: Theme.of(context).appTypography.body.fontSize!,
-                      onPressed: widget.onTapStats,
-                      backgroundColor: widget.currentIndex == 1
-                          ? scheme.primary
-                          : scheme.primary.withValues(alpha: 0.12),
-                      foregroundColor: widget.currentIndex == 1
-                          ? scheme.onPrimary
-                          : scheme.onSurface,
-                      lineHeight: 1.43,
-                      letterSpacing: 0.10,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 0,
-                        vertical: 0,
-                      ),
-                      icon: SvgPicture.asset(
-                        'assets/icons/stats-chart.svg',
-                        width: 18,
-                        height: 18,
-                        colorFilter: ColorFilter.mode(
-                          widget.currentIndex == 1
-                              ? scheme.onPrimary
-                              : scheme.onSurface,
-                          BlendMode.srcIn,
+                    child: _CarouselTabButton(
+                      isActive: widget.currentIndex == 1,
+                      child: AppButton(
+                        height: 40,
+                        skeleton: vm.loading,
+                        text: l10n.parentDashboardTabStatistics,
+                        fontSize: Theme.of(context).appTypography.body.fontSize,
+                        onPressed: widget.onTapStats,
+                        backgroundColor: widget.currentIndex == 1
+                            ? scheme.primary
+                            : scheme.primary.withValues(alpha: 0.12),
+                        foregroundColor: widget.currentIndex == 1
+                            ? scheme.onPrimary
+                            : scheme.onSurface,
+                        lineHeight: 1.43,
+                        letterSpacing: 0.10,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 0,
+                          vertical: 0,
+                        ),
+                        icon: SvgPicture.asset(
+                          'assets/icons/stats-chart.svg',
+                          width: 18,
+                          height: 18,
+                          colorFilter: ColorFilter.mode(
+                            widget.currentIndex == 1
+                                ? scheme.onPrimary
+                                : scheme.onSurface,
+                            BlendMode.srcIn,
+                          ),
                         ),
                       ),
                     ),
@@ -330,6 +336,28 @@ class _ArrowBtn extends StatelessWidget {
   }
 }
 
+class _CarouselTabButton extends StatelessWidget {
+  const _CarouselTabButton({required this.isActive, required this.child});
+
+  final bool isActive;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      offset: isActive ? Offset.zero : const Offset(0, 0.025),
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        scale: isActive ? 1 : 0.985,
+        child: child,
+      ),
+    );
+  }
+}
+
 class UserItemWidget extends StatelessWidget {
   final String name;
   final String avatarUrl;
@@ -351,7 +379,6 @@ class UserItemWidget extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final trimmedAvatar = avatarUrl.trim();
-    final hasAvatar = trimmedAvatar.isNotEmpty;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -410,13 +437,13 @@ class UserItemWidget extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             softWrap: true,
             strutStyle: StrutStyle(
-              fontSize: Theme.of(context).appTypography.sectionLabel.fontSize!,
+              fontSize: Theme.of(context).appTypography.sectionLabel.fontSize,
               height: 1.2,
               forceStrutHeight: true,
             ),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
-              fontSize: Theme.of(context).appTypography.body.fontSize!,
+              fontSize: Theme.of(context).appTypography.body.fontSize,
               letterSpacing: -0.2,
             ),
           ),
