@@ -24,6 +24,31 @@ class TrackingWarmupController extends StatefulWidget {
       _TrackingWarmupControllerState();
 }
 
+@visibleForTesting
+bool shouldSyncTrackingState({
+  required bool force,
+  required String? lastAppliedTrackingKey,
+  required String selfTrackingKey,
+  required bool shouldShare,
+  required bool isParent,
+  required bool selfTrackingActive,
+  required bool backgroundCurrentSharingActive,
+}) {
+  if (force) {
+    return true;
+  }
+
+  if (lastAppliedTrackingKey != selfTrackingKey) {
+    return true;
+  }
+
+  if (isParent) {
+    return shouldShare != backgroundCurrentSharingActive;
+  }
+
+  return shouldShare != selfTrackingActive;
+}
+
 class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     with WidgetsBindingObserver {
   bool _ready = false;
@@ -163,7 +188,9 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     }
 
     if (_lastLocationSyncKey != snapshot.locationSyncKey) {
-      await context.read<ParentLocationVm>().syncWatching(userVm.locationMembers);
+      await context.read<ParentLocationVm>().syncWatching(
+        userVm.locationMembers,
+      );
       _lastLocationSyncKey = snapshot.locationSyncKey;
     }
   }
@@ -180,7 +207,15 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     TrackingWarmupSnapshot snapshot, {
     required bool force,
   }) async {
-    if (!force && _lastAppliedTrackingKey == snapshot.selfTrackingKey) {
+    if (!shouldSyncTrackingState(
+      force: force,
+      lastAppliedTrackingKey: _lastAppliedTrackingKey,
+      selfTrackingKey: snapshot.selfTrackingKey,
+      shouldShare: snapshot.allowTracking,
+      isParent: snapshot.isParent,
+      selfTrackingActive: _selfTrackingActive,
+      backgroundCurrentSharingActive: _backgroundCurrentSharingActive,
+    )) {
       return;
     }
 
@@ -269,9 +304,8 @@ class _TrackingWarmupControllerState extends State<TrackingWarmupController>
     final shouldShare = snapshot.allowTracking;
 
     if (shouldShare && !_selfTrackingActive) {
-      final hasForegroundPermission = await locationService.hasLocationPermission(
-        requireBackground: false,
-      );
+      final hasForegroundPermission = await locationService
+          .hasLocationPermission(requireBackground: false);
       final serviceEnabled = await locationService.isServiceEnabled();
       if (!hasForegroundPermission || !serviceEnabled) {
         _lastAppliedTrackingKey = snapshot.selfTrackingKey;

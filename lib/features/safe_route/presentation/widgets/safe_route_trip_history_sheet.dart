@@ -105,10 +105,7 @@ class SafeRouteTripHistorySheet extends StatelessWidget {
 }
 
 class _TripHistoryTile extends StatelessWidget {
-  const _TripHistoryTile({
-    required this.trip,
-    required this.onTap,
-  });
+  const _TripHistoryTile({required this.trip, required this.onTap});
 
   final Trip trip;
   final VoidCallback onTap;
@@ -244,10 +241,7 @@ class _TripHistoryTile extends StatelessWidget {
 }
 
 class _HistoryMetaChip extends StatelessWidget {
-  const _HistoryMetaChip({
-    required this.icon,
-    required this.label,
-  });
+  const _HistoryMetaChip({required this.icon, required this.label});
 
   final IconData icon;
   final String label;

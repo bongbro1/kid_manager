@@ -96,6 +96,18 @@ class NativeWatcherService {
     }
   }
 
+  static Future<bool> hasUsageAccessPermission() async {
+    try {
+      final result = await _channel.invokeMethod<bool>(
+        'hasUsageAccessPermission',
+      );
+      return result ?? false;
+    } catch (e) {
+      debugPrint('Usage access permission check error: $e');
+      return false;
+    }
+  }
+
   static Future<void> requestIgnoreBatteryOptimizations() async {
     try {
       await _batteryChannel.invokeMethod('requestIgnoreBatteryOptimizations');

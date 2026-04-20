@@ -298,10 +298,9 @@ class PhoneAuthDialog {
                                 }
 
                                 final ok = await runGuardedNetworkVoidAction(
-                                      parentContext,
-                                      action: () =>
-                                          vm.sendOtpSms(normalizedPhone),
-                                    );
+                                  parentContext,
+                                  action: () => vm.sendOtpSms(normalizedPhone),
+                                );
                                 if (!ok) {
                                   return;
                                 }
@@ -465,10 +464,9 @@ class PhoneAuthDialog {
                                           final ok =
                                               await runGuardedNetworkVoidAction(
                                                 sheetContext,
-                                                action: () =>
-                                                    vm.verifyOtpSmS(
-                                                      otpController.text,
-                                                    ),
+                                                action: () => vm.verifyOtpSmS(
+                                                  otpController.text,
+                                                ),
                                               );
                                           if (!ok) {
                                             return;

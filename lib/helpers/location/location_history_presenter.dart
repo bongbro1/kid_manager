@@ -69,7 +69,8 @@ class LocationHistoryPresenter {
   }) {
     final isStart =
         history.isNotEmpty && point.timestamp == history.first.timestamp;
-    final isEnd = history.isNotEmpty && point.timestamp == history.last.timestamp;
+    final isEnd =
+        history.isNotEmpty && point.timestamp == history.last.timestamp;
     final gpsLost = point.accuracy > 30;
     final gpsVeryBad = point.accuracy > 80;
     final selectedIndex = history.indexWhere(
@@ -139,7 +140,10 @@ class LocationHistoryPresenter {
     );
   }
 
-  static double resolveEffectiveSpeedKmh(List<LocationData> history, int index) {
+  static double resolveEffectiveSpeedKmh(
+    List<LocationData> history,
+    int index,
+  ) {
     return EffectiveSpeedEstimator.resolveHistorySpeedKmh(history, index);
   }
 
@@ -148,7 +152,8 @@ class LocationHistoryPresenter {
     LocationData point, {
     int? indexHint,
   }) {
-    final resolvedIndex = indexHint ??
+    final resolvedIndex =
+        indexHint ??
         history.indexWhere((entry) => entry.timestamp == point.timestamp);
     if (resolvedIndex == -1) {
       return point.transport;
@@ -212,10 +217,7 @@ class LocationHistoryPresenter {
     }
   }
 
-  static String transportLabel(
-    AppLocalizations l10n,
-    TransportMode transport,
-  ) {
+  static String transportLabel(AppLocalizations l10n, TransportMode transport) {
     switch (transport) {
       case TransportMode.walking:
         return l10n.childLocationTransportWalking;

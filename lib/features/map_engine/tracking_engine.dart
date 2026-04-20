@@ -7,9 +7,7 @@ class TrackingEngine {
 
   TrackingEngine(this.snapEngine);
 
-  Future<List<osm.LatLng>> processHistory(
-      List<LocationData> raw) async {
-
+  Future<List<osm.LatLng>> processHistory(List<LocationData> raw) async {
     final result = await snapEngine.snapHistory(raw);
     return result.snappedPoints;
   }

@@ -220,9 +220,7 @@ class AuthVM extends ChangeNotifier {
     }
   }
 
-  Future<void> logout({
-    bool clearPermissionOnboardingState = false,
-  }) async {
+  Future<void> logout({bool clearPermissionOnboardingState = false}) async {
     if (_logoutInProgress) return;
     _logoutInProgress = true;
     _loading = true;
@@ -258,7 +256,8 @@ class AuthVM extends ChangeNotifier {
         e,
         fallbackMessage: runtimeL10n().appNetworkActionFailed,
       );
-      _error = networkError?.message ?? e.toString().replaceFirst("Exception: ", "");
+      _error =
+          networkError?.message ?? e.toString().replaceFirst("Exception: ", "");
       if (rethrowOnError) {
         return Future<T>.error(e, st);
       }

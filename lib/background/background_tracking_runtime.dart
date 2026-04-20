@@ -185,7 +185,9 @@ class BackgroundTrackingRuntime {
                     await _zoneMonitor?.onLocation(filtered);
                   }
                 } catch (e) {
-                  debugPrint('BackgroundTrackingRuntime zone monitor error: $e');
+                  debugPrint(
+                    'BackgroundTrackingRuntime zone monitor error: $e',
+                  );
                 }
               }
 

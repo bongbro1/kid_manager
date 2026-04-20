@@ -62,61 +62,68 @@ class NetworkGapRenderer {
       return;
     }
 
-    if (gaps.isEmpty) {
+    try {
+      if (gaps.isEmpty) {
+        await lineSource.updateGeoJSON(
+          '{"type":"FeatureCollection","features":[]}',
+        );
+        await markerSource.updateGeoJSON(
+          '{"type":"FeatureCollection","features":[]}',
+        );
+        return;
+      }
+
       await lineSource.updateGeoJSON(
-        '{"type":"FeatureCollection","features":[]}',
+        jsonEncode({
+          'type': 'FeatureCollection',
+          'features': gaps
+              .map(
+                (gap) => {
+                  'type': 'Feature',
+                  'properties': {
+                    'kind': 'network_gap',
+                    'gapDurationMs': gap.marker.gapDurationMs,
+                  },
+                  'geometry': {
+                    'type': 'LineString',
+                    'coordinates': [
+                      [gap.start.longitude, gap.start.latitude],
+                      [gap.end.longitude, gap.end.latitude],
+                    ],
+                  },
+                },
+              )
+              .toList(),
+        }),
       );
+
       await markerSource.updateGeoJSON(
-        '{"type":"FeatureCollection","features":[]}',
+        jsonEncode({
+          'type': 'FeatureCollection',
+          'features': gaps
+              .map(
+                (gap) => {
+                  'type': 'Feature',
+                  'properties': {
+                    'kind': 'network_gap_marker',
+                    'timestamp': gap.marker.timestamp,
+                    'gapDurationMs': gap.marker.gapDurationMs,
+                  },
+                  'geometry': {
+                    'type': 'Point',
+                    'coordinates': [gap.marker.longitude, gap.marker.latitude],
+                  },
+                },
+              )
+              .toList(),
+        }),
       );
-      return;
+    } catch (error) {
+      if (_isDetachedChannelError(error) || _isMissingSourceError(error)) {
+        return;
+      }
+      rethrow;
     }
-
-    await lineSource.updateGeoJSON(
-      jsonEncode({
-        'type': 'FeatureCollection',
-        'features': gaps
-            .map(
-              (gap) => {
-                'type': 'Feature',
-                'properties': {
-                  'kind': 'network_gap',
-                  'gapDurationMs': gap.marker.gapDurationMs,
-                },
-                'geometry': {
-                  'type': 'LineString',
-                  'coordinates': [
-                    [gap.start.longitude, gap.start.latitude],
-                    [gap.end.longitude, gap.end.latitude],
-                  ],
-                },
-              },
-            )
-            .toList(),
-      }),
-    );
-
-    await markerSource.updateGeoJSON(
-      jsonEncode({
-        'type': 'FeatureCollection',
-        'features': gaps
-            .map(
-              (gap) => {
-                'type': 'Feature',
-                'properties': {
-                  'kind': 'network_gap_marker',
-                  'timestamp': gap.marker.timestamp,
-                  'gapDurationMs': gap.marker.gapDurationMs,
-                },
-                'geometry': {
-                  'type': 'Point',
-                  'coordinates': [gap.marker.longitude, gap.marker.latitude],
-                },
-              },
-            )
-            .toList(),
-      }),
-    );
   }
 
   Future<void> clear() => render(const []);

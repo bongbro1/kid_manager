@@ -51,9 +51,9 @@ class FcmPushReceiverService {
     if (_currentUid != uid) return;
 
     try {
-      await FirebaseFunctions.instanceFor(region: 'asia-southeast1')
-          .httpsCallable('registerFcmToken')
-          .call({
+      await FirebaseFunctions.instanceFor(
+        region: 'asia-southeast1',
+      ).httpsCallable('registerFcmToken').call({
         'installationId': installationId,
         'token': token,
         'platform': Platform.isIOS ? 'ios' : 'android',

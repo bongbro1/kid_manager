@@ -5,11 +5,7 @@ import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart'
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/trip.dart';
 
-enum RouteSelectionMode {
-  none,
-  selectingStart,
-  selectingEnd,
-}
+enum RouteSelectionMode { none, selectingStart, selectingEnd }
 
 class SafeRouteTrackingState {
   static const Object _unset = Object();
@@ -125,7 +121,8 @@ class SafeRouteTrackingState {
     return SafeRouteTrackingState(
       childId: childId,
       isLoading: isLoading ?? this.isLoading,
-      isFetchingSuggestions: isFetchingSuggestions ?? this.isFetchingSuggestions,
+      isFetchingSuggestions:
+          isFetchingSuggestions ?? this.isFetchingSuggestions,
       isStartingTrip: isStartingTrip ?? this.isStartingTrip,
       tripMutation: tripMutation ?? this.tripMutation,
       selectionMode: selectionMode ?? this.selectionMode,
@@ -152,17 +149,22 @@ class SafeRouteTrackingState {
       suggestedRoutes: suggestedRoutes ?? this.suggestedRoutes,
       selectedAlternativeRouteIds:
           selectedAlternativeRouteIds ?? this.selectedAlternativeRouteIds,
-      selectedRoute: clearSelectedRoute ? null : selectedRoute ?? this.selectedRoute,
+      selectedRoute: clearSelectedRoute
+          ? null
+          : selectedRoute ?? this.selectedRoute,
       activeTrip: clearActiveTrip ? null : activeTrip ?? this.activeTrip,
       activeRoute: clearActiveRoute ? null : activeRoute ?? this.activeRoute,
-      activeAlternativeRoutes:
-          clearActiveRoute ? const [] : activeAlternativeRoutes ?? this.activeAlternativeRoutes,
+      activeAlternativeRoutes: clearActiveRoute
+          ? const []
+          : activeAlternativeRoutes ?? this.activeAlternativeRoutes,
       liveLocation: liveLocation ?? this.liveLocation,
       completedTripConfirmationTripId:
           identical(completedTripConfirmationTripId, _unset)
           ? this.completedTripConfirmationTripId
           : completedTripConfirmationTripId as String?,
-      errorMessage: clearErrorMessage ? null : errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage
+          ? null
+          : errorMessage ?? this.errorMessage,
     );
   }
 }

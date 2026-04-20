@@ -19,12 +19,18 @@ bool isTrackingLocationStatusNotification({
     return false;
   }
 
-  final eventCategory = (data['eventCategory'] ?? '').toString().trim().toLowerCase();
+  final eventCategory = (data['eventCategory'] ?? '')
+      .toString()
+      .trim()
+      .toLowerCase();
   if (eventCategory == 'location_status') {
     return true;
   }
 
-  final status = trackingStatusFromNotificationPayload(title: title, data: data);
+  final status = trackingStatusFromNotificationPayload(
+    title: title,
+    data: data,
+  );
   return _locationStatusKeys.contains(status);
 }
 
@@ -37,13 +43,14 @@ String resolveTrackingLocationActorName(
     return actorName;
   }
 
-  final childName = (data['childName'] ??
-          data['displayName'] ??
-          data['name'] ??
-          data['fullName'] ??
-          '')
-      .toString()
-      .trim();
+  final childName =
+      (data['childName'] ??
+              data['displayName'] ??
+              data['name'] ??
+              data['fullName'] ??
+              '')
+          .toString()
+          .trim();
   return childName.isNotEmpty ? childName : l10n.notificationsDefaultChildName;
 }
 
@@ -53,7 +60,10 @@ String resolveTrackingLocationStatusTitle(
   required Map<String, dynamic> data,
 }) {
   final trimmedTitle = title.trim();
-  final eventCategory = (data['eventCategory'] ?? '').toString().trim().toLowerCase();
+  final eventCategory = (data['eventCategory'] ?? '')
+      .toString()
+      .trim()
+      .toLowerCase();
   if (eventCategory == 'location_status' &&
       trimmedTitle.isNotEmpty &&
       !trimmedTitle.startsWith('tracking.')) {
@@ -79,7 +89,10 @@ String resolveTrackingLocationStatusBody(
   required Map<String, dynamic> data,
 }) {
   final actorName = resolveTrackingLocationActorName(l10n, data);
-  final eventCategory = (data['eventCategory'] ?? '').toString().trim().toLowerCase();
+  final eventCategory = (data['eventCategory'] ?? '')
+      .toString()
+      .trim()
+      .toLowerCase();
   final body = fallbackBody.trim();
   if (eventCategory == 'location_status' &&
       body.isNotEmpty &&
@@ -87,18 +100,15 @@ String resolveTrackingLocationStatusBody(
     return body;
   }
 
-  final eventKey = ((data['eventKey'] ?? '').toString().trim().isNotEmpty
-          ? data['eventKey']
-          : title)
-      .toString()
-      .trim();
+  final eventKey =
+      ((data['eventKey'] ?? '').toString().trim().isNotEmpty
+              ? data['eventKey']
+              : title)
+          .toString()
+          .trim();
 
   if (eventKey.startsWith('tracking.')) {
-    return trackingParentBodyFromKey(
-      l10n,
-      eventKey,
-      childName: actorName,
-    );
+    return trackingParentBodyFromKey(l10n, eventKey, childName: actorName);
   }
 
   if (body.isNotEmpty && !body.startsWith('tracking.')) {

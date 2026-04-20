@@ -1,11 +1,6 @@
-
 import 'package:kid_manager/models/location/location_data.dart';
 
-enum MotionState {
-  moving,
-  idle,
-  stationary,
-}
+enum MotionState { moving, idle, stationary }
 
 class TrackingState {
   final MotionState motion;

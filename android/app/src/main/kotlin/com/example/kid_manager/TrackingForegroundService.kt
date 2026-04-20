@@ -24,6 +24,7 @@ class TrackingForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action ?: ACTION_START
         if (action == ACTION_STOP) {
+            isRunning = false
             stopSelf()
             return START_NOT_STICKY
         }
@@ -193,6 +194,7 @@ class TrackingForegroundService : Service() {
         }
 
         fun stop(context: Context) {
+            isRunning = false
             val intent = Intent(context, TrackingForegroundService::class.java)
                 .setAction(ACTION_STOP)
             context.stopService(intent)

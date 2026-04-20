@@ -1,8 +1,9 @@
 enum TransportMode { still, walking, bicycle, vehicle, unknown }
+
 TransportMode parseTransport(dynamic v) {
   final s = (v ?? '').toString().trim();
   return TransportMode.values.firstWhere(
-        (e) => e.name == s,
+    (e) => e.name == s,
     orElse: () => TransportMode.unknown,
   );
 }
@@ -21,4 +22,3 @@ String transportLabel(TransportMode t) {
       return "Không rõ";
   }
 }
-

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
@@ -196,9 +196,7 @@ class MapboxController extends ChangeNotifier {
 
     final sinLat = sin(dLat / 2);
     final sinLng = sin(dLng / 2);
-    final a =
-        sinLat * sinLat +
-        cos(startLat) * cos(endLat) * sinLng * sinLng;
+    final a = sinLat * sinLat + cos(startLat) * cos(endLat) * sinLng * sinLng;
     return 2 * earthRadiusMeters * asin(sqrt(a.clamp(0.0, 1.0)));
   }
 
@@ -241,8 +239,7 @@ class MapboxController extends ChangeNotifier {
               _childrenPositionDeltaMeters;
       final headingChanged =
           lastHeading == null ||
-          _turnDelta(lastHeading, nextHeading) >=
-              _childrenHeadingDeltaDegrees;
+          _turnDelta(lastHeading, nextHeading) >= _childrenHeadingDeltaDegrees;
       final nameChanged = lastName != nextName;
       final flushExpired =
           nowMs - (_lastChildFlushAtMs[childId] ?? 0) >=
@@ -260,7 +257,9 @@ class MapboxController extends ChangeNotifier {
     required double heading,
     required String name,
   }) {
-    final avatarId = _avatarCache.containsKey(childId) ? childId : defaultAvatarId;
+    final avatarId = _avatarCache.containsKey(childId)
+        ? childId
+        : defaultAvatarId;
     return {
       "type": "Feature",
       "geometry": {
@@ -898,7 +897,9 @@ class MapboxController extends ChangeNotifier {
     }
 
     try {
-      final bytes = await _fetchAvatarBytes(key); // âœ… dÃ¹ng key Ä‘Ã£ normalize
+      final bytes = await _fetchAvatarBytes(
+        key,
+      ); // âœ… dÃ¹ng key Ä‘Ã£ normalize
       debugPrint("âœ… fetched bytes=${bytes.length} child=$childId key=$key");
 
       _avatarKeyById[childId] = key;
@@ -983,8 +984,7 @@ class MapboxController extends ChangeNotifier {
     }
 
     final normalizedSubtitle = subtitle?.trim();
-    final key =
-        "${icon.codePoint}:${title.trim()}:${normalizedSubtitle ?? ''}";
+    final key = "${icon.codePoint}:${title.trim()}:${normalizedSubtitle ?? ''}";
     if (_bubbleCacheKey != key) {
       _bubbleCacheKey = key;
       final png = await _makeBubblePng(
@@ -1171,9 +1171,8 @@ class MapboxController extends ChangeNotifier {
           )
           ..addText(title);
 
-    final titleParagraph =
-        titleParagraphBuilder.build()
-          ..layout(const ui.ParagraphConstraints(width: 2000));
+    final titleParagraph = titleParagraphBuilder.build()
+      ..layout(const ui.ParagraphConstraints(width: 2000));
     final titleWidth = titleParagraph.maxIntrinsicWidth;
     final titleHeight = titleParagraph.height;
 
@@ -1197,9 +1196,8 @@ class MapboxController extends ChangeNotifier {
               ),
             )
             ..addText(subtitle);
-      subtitleParagraph =
-          subtitleBuilder.build()
-            ..layout(const ui.ParagraphConstraints(width: 2000));
+      subtitleParagraph = subtitleBuilder.build()
+        ..layout(const ui.ParagraphConstraints(width: 2000));
       subtitleWidth = subtitleParagraph.maxIntrinsicWidth;
       subtitleHeight = subtitleParagraph.height;
     }

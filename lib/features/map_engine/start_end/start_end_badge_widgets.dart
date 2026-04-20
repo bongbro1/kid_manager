@@ -100,11 +100,7 @@ class _MapMarkerBadge extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(
-                icon,
-                size: 23,
-                color: iconColor,
-              ),
+              child: Icon(icon, size: 23, color: iconColor),
             ),
             Container(
               width: 4,

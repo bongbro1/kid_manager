@@ -3,6 +3,7 @@ import 'package:flutter_activity_recognition/models/activity_confidence.dart';
 import 'package:flutter_activity_recognition/models/activity_type.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 import 'package:kid_manager/models/location/transport_mode.dart';
+
 class TransportModeDetector {
   TransportMode _mode = TransportMode.unknown;
   TransportMode? _candidate;
@@ -37,7 +38,10 @@ class TransportModeDetector {
     return _mode;
   }
 
-  TransportMode? _candidateFromActivityOrSpeed(LocationData loc, Activity? act) {
+  TransportMode? _candidateFromActivityOrSpeed(
+    LocationData loc,
+    Activity? act,
+  ) {
     final s = loc.speedKmh;
 
     // 1) Activity ưu tiên nếu >= MEDIUM
@@ -47,18 +51,18 @@ class TransportModeDetector {
           return TransportMode.vehicle;
 
         case ActivityType.ON_BICYCLE:
-        // nếu speed quá cao bất thường cho bicycle => nghi vehicle
+          // nếu speed quá cao bất thường cho bicycle => nghi vehicle
           if (s > 45) return TransportMode.vehicle;
           return TransportMode.bicycle;
 
         case ActivityType.WALKING:
         case ActivityType.RUNNING:
-        // nếu speed cao quá -> không hợp walking
+          // nếu speed cao quá -> không hợp walking
           if (s > 18) return TransportMode.vehicle;
           return TransportMode.walking;
 
         case ActivityType.STILL:
-        // STILL chỉ tin nếu speed thật sự thấp
+          // STILL chỉ tin nếu speed thật sự thấp
           if (s < 2.0) return TransportMode.still;
           break;
 
@@ -66,7 +70,7 @@ class TransportModeDetector {
           break;
       }
     }
-  // trước khi check accuracy
+    // trước khi check accuracy
     if (s < 1.0) return TransportMode.still;
     // 2) fallback speed (chỉ khi GPS đủ sạch)
     if (loc.accuracy > 30) return null;

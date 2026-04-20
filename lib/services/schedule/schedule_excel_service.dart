@@ -50,11 +50,12 @@ class ScheduleExcelService {
     ]);
 
     // Sort lại cho chắc: date -> startAt
-    final sorted = [...schedules]..sort((a, b) {
-      final dateCmp = _normalize(a.date).compareTo(_normalize(b.date));
-      if (dateCmp != 0) return dateCmp;
-      return a.startAt.compareTo(b.startAt);
-    });
+    final sorted = [...schedules]
+      ..sort((a, b) {
+        final dateCmp = _normalize(a.date).compareTo(_normalize(b.date));
+        if (dateCmp != 0) return dateCmp;
+        return a.startAt.compareTo(b.startAt);
+      });
 
     for (final s in sorted) {
       sheet.appendRow([
@@ -86,8 +87,7 @@ class ScheduleExcelService {
 
   String _two(int n) => n.toString().padLeft(2, '0');
 
-  String _yyyyMmDd(DateTime d) =>
-      '${d.year}-${_two(d.month)}-${_two(d.day)}';
+  String _yyyyMmDd(DateTime d) => '${d.year}-${_two(d.month)}-${_two(d.day)}';
 
   String _hhMm(DateTime d) => '${_two(d.hour)}:${_two(d.minute)}';
 }

@@ -13,11 +13,7 @@ class GpsOptimizer {
       final lastKept = result.last;
       final current = input[i];
 
-      final d = distance.as(
-        LengthUnit.Meter,
-        lastKept,
-        current,
-      );
+      final d = distance.as(LengthUnit.Meter, lastKept, current);
 
       if (d >= _minDistanceMeters) {
         result.add(current);

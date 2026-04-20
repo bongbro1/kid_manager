@@ -180,11 +180,7 @@ class MapAvatarMarkerFactory {
       true,
     );
 
-    canvas.drawCircle(
-      center,
-      size * 0.31,
-      Paint()..color = accentColor,
-    );
+    canvas.drawCircle(center, size * 0.31, Paint()..color = accentColor);
     canvas.drawCircle(
       center,
       size * 0.31,
@@ -212,9 +208,10 @@ class MapAvatarMarkerFactory {
     ui.PictureRecorder recorder,
     double size,
   ) async {
-    final image = await recorder
-        .endRecording()
-        .toImage(size.toInt(), size.toInt());
+    final image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return MapAvatarMarkerImage(
       bytes: byteData!.buffer.asUint8List(),

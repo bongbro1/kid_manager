@@ -11,9 +11,6 @@ class WatchCurrentTripByChildIdUseCase {
     String childId, {
     required TripVisibilityAudience audience,
   }) {
-    return _repository.watchCurrentTripByChildId(
-      childId,
-      audience: audience,
-    );
+    return _repository.watchCurrentTripByChildId(childId, audience: audience);
   }
 }

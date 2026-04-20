@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:kid_manager/models/app_user.dart';
 
 extension AppUserAvatar on AppUser {
-
   Future<Uint8List> loadAvatarBytes() async {
     try {
       // Nếu có avatarUrl
@@ -18,7 +17,6 @@ extension AppUserAvatar on AppUser {
       final data = await rootBundle.load("assets/images/avatar_default.png");
       print("BYTE LENGTH: ${data.lengthInBytes}");
       return data.buffer.asUint8List();
-
     } catch (e) {
       // Nếu lỗi mạng → fallback default
       final data = await rootBundle.load("assets/images/avatar_default.png");

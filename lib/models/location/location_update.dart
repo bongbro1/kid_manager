@@ -1,4 +1,3 @@
-
 import 'location_data.dart';
 
 class LocationUpdate {

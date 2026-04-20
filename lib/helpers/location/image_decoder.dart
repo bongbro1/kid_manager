@@ -7,9 +7,7 @@ class ImageDecoder {
     final frame = await codec.getNextFrame();
     final image = frame.image;
 
-    final byteData = await image.toByteData(
-      format: ui.ImageByteFormat.rawRgba,
-    );
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
 
     return DecodedImage(
       bytes: byteData!.buffer.asUint8List(),

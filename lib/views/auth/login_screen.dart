@@ -1,11 +1,9 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kid_manager/background/auth_runtime_manager.dart';
 import 'package:kid_manager/core/responsive.dart';
-import 'package:kid_manager/core/network/network_action_guard.dart';
 import 'package:kid_manager/core/validators.dart';
 import 'package:kid_manager/helpers/json_helper.dart';
 import 'package:kid_manager/helpers/mail_helper.dart';
@@ -100,13 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final cred = await runGuardedNetworkAction<UserCredential>(
-        context,
-        action: () => authVM.login(email, password),
-      );
-      if (cred == null) {
-        return;
-      }
+      final cred = await authVM.login(email, password);
       final uid = cred.user!.uid;
 
       unawaited(storage.setString(StorageKeys.uid, uid));
@@ -429,7 +421,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 21),
                               AuthTextField(
                                 controller: _emailCtrl,
-                                fieldKey: _emailFieldKey,
                                 hintText: l10n.authEnterEmailHint,
                                 keyboardType: TextInputType.emailAddress,
                                 prefixSvg: 'assets/icons/user.svg',
@@ -437,7 +428,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 1),
                               AuthTextField(
                                 controller: _passwordCtrl,
-                                fieldKey: _passwordFieldKey,
                                 hintText: l10n.authEnterPasswordHint,
                                 keyboardType: TextInputType.text,
                                 obscureText: true,
@@ -579,39 +569,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/google.svg',
-                                      () => unawaited(
-                                        _handleSocialLogin(vm.loginWithGoogle),
-                                      ),
+                                      () => vm.loginWithGoogle(),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/facebook.svg',
-                                      () => unawaited(
-                                        _handleSocialLogin(
-                                          vm.loginWithFacebook,
-                                        ),
-                                      ),
+                                      () => vm.loginWithFacebook(),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/apple.svg',
-                                      () => unawaited(
-                                        _handleSocialLogin(vm.loginWithApple),
-                                      ),
+                                      () => vm.loginWithApple(),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _socialBtn(
                                       'assets/icons/mobile.svg',
-                                      () => unawaited(
-                                        PhoneAuthDialog.showPhoneDialog(
-                                          context,
-                                        ),
+                                      () => PhoneAuthDialog.showPhoneDialog(
+                                        context,
                                       ),
                                     ),
                                   ),

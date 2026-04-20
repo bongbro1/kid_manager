@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/dialog_type.dart';
 import 'package:kid_manager/repositories/user_repository.dart';
@@ -124,9 +124,9 @@ Future<void> launchPhoneCall(BuildContext context, String phone) async {
 
     if (!ok && context.mounted) {
       final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.phoneHelperOpenDialerFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.phoneHelperOpenDialerFailed)));
     }
   } catch (e) {
     if (!context.mounted) return;

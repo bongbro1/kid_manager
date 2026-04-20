@@ -1,15 +1,12 @@
-import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
+import 'package:kid_manager/services/permission_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SosPrelaunchGate extends StatefulWidget {
   final Widget child;
 
-  const SosPrelaunchGate({
-    super.key,
-    required this.child,
-  });
+  const SosPrelaunchGate({super.key, required this.child});
 
   @override
   State<SosPrelaunchGate> createState() => _SosPrelaunchGateState();
@@ -73,9 +70,28 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
     });
   }
 
-  void _openSettings() {
+  Future<void> _openSettings() async {
     _openedSettings = true;
-    AppSettings.openAppSettings(type: AppSettingsType.notification);
+    await PermissionService().openAndroidSosAlertSettings();
+  }
+
+  String _recommendationTextLocalized(BuildContext context) {
+    final languageCode = Localizations.localeOf(context).languageCode;
+    if (languageCode.toLowerCase() == 'vi') {
+      return 'Hãy bật thông báo. Trên Android, bạn nên mở thêm cài đặt SOS khẩn cấp để app có thể dùng cảnh báo mạnh hơn, bỏ qua Không làm phiền nếu máy cho phép, và tạm thời tăng một số mức âm lượng cảnh báo. Android vẫn có thể chặn âm thanh trong một số chế độ im lặng của thiết bị.';
+    }
+
+    return 'Enable notifications first. On Android, you should also open the SOS emergency settings so the app can use stronger alerts, bypass Do Not Disturb when the device allows it, and temporarily raise some alert-related volume streams. The OS may still block sound in some silent-mode scenarios.';
+  }
+
+  // ignore: unused_element
+  String _recommendationText(BuildContext context) {
+    final languageCode = Localizations.localeOf(context).languageCode;
+    if (languageCode.toLowerCase() == 'vi') {
+      return 'Hãy bật thông báo. Trên Android, bạn nên mở thêm cài đặt SOS khẩn cấp để cho phép cảnh báo mạnh hơn trong chế độ Không làm phiền. Hệ điều hành vẫn có thể chặn âm thanh trong một số chế độ im lặng của thiết bị.';
+    }
+
+    return 'Enable notifications first. On Android, you should also open the SOS emergency settings to allow stronger alerts during Do Not Disturb. The OS may still block sound in some silent-mode scenarios.';
   }
 
   @override
@@ -94,11 +110,7 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
             child: Column(
               children: [
                 const Spacer(),
-                const Icon(
-                  Icons.sos_rounded,
-                  size: 90,
-                  color: Colors.red,
-                ),
+                const Icon(Icons.sos_rounded, size: 90, color: Colors.red),
                 const SizedBox(height: 24),
                 Text(
                   l10n.permissionSosTitle,
@@ -126,12 +138,9 @@ class _SosPrelaunchGateState extends State<SosPrelaunchGate>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    l10n.permissionSosRecommendation,
+                    _recommendationTextLocalized(context),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black54,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
                   ),
                 ),
                 const Spacer(),

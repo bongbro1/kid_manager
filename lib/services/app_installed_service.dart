@@ -15,8 +15,6 @@ class AppInstalledService {
     return apps;
   }
 
-  
-
   Map<String, dynamic> toBlockedAppJson(AppInfo a) {
     final iconBytes = a.icon;
 
@@ -29,6 +27,4 @@ class AppInstalledService {
       "lastSeen": null,
     };
   }
-
-  
 }

@@ -22,6 +22,7 @@ class PermissionStepScaffold extends StatelessWidget {
     this.statusMessage,
     this.media,
     this.showSettingsButton = true,
+    this.helperText,
   });
 
   final int currentStep;
@@ -36,6 +37,7 @@ class PermissionStepScaffold extends StatelessWidget {
   final bool busy;
   final bool optional;
   final bool showSettingsButton;
+  final String? helperText;
   final String? statusMessage;
   final VoidCallback onPrimary;
   final VoidCallback onOpenSettings;
@@ -75,6 +77,28 @@ class PermissionStepScaffold extends StatelessWidget {
                         height: 1.45,
                       ),
                     ),
+                    if (helperText != null &&
+                        helperText!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F9FF),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFD5E6FF)),
+                        ),
+                        child: Text(
+                          helperText!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF42526B),
+                            height: 1.45,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     Expanded(
                       child: Center(
@@ -185,7 +209,7 @@ class _DefaultMedia extends StatelessWidget {
           width: 110,
           height: 110,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 56, color: color),

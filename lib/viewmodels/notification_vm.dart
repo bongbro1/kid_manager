@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/network/app_network_error_mapper.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
 import 'package:kid_manager/models/notifications/notification_source.dart';
@@ -16,6 +17,7 @@ class NotificationVM extends ChangeNotifier {
 
   final List<StreamSubscription> _subs = [];
   final Map<NotificationSource, List<AppNotification>> _cache = {};
+  List<NotificationSource> _sources = const [];
 
   List<AppNotification> _notifications = [];
   final List<AppNotification> _paged = [];
@@ -29,6 +31,9 @@ class NotificationVM extends ChangeNotifier {
 
   NotificationFilter _activeFilter = NotificationFilter.all;
   NotificationFilter get activeFilter => _activeFilter;
+
+  NotificationReadFilter _activeReadFilter = NotificationReadFilter.all;
+  NotificationReadFilter get activeReadFilter => _activeReadFilter;
 
   String _searchKeyword = "";
   String get searchKeyword => _searchKeyword;
@@ -45,14 +50,39 @@ class NotificationVM extends ChangeNotifier {
 
   int _unreadCount = 0;
   int get unreadCount => _unreadCount;
+  bool _markingAllRead = false;
+  bool get markingAllRead => _markingAllRead;
 
   StreamSubscription? _unreadSub;
   bool _disposed = false;
+  bool _notifyQueued = false;
+  NotificationPredicate? _boundFilter;
 
   void _safeNotifyListeners() {
-    if (!_disposed) {
-      notifyListeners();
+    if (_disposed) {
+      return;
     }
+
+    final schedulerPhase = WidgetsBinding.instance.schedulerPhase;
+    final canNotifyNow =
+        schedulerPhase == SchedulerPhase.idle ||
+        schedulerPhase == SchedulerPhase.postFrameCallbacks;
+
+    if (canNotifyNow) {
+      notifyListeners();
+      return;
+    }
+
+    if (_notifyQueued) {
+      return;
+    }
+
+    _notifyQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _notifyQueued = false;
+      if (_disposed) return;
+      notifyListeners();
+    });
   }
 
   Future<void> bindUser({
@@ -81,6 +111,8 @@ class NotificationVM extends ChangeNotifier {
     await _cancelAll();
     _resetState();
     _uid = uid;
+    _sources = List<NotificationSource>.from(sources);
+    _boundFilter = filter;
     _loading = true;
     _error = null;
 
@@ -195,6 +227,11 @@ class NotificationVM extends ChangeNotifier {
     _emitMerged(_cache.keys.toList(), null);
   }
 
+  void setReadFilter(NotificationReadFilter filter) {
+    _activeReadFilter = filter;
+    _emitMerged(_cache.keys.toList(), null);
+  }
+
   List<AppNotification> _applyFilter(List<AppNotification> list) {
     if (_activeFilter == NotificationFilter.all) {
       return list;
@@ -204,6 +241,17 @@ class NotificationVM extends ChangeNotifier {
       final type = n.notificationType;
       return type.filter == _activeFilter;
     }).toList();
+  }
+
+  List<AppNotification> _applyReadFilter(List<AppNotification> list) {
+    switch (_activeReadFilter) {
+      case NotificationReadFilter.all:
+        return list;
+      case NotificationReadFilter.unread:
+        return list.where((n) => !n.isRead).toList();
+      case NotificationReadFilter.read:
+        return list.where((n) => n.isRead).toList();
+    }
   }
 
   void setSearch(String keyword) {
@@ -256,6 +304,7 @@ class NotificationVM extends ChangeNotifier {
     }
 
     result = _applyFilter(result);
+    result = _applyReadFilter(result);
     result = _applySearch(result);
 
     _notifications = result;
@@ -282,8 +331,61 @@ class NotificationVM extends ChangeNotifier {
     }
   }
 
+  void prepareNotificationDetailLoad() {
+    notificationDetail = null;
+    _loading = true;
+    _error = null;
+    _safeNotifyListeners();
+  }
+
   Future<void> refresh() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    final uid = _uid;
+    final sources = List<NotificationSource>.from(_sources);
+
+    if (_disposed || uid == null || sources.isEmpty) {
+      return;
+    }
+
+    try {
+      _error = null;
+
+      final sourceResults = await Future.wait(
+        sources.map(
+          (source) => _repo.fetchBySource(
+            uid,
+            source,
+            fetchSource: Source.serverAndCache,
+          ),
+        ),
+      );
+      final unreadCount = await _repo.fetchUnreadCount(
+        uid,
+        sources: sources,
+        fetchSource: Source.serverAndCache,
+      );
+
+      for (var i = 0; i < sources.length; i++) {
+        _cache[sources[i]] = sourceResults[i];
+      }
+
+      _paged.clear();
+      _loadingMore = false;
+
+      final globalItems = _cache[NotificationSource.global] ?? const [];
+      _lastCreatedAt = globalItems.isNotEmpty
+          ? Timestamp.fromDate(globalItems.last.createdAt ?? DateTime.now())
+          : null;
+      _hasMore =
+          sources.contains(NotificationSource.global) &&
+          globalItems.length >= _maxCountInPage;
+
+      _unreadCount = unreadCount;
+
+      await _emitMerged(sources, _boundFilter);
+    } catch (e) {
+      _error = 'Notification refresh error: $e';
+      _safeNotifyListeners();
+    }
   }
 
   Future<void> loadNotificationDetail(String id, AppNotification n) async {
@@ -318,6 +420,13 @@ class NotificationVM extends ChangeNotifier {
       } else {
         await _repo.markAsReadGlobal(n.id);
       }
+      if (!n.isRead) {
+        _markLocalAsReadByIds({n.id});
+        if (_unreadCount > 0) {
+          _unreadCount -= 1;
+        }
+        _safeNotifyListeners();
+      }
     } catch (e) {
       debugPrint('[NotificationVM] markAsRead error: $e');
       if (AppNetworkErrorMapper.isNetworkError(e)) {
@@ -325,6 +434,34 @@ class NotificationVM extends ChangeNotifier {
         _safeNotifyListeners();
       }
       rethrow;
+    }
+  }
+
+  Future<int> markAllAsRead() async {
+    final uid = _uid;
+    if (uid == null || _markingAllRead) {
+      return 0;
+    }
+
+    _markingAllRead = true;
+    _safeNotifyListeners();
+
+    try {
+      final updatedCount = await _repo.markAllAsRead(
+        uid: uid,
+        sources: _sources,
+      );
+
+      if (updatedCount > 0) {
+        _markAllLoadedAsRead();
+        _unreadCount = (_unreadCount - updatedCount).clamp(0, _unreadCount);
+        _safeNotifyListeners();
+      }
+
+      return updatedCount;
+    } finally {
+      _markingAllRead = false;
+      _safeNotifyListeners();
     }
   }
 
@@ -345,6 +482,45 @@ class NotificationVM extends ChangeNotifier {
       }
       rethrow;
     }
+  }
+
+  void _markLocalAsReadByIds(Set<String> ids) {
+    if (ids.isEmpty) return;
+
+    for (final entry in _cache.entries) {
+      _cache[entry.key] = entry.value
+          .map(
+            (item) =>
+                ids.contains(item.id) ? item.copyWith(isRead: true) : item,
+          )
+          .toList(growable: false);
+    }
+
+    for (var i = 0; i < _paged.length; i++) {
+      final item = _paged[i];
+      if (ids.contains(item.id)) {
+        _paged[i] = item.copyWith(isRead: true);
+      }
+    }
+
+    unawaited(_emitMerged(_sources, null));
+  }
+
+  void _markAllLoadedAsRead() {
+    for (final entry in _cache.entries) {
+      _cache[entry.key] = entry.value
+          .map((item) => item.isRead ? item : item.copyWith(isRead: true))
+          .toList(growable: false);
+    }
+
+    for (var i = 0; i < _paged.length; i++) {
+      final item = _paged[i];
+      if (!item.isRead) {
+        _paged[i] = item.copyWith(isRead: true);
+      }
+    }
+
+    unawaited(_emitMerged(_sources, null));
   }
 
   Future<void> clear() async {
@@ -373,6 +549,7 @@ class NotificationVM extends ChangeNotifier {
   }
 
   void _resetState() {
+    _sources = const [];
     _notifications = [];
     _paged.clear();
     _cache.clear();
@@ -382,6 +559,7 @@ class NotificationVM extends ChangeNotifier {
     _loadingMore = false;
 
     _activeFilter = NotificationFilter.all;
+    _activeReadFilter = NotificationReadFilter.all;
     _searchKeyword = "";
 
     notificationDetail = null;
@@ -390,6 +568,8 @@ class NotificationVM extends ChangeNotifier {
     _error = null;
 
     _unreadCount = 0;
+    _markingAllRead = false;
+    _boundFilter = null;
   }
 
   @override

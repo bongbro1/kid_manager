@@ -243,10 +243,7 @@ class _FamilyGroupChatBodyState extends State<_FamilyGroupChatBody> {
 
   Future<bool> _runChatAction(Future<void> Function() action) async {
     try {
-      final ok = await runGuardedNetworkVoidAction(
-        context,
-        action: action,
-      );
+      final ok = await runGuardedNetworkVoidAction(context, action: action);
       if (!ok) {
         return false;
       }

@@ -40,9 +40,7 @@ class OtpRepository {
 
   Future<void> requestPasswordReset({required String email}) async {
     try {
-      await _callable('requestPasswordReset').call({
-        'email': email.trim(),
-      });
+      await _callable('requestPasswordReset').call({'email': email.trim()});
     } catch (error) {
       final networkError = AppNetworkErrorMapper.normalize(
         error,
@@ -57,9 +55,7 @@ class OtpRepository {
 
   Future<OtpVerifyResult> verifyEmailOtp({required String inputCode}) async {
     try {
-      await _callable('verifyEmailOtp').call({
-        'otp': inputCode.trim(),
-      });
+      await _callable('verifyEmailOtp').call({'otp': inputCode.trim()});
       return OtpVerifyResult.success;
     } on FirebaseFunctionsException catch (error) {
       final networkError = AppNetworkErrorMapper.normalize(
@@ -78,10 +74,9 @@ class OtpRepository {
     required String inputCode,
   }) async {
     try {
-      final response = await _callable('verifyPasswordResetOtp').call({
-        'email': email.trim(),
-        'otp': inputCode.trim(),
-      });
+      final response = await _callable(
+        'verifyPasswordResetOtp',
+      ).call({'email': email.trim(), 'otp': inputCode.trim()});
 
       final data = Map<String, dynamic>.from(
         (response.data as Map?) ?? const <String, dynamic>{},
@@ -99,12 +94,9 @@ class OtpRepository {
       if (networkError != null) {
         throw networkError;
       }
-      return PasswordResetOtpVerifyResponse(
-        result: _mapVerifyError(error),
-      );
+      return PasswordResetOtpVerifyResponse(result: _mapVerifyError(error));
     }
   }
-  
 
   Future<OtpResendResult> resendOtp({
     required String email,

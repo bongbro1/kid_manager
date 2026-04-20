@@ -54,18 +54,20 @@ class SubscriptionVM extends ChangeNotifier {
   void watchSubscription(String uid) {
     _subscriptionStream?.cancel();
 
-    _subscriptionStream = _repository.watchSubscription(uid).listen(
-      (sub) {
-        _subscription = sub;
-        _isActive = _computeIsActive(sub);
-        _error = null;
-        notifyListeners();
-      },
-      onError: (e) {
-        _error = runtimeL10n().subscriptionWatchError('$e');
-        notifyListeners();
-      },
-    );
+    _subscriptionStream = _repository
+        .watchSubscription(uid)
+        .listen(
+          (sub) {
+            _subscription = sub;
+            _isActive = _computeIsActive(sub);
+            _error = null;
+            notifyListeners();
+          },
+          onError: (e) {
+            _error = runtimeL10n().subscriptionWatchError('$e');
+            notifyListeners();
+          },
+        );
   }
 
   Future<void> updateSubscription({
@@ -117,10 +119,7 @@ class SubscriptionVM extends ChangeNotifier {
     }
   }
 
-  Future<void> startTrial({
-    required String uid,
-    int trialDays = 7,
-  }) async {
+  Future<void> startTrial({required String uid, int trialDays = 7}) async {
     try {
       _setLoading(true);
       _setError(null);

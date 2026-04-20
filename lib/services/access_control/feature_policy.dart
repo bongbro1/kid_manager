@@ -14,9 +14,7 @@ enum AppFeature {
   appManagement,
 }
 
-enum AppFeatureBundle {
-  safetyToolkit,
-}
+enum AppFeatureBundle { safetyToolkit }
 
 class PlanLimit {
   const PlanLimit(this.maxByPlan);
@@ -29,27 +27,16 @@ class PlanLimit {
 }
 
 class FeatureBundlePolicy {
-  const FeatureBundlePolicy({
-    required this.bundle,
-    required this.allowedPlans,
-  });
+  const FeatureBundlePolicy({required this.bundle, required this.allowedPlans});
 
-  const FeatureBundlePolicy.proOnly({
-    required AppFeatureBundle bundle,
-  }) : this(
-         bundle: bundle,
-         allowedPlans: const {SubscriptionPlan.pro},
-       );
+  const FeatureBundlePolicy.proOnly({required AppFeatureBundle bundle})
+    : this(bundle: bundle, allowedPlans: const {SubscriptionPlan.pro});
 
-  const FeatureBundlePolicy.freeWithQuota({
-    required AppFeatureBundle bundle,
-  }) : this(
-         bundle: bundle,
-         allowedPlans: const {
-           SubscriptionPlan.free,
-           SubscriptionPlan.pro,
-         },
-       );
+  const FeatureBundlePolicy.freeWithQuota({required AppFeatureBundle bundle})
+    : this(
+        bundle: bundle,
+        allowedPlans: const {SubscriptionPlan.free, SubscriptionPlan.pro},
+      );
 
   final AppFeatureBundle bundle;
   final Set<SubscriptionPlan> allowedPlans;
@@ -84,10 +71,7 @@ class FeaturePolicy {
   }) : this(
          feature: feature,
          allowedRoles: allowedRoles,
-         allowedPlans: const {
-           SubscriptionPlan.free,
-           SubscriptionPlan.pro,
-         },
+         allowedPlans: const {SubscriptionPlan.free, SubscriptionPlan.pro},
          limit: limit,
        );
 

@@ -9,11 +9,7 @@ class HistorySnapEngine {
   static const int _chunkSize = 50;
   static const double _minDistanceMeters = 5;
 
-
-  Future<SnapHistoryResult> snapHistory(
-      List<LocationData> history,
-      ) async {
-
+  Future<SnapHistoryResult> snapHistory(List<LocationData> history) async {
     if (history.length < 2) {
       return SnapHistoryResult(
         snappedPoints: [],
@@ -33,23 +29,18 @@ class HistorySnapEngine {
     bool usedFallback = false;
 
     for (final chunk in chunks) {
-
       final rawPoints = chunk
           .map((e) => osm.LatLng(e.latitude, e.longitude))
           .toList();
 
-      final result =
-      await MapboxRouteService.snapSegment(rawPoints);
+      final result = await MapboxRouteService.snapSegment(rawPoints);
 
-      if (result == null ||
-          result.points.length < 2) {
-
+      if (result == null || result.points.length < 2) {
         // fallback dùng raw
         usedFallback = true;
         finalRoute.addAll(rawPoints);
         continue;
       }
-
 
       finalRoute.addAll(result.points);
       totalDistance += result.distanceKm;
@@ -62,9 +53,7 @@ class HistorySnapEngine {
     );
   }
 
-  List<LocationData> _filterNoise(
-      List<LocationData> input) {
-
+  List<LocationData> _filterNoise(List<LocationData> input) {
     final List<LocationData> output = [];
 
     for (final point in input) {
@@ -83,19 +72,11 @@ class HistorySnapEngine {
     return output;
   }
 
-  List<List<LocationData>> _chunk(
-      List<LocationData> list,
-      int size,
-      ) {
+  List<List<LocationData>> _chunk(List<LocationData> list, int size) {
     final List<List<LocationData>> chunks = [];
 
     for (int i = 0; i < list.length; i += size) {
-      chunks.add(
-        list.sublist(
-          i,
-          min(i + size, list.length),
-        ),
-      );
+      chunks.add(list.sublist(i, min(i + size, list.length)));
     }
 
     return chunks;

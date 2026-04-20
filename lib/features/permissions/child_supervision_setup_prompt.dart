@@ -10,10 +10,7 @@ import 'package:kid_manager/services/storage_service.dart';
 import 'package:provider/provider.dart';
 
 class ChildSupervisionSetupPrompt extends StatefulWidget {
-  const ChildSupervisionSetupPrompt({
-    super.key,
-    required this.child,
-  });
+  const ChildSupervisionSetupPrompt({super.key, required this.child});
 
   final Widget child;
 
@@ -95,8 +92,8 @@ class _ChildSupervisionSetupPromptState
 
   Future<List<PermissionOnboardingStepType>> _resolveMissingSteps() async {
     final permissionService = context.read<PermissionService>();
-    final supervisionPermissions =
-        await permissionService.checkChildSupervisionPermissions();
+    final supervisionPermissions = await permissionService
+        .checkChildSupervisionPermissions();
 
     final missing = <PermissionOnboardingStepType>[];
     for (final step in _supervisionSteps) {
@@ -123,9 +120,7 @@ class _ChildSupervisionSetupPromptState
     return missing;
   }
 
-  Future<void> _openSetupFlow(
-    List<PermissionOnboardingStepType> steps,
-  ) async {
+  Future<void> _openSetupFlow(List<PermissionOnboardingStepType> steps) async {
     if (_flowOpen || steps.isEmpty || !mounted) {
       return;
     }

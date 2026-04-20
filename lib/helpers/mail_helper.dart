@@ -1,7 +1,5 @@
-enum MailType {
-  verifyEmail,
-  resetPassword,
-}
+enum MailType { verifyEmail, resetPassword }
+
 extension MailTypeExt on MailType {
   String get value {
     switch (this) {

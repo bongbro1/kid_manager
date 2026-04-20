@@ -62,11 +62,13 @@ class SendPolicy {
         break;
     }
 
-    if (transport == TransportMode.still || transport == TransportMode.unknown) {
+    if (transport == TransportMode.still ||
+        transport == TransportMode.unknown) {
       if (accuracyM >= TrackingTuning.stillUnknownWeakAccuracyMinM) {
         movingMinInterval = TrackingTuning.stillUnknownWeakInterval;
         movingMinDistanceKm = TrackingTuning.stillUnknownWeakDistanceKm;
-      } else if (movingMinDistanceKm < TrackingTuning.stillUnknownTightDistanceKm) {
+      } else if (movingMinDistanceKm <
+          TrackingTuning.stillUnknownTightDistanceKm) {
         movingMinDistanceKm = TrackingTuning.stillUnknownTightDistanceKm;
       }
     }

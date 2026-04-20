@@ -85,11 +85,8 @@ class _OtpScreenState extends State<OtpScreen> {
     final vm = context.read<OtpVM>();
     final result = await runGuardedNetworkAction<OtpVerifyResult>(
       context,
-      action: () => vm.verifyOtp(
-        email: widget.email,
-        code: otp,
-        type: _mailType,
-      ),
+      action: () =>
+          vm.verifyOtp(email: widget.email, code: otp, type: _mailType),
     );
     if (result == null) {
       return;

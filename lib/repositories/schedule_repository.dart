@@ -35,13 +35,18 @@ class ScheduleRepository {
 
     final snapshot = await _scheduleCol(parentUid)
         .where('childId', isEqualTo: childId)
-        .where('startAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+        .where(
+          'startAt',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth),
+        )
         .where('startAt', isLessThan: Timestamp.fromDate(startOfNextMonth))
         .orderBy('startAt')
         .get();
 
     return snapshot.docs
-        .map((doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid))
+        .map(
+          (doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid),
+        )
         .toList();
   }
 
@@ -59,7 +64,9 @@ class ScheduleRepository {
         .get();
 
     return snapshot.docs
-        .map((doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid))
+        .map(
+          (doc) => Schedule.fromFirestore(doc).copyWith(parentUid: parentUid),
+        )
         .toList();
   }
 
@@ -103,9 +110,10 @@ class ScheduleRepository {
     required String parentUid,
     required String scheduleId,
   }) async {
-    final snapshot = await _historyCol(parentUid, scheduleId)
-        .orderBy('historyCreatedAt', descending: true)
-        .get();
+    final snapshot = await _historyCol(
+      parentUid,
+      scheduleId,
+    ).orderBy('historyCreatedAt', descending: true).get();
 
     return snapshot.docs
         .map((doc) => ScheduleHistory.fromFirestore(doc))
@@ -119,7 +127,10 @@ class ScheduleRepository {
   }) async {
     final l10n = runtimeL10n();
     final scheduleRef = _scheduleCol(parentUid).doc(scheduleId);
-    final selectedHistoryRef = _historyCol(parentUid, scheduleId).doc(historyId);
+    final selectedHistoryRef = _historyCol(
+      parentUid,
+      scheduleId,
+    ).doc(historyId);
 
     // backup bản hiện tại trước khi restore
     final backupCurrentRef = _historyCol(parentUid, scheduleId).doc();
@@ -139,7 +150,9 @@ class ScheduleRepository {
       }
 
       final currentSchedule = Schedule.fromFirestore(currentSnap);
-      final selectedHistory = ScheduleHistory.fromFirestore(selectedHistorySnap);
+      final selectedHistory = ScheduleHistory.fromFirestore(
+        selectedHistorySnap,
+      );
 
       final now = DateTime.now();
 

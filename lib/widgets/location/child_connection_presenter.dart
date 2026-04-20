@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 
-enum ChildConnectionState {
-  live,
-  connectionLost,
-  noLocationYet,
-}
+enum ChildConnectionState { live, connectionLost, noLocationYet }
 
 class ChildConnectionPresentation {
   const ChildConnectionPresentation({
@@ -154,9 +150,7 @@ class ChildConnectionStatusHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? accent.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: borderColor ?? accent.withOpacity(0.18),
-        ),
+        border: Border.all(color: borderColor ?? accent.withOpacity(0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

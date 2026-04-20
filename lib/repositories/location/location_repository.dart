@@ -1,4 +1,3 @@
-
 import 'package:kid_manager/core/location/tracking_payload.dart';
 import 'package:kid_manager/models/location/location_data.dart';
 

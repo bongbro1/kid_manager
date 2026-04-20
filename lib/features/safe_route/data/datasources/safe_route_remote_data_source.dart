@@ -55,7 +55,9 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
   final FirebaseDatabase _database;
   final FirebaseFirestore _firestore;
   static const Duration _liveLocationPollingInterval = Duration(seconds: 2);
-  static const Duration _currentTripFallbackPollingInterval = Duration(seconds: 4);
+  static const Duration _currentTripFallbackPollingInterval = Duration(
+    seconds: 4,
+  );
   static const Duration _currentTripFallbackMaxPollingInterval = Duration(
     seconds: 30,
   );
@@ -180,19 +182,18 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
         return;
       }
 
-      realtimeRetryTimer = Timer(
-        _currentTripFallbackRealtimeRetryInterval,
-        () {
-          realtimeRetryTimer = null;
-          if (!controller.isClosed && usingCallableFallback && subscription == null) {
-            debugPrint(
-              '[SafeRoute] retry realtime snapshot for '
-              'safe_route_current_trips/$childId',
-            );
-            attachSnapshotListener();
-          }
-        },
-      );
+      realtimeRetryTimer = Timer(_currentTripFallbackRealtimeRetryInterval, () {
+        realtimeRetryTimer = null;
+        if (!controller.isClosed &&
+            usingCallableFallback &&
+            subscription == null) {
+          debugPrint(
+            '[SafeRoute] retry realtime snapshot for '
+            'safe_route_current_trips/$childId',
+          );
+          attachSnapshotListener();
+        }
+      });
     }
 
     scheduleFallbackPoll = () {
@@ -297,53 +298,53 @@ class FirebaseSafeRouteRemoteDataSource implements SafeRouteRemoteDataSource {
       onListen: () {
         attachSnapshotListener = () {
           subscription ??= docRef.snapshots().listen(
-          (snapshot) {
-            if (!snapshot.exists) {
-              latestSnapshot = null;
-              emitCurrent();
-              return;
-            }
+            (snapshot) {
+              if (!snapshot.exists) {
+                latestSnapshot = null;
+                emitCurrent();
+                return;
+              }
 
-            final data = snapshot.data();
-            if (data == null) {
-              latestSnapshot = null;
-              emitCurrent();
-              return;
-            }
+              final data = snapshot.data();
+              if (data == null) {
+                latestSnapshot = null;
+                emitCurrent();
+                return;
+              }
 
-            try {
-              latestSnapshot = CurrentTripSnapshotModel.fromMap(data);
-            } catch (error, stackTrace) {
-              latestSnapshot = null;
-              debugPrint(
-                '[SafeRoute] skip invalid safe_route_current_trips/$childId '
-                'snapshot: $error\n$stackTrace',
-              );
-              emitCurrent();
-              return;
-            }
+              try {
+                latestSnapshot = CurrentTripSnapshotModel.fromMap(data);
+              } catch (error, stackTrace) {
+                latestSnapshot = null;
+                debugPrint(
+                  '[SafeRoute] skip invalid safe_route_current_trips/$childId '
+                  'snapshot: $error\n$stackTrace',
+                );
+                emitCurrent();
+                return;
+              }
 
-            if (usingCallableFallback) {
-              usingCallableFallback = false;
-              fallbackBackoff.reset();
-              cancelFallbackTimers();
-              debugPrint(
-                '[SafeRoute] restored realtime snapshot for '
-                'safe_route_current_trips/$childId',
-              );
-            }
-            emitCurrent();
-          },
-          onError: (error, stackTrace) {
-            if (shouldFallbackToCallable(error)) {
-              startCallableFallback(error);
-              return;
-            }
-            if (!controller.isClosed) {
-              controller.addError(error, stackTrace);
-            }
-          },
-        );
+              if (usingCallableFallback) {
+                usingCallableFallback = false;
+                fallbackBackoff.reset();
+                cancelFallbackTimers();
+                debugPrint(
+                  '[SafeRoute] restored realtime snapshot for '
+                  'safe_route_current_trips/$childId',
+                );
+              }
+              emitCurrent();
+            },
+            onError: (error, stackTrace) {
+              if (shouldFallbackToCallable(error)) {
+                startCallableFallback(error);
+                return;
+              }
+              if (!controller.isClosed) {
+                controller.addError(error, stackTrace);
+              }
+            },
+          );
         };
         attachSnapshotListener();
       },

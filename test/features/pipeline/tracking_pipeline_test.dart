@@ -53,116 +53,118 @@ void main() {
 
       expect(result.motion, isNot(MotionState.moving));
       expect(result.shouldSend, isFalse);
-      expect(
-        result.filteredLocation.distanceTo(anchor) * 1000,
-        lessThan(1),
-      );
+      expect(result.filteredLocation.distanceTo(anchor) * 1000, lessThan(1));
     });
 
-    test('enters indoor suppression and keeps anchor stable during noisy jitter', () {
-      var previous = anchor;
-      TrackingResultSnapshot? lastResult;
+    test(
+      'enters indoor suppression and keeps anchor stable during noisy jitter',
+      () {
+        var previous = anchor;
+        TrackingResultSnapshot? lastResult;
 
-      for (var i = 0; i < 12; i++) {
-        final jitter = _point(
-          latitude: anchor.latitude + _metersToLatitude(i.isEven ? 17 : -15),
-          longitude: anchor.longitude + _metersToLongitude(
-            anchor.latitude,
-            i % 3 == 0 ? 9 : -7,
-          ),
-          accuracy: 18 + (i % 4) * 4,
-          speed: 0.12,
-          time: baseTime.add(Duration(seconds: 5 * (i + 1))),
+        for (var i = 0; i < 12; i++) {
+          final jitter = _point(
+            latitude: anchor.latitude + _metersToLatitude(i.isEven ? 17 : -15),
+            longitude:
+                anchor.longitude +
+                _metersToLongitude(anchor.latitude, i % 3 == 0 ? 9 : -7),
+            accuracy: 18 + (i % 4) * 4,
+            speed: 0.12,
+            time: baseTime.add(Duration(seconds: 5 * (i + 1))),
+          );
+
+          final result = pipeline.process(
+            jitter,
+            null,
+            previousReference: previous,
+            now: baseTime.add(Duration(seconds: 5 * (i + 1))),
+          );
+
+          lastResult = TrackingResultSnapshot(
+            motion: result.motion,
+            shouldSend: result.shouldSend,
+            indoorSuppressed: result.indoorSuppressed,
+            filteredLocation: result.filteredLocation,
+          );
+          previous = result.filteredLocation;
+        }
+
+        expect(lastResult, isNotNull);
+        expect(lastResult!.indoorSuppressed, isTrue);
+        expect(lastResult.motion, isNot(MotionState.moving));
+        expect(lastResult.shouldSend, isFalse);
+        expect(
+          lastResult.filteredLocation.distanceTo(anchor) * 1000.0,
+          lessThan(TrackingTuning.indoorSuppressionAnchorRefreshRadiusM),
         );
+      },
+    );
 
-        final result = pipeline.process(
-          jitter,
+    test(
+      'releases indoor suppression after consecutive good outdoor fixes',
+      () {
+        var previous = anchor;
+
+        for (var i = 0; i < 6; i++) {
+          final jitter = _point(
+            latitude: anchor.latitude + _metersToLatitude(i.isEven ? 16 : -14),
+            longitude: anchor.longitude,
+            accuracy: 22,
+            speed: 0.10,
+            time: baseTime.add(Duration(seconds: 5 * (i + 1))),
+          );
+          final result = pipeline.process(
+            jitter,
+            null,
+            previousReference: previous,
+            now: baseTime.add(Duration(seconds: 5 * (i + 1))),
+          );
+          previous = result.filteredLocation;
+        }
+
+        final firstRecovery = _point(
+          latitude: anchor.latitude + _metersToLatitude(24),
+          longitude: anchor.longitude + _metersToLongitude(anchor.latitude, 8),
+          accuracy: 8,
+          speed: 1.1,
+          time: baseTime.add(const Duration(seconds: 40)),
+        );
+        final firstResult = pipeline.process(
+          firstRecovery,
           null,
           previousReference: previous,
-          now: baseTime.add(Duration(seconds: 5 * (i + 1))),
+          now: baseTime.add(const Duration(seconds: 40)),
         );
 
-        lastResult = TrackingResultSnapshot(
-          motion: result.motion,
-          shouldSend: result.shouldSend,
-          indoorSuppressed: result.indoorSuppressed,
-          filteredLocation: result.filteredLocation,
+        expect(firstResult.indoorSuppressed, isTrue);
+        expect(
+          firstResult.filteredLocation.distanceTo(anchor) * 1000.0,
+          lessThan(TrackingTuning.indoorSuppressionAnchorRefreshRadiusM),
         );
-        previous = result.filteredLocation;
-      }
 
-      expect(lastResult, isNotNull);
-      expect(lastResult!.indoorSuppressed, isTrue);
-      expect(lastResult.motion, isNot(MotionState.moving));
-      expect(lastResult.shouldSend, isFalse);
-      expect(
-        lastResult.filteredLocation.distanceTo(anchor) * 1000.0,
-        lessThan(TrackingTuning.indoorSuppressionAnchorRefreshRadiusM),
-      );
-    });
-
-    test('releases indoor suppression after consecutive good outdoor fixes', () {
-      var previous = anchor;
-
-      for (var i = 0; i < 6; i++) {
-        final jitter = _point(
-          latitude: anchor.latitude + _metersToLatitude(i.isEven ? 16 : -14),
-          longitude: anchor.longitude,
-          accuracy: 22,
-          speed: 0.10,
-          time: baseTime.add(Duration(seconds: 5 * (i + 1))),
+        final secondRecovery = _point(
+          latitude: anchor.latitude + _metersToLatitude(32),
+          longitude: anchor.longitude + _metersToLongitude(anchor.latitude, 12),
+          accuracy: 7,
+          speed: 1.3,
+          time: baseTime.add(const Duration(seconds: 46)),
         );
-        final result = pipeline.process(
-          jitter,
+        final secondResult = pipeline.process(
+          secondRecovery,
           null,
-          previousReference: previous,
-          now: baseTime.add(Duration(seconds: 5 * (i + 1))),
+          previousReference: firstResult.filteredLocation,
+          now: baseTime.add(const Duration(seconds: 46)),
         );
-        previous = result.filteredLocation;
-      }
 
-      final firstRecovery = _point(
-        latitude: anchor.latitude + _metersToLatitude(24),
-        longitude: anchor.longitude + _metersToLongitude(anchor.latitude, 8),
-        accuracy: 8,
-        speed: 1.1,
-        time: baseTime.add(const Duration(seconds: 40)),
-      );
-      final firstResult = pipeline.process(
-        firstRecovery,
-        null,
-        previousReference: previous,
-        now: baseTime.add(const Duration(seconds: 40)),
-      );
-
-      expect(firstResult.indoorSuppressed, isTrue);
-      expect(
-        firstResult.filteredLocation.distanceTo(anchor) * 1000.0,
-        lessThan(TrackingTuning.indoorSuppressionAnchorRefreshRadiusM),
-      );
-
-      final secondRecovery = _point(
-        latitude: anchor.latitude + _metersToLatitude(32),
-        longitude: anchor.longitude + _metersToLongitude(anchor.latitude, 12),
-        accuracy: 7,
-        speed: 1.3,
-        time: baseTime.add(const Duration(seconds: 46)),
-      );
-      final secondResult = pipeline.process(
-        secondRecovery,
-        null,
-        previousReference: firstResult.filteredLocation,
-        now: baseTime.add(const Duration(seconds: 46)),
-      );
-
-      expect(secondResult.indoorSuppressed, isFalse);
-      expect(secondResult.motion, MotionState.moving);
-      expect(secondResult.shouldSend, isTrue);
-      expect(
-        secondResult.filteredLocation.distanceTo(anchor) * 1000.0,
-        greaterThan(TrackingTuning.indoorSuppressionReleaseDistanceMinM),
-      );
-    });
+        expect(secondResult.indoorSuppressed, isFalse);
+        expect(secondResult.motion, MotionState.moving);
+        expect(secondResult.shouldSend, isTrue);
+        expect(
+          secondResult.filteredLocation.distanceTo(anchor) * 1000.0,
+          greaterThan(TrackingTuning.indoorSuppressionReleaseDistanceMinM),
+        );
+      },
+    );
 
     test('still sends genuine walking movement with good accuracy', () {
       final walking = _point(
@@ -207,10 +209,7 @@ void main() {
       );
 
       expect(
-        EffectiveSpeedEstimator.resolvePointSpeedMps(
-          to,
-          previous: from,
-        ),
+        EffectiveSpeedEstimator.resolvePointSpeedMps(to, previous: from),
         0,
       );
     });

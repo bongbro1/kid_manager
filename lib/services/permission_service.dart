@@ -5,8 +5,8 @@ import 'package:app_settings/app_settings.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kid_manager/background/native_watcher_service.dart';
+import 'package:kid_manager/services/notifications/android_sos_alert_bridge.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:usage_stats/usage_stats.dart';
 
 class PermissionService {
   static const List<String> appEntryPermissionKeys = <String>[
@@ -32,6 +32,53 @@ class PermissionService {
 
   Future<void> openNotificationSettings() async {
     await AppSettings.openAppSettings(type: AppSettingsType.notification);
+  }
+
+  Future<bool> hasAndroidSosNotificationPolicyAccess() async {
+    if (!Platform.isAndroid) return false;
+    return AndroidSosAlertBridge.hasNotificationPolicyAccess();
+  }
+
+  Future<bool> canUseAndroidSosFullScreenIntent() async {
+    if (!Platform.isAndroid) return true;
+    return AndroidSosAlertBridge.canUseFullScreenIntent();
+  }
+
+  Future<void> openAndroidSosNotificationPolicySettings() async {
+    if (!Platform.isAndroid) return;
+    await AndroidSosAlertBridge.openNotificationPolicyAccessSettings();
+  }
+
+  Future<void> openAndroidSosFullScreenIntentSettings() async {
+    if (!Platform.isAndroid) return;
+    await AndroidSosAlertBridge.openFullScreenIntentSettings();
+  }
+
+  Future<void> openAndroidSosAlertSettings() async {
+    if (!Platform.isAndroid) {
+      await openNotificationSettings();
+      return;
+    }
+
+    final notificationsGranted = await hasNotificationPermission();
+    if (!notificationsGranted) {
+      await openNotificationSettings();
+      return;
+    }
+
+    final hasPolicyAccess = await hasAndroidSosNotificationPolicyAccess();
+    if (!hasPolicyAccess) {
+      await openAndroidSosNotificationPolicySettings();
+      return;
+    }
+
+    final canUseFullScreen = await canUseAndroidSosFullScreenIntent();
+    if (!canUseFullScreen) {
+      await openAndroidSosFullScreenIntentSettings();
+      return;
+    }
+
+    await AndroidSosAlertBridge.openChannelSettings();
   }
 
   Future<bool> hasForegroundLocationPermission() async {
@@ -141,9 +188,9 @@ class PermissionService {
     if (!Platform.isAndroid) return true;
 
     try {
-      final granted = await UsageStats.checkUsagePermission();
+      final granted = await NativeWatcherService.hasUsageAccessPermission();
       debugPrint('checkUsagePermission=$granted');
-      return granted ?? false;
+      return granted;
     } catch (e) {
       debugPrint('Usage permission error: $e');
       return false;
@@ -203,9 +250,6 @@ class PermissionService {
     final usage = await hasUsagePermission();
     final battery = await hasBatteryOptimizationDisabled();
 
-    return {
-      'usage': usage,
-      'batteryOptimizationDisabled': battery,
-    };
+    return {'usage': usage, 'batteryOptimizationDisabled': battery};
   }
 }

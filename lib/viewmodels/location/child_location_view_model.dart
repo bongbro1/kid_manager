@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -129,7 +129,8 @@ class ChildLocationViewModel extends ChangeNotifier {
   bool _currentUploadInFlight = false;
   int _lastCurrentQueuedAtMs = 0;
 
-  final List<_QueuedHistoryUpload> _historyUploadQueue = <_QueuedHistoryUpload>[];
+  final List<_QueuedHistoryUpload> _historyUploadQueue =
+      <_QueuedHistoryUpload>[];
   bool _historyUploadInFlight = false;
   Timer? _historyFlushTimer;
 
@@ -563,12 +564,10 @@ class ChildLocationViewModel extends ChangeNotifier {
   }
 
   Future<void> _flushHistoryUploads() async {
-    if (
-      _disposed ||
-      _publishingHandledByService ||
-      _historyUploadInFlight ||
-      _historyUploadQueue.isEmpty
-    ) {
+    if (_disposed ||
+        _publishingHandledByService ||
+        _historyUploadInFlight ||
+        _historyUploadQueue.isEmpty) {
       return;
     }
 
@@ -643,10 +642,9 @@ class ChildLocationViewModel extends ChangeNotifier {
         _zoneLaneThrottle.inMilliseconds - (nowMs - _lastZoneCheckAtMs);
     _zoneFlushTimer ??= Timer(
       Duration(
-        milliseconds: (remainingMs.clamp(
-          0,
-          _zoneLaneThrottle.inMilliseconds,
-        ) as num).toInt(),
+        milliseconds:
+            (remainingMs.clamp(0, _zoneLaneThrottle.inMilliseconds) as num)
+                .toInt(),
       ),
       () {
         _zoneFlushTimer = null;
@@ -656,12 +654,10 @@ class ChildLocationViewModel extends ChangeNotifier {
   }
 
   Future<void> _drainZoneChecks() async {
-    if (
-      _disposed ||
-      _publishingHandledByService ||
-      !_zonesInited ||
-      _zoneCheckInFlight
-    ) {
+    if (_disposed ||
+        _publishingHandledByService ||
+        !_zonesInited ||
+        _zoneCheckInFlight) {
       return;
     }
 
@@ -696,12 +692,10 @@ class ChildLocationViewModel extends ChangeNotifier {
     if (_disposed) return;
     final activeSharingUid = _activeSharingUid;
     final currentUid = _currentUidOrNull();
-    if (
-      !_isSharing ||
-      activeSharingUid == null ||
-      currentUid == null ||
-      currentUid != activeSharingUid
-    ) {
+    if (!_isSharing ||
+        activeSharingUid == null ||
+        currentUid == null ||
+        currentUid != activeSharingUid) {
       if (kDebugMode) {
         debugPrint(
           'Drop child location update because auth session is no longer valid.',
@@ -726,11 +720,9 @@ class ChildLocationViewModel extends ChangeNotifier {
       _lastGoodFixAt = DateTime.now();
     }
     final shouldGuardJump = _sentInitialCurrent && _currentLocation != null;
-    if (
-      shouldGuardJump &&
-      _isJumpTooLarge(_currentLocation, filtered) &&
-      filtered.accuracy > TrackingTuning.jumpGuardBadAccuracyMinM
-    ) {
+    if (shouldGuardJump &&
+        _isJumpTooLarge(_currentLocation, filtered) &&
+        filtered.accuracy > TrackingTuning.jumpGuardBadAccuracyMinM) {
       debugPrint('Skip jump point: acc=${filtered.accuracy}');
       return;
     }
@@ -805,27 +797,23 @@ class ChildLocationViewModel extends ChangeNotifier {
       lastFailureAtMs: _lastHistoryFailureAtMs,
       minSuccessInterval: Duration.zero,
     );
-    if (
-      !_publishingHandledByService &&
-      isMoving &&
-      goodHistoryAcc &&
-      result.indoorSuppressed &&
-      historySendWindowOpen &&
-      kDebugMode
-    ) {
+    if (!_publishingHandledByService &&
+        isMoving &&
+        goodHistoryAcc &&
+        result.indoorSuppressed &&
+        historySendWindowOpen &&
+        kDebugMode) {
       debugPrint(
         'ChildLocationViewModel history send skipped due to indoor '
         'suppression acc=${acc.toStringAsFixed(1)}',
       );
     }
-    if (
-      !_publishingHandledByService &&
-      isMoving &&
-      !result.indoorSuppressed &&
-      result.shouldSend &&
-      goodHistoryAcc &&
-      historySendWindowOpen
-    ) {
+    if (!_publishingHandledByService &&
+        isMoving &&
+        !result.indoorSuppressed &&
+        result.shouldSend &&
+        goodHistoryAcc &&
+        historySendWindowOpen) {
       _enqueueHistoryUpload(
         payload: historyPayload,
         filteredLocation: filtered,
@@ -833,12 +821,10 @@ class ChildLocationViewModel extends ChangeNotifier {
       );
     }
 
-    if (
-      _publishingHandledByService &&
-      isMoving &&
-      result.shouldSend &&
-      goodHistoryAcc
-    ) {
+    if (_publishingHandledByService &&
+        isMoving &&
+        result.shouldSend &&
+        goodHistoryAcc) {
       _engine.acknowledgeHistorySent(filtered, result.motion);
     }
 
@@ -1005,6 +991,14 @@ class ChildLocationViewModel extends ChangeNotifier {
       return;
     }
 
+    if (_isAppResumed()) {
+      final serviceRunning = await TrackingBackgroundService.isRunning();
+      if (serviceRunning) {
+        await TrackingBackgroundService.stop(clearConfig: false);
+      }
+      _publishingHandledByService = false;
+    }
+
     var serviceStarted = false;
     final shouldUseBackgroundService = _requireBackground && !_isAppResumed();
     if (shouldUseBackgroundService) {
@@ -1036,7 +1030,9 @@ class ChildLocationViewModel extends ChangeNotifier {
       );
     }
 
-    if (!_publishingHandledByService && _requireBackground && !_isAppResumed()) {
+    if (!_publishingHandledByService &&
+        _requireBackground &&
+        !_isAppResumed()) {
       try {
         await _locationService.ensureServiceAndPermission(
           requireBackground: true,

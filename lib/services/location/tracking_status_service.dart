@@ -15,7 +15,8 @@ class TrackingStatusService {
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
   }) : _functions =
-           functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1'),
+           functions ??
+           FirebaseFunctions.instanceFor(region: 'asia-southeast1'),
        _firestore = firestore ?? FirebaseFirestore.instance,
        _auth = auth ?? FirebaseAuth.instance;
 
@@ -31,7 +32,10 @@ class TrackingStatusService {
 
     try {
       final userSnap = await _firestore.collection('users').doc(uid).get();
-      final role = (userSnap.data()?['role'] ?? '').toString().trim().toLowerCase();
+      final role = (userSnap.data()?['role'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
       final canReport = role == 'child';
       _cachedUid = uid;
       _cachedCanReport = canReport;

@@ -18,11 +18,11 @@ class NotificationRepository {
     FirebaseFirestore? fs,
     FirebaseFunctions? functions,
     FirebaseAuth? auth,
-  })
-    : _fs = fs ?? FirebaseFirestore.instance,
-      _auth = auth ?? FirebaseAuth.instance,
-      _functions =
-          functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
+  }) : _fs = fs ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance,
+       _functions =
+           functions ??
+           FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
   final int _maxCountInPage = 20;
   static const int _maxBatchDeleteSize = 450;
@@ -84,13 +84,12 @@ class NotificationRepository {
             .where('isRead', isEqualTo: false)
             .snapshots()
             .map((snap) => snap.docs.map((doc) => doc.id).toSet());
-        subs.add(globalStream.listen(
-          (value) {
+        subs.add(
+          globalStream.listen((value) {
             globalUnread = value;
             emit();
-          },
-          onError: controller.addError,
-        ));
+          }, onError: controller.addError),
+        );
       }
 
       if (sources.contains(NotificationSource.userInbox)) {
@@ -101,13 +100,12 @@ class NotificationRepository {
             .where('isRead', isEqualTo: false)
             .snapshots()
             .map((snap) => snap.docs.map((doc) => doc.id).toSet());
-        subs.add(inboxStream.listen(
-          (value) {
+        subs.add(
+          inboxStream.listen((value) {
             inboxUnread = value;
             emit();
-          },
-          onError: controller.addError,
-        ));
+          }, onError: controller.addError),
+        );
       }
 
       if (sources.contains(NotificationSource.chatInbox)) {
@@ -118,13 +116,12 @@ class NotificationRepository {
             .where('isRead', isEqualTo: false)
             .snapshots()
             .map((snap) => snap.docs.map((doc) => doc.id).toSet());
-        subs.add(chatStream.listen(
-          (value) {
+        subs.add(
+          chatStream.listen((value) {
             chatUnread = value;
             emit();
-          },
-          onError: controller.addError,
-        ));
+          }, onError: controller.addError),
+        );
       }
 
       controller.onCancel = () async {
@@ -217,9 +214,9 @@ class NotificationRepository {
   }
 
   Stream<List<AppNotification>> watchBySource(
-      String uid,
-      NotificationSource source,
-      ) {
+    String uid,
+    NotificationSource source,
+  ) {
     switch (source) {
       case NotificationSource.global:
         return streamUserNotifications(uid);
@@ -228,6 +225,107 @@ class NotificationRepository {
       case NotificationSource.chatInbox:
         return streamUserChatNotifications(uid);
     }
+  }
+
+  Future<List<AppNotification>> fetchBySource(
+    String uid,
+    NotificationSource source, {
+    Source fetchSource = Source.serverAndCache,
+  }) async {
+    final options = GetOptions(source: fetchSource);
+
+    switch (source) {
+      case NotificationSource.global:
+        final snap = await _fs
+            .collection('notifications')
+            .where('receiverId', isEqualTo: uid)
+            .orderBy('createdAt', descending: true)
+            .limit(_maxCountInPage)
+            .get(options);
+        return snap.docs
+            .map(
+              (d) => AppNotification.fromMap(
+                d.id,
+                d.data(),
+                store: NotificationStore.global,
+              ),
+            )
+            .toList(growable: false);
+      case NotificationSource.userInbox:
+        final snap = await _fs
+            .collection('users')
+            .doc(uid)
+            .collection('notifications')
+            .orderBy('createdAt', descending: true)
+            .limit(200)
+            .get(options);
+        return snap.docs
+            .map(
+              (d) => AppNotification.fromMap(
+                d.id,
+                d.data(),
+                store: NotificationStore.userInbox,
+              ),
+            )
+            .toList(growable: false);
+      case NotificationSource.chatInbox:
+        final snap = await _fs
+            .collection('users')
+            .doc(uid)
+            .collection('chatNotifications')
+            .orderBy('createdAt', descending: true)
+            .limit(_maxCountInPage)
+            .get(options);
+        return snap.docs
+            .map(
+              (d) => AppNotification.fromMap(
+                d.id,
+                d.data(),
+                store: NotificationStore.chatInbox,
+              ),
+            )
+            .toList(growable: false);
+    }
+  }
+
+  Future<int> fetchUnreadCount(
+    String uid, {
+    List<NotificationSource> sources = const [NotificationSource.global],
+    Source fetchSource = Source.serverAndCache,
+  }) async {
+    final options = GetOptions(source: fetchSource);
+    var unreadCount = 0;
+
+    if (sources.contains(NotificationSource.global)) {
+      final snap = await _fs
+          .collection('notifications')
+          .where('receiverId', isEqualTo: uid)
+          .where('isRead', isEqualTo: false)
+          .get(options);
+      unreadCount += snap.size;
+    }
+
+    if (sources.contains(NotificationSource.userInbox)) {
+      final snap = await _fs
+          .collection('users')
+          .doc(uid)
+          .collection('notifications')
+          .where('isRead', isEqualTo: false)
+          .get(options);
+      unreadCount += snap.size;
+    }
+
+    if (sources.contains(NotificationSource.chatInbox)) {
+      final snap = await _fs
+          .collection('users')
+          .doc(uid)
+          .collection('chatNotifications')
+          .where('isRead', isEqualTo: false)
+          .get(options);
+      unreadCount += snap.size;
+    }
+
+    return unreadCount;
   }
 
   Future<void> create({
@@ -239,7 +337,6 @@ class NotificationRepository {
     Map<String, dynamic>? data,
     String? familyId,
   }) async {
-
     if (type == 'family_chat') {
       debugPrint(
         '[NotificationRepository] skip root notification for family_chat',
@@ -258,14 +355,16 @@ class NotificationRepository {
 
     debugPrint(
       '[NotificationRepository] create called '
-          'senderId=$senderId receiverId=$receiverId '
-          'type=$type title="$title" body="$body" familyId=$familyId data=$data',
+      'senderId=$senderId receiverId=$receiverId '
+      'type=$type title="$title" body="$body" familyId=$familyId data=$data',
     );
 
     try {
       await _ensureCallableAuthReady();
 
-      final callable = _functions.httpsCallable('enqueueAuthorizedNotification');
+      final callable = _functions.httpsCallable(
+        'enqueueAuthorizedNotification',
+      );
       final response = await callable.call(payload);
 
       debugPrint(
@@ -351,6 +450,61 @@ class NotificationRepository {
     }
   }
 
+  Future<int> markAllAsRead({
+    required String uid,
+    List<NotificationSource> sources = const [NotificationSource.global],
+  }) async {
+    final unreadRefs = <DocumentReference<Map<String, dynamic>>>[];
+
+    if (sources.contains(NotificationSource.global)) {
+      final snap = await _fs
+          .collection('notifications')
+          .where('receiverId', isEqualTo: uid)
+          .where('isRead', isEqualTo: false)
+          .get();
+      unreadRefs.addAll(snap.docs.map((doc) => doc.reference));
+    }
+
+    if (sources.contains(NotificationSource.userInbox)) {
+      final snap = await _fs
+          .collection('users')
+          .doc(uid)
+          .collection('notifications')
+          .where('isRead', isEqualTo: false)
+          .get();
+      unreadRefs.addAll(snap.docs.map((doc) => doc.reference));
+    }
+
+    if (sources.contains(NotificationSource.chatInbox)) {
+      final snap = await _fs
+          .collection('users')
+          .doc(uid)
+          .collection('chatNotifications')
+          .where('isRead', isEqualTo: false)
+          .get();
+      unreadRefs.addAll(snap.docs.map((doc) => doc.reference));
+    }
+
+    if (unreadRefs.isEmpty) {
+      return 0;
+    }
+
+    for (var i = 0; i < unreadRefs.length; i += _maxBatchDeleteSize) {
+      final batch = _fs.batch();
+      final end = (i + _maxBatchDeleteSize < unreadRefs.length)
+          ? i + _maxBatchDeleteSize
+          : unreadRefs.length;
+
+      for (final ref in unreadRefs.sublist(i, end)) {
+        batch.update(ref, {'isRead': true});
+      }
+
+      await batch.commit();
+    }
+
+    return unreadRefs.length;
+  }
+
   Future<void> deleteInbox(String uid, String id) async {
     try {
       await _fs
@@ -370,7 +524,6 @@ class NotificationRepository {
       rethrow;
     }
   }
-
 
   Stream<int> watchChatUnreadCount(String uid) {
     return _fs
@@ -594,3 +747,20 @@ class NotificationRepository {
     }
   }
 }
+// notifications/{notificationId}
+// {
+//   senderId: "uid" | null,
+//   receiverId: "uid",
+//   familyId: "...",
+
+//   type: "SOS",
+
+//   title: "...",
+//   body: "...",
+//   data: {...},
+
+//   isRead: false,
+//   status: "pending",   // CF sẽ đổi → sent / failed
+
+//   createdAt: serverTimestamp()
+// }

@@ -61,11 +61,14 @@ class ChildSafeRouteState {
       isLoading: isLoading ?? this.isLoading,
       activeTrip: clearActiveTrip ? null : activeTrip ?? this.activeTrip,
       activeRoute: clearActiveRoute ? null : activeRoute ?? this.activeRoute,
-      alternativeRoutes:
-          clearActiveRoute ? const [] : alternativeRoutes ?? this.alternativeRoutes,
+      alternativeRoutes: clearActiveRoute
+          ? const []
+          : alternativeRoutes ?? this.alternativeRoutes,
       currentLocation: currentLocation ?? this.currentLocation,
       guidance: clearGuidance ? null : guidance ?? this.guidance,
-      errorMessage: clearErrorMessage ? null : errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage
+          ? null
+          : errorMessage ?? this.errorMessage,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
     );
   }

@@ -27,12 +27,12 @@ class ZoneStatusVm extends ChangeNotifier {
     FirebaseFirestore? fs,
     FirebaseAuth? auth,
     FirebaseFunctions? functions,
-  })  : _rtdb = rtdb ?? FirebaseDatabase.instance,
-        _fs = fs ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance,
-        _functions =
-            functions ??
-            FirebaseFunctions.instanceFor(region: 'asia-southeast1') {
+  }) : _rtdb = rtdb ?? FirebaseDatabase.instance,
+       _fs = fs ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance,
+       _functions =
+           functions ??
+           FirebaseFunctions.instanceFor(region: 'asia-southeast1') {
     _authSub = _auth.authStateChanges().listen((user) {
       if (user == null) {
         _cancelFocusStreams();
@@ -149,20 +149,23 @@ class ZoneStatusVm extends ChangeNotifier {
   void _listenPresence(String childId) {
     final ref = _rtdb.ref('zonePresenceByChild/$childId');
 
-    _presenceSub = ref.onValue.listen((e) {
-      _restoreRealtimePresenceIfNeeded(childId);
-      _applyPresenceValue(e.snapshot.value);
-    }, onError: (Object e, StackTrace st) {
-      debugPrint(
-        '[ZoneStatusVm] zonePresence listen error child=$childId error=$e',
-      );
-      debugPrint('$st');
-      unawaited(_presenceSub?.cancel());
-      _presenceSub = null;
-      _presenceUnavailable = true;
-      _startPresenceFallbackPolling(childId);
-      _schedulePresenceRealtimeRetry(childId);
-    });
+    _presenceSub = ref.onValue.listen(
+      (e) {
+        _restoreRealtimePresenceIfNeeded(childId);
+        _applyPresenceValue(e.snapshot.value);
+      },
+      onError: (Object e, StackTrace st) {
+        debugPrint(
+          '[ZoneStatusVm] zonePresence listen error child=$childId error=$e',
+        );
+        debugPrint('$st');
+        unawaited(_presenceSub?.cancel());
+        _presenceSub = null;
+        _presenceUnavailable = true;
+        _startPresenceFallbackPolling(childId);
+        _schedulePresenceRealtimeRetry(childId);
+      },
+    );
   }
 
   void _applyPresenceValue(dynamic value) {
@@ -207,7 +210,9 @@ class ZoneStatusVm extends ChangeNotifier {
       final data = Map<String, dynamic>.from(res.data as Map);
       _applyPresenceValue(data['presence']);
     } catch (e, st) {
-      debugPrint('[ZoneStatusVm] zonePresence callable error child=$childId error=$e');
+      debugPrint(
+        '[ZoneStatusVm] zonePresence callable error child=$childId error=$e',
+      );
       debugPrint('$st');
       _activePresence = null;
       _presenceUnavailable = true;
@@ -280,7 +285,6 @@ class ZoneStatusVm extends ChangeNotifier {
   }
 
   void _listenLastZoneEvent(String viewerUid, String childId) {
-
     final q = _fs
         .collection('users')
         .doc(viewerUid)
@@ -290,19 +294,22 @@ class ZoneStatusVm extends ChangeNotifier {
         .orderBy('createdAt', descending: true)
         .limit(1);
 
-    _lastEventSub = q.snapshots().listen((snap) {
-      if (snap.docs.isEmpty) {
-        _lastEvent = null;
-        _recompute();
-        return;
-      }
-      _lastEvent = snap.docs.first.data();
+    _lastEventSub = q.snapshots().listen(
+      (snap) {
+        if (snap.docs.isEmpty) {
+          _lastEvent = null;
+          _recompute();
+          return;
+        }
+        _lastEvent = snap.docs.first.data();
 
-      debugPrint("🔎 lastZoneEvent viewer=$viewerUid child=$childId");
-      _recompute();
-    }, onError: (e) {
-      debugPrint("❌ _listenLastZoneEvent error: $e");
-    });
+        debugPrint("🔎 lastZoneEvent viewer=$viewerUid child=$childId");
+        _recompute();
+      },
+      onError: (e) {
+        debugPrint("❌ _listenLastZoneEvent error: $e");
+      },
+    );
   }
 
   void _recompute() {
@@ -314,15 +321,14 @@ class ZoneStatusVm extends ChangeNotifier {
       final zoneName = (presence['zoneName'] ?? l10n.zonesDefaultNameFallback)
           .toString();
       final zoneType = (presence['zoneType'] ?? '').toString();
-      final enterAt = int.tryParse((presence['enterAt'] ?? '0').toString()) ?? 0;
+      final enterAt =
+          int.tryParse((presence['enterAt'] ?? '0').toString()) ?? 0;
 
-      final elapsedSec =
-      enterAt > 0 ? max(0, ((_nowMs - enterAt) / 1000).floor()) : 0;
+      final elapsedSec = enterAt > 0
+          ? max(0, ((_nowMs - enterAt) / 1000).floor())
+          : 0;
 
-      final text = l10n.zoneStatusAtText(
-        zoneName,
-        _fmtDuration(elapsedSec),
-      );
+      final text = l10n.zoneStatusAtText(zoneName, _fmtDuration(elapsedSec));
       final icon = zoneType == 'danger'
           ? Icons.warning_amber_rounded
           : Icons.home;
@@ -394,7 +400,12 @@ class ZoneStatusVm extends ChangeNotifier {
     }
 
     final parts = <String>[
-      _formatDurationUnit(days, isVietnamese: isVietnamese, vi: 'ngày', en: 'day'),
+      _formatDurationUnit(
+        days,
+        isVietnamese: isVietnamese,
+        vi: 'ngày',
+        en: 'day',
+      ),
     ];
     if (hours > 0) {
       parts.add(

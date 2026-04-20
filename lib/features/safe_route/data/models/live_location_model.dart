@@ -1,4 +1,4 @@
-﻿import 'package:kid_manager/features/safe_route/domain/entities/live_location.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/live_location.dart';
 
 class LiveLocationModel extends LiveLocation {
   const LiveLocationModel({
@@ -60,15 +60,15 @@ class LiveLocationModel extends LiveLocation {
   }
 
   LiveLocation toEntity() => LiveLocation(
-        childId: childId,
-        latitude: latitude,
-        longitude: longitude,
-        accuracyMeters: accuracyMeters,
-        speedMps: speedMps,
-        bearing: bearing,
-        batteryLevel: batteryLevel,
-        isCharging: isCharging,
-        isMock: isMock,
-        timestamp: timestamp,
-      );
+    childId: childId,
+    latitude: latitude,
+    longitude: longitude,
+    accuracyMeters: accuracyMeters,
+    speedMps: speedMps,
+    bearing: bearing,
+    batteryLevel: batteryLevel,
+    isCharging: isCharging,
+    isMock: isMock,
+    timestamp: timestamp,
+  );
 }

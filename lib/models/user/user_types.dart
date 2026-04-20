@@ -7,7 +7,8 @@ enum UserRole {
 
   final String wireValue;
 
-  bool get isAdultManager => this == UserRole.parent || this == UserRole.guardian;
+  bool get isAdultManager =>
+      this == UserRole.parent || this == UserRole.guardian;
 
   static UserRole fromValue(
     Object? value, {
@@ -27,10 +28,7 @@ enum UserRole {
   }
 }
 
-UserRole roleFromString(
-  String? value, {
-  UserRole fallback = UserRole.child,
-}) {
+UserRole roleFromString(String? value, {UserRole fallback = UserRole.child}) {
   return UserRole.fromValue(value, fallback: fallback);
 }
 

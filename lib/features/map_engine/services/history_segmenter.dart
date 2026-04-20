@@ -9,16 +9,17 @@ class HistorySegment {
 
 class HistorySegmenter {
   static List<HistorySegment> splitByTransport(
-      List<LocationData> history, {
-        int gapMs = 2 * 60 * 1000,
-        int minPoints = 2,
+    List<LocationData> history, {
+    int gapMs = 2 * 60 * 1000,
+    int minPoints = 2,
 
-        // ✅ new: chống nhảy mode
-        int stablePointsToSwitch = 3,
-      }) {
+    // ✅ new: chống nhảy mode
+    int stablePointsToSwitch = 3,
+  }) {
     if (history.length < 2) return [];
 
-    final sorted = [...history]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final sorted = [...history]
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
     final segments = <HistorySegment>[];
     var currentMode = _normalize(sorted.first);
@@ -38,7 +39,8 @@ class HistorySegmenter {
       final breakByGap = gap > gapMs;
 
       if (breakByGap) {
-        if (buf.length >= minPoints) segments.add(HistorySegment(currentMode, buf));
+        if (buf.length >= minPoints)
+          segments.add(HistorySegment(currentMode, buf));
         buf = <LocationData>[p];
         currentMode = mode;
         pendingMode = null;
@@ -71,7 +73,8 @@ class HistorySegmenter {
         final left = buf.sublist(0, cutIndex);
         final right = buf.sublist(cutIndex);
 
-        if (left.length >= minPoints) segments.add(HistorySegment(currentMode, left));
+        if (left.length >= minPoints)
+          segments.add(HistorySegment(currentMode, left));
 
         buf = right;
         currentMode = mode;
@@ -100,4 +103,5 @@ class HistorySegmenter {
     if (s < 9) return TransportMode.walking;
     if (s < 22) return TransportMode.bicycle;
     return TransportMode.vehicle;
-  }}
+  }
+}

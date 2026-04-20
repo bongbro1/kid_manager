@@ -29,8 +29,8 @@ This roadmap treats the current repository as a brownfield family-safety product
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Normalize app bootstrap, provider ownership, and session lifecycle boundaries
-- [ ] 01-02: Stabilize background tracking runtime handoff across Flutter and Android services
+- [x] 01-01: Normalize app bootstrap, provider ownership, and session lifecycle boundaries
+- [x] 01-02: Stabilize background tracking runtime handoff across Flutter and Android services
 - [ ] 01-03: Repair and extend the local regression harness for runtime-critical flows
 
 ### Phase 2: Identity and Family Access
@@ -88,7 +88,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Runtime Foundation | 0/3 | Not started | - |
+| 1. Runtime Foundation | 2/3 | In progress | - |
 | 2. Identity and Family Access | 0/3 | Not started | - |
 | 3. Tracking and Safety Flows | 0/3 | Not started | - |
 | 4. Notifications and Family Operations | 0/3 | Not started | - |

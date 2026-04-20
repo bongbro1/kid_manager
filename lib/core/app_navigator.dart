@@ -3,8 +3,7 @@ import 'package:kid_manager/models/notifications/app_notification.dart';
 
 class AppNavigator {
   static final GlobalKey<NavigatorState> navigatorKey =
-  GlobalKey<NavigatorState>();
-
+      GlobalKey<NavigatorState>();
 
   static final messengerKey = GlobalKey<ScaffoldMessengerState>();
 }

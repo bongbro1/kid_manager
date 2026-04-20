@@ -138,7 +138,9 @@ class MapboxPlaceSearchService {
     }
   }
 
-  List<MapboxPlaceCandidate> _dedupeCandidates(List<MapboxPlaceCandidate> items) {
+  List<MapboxPlaceCandidate> _dedupeCandidates(
+    List<MapboxPlaceCandidate> items,
+  ) {
     final bestByKey = <String, MapboxPlaceCandidate>{};
 
     for (final item in items) {

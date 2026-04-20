@@ -14,10 +14,7 @@ DateTime? parseOptionalSafeRouteTimestamp(
   Object? raw, {
   required String fieldName,
 }) {
-  final epochMillis = _parseSafeRouteTimestampMillis(
-    raw,
-    fieldName: fieldName,
-  );
+  final epochMillis = _parseSafeRouteTimestampMillis(raw, fieldName: fieldName);
   if (epochMillis == null) {
     return null;
   }
@@ -31,7 +28,9 @@ int? _parseSafeRouteTimestampMillis(
 }) {
   if (raw == null) {
     if (required) {
-      throw FormatException('Missing required safe-route timestamp: $fieldName');
+      throw FormatException(
+        'Missing required safe-route timestamp: $fieldName',
+      );
     }
     return null;
   }
@@ -42,9 +41,7 @@ int? _parseSafeRouteTimestampMillis(
   };
 
   if (parsed == null || parsed <= 0) {
-    throw FormatException(
-      'Invalid safe-route timestamp for $fieldName: $raw',
-    );
+    throw FormatException('Invalid safe-route timestamp for $fieldName: $raw');
   }
 
   return parsed;

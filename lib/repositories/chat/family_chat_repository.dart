@@ -14,9 +14,10 @@ class FamilyChatRepository {
   FamilyChatRepository({
     FirebaseFirestore? firestore,
     FirebaseFunctions? functions,
-  })  : _db = firestore ?? FirebaseFirestore.instance,
-        _functions =
-            functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
+  }) : _db = firestore ?? FirebaseFirestore.instance,
+       _functions =
+           functions ??
+           FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
   final FirebaseFirestore _db;
   final FirebaseFunctions _functions;
@@ -25,20 +26,29 @@ class FamilyChatRepository {
     r'^[A-Za-z0-9_-]{1,120}$',
   );
 
-  CollectionReference<Map<String, dynamic>> _messageCollection(String familyId) {
+  CollectionReference<Map<String, dynamic>> _messageCollection(
+    String familyId,
+  ) {
     return _db.collection('families').doc(familyId).collection('messages');
   }
 
-  DocumentReference<Map<String, dynamic>> _chatStateDoc(String familyId, String uid) {
-    return _db.collection('families').doc(familyId).collection('chatStates').doc(uid);
+  DocumentReference<Map<String, dynamic>> _chatStateDoc(
+    String familyId,
+    String uid,
+  ) {
+    return _db
+        .collection('families')
+        .doc(familyId)
+        .collection('chatStates')
+        .doc(uid);
   }
 
   String _resolveSenderName(AppUser sender) {
     return sender.displayName?.trim().isNotEmpty == true
         ? sender.displayName!.trim()
         : sender.email?.trim().isNotEmpty == true
-            ? sender.email!.trim()
-            : 'Family member';
+        ? sender.email!.trim()
+        : 'Family member';
   }
 
   String _resolveMessageId(String familyId, String? clientMessageId) {
@@ -79,24 +89,28 @@ class FamilyChatRepository {
     final clientCreatedAt = Timestamp.now();
 
     try {
-      await _messageCollection(resolvedFamilyId).doc(messageId).set({
-        'id': messageId,
-        'familyId': resolvedFamilyId,
-        'senderUid': sender.uid,
-        'senderRole': roleToString(sender.role),
-        'senderName': _resolveSenderName(sender),
-        'clientMessageId': messageId,
-        'text': text,
-        'type': type,
-        'stickerId': stickerId,
-        'imageUrl': imageUrl,
-        'imagePath': imagePath,
-        'imageWidth': imageWidth,
-        'imageHeight': imageHeight,
-        'verifyState': 'pending',
-        'clientCreatedAt': clientCreatedAt,
-        'createdAt': clientCreatedAt,
-      }..removeWhere((key, value) => value == null));
+      await _messageCollection(resolvedFamilyId)
+          .doc(messageId)
+          .set(
+            {
+              'id': messageId,
+              'familyId': resolvedFamilyId,
+              'senderUid': sender.uid,
+              'senderRole': roleToString(sender.role),
+              'senderName': _resolveSenderName(sender),
+              'clientMessageId': messageId,
+              'text': text,
+              'type': type,
+              'stickerId': stickerId,
+              'imageUrl': imageUrl,
+              'imagePath': imagePath,
+              'imageWidth': imageWidth,
+              'imageHeight': imageHeight,
+              'verifyState': 'pending',
+              'clientCreatedAt': clientCreatedAt,
+              'createdAt': clientCreatedAt,
+            }..removeWhere((key, value) => value == null),
+          );
     } catch (error) {
       final networkError = AppNetworkErrorMapper.normalize(
         error,
@@ -116,14 +130,19 @@ class FamilyChatRepository {
     };
   }
 
-  Stream<List<FamilyChatMessage>> watchMessages(String familyId, {int limit = 200}) {
+  Stream<List<FamilyChatMessage>> watchMessages(
+    String familyId, {
+    int limit = 200,
+  }) {
     return _messageCollection(familyId)
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots(includeMetadataChanges: true)
-        .map((snapshot) => snapshot.docs
-        .map((doc) => FamilyChatMessage.fromDoc(doc, familyId: familyId))
-        .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => FamilyChatMessage.fromDoc(doc, familyId: familyId))
+              .toList(),
+        );
   }
 
   Stream<List<FamilyChatMember>> watchMembers(String familyId) {
@@ -133,48 +152,51 @@ class FamilyChatRepository {
         .collection('members')
         .snapshots()
         .asyncMap((membersSnapshot) async {
-      if (membersSnapshot.docs.isEmpty) {
-        return <FamilyChatMember>[];
-      }
+          if (membersSnapshot.docs.isEmpty) {
+            return <FamilyChatMember>[];
+          }
 
-      final members = <FamilyChatMember>[];
-      for (final memberDoc in membersSnapshot.docs) {
-        final memberData = memberDoc.data();
-        final displayName = (memberData['displayName'] ?? '').toString().trim();
-        final displayNameRaw = displayName.isNotEmpty
-            ? displayName
-            : memberDoc.id;
+          final members = <FamilyChatMember>[];
+          for (final memberDoc in membersSnapshot.docs) {
+            final memberData = memberDoc.data();
+            final displayName = (memberData['displayName'] ?? '')
+                .toString()
+                .trim();
+            final displayNameRaw = displayName.isNotEmpty
+                ? displayName
+                : memberDoc.id;
 
-        members.add(
-          FamilyChatMember(
-            uid: memberDoc.id,
-            role: UserRole.fromValue(memberData['role']),
-            displayName: displayNameRaw.toString(),
-            avatarUrl: (memberData['avatarUrl'] ?? '').toString(),
-          ),
-        );
-      }
+            members.add(
+              FamilyChatMember(
+                uid: memberDoc.id,
+                role: UserRole.fromValue(memberData['role']),
+                displayName: displayNameRaw.toString(),
+                avatarUrl: (memberData['avatarUrl'] ?? '').toString(),
+              ),
+            );
+          }
 
-      members.sort((a, b) {
-        final roleScoreA = switch (a.role) {
-          UserRole.parent => 0,
-          UserRole.guardian => 1,
-          UserRole.child => 2,
-        };
-        final roleScoreB = switch (b.role) {
-          UserRole.parent => 0,
-          UserRole.guardian => 1,
-          UserRole.child => 2,
-        };
-        final roleCompare = roleScoreA.compareTo(roleScoreB);
-        if (roleCompare != 0) return roleCompare;
-        return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
-      });
+          members.sort((a, b) {
+            final roleScoreA = switch (a.role) {
+              UserRole.parent => 0,
+              UserRole.guardian => 1,
+              UserRole.child => 2,
+            };
+            final roleScoreB = switch (b.role) {
+              UserRole.parent => 0,
+              UserRole.guardian => 1,
+              UserRole.child => 2,
+            };
+            final roleCompare = roleScoreA.compareTo(roleScoreB);
+            if (roleCompare != 0) return roleCompare;
+            return a.displayName.toLowerCase().compareTo(
+              b.displayName.toLowerCase(),
+            );
+          });
 
-      return members;
-    });
+          return members;
+        });
   }
-
 
   Stream<int> watchUnreadCount({
     required String familyId,
@@ -182,7 +204,9 @@ class FamilyChatRepository {
   }) {
     return _chatStateDoc(familyId, uid).snapshots().map((doc) {
       final data = doc.data();
-      debugPrint('[watchUnreadCount] familyId=$familyId uid=$uid exists=${doc.exists} data=$data');
+      debugPrint(
+        '[watchUnreadCount] familyId=$familyId uid=$uid exists=${doc.exists} data=$data',
+      );
 
       if (!doc.exists) return 0;
       return FamilyChatState.fromDoc(doc).unreadCount;
@@ -261,7 +285,11 @@ class FamilyChatRepository {
     }
     final normalizedImagePath = imagePath.trim();
     if (normalizedImagePath.isEmpty) {
-      throw ArgumentError.value(imagePath, 'imagePath', 'imagePath is required');
+      throw ArgumentError.value(
+        imagePath,
+        'imagePath',
+        'imagePath is required',
+      );
     }
 
     final messageId = _resolveMessageId(resolvedFamilyId, clientMessageId);

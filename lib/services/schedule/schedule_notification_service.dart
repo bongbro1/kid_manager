@@ -159,7 +159,9 @@ class ScheduleNotificationService {
         'actorDisplayName': actor.displayName,
         'actorChildName': actor.isAdultManager ? '' : actor.displayName,
         'receiverId': receiverId,
-        'receiverRole': receiverRole == null ? 'unknown' : roleToString(receiverRole),
+        'receiverRole': receiverRole == null
+            ? 'unknown'
+            : roleToString(receiverRole),
         'scheduleTitle': schedule.title,
         'date': DateFormat('dd/MM/yyyy').format(schedule.date),
         'startAt': _hhmm(schedule.startAt),
@@ -276,7 +278,9 @@ class ScheduleNotificationService {
         'childId': childId,
         'childName': resolvedChildName,
         'receiverId': receiverId,
-        'receiverRole': receiverRole == null ? 'unknown' : roleToString(receiverRole),
+        'receiverRole': receiverRole == null
+            ? 'unknown'
+            : roleToString(receiverRole),
         'importCount': importCount.toString(),
       };
 
@@ -344,7 +348,9 @@ class ScheduleNotificationService {
         'repeatYearly': memoryDay.repeatYearly.toString(),
         'note': (memoryDay.note ?? '').trim(),
         'receiverId': receiverId,
-        'receiverRole': receiverRole == null ? 'unknown' : roleToString(receiverRole),
+        'receiverRole': receiverRole == null
+            ? 'unknown'
+            : roleToString(receiverRole),
         'childId': receiverChild?.id ?? '',
         'childName': receiverChild == null
             ? ''
@@ -522,13 +528,15 @@ class ScheduleNotificationService {
     required String targetChildId,
     required List<AppUser> guardians,
   }) {
-    final eligibleGuardians = guardians.where((guardian) {
-      return _accessControl.canManageChild(
-        actor: guardian,
-        childUid: targetChildId,
-        childParentUid: ownerParentUid,
-      );
-    }).toList(growable: false);
+    final eligibleGuardians = guardians
+        .where((guardian) {
+          return _accessControl.canManageChild(
+            actor: guardian,
+            childUid: targetChildId,
+            childParentUid: ownerParentUid,
+          );
+        })
+        .toList(growable: false);
     final receiverIds = <String>{};
 
     switch (actor.role) {

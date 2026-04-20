@@ -14,8 +14,7 @@ class StorageKeys {
   static const isDarkMode = 'is_dark_mode';
   static const language = 'language';
   static const permissionOnboardingSeenV1 = 'permission_onboarding_seen_v1';
-  static const childSupervisionSetupSeenV1 =
-      'child_supervision_setup_seen_v1';
+  static const childSupervisionSetupSeenV1 = 'child_supervision_setup_seen_v1';
   static const flashSeenV1 = 'flash_seen_v1';
 
   static String appRemovedNotified(String childId, String packageName) {

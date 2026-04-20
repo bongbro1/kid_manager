@@ -14,11 +14,7 @@ class AppManagementRepository {
   final FirebaseFirestore db;
   final StorageService _storage;
 
-  AppManagementRepository(
-    this.appService,
-    this.db,
-    this._storage,
-  );
+  AppManagementRepository(this.appService, this.db, this._storage);
 
   /// 1. Lấy app đã cài (DATA THÔ) (chỉ lấy ở account child)
   Future<List<AppInfo>> getInstalledApps() {
@@ -33,7 +29,9 @@ class AppManagementRepository {
     return db.collection("blocked_items").doc(normalizedUid);
   }
 
-  CollectionReference<Map<String, dynamic>> _blockedItemsAppsRef(String userId) {
+  CollectionReference<Map<String, dynamic>> _blockedItemsAppsRef(
+    String userId,
+  ) {
     return _blockedItemsUserRef(userId).collection("apps");
   }
 
@@ -193,10 +191,9 @@ class AppManagementRepository {
     required String userId,
     required String packageName,
   }) async {
-    final ruleRef = _blockedItemsAppsRef(userId)
-        .doc(packageName)
-        .collection("usage_rule")
-        .doc("config");
+    final ruleRef = _blockedItemsAppsRef(
+      userId,
+    ).doc(packageName).collection("usage_rule").doc("config");
 
     final doc = await ruleRef.get();
     if (!doc.exists) return null;

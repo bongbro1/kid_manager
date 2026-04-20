@@ -42,27 +42,31 @@ class AuthRepository {
               return;
             }
 
-            profileSub = _users.watchUserById(fbUser.uid).listen(
-              (user) {
-                if (!controller.isClosed) {
-                  controller.add(_mapSessionUser(fbUser: fbUser, user: user));
-                }
-              },
-              onError: (e, st) {
-                debugPrint('[AuthRepository] watchSessionUser error: $e');
-                debugPrintStack(stackTrace: st);
+            profileSub = _users
+                .watchUserById(fbUser.uid)
+                .listen(
+                  (user) {
+                    if (!controller.isClosed) {
+                      controller.add(
+                        _mapSessionUser(fbUser: fbUser, user: user),
+                      );
+                    }
+                  },
+                  onError: (e, st) {
+                    debugPrint('[AuthRepository] watchSessionUser error: $e');
+                    debugPrintStack(stackTrace: st);
 
-                if (controller.isClosed) {
-                  return;
-                }
+                    if (controller.isClosed) {
+                      return;
+                    }
 
-                if (_isEmailPasswordUser(fbUser)) {
-                  controller.add(null);
-                } else {
-                  controller.add(AppUser.fromFirebase(fbUser));
-                }
-              },
-            );
+                    if (_isEmailPasswordUser(fbUser)) {
+                      controller.add(null);
+                    } else {
+                      controller.add(AppUser.fromFirebase(fbUser));
+                    }
+                  },
+                );
           },
           onError: (e, st) {
             if (!controller.isClosed) {
@@ -86,12 +90,11 @@ class AuthRepository {
     return controller.stream;
   }
 
-  AppUser? _mapSessionUser({
-    required User fbUser,
-    required AppUser? user,
-  }) {
+  AppUser? _mapSessionUser({required User fbUser, required AppUser? user}) {
     if (user == null) {
-      debugPrint('[AuthRepository] Firestore user missing -> fallback Firebase');
+      debugPrint(
+        '[AuthRepository] Firestore user missing -> fallback Firebase',
+      );
       if (_isEmailPasswordUser(fbUser)) {
         return null;
       }

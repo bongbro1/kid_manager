@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:kid_manager/helpers/zone/zone_circle.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/notification_detail_model.dart';
@@ -210,6 +211,38 @@ class _ZoneMapPreviewState extends State<_ZoneMapPreview> {
   static const String _areaLineLayerId = 'zone-detail-area-line-layer';
 
   mbx.MapboxMap? _map;
+  int _mapGeneration = 0;
+  bool _disposed = false;
+
+  void _attachMap(mbx.MapboxMap map) {
+    _mapGeneration++;
+    _map = map;
+  }
+
+  Future<void> _handleStyleLoaded(mbx.StyleLoadedEventData _) async {
+    final map = _map;
+    if (map == null) return;
+    final generation = _mapGeneration;
+    if (!_isMapActive(map, generation)) return;
+    await hideMapOrnaments(map);
+    if (!_isMapActive(map, generation)) return;
+    await _syncMap(map);
+  }
+
+  bool _isMapActive(mbx.MapboxMap map, int generation) {
+    return mounted &&
+        !_disposed &&
+        identical(_map, map) &&
+        _mapGeneration == generation;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _mapGeneration++;
+    _map = null;
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant _ZoneMapPreview oldWidget) {
@@ -251,15 +284,8 @@ class _ZoneMapPreviewState extends State<_ZoneMapPreview> {
                   mapOptions: mbx.MapOptions(
                     pixelRatio: MediaQuery.of(context).devicePixelRatio,
                   ),
-                  onMapCreated: (map) {
-                    _map = map;
-                  },
-                  onStyleLoadedListener: (_) async {
-                    final map = _map;
-                    if (map == null) return;
-                    await hideMapOrnaments(map);
-                    await _syncMap(map);
-                  },
+                  onMapCreated: _attachMap,
+                  onStyleLoadedListener: _handleStyleLoaded,
                 ),
               ),
             ),
@@ -318,10 +344,22 @@ class _ZoneMapPreviewState extends State<_ZoneMapPreview> {
   }
 
   Future<void> _syncMap(mbx.MapboxMap map) async {
-    await _ensureSources(map);
-    await _ensureLayers(map);
-    await _updateSources(map);
-    await _fitCamera(map);
+    final generation = _mapGeneration;
+    if (!_isMapActive(map, generation)) return;
+    try {
+      await _ensureSources(map);
+      if (!_isMapActive(map, generation)) return;
+      await _ensureLayers(map);
+      if (!_isMapActive(map, generation)) return;
+      await _updateSources(map);
+      if (!_isMapActive(map, generation)) return;
+      await _fitCamera(map);
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isMapActive(map, generation)) {
+        return;
+      }
+      rethrow;
+    }
   }
 
   Future<void> _ensureSources(mbx.MapboxMap map) async {

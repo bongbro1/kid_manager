@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:kid_manager/helpers/zone/zone_circle.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mbx;
 import 'package:kid_manager/models/zones/geo_zone.dart';
@@ -30,7 +31,9 @@ class ZoneMapRenderer {
           data: '{"type":"FeatureCollection","features":[]}',
         ),
       );
-    } catch (_) {}
+    } catch (error) {
+      if (!isMapLifecycleError(error)) rethrow;
+    }
     try {
       await style.addSource(
         mbx.GeoJsonSource(
@@ -38,7 +41,9 @@ class ZoneMapRenderer {
           data: '{"type":"FeatureCollection","features":[]}',
         ),
       );
-    } catch (_) {}
+    } catch (error) {
+      if (!isMapLifecycleError(error)) rethrow;
+    }
 
     // SAFE fill/line
     try {
@@ -50,7 +55,9 @@ class ZoneMapRenderer {
           fillOpacity: 0.35,
         ),
       );
-    } catch (_) {}
+    } catch (error) {
+      if (!isMapLifecycleError(error)) rethrow;
+    }
     try {
       await style.addLayer(
         mbx.LineLayer(
@@ -60,7 +67,9 @@ class ZoneMapRenderer {
           lineColor: 0xFF00C853,
         ),
       );
-    } catch (_) {}
+    } catch (error) {
+      if (!isMapLifecycleError(error)) rethrow;
+    }
 
     // DANGER fill/line
     try {
@@ -72,7 +81,9 @@ class ZoneMapRenderer {
           fillOpacity: 0.35,
         ),
       );
-    } catch (_) {}
+    } catch (error) {
+      if (!isMapLifecycleError(error)) rethrow;
+    }
     try {
       await style.addLayer(
         mbx.LineLayer(
@@ -82,7 +93,9 @@ class ZoneMapRenderer {
           lineColor: 0xFFFF0000,
         ),
       );
-    } catch (_) {}
+    } catch (error) {
+      if (!isMapLifecycleError(error)) rethrow;
+    }
   }
 
   Future<void> syncZoneCircles(List<GeoZone> zones) async {
@@ -114,18 +127,32 @@ class ZoneMapRenderer {
     final safeGeo = {"type": "FeatureCollection", "features": safeFeatures};
     final dangerGeo = {"type": "FeatureCollection", "features": dangerFeatures};
 
-    final s1 = await map.style.getSource(_safeSrc);
-    if (s1 is mbx.GeoJsonSource) {
-      await s1.updateGeoJSON(jsonEncode(safeGeo));
-    }
-    final s2 = await map.style.getSource(_dangerSrc);
-    if (s2 is mbx.GeoJsonSource) {
-      await s2.updateGeoJSON(jsonEncode(dangerGeo));
+    try {
+      final s1 = await map.style.getSource(_safeSrc);
+      if (s1 is mbx.GeoJsonSource) {
+        await s1.updateGeoJSON(jsonEncode(safeGeo));
+      }
+      final s2 = await map.style.getSource(_dangerSrc);
+      if (s2 is mbx.GeoJsonSource) {
+        await s2.updateGeoJSON(jsonEncode(dangerGeo));
+      }
+    } catch (error) {
+      if (isMapLifecycleError(error)) {
+        return;
+      }
+      rethrow;
     }
   }
 
   Future<void> ensureAnnoManager() async {
-    _annoMgr ??= await map.annotations.createPointAnnotationManager();
+    try {
+      _annoMgr ??= await map.annotations.createPointAnnotationManager();
+    } catch (error) {
+      if (isMapLifecycleError(error)) {
+        return;
+      }
+      rethrow;
+    }
   }
 
   Future<void> syncZoneIcons({
@@ -134,17 +161,25 @@ class ZoneMapRenderer {
     required Uint8List dangerIcon,
   }) async {
     await ensureAnnoManager();
+    if (_annoMgr == null) return;
     await _annoMgr!.deleteAll();
 
-    for (final z in zones) {
-      final img = z.type == ZoneType.danger ? dangerIcon : safeIcon;
-      await _annoMgr!.create(
-        mbx.PointAnnotationOptions(
-          geometry: mbx.Point(coordinates: mbx.Position(z.lng, z.lat)),
-          image: img,
-          iconSize: 1.0,
-        ),
-      );
+    try {
+      for (final z in zones) {
+        final img = z.type == ZoneType.danger ? dangerIcon : safeIcon;
+        await _annoMgr!.create(
+          mbx.PointAnnotationOptions(
+            geometry: mbx.Point(coordinates: mbx.Position(z.lng, z.lat)),
+            image: img,
+            iconSize: 1.0,
+          ),
+        );
+      }
+    } catch (error) {
+      if (isMapLifecycleError(error)) {
+        return;
+      }
+      rethrow;
     }
   }
 }

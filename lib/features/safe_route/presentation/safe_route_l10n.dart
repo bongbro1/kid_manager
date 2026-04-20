@@ -202,7 +202,10 @@ extension SafeRouteL10nX on AppLocalizations {
   }
 
   String safeRouteRouteFallbackName(String routeId) {
-    final shortId = routeId.substring(0, routeId.length < 8 ? routeId.length : 8);
+    final shortId = routeId.substring(
+      0,
+      routeId.length < 8 ? routeId.length : 8,
+    );
     return safeRouteRouteFallbackNameText(shortId);
   }
 }

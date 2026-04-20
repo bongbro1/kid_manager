@@ -60,7 +60,9 @@ class SafeRouteHistoryState {
           : selectedRoute as SafeRoute?,
       selectedAlternativeRoutes:
           selectedAlternativeRoutes ?? this.selectedAlternativeRoutes,
-      errorMessage: clearErrorMessage ? null : errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage
+          ? null
+          : errorMessage ?? this.errorMessage,
     );
   }
 }

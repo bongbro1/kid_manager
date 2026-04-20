@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
@@ -231,9 +231,14 @@ class _RouteSelectionContent extends StatelessWidget {
   bool get _hasStart => state.selectedStart != null;
   bool get _hasEnd => state.selectedEnd != null;
   bool get _canFetch =>
-      _hasStart && _hasEnd && !state.isFetchingSuggestions && !state.isStartingTrip;
+      _hasStart &&
+      _hasEnd &&
+      !state.isFetchingSuggestions &&
+      !state.isStartingTrip;
   bool get _canStart =>
-      state.selectedRoute != null && !state.isFetchingSuggestions && !state.isStartingTrip;
+      state.selectedRoute != null &&
+      !state.isFetchingSuggestions &&
+      !state.isStartingTrip;
 
   @override
   Widget build(BuildContext context) {
@@ -352,7 +357,9 @@ class _RouteSelectionContent extends StatelessWidget {
                       ? l10n.safeRouteRefreshingRoutes
                       : l10n.safeRouteRefreshButton,
                   icon: Icons.refresh_rounded,
-                  onTap: state.isFetchingSuggestions ? null : onFetchSuggestedRoutes,
+                  onTap: state.isFetchingSuggestions
+                      ? null
+                      : onFetchSuggestedRoutes,
                 ),
               ],
             ),
@@ -379,7 +386,8 @@ class _RouteSelectionContent extends StatelessWidget {
           ),
         ] else ...[
           const SizedBox(height: 14),
-          if (state.selectedRoute != null || state.selectedAlternativeRouteIds.isNotEmpty)
+          if (state.selectedRoute != null ||
+              state.selectedAlternativeRouteIds.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
@@ -494,6 +502,7 @@ class _RouteSelectionContent extends StatelessWidget {
     return l10n.safeRouteSelectedRoutesWithAlternatives(alternativeCount);
   }
 }
+
 class _TrackingStatusContent extends StatelessWidget {
   const _TrackingStatusContent({
     required this.state,
@@ -557,10 +566,7 @@ class _TrackingStatusContent extends StatelessWidget {
                   color: visuals.iconBackgroundColor,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  visuals.icon,
-                  color: visuals.accentColor,
-                ),
+                child: Icon(visuals.icon, color: visuals.accentColor),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -757,9 +763,7 @@ class _TrackingStatusContent extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _RouteProgressSummary(
-                  details: _routeProgressDetails(state),
-                ),
+                _RouteProgressSummary(details: _routeProgressDetails(state)),
               ],
             ),
           ),
@@ -1025,8 +1029,12 @@ class _TrackingStatusContent extends StatelessWidget {
     );
 
     return _RouteProgressDetails(
-      progress: (travelledMeters / route.distanceMeters).clamp(0.0, 1.0).toDouble(),
-      traveledMeters: travelledMeters.clamp(0.0, route.distanceMeters).toDouble(),
+      progress: (travelledMeters / route.distanceMeters)
+          .clamp(0.0, 1.0)
+          .toDouble(),
+      traveledMeters: travelledMeters
+          .clamp(0.0, route.distanceMeters)
+          .toDouble(),
       totalMeters: route.distanceMeters,
     );
   }
@@ -1091,12 +1099,7 @@ class _TrackingStatusContent extends StatelessWidget {
     );
   }
 
-  double _distanceMeters(
-    double lat1,
-    double lng1,
-    double lat2,
-    double lng2,
-  ) {
+  double _distanceMeters(double lat1, double lng1, double lat2, double lng2) {
     const earthRadius = 6371000.0;
     final dLat = _toRadians(lat2 - lat1);
     final dLng = _toRadians(lng2 - lng1);
@@ -1111,6 +1114,7 @@ class _TrackingStatusContent extends StatelessWidget {
 
   double _toRadians(double degrees) => degrees * math.pi / 180.0;
 }
+
 class _TrackingMetricCard extends StatelessWidget {
   const _TrackingMetricCard({
     required this.label,
@@ -1175,9 +1179,7 @@ class _TrackingMetricCard extends StatelessWidget {
 }
 
 class _RouteProgressSummary extends StatelessWidget {
-  const _RouteProgressSummary({
-    required this.details,
-  });
+  const _RouteProgressSummary({required this.details});
 
   final _RouteProgressDetails details;
 
@@ -1198,11 +1200,7 @@ class _RouteProgressSummary extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.timeline_rounded,
-                size: 16,
-                color: scheme.primary,
-              ),
+              Icon(Icons.timeline_rounded, size: 16, color: scheme.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1277,16 +1275,14 @@ class _RouteProgressSummary extends StatelessWidget {
                     .toDouble(),
               ),
             ),
-            style: TextStyle(
-              fontSize: 10.5,
-              color: scheme.onSurfaceVariant,
-            ),
+            style: TextStyle(fontSize: 10.5, color: scheme.onSurfaceVariant),
           ),
         ],
       ),
     );
   }
 }
+
 class _PanelRouteProjection {
   const _PanelRouteProjection({
     required this.segmentIndex,
@@ -1314,9 +1310,7 @@ class _RouteProgressDetails {
 }
 
 class _BatteryMetricCard extends StatelessWidget {
-  const _BatteryMetricCard({
-    required this.batteryState,
-  });
+  const _BatteryMetricCard({required this.batteryState});
 
   final DeviceBatteryUiState batteryState;
 
@@ -1331,6 +1325,7 @@ class _BatteryMetricCard extends StatelessWidget {
     );
   }
 }
+
 class _TrackingActionButton extends StatelessWidget {
   const _TrackingActionButton({
     required this.label,
@@ -1363,7 +1358,9 @@ class _TrackingActionButton extends StatelessWidget {
           height: 46,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: borderColor == null ? null : Border.all(color: borderColor!),
+            border: borderColor == null
+                ? null
+                : Border.all(color: borderColor!),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
@@ -1461,7 +1458,9 @@ class _LocationPickerCard extends StatelessWidget {
                     height: 34,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: locationPanelBorderColor(scheme)),
+                      border: Border.all(
+                        color: locationPanelBorderColor(scheme),
+                      ),
                     ),
                     child: Icon(
                       Icons.swap_vert_rounded,
@@ -1521,6 +1520,7 @@ class _LocationPickerCard extends StatelessWidget {
     return '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}';
   }
 }
+
 class _LocationRow extends StatelessWidget {
   const _LocationRow({
     required this.title,
@@ -1542,7 +1542,9 @@ class _LocationRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: selected ? locationPanelHighlightColor(scheme) : Colors.transparent,
+      color: selected
+          ? locationPanelHighlightColor(scheme)
+          : Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -1626,10 +1628,7 @@ class _LocationRow extends StatelessWidget {
 }
 
 class _TravelModesRow extends StatelessWidget {
-  const _TravelModesRow({
-    required this.selectedMode,
-    required this.onSelected,
-  });
+  const _TravelModesRow({required this.selectedMode, required this.onSelected});
 
   final SafeRouteTravelMode selectedMode;
   final ValueChanged<SafeRouteTravelMode> onSelected;
@@ -1662,7 +1661,9 @@ class _TravelModesRow extends StatelessWidget {
         ),
         _ModeChip(
           icon: Icons.directions_car_filled_rounded,
-          label: l10n.safeRouteTravelModeLabel(SafeRouteTravelMode.otherVehicle),
+          label: l10n.safeRouteTravelModeLabel(
+            SafeRouteTravelMode.otherVehicle,
+          ),
           active: selectedMode == SafeRouteTravelMode.otherVehicle,
           onTap: () => onSelected(SafeRouteTravelMode.otherVehicle),
         ),
@@ -1670,6 +1671,7 @@ class _TravelModesRow extends StatelessWidget {
     );
   }
 }
+
 class _ModeChip extends StatelessWidget {
   const _ModeChip({
     required this.icon,
@@ -1687,7 +1689,9 @@ class _ModeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: active ? locationPanelColor(scheme) : locationPanelMutedColor(scheme),
+      color: active
+          ? locationPanelColor(scheme)
+          : locationPanelMutedColor(scheme),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -1697,9 +1701,7 @@ class _ModeChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: locationPanelBorderColor(scheme),
-            ),
+            border: Border.all(color: locationPanelBorderColor(scheme)),
             boxShadow: active
                 ? [
                     BoxShadow(
@@ -1845,7 +1847,9 @@ class _ScheduleCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
                   child: Material(
-                    color: selected ? scheme.primary : locationPanelColor(scheme),
+                    color: selected
+                        ? scheme.primary
+                        : locationPanelColor(scheme),
                     borderRadius: BorderRadius.circular(10),
                     child: InkWell(
                       onTap: () => onToggleWeekday(weekday),
@@ -1892,6 +1896,7 @@ class _ScheduleCard extends StatelessWidget {
     );
   }
 }
+
 class _ScheduleSelectorTile extends StatelessWidget {
   const _ScheduleSelectorTile({
     required this.icon,
@@ -1929,11 +1934,7 @@ class _ScheduleSelectorTile extends StatelessWidget {
                   color: locationPanelHighlightColor(scheme),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  size: 17,
-                  color: scheme.primary,
-                ),
+                child: Icon(icon, size: 17, color: scheme.primary),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -2008,9 +2009,7 @@ class _QuickActionChip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: highlighted
-                      ? scheme.primary
-                      : scheme.onSurfaceVariant,
+                  color: highlighted ? scheme.primary : scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -2022,11 +2021,7 @@ class _QuickActionChip extends StatelessWidget {
 }
 
 class _GhostButton extends StatelessWidget {
-  const _GhostButton({
-    required this.label,
-    this.icon,
-    required this.onTap,
-  });
+  const _GhostButton({required this.label, this.icon, required this.onTap});
 
   final String label;
   final IconData? icon;
@@ -2046,16 +2041,10 @@ class _GhostButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14),
-            const SizedBox(width: 6),
-          ],
+          if (icon != null) ...[Icon(icon, size: 14), const SizedBox(width: 6)],
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -2064,10 +2053,7 @@ class _GhostButton extends StatelessWidget {
 }
 
 class _InlineChip extends StatelessWidget {
-  const _InlineChip({
-    required this.icon,
-    required this.label,
-  });
+  const _InlineChip({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -2099,11 +2085,3 @@ class _InlineChip extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
-

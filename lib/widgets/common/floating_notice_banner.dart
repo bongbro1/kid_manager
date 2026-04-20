@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum NoticeBannerTone {
-  error,
-  warning,
-  success,
-  info,
-}
+enum NoticeBannerTone { error, warning, success, info }
 
 class AnimatedFloatingNoticeBanner extends StatelessWidget {
   const AnimatedFloatingNoticeBanner({

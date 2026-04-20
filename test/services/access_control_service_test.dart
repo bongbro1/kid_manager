@@ -49,10 +49,7 @@ void main() {
       );
 
       expect(
-        service.canUseFeature(
-          feature: AppFeature.safeRoute,
-          actor: parent,
-        ),
+        service.canUseFeature(feature: AppFeature.safeRoute, actor: parent),
         isTrue,
       );
       expect(
@@ -73,17 +70,11 @@ void main() {
       );
 
       expect(
-        service.canUseFeature(
-          feature: AppFeature.safeZone,
-          actor: guardian,
-        ),
+        service.canUseFeature(feature: AppFeature.safeZone, actor: guardian),
         isTrue,
       );
       expect(
-        service.canUseFeature(
-          feature: AppFeature.dangerZone,
-          actor: guardian,
-        ),
+        service.canUseFeature(feature: AppFeature.dangerZone, actor: guardian),
         isTrue,
       );
       expect(
@@ -121,10 +112,7 @@ void main() {
       );
 
       expect(
-        service.canUseFeature(
-          feature: AppFeature.safeRoute,
-          actor: parent,
-        ),
+        service.canUseFeature(feature: AppFeature.safeRoute, actor: parent),
         isFalse,
       );
       expect(
@@ -141,10 +129,7 @@ void main() {
       final child = buildUser(uid: 'child-1', role: UserRole.child);
 
       expect(
-        service.canUseFeature(
-          feature: AppFeature.appManagement,
-          actor: child,
-        ),
+        service.canUseFeature(feature: AppFeature.appManagement, actor: child),
         isFalse,
       );
     });
@@ -236,18 +221,9 @@ void main() {
     test('child can access self but cannot manage others', () {
       final actor = buildUser(uid: 'child-1', role: UserRole.child);
 
+      expect(service.canAccessChild(actor: actor, childUid: 'child-1'), isTrue);
       expect(
-        service.canAccessChild(
-          actor: actor,
-          childUid: 'child-1',
-        ),
-        isTrue,
-      );
-      expect(
-        service.canManageChild(
-          actor: actor,
-          childUid: 'child-1',
-        ),
+        service.canManageChild(actor: actor, childUid: 'child-1'),
         isFalse,
       );
     });

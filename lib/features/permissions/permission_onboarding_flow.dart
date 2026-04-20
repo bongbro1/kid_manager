@@ -53,11 +53,7 @@ enum PermissionOnboardingStepType {
   battery,
 }
 
-enum PermissionOnboardingCopyMode {
-  adultDevice,
-  childDevice,
-  sharedDevice,
-}
+enum PermissionOnboardingCopyMode { adultDevice, childDevice, sharedDevice }
 
 class PermissionOnboardingStepCopy {
   const PermissionOnboardingStepCopy({
@@ -295,7 +291,11 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
     _openedSettings = true;
     switch (type) {
       case PermissionOnboardingStepType.notifications:
-        await _permissionService.openNotificationSettings();
+        if (Platform.isAndroid) {
+          await _permissionService.openAndroidSosAlertSettings();
+        } else {
+          await _permissionService.openNotificationSettings();
+        }
         break;
       case PermissionOnboardingStepType.location:
       case PermissionOnboardingStepType.backgroundLocation:
@@ -354,9 +354,7 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
     return false;
   }
 
-  PermissionOnboardingStepCopy _copyForStep(
-    PermissionOnboardingStepType step,
-  ) {
+  PermissionOnboardingStepCopy _copyForStep(PermissionOnboardingStepType step) {
     final l10n = AppLocalizations.of(context);
     final isAdult = widget.copyMode == PermissionOnboardingCopyMode.adultDevice;
     final isShared =
@@ -373,10 +371,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để nhận SOS, chat, cảnh báo vùng an toàn và các cảnh báo an toàn ngay khi chúng xảy ra.',
-              en:
-                  'To receive SOS, chat, safe zone, and safety alerts as soon as they happen.',
+              vi: 'Để nhận SOS, chat, cảnh báo vùng an toàn và các cảnh báo an toàn ngay khi chúng xảy ra.',
+              en: 'To receive SOS, chat, safe zone, and safety alerts as soon as they happen.',
             ),
           );
         }
@@ -389,10 +385,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để nhận SOS, cảnh báo vùng an toàn và các cảnh báo an toàn từ thiết bị trẻ ngay khi chúng xảy ra.',
-              en:
-                  'To receive SOS, safe zone, and safety alerts from the child device as soon as they happen.',
+              vi: 'Để nhận SOS, cảnh báo vùng an toàn và các cảnh báo an toàn từ thiết bị trẻ ngay khi chúng xảy ra.',
+              en: 'To receive SOS, safe zone, and safety alerts from the child device as soon as they happen.',
             ),
           );
         }
@@ -410,10 +404,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để app dùng bản đồ, chia sẻ vị trí và các tính năng an toàn khi cần.',
-              en:
-                  'So the app can use maps, location sharing, and safety features when needed.',
+              vi: 'Để app dùng bản đồ, chia sẻ vị trí và các tính năng an toàn khi cần.',
+              en: 'So the app can use maps, location sharing, and safety features when needed.',
             ),
           );
         }
@@ -426,10 +418,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để bản đồ gia đình và các tính năng an toàn có thể dùng vị trí của chính thiết bị phụ huynh khi cần.',
-              en:
-                  'So family maps and safety features can use the parent device location when needed.',
+              vi: 'Để bản đồ gia đình và các tính năng an toàn có thể dùng vị trí của chính thiết bị phụ huynh khi cần.',
+              en: 'So family maps and safety features can use the parent device location when needed.',
             ),
           );
         }
@@ -447,10 +437,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để app vẫn có thể cập nhật vị trí và duy trì các tính năng an toàn khi chạy nền.',
-              en:
-                  'So the app can still update location and keep safety features working in the background.',
+              vi: 'Để app vẫn có thể cập nhật vị trí và duy trì các tính năng an toàn khi chạy nền.',
+              en: 'So the app can still update location and keep safety features working in the background.',
             ),
           );
         }
@@ -463,10 +451,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để app vẫn có thể cập nhật vị trí của thiết bị phụ huynh khi bạn đang dùng các tính năng chia sẻ vị trí hoặc an toàn.',
-              en:
-                  'So the app can still update the parent device location while using live location sharing or safety features.',
+              vi: 'Để app vẫn có thể cập nhật vị trí của thiết bị phụ huynh khi bạn đang dùng các tính năng chia sẻ vị trí hoặc an toàn.',
+              en: 'So the app can still update the parent device location while using live location sharing or safety features.',
             ),
           );
         }
@@ -484,10 +470,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để đổi ảnh đại diện, chọn ảnh trong chat và dùng các tính năng cần media.',
-              en:
-                  'To change profile photos, choose images in chat, and use media features.',
+              vi: 'Để đổi ảnh đại diện, chọn ảnh trong chat và dùng các tính năng cần media.',
+              en: 'To change profile photos, choose images in chat, and use media features.',
             ),
           );
         }
@@ -500,10 +484,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để đổi ảnh đại diện, chọn ảnh trong chat và dùng các tính năng cần media trên máy phụ huynh.',
-              en:
-                  'To change profile photos, choose images in chat, and use media-related features on the parent device.',
+              vi: 'Để đổi ảnh đại diện, chọn ảnh trong chat và dùng các tính năng cần media trên máy phụ huynh.',
+              en: 'To change profile photos, choose images in chat, and use media-related features on the parent device.',
             ),
           );
         }
@@ -521,10 +503,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để app hỗ trợ các tính năng theo dõi, thống kê và quản lý liên quan đến việc sử dụng ứng dụng.',
-              en:
-                  'So the app can support tracking, statistics, and management features related to app usage.',
+              vi: 'Để app hỗ trợ các tính năng theo dõi, thống kê và quản lý liên quan đến việc sử dụng ứng dụng.',
+              en: 'So the app can support tracking, statistics, and management features related to app usage.',
             ),
           );
         }
@@ -537,10 +517,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để app có thể theo dõi thời gian sử dụng và hỗ trợ các tính năng quản lý, giám sát trên chính thiết bị phụ huynh khi cần.',
-              en:
-                  'So the app can read app usage and support management or supervision features on the parent device when needed.',
+              vi: 'Để app có thể theo dõi thời gian sử dụng và hỗ trợ các tính năng quản lý, giám sát trên chính thiết bị phụ huynh khi cần.',
+              en: 'So the app can read app usage and support management or supervision features on the parent device when needed.',
             ),
           );
         }
@@ -558,10 +536,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để app vẫn hoạt động ổn định trên nền và không bỏ lỡ cập nhật hoặc cảnh báo quan trọng.',
-              en:
-                  'So the app can keep running reliably in the background and not miss important updates or alerts.',
+              vi: 'Để app vẫn hoạt động ổn định trên nền và không bỏ lỡ cập nhật hoặc cảnh báo quan trọng.',
+              en: 'So the app can keep running reliably in the background and not miss important updates or alerts.',
             ),
           );
         }
@@ -574,10 +550,8 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
             ),
             description: _localizedCopy(
               context,
-              vi:
-                  'Để app vẫn tiếp tục hoạt động ổn định trên nền và không bỏ lỡ các cảnh báo an toàn hay cập nhật quan trọng.',
-              en:
-                  'So the app can keep running reliably in the background and not miss safety alerts or important updates.',
+              vi: 'Để app vẫn tiếp tục hoạt động ổn định trên nền và không bỏ lỡ các cảnh báo an toàn hay cập nhật quan trọng.',
+              en: 'So the app can keep running reliably in the background and not miss safety alerts or important updates.',
             ),
           );
         }
@@ -594,6 +568,33 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
     final totalSteps = _steps.length;
     final media = _buildStepMedia();
     final copy = _copyForStep(_currentStep);
+    final notificationHelperText =
+        Platform.isAndroid &&
+            _currentStep == PermissionOnboardingStepType.notifications
+        ? _localizedCopy(
+            context,
+            vi: 'Trên Android, bạn có thể bật thêm quyền truy cập SOS khẩn cấp để cảnh báo mạnh hơn khi máy ở chế độ Không làm phiền. Hệ điều hành vẫn không đảm bảo sẽ phát tiếng trong mọi chế độ im lặng.',
+            en: 'On Android, you can also enable emergency SOS access so the app can use stronger alerts, bypass Do Not Disturb when the device allows it, and temporarily raise some alert-related volume streams. Android still does not guarantee sound in every silent-mode scenario.',
+          )
+        : null;
+    final notificationSettingsLabel =
+        Platform.isAndroid &&
+            _currentStep == PermissionOnboardingStepType.notifications
+        ? _localizedCopy(
+            context,
+            vi: 'Mở cài đặt SOS khẩn cấp',
+            en: 'Open SOS alert settings',
+          )
+        : null;
+
+    final resolvedNotificationHelperText =
+        notificationHelperText == null
+        ? null
+        : _localizedCopy(
+            context,
+            vi: 'Trên Android, bạn có thể bật thêm cài đặt SOS khẩn cấp để app dùng cảnh báo mạnh hơn, bỏ qua Không làm phiền nếu máy cho phép, và tạm thời tăng một số mức âm lượng cảnh báo. Android vẫn không đảm bảo phát tiếng trong mọi chế độ im lặng.',
+            en: 'On Android, you can also enable emergency SOS access so the app can use stronger alerts, bypass Do Not Disturb when the device allows it, and temporarily raise some alert-related volume streams. Android still does not guarantee sound in every silent-mode scenario.',
+          );
 
     switch (_currentStep) {
       case PermissionOnboardingStepType.notifications:
@@ -607,7 +608,10 @@ class _PermissionOnboardingFlowState extends State<PermissionOnboardingFlow>
           media: media,
           title: copy.title,
           description: copy.description,
-          helperText: l10n.permissionOnboardingNotificationHelperText,
+          helperText:
+              resolvedNotificationHelperText ??
+              l10n.permissionOnboardingNotificationHelperText,
+          settingsLabel: notificationSettingsLabel,
           onAllow: () => unawaited(_handlePrimary()),
           onOpenSettings: () => unawaited(_handleOpenSettings()),
           onSkip: () => unawaited(_handleSkip()),

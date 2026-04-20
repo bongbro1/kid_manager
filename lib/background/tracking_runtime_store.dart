@@ -18,10 +18,7 @@ class TrackingRuntimeStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(prefsKeyUserId, config.userId);
     await prefs.setBool(prefsKeyEnabled, config.enabled);
-    await prefs.setBool(
-      prefsKeyRequireBackground,
-      config.requireBackground,
-    );
+    await prefs.setBool(prefsKeyRequireBackground, config.requireBackground);
     await prefs.setBool(prefsKeyCurrentOnly, config.currentOnly);
 
     if (_hasText(config.parentUid)) {
@@ -55,8 +52,7 @@ class TrackingRuntimeStore {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString(prefsKeyUserId)?.trim();
     final enabled = prefs.getBool(prefsKeyEnabled) ?? false;
-    final requireBackground =
-        prefs.getBool(prefsKeyRequireBackground) ?? true;
+    final requireBackground = prefs.getBool(prefsKeyRequireBackground) ?? true;
     final currentOnly = prefs.getBool(prefsKeyCurrentOnly) ?? false;
 
     if (userId == null || userId.isEmpty) {
@@ -75,9 +71,7 @@ class TrackingRuntimeStore {
     );
   }
 
-  static Future<void> saveRoutingContext(
-    TrackingRoutingContext context,
-  ) async {
+  static Future<void> saveRoutingContext(TrackingRoutingContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(prefsKeyUserId, context.userId);
 
@@ -105,7 +99,9 @@ class TrackingRuntimeStore {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final storedUserId = prefs.getString(prefsKeyUserId)?.trim();
-    if (storedUserId == null || storedUserId.isEmpty || storedUserId != userId) {
+    if (storedUserId == null ||
+        storedUserId.isEmpty ||
+        storedUserId != userId) {
       return null;
     }
 
@@ -160,5 +156,6 @@ class TrackingRuntimeStore {
     return prefs.getBool(prefsKeyPublisherReady) ?? false;
   }
 
-  static bool _hasText(String? value) => value != null && value.trim().isNotEmpty;
+  static bool _hasText(String? value) =>
+      value != null && value.trim().isNotEmpty;
 }

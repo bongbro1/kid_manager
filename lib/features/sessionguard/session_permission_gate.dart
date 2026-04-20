@@ -153,10 +153,7 @@ class _SessionPermissionGateState extends State<SessionPermissionGate> {
         copyMode: copyMode,
         onFinished: (_) async {
           final storage = context.read<StorageService>();
-          await storage.setBool(
-            StorageKeys.permissionOnboardingSeenV1,
-            true,
-          );
+          await storage.setBool(StorageKeys.permissionOnboardingSeenV1, true);
           if (widget.role == UserRole.child) {
             await storage.setBool(
               StorageKeys.childSupervisionSetupSeenV1,

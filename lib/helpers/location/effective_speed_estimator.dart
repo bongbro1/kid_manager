@@ -41,7 +41,9 @@ class EffectiveSpeedEstimator {
       candidates.add(prevDerived);
     }
 
-    final nextDerived = next == null ? null : _deriveSegmentSpeedMps(point, next);
+    final nextDerived = next == null
+        ? null
+        : _deriveSegmentSpeedMps(point, next);
     if (nextDerived != null) {
       candidates.add(nextDerived);
     }
@@ -67,11 +69,7 @@ class EffectiveSpeedEstimator {
     final previous = index > 0 ? history[index - 1] : null;
     final next = index + 1 < history.length ? history[index + 1] : null;
 
-    return resolvePointSpeedMps(
-      current,
-      previous: previous,
-      next: next,
-    );
+    return resolvePointSpeedMps(current, previous: previous, next: next);
   }
 
   static bool _isRawReliable(double speedMps) {

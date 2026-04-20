@@ -1,4 +1,4 @@
-﻿import 'package:kid_manager/features/safe_route/domain/entities/route_hazard.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/route_hazard.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
 
 class RouteHazardModel extends RouteHazard {
@@ -49,12 +49,12 @@ class RouteHazardModel extends RouteHazard {
   }
 
   RouteHazard toEntity() => RouteHazard(
-        id: id,
-        name: name,
-        latitude: latitude,
-        longitude: longitude,
-        radiusMeters: radiusMeters,
-        riskLevel: riskLevel,
-        sourceZoneId: sourceZoneId,
-      );
+    id: id,
+    name: name,
+    latitude: latitude,
+    longitude: longitude,
+    radiusMeters: radiusMeters,
+    riskLevel: riskLevel,
+    sourceZoneId: sourceZoneId,
+  );
 }

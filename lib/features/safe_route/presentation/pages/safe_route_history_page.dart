@@ -1,7 +1,8 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kid_manager/features/map_engine/map_lifecycle_errors.dart';
 import 'package:kid_manager/features/map_engine/controllers/camera_controller.dart';
 import 'package:kid_manager/features/safe_route/data/datasources/safe_route_remote_data_source.dart';
 import 'package:kid_manager/features/safe_route/data/repositories/safe_route_repository_impl.dart';
@@ -85,25 +86,89 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
   CameraController? _camera;
   bool _styleReady = false;
   Future<void>? _styleSetupFuture;
+  int? _styleSetupSession;
   String? _lastRenderedRouteId;
   String? _lastErrorMessage;
+  int _mapSession = 0;
+  bool _disposed = false;
+
+  void _attachMap(MapboxMap map, {bool resetStyle = false}) {
+    final isNewMap = !identical(_map, map);
+    _mapSession++;
+    _map = map;
+    _camera = CameraController(map);
+    if (resetStyle || isNewMap) {
+      _styleReady = false;
+      _styleSetupFuture = null;
+      _styleSetupSession = null;
+      _lastRenderedRouteId = null;
+    }
+  }
+
+  bool _isMapSessionActive(MapboxMap map, int session) {
+    return !_disposed &&
+        mounted &&
+        identical(_map, map) &&
+        _mapSession == session;
+  }
+
+  Future<T?> _runMapQuery<T>({
+    required MapboxMap map,
+    required int session,
+    required Future<T> Function() call,
+  }) async {
+    if (!_isMapSessionActive(map, session)) return null;
+    try {
+      return await call();
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isMapSessionActive(map, session)) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  Future<bool> _runMapWrite({
+    required MapboxMap map,
+    required int session,
+    required Future<void>? Function() call,
+  }) async {
+    if (!_isMapSessionActive(map, session)) return false;
+    try {
+      final pending = call();
+      if (pending != null) {
+        await pending;
+      }
+      return true;
+    } catch (error) {
+      if (isMapLifecycleError(error) || !_isMapSessionActive(map, session)) {
+        return false;
+      }
+      rethrow;
+    }
+  }
 
   Future<void> _ensureHistoryStyle() async {
-    if (_styleReady) return;
+    final map = _map;
+    if (map == null) return;
+    final session = _mapSession;
+    if (!_isMapSessionActive(map, session) || _styleReady) return;
+
     final existingSetup = _styleSetupFuture;
-    if (existingSetup != null) {
+    if (existingSetup != null && _styleSetupSession == session) {
       await existingSetup;
       return;
     }
-
-    final map = _map;
-    if (map == null) return;
     final style = map.style;
 
     Future<void> setup() async {
       Future<void> addSourceIfNeeded(String id) async {
         try {
-          await style.addSource(GeoJsonSource(id: id, data: _emptyGeoJson));
+          await _runMapWrite(
+            map: map,
+            session: session,
+            call: () => style.addSource(GeoJsonSource(id: id, data: _emptyGeoJson)),
+          );
         } catch (error) {
           if (!_isAlreadyExistsError(error)) rethrow;
         }
@@ -111,7 +176,11 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
 
       Future<void> addLayerIfNeeded(Layer layer) async {
         try {
-          await style.addLayer(layer);
+          await _runMapWrite(
+            map: map,
+            session: session,
+            call: () => style.addLayer(layer),
+          );
         } catch (error) {
           if (!_isAlreadyExistsError(error)) rethrow;
         }
@@ -122,18 +191,22 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
         MapAvatarMarkerImage image,
       ) async {
         try {
-          await style.addStyleImage(
-            id,
-            1.0,
-            MbxImage(
-              width: image.width,
-              height: image.height,
-              data: image.bytes,
+          await _runMapWrite(
+            map: map,
+            session: session,
+            call: () => style.addStyleImage(
+              id,
+              1.0,
+              MbxImage(
+                width: image.width,
+                height: image.height,
+                data: image.bytes,
+              ),
+              false,
+              [],
+              [],
+              null,
             ),
-            false,
-            [],
-            [],
-            null,
           );
         } catch (error) {
           if (!_isAlreadyExistsError(error)) rethrow;
@@ -208,12 +281,20 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
       );
     }
 
-    _styleSetupFuture = setup();
+    final future = setup();
+    _styleSetupFuture = future;
+    _styleSetupSession = session;
     try {
-      await _styleSetupFuture;
-      _styleReady = true;
+      await future;
+      if (_isMapSessionActive(map, session)) {
+        _styleReady = true;
+      }
     } finally {
-      _styleSetupFuture = null;
+      if (_styleSetupSession == session &&
+          identical(_styleSetupFuture, future)) {
+        _styleSetupFuture = null;
+        _styleSetupSession = null;
+      }
     }
   }
 
@@ -227,10 +308,21 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
     Map<String, dynamic> featureCollection,
   ) async {
     final map = _map;
-    if (map == null) return;
-    final source = await map.style.getSource(sourceId);
+    final session = _mapSession;
+    if (map == null || !_styleReady) return;
+
+    final source = await _runMapQuery<Object?>(
+      map: map,
+      session: session,
+      call: () => map.style.getSource(sourceId),
+    );
+    if (!_isMapSessionActive(map, session)) return;
     if (source is GeoJsonSource) {
-      await source.updateGeoJSON(jsonEncode(featureCollection));
+      await _runMapWrite(
+        map: map,
+        session: session,
+        call: () => source.updateGeoJSON(jsonEncode(featureCollection)),
+      );
     }
   }
 
@@ -385,7 +477,14 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
         '${_visibleRoutes(state).map((route) => route.id).join('|')}';
     if (_lastRenderedRouteId == routeKey) return;
     _lastRenderedRouteId = routeKey;
-    await camera.fitToRoute(points);
+    try {
+      await camera.fitToRoute(points);
+    } catch (error) {
+      if (isMapLifecycleError(error)) {
+        return;
+      }
+      rethrow;
+    }
   }
 
   Future<void> _syncMap(SafeRouteHistoryState state) async {
@@ -412,9 +511,21 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
 
   void _scheduleSync(SafeRouteHistoryState state) {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
+      if (!mounted || _disposed) return;
       await _syncMap(state);
     });
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _mapSession++;
+    _map = null;
+    _camera = null;
+    _styleReady = false;
+    _styleSetupFuture = null;
+    _styleSetupSession = null;
+    super.dispose();
   }
 
   void _maybeShowError(SafeRouteHistoryViewModel vm) {
@@ -449,15 +560,11 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
                   showInternalMapTypeButton: false,
                   followThemeForStreetStyle: false,
                   onMapCreated: (map) {
-                    _map = map;
-                    _camera = CameraController(map);
-                    _styleReady = false;
-                    _styleSetupFuture = null;
+                    _attachMap(map);
                   },
                   onStyleLoaded: (map) async {
-                    _map = map;
-                    _styleReady = false;
-                    _styleSetupFuture = null;
+                    if (!mounted || _disposed) return;
+                    _attachMap(map, resetStyle: true);
                     await _ensureHistoryStyle();
                     await _syncMap(state);
                   },
@@ -666,11 +773,7 @@ class _SafeRouteHistoryPageBodyState extends State<_SafeRouteHistoryPageBody> {
         border: Border.all(color: locationPanelBorderColor(scheme), width: 1.6),
       ),
       child: avatarUrl.isEmpty
-          ? Icon(
-              Icons.child_care_rounded,
-              size: 18,
-              color: scheme.primary,
-            )
+          ? Icon(Icons.child_care_rounded, size: 18, color: scheme.primary)
           : Image.network(
               avatarUrl,
               fit: BoxFit.cover,
@@ -842,9 +945,7 @@ class _HistoryTripCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: locationPanelBorderColor(scheme),
-            ),
+            border: Border.all(color: locationPanelBorderColor(scheme)),
           ),
           child: Row(
             children: [
@@ -857,10 +958,7 @@ class _HistoryTripCard extends StatelessWidget {
                       : locationPanelColor(scheme),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  Icons.alt_route_rounded,
-                  color: scheme.primary,
-                ),
+                child: Icon(Icons.alt_route_rounded, color: scheme.primary),
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -1,6 +1,8 @@
 import 'package:kid_manager/models/user/user_types.dart';
 
-Map<String, dynamic> _buildFamilyMemberBirthdayPublicFields(DateTime? birthDate) {
+Map<String, dynamic> _buildFamilyMemberBirthdayPublicFields(
+  DateTime? birthDate,
+) {
   if (birthDate == null) {
     return const <String, dynamic>{};
   }

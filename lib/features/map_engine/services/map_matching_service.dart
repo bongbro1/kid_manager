@@ -38,7 +38,8 @@ class MapMatchingService {
       minTurnDeg: 10,
       maxAccuracyM: 40,
     );
-    final history = [...thinned]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final history = [...thinned]
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     debugPrint('raw=${rawHistory.length} -> thin=${thinned.length}');
 
     final segments = _splitBy100(history);

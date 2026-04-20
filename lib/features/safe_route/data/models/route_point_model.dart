@@ -1,4 +1,4 @@
-﻿import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
+import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
 
 class RoutePointModel extends RoutePoint {
   const RoutePointModel({
@@ -24,16 +24,9 @@ class RoutePointModel extends RoutePoint {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'latitude': latitude,
-      'longitude': longitude,
-      'sequence': sequence,
-    };
+    return {'latitude': latitude, 'longitude': longitude, 'sequence': sequence};
   }
 
-  RoutePoint toEntity() => RoutePoint(
-        latitude: latitude,
-        longitude: longitude,
-        sequence: sequence,
-      );
+  RoutePoint toEntity() =>
+      RoutePoint(latitude: latitude, longitude: longitude, sequence: sequence);
 }

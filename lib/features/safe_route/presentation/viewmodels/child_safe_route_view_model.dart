@@ -101,11 +101,7 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
     try {
       final trip = await _getActiveTripByChildIdUseCase(childId);
       if (!_isActiveGeneration(generation)) return;
-      await _applyCanonicalTrip(
-        trip,
-        generation: generation,
-        isLoading: false,
-      );
+      await _applyCanonicalTrip(trip, generation: generation, isLoading: false);
     } catch (error) {
       if (!_isActiveGeneration(generation)) return;
       _setState(
@@ -117,25 +113,26 @@ class ChildSafeRouteViewModel extends ChangeNotifier {
   Future<void> _bindCurrentTripStream(int generation) async {
     await _tripSub?.cancel();
     if (!_isActiveGeneration(generation)) return;
-    _tripSub = _watchCurrentTripByChildIdUseCase(
-      childId,
-      audience: TripVisibilityAudience.childMonitor,
-    ).listen(
-      (trip) async {
-        if (!_isActiveGeneration(generation)) return;
-        await _applyCanonicalTrip(
-          trip,
-          generation: generation,
-          isLoading: false,
+    _tripSub =
+        _watchCurrentTripByChildIdUseCase(
+          childId,
+          audience: TripVisibilityAudience.childMonitor,
+        ).listen(
+          (trip) async {
+            if (!_isActiveGeneration(generation)) return;
+            await _applyCanonicalTrip(
+              trip,
+              generation: generation,
+              isLoading: false,
+            );
+          },
+          onError: (error) {
+            if (!_isActiveGeneration(generation)) return;
+            _setState(
+              _state.copyWith(isLoading: false, errorMessage: error.toString()),
+            );
+          },
         );
-      },
-      onError: (error) {
-        if (!_isActiveGeneration(generation)) return;
-        _setState(
-          _state.copyWith(isLoading: false, errorMessage: error.toString()),
-        );
-      },
-    );
   }
 
   void _recomputeGuidance({bool notify = false}) {

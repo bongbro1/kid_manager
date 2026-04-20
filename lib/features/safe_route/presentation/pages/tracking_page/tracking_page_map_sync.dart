@@ -952,7 +952,8 @@ extension _TrackingPageMapSync on _TrackingPageBodyState {
 
   void _maybeShowCompletedTripConfirmation(SafeRouteTrackingViewModel vm) {
     final confirmationId = vm.state.completedTripConfirmationTripId;
-    if (confirmationId == null || confirmationId == _lastCompletedTripConfirmationId) {
+    if (confirmationId == null ||
+        confirmationId == _lastCompletedTripConfirmationId) {
       return;
     }
     _lastCompletedTripConfirmationId = confirmationId;

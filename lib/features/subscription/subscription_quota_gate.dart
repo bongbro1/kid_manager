@@ -1,16 +1,10 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 
-enum SubscriptionQuotaFeature {
-  zone,
-  safeRoute,
-}
+enum SubscriptionQuotaFeature { zone, safeRoute }
 
 class SubscriptionQuotaInfo {
-  const SubscriptionQuotaInfo({
-    required this.feature,
-    this.limit,
-  });
+  const SubscriptionQuotaInfo({required this.feature, this.limit});
 
   final SubscriptionQuotaFeature feature;
   final int? limit;
@@ -61,15 +55,18 @@ class SubscriptionQuotaGate {
     final isVi =
         Localizations.localeOf(context).languageCode.toLowerCase() == 'vi';
     final title = isVi ? 'Cần gói Pro' : 'Pro plan required';
-    final limitText = quota.limit?.toString() ??
+    final limitText =
+        quota.limit?.toString() ??
         (isVi ? 'một số lượng giới hạn' : 'a limited number of');
     final message = switch (quota.feature) {
-      SubscriptionQuotaFeature.zone => isVi
-          ? 'Gói thường chỉ tạo tối đa $limitText vùng an toàn hoặc vùng nguy hiểm cho mỗi bé. Nâng cấp Pro để tạo không giới hạn.'
-          : 'The free plan allows up to $limitText safe or danger zones per child. Upgrade to Pro for unlimited zones.',
-      SubscriptionQuotaFeature.safeRoute => isVi
-          ? 'Gói thường chỉ tạo tối đa $limitText đường an toàn cho mỗi bé. Nâng cấp Pro để tạo không giới hạn.'
-          : 'The free plan allows up to $limitText safe routes per child. Upgrade to Pro for unlimited safe routes.',
+      SubscriptionQuotaFeature.zone =>
+        isVi
+            ? 'Gói thường chỉ tạo tối đa $limitText vùng an toàn hoặc vùng nguy hiểm cho mỗi bé. Nâng cấp Pro để tạo không giới hạn.'
+            : 'The free plan allows up to $limitText safe or danger zones per child. Upgrade to Pro for unlimited zones.',
+      SubscriptionQuotaFeature.safeRoute =>
+        isVi
+            ? 'Gói thường chỉ tạo tối đa $limitText đường an toàn cho mỗi bé. Nâng cấp Pro để tạo không giới hạn.'
+            : 'The free plan allows up to $limitText safe routes per child. Upgrade to Pro for unlimited safe routes.',
     };
     final dismissText = isVi ? 'Để sau' : 'Later';
     final upgradeText = onUpgrade == null
@@ -87,10 +84,7 @@ class SubscriptionQuotaGate {
             title,
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
-          content: Text(
-            message,
-            style: const TextStyle(height: 1.5),
-          ),
+          content: Text(message, style: const TextStyle(height: 1.5)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -114,11 +108,7 @@ class SubscriptionQuotaGate {
     required SubscriptionQuotaInfo quota,
     VoidCallback? onUpgrade,
   }) {
-    return showPlanUpgradeDialog(
-      context,
-      quota: quota,
-      onUpgrade: onUpgrade,
-    );
+    return showPlanUpgradeDialog(context, quota: quota, onUpgrade: onUpgrade);
   }
 
   static SubscriptionQuotaInfo? _decode(String value) {

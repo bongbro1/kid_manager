@@ -74,10 +74,7 @@ class SubscriptionRepository {
     await updateSubscription(uid: uid, subscription: updated);
   }
 
-  Future<void> startTrial({
-    required String uid,
-    int trialDays = 7,
-  }) async {
+  Future<void> startTrial({required String uid, int trialDays = 7}) async {
     final now = DateTime.now();
 
     final subscription = SubscriptionInfo(

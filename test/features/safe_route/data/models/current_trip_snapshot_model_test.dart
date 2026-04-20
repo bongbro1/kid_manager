@@ -46,17 +46,21 @@ void main() {
     });
 
     expect(
-      snapshot.tripForAudience(
-        TripVisibilityAudience.adultManager,
-        now: DateTime.fromMillisecondsSinceEpoch(4000),
-      )?.id,
+      snapshot
+          .tripForAudience(
+            TripVisibilityAudience.adultManager,
+            now: DateTime.fromMillisecondsSinceEpoch(4000),
+          )
+          ?.id,
       'trip-completed',
     );
     expect(
-      snapshot.tripForAudience(
-        TripVisibilityAudience.adultManager,
-        now: DateTime.fromMillisecondsSinceEpoch(5000),
-      )?.id,
+      snapshot
+          .tripForAudience(
+            TripVisibilityAudience.adultManager,
+            now: DateTime.fromMillisecondsSinceEpoch(5000),
+          )
+          ?.id,
       'trip-planned',
     );
   });
@@ -64,10 +68,7 @@ void main() {
   test('invalid nested trip payload is skipped safely', () {
     final snapshot = CurrentTripSnapshotModel.fromMap({
       'childId': 'child-1',
-      'adultCurrentTrip': {
-        'id': 'trip-invalid',
-        'childId': 'child-1',
-      },
+      'adultCurrentTrip': {'id': 'trip-invalid', 'childId': 'child-1'},
       'childMonitorTrip': buildTrip(
         id: 'trip-active',
         status: 'active',

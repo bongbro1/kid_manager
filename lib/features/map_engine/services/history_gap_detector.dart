@@ -24,7 +24,8 @@ class HistoryGapDetector {
   }) {
     if (history.length < 2) return const [];
 
-    final sorted = [...history]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final sorted = [...history]
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     final gaps = <HistoryGap>[];
 
     for (var index = 1; index < sorted.length; index++) {
@@ -56,13 +57,7 @@ class HistoryGapDetector {
         gapEndTimestamp: current.timestamp,
       );
 
-      gaps.add(
-        HistoryGap(
-          start: previous,
-          end: current,
-          marker: marker,
-        ),
-      );
+      gaps.add(HistoryGap(start: previous, end: current, marker: marker));
     }
 
     return gaps;

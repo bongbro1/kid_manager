@@ -5,10 +5,7 @@ import 'package:kid_manager/models/user/user_subscription.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 
 class ChildUser {
-  const ChildUser({
-    required this.id,
-    required this.displayName,
-  });
+  const ChildUser({required this.id, required this.displayName});
 
   final String id;
   final String displayName;
@@ -87,10 +84,7 @@ class AppUser {
     return AppUser.fromMap(doc.data() ?? <String, dynamic>{}, docId: doc.id);
   }
 
-  factory AppUser.fromMap(
-    Map<String, dynamic> data, {
-    String? docId,
-  }) {
+  factory AppUser.fromMap(Map<String, dynamic> data, {String? docId}) {
     final role = UserRole.fromValue(data['role']);
 
     return AppUser(

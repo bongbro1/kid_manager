@@ -35,7 +35,8 @@ class AppConnectivityVm extends ChangeNotifier {
   }
 
   void _applyResults(List<ConnectivityResult> results) {
-    final nextState = results.isEmpty ||
+    final nextState =
+        results.isEmpty ||
             results.every((result) => result == ConnectivityResult.none)
         ? AppConnectivityState.offline
         : AppConnectivityState.online;

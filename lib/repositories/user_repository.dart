@@ -98,10 +98,7 @@ class UserRepository {
     );
   }
 
-  Future<void> updateTimeZone({
-    required String uid,
-    required String timezone,
-  }) {
+  Future<void> updateTimeZone({required String uid, required String timezone}) {
     return _profileRepository.updateTimeZone(uid: uid, timezone: timezone);
   }
 
