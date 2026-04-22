@@ -467,17 +467,14 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 3),
-                    child: Text(
-                      l10n.notificationDetailSectionTitle,
-                      style: textTheme.labelMedium?.copyWith(
-                        color: theme.brightness == Brightness.dark
-                            ? colorScheme.onSurface
-                            : colorScheme.outline,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.6,
-                      ),
+                  Text(
+                    l10n.notificationDetailSectionTitle,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: theme.brightness == Brightness.dark
+                          ? colorScheme.onSurface
+                          : colorScheme.outline,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
                     ),
                   ),
                   const SizedBox(height: 12),

@@ -1934,7 +1934,7 @@
   "childLocationMockGpsLabel": "GPS giả lập",
   "childLocationMockGpsDetected": "Có dấu hiệu",
   "childLocationNoLabel": "Không",
-  "childLocationDeviceStatusHint": "Trạng thái thiết bị",
+  "childLocationDeviceStatusHint": "Trạng thái",
   "childLocationTechnicalDetailsTitle": "Xem chi tiết kỹ thuật",
   "childLocationDetailFullTimeLabel": "Thời gian đầy đủ",
   "childLocationDetailHeadingLabel": "Hướng di chuyển",

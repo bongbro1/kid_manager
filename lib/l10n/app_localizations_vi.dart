@@ -2997,7 +2997,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get childLocationNoLabel => 'Không';
 
   @override
-  String get childLocationDeviceStatusHint => 'Trạng thái thiết bị';
+  String get childLocationDeviceStatusHint => 'Trạng thái';
 
   @override
   String get childLocationTechnicalDetailsTitle => 'Xem chi tiết kỹ thuật';
