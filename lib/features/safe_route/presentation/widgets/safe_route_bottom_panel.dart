@@ -474,6 +474,10 @@ class _RouteSelectionContent extends StatelessWidget {
   }
 
   String _emptyRoutesText() {
+    final error = state.errorMessage?.trim();
+    if (error != null && error.isNotEmpty) {
+      return error;
+    }
     if (!_hasStart || !_hasEnd) {
       return l10n.safeRouteEmptyRoutesNeedPoints;
     }

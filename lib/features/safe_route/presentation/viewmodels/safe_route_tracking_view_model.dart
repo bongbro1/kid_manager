@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/network/app_network_error_mapper.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/route_point.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route.dart';
 import 'package:kid_manager/features/safe_route/domain/entities/safe_route_enums.dart';
@@ -123,6 +124,21 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
   String get _locationDeniedMessage => _isVietnamese
       ? 'Bạn không có quyền xem vị trí của bé này.'
       : 'You do not have permission to view this child location.';
+
+  String get _routeNotFoundMessage => _isVietnamese
+      ? 'Không tìm thấy tuyến đường phù hợp. Hãy thử đổi điểm đi, điểm đến hoặc chế độ di chuyển.'
+      : 'No suitable route was found. Try changing the start, destination, or travel mode.';
+
+  String _friendlyErrorMessage(
+    Object error, {
+    String? fallbackMessage,
+  }) {
+    final networkError = AppNetworkErrorMapper.normalize(
+      error,
+      fallbackMessage: fallbackMessage ?? _l10n.appNetworkActionFailed,
+    );
+    return networkError?.message ?? error.toString();
+  }
 
   Future<_AuthorizedSafeRouteContext?> _resolveAuthorizedContext({
     required AppFeature feature,
@@ -360,7 +376,10 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
     } catch (error) {
       debugPrint('Error refreshing active trip: $error');
       _setState(
-        _state.copyWith(isLoading: false, errorMessage: error.toString()),
+        _state.copyWith(
+          isLoading: false,
+          errorMessage: _friendlyErrorMessage(error),
+        ),
       );
     } finally {
       _isRefreshingTrip = false;
@@ -381,7 +400,9 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
           },
           onError: (error) {
             if (_isStaleLifecycle(generation)) return;
-            _setState(_state.copyWith(errorMessage: error.toString()));
+            _setState(
+              _state.copyWith(errorMessage: _friendlyErrorMessage(error)),
+            );
           },
         );
   }
@@ -405,7 +426,7 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
       onError: (error) {
         if (_disposed) return;
         debugPrint('Error occurred while streaming live location: $error');
-        _setState(_state.copyWith(errorMessage: error.toString()));
+        _setState(_state.copyWith(errorMessage: _friendlyErrorMessage(error)));
       },
     );
   }
@@ -601,11 +622,23 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
         travelMode: _state.selectedTravelMode,
       );
       if (_isStaleLifecycle(generation)) return;
+      if (routes.isEmpty) {
+        _setState(
+          _state.copyWith(
+            isFetchingSuggestions: false,
+            suggestedRoutes: const [],
+            selectedAlternativeRouteIds: const [],
+            clearSelectedRoute: true,
+            errorMessage: _routeNotFoundMessage,
+          ),
+        );
+        return;
+      }
       _setState(
         _state.copyWith(
           isFetchingSuggestions: false,
           suggestedRoutes: routes,
-          selectedRoute: routes.isEmpty ? null : routes.first,
+          selectedRoute: routes.first,
           selectedAlternativeRouteIds: const [],
         ),
       );
@@ -615,7 +648,10 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
         _state.copyWith(
           isFetchingSuggestions: false,
           errorMessage: quota == null
-              ? error.toString()
+              ? _friendlyErrorMessage(
+                  error,
+                  fallbackMessage: _l10n.appRetryWhenOnline,
+                )
               : SubscriptionQuotaGate.encode(quota),
         ),
       );
@@ -625,7 +661,10 @@ class SafeRouteTrackingViewModel extends ChangeNotifier {
       _setState(
         _state.copyWith(
           isFetchingSuggestions: false,
-          errorMessage: error.toString(),
+          errorMessage: _friendlyErrorMessage(
+            error,
+            fallbackMessage: _l10n.appRetryWhenOnline,
+          ),
         ),
       );
 
