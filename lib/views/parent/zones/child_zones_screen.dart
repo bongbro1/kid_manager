@@ -736,13 +736,14 @@ class _ChildZonesBodyState extends State<_ChildZonesBody> {
         title: Text(
           l10n.zonesScreenTitle,
           style: TextStyle(
+            fontFamily: 'Poppins',
             fontWeight: FontWeight.w700,
             fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
             letterSpacing: -0.5,
             color: scheme.onSurface,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isBusy

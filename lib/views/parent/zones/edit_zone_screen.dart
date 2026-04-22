@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_theme.dart';
+import 'package:kid_manager/core/responsive.dart';
 import 'package:kid_manager/helpers/zone/zone_circle.dart';
 import 'package:kid_manager/helpers/zone/zone_overlap.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -50,6 +51,132 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
 
   bool _isOverlapping = false;
   GeoZone? _overlapWith;
+
+  TextStyle _zoneTypeSelectionTextStyle(BuildContext context) {
+    final base = Theme.of(context).appTypography.body;
+    final resolvedFontSize = context.isCompactPhone
+        ? 13.0
+        : context.isTabletOrLarger
+        ? 15.0
+        : 14.0;
+
+    return base.copyWith(
+      fontFamily: 'Poppins',
+      fontSize: resolvedFontSize,
+      fontWeight: FontWeight.w600,
+      height: 1.2,
+    );
+  }
+
+  Widget _buildZoneTypeOption({
+    required BuildContext context,
+    required ColorScheme scheme,
+    required ZoneType value,
+    required String label,
+    required IconData icon,
+  }) {
+    final selected = _type == value;
+    final activeColor = value == ZoneType.danger
+        ? const Color(0xFFDC2626)
+        : const Color(0xFF16A34A);
+    final textStyle = _zoneTypeSelectionTextStyle(context).copyWith(
+      color: selected ? Colors.white : scheme.onSurface,
+    );
+
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            if (_type == value) return;
+            setState(() => _type = value);
+            _recalcOverlapMeters();
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: selected ? activeColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? activeColor : locationPanelBorderColor(scheme),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: selected ? Colors.white : activeColor,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: textStyle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildZoneTypeSelector(
+    BuildContext context,
+    ColorScheme scheme,
+    AppLocalizations l10n,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.zonesTypeFieldLabel,
+          style: Theme.of(context).appTypography.sectionLabel.copyWith(
+            fontFamily: 'Poppins',
+            color: scheme.onSurface.withOpacity(0.72),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: locationPanelMutedColor(scheme),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: locationPanelBorderColor(scheme)),
+          ),
+          child: Row(
+            children: [
+              _buildZoneTypeOption(
+                context: context,
+                scheme: scheme,
+                value: ZoneType.safe,
+                label: l10n.zonesTypeSafe,
+                icon: Icons.shield_outlined,
+              ),
+              const SizedBox(width: 8),
+              _buildZoneTypeOption(
+                context: context,
+                scheme: scheme,
+                value: ZoneType.danger,
+                label: l10n.zonesTypeDanger,
+                icon: Icons.warning_amber_rounded,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Uint8List? _safeIcon;
   Uint8List? _dangerIcon;
@@ -139,15 +266,21 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     final scheme = Theme.of(context).colorScheme;
     final baseColor = _type == ZoneType.danger ? Colors.red : Colors.green;
     final circleColor = _isOverlapping ? Colors.red : baseColor;
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: locationPanelColor(scheme),
         foregroundColor: scheme.onSurface,
         title: Text(
           _isEditing ? l10n.zonesEditTitle : l10n.zonesAddAddressTitle,
-          style: TextStyle(color: scheme.onSurface),
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w700,
+            fontSize: Theme.of(context).appTypography.screenTitle.fontSize!,
+            letterSpacing: -0.5,
+            color: scheme.onSurface,
+          ),
         ),
+        centerTitle: true,
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -356,176 +489,232 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
                       borderRadius: BorderRadius.circular(18),
                       child: SingleChildScrollView(
                         controller: scrollController,
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 5,
-                                margin: const EdgeInsets.only(bottom: 12),
-                                decoration: BoxDecoration(
-                                  color: locationPanelBorderColor(scheme),
-                                  borderRadius: BorderRadius.circular(99),
-                                ),
-                              ),
-                              TextField(
-                                decoration: InputDecoration(
-                                  labelText: l10n.zonesNameFieldLabel,
-                                  filled: true,
-                                  fillColor: locationPanelMutedColor(scheme),
-                                  border: const OutlineInputBorder(),
-                                ),
-                                controller: _nameCtrl,
-                                onChanged: (v) => _name = v,
-                              ),
-                              const SizedBox(height: 10),
-                              DropdownButtonFormField<ZoneType>(
-                                value: _type,
-                                items: [
-                                  DropdownMenuItem(
-                                    value: ZoneType.safe,
-                                    child: Text(l10n.zonesTypeSafe),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: ZoneType.danger,
-                                    child: Text(l10n.zonesTypeDanger),
-                                  ),
-                                ],
-                                onChanged: (v) {
-                                  if (v == null) return;
-                                  setState(() => _type = v);
-                                  _recalcOverlapMeters();
-                                },
-                                decoration: InputDecoration(
-                                  labelText: l10n.zonesTypeFieldLabel,
-                                  filled: true,
-                                  fillColor: locationPanelMutedColor(scheme),
-                                  border: const OutlineInputBorder(),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  Text(l10n.zonesRadiusLabel),
-                                  const Spacer(),
-                                  Text(
-                                    '${_radiusM.toStringAsFixed(0)} m',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                height: 54,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    elevation: _isOverlapping ? 0 : 2,
-                                    backgroundColor: _isOverlapping
-                                        ? const Color(0xFF9CA3AF)
-                                        : baseColor,
-                                    disabledBackgroundColor: const Color(
-                                      0xFF9CA3AF,
-                                    ),
-                                    foregroundColor: Colors.white,
-                                    disabledForegroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  onPressed: _isOverlapping
-                                      ? null
-                                      : _onSavePressed,
-                                  child: Text(
-                                    l10n.authContinueButton,
-                                    style: TextStyle(
-                                      fontSize: Theme.of(
-                                        context,
-                                      ).appTypography.title.fontSize!,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                        child: ConstrainedBox(
+                          // ← Thêm wrap này
+                          constraints: BoxConstraints(maxWidth: fullW - 52),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
 
-                              if (_isOverlapping && _overlapWith != null) ...[
-                                const SizedBox(height: 12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                                 Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
+                                  width: 44,
+                                  height: 5,
+                                  margin: const EdgeInsets.only(bottom: 12),
                                   decoration: BoxDecoration(
-                                    color: Color.alphaBlend(
-                                      Colors.red.withOpacity(0.08),
-                                      locationPanelColor(scheme),
+                                    color: locationPanelBorderColor(scheme),
+                                    borderRadius: BorderRadius.circular(99),
+                                  ),
+                                ),
+                                TextField(
+                                  decoration: InputDecoration(
+                                    labelText: l10n.zonesNameFieldLabel,
+                                    filled: true,
+                                    fillColor: locationPanelMutedColor(scheme),
+                                    border: const OutlineInputBorder(),
+                                  ),
+                                  controller: _nameCtrl,
+                                  onChanged: (v) => _name = v,
+                                ),
+                                const SizedBox(height: 10),
+                                _buildZoneTypeSelector(context, scheme, l10n),
+                                /*
+                                DropdownButtonFormField<ZoneType>(
+                                  value: _type,
+                                  isExpanded: true,
+                                  style: zoneTypeSelectionTextStyle,
+                                  borderRadius: BorderRadius.circular(
+                                    12,
+                                  ), // ← bo góc menu dropdown
+                                  menuMaxHeight:
+                                      200, // ← tránh menu tràn màn hình
+                                  selectedItemBuilder: (context) => [
+                                    Text(
+                                      l10n.zonesTypeSafe,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: zoneTypeSelectionTextStyle,
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: const Color(0xFFFECACA),
+                                    Text(
+                                      l10n.zonesTypeDanger,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: zoneTypeSelectionTextStyle,
+                                    ),
+                                  ],
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: ZoneType.safe,
+                                      child: Text(
+                                        l10n.zonesTypeSafe,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: zoneTypeSelectionTextStyle,
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: ZoneType.danger,
+                                      child: Text(
+                                        l10n.zonesTypeDanger,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: zoneTypeSelectionTextStyle,
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (v) {
+                                    if (v == null) return;
+                                    setState(() => _type = v);
+                                    _recalcOverlapMeters();
+                                  },
+                                  decoration: InputDecoration(
+                                    labelText: l10n.zonesTypeFieldLabel,
+                                    filled: true,
+                                    fillColor: locationPanelMutedColor(scheme),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: locationPanelBorderColor(scheme),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: scheme.primary,
+                                        width: 1.5,
+                                      ),
                                     ),
                                   ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(
-                                        Icons.warning_amber_rounded,
-                                        color: Color(0xFFDC2626),
-                                        size: 20,
+                                ),
+                                */
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Text(l10n.zonesRadiusLabel),
+                                    const Spacer(),
+                                    Text(
+                                      '${_radiusM.toStringAsFixed(0)} m',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: RichText(
-                                          text: TextSpan(
-                                            style: TextStyle(
-                                              fontSize: Theme.of(context)
-                                                  .appTypography
-                                                  .sectionLabel
-                                                  .fontSize!,
-                                              height: 1.45,
-                                              color: Color(0xFF991B1B),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 54,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      elevation: _isOverlapping ? 0 : 2,
+                                      backgroundColor: _isOverlapping
+                                          ? const Color(0xFF9CA3AF)
+                                          : baseColor,
+                                      disabledBackgroundColor: const Color(
+                                        0xFF9CA3AF,
+                                      ),
+                                      foregroundColor: Colors.white,
+                                      disabledForegroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                    onPressed: _isOverlapping
+                                        ? null
+                                        : _onSavePressed,
+                                    child: Text(
+                                      l10n.authContinueButton,
+                                      style: TextStyle(
+                                        fontSize: Theme.of(
+                                          context,
+                                        ).appTypography.title.fontSize!,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                if (_isOverlapping && _overlapWith != null) ...[
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Color.alphaBlend(
+                                        Colors.red.withOpacity(0.08),
+                                        locationPanelColor(scheme),
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(0xFFFECACA),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Icon(
+                                          Icons.warning_amber_rounded,
+                                          color: Color(0xFFDC2626),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: RichText(
+                                            text: TextSpan(
+                                              style: TextStyle(
+                                                fontSize: Theme.of(context)
+                                                    .appTypography
+                                                    .sectionLabel
+                                                    .fontSize!,
+                                                height: 1.45,
+                                                color: Color(0xFF991B1B),
+                                              ),
+                                              children: [
+                                                TextSpan(
+                                                  text: l10n
+                                                      .zonesOverlappingPrefix,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                TextSpan(
+                                                  text: _overlapWith!.name,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            children: [
-                                              TextSpan(
-                                                text:
-                                                    l10n.zonesOverlappingPrefix,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                              TextSpan(
-                                                text: _overlapWith!.name,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                            ],
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                              if (_isOverlapping && _overlapWith != null) ...[
-                                const SizedBox(height: 10),
-                                Text(
-                                  l10n.zonesOverlappingWith(_overlapWith!.name),
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w700,
+                                ],
+                                if (_isOverlapping && _overlapWith != null) ...[
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    l10n.zonesOverlappingWith(
+                                      _overlapWith!.name,
+                                    ),
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
                       ),
