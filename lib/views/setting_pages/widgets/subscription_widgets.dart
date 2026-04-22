@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
@@ -84,22 +83,24 @@ class SubscriptionHeroCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: HeroStatusTile(
-                  label: l10n.subscriptionCurrentPlanLabel,
-                  value: currentPlanLabel,
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: HeroStatusTile(
+                    label: l10n.subscriptionCurrentPlanLabel,
+                    value: currentPlanLabel,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: HeroStatusTile(
-                  label: l10n.subscriptionCurrentStatusLabel,
-                  value: currentStatusLabel,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: HeroStatusTile(
+                    label: l10n.subscriptionCurrentStatusLabel,
+                    value: currentStatusLabel,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 18),
           Wrap(

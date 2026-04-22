@@ -19,7 +19,6 @@ class BlockedAppDetailWidget extends StatelessWidget {
     final allowedTo = (data["allowedTo"] ?? "").toString();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -161,10 +160,9 @@ class BlockedAppDetailWidget extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.notificationsBlockedWarningMessage,
-              style: textTheme.bodyMedium?.copyWith(
+              style: textTheme.bodySmall?.copyWith(
                 color: colorScheme.onError,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -173,32 +171,4 @@ class BlockedAppDetailWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(BuildContext context, AppLocalizations l10n) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.errorContainer,
-          foregroundColor: colorScheme.onErrorContainer,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        onPressed: () {
-          // TODO: Navigate
-        },
-        child: Text(
-          l10n.notificationsBlockedViewConfigButton,
-          style: textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onErrorContainer,
-          ),
-        ),
-      ),
-    );
-  }
 }
