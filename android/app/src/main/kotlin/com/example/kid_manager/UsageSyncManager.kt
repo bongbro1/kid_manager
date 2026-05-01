@@ -3,6 +3,7 @@ package com.example.kid_manager
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.functions.FirebaseFunctions
@@ -32,6 +33,7 @@ class UsageSyncManager(private val context: Context) {
     private data class UsageEventsSummary(
         val lastUsedByPkg: MutableMap<String, Long>,
         val usageMsByHour: MutableMap<Int, Long>,
+        val usageMsByPkg: MutableMap<String, Long>
     )
 
     fun syncUsageApps(userId: String) {
@@ -60,20 +62,6 @@ class UsageSyncManager(private val context: Context) {
         val trackedPackages = appsSnap.documents.map { it.id }.toSet()
         val includedPackages = trackedPackages.takeIf { it.isNotEmpty() }
 
-        val usageMsByPkgRaw = queryUsageStats(
-            usageManager = usageManager,
-            start = startOfDay,
-            end = now
-        )
-
-        val usageMsByPkg = if (includedPackages == null) {
-            usageMsByPkgRaw
-        } else {
-            usageMsByPkgRaw
-                .filterKeys { includedPackages.contains(it) }
-                .toMutableMap()
-        }
-
         val events = usageManager.queryEvents(startOfDay, now)
         val usageEventsSummary = computeUsageFromEvents(
             events = events,
@@ -82,6 +70,7 @@ class UsageSyncManager(private val context: Context) {
             includedPackages = includedPackages
         )
 
+        val usageMsByPkg = usageEventsSummary.usageMsByPkg
         val lastUsedByPkg = usageEventsSummary.lastUsedByPkg
         val usageMsByHour = usageEventsSummary.usageMsByHour
         val totalUsageMsToday = usageMsByPkg.values.sum()
@@ -96,18 +85,35 @@ class UsageSyncManager(private val context: Context) {
         var totalMinutesToday = 0
         val minutesByPkg = mutableMapOf<String, Int>()
 
+        val installedPackages = try {
+            context.packageManager.getInstalledPackages(0).map { it.packageName }.toSet()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get installed packages", e)
+            null
+        }
+
         for (doc in appsSnap.documents) {
             val pkg = doc.id
-            val usageMs = usageMsByPkg[pkg]
-            val lastUsedMs = lastUsedByPkg[pkg]
-            val lastUsageDayKey = doc.getString("todayUsageDayKey")
-            val shouldResetForNewDay = lastUsageDayKey != dayKey
 
-            if (usageMs == null && lastUsedMs == null && !shouldResetForNewDay) {
+            // If app is not installed on device, remove from tracking list
+            if (installedPackages != null && !installedPackages.contains(pkg)) {
+                Log.i(TAG, "App $pkg not found on device, removing from Firestore")
+                batch.delete(doc.reference)
                 continue
             }
 
-            val usageMsToWrite = usageMs ?: 0L
+            val usageMs = usageMsByPkg[pkg] ?: 0L
+            val lastUsedMs = lastUsedByPkg[pkg]
+            val lastUsageDayKey = doc.getString("todayUsageDayKey")
+            val currentUsageMsInFirestore = doc.getLong("todayUsageMs") ?: 0L
+            val shouldResetForNewDay = lastUsageDayKey != dayKey
+
+            // Chỉ skip nếu: Cùng ngày VÀ usage không thay đổi VÀ không có thông tin lastUsed mới
+            if (!shouldResetForNewDay && usageMs == currentUsageMsInFirestore && lastUsedMs == null) {
+                continue
+            }
+
+            val usageMsToWrite = usageMs
             val minutes = (usageMsToWrite / 60000L).toInt()
 
             if (minutes > 0) {
@@ -486,6 +492,10 @@ class UsageSyncManager(private val context: Context) {
         )
 
         for (stat in stats) {
+            // Chỉ lấy dữ liệu của các buckets kết thúc sau thời điểm bắt đầu ngày (start)
+            // Loại bỏ các buckets thuộc về ngày hôm trước nhưng vẫn bị trả về do giao thoa ranh giới
+            if (stat.lastTimeStamp < start) continue
+
             val pkg = stat.packageName ?: continue
             val time = stat.totalTimeInForeground
             if (time > 0) {
@@ -504,6 +514,7 @@ class UsageSyncManager(private val context: Context) {
     ): UsageEventsSummary {
         val lastUsedByPkg = mutableMapOf<String, Long>()
         val usageMsByHour = mutableMapOf<Int, Long>()
+        val usageMsByPkg = mutableMapOf<String, Long>()
 
         var activePkg: String? = null
         var activeStart: Long? = null
@@ -531,6 +542,7 @@ class UsageSyncManager(private val context: Context) {
                                 endMs = end,
                                 usageMsByHour = usageMsByHour
                             )
+                            usageMsByPkg[activePkg!!] = (usageMsByPkg[activePkg!!] ?: 0L) + delta
                             lastUsedByPkg[activePkg!!] = end
                         }
                     }
@@ -549,6 +561,7 @@ class UsageSyncManager(private val context: Context) {
                                 endMs = end,
                                 usageMsByHour = usageMsByHour
                             )
+                            usageMsByPkg[pkg] = (usageMsByPkg[pkg] ?: 0L) + delta
                             lastUsedByPkg[pkg] = end
                         }
                         activePkg = null
@@ -566,13 +579,15 @@ class UsageSyncManager(private val context: Context) {
                     endMs = now,
                     usageMsByHour = usageMsByHour
                 )
+                usageMsByPkg[activePkg!!] = (usageMsByPkg[activePkg!!] ?: 0L) + delta
                 lastUsedByPkg[activePkg!!] = now
             }
         }
 
         return UsageEventsSummary(
             lastUsedByPkg = lastUsedByPkg,
-            usageMsByHour = usageMsByHour
+            usageMsByHour = usageMsByHour,
+            usageMsByPkg = usageMsByPkg
         )
     }
 

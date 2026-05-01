@@ -125,8 +125,6 @@ class _ThemeSelectorSheetState extends State<ThemeSelectorSheet> {
               );
             },
           ),
-          const SizedBox(height: 20),
-
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(

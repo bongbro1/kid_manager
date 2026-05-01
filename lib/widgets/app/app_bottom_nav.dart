@@ -23,6 +23,7 @@ class AppBottomNav extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
+      margin: const EdgeInsets.only(bottom: 1),
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
@@ -30,7 +31,10 @@ class AppBottomNav extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: scheme.surface,
-        border: Border(top: BorderSide(color: scheme.outline)),
+        border: Border(
+          top: BorderSide(color: scheme.outline.withValues(alpha: 0.3)),
+          bottom: BorderSide(color: scheme.outline.withValues(alpha: 0.3)),
+        ),
       ),
       child: SizedBox(
         height: 50,

@@ -37,14 +37,14 @@ class AppTypography extends ThemeExtension<AppTypography> {
           textTheme.titleSmall ??
           const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       itemTitle:
-          textTheme.bodyLarge?.copyWith(fontSize: 15) ??
-          const TextStyle(fontSize: 15),
-      body: textTheme.bodyMedium ?? const TextStyle(fontSize: 14),
-      sectionLabel: textTheme.bodySmall ?? const TextStyle(fontSize: 13),
-      supporting: textTheme.labelSmall ?? const TextStyle(fontSize: 12),
+          textTheme.bodyLarge?.copyWith(fontSize: 14) ??
+          const TextStyle(fontSize: 14),
+      body: textTheme.bodyMedium ?? const TextStyle(fontSize: 13),
+      sectionLabel: textTheme.bodySmall ?? const TextStyle(fontSize: 12),
+      supporting: textTheme.labelSmall ?? const TextStyle(fontSize: 11),
       meta:
-          textTheme.labelSmall?.copyWith(fontSize: 11, height: 1.2) ??
-          const TextStyle(fontSize: 11, height: 1.2),
+          textTheme.labelSmall?.copyWith(fontSize: 10, height: 1.2) ??
+          const TextStyle(fontSize: 10, height: 1.2),
     );
   }
 

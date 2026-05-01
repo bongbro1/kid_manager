@@ -103,6 +103,9 @@ class _ImageModalState extends State<_ImageModal> {
         final l10n = AppLocalizations.of(ctx);
 
         return Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).padding.bottom + 16,
+          ),
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: const BorderRadius.only(
@@ -148,8 +151,6 @@ class _ImageModalState extends State<_ImageModal> {
                 label: l10n.birthdayCloseButton,
                 onTap: () => Navigator.of(ctx).pop(),
               ),
-
-              const SizedBox(height: 16),
             ],
           ),
         );

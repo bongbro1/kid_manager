@@ -19,6 +19,7 @@ import 'package:kid_manager/services/notifications/sos_notification_service.dart
 import 'package:kid_manager/services/storage_service.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 
 import 'app.dart';
 
@@ -102,8 +103,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalNotificationService.init();
 
-  final notificationType =
-      (message.data['type']?.toString() ?? '').trim().toLowerCase();
+  final notificationType = (message.data['type']?.toString() ?? '')
+      .trim()
+      .toLowerCase();
   final shouldUseLocalSosEscalation =
       notificationType == 'sos' &&
       (message.notification == null ||
@@ -150,6 +152,15 @@ Future<bool> shouldStopTrackingServiceOnForegroundStartup() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
 
   try {
     if (await shouldStopTrackingServiceOnForegroundStartup()) {

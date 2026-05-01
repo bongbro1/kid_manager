@@ -264,7 +264,8 @@ service cloud.firestore {
         )
         || isParentManagingGuardianAssignments(uid);
 
-      allow delete: if isSelf(uid);
+      allow delete: if isSelf(uid)
+        || (resource != null && resource.data.parentUid == request.auth.uid);
     }
 
     // ================================

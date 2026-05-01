@@ -346,4 +346,37 @@ class MembershipRepository {
       'lastActiveAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
+
+  Future<void> deleteManagedAccount({
+    required String parentUid,
+    required String managedUid,
+  }) async {
+    final l10n = runtimeL10n();
+    try {
+      final managedSnap = await userRef(managedUid).get();
+      if (!managedSnap.exists) return;
+
+      final data = managedSnap.data();
+      final familyId = data?['familyId'] as String?;
+      final storedParentUid = data?['parentUid'] as String?;
+      final roleStr = data?['role'] as String?;
+
+      // Kiểm tra quyền: Phải thuộc cùng family và được quản lý bởi parent này
+      if (storedParentUid != parentUid) {
+        throw l10n.firestorePermissionDenied;
+      }
+
+      // Không cho phép tự xóa mình hoặc xóa parent khác qua hàm này (chỉ child/guardian)
+      if (roleStr == roleToString(UserRole.parent)) {
+        throw l10n.firestorePermissionDenied;
+      }
+
+      // Chỉ cần xóa user doc, Cloud Function (mirrorUserToFamilyMembers) sẽ tự động
+      // dọn dẹp các tài liệu liên quan trong families/{id}/members, locationMembers, etc.
+      await userRef(managedUid).delete();
+    } catch (e) {
+      debugPrint('deleteManagedAccount error: $e');
+      rethrow;
+    }
+  }
 }

@@ -751,6 +751,30 @@ class UserVm extends ChangeNotifier {
     }
   }
 
+  Future<void> deleteMember(AppUser member) async {
+    final actor = actorSnapshot;
+    if (actor == null || actor.role != UserRole.parent) {
+      throw Exception(runtimeL10n().firestorePermissionDenied);
+    }
+
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _userRepo.deleteManagedAccount(
+        parentUid: actor.uid,
+        managedUid: member.uid,
+      );
+    } catch (e) {
+      _error = e.toString();
+      rethrow;
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     _childrenSub?.cancel();

@@ -127,28 +127,95 @@ class NotificationFilterSheet extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-            ...readFilters.expand((f) {
-              final filter = f.$1;
-              final label = f.$2;
-              final icon = f.$3;
-              final isSelected = activeReadFilter == filter;
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: readFilters.map((f) {
+                  final filter = f.$1;
+                  final label = f.$2;
+                  final icon = f.$3;
+                  final isSelected = activeReadFilter == filter;
 
-              final itemColor = isSelected ? scheme.primary : scheme.onSurface;
-
-              return [
-                _NotificationFilterItem(
-                  icon: icon,
-                  label: label,
-                  color: itemColor,
-                  isSelected: isSelected,
-                  onTap: () => onReadFilterSelected(filter),
-                ),
-                const SizedBox(height: 10),
-              ];
-            }),
+                  return Expanded(
+                    child: _ReadFilterChip(
+                      label: label,
+                      icon: icon,
+                      isSelected: isSelected,
+                      onTap: () => onReadFilterSelected(filter),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadFilterChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ReadFilterChip({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    return Material(
+      color: isSelected ? scheme.surface : Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      elevation: isSelected ? 2 : 0,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.labelLarge?.copyWith(
+                    color: isSelected
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

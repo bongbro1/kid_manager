@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kid_manager/core/app_navigator.dart';
+import 'package:kid_manager/core/app_theme.dart';
 import 'package:kid_manager/l10n/app_localizations.dart';
 import 'package:kid_manager/models/notifications/app_notification.dart';
 import 'package:kid_manager/views/chat/family_group_chat_screen.dart';
@@ -167,7 +168,7 @@ class FestiveBirthdayCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         child: Ink(
           decoration: BoxDecoration(
             gradient: const LinearGradient(
@@ -175,7 +176,7 @@ class FestiveBirthdayCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFFAD1E6)),
           ),
           child: Stack(
@@ -221,7 +222,8 @@ class FestiveBirthdayCard extends StatelessWidget {
                                   style: textTheme.titleMedium?.copyWith(
                                     color: scheme.onSurface,
                                     fontWeight: FontWeight.w600,
-                                    fontSize: 16,
+                                    fontSize:
+                                        theme.appTypography.itemTitle.fontSize,
                                     height: 1.19,
                                   ),
                                 ),
@@ -258,9 +260,9 @@ class FestiveBirthdayCard extends StatelessWidget {
                             item.body,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF6B7280),
-                              fontSize: 14,
+                            style: TextStyle(
+                              color: const Color(0xFF6B7280),
+                              fontSize: theme.appTypography.supporting.fontSize,
                               height: 1.45,
                             ),
                           ),
@@ -299,10 +301,13 @@ class FestiveBirthdayCard extends StatelessWidget {
                                             child: Text(
                                               ctaLabel,
                                               overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w700,
+                                                fontSize: theme
+                                                    .appTypography
+                                                    .sectionLabel
+                                                    .fontSize,
+                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                           ),
@@ -341,6 +346,7 @@ class ReminderBirthdayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final name = birthdayNameFromNotification(l10n, item);
     final ageTurning = birthdayAgeTurningFromNotification(item);
@@ -417,9 +423,10 @@ class ReminderBirthdayCard extends StatelessWidget {
                                   titleText,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xFF1F2937),
-                                    fontSize: 16,
+                                  style: TextStyle(
+                                    color: const Color(0xFF1F2937),
+                                    fontSize:
+                                        theme.appTypography.itemTitle.fontSize,
                                     fontWeight: FontWeight.w700,
                                     height: 1.2,
                                   ),
@@ -922,7 +929,7 @@ class _WarmReminderChip extends StatelessWidget {
         color: isHighlight
             ? const Color(0xFFFFE4CC)
             : Colors.white.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isHighlight
               ? const Color(0xFFFF9E5C)

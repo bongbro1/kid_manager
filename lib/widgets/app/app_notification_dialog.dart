@@ -39,6 +39,7 @@ class NotificationDialog extends StatelessWidget {
     return showDialog(
       context: context,
       barrierColor: Colors.transparent,
+      useSafeArea: false,
       builder: (_) => NotificationModal(
         child: NotificationDialog(
           type: type,
@@ -170,71 +171,68 @@ class _ActionSection extends StatelessWidget {
     );
 
     if (isWarning) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      return Row(
         children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 56),
-            child: ElevatedButton(
-              style: ButtonStyle(
-                backgroundColor: MaterialStatePropertyAll(colorScheme.primary),
-                elevation: const MaterialStatePropertyAll(0),
-                overlayColor: const MaterialStatePropertyAll(
-                  Colors.transparent,
-                ),
-                shadowColor: const MaterialStatePropertyAll(Colors.transparent),
-                surfaceTintColor: const MaterialStatePropertyAll(
-                  Colors.transparent,
-                ),
-                textStyle: MaterialStatePropertyAll(buttonTextStyle),
-                splashFactory: NoSplash.splashFactory,
-                shape: MaterialStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+          Expanded(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 50),
+              child: ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStatePropertyAll(
+                    isDark ? colorScheme.surfaceVariant : const Color(0xFFF3F4F6),
+                  ),
+                  elevation: const MaterialStatePropertyAll(0),
+                  overlayColor: const MaterialStatePropertyAll(Colors.transparent),
+                  shadowColor: const MaterialStatePropertyAll(Colors.transparent),
+                  surfaceTintColor: const MaterialStatePropertyAll(Colors.transparent),
+                  textStyle: MaterialStatePropertyAll(buttonTextStyle),
+                  splashFactory: NoSplash.splashFactory,
+                  shape: MaterialStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
-              ),
-              onPressed: () => _close(context, onConfirm),
-              child: Text(
-                l10n.confirmButton,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: colorScheme.onPrimary),
+                onPressed: () => _close(context, onCancel),
+                child: Text(
+                  l10n.cancelButton,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isDark ? colorScheme.onSurface : const Color(0xFF4B5563),
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 56),
-            child: ElevatedButton(
-              style: ButtonStyle(
-                backgroundColor: MaterialStatePropertyAll(
-                  isDark ? colorScheme.onSurface : const Color(0xFFF3F4F6),
-                ),
-                elevation: const MaterialStatePropertyAll(0),
-                overlayColor: const MaterialStatePropertyAll(
-                  Colors.transparent,
-                ),
-                shadowColor: const MaterialStatePropertyAll(Colors.transparent),
-                surfaceTintColor: const MaterialStatePropertyAll(
-                  Colors.transparent,
-                ),
-                textStyle: MaterialStatePropertyAll(buttonTextStyle),
-                splashFactory: NoSplash.splashFactory,
-                shape: MaterialStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 50),
+              child: ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStatePropertyAll(colorScheme.primary),
+                  elevation: const MaterialStatePropertyAll(0),
+                  overlayColor: const MaterialStatePropertyAll(Colors.transparent),
+                  shadowColor: const MaterialStatePropertyAll(Colors.transparent),
+                  surfaceTintColor: const MaterialStatePropertyAll(Colors.transparent),
+                  textStyle: MaterialStatePropertyAll(buttonTextStyle),
+                  splashFactory: NoSplash.splashFactory,
+                  shape: MaterialStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
-              ),
-              onPressed: () => _close(context, onCancel),
-              child: Text(
-                l10n.cancelButton,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF111827)),
+                onPressed: () => _close(context, onConfirm),
+                child: Text(
+                  l10n.confirmButton,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colorScheme.onPrimary),
+                ),
               ),
             ),
           ),
@@ -257,7 +255,7 @@ class _ActionSection extends StatelessWidget {
             EdgeInsets.symmetric(vertical: 14),
           ),
           shape: MaterialStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
         ),
         onPressed: () => _close(context, onConfirm),

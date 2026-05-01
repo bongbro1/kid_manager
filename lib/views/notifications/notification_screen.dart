@@ -53,12 +53,23 @@ class _NotificationScreenState extends State<NotificationScreen>
       _applyCurrentFilter();
     });
 
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >
-          _scrollController.position.maxScrollExtent - _maxCountInPage) {
-        context.read<NotificationVM>().loadMore();
-      }
-    });
+    _scrollController.addListener(_onScroll);
+    activeTabNotifier.addListener(_onTabChanged);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >
+        _scrollController.position.maxScrollExtent - _maxCountInPage) {
+      context.read<NotificationVM>().loadMore();
+    }
+  }
+
+  void _onTabChanged() {
+    if (activeTabNotifier.value == notificationTabIndexNotifier.value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _handlePendingNavigation();
+      });
+    }
   }
 
   void _handlePendingNavigation() {
@@ -85,19 +96,13 @@ class _NotificationScreenState extends State<NotificationScreen>
     if (route is PageRoute) {
       routeObserver.subscribe(this, route);
     }
-
-    activeTabNotifier.addListener(() {
-      if (activeTabNotifier.value == notificationTabIndexNotifier.value) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _handlePendingNavigation();
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    activeTabNotifier.removeListener(_onTabChanged);
     routeObserver.unsubscribe(this);
     super.dispose();
   }

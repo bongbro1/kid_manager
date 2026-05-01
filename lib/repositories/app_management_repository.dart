@@ -37,7 +37,14 @@ class AppManagementRepository {
 
   Future<List<AppItemModel>> loadAppsFromFirestore(String userId) async {
     final snapshot = await _blockedItemsAppsRef(userId).get();
+    return _parseAppsSnapshot(snapshot);
+  }
 
+  Stream<List<AppItemModel>> watchAppsFromFirestore(String userId) {
+    return _blockedItemsAppsRef(userId).snapshots().map(_parseAppsSnapshot);
+  }
+
+  List<AppItemModel> _parseAppsSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
     final List<AppItemModel> apps = [];
 
     for (final doc in snapshot.docs) {
@@ -215,8 +222,6 @@ class AppManagementRepository {
         try {
           final date = _parseLocalDate(doc.id);
           final data = doc.data();
-
-          debugPrint("DOC ID: ${doc.id} -> PARSED DATE: $date");
 
           /// TOTAL
           final total = (data["totalMinutes"] ?? 0) as int;

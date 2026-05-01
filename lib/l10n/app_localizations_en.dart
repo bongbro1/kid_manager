@@ -1302,7 +1302,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationReadFilterTitle => 'Read status';
 
   @override
-  String get notificationReadFilterAll => 'All statuses';
+  String get notificationReadFilterAll => 'All';
 
   @override
   String get notificationReadFilterUnread => 'Unread';

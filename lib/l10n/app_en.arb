@@ -773,7 +773,7 @@
   "notificationFilterReminder": "Reminders",
   "notificationFilterSystem": "System notifications",
   "notificationReadFilterTitle": "Read status",
-  "notificationReadFilterAll": "All statuses",
+  "notificationReadFilterAll": "All",
   "notificationReadFilterUnread": "Unread",
   "notificationReadFilterRead": "Read",
   "notificationMarkAllRead": "Mark all as read",

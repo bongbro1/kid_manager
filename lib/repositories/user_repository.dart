@@ -212,4 +212,14 @@ class UserRepository {
       type: type,
     );
   }
+
+  Future<void> deleteManagedAccount({
+    required String parentUid,
+    required String managedUid,
+  }) {
+    return _membershipRepository.deleteManagedAccount(
+      parentUid: parentUid,
+      managedUid: managedUid,
+    );
+  }
 }

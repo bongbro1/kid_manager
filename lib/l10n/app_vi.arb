@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "vi",
   "personalInfoTitle": "Thông tin cá nhân",
   "appAppearanceTitle": "Giao diện ứng dụng",
@@ -773,7 +773,7 @@
   "notificationFilterReminder": "Nhắc nhở",
   "notificationFilterSystem": "Thông báo hệ thống",
   "notificationReadFilterTitle": "Trạng thái đọc",
-  "notificationReadFilterAll": "Tất cả trạng thái",
+  "notificationReadFilterAll": "Tất cả",
   "notificationReadFilterUnread": "Chưa đọc",
   "notificationReadFilterRead": "Đã đọc",
   "notificationMarkAllRead": "Đánh dấu tất cả đã đọc",

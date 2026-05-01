@@ -56,8 +56,10 @@ class AppManagementVM extends ChangeNotifier {
   int get usageVersion => _usageVersion;
 
   StreamSubscription<List<AppUser>>? _childrenSub;
+  StreamSubscription<List<AppItemModel>>? _appsSub;
   int _childrenWatchGeneration = 0;
   int _loadGeneration = 0;
+  int _appsWatchGeneration = 0;
 
   Future<AppUser?> _resolveActor() async {
     final uid = _storage.getString(StorageKeys.uid)?.trim();
@@ -141,6 +143,8 @@ class AppManagementVM extends ChangeNotifier {
     _appUsageMap = {};
     _hourlyUsage = {};
     _usageVersion++;
+    _appsSub?.cancel();
+    _appsSub = null;
   }
 
   bool _isStaleLoad(int generation, String childId) {
@@ -273,27 +277,42 @@ class AppManagementVM extends ChangeNotifier {
       if (authorizedChildId == null) {
         _resetLoadedData();
         _error = runtimeL10n().appManagementSyncFailed;
+        _loading = false;
+        notifyListeners();
         return;
       }
 
-      final results = await Future.wait<dynamic>([
-        _repo.loadAppsFromFirestore(authorizedChildId),
-        _repo.loadUsageHistory(authorizedChildId),
-      ]);
-
+      // 1. Load usage history (keep it as Future for now as it involves multiple collections)
+      final historyResult = await _repo.loadUsageHistory(authorizedChildId);
       if (_isStaleLoad(loadGeneration, childId)) return;
 
-      final loadedApps = results[0] as List<AppItemModel>;
-      final usageResult = results[1] as UsageHistoryResult;
+      _usageCache[childId] = historyResult;
+      _usageMap = historyResult.totalUsage;
+      _appUsageMap = historyResult.perAppUsage;
+      _hourlyUsage = historyResult.hourlyUsage;
 
-      _appsCache[childId] = loadedApps;
-      _usageCache[childId] = usageResult;
+      // 2. Watch apps for real-time updates
+      _appsWatchGeneration++;
+      final watchGen = _appsWatchGeneration;
+      await _appsSub?.cancel();
 
-      _apps = loadedApps;
-      _usageMap = usageResult.totalUsage;
-      _appUsageMap = usageResult.perAppUsage;
-      _hourlyUsage = usageResult.hourlyUsage;
-      _usageVersion++;
+      _appsSub = _repo.watchAppsFromFirestore(authorizedChildId).listen(
+        (loadedApps) {
+          if (watchGen != _appsWatchGeneration || _selectedChildId != childId) return;
+
+          _appsCache[childId] = loadedApps;
+          _apps = loadedApps;
+          _usageVersion++;
+          _loading = false;
+          notifyListeners();
+        },
+        onError: (e) {
+          if (watchGen != _appsWatchGeneration || _selectedChildId != childId) return;
+          _error = runtimeL10n().appManagementSyncFailed;
+          _loading = false;
+          notifyListeners();
+        },
+      );
     } catch (e, stack) {
       debugPrint('loadApps ERROR: $e');
       debugPrint('STACK: $stack');
@@ -301,8 +320,6 @@ class AppManagementVM extends ChangeNotifier {
       if (_isStaleLoad(loadGeneration, childId)) return;
       _resetLoadedData();
       _error = runtimeL10n().appManagementSyncFailed;
-    } finally {
-      if (_isStaleLoad(loadGeneration, childId)) return;
       _loading = false;
       notifyListeners();
     }
@@ -463,7 +480,9 @@ class AppManagementVM extends ChangeNotifier {
   void dispose() {
     _childrenWatchGeneration++;
     _loadGeneration++;
+    _appsWatchGeneration++;
     _childrenSub?.cancel();
+    _appsSub?.cancel();
     super.dispose();
   }
 }

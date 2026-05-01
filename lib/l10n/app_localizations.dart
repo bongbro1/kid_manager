@@ -2411,7 +2411,7 @@ abstract class AppLocalizations {
   /// No description provided for @notificationReadFilterAll.
   ///
   /// In en, this message translates to:
-  /// **'All statuses'**
+  /// **'All'**
   String get notificationReadFilterAll;
 
   /// No description provided for @notificationReadFilterUnread.

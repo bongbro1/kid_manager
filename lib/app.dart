@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import 'package:kid_manager/core/app_navigator.dart';
 import 'package:kid_manager/core/app_route_observer.dart';
 import 'package:kid_manager/repositories/app_management_repository.dart';
@@ -326,9 +328,23 @@ class _MyAppState extends State<MyApp> {
             theme: AppTheme.light(seedColor: _primaryColor),
 
             darkTheme: AppTheme.dark(seedColor: _primaryColor),
-            builder: (context, child) => AppConnectivityBannerHost(
-              child: child ?? const SizedBox.shrink(),
-            ),
+            builder: (context, child) {
+              final theme = Theme.of(context);
+              final isDark = theme.brightness == Brightness.dark;
+
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value: SystemUiOverlayStyle(
+                  systemNavigationBarColor: Colors.transparent,
+                  systemNavigationBarIconBrightness: isDark
+                      ? Brightness.light
+                      : Brightness.dark,
+                  systemNavigationBarDividerColor: Colors.transparent,
+                ),
+                child: AppConnectivityBannerHost(
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              );
+            },
             home: const StartupGate(),
           );
         },

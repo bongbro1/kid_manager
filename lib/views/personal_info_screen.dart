@@ -830,8 +830,6 @@ class MoreActionSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 14),
-
             SettingItem(
               title: AppLocalizations.of(context).appAppearanceTitle,
               iconPath: "assets/icons/color_palette.svg",
@@ -889,8 +887,6 @@ class MoreActionSheet extends StatelessWidget {
                 );
               },
             ),
-
-            const SizedBox(height: 10),
           ],
         ),
       ),
@@ -947,7 +943,7 @@ class ConfirmLogoutSheet extends StatelessWidget {
                   width: double.infinity,
                   decoration: ShapeDecoration(
                     shape: RoundedRectangleBorder(
-                      side: BorderSide(width: 1, color: scheme.outline),
+                      side: BorderSide(width: 0.3, color: scheme.outline),
                     ),
                   ),
                 ),

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SmartNetworkImage extends StatelessWidget {
   const SmartNetworkImage({
@@ -62,12 +63,21 @@ class SmartNetworkImage extends StatelessWidget {
   }
 
   int? _toCacheDimension(BuildContext context, double? logicalSize) {
-    if (logicalSize == null || logicalSize <= 0 || !logicalSize.isFinite) {
+    if (logicalSize == null || logicalSize <= 0) {
       return null;
     }
 
+    double size = logicalSize;
+    // Nếu size là vô hạn (như double.infinity cho cover photo),
+    // sử dụng kích thước màn hình để giới hạn cache width/height.
+    if (!size.isFinite) {
+      final screenSize = MediaQuery.sizeOf(context);
+      // Giả sử lấy width nếu size là width vô hạn
+      size = screenSize.width;
+    }
+
     final dpr = MediaQuery.of(context).devicePixelRatio;
-    final pixels = (logicalSize * dpr).round();
+    final pixels = (size * dpr).round();
     return pixels > 0 ? pixels : null;
   }
 
@@ -78,10 +88,17 @@ class SmartNetworkImage extends StatelessWidget {
   Widget _buildPlaceholder(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      width: width,
-      height: height,
-      color: scheme.surfaceContainerHighest,
-    );
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          ),
+        )
+        .animate(onPlay: (controller) => controller.repeat())
+        .shimmer(
+          duration: 1200.ms,
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.8),
+        );
   }
 
   @override
@@ -115,8 +132,8 @@ class SmartNetworkImage extends StatelessWidget {
         memCacheHeight: cacheHeight,
         maxWidthDiskCache: cacheWidth,
         maxHeightDiskCache: cacheHeight,
-        fadeInDuration: Duration.zero,
-        placeholder: (_, _) => _buildPlaceholder(context),
+        fadeInDuration: 300.ms,
+        placeholder: (context, _) => _buildPlaceholder(context),
         errorWidget: (_, _, _) => _buildFallback(),
       );
     }

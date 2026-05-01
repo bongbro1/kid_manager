@@ -7,6 +7,8 @@ import 'package:kid_manager/models/app_user.dart';
 import 'package:kid_manager/models/user/user_types.dart';
 import 'package:kid_manager/services/access_control/access_control_service.dart';
 import 'package:kid_manager/services/storage_service.dart';
+import 'package:kid_manager/utils/confirm_delete_dialog.dart';
+import 'package:kid_manager/utils/notify_dialog.dart';
 import 'package:kid_manager/viewmodels/user_vm.dart';
 import 'package:kid_manager/views/setting_pages/add_account_screen.dart';
 import 'package:kid_manager/widgets/app/app_scroll_effects.dart';
@@ -251,6 +253,44 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
     );
   }
 
+  Future<void> _confirmDeleteMember(
+    BuildContext context,
+    AppUser member,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final vm = context.read<UserVm>();
+
+    final bool confirm = await confirmDelete(
+      context,
+      title: _text(context, 'Xóa thành viên?', 'Delete member?'),
+      message: _text(
+        context,
+        'Bạn có chắc chắn muốn xóa "${member.displayName ?? member.email}"? Hành động này không thể hoàn tác.',
+        'Are you sure you want to delete "${member.displayName ?? member.email}"? This action cannot be undone.',
+      ),
+    );
+
+    if (confirm) {
+      try {
+        await vm.deleteMember(member);
+        if (!context.mounted) return;
+
+        await showSuccessDialog(
+          context,
+          title: _text(context, 'Thành công', 'Success'),
+          message: _text(context, 'Đã xóa thành viên', 'Member deleted'),
+        );
+      } catch (e) {
+        if (!context.mounted) return;
+        await showErrorDialog(
+          context,
+          title: _text(context, 'Lỗi', 'Error'),
+          message: e.toString(),
+        );
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -284,17 +324,17 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-          leadingWidth: 72,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: _RoundIconButton(
-                icon: Icons.arrow_back_ios_new_rounded,
-                onTap: () => Navigator.of(context).maybePop(),
-              ),
+        leadingWidth: 72,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _RoundIconButton(
+              icon: Icons.arrow_back_ios_new_rounded,
+              onTap: () => Navigator.of(context).maybePop(),
             ),
           ),
+        ),
         title: Text(
           l10n.memberManagementTitle,
           style: theme.textTheme.titleMedium?.copyWith(
@@ -406,6 +446,17 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                                                 context,
                                                 guardian: user,
                                                 availableChildren: children,
+                                              )
+                                            : null,
+                                        onDelete:
+                                            (actor?.role == UserRole.parent &&
+                                                user.uid != actor?.uid &&
+                                                (user.role == UserRole.child ||
+                                                    user.role ==
+                                                        UserRole.guardian))
+                                            ? () => _confirmDeleteMember(
+                                                context,
+                                                user,
                                               )
                                             : null,
                                       ),
@@ -619,6 +670,7 @@ class MemberItem extends StatelessWidget {
     this.online = false,
     this.trailingInfo,
     this.onManageAssignments,
+    this.onDelete,
   });
 
   final AppUser user;
@@ -628,6 +680,7 @@ class MemberItem extends StatelessWidget {
   final bool online;
   final String? trailingInfo;
   final VoidCallback? onManageAssignments;
+  final VoidCallback? onDelete;
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -655,6 +708,12 @@ class MemberItem extends StatelessWidget {
       return (v.length >= 2 ? v.substring(0, 2) : v).toUpperCase();
     }
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
+  /// Localized text helper.
+  String _text(BuildContext context, String vi, String en) {
+    final locale = Localizations.localeOf(context).languageCode;
+    return locale == 'vi' ? vi : en;
   }
 
   /// Avatar background/foreground palette keyed by role.
@@ -877,6 +936,7 @@ class MemberItem extends StatelessWidget {
                     ],
                   ),
                 ),
+
                 // Tune button (guardian assignment)
                 if (onManageAssignments != null) ...[
                   const SizedBox(width: 8),
@@ -912,6 +972,21 @@ class MemberItem extends StatelessWidget {
                     label: l10n.memberManagementLocationButton,
                   ),
                 ),
+                if (onDelete != null) ...[
+                  VerticalDivider(
+                    width: 1,
+                    thickness: 0.5,
+                    color: scheme.outlineVariant.withOpacity(.7),
+                  ),
+                  Expanded(
+                    child: _ActionCell(
+                      icon: Icons.delete_outline_rounded,
+                      label: _text(context, 'Xóa', 'Delete'),
+                      iconColor: scheme.error,
+                      onTap: onDelete,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1024,9 +1099,17 @@ class _TuneButton extends StatelessWidget {
 
 /// Bottom action cell (Message / Location).
 class _ActionCell extends StatelessWidget {
-  const _ActionCell({required this.icon, required this.label});
+  const _ActionCell({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.iconColor,
+  });
+
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1034,19 +1117,19 @@ class _ActionCell extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Material(
       color: Colors.transparent,
-      child: GestureDetector(
-        onTap: () {},
+      child: InkWell(
+        onTap: onTap ?? () {},
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 13),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 17, color: scheme.onSurfaceVariant),
+              Icon(icon, size: 17, color: iconColor ?? scheme.onSurfaceVariant),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: theme.textTheme.labelLarge?.copyWith(
-                  color: scheme.onSurface,
+                  color: iconColor ?? scheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),

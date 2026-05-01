@@ -1304,7 +1304,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notificationReadFilterTitle => 'Trạng thái đọc';
 
   @override
-  String get notificationReadFilterAll => 'Tất cả trạng thái';
+  String get notificationReadFilterAll => 'Tất cả';
 
   @override
   String get notificationReadFilterUnread => 'Chưa đọc';
